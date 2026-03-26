@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Link Success</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a1a2e; min-height: 100vh; max-width: 375px; margin: 0 auto; }
+  /* Background page to show overlay context */
+  .bg-page { padding: 24px 16px; opacity: .35; pointer-events: none; }
+  .bg-nav { background: #2c7a6e; height: 56px; border-radius: 8px; margin-bottom: 16px; }
+  .bg-card { background: #fff; border-radius: 12px; height: 120px; margin-bottom: 12px; }
+  /* Overlay */
+  .overlay { position: fixed; inset: 0; background: rgba(20,15,5,.65); display: flex; align-items: flex-end; justify-content: center; z-index: 100; max-width: 375px; margin: 0 auto; }
+  .overlay-sheet { background: #fff; border-radius: 24px 24px 0 0; width: 100%; padding: 24px 22px 36px; }
+  .sheet-drag { width: 40px; height: 4px; background: #d1d5db; border-radius: 20px; margin: 0 auto 20px; }
+  .success-hero { text-align: center; padding: 8px 0 20px; }
+  .success-icon { font-size: 3.5rem; margin-bottom: 12px; display: block; }
+  .success-title { font-size: 1.4rem; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
+  .success-sub { font-size: .88rem; color: #6b7280; line-height: 1.5; }
+  .confirm-card { background: #edf7f5; border: 2px solid #b2d8d2; border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+  .cc-label { font-size: .72rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .cc-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .cc-row:last-child { margin-bottom: 0; }
+  .cc-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .cc-text .cc-main { font-weight: 700; font-size: .92rem; color: #1a1a2e; }
+  .cc-text .cc-detail { font-size: .77rem; color: #6b7280; margin-top: 1px; }
+  /* Tabs for the overlay panels */
+  .tabs { display: flex; background: #f5f0e8; border-radius: 12px; margin-bottom: 18px; padding: 3px; gap: 2px; }
+  .tab { flex: 1; padding: 8px; cursor: pointer; font-size: .72rem; font-weight: 600; color: #6b7280; border-radius: 9px; text-align: center; transition: all .2s; white-space: nowrap; }
+  .tab.active { background: #2c7a6e; color: #fff; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; border-radius: 10px; padding: 12px 14px; font-size: .78rem; margin-bottom: 18px; line-height: 1.5; }
+  .hint strong { color: #ffe599; }
+  /* What happens next */
+  .next-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .next-item { display: flex; gap: 12px; align-items: flex-start; }
+  .ni-num { width: 28px; height: 28px; border-radius: 50%; background: #2c7a6e; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .78rem; flex-shrink: 0; margin-top: 1px; }
+  .ni-body .ni-title { font-weight: 700; font-size: .88rem; color: #1a1a2e; }
+  .ni-body .ni-desc { font-size: .78rem; color: #6b7280; margin-top: 2px; line-height: 1.4; }
+  /* First report preview */
+  .preview-cards { display: flex; gap: 10px; margin-bottom: 16px; }
+  .pc-card { flex: 1; background: #f8f5f0; border-radius: 12px; padding: 12px; text-align: center; border: 2px solid #e8e2d6; }
+  .pc-icon { font-size: 1.4rem; margin-bottom: 6px; }
+  .pc-label { font-size: .72rem; font-weight: 700; color: #374151; }
+  .pc-sub { font-size: .68rem; color: #9ca3af; margin-top: 2px; }
+  /* Safety note */
+  .safety-banner { background: #1a1a2e; border-radius: 14px; padding: 16px; margin-bottom: 16px; display: flex; gap: 12px; }
+  .sb-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .sb-body .sb-title { font-weight: 700; color: #ffd166; font-size: .88rem; margin-bottom: 6px; }
+  .sb-body .sb-text { font-size: .78rem; color: #d4ccc0; line-height: 1.5; }
+  .safety-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 6px; }
+  .sl-item { display: flex; gap: 10px; align-items: flex-start; font-size: .82rem; color: #374151; }
+  .sl-icon { font-size: 1rem; flex-shrink: 0; }
+  /* CTA buttons */
+  .cta-primary { width: 100%; background: #2c7a6e; color: #fff; border: none; border-radius: 14px; padding: 15px; font-size: 1rem; font-weight: 700; font-family: 'Sora', sans-serif; cursor: pointer; margin-bottom: 10px; }
+  .cta-secondary { width: 100%; background: transparent; color: #2c7a6e; border: 2px solid #2c7a6e; border-radius: 14px; padding: 13px; font-size: .9rem; font-weight: 700; font-family: 'Sora', sans-serif; cursor: pointer; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .spec-table th { background: #2c7a6e; color: #fff; padding: 8px 12px; text-align: left; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  .spec-table tr:nth-child(even) td { background: #f9f7f3; }
+  h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: .82rem; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Background page (greyed out) -->
+<div class="bg-page">
+  <div class="bg-nav"></div>
+  <div class="bg-card"></div>
+  <div class="bg-card" style="height:80px;"></div>
+</div>
+
+<!-- Overlay sheet -->
+<div class="overlay">
+  <div class="overlay-sheet">
+    <div class="sheet-drag"></div>
+    <div class="success-hero">
+      <span class="success-icon">🎉</span>
+      <div class="success-title">Mia is all linked up!</div>
+      <div class="success-sub">Mia's school account is now connected to your family. WonderQuest will start tracking her progress right away.</div>
+    </div>
+    <div class="confirm-card">
+      <div class="cc-label">Confirmed Connection</div>
+      <div class="cc-row">
+        <span class="cc-icon">🦋</span>
+        <div class="cc-text"><div class="cc-main">Mia Johnson</div><div class="cc-detail">Grade 2 · Student ID confirmed</div></div>
+      </div>
+      <div class="cc-row">
+        <span class="cc-icon">🏫</span>
+        <div class="cc-text"><div class="cc-main">Lincoln Elementary</div><div class="cc-detail">Ms. Chen's class · Room 14</div></div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="show('success')">Success</div>
+      <div class="tab" onclick="show('whats-next')">What's Next</div>
+      <div class="tab" onclick="show('preview')">Report Preview</div>
+      <div class="tab" onclick="show('safety')">Family Safety</div>
+      <div class="tab" onclick="show('spec')">Spec</div>
+    </div>
+
+    <!-- PANEL 1: Success -->
+    <div id="success" class="panel active">
+      <div class="hint"><strong>You're all set!</strong> Mia's learning data will start appearing as she plays. First report arrives after her first session.</div>
+      <button class="cta-primary">View Mia's First Report →</button>
+      <button class="cta-secondary">Go to Family Dashboard</button>
+    </div>
+
+    <!-- PANEL 2: What Happens Next -->
+    <div id="whats-next" class="panel">
+      <div class="hint"><strong>What to expect:</strong> Here's how WonderQuest will support Mia's learning from here on out.</div>
+      <div class="next-list">
+        <div class="next-item">
+          <div class="ni-num">1</div>
+          <div class="ni-body"><div class="ni-title">Mia plays her first session</div><div class="ni-desc">As soon as Mia logs into WonderQuest, her skills start being tracked. You'll see her first progress data right away.</div></div>
+        </div>
+        <div class="next-item">
+          <div class="ni-num">2</div>
+          <div class="ni-body"><div class="ni-title">Your first report appears</div><div class="ni-desc">After Mia's first session, your parent dashboard fills in with her skill tiers and first badges.</div></div>
+        </div>
+        <div class="next-item">
+          <div class="ni-num">3</div>
+          <div class="ni-body"><div class="ni-title">Ms. Chen can send notes</div><div class="ni-desc">Her teacher can now send you messages and updates through WonderQuest — safely and privately.</div></div>
+        </div>
+        <div class="next-item">
+          <div class="ni-num">4</div>
+          <div class="ni-body"><div class="ni-title">Weekly reports every Sunday</div><div class="ni-desc">Every week you'll get a summary of Mia's growth, wins, and recommended home practice goals.</div></div>
+        </div>
+      </div>
+      <button class="cta-primary">Got It — Show Me the Dashboard →</button>
+    </div>
+
+    <!-- PANEL 3: First Report Preview -->
+    <div id="preview" class="panel">
+      <div class="hint"><strong>Coming soon:</strong> These cards will fill in once Mia plays her first session. We can't wait to show you her progress!</div>
+      <h2>Your Dashboard Preview</h2>
+      <p class="sub">Here's what you'll see once Mia starts playing.</p>
+      <div class="preview-cards">
+        <div class="pc-card">
+          <div class="pc-icon">📊</div>
+          <div class="pc-label">Skills Progress</div>
+          <div class="pc-sub">Tier levels for every skill area</div>
+        </div>
+        <div class="pc-card">
+          <div class="pc-icon">🏅</div>
+          <div class="pc-label">Badges Earned</div>
+          <div class="pc-sub">Achievements from learning</div>
+        </div>
+        <div class="pc-card">
+          <div class="pc-icon">💬</div>
+          <div class="pc-label">Teacher Notes</div>
+          <div class="pc-sub">Direct messages from Ms. Chen</div>
+        </div>
+      </div>
+      <div style="background:#f8f5f0;border-radius:12px;padding:14px;font-size:.82rem;color:#374151;line-height:1.6;margin-bottom:16px;">
+        All three areas will be live after Mia's first session. You'll get a notification when the first report is ready!
+      </div>
+      <button class="cta-primary">Share WonderQuest With Mia →</button>
+    </div>
+
+    <!-- PANEL 4: Family Safety Note -->
+    <div id="safety" class="panel">
+      <div class="hint"><strong>Family Safety:</strong> WonderQuest is built with family privacy as a core principle, not an afterthought.</div>
+      <div class="safety-banner">
+        <span class="sb-icon">🛡️</span>
+        <div class="sb-body">
+          <div class="sb-title">Your family is protected</div>
+          <div class="sb-text">WonderQuest never shares personal contact details between parents and teachers. All communications are routed through our secure platform.</div>
+        </div>
+      </div>
+      <div class="safety-list">
+        <div class="sl-item"><span class="sl-icon">🔒</span><span>Your email, phone, and address are never shared with teachers or schools</span></div>
+        <div class="sl-item"><span class="sl-icon">👶</span><span>Mia's data is used only to support her learning — never sold or shared with third parties</span></div>
+        <div class="sl-item"><span class="sl-icon">📨</span><span>All teacher messages are routed through WonderQuest — neither side gets the other's contact details</span></div>
+        <div class="sl-item"><span class="sl-icon">🗑️</span><span>You can delete all family data at any time from Settings → Privacy & Account</span></div>
+      </div>
+      <button class="cta-primary">View Mia's Dashboard →</button>
+    </div>
+
+    <!-- PANEL 5: Spec -->
+    <div id="spec" class="panel">
+      <div class="hint"><strong>Spec:</strong> Design and data contract for link success overlay.</div>
+      <h2>Specification</h2>
+      <table class="spec-table">
+        <tr><th>Property</th><th>Value</th></tr>
+        <tr><td>Screen</td><td>parent-link-success-overlay-v2</td></tr>
+        <tr><td>Viewport</td><td>375px mobile</td></tr>
+        <tr><td>Font</td><td>Sora</td></tr>
+        <tr><td>Background</td><td>#f5f0e8 (behind overlay)</td></tr>
+        <tr><td>Overlay</td><td>Bottom sheet, rounded top corners, dark backdrop</td></tr>
+        <tr><td>Confirmation card</td><td>Child name, school, teacher confirmed</td></tr>
+        <tr><td>What's next</td><td>4-step numbered list of post-link flow</td></tr>
+        <tr><td>Report preview</td><td>3 placeholder cards: Skills, Badges, Teacher Notes</td></tr>
+        <tr><td>Safety</td><td>Dark banner + 4-point privacy guarantee</td></tr>
+        <tr><td>Design tokens</td><td>Hint: #2a1f00 / #ffd166</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

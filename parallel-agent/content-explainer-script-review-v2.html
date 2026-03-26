@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Explainer Script Review — WonderQuest Design System #299</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d1117;
+      --card:    #161b22;
+      --accent:  #50e890;
+      --text:    #f0f6ff;
+      --border:  rgba(255,255,255,.06);
+      --muted:   #8b949e;
+      --coral:   #ff6b6b;
+      --coral-bg: rgba(255,107,107,.15);
+      --warning-bg: rgba(255,193,7,.12);
+      --warning-border: rgba(255,193,7,.5);
+      --warning-text: #ffc107;
+      --green-bg: rgba(80,232,144,.12);
+      --green-border: rgba(80,232,144,.4);
+      --approved-bg: rgba(80,232,144,.18);
+      --draft-bg: rgba(139,148,158,.15);
+      --in-review-bg: rgba(255,193,7,.15);
+      --published-bg: rgba(56,189,248,.15);
+      --published-text: #38bdf8;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .eng-hint {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin: 20px 20px 0;
+      font-size: 11.5px;
+      color: var(--warning-text);
+      font-family: 'Inter', monospace;
+      line-height: 1.65;
+    }
+    .eng-hint strong { font-weight: 700; letter-spacing: .02em; }
+
+    /* ── Page Header ── */
+    .page-header {
+      padding: 28px 24px 0;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.3px;
+    }
+    .page-header p {
+      font-size: 13.5px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--green-bg);
+      color: var(--accent);
+      border: 1px solid var(--green-border);
+      border-radius: 20px;
+      padding: 2px 9px;
+      margin-left: 8px;
+      vertical-align: middle;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Top-level Tab Nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      padding: 20px 24px 0;
+      border-bottom: 1px solid var(--border);
+      margin-top: 16px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 10px 18px;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s, background .15s;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Tab Panels ── */
+    .tab-panel { display: none; padding: 24px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 12px;
+    }
+
+    /* ── Chip Groups (script type / coach / band) ── */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s, background .15s;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .chip:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+    .chip.active {
+      background: var(--green-bg);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .chip.coach-active {
+      background: rgba(56,189,248,.12);
+      border-color: rgba(56,189,248,.5);
+      color: #38bdf8;
+    }
+    .chip.band-active {
+      background: rgba(167,139,250,.12);
+      border-color: rgba(167,139,250,.5);
+      color: #a78bfa;
+    }
+
+    /* ── Script text display ── */
+    .script-display {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text);
+      min-height: 120px;
+      word-break: break-word;
+    }
+    .flagged-word {
+      background: var(--coral-bg);
+      color: var(--coral);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+    }
+
+    /* ── Flag panel ── */
+    .flag-panel {
+      background: var(--coral-bg);
+      border: 1px solid rgba(255,107,107,.3);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      display: none;
+    }
+    .flag-panel.visible { display: block; }
+    .flag-panel-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--coral);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 8px;
+    }
+    .flag-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,107,107,.15);
+    }
+    .flag-row:first-of-type { border-top: none; }
+    .flag-term { color: var(--coral); font-weight: 600; min-width: 90px; }
+    .flag-arrow { color: var(--muted); }
+    .flag-replace { color: var(--accent); }
+
+    /* ── All-clear panel ── */
+    .all-clear {
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--accent);
+      display: none;
+    }
+    .all-clear.visible { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Checkboxes ── */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+    .check-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      min-width: 18px;
+    }
+    .check-row label {
+      font-size: 13.5px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* ── Action Buttons ── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: none;
+      border-radius: 9px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      padding: 0 22px;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover { opacity: .88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-approve {
+      background: var(--accent);
+      color: #0d1117;
+    }
+    .btn-changes {
+      background: transparent;
+      border: 1px solid rgba(255,107,107,.5);
+      color: var(--coral);
+    }
+    .btn-changes:hover { background: var(--coral-bg); opacity: 1; }
+
+    /* ── Status toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13.5px;
+      font-weight: 600;
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .3s, opacity .3s;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Tab 2: Library Table ── */
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .filter-chip {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      cursor: pointer;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .filter-chip:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+    .filter-chip.active {
+      background: var(--green-bg);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .filter-chip.audio-chip.active {
+      background: rgba(56,189,248,.12);
+      border-color: rgba(56,189,248,.5);
+      color: #38bdf8;
+    }
+    .lib-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .lib-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      border-bottom: 1px solid var(--border);
+    }
+    .lib-table td {
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .lib-table tr:last-child td { border-bottom: none; }
+    .lib-table tr:hover td { background: rgba(255,255,255,.02); }
+    .status-pill {
+      display: inline-block;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      text-transform: capitalize;
+    }
+    .status-draft     { background: var(--draft-bg); color: var(--muted); }
+    .status-in_review { background: var(--in-review-bg); color: var(--warning-text); }
+    .status-approved  { background: var(--approved-bg); color: var(--accent); }
+    .status-published { background: var(--published-bg); color: var(--published-text); }
+    .bool-yes { color: var(--accent); font-size: 15px; }
+    .bool-no  { color: var(--muted); font-size: 15px; }
+
+    /* ── Tab 3: Spec ── */
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-section p, .spec-section li {
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .spec-section ul { padding-left: 18px; }
+    .spec-section ul li { margin-bottom: 4px; }
+    pre.spec-code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 11.5px;
+      color: #a5d6ff;
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+      overflow-x: auto;
+      line-height: 1.65;
+      white-space: pre;
+    }
+    .rule-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      color: var(--accent);
+      font-size: 10.5px;
+      font-weight: 700;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
+      margin-bottom: 8px;
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .prohibited-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-top: 8px;
+    }
+    .prohibited-table th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .prohibited-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .prohibited-table tr:last-child td { border-bottom: none; }
+    .term-bad { color: var(--coral); font-weight: 600; }
+    .term-good { color: var(--accent); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .eng-hint { margin: 12px 12px 0; font-size: 10.5px; }
+      .page-header { padding: 20px 16px 0; }
+      .tab-nav { padding: 16px 16px 0; }
+      .tab-btn { padding: 10px 12px; font-size: 12.5px; }
+      .tab-panel { padding: 16px; }
+      .lib-table { font-size: 11.5px; }
+      .lib-table th, .lib-table td { padding: 9px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     ENGINEERING HINT BOX (always first)
+══════════════════════════════════════════════ -->
+<div class="eng-hint" role="note" aria-label="Engineering hint">
+  <strong>Engineering hint — content-explainer-script-review-v2</strong><br />
+  Persona: Content Team &nbsp;|&nbsp; Route: /content/scripts/[script_id]/review &nbsp;|&nbsp;
+  DB: <strong>explainer_scripts</strong> { id, quest_id, question_id, coach_id TEXT,
+  script_type ENUM('intro','hint','explanation','celebration','error_recovery'),
+  script_text TEXT, band ENUM('P0','P1','P2','P3'),
+  status ENUM('draft','in_review','approved','published'),
+  child_safety_approved BOOLEAN, audio_recorded BOOLEAN, reviewed_by TEXT,
+  created_at, updated_at } &nbsp;|&nbsp;
+  Privacy: No child PII in scripts &nbsp;|&nbsp;
+  Child safety: error_recovery scripts MUST NEVER use 'wrong/incorrect/mistake';
+  celebration scripts must be unconditionally positive;
+  hint scripts must not create anxiety
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>
+    Content Explainer Script Review
+    <span class="badge">#299</span>
+  </h1>
+  <p>Review voice coach explainer scripts — child-safe language, positive framing, adventure style.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TOP-LEVEL TAB NAV
+══════════════════════════════════════════════ -->
+<nav class="tab-nav" role="tablist" aria-label="Main sections">
+  <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="panel-review"  id="tab-review"  onclick="showTab('review')">Script Review</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-library" id="tab-library" onclick="showTab('library')">Script Library</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-spec"    id="tab-spec"    onclick="showTab('spec')">Spec</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     TAB 1 — SCRIPT REVIEW
+══════════════════════════════════════════════ -->
+<div class="tab-panel active" id="panel-review" role="tabpanel" aria-labelledby="tab-review">
+
+  <!-- Script Type Selector -->
+  <div class="card">
+    <div class="card-title">Script Type</div>
+    <div class="chip-group" role="group" aria-label="Script type">
+      <button class="chip active" onclick="selectScriptType('intro',this)"        aria-pressed="true">Intro</button>
+      <button class="chip"        onclick="selectScriptType('hint',this)"          aria-pressed="false">Hint</button>
+      <button class="chip"        onclick="selectScriptType('explanation',this)"   aria-pressed="false">Explanation</button>
+      <button class="chip"        onclick="selectScriptType('celebration',this)"   aria-pressed="false">Celebration</button>
+      <button class="chip"        onclick="selectScriptType('error_recovery',this)"aria-pressed="false">Error Recovery</button>
+    </div>
+  </div>
+
+  <!-- Coach Selector -->
+  <div class="card">
+    <div class="card-title">Voice Coach</div>
+    <div class="chip-group" role="group" aria-label="Voice coach">
+      <button class="chip coach-active" onclick="selectCoach('Orbit',this)"     aria-pressed="true">Orbit</button>
+      <button class="chip"              onclick="selectCoach('Luna',this)"       aria-pressed="false">Luna</button>
+      <button class="chip"              onclick="selectCoach('Rex',this)"        aria-pressed="false">Rex</button>
+      <button class="chip"              onclick="selectCoach('Maya',this)"       aria-pressed="false">Maya</button>
+      <button class="chip"              onclick="selectCoach('Zara',this)"       aria-pressed="false">Zara</button>
+      <button class="chip"              onclick="selectCoach('Text Only',this)"  aria-pressed="false">Text Only</button>
+    </div>
+  </div>
+
+  <!-- Band Selector -->
+  <div class="card">
+    <div class="card-title">Reading Band</div>
+    <div class="chip-group" role="group" aria-label="Reading band">
+      <button class="chip band-active" onclick="selectBand('P0',this)" aria-pressed="true">P0 — Pre-Reader</button>
+      <button class="chip"             onclick="selectBand('P1',this)" aria-pressed="false">P1 — Early Reader</button>
+      <button class="chip"             onclick="selectBand('P2',this)" aria-pressed="false">P2 — Developing Reader</button>
+      <button class="chip"             onclick="selectBand('P3',this)" aria-pressed="false">P3 — Fluent Reader</button>
+    </div>
+  </div>
+
+  <!-- Script Text Display -->
+  <div class="card">
+    <div class="card-title">Script Text <span id="script-type-label" style="color:var(--accent);text-transform:none;letter-spacing:0;font-size:11px;">(Intro · Orbit · P0)</span></div>
+    <div class="script-display" id="script-display" aria-live="polite" aria-label="Script text with flagged words highlighted"></div>
+
+    <!-- Flag panel -->
+    <div class="flag-panel" id="flag-panel" role="alert" aria-label="Flagged language warnings">
+      <div class="flag-panel-title">⚠ Flagged Language — Replacements Required</div>
+      <div id="flag-list"></div>
+    </div>
+
+    <!-- All-clear -->
+    <div class="all-clear" id="all-clear" role="status">
+      <span aria-hidden="true">✓</span> No prohibited language detected — script passes child-safety language check.
+    </div>
+  </div>
+
+  <!-- Checklist & Actions -->
+  <div class="card">
+    <div class="card-title">Review Checklist</div>
+    <div class="check-row">
+      <input type="checkbox" id="chk-audio" aria-label="Audio recorded" />
+      <label for="chk-audio">Audio recorded</label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="chk-safety" aria-label="Child safety approved" />
+      <label for="chk-safety">Child safety approved</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Actions</div>
+    <div class="action-row">
+      <button class="btn btn-approve" onclick="handleApprove()" aria-label="Approve script">
+        ✓ Approve Script
+      </button>
+      <button class="btn btn-changes" onclick="handleRequestChanges()" aria-label="Request changes">
+        ↩ Request Changes
+      </button>
+    </div>
+  </div>
+
+</div><!-- /panel-review -->
+
+<!-- ══════════════════════════════════════════════
+     TAB 2 — SCRIPT LIBRARY
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-library" role="tabpanel" aria-labelledby="tab-library">
+
+  <!-- Filters -->
+  <div class="filter-row" role="group" aria-label="Filter scripts">
+    <button class="filter-chip active" onclick="filterLibrary('all',this)"        aria-pressed="true">All</button>
+    <button class="filter-chip"        onclick="filterLibrary('draft',this)"       aria-pressed="false">Draft</button>
+    <button class="filter-chip"        onclick="filterLibrary('in_review',this)"   aria-pressed="false">In Review</button>
+    <button class="filter-chip"        onclick="filterLibrary('approved',this)"    aria-pressed="false">Approved</button>
+    <button class="filter-chip"        onclick="filterLibrary('published',this)"   aria-pressed="false">Published</button>
+    <button class="filter-chip audio-chip" id="audio-filter-chip" onclick="filterAudio(this)" aria-pressed="false">🎙 Needs Audio</button>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="lib-table" aria-label="Script library">
+      <thead>
+        <tr>
+          <th>Script Type</th>
+          <th>Coach</th>
+          <th>Band</th>
+          <th>Status</th>
+          <th>Audio</th>
+          <th>Child Safety</th>
+          <th>Reviewed By</th>
+        </tr>
+      </thead>
+      <tbody id="lib-tbody">
+        <!-- populated by JS -->
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /panel-library -->
+
+<!-- ══════════════════════════════════════════════
+     TAB 3 — SPEC
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-spec" role="tabpanel" aria-labelledby="tab-spec">
+
+  <!-- Component info -->
+  <div class="card spec-section">
+    <h3>Component</h3>
+    <p><strong>ExplainerScriptReview</strong> — Content team tool for reviewing voice coach explainer scripts. Ensures child-safe language, positive framing, and adventure style across all script types before audio recording and publication.</p>
+    <br />
+    <p><strong>Route:</strong> /content/scripts/[script_id]/review</p>
+    <p style="margin-top:6px;"><strong>Auth:</strong> Content Team role required. No child PII in scripts.</p>
+    <br />
+    <p><strong>Props:</strong></p>
+    <ul style="margin-top:6px;">
+      <li><code style="color:#a5d6ff;">scriptId: string</code> — Script record ID</li>
+      <li><code style="color:#a5d6ff;">questId: string</code> — Parent quest ID</li>
+      <li><code style="color:#a5d6ff;">onApprove?: () =&gt; void</code> — Callback on approval</li>
+      <li><code style="color:#a5d6ff;">onRequestChanges?: () =&gt; void</code> — Callback on change request</li>
+    </ul>
+  </div>
+
+  <!-- DB Schema -->
+  <div class="card spec-section">
+    <h3>DB Schema — explainer_scripts</h3>
+<pre class="spec-code">TABLE explainer_scripts {
+  id                  TEXT          PRIMARY KEY,
+  quest_id            TEXT          NOT NULL,
+  question_id         TEXT,
+  coach_id            TEXT,         -- 'Orbit'|'Luna'|'Rex'|'Maya'|'Zara'|'text_only'
+  script_type         ENUM          NOT NULL,
+    -- 'intro' | 'hint' | 'explanation' | 'celebration' | 'error_recovery'
+  script_text         TEXT          NOT NULL,
+  band                ENUM          NOT NULL,
+    -- 'P0' | 'P1' | 'P2' | 'P3'
+  status              ENUM          DEFAULT 'draft',
+    -- 'draft' | 'in_review' | 'approved' | 'published'
+  child_safety_approved  BOOLEAN    DEFAULT FALSE,
+  audio_recorded         BOOLEAN    DEFAULT FALSE,
+  reviewed_by            TEXT,      -- Content team member ID
+  created_at             TIMESTAMP  DEFAULT NOW(),
+  updated_at             TIMESTAMP  DEFAULT NOW()
+}</pre>
+  </div>
+
+  <!-- Child Safety Language Rules -->
+  <div class="card spec-section">
+    <h3>Child Safety Language Rules</h3>
+    <p style="margin-bottom:12px;font-size:13px;color:var(--muted);">Prohibited terms are detected automatically. All scripts must pass before approval.</p>
+
+    <table class="prohibited-table" aria-label="Prohibited terms and replacements">
+      <thead>
+        <tr>
+          <th>Prohibited Term</th>
+          <th>Applies To</th>
+          <th>Required Replacement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="term-bad">wrong</td>
+          <td style="color:var(--muted);">All types (mandatory: error_recovery)</td>
+          <td class="term-good">"Let's try a different path!" / "Keep exploring!"</td>
+        </tr>
+        <tr>
+          <td class="term-bad">incorrect</td>
+          <td style="color:var(--muted);">All types (mandatory: error_recovery)</td>
+          <td class="term-good">"Let's try again!" / "Every explorer keeps going!"</td>
+        </tr>
+        <tr>
+          <td class="term-bad">mistake</td>
+          <td style="color:var(--muted);">All types (mandatory: error_recovery)</td>
+          <td class="term-good">"A new discovery!" / "Part of the adventure!"</td>
+        </tr>
+        <tr>
+          <td class="term-bad">failed / fail</td>
+          <td style="color:var(--muted);">All types</td>
+          <td class="term-good">"Not yet — explorers keep going!"</td>
+        </tr>
+        <tr>
+          <td class="term-bad">bad</td>
+          <td style="color:var(--muted);">All types</td>
+          <td class="term-good">Reframe with positive observation</td>
+        </tr>
+        <tr>
+          <td class="term-bad">stupid</td>
+          <td style="color:var(--muted);">All types</td>
+          <td class="term-good">Remove entirely; never address ability negatively</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:14px;padding:12px 14px;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.25);border-radius:8px;font-size:12.5px;color:var(--warning-text);line-height:1.65;">
+      <strong>Error Recovery MUST:</strong> use positive, adventure framing. Approved phrases:
+      "Let's try a different path!", "Every explorer keeps going!", "Let's try again!",
+      "Keep going, Explorer!", "That's part of the adventure!". NEVER use: wrong, incorrect, mistake.
+    </div>
+    <div style="margin-top:8px;padding:12px 14px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;font-size:12.5px;color:var(--accent);line-height:1.65;">
+      <strong>Celebration scripts</strong> must be unconditionally positive — no qualifiers, no conditions, no comparisons.
+    </div>
+    <div style="margin-top:8px;padding:12px 14px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:8px;font-size:12.5px;color:#a78bfa;line-height:1.65;">
+      <strong>Hint scripts</strong> must not create anxiety — no urgency language, no "hurry", no "you must".
+    </div>
+  </div>
+
+  <!-- Status Lifecycle -->
+  <div class="card spec-section">
+    <h3>Status Lifecycle</h3>
+    <p style="font-size:13.5px;line-height:1.8;color:var(--text);">
+      <span class="status-pill status-draft">draft</span>
+      &nbsp;→&nbsp;
+      <span class="status-pill status-in_review">in_review</span>
+      &nbsp;→&nbsp;
+      <span class="status-pill status-approved">approved</span>
+      &nbsp;→&nbsp;
+      <span class="status-pill status-published">published</span>
+    </p>
+    <ul style="margin-top:12px;">
+      <li><strong>draft</strong> — Initial creation; editable by script authors.</li>
+      <li><strong>in_review</strong> — Submitted to content team; auto-flag scan runs on submission.</li>
+      <li><strong>approved</strong> — Content team sign-off; child_safety_approved=TRUE required.</li>
+      <li><strong>published</strong> — Live in app; audio_recorded=TRUE required to publish.</li>
+    </ul>
+  </div>
+
+  <!-- Business Rules -->
+  <div class="card spec-section">
+    <h3>6 Business Rules</h3>
+
+    <div class="rule-item"><span class="rule-num">1</span>
+      <span>error_recovery scripts must NEVER contain the words "wrong", "incorrect", or "mistake" — the Approve button is disabled until the script passes the auto-flag scan.</span>
+    </div>
+    <div class="rule-item"><span class="rule-num">2</span>
+      <span>child_safety_approved must be TRUE before a script can transition from <em>approved</em> to <em>published</em>.</span>
+    </div>
+    <div class="rule-item"><span class="rule-num">3</span>
+      <span>audio_recorded must be TRUE before a script can reach <em>published</em> status.</span>
+    </div>
+    <div class="rule-item"><span class="rule-num">4</span>
+      <span>celebration scripts must be unconditionally positive — no conditional language ("if you try", "when you do better") is permitted.</span>
+    </div>
+    <div class="rule-item"><span class="rule-num">5</span>
+      <span>hint scripts must not contain anxiety-inducing language such as "hurry", "you must", "time is running out".</span>
+    </div>
+    <div class="rule-item"><span class="rule-num">6</span>
+      <span>No child PII (names, ages, school names, progress data) may appear in any script_text field; scripts are shared across all child accounts in the same band.</span>
+    </div>
+  </div>
+
+</div><!-- /panel-spec -->
+
+<!-- ══════════════════════════════════════════════
+     STATUS TOAST
+══════════════════════════════════════════════ -->
+<div class="toast" id="toast" aria-live="assertive" aria-atomic="true"></div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+  /* ── State ── */
+  const state = {
+    scriptType: 'intro',
+    coach:      'Orbit',
+    band:       'P0',
+    libFilter:  'all',
+    audioFilter: false
+  };
+
+  /* ── Sample scripts per type ── */
+  const SAMPLE_SCRIPTS = {
+    intro:         "Welcome, Explorer! Today we're going on a reading adventure! 🚀 Let's discover something amazing!",
+    hint:          "Here's a clue, adventurer! Look at the beginning of the word — what sound do you hear? 🎵",
+    explanation:   "Great exploring! The answer is [X] because... [age-appropriate explanation]",
+    celebration:   "YOU DID IT! 🎉 Amazing work, Explorer! That was SPECTACULAR!",
+    error_recovery:"Let's try a different path! 🌟 Every explorer keeps going!"
+  };
+
+  /* ── Prohibited words + replacements ── */
+  const PROHIBITED = [
+    { term: 'wrong',     replace: '"Let\'s try a different path!"' },
+    { term: 'incorrect', replace: '"Let\'s try again!"' },
+    { term: 'mistake',   replace: '"Part of the adventure!"' },
+    { term: 'failed',    replace: '"Not yet — explorers keep going!"' },
+    { term: 'fail',      replace: '"Not yet — explorers keep going!"' },
+    { term: 'bad',       replace: 'Reframe with a positive observation' },
+    { term: 'stupid',    replace: 'Remove entirely' }
+  ];
+
+  /* ── Script type → label ── */
+  const TYPE_LABELS = {
+    intro:         'Intro',
+    hint:          'Hint',
+    explanation:   'Explanation',
+    celebration:   'Celebration',
+    error_recovery:'Error Recovery'
+  };
+
+  /* ── Library mock data ── */
+  const LIBRARY_DATA = [
+    { type:'intro',         coach:'Orbit', band:'P0', status:'published', audio:true,  safety:true,  reviewer:'alex.c' },
+    { type:'hint',          coach:'Luna',  band:'P0', status:'approved',  audio:true,  safety:true,  reviewer:'sam.k' },
+    { type:'explanation',   coach:'Rex',   band:'P1', status:'in_review', audio:false, safety:false, reviewer:'' },
+    { type:'celebration',   coach:'Maya',  band:'P1', status:'approved',  audio:true,  safety:true,  reviewer:'alex.c' },
+    { type:'error_recovery',coach:'Zara',  band:'P0', status:'draft',     audio:false, safety:false, reviewer:'' },
+    { type:'hint',          coach:'Orbit', band:'P2', status:'in_review', audio:false, safety:true,  reviewer:'priya.m' },
+    { type:'intro',         coach:'Luna',  band:'P2', status:'published', audio:true,  safety:true,  reviewer:'sam.k' },
+    { type:'celebration',   coach:'Rex',   band:'P3', status:'draft',     audio:false, safety:false, reviewer:'' },
+    { type:'error_recovery',coach:'Maya',  band:'P1', status:'approved',  audio:true,  safety:true,  reviewer:'priya.m' },
+    { type:'explanation',   coach:'Zara',  band:'P3', status:'published', audio:true,  safety:true,  reviewer:'alex.c' }
+  ];
+
+  /* ══════════════════════════════════════════
+     TAB SWITCHING
+  ══════════════════════════════════════════ */
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.getElementById('panel-' + t).classList.add('active');
+    const btn = document.getElementById('tab-' + t);
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    if (t === 'library') renderLibrary();
+  }
+
+  /* ══════════════════════════════════════════
+     SCRIPT TYPE SELECTOR
+  ══════════════════════════════════════════ */
+  function selectScriptType(type, el) {
+    state.scriptType = type;
+    document.querySelectorAll('#panel-review .chip-group:nth-of-type(1) .chip').forEach(c => {
+      c.classList.remove('active');
+      c.setAttribute('aria-pressed','false');
+    });
+    // Re-query fresh since chip-group selector above isn't specific enough — use data approach
+    el.classList.add('active');
+    el.setAttribute('aria-pressed','true');
+    updateScriptDisplay();
+  }
+
+  function selectCoach(coach, el) {
+    state.coach = coach;
+    el.closest('.chip-group').querySelectorAll('.chip').forEach(c => {
+      c.classList.remove('coach-active');
+      c.setAttribute('aria-pressed','false');
+    });
+    el.classList.add('coach-active');
+    el.setAttribute('aria-pressed','true');
+    updateScriptDisplay();
+  }
+
+  function selectBand(band, el) {
+    state.band = band;
+    el.closest('.chip-group').querySelectorAll('.chip').forEach(c => {
+      c.classList.remove('band-active');
+      c.setAttribute('aria-pressed','false');
+    });
+    el.classList.add('band-active');
+    el.setAttribute('aria-pressed','true');
+    updateScriptDisplay();
+  }
+
+  /* ══════════════════════════════════════════
+     FLAG SCANNER + DISPLAY
+  ══════════════════════════════════════════ */
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function highlightFlagged(text) {
+    let flagged = [];
+    let highlighted = escapeHtml(text);
+
+    PROHIBITED.forEach(({ term, replace }) => {
+      const regex = new RegExp('\\b(' + term + ')\\b', 'gi');
+      if (regex.test(highlighted)) {
+        flagged.push({ term, replace });
+      }
+    });
+
+    // Apply highlights (rebuild regex after testing)
+    PROHIBITED.forEach(({ term }) => {
+      const regex = new RegExp('\\b(' + term + ')\\b', 'gi');
+      highlighted = highlighted.replace(regex, '<span class="flagged-word" title="Prohibited term" aria-label="Prohibited term: $1">$1</span>');
+    });
+
+    return { highlighted, flagged };
+  }
+
+  function updateScriptDisplay() {
+    const text   = SAMPLE_SCRIPTS[state.scriptType] || '';
+    const label  = document.getElementById('script-type-label');
+    const display= document.getElementById('script-display');
+    const flagPanel = document.getElementById('flag-panel');
+    const flagList  = document.getElementById('flag-list');
+    const allClear  = document.getElementById('all-clear');
+
+    label.textContent = `(${TYPE_LABELS[state.scriptType]} · ${state.coach} · ${state.band})`;
+
+    const { highlighted, flagged } = highlightFlagged(text);
+    display.innerHTML = highlighted;
+
+    if (flagged.length > 0) {
+      flagPanel.classList.add('visible');
+      allClear.classList.remove('visible');
+      flagList.innerHTML = flagged.map(f =>
+        `<div class="flag-row">
+          <span class="flag-term">"${f.term}"</span>
+          <span class="flag-arrow">→</span>
+          <span class="flag-replace">${f.replace}</span>
+        </div>`
+      ).join('');
+    } else {
+      flagPanel.classList.remove('visible');
+      allClear.classList.add('visible');
+      flagList.innerHTML = '';
+    }
+  }
+
+  /* ══════════════════════════════════════════
+     ACTIONS
+  ══════════════════════════════════════════ */
+  function handleApprove() {
+    const safety = document.getElementById('chk-safety');
+    if (!safety.checked) {
+      showToast('Please check "Child safety approved" before approving.', true);
+      return;
+    }
+
+    // Check for flagged words
+    const text = SAMPLE_SCRIPTS[state.scriptType] || '';
+    const hasFlagged = PROHIBITED.some(({ term }) =>
+      new RegExp('\\b' + term + '\\b', 'i').test(text)
+    );
+    if (hasFlagged) {
+      showToast('Cannot approve — prohibited language detected. Please revise the script.', true);
+      return;
+    }
+
+    showToast('Script approved and submitted for audio recording.');
+  }
+
+  function handleRequestChanges() {
+    showToast('Change request submitted to script author.');
+  }
+
+  /* ══════════════════════════════════════════
+     TOAST
+  ══════════════════════════════════════════ */
+  let toastTimer;
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.borderColor = isError ? 'var(--coral)' : 'var(--accent)';
+    toast.style.color        = isError ? 'var(--coral)' : 'var(--accent)';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+  }
+
+  /* ══════════════════════════════════════════
+     LIBRARY
+  ══════════════════════════════════════════ */
+  function filterLibrary(status, el) {
+    state.libFilter = status;
+    document.querySelectorAll('.filter-chip:not(.audio-chip)').forEach(c => {
+      c.classList.remove('active');
+      c.setAttribute('aria-pressed','false');
+    });
+    el.classList.add('active');
+    el.setAttribute('aria-pressed','true');
+    renderLibrary();
+  }
+
+  function filterAudio(el) {
+    state.audioFilter = !state.audioFilter;
+    el.classList.toggle('active', state.audioFilter);
+    el.setAttribute('aria-pressed', state.audioFilter ? 'true' : 'false');
+    renderLibrary();
+  }
+
+  function renderLibrary() {
+    const tbody = document.getElementById('lib-tbody');
+    let rows = LIBRARY_DATA;
+    if (state.libFilter !== 'all') {
+      rows = rows.filter(r => r.status === state.libFilter);
+    }
+    if (state.audioFilter) {
+      rows = rows.filter(r => !r.audio);
+    }
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No scripts match the current filters.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${TYPE_LABELS[r.type]}</td>
+        <td>${r.coach}</td>
+        <td style="color:#a78bfa;">${r.band}</td>
+        <td><span class="status-pill status-${r.status}">${r.status.replace('_',' ')}</span></td>
+        <td>${r.audio  ? '<span class="bool-yes" aria-label="Yes">✓</span>' : '<span class="bool-no" aria-label="No">–</span>'}</td>
+        <td>${r.safety ? '<span class="bool-yes" aria-label="Yes">✓</span>' : '<span class="bool-no" aria-label="No">–</span>'}</td>
+        <td style="color:var(--muted);font-size:12px;">${r.reviewer || '—'}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* ══════════════════════════════════════════
+     CHIP GROUP DEACTIVATION HELPER
+     (Fix: script-type chips need independent tracking)
+  ══════════════════════════════════════════ */
+  // Mark each chip group with data-group for clean deactivation
+  document.addEventListener('DOMContentLoaded', () => {
+    // Assign data-group to each chip-group
+    const groups = document.querySelectorAll('#panel-review .chip-group');
+    groups[0].dataset.group = 'type';
+    groups[1].dataset.group = 'coach';
+    groups[2].dataset.group = 'band';
+
+    // Re-wire onclick to use group-aware deactivation
+    groups[0].querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        groups[0].querySelectorAll('.chip').forEach(c => {
+          c.classList.remove('active');
+          c.setAttribute('aria-pressed','false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-pressed','true');
+      });
+    });
+
+    // Initial render
+    updateScriptDisplay();
+    renderLibrary();
+  });
+</script>
+
+</body>
+</html>

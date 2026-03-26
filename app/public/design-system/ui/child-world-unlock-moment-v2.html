@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – World Unlock Moment v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* World Unlock Reveal */
+.unlock-bg{background:radial-gradient(ellipse at center,#1e0a4e 0%,#100b2e 70%);min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.sparkle-container{position:absolute;inset:0;pointer-events:none}
+.sparkle{position:absolute;width:8px;height:8px;border-radius:50%;animation:sparkle-fly 2s ease-out infinite}
+@keyframes sparkle-fly{0%{opacity:1;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(0) translateY(-80px)}}
+.world-emoji-wrap{animation:world-appear 0.8s cubic-bezier(0.175,0.885,0.32,1.275) forwards}
+@keyframes world-appear{0%{transform:scale(0) rotate(-20deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+.world-emoji{font-size:96px;line-height:1;text-align:center;filter:drop-shadow(0 0 24px #9b72ff)}
+.unlock-badge{background:#ffd166;color:#100b2e;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:900;margin-top:12px;animation:badge-pop 0.4s 0.6s ease both}
+@keyframes badge-pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.world-name{font-size:36px;font-weight:900;color:#ffd166;margin-top:10px;text-align:center;text-shadow:0 0 20px #ffd16688;animation:name-reveal 0.5s 0.9s ease both;opacity:0}
+@keyframes name-reveal{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+.world-tagline{font-size:14px;color:#9b72ff;margin-top:4px;text-align:center;opacity:0;animation:name-reveal 0.5s 1.1s ease both}
+.skill-chips-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px;opacity:0;animation:name-reveal 0.5s 1.3s ease both}
+.skill-chip{background:#1e1550;border:2px solid #9b72ff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#c8b8ff;display:flex;align-items:center;gap:5px}
+.unlock-ctas{display:flex;flex-direction:column;gap:10px;width:100%;padding:0 8px;margin-top:24px;opacity:0;animation:name-reveal 0.5s 1.5s ease both}
+.btn-enter{background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;cursor:pointer;width:100%;letter-spacing:0.5px}
+.btn-later{background:transparent;border:2px solid #2d2570;border-radius:16px;padding:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%}
+
+/* Burst ring */
+.burst-ring{position:absolute;width:200px;height:200px;border-radius:50%;border:3px solid #9b72ff44;animation:burst 1.2s 0.3s ease-out forwards;opacity:0}
+@keyframes burst{0%{transform:scale(0);opacity:0.8}100%{transform:scale(3);opacity:0}}
+.burst-ring2{position:absolute;width:200px;height:200px;border-radius:50%;border:3px solid #ffd16644;animation:burst 1.4s 0.5s ease-out forwards;opacity:0}
+
+/* World Preview */
+.preview-header{font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.preview-sub{font-size:13px;color:#9b72ff;margin-bottom:18px}
+.first-node-card{background:#1e1550;border:2px solid #9b72ff;border-radius:16px;padding:16px;margin-bottom:16px}
+.node-badge{background:#9b72ff;color:#fff;border-radius:10px;padding:3px 10px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:8px}
+.node-title{font-size:18px;font-weight:900;margin-bottom:4px}
+.node-desc{font-size:13px;color:#9b8fe0;line-height:1.4}
+.node-stars{color:#ffd166;font-size:14px;margin-top:8px}
+.skill-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.skill-card{background:#1e1550;border:2px solid #2d2570;border-radius:12px;padding:12px;text-align:center}
+.skill-card .s-icon{font-size:28px;margin-bottom:4px}
+.skill-card .s-name{font-size:12px;font-weight:700;color:#c8b8ff}
+
+/* Confirmation */
+.confirm-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px}
+.confirm-emoji{font-size:72px}
+.confirm-title{font-size:24px;font-weight:900;color:#ffd166}
+.confirm-body{font-size:14px;color:#9b8fe0;line-height:1.5;max-width:280px}
+.confirm-card{background:#1e1550;border:2px solid #58e8c1;border-radius:16px;padding:14px;width:100%;text-align:left}
+.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #2d2570;font-size:13px}
+.confirm-row:last-child{border-bottom:none}
+.confirm-row .label{color:#9b8fe0}
+.confirm-row .val{color:#ffd166;font-weight:700}
+
+/* Already Unlocked */
+.already-hero{text-align:center;padding:24px 0 16px}
+.already-emoji{font-size:80px}
+.already-title{font-size:26px;font-weight:900;color:#58e8c1;margin-top:8px}
+.already-sub{font-size:14px;color:#9b8fe0;margin-top:4px}
+.progress-card{background:#1e1550;border:2px solid #58e8c1;border-radius:16px;padding:16px;margin-top:16px}
+.progress-label{font-size:12px;color:#9b8fe0;margin-bottom:6px}
+.progress-bar{background:#2d2570;border-radius:10px;height:12px;overflow:hidden}
+.progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#58e8c1,#9b72ff)}
+.nodes-done{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.node-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.node-done{background:#58e8c1;color:#100b2e}
+.node-current{background:#ffd166;color:#100b2e}
+.node-locked{background:#2d2570;color:#6b5fa0}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/worlds/{worldId}/unlock-check</code> → triggers unlock sequence. Particle count driven by <code>unlockRarity</code> field. World name + skill chips from <code>/api/worlds/{worldId}/metadata</code>. "Enter World" → <code>POST /api/child/worlds/{worldId}/enter</code>.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('reveal')">World Unlock Reveal</div>
+  <div class="tab" onclick="show('preview')">World Preview</div>
+  <div class="tab" onclick="show('confirm')">Enter Confirmation</div>
+  <div class="tab" onclick="show('already')">Already Unlocked</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: World Unlock Reveal -->
+<div id="reveal" class="panel active">
+  <div class="unlock-bg" style="border-radius:20px">
+    <div class="sparkle-container">
+      <div class="sparkle" style="left:15%;top:20%;background:#ffd166;animation-delay:0s"></div>
+      <div class="sparkle" style="left:80%;top:15%;background:#9b72ff;animation-delay:0.3s"></div>
+      <div class="sparkle" style="left:50%;top:10%;background:#58e8c1;animation-delay:0.6s"></div>
+      <div class="sparkle" style="left:25%;top:70%;background:#ffd166;animation-delay:0.9s"></div>
+      <div class="sparkle" style="left:70%;top:65%;background:#ff7b6b;animation-delay:1.2s"></div>
+      <div class="sparkle" style="left:40%;top:85%;background:#9b72ff;animation-delay:0.4s"></div>
+      <div class="sparkle" style="left:90%;top:45%;background:#ffd166;animation-delay:0.7s"></div>
+      <div class="sparkle" style="left:10%;top:55%;background:#58e8c1;animation-delay:1.0s"></div>
+    </div>
+    <div class="burst-ring"></div>
+    <div class="burst-ring2"></div>
+    <div class="world-emoji-wrap">
+      <div class="world-emoji">🌊</div>
+    </div>
+    <div class="unlock-badge">🔓 UNLOCKED!</div>
+    <div class="world-name">Ocean World</div>
+    <div class="world-tagline">Dive into underwater adventures!</div>
+    <div class="skill-chips-row">
+      <div class="skill-chip">🔢 Counting</div>
+      <div class="skill-chip">🔤 Letters</div>
+      <div class="skill-chip">🎵 Rhymes</div>
+      <div class="skill-chip">🧩 Patterns</div>
+    </div>
+    <div class="unlock-ctas">
+      <button class="btn-enter">🌊 Enter Ocean World!</button>
+      <button class="btn-later">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: World Preview -->
+<div id="preview" class="panel">
+  <div class="preview-header">🌊 Ocean World</div>
+  <div class="preview-sub">Here's what you'll discover!</div>
+  <div class="first-node-card">
+    <div class="node-badge">⭐ FIRST ADVENTURE</div>
+    <div class="node-title">🐠 Meet the Fish!</div>
+    <div class="node-desc">Count colorful fish in the ocean. Learn their names and how many fins they have!</div>
+    <div class="node-stars">⭐⭐⭐ Earn up to 3 stars</div>
+  </div>
+  <div style="font-size:13px;color:#9b8fe0;margin-bottom:10px;font-weight:700">What you'll learn:</div>
+  <div class="skill-grid">
+    <div class="skill-card"><div class="s-icon">🔢</div><div class="s-name">Counting 1-10</div></div>
+    <div class="skill-card"><div class="s-icon">🔤</div><div class="s-name">Ocean Words</div></div>
+    <div class="skill-card"><div class="s-icon">🎨</div><div class="s-name">Colors & Shapes</div></div>
+    <div class="skill-card"><div class="s-icon">🧩</div><div class="s-name">Patterns</div></div>
+  </div>
+  <button class="btn-enter" style="margin-top:20px;background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;cursor:pointer;width:100%">🌊 Let's go!</button>
+</div>
+
+<!-- TAB 3: Enter Confirmation -->
+<div id="confirm" class="panel">
+  <div class="confirm-wrap">
+    <div class="confirm-emoji">🌊</div>
+    <div class="confirm-title">Ready to dive in?</div>
+    <div class="confirm-body">Ocean World is full of amazing adventures. Here's what's waiting for you!</div>
+    <div class="confirm-card">
+      <div class="confirm-row"><span class="label">World</span><span class="val">🌊 Ocean World</span></div>
+      <div class="confirm-row"><span class="label">First adventure</span><span class="val">🐠 Meet the Fish!</span></div>
+      <div class="confirm-row"><span class="label">Stars to earn</span><span class="val">⭐ Up to 30</span></div>
+      <div class="confirm-row"><span class="label">Adventures</span><span class="val">12 quests</span></div>
+    </div>
+    <button class="btn-enter" style="background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;cursor:pointer;width:100%">🌊 Enter Ocean World!</button>
+    <button class="btn-later" style="background:transparent;border:2px solid #2d2570;border-radius:16px;padding:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%">Not yet</button>
+  </div>
+</div>
+
+<!-- TAB 4: Already Unlocked -->
+<div id="already" class="panel">
+  <div class="already-hero">
+    <div class="already-emoji">🌊</div>
+    <div class="already-title">Ocean World</div>
+    <div class="already-sub">You're already exploring here!</div>
+  </div>
+  <div class="progress-card">
+    <div class="progress-label">Your progress · 5 of 12 adventures done</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:42%"></div></div>
+    <div class="nodes-done" style="margin-top:14px">
+      <div class="node-dot node-done">🐠</div>
+      <div class="node-dot node-done">🐙</div>
+      <div class="node-dot node-done">🦀</div>
+      <div class="node-dot node-done">🐚</div>
+      <div class="node-dot node-done">🌊</div>
+      <div class="node-dot node-current">🐬</div>
+      <div class="node-dot node-locked">❓</div>
+      <div class="node-dot node-locked">❓</div>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:#9b8fe0">Stars collected: <span style="color:#ffd166;font-weight:900">⭐ 24</span></div>
+  </div>
+  <button style="background:linear-gradient(135deg,#58e8c1,#00c9a0);color:#100b2e;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;cursor:pointer;width:100%;margin-top:16px">▶ Continue adventure!</button>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-world-unlock-moment-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">BG</span><span class="sv">#100b2e</span></div>
+    <div class="spec-row"><span class="sk">P0 Gold</span><span class="sv">#ffd166</span></div>
+    <div class="spec-row"><span class="sk">P1 Violet</span><span class="sv">#9b72ff</span></div>
+    <div class="spec-row"><span class="sk">Unlock anim</span><span class="sv">scale 0→1 + burst rings</span></div>
+    <div class="spec-row"><span class="sk">Particles</span><span class="sv">CSS keyframe sparkles, count from API rarity</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Unlock check</span><span class="sv">GET /api/worlds/{id}/unlock-check</span></div>
+    <div class="spec-row"><span class="sk">World meta</span><span class="sv">GET /api/worlds/{id}/metadata</span></div>
+    <div class="spec-row"><span class="sk">Enter world</span><span class="sv">POST /api/child/worlds/{id}/enter</span></div>
+    <div class="spec-row"><span class="sk">Progress</span><span class="sv">GET /api/child/worlds/{id}/progress</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">No timers</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">No grade labels</span><span class="sv">✓ — World names only</span></div>
+    <div class="spec-row"><span class="sk">Escape hatch</span><span class="sv">"Not yet" always visible</span></div>
+    <div class="spec-row"><span class="sk">Replay safe</span><span class="sv">✓ — stars not deducted</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

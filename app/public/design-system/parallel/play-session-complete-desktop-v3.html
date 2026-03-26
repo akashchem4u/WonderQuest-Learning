@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-session-complete-desktop-v3 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-session-complete-desktop-v3.html   ║
+     ║                                                              ║
+     ║  Session complete screen (DESKTOP layout, 1200px+ viewport).  ║
+     ║  Shown after child finishes all 5 session questions.         ║
+     ║                                                              ║
+     ║  STATES / TABS IN THIS FILE                                  ║
+     ║  Tab 1 — Normal Complete  : standard session end             ║
+     ║  Tab 2 — Perfect Session  : all 5 correct (bonus animation)  ║
+     ║  Tab 3 — With New Badge   : session + badge earned           ║
+     ║  Tab 4 — Star-Safe Replay : replay overlay (stars safe)      ║
+     ║  Tab 5 — Spec             : layout, star-safe, rules         ║
+     ║                                                              ║
+     ║  DESKTOP LAYOUT                                               ║
+     ║  • Max-width 960px centered                                   ║
+     ║  • 2-col grid: hero area (left) + summary card (right)       ║
+     ║  • No phone frame — browser/tablet native layout              ║
+     ║  • Band theme applied to card gradient + confetti colors      ║
+     ║  • Stars NEVER decrease — star-safe badge on replay          ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  /* ── Desktop session complete frame ── */
+  .desktop-frame {
+    width: 100%; max-width: 960px;
+    background: #100b2e; border: 2px solid #2a1f60; border-radius: 24px;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    overflow: hidden; position: relative;
+  }
+
+  /* Confetti layer */
+  .confetti-field {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1;
+  }
+  .c-dot {
+    position: absolute; border-radius: 50%;
+    animation: c-fall linear infinite;
+  }
+  @keyframes c-fall {
+    0%   { transform: translateY(-10px) rotate(0); opacity: 0.9; }
+    100% { transform: translateY(600px) rotate(720deg); opacity: 0; }
+  }
+
+  /* Main 2-col grid */
+  .sc-grid { display: grid; grid-template-columns: 1fr 380px; min-height: 480px; position: relative; z-index: 2; }
+
+  /* ── Left hero panel ── */
+  .sc-hero {
+    padding: 48px 40px; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center; gap: 20px;
+    border-right: 1px solid #1e1850;
+  }
+  .sc-band-chip {
+    font-size: 0.72rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    border-radius: 20px; padding: 4px 12px; background: #221960; color: #9b72ff; border: 1px solid #9b72ff44;
+  }
+  .sc-headline { font-size: 2.4rem; font-weight: 900; line-height: 1.15; color: #fff; }
+  .sc-sub { font-size: 1rem; font-weight: 700; color: #b0a0e0; line-height: 1.5; }
+
+  .sc-star-big { display: flex; align-items: center; gap: 10px; }
+  .sc-star-emoji { font-size: 3rem; }
+  .sc-star-count { font-size: 2.8rem; font-weight: 900; color: #ffd166; line-height: 1; }
+  .sc-star-label { font-size: 0.88rem; font-weight: 700; color: #9080c0; }
+
+  .sc-segs { display: flex; gap: 5px; width: 100%; }
+  .sc-seg { flex: 1; height: 8px; border-radius: 4px; }
+  .sc-seg.done { background: #9b72ff; }
+  .sc-seg.done.gold { background: #ffd166; }
+
+  .sc-cta-row { display: flex; gap: 12px; width: 100%; }
+  .sc-cta-primary {
+    height: 52px; border-radius: 26px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; padding: 0 24px;
+  }
+  .sc-cta-secondary {
+    height: 52px; border-radius: 26px;
+    background: #1a1440; border: 1.5px solid #2a1f60; color: #b89eff;
+    font-size: 0.95rem; font-weight: 900; cursor: pointer; padding: 0 20px;
+  }
+
+  /* ── Right summary card ── */
+  .sc-summary { padding: 32px 28px; display: flex; flex-direction: column; gap: 16px; background: #0e0a28; }
+  .sc-summary-title { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #6050a0; }
+  .sc-stat-list { display: flex; flex-direction: column; gap: 10px; }
+  .sc-stat {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: #1a1440; border: 1.5px solid #2a2060; border-radius: 12px;
+  }
+  .sc-stat-label { font-size: 0.84rem; font-weight: 700; color: #9080c0; display: flex; align-items: center; gap: 7px; }
+  .sc-stat-val { font-size: 1rem; font-weight: 900; color: #fff; }
+
+  .sc-coach {
+    display: flex; align-items: flex-start; gap: 10px; margin-top: auto;
+    background: #1a1440; border: 1.5px solid #9b72ff33; border-radius: 12px; padding: 12px 14px;
+  }
+  .sc-coach-avatar { font-size: 1.5rem; flex-shrink: 0; }
+  .sc-coach-text { font-size: 0.82rem; font-weight: 700; color: #c8bef0; line-height: 1.4; }
+  .sc-coach-name { font-size: 0.68rem; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+
+  /* ── Perfect session badge ── */
+  .perfect-badge {
+    background: linear-gradient(135deg, #3a2000, #1a1000); border: 2px solid #ffd166;
+    border-radius: 14px; padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px; box-shadow: 0 0 16px #ffd16633;
+  }
+  .perfect-icon { font-size: 1.8rem; }
+  .perfect-text { font-size: 0.88rem; font-weight: 900; color: #ffe08a; }
+  .perfect-text span { color: #fff; display: block; font-size: 0.76rem; font-weight: 700; }
+
+  /* ── Star-safe replay overlay ── */
+  .replay-overlay {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(8,5,20,0.9);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px;
+  }
+  .star-safe-big {
+    background: #1a2a15; border: 2px solid #50e890; border-radius: 20px;
+    padding: 16px 28px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .ss-title { font-size: 1.4rem; font-weight: 900; color: #50e890; }
+  .ss-desc { font-size: 0.88rem; font-weight: 700; color: #a0e890; text-align: center; }
+  .replay-cta-row { display: flex; gap: 12px; }
+  .btn-replay {
+    height: 52px; border-radius: 26px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; padding: 0 24px;
+  }
+  .btn-no-replay {
+    height: 52px; border-radius: 26px;
+    background: #1a1440; border: 1.5px solid #2a1f60; color: #9080c0;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer; padding: 0 20px;
+  }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 760px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-session-complete-desktop-v3 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Normal Complete</button>
+  <button class="tab-btn" onclick="showTab('t2')">Perfect Session</button>
+  <button class="tab-btn" onclick="showTab('t3')">With New Badge</button>
+  <button class="tab-btn" onclick="showTab('t4')">Star-Safe Replay</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Normal Complete ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Normal Complete — Desktop 2-Col Layout (K-1 Violet)</h4>
+    Left: headline + star tally + session segs (all filled) + CTAs.
+    Right: summary card (questions / stars / XP / streak / coach).
+    No accuracy %. Stars only. Forward-looking coach message.
+  </div>
+  <div class="desktop-frame">
+    <div class="sc-grid">
+      <div class="sc-hero">
+        <div class="sc-band-chip">K-1 · Beginning Sounds</div>
+        <div class="sc-headline">Session<br>Complete! 🎉</div>
+        <div class="sc-sub">You finished all 5 questions today — great work!</div>
+        <div class="sc-star-big">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count">7</div>
+            <div class="sc-star-label">Stars earned today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div>
+        </div>
+        <div class="sc-cta-row">
+          <button class="sc-cta-primary">Continue →</button>
+          <button class="sc-cta-secondary">Play Again</button>
+        </div>
+      </div>
+      <div class="sc-summary">
+        <div class="sc-summary-title">Session Summary</div>
+        <div class="sc-stat-list">
+          <div class="sc-stat"><div class="sc-stat-label">📝 Questions</div><div class="sc-stat-val">5 of 5</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⭐ Stars Earned</div><div class="sc-stat-val" style="color:#ffd166;">+7</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⚡ XP Earned</div><div class="sc-stat-val" style="color:#9b72ff;">+55 XP</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">🔥 Streak</div><div class="sc-stat-val">3 sessions 🔥</div></div>
+        </div>
+        <div class="sc-coach">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text">
+            <div class="sc-coach-name">Coach Leo</div>
+            You're getting really good at beginning sounds! Keep it up tomorrow!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Perfect Session ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Perfect Session — Gold Segs, Bonus Stars</h4>
+    Gold "Perfect!" badge above headline. Segs fill gold.
+    Confetti particles. Perfect bonus +3 ⭐ shown as separate stat row.
+    Primary CTA is gold gradient. No accuracy % shown.
+  </div>
+  <div class="desktop-frame">
+    <div class="confetti-field">
+      <div class="c-dot" style="width:6px;height:6px;background:#ffd166;left:5%;animation-duration:2.2s;animation-delay:0s;"></div>
+      <div class="c-dot" style="width:5px;height:5px;background:#9b72ff;left:20%;animation-duration:2.6s;animation-delay:0.3s;"></div>
+      <div class="c-dot" style="width:7px;height:4px;border-radius:2px;background:#58e8c1;left:38%;animation-duration:2.0s;animation-delay:0.1s;"></div>
+      <div class="c-dot" style="width:5px;height:5px;background:#ff7b6b;left:55%;animation-duration:2.4s;animation-delay:0.5s;"></div>
+      <div class="c-dot" style="width:6px;height:6px;background:#ffd166;left:70%;animation-duration:2.1s;animation-delay:0.2s;"></div>
+      <div class="c-dot" style="width:4px;height:4px;background:#9b72ff;left:84%;animation-duration:2.8s;animation-delay:0.7s;"></div>
+    </div>
+    <div class="sc-grid">
+      <div class="sc-hero">
+        <div class="perfect-badge">
+          <div class="perfect-icon">🏆</div>
+          <div class="perfect-text">Perfect Session!<span>Every single question — nailed it!</span></div>
+        </div>
+        <div class="sc-headline">Session<br>Complete! 🌟</div>
+        <div class="sc-sub">You got every question right — incredible!</div>
+        <div class="sc-star-big">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count" style="color:#ffd166;">10</div>
+            <div class="sc-star-label">Stars earned today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+          <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+          <div class="sc-seg done gold"></div>
+        </div>
+        <div class="sc-cta-row">
+          <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a0c00;">Continue →</button>
+          <button class="sc-cta-secondary">Play Again</button>
+        </div>
+      </div>
+      <div class="sc-summary">
+        <div class="sc-summary-title">Session Summary</div>
+        <div class="sc-stat-list">
+          <div class="sc-stat"><div class="sc-stat-label">📝 Questions</div><div class="sc-stat-val">5 of 5</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⭐ Stars Earned</div><div class="sc-stat-val" style="color:#ffd166;">+10 ⭐</div></div>
+          <div class="sc-stat" style="border-color:#ffd16655;background:#2a1800;">
+            <div class="sc-stat-label" style="color:#ffe08a;">🏆 Perfect Bonus</div>
+            <div class="sc-stat-val" style="color:#ffd166;">+3 ⭐</div>
+          </div>
+          <div class="sc-stat"><div class="sc-stat-label">⚡ XP Earned</div><div class="sc-stat-val" style="color:#9b72ff;">+80 XP</div></div>
+        </div>
+        <div class="sc-coach" style="background:#2a1800;border-color:#ffd16633;">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text" style="color:#ffe8a0;">
+            <div class="sc-coach-name" style="color:#ffd166;">Coach Leo</div>
+            PERFECT! You got every one right — you're on 🔥 today!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: With New Badge ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>With New Badge — Badge Earned This Session</h4>
+    Badge earned chip shown as highlighted stat row in summary.
+    Primary CTA becomes "See Your Badge →" in gold gradient.
+    Badge preview: 36px badge icon + name in stat row.
+  </div>
+  <div class="desktop-frame">
+    <div class="sc-grid">
+      <div class="sc-hero">
+        <div class="sc-band-chip">K-1 · Beginning Sounds</div>
+        <div class="sc-headline">Session<br>Complete! 🎉</div>
+        <div class="sc-sub">You finished all 5 questions — and earned a badge!</div>
+        <div class="sc-star-big">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count">9</div>
+            <div class="sc-star-label">Stars earned today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div>
+        </div>
+        <div class="sc-cta-row">
+          <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a0c00;">See Your Badge →</button>
+          <button class="sc-cta-secondary">Continue</button>
+        </div>
+      </div>
+      <div class="sc-summary">
+        <div class="sc-summary-title">Session Summary</div>
+        <div class="sc-stat-list">
+          <div class="sc-stat"><div class="sc-stat-label">📝 Questions</div><div class="sc-stat-val">5 of 5</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⭐ Stars Earned</div><div class="sc-stat-val" style="color:#ffd166;">+9</div></div>
+          <div class="sc-stat" style="border-color:#ffd16655;background:linear-gradient(135deg,#2a1800,#1a1200);">
+            <div class="sc-stat-label" style="color:#ffe08a;">🏅 New Badge!</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#3a2000,#1a1000);border:1.5px solid #ffd166;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🦁</div>
+              <div style="font-size:0.8rem;font-weight:900;color:#ffd166;">Comeback Kid</div>
+            </div>
+          </div>
+        </div>
+        <div class="sc-coach">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text">
+            <div class="sc-coach-name">Coach Leo</div>
+            You earned a rare badge! Tap "See Your Badge" to check it out!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Star-Safe Replay ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Star-Safe Replay Overlay</h4>
+    When child taps "Play Again," overlay confirms stars are protected.
+    Star-safe badge prominently shown. Two CTAs: "Yes, replay" / "No thanks."
+    Stars NEVER lost by replaying — overlay informs, not warns.
+  </div>
+  <div class="desktop-frame" style="position:relative;">
+    <div style="filter:brightness(0.3);">
+      <div class="sc-grid">
+        <div class="sc-hero">
+          <div class="sc-headline">Session<br>Complete! 🎉</div>
+          <div class="sc-star-big"><div class="sc-star-emoji">⭐</div><div><div class="sc-star-count">7</div></div></div>
+        </div>
+        <div class="sc-summary"><div class="sc-summary-title">Session Summary</div></div>
+      </div>
+    </div>
+    <div class="replay-overlay">
+      <div class="star-safe-big">
+        <div class="ss-title">🛡 Your stars are safe!</div>
+        <div class="ss-desc">Playing again won't reduce your ⭐ 7 stars.<br>You keep every star you've earned.</div>
+      </div>
+      <div style="font-size:0.9rem;font-weight:700;color:#9080c0;text-align:center;">Ready to practice the same questions again?</div>
+      <div class="replay-cta-row">
+        <button class="btn-replay">Yes, let's play again!</button>
+        <button class="btn-no-replay">No thanks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Desktop Layout</h4>
+      <ul>
+        <li>Frame: max-width 960px, border-radius 24px</li>
+        <li>Grid: <code>grid-template-columns: 1fr 380px</code></li>
+        <li>Left hero min-height: 480px (right col matches)</li>
+        <li>Right summary bg: <code>#0e0a28</code> (slightly darker)</li>
+        <li>Border between cols: <code>1px solid #1e1850</code></li>
+        <li>Session segs: 8px height (larger than mobile 6px)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star-Safe Rules</h4>
+      <ul>
+        <li>Stars NEVER decrease on any action on this screen</li>
+        <li>"Play Again" triggers star-safe overlay before replay</li>
+        <li>Star counter shows POST-session total (already credited)</li>
+        <li class="dont">❌ Never say "You got X/5 correct" — stars only</li>
+        <li class="dont">❌ Never show accuracy % anywhere on this screen</li>
+        <li class="dont">❌ Never show wrong-answer count in summary</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Summary Card Rules</h4>
+      <ul>
+        <li>Stats: Questions (always "5 of 5"), Stars, XP, Streak</li>
+        <li>No "wrong answers" stat ever</li>
+        <li>Perfect bonus: separate highlighted stat row</li>
+        <li>Badge earned: separate highlighted stat row (gold tint)</li>
+        <li>Coach: band-specific, positive, forward-looking</li>
+        <li>CTA changes when badge earned: "See Your Badge →" primary</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Band Variants</h4>
+      <ul>
+        <li>Band chip: Pre-K gold, K-1 violet, G2-3 mint, G4-5 coral</li>
+        <li>Segs fill: band accent (gold on perfect session always)</li>
+        <li>Primary CTA gradient: band-specific</li>
+        <li>Perfect session: primary CTA always gold regardless of band</li>
+        <li>Badge earned CTA: always gold (badge is special)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

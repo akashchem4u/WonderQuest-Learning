@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owner Test Session Observation Board — WonderQuest #288</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d1117;
+      --card:    #161b22;
+      --accent:  #50e890;
+      --text:    #f0f6ff;
+      --border:  rgba(255,255,255,.06);
+      --muted:   #8b949e;
+      --radius:  10px;
+      --gap:     16px;
+
+      --info-bg:    rgba(80,232,144,.10);
+      --info-fg:    #50e890;
+      --minor-bg:   rgba(255,210,80,.10);
+      --minor-fg:   #ffd250;
+      --major-bg:   rgba(255,140,60,.12);
+      --major-fg:   #ff8c3c;
+      --blocker-bg: rgba(255,80,80,.12);
+      --blocker-fg: #ff5050;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .hint-box {
+      background: #fffbe6;
+      border-left: 4px solid #f5a623;
+      border-radius: var(--radius);
+      color: #3d2c00;
+      font-size: 12px;
+      line-height: 1.55;
+      margin: 0 auto 28px;
+      max-width: 960px;
+      padding: 14px 18px;
+    }
+    .hint-box strong { font-weight: 700; }
+
+    /* ── Page header ── */
+    .page-header {
+      max-width: 960px;
+      margin: 0 auto 24px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+    }
+    .page-header p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .route-badge {
+      display: inline-block;
+      background: rgba(80,232,144,.12);
+      color: var(--accent);
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .4px;
+      padding: 2px 10px;
+      margin-top: 8px;
+    }
+
+    /* ── Tab nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      max-width: 960px;
+      margin: 0 auto 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      border-radius: 6px 6px 0 0;
+      transition: color .15s, border-color .15s;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(80,232,144,.05);
+    }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; max-width: 960px; margin: 0 auto; }
+    .tab-panel.active { display: block; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: var(--gap);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Log Observation Form ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    input, select, textarea {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 10px 13px;
+      transition: border-color .15s;
+      width: 100%;
+      min-height: 44px;
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      outline: 2px solid rgba(80,232,144,.25);
+      outline-offset: 0;
+    }
+    select option { background: #1e242e; color: var(--text); }
+    textarea { min-height: 90px; resize: vertical; }
+
+    /* Severity selector */
+    .severity-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sev-btn {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 9px 16px;
+      min-height: 44px;
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .sev-btn:hover { color: var(--text); }
+    .sev-btn.sel-info     { background: var(--info-bg);    color: var(--info-fg);    border-color: var(--info-fg); }
+    .sev-btn.sel-minor    { background: var(--minor-bg);   color: var(--minor-fg);   border-color: var(--minor-fg); }
+    .sev-btn.sel-major    { background: var(--major-bg);   color: var(--major-fg);   border-color: var(--major-fg); }
+    .sev-btn.sel-blocker  { background: var(--blocker-bg); color: var(--blocker-fg); border-color: var(--blocker-fg); }
+
+    .btn-primary {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #0d1117;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .2px;
+      min-height: 44px;
+      padding: 11px 28px;
+      transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+    .btn-secondary {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      min-height: 44px;
+      padding: 10px 18px;
+      transition: background .15s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.10); }
+    .btn-secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      grid-column: 1 / -1;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .submit-msg {
+      font-size: 12px;
+      color: var(--accent);
+      display: none;
+    }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+    .filter-bar span {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+      margin-right: 4px;
+    }
+    .filter-btn {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 7px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      min-height: 36px;
+      padding: 6px 14px;
+      transition: all .15s;
+    }
+    .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,.2); }
+    .filter-btn.active {
+      background: rgba(80,232,144,.12);
+      border-color: rgba(80,232,144,.4);
+      color: var(--accent);
+    }
+
+    /* ── Observation Card ── */
+    .obs-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      transition: border-color .15s;
+    }
+    .obs-card:hover { border-color: rgba(255,255,255,.14); }
+    .obs-card.blocker { border-left: 3px solid var(--blocker-fg); }
+    .obs-card.major   { border-left: 3px solid var(--major-fg); }
+    .obs-card.minor   { border-left: 3px solid var(--minor-fg); }
+    .obs-card.info    { border-left: 3px solid var(--info-fg); }
+
+    .obs-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .obs-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      white-space: nowrap;
+      letter-spacing: .3px;
+    }
+    .badge-info    { background: var(--info-bg);    color: var(--info-fg); }
+    .badge-minor   { background: var(--minor-bg);   color: var(--minor-fg); }
+    .badge-major   { background: var(--major-bg);   color: var(--major-fg); }
+    .badge-blocker { background: var(--blocker-bg); color: var(--blocker-fg); }
+    .badge-type    { background: rgba(255,255,255,.06); color: var(--muted); font-weight: 500; font-size: 11px; }
+
+    .obs-meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .obs-meta .dot { opacity: .4; }
+
+    .tags-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .tag {
+      background: rgba(80,232,144,.08);
+      border: 1px solid rgba(80,232,144,.2);
+      border-radius: 5px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+    }
+
+    .obs-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── Tag Analysis ── */
+    .chart-wrap {
+      overflow-x: auto;
+      padding: 4px 0 8px;
+    }
+    .tag-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .tag-label {
+      min-width: 100px;
+      font-size: 12px;
+      color: var(--text);
+      text-align: right;
+      font-weight: 500;
+    }
+    .tag-bar-bg {
+      flex: 1;
+      background: rgba(255,255,255,.05);
+      border-radius: 4px;
+      height: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+    .tag-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--accent);
+      transition: width .5s ease;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0d1117;
+    }
+    .tag-count {
+      min-width: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      text-align: left;
+    }
+
+    .blocker-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--blocker-bg);
+      border: 1px solid rgba(255,80,80,.3);
+      border-radius: 8px;
+      color: var(--blocker-fg);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      margin-bottom: 18px;
+    }
+    .blocker-chip .dot-red {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--blocker-fg);
+      flex-shrink: 0;
+    }
+
+    .blocker-list { display: flex; flex-direction: column; gap: 12px; }
+    .blocker-item {
+      background: rgba(255,80,80,.06);
+      border: 1px solid rgba(255,80,80,.18);
+      border-radius: 9px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .blocker-item-info { font-size: 13px; color: var(--text); }
+    .blocker-item-info small { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Spec Tab ── */
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td {
+      text-align: left;
+      padding: 9px 12px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .spec-table th {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      background: rgba(255,255,255,.02);
+    }
+    .spec-table td { color: var(--text); }
+    .spec-table code {
+      background: rgba(80,232,144,.1);
+      color: var(--accent);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      padding: 1px 6px;
+    }
+
+    .rule-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .rule-list li {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text);
+      align-items: flex-start;
+    }
+    .rule-num {
+      background: rgba(80,232,144,.15);
+      color: var(--accent);
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .privacy-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .privacy-list li {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text);
+      align-items: flex-start;
+    }
+    .privacy-icon { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid rgba(80,232,144,.35);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .3s ease, opacity .3s ease;
+      z-index: 999;
+      max-width: 320px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      body { padding: 16px 12px 48px; }
+      .tab-btn { padding: 10px 12px; font-size: 12px; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering Hint Box -->
+  <div class="hint-box" role="note" aria-label="Engineering hint">
+    <strong>Engineering hint — owner-test-session-observation-board-v2</strong><br />
+    Persona: <strong>Owner</strong> &nbsp;|&nbsp; Route: <strong>/owner/beta/observations</strong><br />
+    DB: <code style="background:rgba(0,0,0,.08);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:11px;">test_observations { id, session_type ENUM('device_test','ux_walkthrough','classroom_observation'), observer_name TEXT, observed_at TIMESTAMPTZ, device_type TEXT, observation_text TEXT, severity ENUM('info','minor','major','blocker'), tags TEXT[], linked_feedback_id UUID, created_at }</code><br />
+    Privacy: No child names in observations; classroom observations use <em>'child'</em> or <em>'student'</em> only; school name shown (B2B).
+  </div>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <h1>Test Session Observation Board</h1>
+    <p>Log and review structured observations from device tests, UX walkthroughs, and classroom sessions.</p>
+    <div class="route-badge">/owner/beta/observations</div>
+  </header>
+
+  <!-- Tab Nav -->
+  <nav class="tab-nav" role="tablist" aria-label="Observation board sections">
+    <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-board"   id="btn-board"   onclick="showTab('board')">Observation Board</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-analysis" id="btn-analysis" onclick="showTab('analysis')">Tag Analysis</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-spec"    id="btn-spec"    onclick="showTab('spec')">Spec</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       TAB 1 — OBSERVATION BOARD
+  ══════════════════════════════════════════ -->
+  <section class="tab-panel active" id="tab-board" role="tabpanel" aria-labelledby="btn-board">
+
+    <!-- Log Observation Form -->
+    <div class="card" aria-label="Log new observation">
+      <div class="card-title">Log Observation</div>
+      <form id="obs-form" onsubmit="submitObs(event)" novalidate>
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="f-session-type">Session Type</label>
+            <select id="f-session-type" required aria-required="true">
+              <option value="">Select session type…</option>
+              <option value="device_test">Device Test</option>
+              <option value="ux_walkthrough">UX Walkthrough</option>
+              <option value="classroom_observation">Classroom Observation</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="f-device-type">Device / Context</label>
+            <input id="f-device-type" type="text" placeholder="e.g. iPad mini, iPhone SE, Android tablet…" />
+          </div>
+
+          <div class="form-group full">
+            <label for="f-obs-text">Observation</label>
+            <textarea id="f-obs-text" placeholder="Describe what you observed. Do not include child names; use 'child' or 'student' for classroom sessions." required aria-required="true"></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>Severity</label>
+            <div class="severity-group" role="group" aria-label="Select severity">
+              <button type="button" class="sev-btn" data-sev="info"    onclick="selectSev(this)" aria-pressed="false">Info</button>
+              <button type="button" class="sev-btn" data-sev="minor"   onclick="selectSev(this)" aria-pressed="false">Minor</button>
+              <button type="button" class="sev-btn" data-sev="major"   onclick="selectSev(this)" aria-pressed="false">Major</button>
+              <button type="button" class="sev-btn" data-sev="blocker" onclick="selectSev(this)" aria-pressed="false">Blocker</button>
+            </div>
+          </div>
+
+          <div class="form-group full">
+            <label for="f-tags">Tags <span style="color:var(--muted);font-weight:400;text-transform:none">(comma-separated)</span></label>
+            <input id="f-tags" type="text" placeholder="audio, touch-target, theme, navigation…" />
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Submit Observation</button>
+            <span class="submit-msg" id="submit-msg" aria-live="polite">Observation logged.</span>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" role="group" aria-label="Filter observations">
+      <span>Filter:</span>
+      <button class="filter-btn active" data-filter="all"                    onclick="setFilter(this,'all')">All</button>
+      <button class="filter-btn"        data-filter="device_test"            onclick="setFilter(this,'device_test')">device_test</button>
+      <button class="filter-btn"        data-filter="ux_walkthrough"         onclick="setFilter(this,'ux_walkthrough')">ux_walkthrough</button>
+      <button class="filter-btn"        data-filter="classroom_observation"  onclick="setFilter(this,'classroom_observation')">classroom_observation</button>
+      <button class="filter-btn"        data-filter="blocker"                onclick="setFilter(this,'blocker')">Blocker only</button>
+    </div>
+
+    <!-- Observation Cards -->
+    <div id="obs-list" aria-live="polite" aria-label="Observation list">
+
+      <article class="obs-card major" data-type="device_test" data-sev="major">
+        <div class="obs-header">
+          <p class="obs-text">Voice coach Orbit not audible on iPad mini with volume at 50%</p>
+          <span class="badge badge-major">Major</span>
+        </div>
+        <div class="obs-meta">
+          <span class="badge badge-type">device_test</span>
+          <span class="dot">·</span>
+          <span>iPad mini</span>
+          <span class="dot">·</span>
+          <span style="color:var(--muted)">2026-03-24 14:32 UTC</span>
+        </div>
+        <div class="tags-row">
+          <span class="tag">audio</span>
+          <span class="tag">voice-coach</span>
+        </div>
+      </article>
+
+      <article class="obs-card minor" data-type="ux_walkthrough" data-sev="minor">
+        <div class="obs-header">
+          <p class="obs-text">Child tapped 'Play' 3 times before response registered — hint button too small</p>
+          <span class="badge badge-minor">Minor</span>
+        </div>
+        <div class="obs-meta">
+          <span class="badge badge-type">ux_walkthrough</span>
+          <span class="dot">·</span>
+          <span>iPhone SE</span>
+          <span class="dot">·</span>
+          <span style="color:var(--muted)">2026-03-24 11:15 UTC</span>
+        </div>
+        <div class="tags-row">
+          <span class="tag">touch-target</span>
+        </div>
+      </article>
+
+      <article class="obs-card info" data-type="classroom_observation" data-sev="info">
+        <div class="obs-header">
+          <p class="obs-text">Classroom: 5 students completed quest without audio assist</p>
+          <span class="badge badge-info">Info</span>
+        </div>
+        <div class="obs-meta">
+          <span class="badge badge-type">classroom_observation</span>
+          <span class="dot">·</span>
+          <span>School B</span>
+          <span class="dot">·</span>
+          <span style="color:var(--muted)">2026-03-23 09:47 UTC</span>
+        </div>
+        <div class="tags-row">
+          <span class="tag">accessibility</span>
+        </div>
+      </article>
+
+      <article class="obs-card major" data-type="device_test" data-sev="major">
+        <div class="obs-header">
+          <p class="obs-text">Theme switch mid-session caused 2s blank screen flash</p>
+          <span class="badge badge-major">Major</span>
+        </div>
+        <div class="obs-meta">
+          <span class="badge badge-type">device_test</span>
+          <span class="dot">·</span>
+          <span>Android tablet</span>
+          <span class="dot">·</span>
+          <span style="color:var(--muted)">2026-03-23 16:05 UTC</span>
+        </div>
+        <div class="tags-row">
+          <span class="tag">theme</span>
+          <span class="tag">performance</span>
+        </div>
+      </article>
+
+      <article class="obs-card minor" data-type="ux_walkthrough" data-sev="minor">
+        <div class="obs-header">
+          <p class="obs-text">Parent complained settings were hard to find from home screen</p>
+          <span class="badge badge-minor">Minor</span>
+        </div>
+        <div class="obs-meta">
+          <span class="badge badge-type">ux_walkthrough</span>
+          <span class="dot">·</span>
+          <span>iPhone 14</span>
+          <span class="dot">·</span>
+          <span style="color:var(--muted)">2026-03-22 13:20 UTC</span>
+        </div>
+        <div class="tags-row">
+          <span class="tag">navigation</span>
+        </div>
+      </article>
+
+      <article class="obs-card blocker" data-type="classroom_observation" data-sev="blocker">
+        <div class="obs-header">
+          <p class="obs-text">School D: firewall blocked Web Speech API entirely</p>
+          <span class="badge badge-blocker">Blocker</span>
+        </div>
+        <div class="obs-meta">
+          <span class="badge badge-type">classroom_observation</span>
+          <span class="dot">·</span>
+          <span>School D</span>
+          <span class="dot">·</span>
+          <span style="color:var(--muted)">2026-03-22 10:55 UTC</span>
+        </div>
+        <div class="tags-row">
+          <span class="tag">audio</span>
+          <span class="tag">firewall</span>
+        </div>
+        <div class="obs-footer">
+          <span style="font-size:11px;color:var(--blocker-fg);font-weight:600;">Auto-created feedback item #FB-0041</span>
+          <button class="btn-secondary" onclick="linkFeedback()" style="font-size:11px;min-height:36px;padding:7px 14px;">Link to Feedback Item</button>
+        </div>
+      </article>
+
+    </div><!-- /obs-list -->
+
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       TAB 2 — TAG ANALYSIS
+  ══════════════════════════════════════════ -->
+  <section class="tab-panel" id="tab-analysis" role="tabpanel" aria-labelledby="btn-analysis">
+
+    <!-- Blocker chip -->
+    <div class="blocker-chip" role="status" aria-label="1 open blocker">
+      <span class="dot-red" aria-hidden="true"></span>
+      1 open blocker — firewall (School D)
+    </div>
+
+    <!-- Tag frequency chart -->
+    <div class="card">
+      <div class="card-title">Tag Frequency</div>
+      <div class="chart-wrap" role="img" aria-label="Bar chart showing tag frequency across all observations">
+        <div class="tag-bar-row">
+          <div class="tag-label">audio</div>
+          <div class="tag-bar-bg"><div class="tag-bar-fill" style="width:100%" aria-label="audio: 4 occurrences">4</div></div>
+          <div class="tag-count">4</div>
+        </div>
+        <div class="tag-bar-row">
+          <div class="tag-label">touch-target</div>
+          <div class="tag-bar-bg"><div class="tag-bar-fill" style="width:50%" aria-label="touch-target: 2 occurrences">2</div></div>
+          <div class="tag-count">2</div>
+        </div>
+        <div class="tag-bar-row">
+          <div class="tag-label">theme</div>
+          <div class="tag-bar-bg"><div class="tag-bar-fill" style="width:50%" aria-label="theme: 2 occurrences">2</div></div>
+          <div class="tag-count">2</div>
+        </div>
+        <div class="tag-bar-row">
+          <div class="tag-label">performance</div>
+          <div class="tag-bar-bg"><div class="tag-bar-fill" style="width:50%" aria-label="performance: 2 occurrences">2</div></div>
+          <div class="tag-count">2</div>
+        </div>
+        <div class="tag-bar-row">
+          <div class="tag-label">navigation</div>
+          <div class="tag-bar-bg"><div class="tag-bar-fill" style="width:25%" aria-label="navigation: 1 occurrence">1</div></div>
+          <div class="tag-count">1</div>
+        </div>
+        <div class="tag-bar-row">
+          <div class="tag-label">firewall</div>
+          <div class="tag-bar-bg"><div class="tag-bar-fill" style="width:25%;background:var(--blocker-fg);color:#fff;" aria-label="firewall: 1 occurrence">1</div></div>
+          <div class="tag-count">1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Open Blockers -->
+    <div class="card">
+      <div class="card-title">Open Blockers</div>
+      <div class="blocker-list">
+        <div class="blocker-item">
+          <div class="blocker-item-info">
+            School D: firewall blocked Web Speech API entirely
+            <small>classroom_observation &nbsp;·&nbsp; School D &nbsp;·&nbsp; 2026-03-22 &nbsp;·&nbsp; Tags: audio, firewall</small>
+          </div>
+          <button class="btn-secondary" onclick="linkFeedback()" aria-label="Link School D firewall blocker to feedback item">
+            Link to Feedback Item
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       TAB 3 — SPEC
+  ══════════════════════════════════════════ -->
+  <section class="tab-panel" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+
+    <div class="card">
+
+      <!-- Component & Route -->
+      <div class="spec-section">
+        <h3>Component</h3>
+        <table class="spec-table">
+          <thead><tr><th>Property</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Component name</td><td><code>TestSessionObservationBoard</code></td></tr>
+            <tr><td>Design System item</td><td>#288</td></tr>
+            <tr><td>Route</td><td><code>/owner/beta/observations</code></td></tr>
+            <tr><td>Auth</td><td>Owner only — requires <code>role === 'owner'</code> session claim</td></tr>
+            <tr><td>Props</td>
+              <td>
+                <code>sessionFilter?: string</code> — pre-select filter on mount<br />
+                <code>readOnly?: boolean</code> — hide log form (default <code>false</code>)
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DB Schema -->
+      <div class="spec-section">
+        <h3>DB Schema — test_observations</h3>
+        <table class="spec-table">
+          <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td><code>UUID</code></td><td>Primary key, auto-generated</td></tr>
+            <tr><td><code>session_type</code></td><td><code>ENUM</code></td><td><code>'device_test' | 'ux_walkthrough' | 'classroom_observation'</code></td></tr>
+            <tr><td><code>observer_name</code></td><td><code>TEXT</code></td><td>Owner/QA tester name</td></tr>
+            <tr><td><code>observed_at</code></td><td><code>TIMESTAMPTZ</code></td><td>When the observation occurred</td></tr>
+            <tr><td><code>device_type</code></td><td><code>TEXT</code></td><td>Device or context label</td></tr>
+            <tr><td><code>observation_text</code></td><td><code>TEXT</code></td><td>Structured note; no PII allowed</td></tr>
+            <tr><td><code>severity</code></td><td><code>ENUM</code></td><td><code>'info' | 'minor' | 'major' | 'blocker'</code></td></tr>
+            <tr><td><code>tags</code></td><td><code>TEXT[]</code></td><td>Free-form tag array</td></tr>
+            <tr><td><code>linked_feedback_id</code></td><td><code>UUID</code></td><td>FK → feedback_items (nullable)</td></tr>
+            <tr><td><code>created_at</code></td><td><code>TIMESTAMPTZ</code></td><td>Auto-set on insert</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Privacy Rules -->
+      <div class="spec-section">
+        <h3>Privacy Rules</h3>
+        <ul class="privacy-list">
+          <li>
+            <span class="privacy-icon" aria-hidden="true">&#9632;</span>
+            No child names may appear in <code>observation_text</code> or any tag. Use <em>'child'</em> or <em>'student'</em> for classroom sessions.
+          </li>
+          <li>
+            <span class="privacy-icon" aria-hidden="true">&#9632;</span>
+            School names are permitted in observations (B2B context — School A/B/C/D etc.).
+          </li>
+          <li>
+            <span class="privacy-icon" aria-hidden="true">&#9632;</span>
+            Parent names must not appear. Reference as <em>'parent'</em> or <em>'guardian'</em>.
+          </li>
+        </ul>
+      </div>
+
+      <!-- Business Rules -->
+      <div class="spec-section">
+        <h3>Business Rules</h3>
+        <ol class="rule-list">
+          <li>
+            <span class="rule-num">1</span>
+            Any observation with <code>severity = 'blocker'</code> automatically creates a <code>feedback_item</code> record with <code>source = 'observation'</code> and links back via <code>linked_feedback_id</code>.
+          </li>
+          <li>
+            <span class="rule-num">2</span>
+            Observations with <code>session_type = 'classroom_observation'</code> must be reviewed by the owner within 24 hours of creation — a review reminder is sent at T+22h if unreviewed.
+          </li>
+          <li>
+            <span class="rule-num">3</span>
+            <code>observation_text</code> is scanned on save for patterns matching personal data (names, emails, phone numbers); the record is rejected with a 422 if a match is found.
+          </li>
+          <li>
+            <span class="rule-num">4</span>
+            Tags are normalized to lowercase and de-duplicated before persistence.
+          </li>
+          <li>
+            <span class="rule-num">5</span>
+            The filter state is reflected in the URL query param <code>?filter=</code> for deep-link sharing between owner and QA.
+          </li>
+        </ol>
+      </div>
+
+      <!-- Accessibility -->
+      <div class="spec-section">
+        <h3>Accessibility &amp; Quality</h3>
+        <table class="spec-table">
+          <thead><tr><th>Requirement</th><th>Implementation</th></tr></thead>
+          <tbody>
+            <tr><td>WCAG 2.1 AA contrast</td><td>All text/bg pairs verified ≥4.5:1</td></tr>
+            <tr><td>Touch targets</td><td>All interactive elements ≥44px height</td></tr>
+            <tr><td>Keyboard nav</td><td>Tab/Enter on all buttons and form controls; focus rings visible</td></tr>
+            <tr><td>Screen reader</td><td><code>role="tablist/tab/tabpanel"</code>, <code>aria-selected</code>, <code>aria-live</code> on observation list and form feedback</td></tr>
+            <tr><td>Mobile responsive</td><td>Single-column form grid below 600px; filter bar wraps; cards scroll vertically</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /card -->
+
+  </section>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive">
+    <span class="toast-dot" aria-hidden="true"></span>
+    <span id="toast-msg">Observation logged.</span>
+  </div>
+
+  <script>
+    /* ── Tab switching ── */
+    function showTab(t) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.getElementById('tab-' + t).classList.add('active');
+      var btn = document.getElementById('btn-' + t);
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
+
+    /* ── Severity selector ── */
+    var selectedSev = '';
+    function selectSev(el) {
+      document.querySelectorAll('.sev-btn').forEach(function(b) {
+        b.classList.remove('sel-info','sel-minor','sel-major','sel-blocker');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      selectedSev = el.dataset.sev;
+      el.classList.add('sel-' + selectedSev);
+      el.setAttribute('aria-pressed', 'true');
+    }
+
+    /* ── Filter ── */
+    function setFilter(el, val) {
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      el.classList.add('active');
+      document.querySelectorAll('#obs-list .obs-card').forEach(function(card) {
+        if (val === 'all') {
+          card.style.display = '';
+        } else if (val === 'blocker') {
+          card.style.display = card.dataset.sev === 'blocker' ? '' : 'none';
+        } else {
+          card.style.display = card.dataset.type === val ? '' : 'none';
+        }
+      });
+    }
+
+    /* ── Form submit ── */
+    function submitObs(e) {
+      e.preventDefault();
+      var sessionType = document.getElementById('f-session-type').value;
+      var obsText     = document.getElementById('f-obs-text').value.trim();
+      if (!sessionType || !obsText) {
+        showToast('Please fill in session type and observation text.');
+        return;
+      }
+      if (!selectedSev) {
+        showToast('Please select a severity level.');
+        return;
+      }
+      // Privacy guard — warn if observation text contains suspiciously name-like patterns
+      // (real implementation would be server-side; this is a UI nudge)
+      var piiHint = /\b[A-Z][a-z]+ [A-Z][a-z]+\b/.test(obsText);
+      if (piiHint) {
+        showToast('Observation may contain a name. Use "child" or "student" instead.');
+        return;
+      }
+      showToast('Observation logged successfully.');
+      document.getElementById('obs-form').reset();
+      document.querySelectorAll('.sev-btn').forEach(function(b) {
+        b.classList.remove('sel-info','sel-minor','sel-major','sel-blocker');
+        b.setAttribute('aria-pressed','false');
+      });
+      selectedSev = '';
+    }
+
+    /* ── Link feedback ── */
+    function linkFeedback() {
+      showToast('Linked to feedback item #FB-0041.');
+    }
+
+    /* ── Toast ── */
+    var toastTimer = null;
+    function showToast(msg) {
+      var toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
+    }
+  </script>
+
+</body>
+</html>

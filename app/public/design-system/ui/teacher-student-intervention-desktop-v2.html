@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024px, initial-scale=1.0">
+<title>Teacher Student Intervention — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f0f4f8; color: #1a2535; min-height: 100vh; }
+.hint-box { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 14px 18px; margin: 16px; font-size: 12px; color: #ffd166; line-height: 1.6; }
+.hint-box strong { font-size: 13px; }
+nav { background: #2a5080; padding: 0 16px; display: flex; align-items: center; height: 52px; gap: 12px; }
+nav .logo { color: #fff; font-weight: 700; font-size: 16px; }
+nav .sub { color: #a8c4e0; font-size: 13px; }
+.tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 2px solid #d0dbe8; background: #f0f4f8; }
+.tab { padding: 9px 16px; font-size: 13px; font-weight: 600; color: #4a6080; cursor: pointer; border-radius: 6px 6px 0 0; background: #e0e8f0; border: none; font-family: 'Sora', sans-serif; }
+.tab.active { background: #2a5080; color: #fff; }
+.tab:hover:not(.active) { background: #c8d8ea; }
+.panel { display: none; padding: 20px 16px; }
+.panel.active { display: block; }
+.three-col { display: grid; grid-template-columns: 240px 1fr 280px; gap: 16px; max-width: 1100px; }
+.col { display: flex; flex-direction: column; gap: 14px; }
+.card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+.student-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #2a5080, #4a90c0); display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 10px; }
+.student-name { font-size: 16px; font-weight: 700; text-align: center; color: #1a2535; }
+.tier-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: #d8eaf8; color: #1a5080; margin: 6px auto; display: block; width: fit-content; }
+.tier-badge.opportunity { background: #fde8d0; color: #a04020; }
+.tier-badge.growing { background: #d8eaf8; color: #1a5080; }
+.tier-badge.strength { background: #d0ead8; color: #2a6040; }
+.stats-mini { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.stat-mini { text-align: center; }
+.stat-mini .v { font-size: 18px; font-weight: 700; color: #2a5080; }
+.stat-mini .l { font-size: 10px; color: #6a7f9a; text-transform: uppercase; }
+.section-label { font-size: 11px; font-weight: 700; color: #2a5080; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.session-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f0f4f8; font-size: 12px; }
+.session-item:last-child { border-bottom: none; }
+.session-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-blue { background: #2a5080; }
+.dot-green { background: #4a9070; }
+.dot-amber { background: #e8a030; }
+.session-info { flex: 1; color: #3a4f66; }
+.session-date { color: #8a9fb0; font-size: 11px; }
+svg { display: block; }
+.chart-title { font-size: 13px; font-weight: 700; color: #2a5080; margin-bottom: 12px; }
+.editor-area { width: 100%; min-height: 120px; border: 1.5px solid #d0dbe8; border-radius: 8px; padding: 12px; font-family: 'Sora', sans-serif; font-size: 13px; color: #1a2535; resize: vertical; background: #f8fafc; }
+.editor-area:focus { outline: none; border-color: #2a5080; background: #fff; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.type-chip { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1.5px solid #d0dbe8; cursor: pointer; background: #fff; color: #4a6080; font-family: 'Sora', sans-serif; }
+.type-chip.sel { background: #2a5080; color: #fff; border-color: #2a5080; }
+.btn { font-size: 13px; font-weight: 600; padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Sora', sans-serif; }
+.btn-primary { background: #2a5080; color: #fff; }
+.btn-outline { background: transparent; border: 1.5px solid #2a5080; color: #2a5080; }
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: #d0dbe8; }
+.tl-item { position: relative; padding-bottom: 16px; }
+.tl-dot { width: 12px; height: 12px; border-radius: 50%; background: #2a5080; position: absolute; left: -17px; top: 3px; }
+.tl-note { font-size: 13px; color: #2a3545; line-height: 1.5; }
+.tl-date { font-size: 11px; color: #8a9fb0; margin-top: 3px; }
+.asgn-link { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: #f0f8ff; border-radius: 8px; font-size: 13px; color: #2a5080; font-weight: 600; margin-bottom: 8px; text-decoration: none; border: 1px solid #d0e8f8; cursor: pointer; }
+.asgn-link:hover { background: #e0f0ff; }
+.spec-block { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); line-height: 1.7; max-width: 1100px; }
+.spec-block h3 { color: #2a5080; margin-bottom: 10px; font-size: 15px; }
+.spec-block p { font-size: 13px; color: #3a4f66; margin-bottom: 10px; }
+.spec-block ul { margin-left: 18px; font-size: 13px; color: #3a4f66; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>Engineering Routes — teacher-student-intervention-desktop-v2</strong><br>
+  GET /teacher/student/{id} returns { profile, tier, streak, xp, sessions[], intervention_plan, notes[], assignments[] } · Auth: teacher JWT<br>
+  POST /teacher/intervention/save { student_id, plan_text, type_tags[] } → saves intervention plan<br>
+  POST /teacher/notes/append { student_id, note_text } → appends note (append-only, no delete)<br>
+  3-col desktop layout: left=student card + sessions · center=skill trend chart + intervention editor · right=notes + assignments
+</div>
+
+<nav>
+  <span class="logo">WonderQuest</span>
+  <span class="sub">Teacher · Student Intervention · Diego Martinez</span>
+</nav>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('history',this)">Student History</button>
+  <button class="tab" onclick="show('intervention',this)">Intervention Plan</button>
+  <button class="tab" onclick="show('trend',this)">Skill Trend</button>
+  <button class="tab" onclick="show('notes',this)">Notes Timeline</button>
+  <button class="tab" onclick="show('spec',this)">Spec</button>
+</div>
+
+<div id="history" class="panel active">
+  <div class="three-col">
+    <!-- LEFT: Student Card -->
+    <div class="col">
+      <div class="card" style="text-align:center">
+        <div class="student-avatar">🧒</div>
+        <div class="student-name">Diego Martinez</div>
+        <span class="tier-badge opportunity">Opportunity</span>
+        <div class="stats-mini">
+          <div class="stat-mini"><div class="v">🔥 4</div><div class="l">Streak</div></div>
+          <div class="stat-mini"><div class="v">1,240</div><div class="l">XP</div></div>
+          <div class="stat-mini"><div class="v">12</div><div class="l">Sessions</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">Recent Sessions</div>
+        <div class="session-item">
+          <div class="session-dot dot-amber"></div>
+          <div>
+            <div class="session-info">Phonics: Blending — repeated</div>
+            <div class="session-date">Mar 23 · 12 min</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <div class="session-dot dot-amber"></div>
+          <div>
+            <div class="session-info">Phonics: Blending — repeated</div>
+            <div class="session-date">Mar 22 · 9 min</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <div class="session-dot dot-amber"></div>
+          <div>
+            <div class="session-info">Phonics: Blending — repeated</div>
+            <div class="session-date">Mar 21 · 11 min</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <div class="session-dot dot-green"></div>
+          <div>
+            <div class="session-info">Math: Counting — completed</div>
+            <div class="session-date">Mar 20 · 15 min</div>
+          </div>
+        </div>
+        <div class="session-item">
+          <div class="session-dot dot-blue"></div>
+          <div>
+            <div class="session-info">Vocab: Animal Names — completed</div>
+            <div class="session-date">Mar 19 · 8 min</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: Skill Trend -->
+    <div class="col">
+      <div class="card">
+        <div class="chart-title">8-Week Skill Trend — Phonics</div>
+        <svg width="100%" height="160" viewBox="0 0 400 160">
+          <text x="0" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W1</text>
+          <text x="44" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W2</text>
+          <text x="88" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W3</text>
+          <text x="132" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W4</text>
+          <text x="176" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W5</text>
+          <text x="220" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W6</text>
+          <text x="264" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W7</text>
+          <text x="308" y="155" font-size="10" fill="#8a9fb0" font-family="Sora">W8</text>
+          <!-- bars -->
+          <rect x="2" y="60" width="32" height="80" rx="4" fill="#4a9070"/>
+          <rect x="46" y="40" width="32" height="100" rx="4" fill="#4a9070"/>
+          <rect x="90" y="30" width="32" height="110" rx="4" fill="#2a5080"/>
+          <rect x="134" y="50" width="32" height="90" rx="4" fill="#4a9070"/>
+          <rect x="178" y="70" width="32" height="70" rx="4" fill="#c07030"/>
+          <rect x="222" y="80" width="32" height="60" rx="4" fill="#c07030"/>
+          <rect x="266" y="90" width="32" height="50" rx="4" fill="#e84040"/>
+          <rect x="310" y="95" width="32" height="45" rx="4" fill="#e84040"/>
+        </svg>
+        <div style="font-size:11px;color:#8a9fb0;margin-top:6px">Nodes completed per week — red = needs attention</div>
+      </div>
+      <div class="card">
+        <div class="section-label">Intervention Plan</div>
+        <textarea class="editor-area" placeholder="Describe the intervention plan for this student...">Focus on phonics blending support. Recommend: 1-on-1 small group session on /bl/ /cl/ blends. Try audio-first approach with visual flashcards. Check in with parent about at-home practice.</textarea>
+        <div class="chip-row">
+          <button class="type-chip sel">Small Group</button>
+          <button class="type-chip sel">Audio Support</button>
+          <button class="type-chip">Parent Outreach</button>
+          <button class="type-chip">Modified Task</button>
+          <button class="type-chip">Peer Buddy</button>
+        </div>
+        <button class="btn btn-primary">Save Intervention Plan</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Notes + Assignments -->
+    <div class="col">
+      <div class="card">
+        <div class="section-label">Recent Notes</div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-note">3rd session in a row on blending — escalating to intervention plan</div>
+            <div class="tl-date">Mar 23, 2026</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-note">Parent messaged — Diego says the words "don't stick." Will try audio approach.</div>
+            <div class="tl-date">Mar 21, 2026</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-note">Noticed difficulty with /bl/ blends specifically. Math and vocab are strong.</div>
+            <div class="tl-date">Mar 18, 2026</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:#4a9070"></div>
+            <div class="tl-note">Good start to the term — reading beginning sounds well.</div>
+            <div class="tl-date">Mar 10, 2026</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" placeholder="Add a note..." style="flex:1;padding:8px 10px;border:1.5px solid #d0dbe8;border-radius:6px;font-family:'Sora',sans-serif;font-size:12px">
+          <button class="btn btn-primary" style="padding:8px 14px;font-size:12px">Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">Linked Assignments</div>
+        <div class="asgn-link">📚 Phonics Sprint 1 — In Progress</div>
+        <div class="asgn-link">🔢 Math: Counting to 20 — Done</div>
+        <div class="asgn-link">📖 Story Sequence Quest — Not Started</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="intervention" class="panel">
+  <div class="three-col">
+    <div class="col">
+      <div class="card" style="text-align:center">
+        <div class="student-avatar">🧒</div>
+        <div class="student-name">Diego Martinez</div>
+        <span class="tier-badge opportunity">Opportunity</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="section-label">Intervention Plan Editor</div>
+        <textarea class="editor-area" style="min-height:200px">Focus on phonics blending support. Recommend: 1-on-1 small group session on /bl/ /cl/ blends. Try audio-first approach with visual flashcards. Check in with parent about at-home practice.
+
+Goal: Move Diego from Opportunity to Growing on phonics within 3 weeks.
+
+Next steps:
+- Schedule small group Wed/Fri
+- Send parent resources packet
+- Adjust node sequence to scaffold blends</textarea>
+        <div style="margin:12px 0 8px" class="section-label">Intervention Type</div>
+        <div class="chip-row">
+          <button class="type-chip sel">Small Group</button>
+          <button class="type-chip sel">Audio Support</button>
+          <button class="type-chip">Parent Outreach</button>
+          <button class="type-chip">Modified Task</button>
+          <button class="type-chip">Peer Buddy</button>
+          <button class="type-chip">Scaffolding</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn btn-primary">Save Plan</button>
+          <button class="btn btn-outline">Preview PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="section-label">Plan History</div>
+        <div style="font-size:12px;color:#6a7f9a">Previous intervention saved Mar 15, 2026 · "Initial phonics monitoring plan"</div>
+        <div style="font-size:12px;color:#6a7f9a;margin-top:8px">No prior interventions before Mar 2026</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="trend" class="panel">
+  <div class="card" style="max-width:800px">
+    <div class="chart-title">8-Week Skill Trend — All Skill Areas</div>
+    <div style="margin-bottom:14px;font-size:12px;color:#6a7f9a">Bars show nodes completed per week. Red = declining engagement.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px">Phonics</div>
+        <svg width="100%" height="100" viewBox="0 0 200 100">
+          <rect x="2" y="30" width="18" height="60" rx="3" fill="#4a9070"/>
+          <rect x="24" y="20" width="18" height="70" rx="3" fill="#4a9070"/>
+          <rect x="46" y="15" width="18" height="75" rx="3" fill="#2a5080"/>
+          <rect x="68" y="25" width="18" height="65" rx="3" fill="#4a9070"/>
+          <rect x="90" y="40" width="18" height="50" rx="3" fill="#c07030"/>
+          <rect x="112" y="50" width="18" height="40" rx="3" fill="#c07030"/>
+          <rect x="134" y="60" width="18" height="30" rx="3" fill="#e84040"/>
+          <rect x="156" y="65" width="18" height="25" rx="3" fill="#e84040"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px">Math</div>
+        <svg width="100%" height="100" viewBox="0 0 200 100">
+          <rect x="2" y="40" width="18" height="50" rx="3" fill="#4a9070"/>
+          <rect x="24" y="30" width="18" height="60" rx="3" fill="#4a9070"/>
+          <rect x="46" y="20" width="18" height="70" rx="3" fill="#2a5080"/>
+          <rect x="68" y="15" width="18" height="75" rx="3" fill="#2a5080"/>
+          <rect x="90" y="20" width="18" height="70" rx="3" fill="#2a5080"/>
+          <rect x="112" y="25" width="18" height="65" rx="3" fill="#4a9070"/>
+          <rect x="134" y="30" width="18" height="60" rx="3" fill="#4a9070"/>
+          <rect x="156" y="35" width="18" height="55" rx="3" fill="#4a9070"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px">Vocab</div>
+        <svg width="100%" height="100" viewBox="0 0 200 100">
+          <rect x="2" y="50" width="18" height="40" rx="3" fill="#4a9070"/>
+          <rect x="24" y="45" width="18" height="45" rx="3" fill="#4a9070"/>
+          <rect x="46" y="40" width="18" height="50" rx="3" fill="#4a9070"/>
+          <rect x="68" y="35" width="18" height="55" rx="3" fill="#2a5080"/>
+          <rect x="90" y="30" width="18" height="60" rx="3" fill="#2a5080"/>
+          <rect x="112" y="35" width="18" height="55" rx="3" fill="#2a5080"/>
+          <rect x="134" y="40" width="18" height="50" rx="3" fill="#4a9070"/>
+          <rect x="156" y="45" width="18" height="45" rx="3" fill="#4a9070"/>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px">Science</div>
+        <svg width="100%" height="100" viewBox="0 0 200 100">
+          <rect x="2" y="60" width="18" height="30" rx="3" fill="#c07030"/>
+          <rect x="24" y="55" width="18" height="35" rx="3" fill="#4a9070"/>
+          <rect x="46" y="50" width="18" height="40" rx="3" fill="#4a9070"/>
+          <rect x="68" y="55" width="18" height="35" rx="3" fill="#4a9070"/>
+          <rect x="90" y="50" width="18" height="40" rx="3" fill="#4a9070"/>
+          <rect x="112" y="45" width="18" height="45" rx="3" fill="#4a9070"/>
+          <rect x="134" y="50" width="18" height="40" rx="3" fill="#4a9070"/>
+          <rect x="156" y="55" width="18" height="35" rx="3" fill="#4a9070"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="notes" class="panel">
+  <div style="max-width:600px">
+    <div class="card">
+      <div class="section-label">Notes Timeline — append-only record</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-note">3rd session in a row on blending — escalating to full intervention plan this week.</div>
+          <div class="tl-date">Mar 23, 2026</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-note">Parent messaged — Diego says the words "don't stick." Will try audio-first approach in next session.</div>
+          <div class="tl-date">Mar 21, 2026</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-note">Noticed difficulty specifically with /bl/ blends. Math and vocab remain strong areas for him.</div>
+          <div class="tl-date">Mar 18, 2026</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#4a9070"></div>
+          <div class="tl-note">Good start to the term — reading beginning sounds well, engaged in sessions.</div>
+          <div class="tl-date">Mar 10, 2026</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot" style="background:#4a9070"></div>
+          <div class="tl-note">Introduced to WonderQuest. Excited about the worlds. Phonics baseline assessed.</div>
+          <div class="tl-date">Mar 3, 2026</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #e8f0f8">
+        <textarea placeholder="Add a new note..." style="flex:1;padding:10px;border:1.5px solid #d0dbe8;border-radius:6px;font-family:'Sora',sans-serif;font-size:12px;resize:none;height:64px;background:#f8fafc"></textarea>
+        <button class="btn btn-primary" style="align-self:flex-end">Append Note</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <div class="spec-block">
+    <h3>teacher-student-intervention-desktop-v2 — Specification</h3>
+    <p><strong>Persona:</strong> Teacher · Desktop 1024px+ · Sora font · #f0f4f8 bg · #2a5080 nav · 3-column layout</p>
+    <p><strong>API:</strong> GET /teacher/student/{id} → full student profile, sessions[], intervention_plan, notes[], assignments[]</p>
+    <p><strong>API:</strong> POST /teacher/intervention/save { student_id, plan_text, type_tags[] } → 201 Created</p>
+    <p><strong>API:</strong> POST /teacher/notes/append { student_id, note_text } → append-only, no delete endpoint</p>
+    <ul>
+      <li>Left col: student card (avatar, name, tier badge, streak, XP) + recent sessions list</li>
+      <li>Center col: 8-week skill trend SVG bars + intervention plan textarea + type chips + save button</li>
+      <li>Right col: notes timeline (append-only, dot + note + date) + assignment links</li>
+      <li>Tier badge colors: Opportunity=amber, Growing=blue, Strength=green</li>
+      <li>SNS labels: Opportunity / Growing / Strength — NEVER accuracy %, NEVER missed-day language</li>
+      <li>Notes are append-only by design — no edit or delete UI exposed to teacher</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

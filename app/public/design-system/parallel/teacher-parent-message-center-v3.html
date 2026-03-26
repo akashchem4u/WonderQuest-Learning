@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Parent Message Center — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Message center layout */
+.mc-wrap{display:flex;gap:0;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.1);max-width:860px;height:560px}
+
+/* Left panel — conversation list */
+.mc-list{width:260px;border-right:1px solid #f0f0f0;display:flex;flex-direction:column;flex-shrink:0}
+.mc-list-header{padding:16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.mc-list-title{font-size:13px;font-weight:800;color:#1a1440}
+.mc-compose-btn{width:28px;height:28px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
+.mc-search{padding:10px 12px;border-bottom:1px solid #f0f0f0}
+.mc-search input{width:100%;padding:7px 10px;border:1.5px solid #f0f0f0;border-radius:8px;font-size:12px;font-family:system-ui;outline:none;color:#555;background:#f8f8f8}
+.mc-thread-list{flex:1;overflow-y:auto}
+.mc-thread{padding:12px 14px;border-bottom:1px solid #f8f8f8;cursor:pointer}
+.mc-thread:hover{background:#f8faff}
+.mc-thread.active{background:#eff6ff}
+.mc-thread-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.mc-thread-name{font-size:13px;font-weight:700;color:#1a1440}
+.mc-thread-time{font-size:10px;color:#aaa}
+.mc-thread-preview{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.mc-unread-dot{width:8px;height:8px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-left:4px}
+.mc-thread-student{font-size:10px;color:#9b72ff;font-weight:700;margin-bottom:1px}
+
+/* Right panel — message view */
+.mc-main{flex:1;display:flex;flex-direction:column}
+.mc-main-header{padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px}
+.mc-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0}
+.mc-main-name{font-size:14px;font-weight:800;color:#1a1440}
+.mc-main-sub{font-size:11px;color:#888}
+.mc-main-actions{margin-left:auto;display:flex;gap:6px}
+.mc-action-btn{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui;background:#fff;color:#2563eb;border:1.5px solid #dbe7ff}
+
+.mc-messages{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;background:#f8faff}
+.msg-bubble{max-width:75%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg-out{align-self:flex-end;background:#2563eb;color:#fff;border-bottom-right-radius:4px}
+.msg-in{align-self:flex-start;background:#fff;color:#1a1440;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.msg-time{font-size:10px;margin-top:4px}
+.msg-time-out{color:rgba(255,255,255,.65);text-align:right}
+.msg-time-in{color:#aaa}
+.msg-system{align-self:center;font-size:11px;color:#aaa;background:#f0f0f0;padding:4px 12px;border-radius:10px}
+
+.mc-compose{padding:12px 16px;border-top:1px solid #f0f0f0;display:flex;gap:8px;align-items:flex-end;background:#fff}
+.mc-compose-input{flex:1;padding:9px 12px;border:1.5px solid #dbe7ff;border-radius:10px;font-size:13px;font-family:system-ui;outline:none;color:#1a1440;resize:none;min-height:38px;max-height:100px}
+.mc-send-btn{padding:9px 18px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui;white-space:nowrap}
+.mc-template-btn{padding:8px;background:#fff;color:#555;border:1.5px solid #dbe7ff;border-radius:8px;font-size:12px;cursor:pointer;font-family:system-ui;white-space:nowrap}
+
+/* Compose modal */
+.compose-wrap{background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:560px}
+.cw-title{font-size:15px;font-weight:800;color:#1a1440;margin-bottom:16px}
+.form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.form-label{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em}
+.form-input{padding:9px 12px;border:1.5px solid #dbe7ff;border-radius:10px;font-size:13px;font-family:system-ui;outline:none;color:#1a1440}
+.form-textarea{padding:9px 12px;border:1.5px solid #dbe7ff;border-radius:10px;font-size:13px;font-family:system-ui;outline:none;color:#1a1440;resize:vertical;min-height:100px}
+.form-hint{font-size:11px;color:#999;margin-top:3px;line-height:1.4}
+
+/* Template cards */
+.template-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.tmpl-card{background:#f8faff;border-radius:10px;padding:12px 14px;cursor:pointer;border:2px solid transparent}
+.tmpl-card:hover{border-color:#2563eb}
+.tmpl-icon{font-size:18px;margin-bottom:5px}
+.tmpl-title{font-size:12px;font-weight:800;color:#1a1440;margin-bottom:2px}
+.tmpl-preview{font-size:10px;color:#888;line-height:1.4}
+
+/* Announcement */
+.announce-card{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:560px}
+.ac-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.ac-icon{font-size:20px}
+.ac-title{font-size:13px;font-weight:800;color:#1a1440}
+.ac-sub{font-size:11px;color:#888;margin-bottom:14px;line-height:1.4}
+
+/* Privacy note */
+.privacy-bar{background:#f0fdf4;border-radius:8px;padding:8px 12px;font-size:11px;color:#166534;line-height:1.4;margin-top:10px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-parent-message-center-v3.html</strong><br>
+  In-platform messaging between teacher and parents (guardians). Messages are routed through WonderQuest — no direct email/phone disclosed.<br>
+  <strong>Privacy:</strong> Teacher sees parent display name only. Parent sees teacher name only. No email addresses, phone numbers, or school admin visible in UI.<br>
+  <strong>Thread model:</strong> One thread per student per teacher-parent pair (not per topic). Multiple children = multiple threads.<br>
+  <strong>Scope:</strong> Teacher can message individual parent OR send class-wide announcement (to all parents in class). Parent-initiated messages land in teacher inbox.<br>
+  <strong>Templates:</strong> Pre-written positive/neutral templates for common scenarios (progress update, band advancement, check-in request, absence follow-up).<br>
+  <strong>FERPA:</strong> Messages about one student NOT shared with other parents. Class announcements contain no individual student data.<br>
+  <strong>Retention:</strong> Messages retained 2 years after class year end, then archived.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('inbox')">Inbox</button>
+  <button class="tab-btn" onclick="showTab('compose')">Compose</button>
+  <button class="tab-btn" onclick="showTab('announce')">Announcement</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Inbox ─────────────────────────────────────────────────────── -->
+<div id="tab-inbox" class="screen active">
+  <p class="section-title">Message center — teacher inbox</p>
+  <div class="mc-wrap">
+    <!-- Thread list -->
+    <div class="mc-list">
+      <div class="mc-list-header">
+        <div class="mc-list-title">Messages</div>
+        <button class="mc-compose-btn">+</button>
+      </div>
+      <div class="mc-search">
+        <input placeholder="Search messages…" readonly>
+      </div>
+      <div class="mc-thread-list">
+
+        <div class="mc-thread active">
+          <div class="mc-thread-student">re: Jordan</div>
+          <div class="mc-thread-top">
+            <span class="mc-thread-name">Alex T.</span>
+            <span class="mc-thread-time">10:32am</span>
+          </div>
+          <div style="display:flex;align-items:center">
+            <div class="mc-thread-preview">Thanks for letting me know, I'll chat with them tonight.</div>
+            <div class="mc-unread-dot"></div>
+          </div>
+        </div>
+
+        <div class="mc-thread">
+          <div class="mc-thread-student">re: Priya</div>
+          <div class="mc-thread-top">
+            <span class="mc-thread-name">Meera P.</span>
+            <span class="mc-thread-time">Yesterday</span>
+          </div>
+          <div class="mc-thread-preview">She's excited to catch up! We traveled for…</div>
+        </div>
+
+        <div class="mc-thread">
+          <div class="mc-thread-student">re: Marcus</div>
+          <div class="mc-thread-top">
+            <span class="mc-thread-name">David K.</span>
+            <span class="mc-thread-time">Mar 20</span>
+          </div>
+          <div class="mc-thread-preview">That's great news about the P3 advance…</div>
+        </div>
+
+        <div class="mc-thread">
+          <div class="mc-thread-student">re: Bella</div>
+          <div class="mc-thread-top">
+            <span class="mc-thread-name">Carmen V.</span>
+            <span class="mc-thread-time">Mar 19</span>
+          </div>
+          <div class="mc-thread-preview">Wow, she'll be so proud when she hears!</div>
+        </div>
+
+        <div class="mc-thread">
+          <div class="mc-thread-student">📢 Class announcement</div>
+          <div class="mc-thread-top">
+            <span class="mc-thread-name" style="color:#2563eb">Sent to all parents</span>
+            <span class="mc-thread-time">Mar 17</span>
+          </div>
+          <div class="mc-thread-preview">Class 4B had an amazing week — 1,800…</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Message thread -->
+    <div class="mc-main">
+      <div class="mc-main-header">
+        <div class="mc-av" style="background:#475569">A</div>
+        <div>
+          <div class="mc-main-name">Alex T.</div>
+          <div class="mc-main-sub">Parent of Jordan</div>
+        </div>
+        <div class="mc-main-actions">
+          <button class="mc-action-btn">Archive</button>
+        </div>
+      </div>
+
+      <div class="mc-messages">
+        <div class="msg-system">March 21, 2026</div>
+
+        <div class="msg-bubble msg-out">
+          Hi Alex — I wanted to reach out about Jordan. They've been working hard on fractions this week! I'd love to schedule a brief check-in if you have a few minutes. No concerns — just want to share some ideas that might help at home too.
+          <div class="msg-time msg-time-out">Ms. Sharma · 9:14am</div>
+        </div>
+
+        <div class="msg-bubble msg-in">
+          Thanks so much for reaching out, Ms. Sharma! Jordan mentioned they've been finding fractions tricky. I'd love to chat — does Thursday work?
+          <div class="msg-time msg-time-in">Alex T. · 9:51am</div>
+        </div>
+
+        <div class="msg-bubble msg-out">
+          Thursday works great! I'll send a calendar invite through the school portal. In the meantime, WonderQuest is suggesting some visual models — Jordan should see those pop up in their sessions soon.
+          <div class="msg-time msg-time-out">Ms. Sharma · 10:05am</div>
+        </div>
+
+        <div class="msg-bubble msg-in">
+          Thanks for letting me know, I'll chat with them tonight.
+          <div class="msg-time msg-time-in">Alex T. · 10:32am · Unread</div>
+        </div>
+      </div>
+
+      <div class="mc-compose">
+        <button class="mc-template-btn">Templates</button>
+        <textarea class="mc-compose-input" placeholder="Write a message…" rows="1"></textarea>
+        <button class="mc-send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+  <div class="privacy-bar" style="max-width:860px;margin-top:10px">
+    🔒 Messages are sent through WonderQuest only. Parent contact details are not shared with teachers, and teacher contact details are not shared with parents.
+  </div>
+</div>
+
+<!-- ── Compose ───────────────────────────────────────────────────── -->
+<div id="tab-compose" class="screen">
+  <p class="section-title">Compose — new message with templates</p>
+  <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+    <div class="compose-wrap">
+      <div class="cw-title">✉️ New Message</div>
+      <div class="form-group">
+        <label class="form-label">To (parent)</label>
+        <input class="form-input" value="Alex T. (parent of Jordan)" readonly>
+        <span class="form-hint">Messages are delivered in-platform. No email addresses shared.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message</label>
+        <textarea class="form-textarea" placeholder="Write your message…">Hi Alex — I wanted to reach out about Jordan's progress this week…</textarea>
+      </div>
+      <div class="privacy-bar" style="margin-bottom:14px">
+        🔒 This message will be delivered to Alex T.'s WonderQuest parent account. Jordan's data is not included unless you write it in your message.
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui">Send</button>
+        <button style="padding:10px 16px;background:#fff;color:#555;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui">Cancel</button>
+      </div>
+    </div>
+
+    <div style="width:260px">
+      <div style="font-size:12px;font-weight:800;color:#1a1440;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Message Templates</div>
+      <div class="template-grid" style="grid-template-columns:1fr">
+        <div class="tmpl-card">
+          <div class="tmpl-icon">🎉</div>
+          <div class="tmpl-title">Progress update</div>
+          <div class="tmpl-preview">Share a positive update on what the student mastered this week.</div>
+        </div>
+        <div class="tmpl-card">
+          <div class="tmpl-icon">🚀</div>
+          <div class="tmpl-title">Band advancement</div>
+          <div class="tmpl-preview">Notify parent that student is ready to advance to next level.</div>
+        </div>
+        <div class="tmpl-card">
+          <div class="tmpl-icon">💬</div>
+          <div class="tmpl-title">Check-in request</div>
+          <div class="tmpl-preview">Invite a brief conversation — neutral, no alarm framing.</div>
+        </div>
+        <div class="tmpl-card">
+          <div class="tmpl-icon">🌟</div>
+          <div class="tmpl-title">Encourage at home</div>
+          <div class="tmpl-preview">Suggest ways parent can support student's learning at home.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Announcement ──────────────────────────────────────────────── -->
+<div id="tab-announce" class="screen">
+  <p class="section-title">Class-wide announcement — sent to all parents</p>
+  <div class="announce-card">
+    <div class="ac-header">
+      <div class="ac-icon">📢</div>
+      <div class="ac-title">Class Announcement</div>
+    </div>
+    <div class="ac-sub">Send a message to all parents in Class 4B (28 families). Announcements must not contain individual student names or data — use class-level language only.</div>
+
+    <div class="form-group">
+      <label class="form-label">Subject</label>
+      <input class="form-input" value="Great week in Class 4B! 🌟">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea class="form-textarea" style="min-height:120px">Hi Class 4B families,
+
+Just wanted to share that your students have had a wonderful week on WonderQuest! The class collectively earned over 1,800 stars — the best weekly total this term.
+
+Keep encouraging those daily sessions at home. Streaks are building and skills are clicking!
+
+Thanks,
+Ms. Sharma</textarea>
+    </div>
+    <div style="background:#fff9e6;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400e;margin-bottom:14px;line-height:1.4">
+      ⚠️ <strong>Class announcements must not include individual student names or data.</strong> If you need to reference a specific student, send an individual message instead.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="flex:1;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui">Send to 28 families</button>
+      <button style="padding:10px 16px;background:#fff;color:#555;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui">Preview</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-parent-message-center-v3.html<br>
+      <strong>Data model:</strong> messages table — sender_id, recipient_id, student_id (nullable, for thread grouping), body_text, sent_at, read_at. Thread = teacher_id + parent_id + student_id grouping.<br>
+      <strong>Announcement model:</strong> class_announcements table — teacher_id, class_id, subject, body, sent_at. No student_id foreign key — class-level only.
+    </div>
+    <h2 class="spec-h2">Privacy Rules</h2>
+    <table class="spec-table">
+      <tr><th>Rule</th><th>Detail</th></tr>
+      <tr><td>Contact details</td><td>Parent email/phone NEVER shown to teacher. Teacher email/phone NEVER shown to parent. Routing is platform-only.</td></tr>
+      <tr><td>Individual thread</td><td>One thread per student per teacher-parent pair. Threads not shared across siblings in different classes.</td></tr>
+      <tr><td>Announcement rule</td><td>Class announcements must contain NO individual student names or data (FERPA). Validated server-side via name matching.</td></tr>
+      <tr><td>Message history</td><td>Teacher can view own sent/received. Teachers cannot view other teachers' messages.</td></tr>
+    </table>
+    <h2 class="spec-h2">Message Templates</h2>
+    <table class="spec-table">
+      <tr><th>Template</th><th>Scenario</th><th>Tone</th></tr>
+      <tr><td>Progress update</td><td>Weekly positive milestone to share</td><td>Celebratory, specific</td></tr>
+      <tr><td>Band advancement</td><td>Student ready for next level</td><td>Excited, clear next step</td></tr>
+      <tr><td>Check-in request</td><td>Teacher wants brief conversation</td><td>Warm, non-alarming — "no concerns"</td></tr>
+      <tr><td>Encourage at home</td><td>Tips for parent support</td><td>Practical, positive</td></tr>
+    </table>
+    <h2 class="spec-h2">Retention</h2>
+    <p class="spec-p">Messages retained for 2 years after end of class year, then archived (accessible to school admin on request). Parent message history remains accessible to parent for same period. Messages deleted if both accounts are deleted.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

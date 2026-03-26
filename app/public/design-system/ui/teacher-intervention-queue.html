@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Intervention Queue — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#eaf0f8;color:#1a2634;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#dde4ec;flex-wrap:wrap;border-bottom:1px solid #c8d0dc}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #b0bece;background:transparent;color:#5a7a9a;cursor:pointer;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+  .tab.active{background:#2a6ab4;border-color:#2a6ab4;color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#fffbeb;border:1px solid #e6d48a;border-left:3px solid #c9a227;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#7a5c0a;line-height:1.6}
+  .eng-note strong{color:#c9a227;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .desktop{width:860px;min-height:600px;background:#fff;border-radius:16px;border:1px solid #c8d0dc;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
+  .phone{width:390px;min-height:844px;background:#f0f4f8;border-radius:40px;border:2px solid #c8d0dc;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,0.1);display:flex;flex-direction:column}
+  .phone-label,.desktop-label{text-align:center;margin-top:10px;font-size:12px;color:#6a8aaa;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* Desktop layout */
+  .d-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#fff;border-bottom:1px solid #dde4ec}
+  .d-title{font-size:17px;font-weight:800;color:#1a2634}
+  .d-subtitle{font-size:12px;color:#6a8aaa;font-weight:500;margin-top:2px}
+  .d-actions{display:flex;gap:8px}
+  .d-btn{padding:8px 16px;border-radius:10px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #c8d0dc;background:#f0f4f8;color:#4a6a8a;transition:all .2s}
+  .d-btn.primary{background:#2a6ab4;border-color:#2a6ab4;color:#fff}
+  .d-body{display:flex;height:calc(100% - 64px)}
+  .d-left{width:320px;border-right:1px solid #dde4ec;background:#f8fafb;overflow-y:auto}
+  .d-right{flex:1;overflow-y:auto}
+
+  /* Class summary strip */
+  .class-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #dde4ec}
+  .cs-cell{padding:14px 16px;text-align:center;border-right:1px solid #dde4ec}
+  .cs-cell:last-child{border-right:none}
+  .cs-val{font-size:22px;font-weight:800;color:#1a2634}
+  .cs-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6a8aaa;margin-top:2px}
+  .cs-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;margin-top:3px}
+  .cs-badge.support{background:#fef3cd;color:#7a5c0a}
+  .cs-badge.watch{background:#e8f0fe;color:#1a3a6e}
+  .cs-badge.strong{background:#d4ede6;color:#1a5c3a}
+
+  /* Queue section headers */
+  .q-section{padding:10px 14px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#6a8aaa;background:#f8fafb;border-bottom:1px solid #dde4ec}
+  /* Queue rows */
+  .q-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f4f8;cursor:pointer;transition:background .15s;position:relative}
+  .q-row:hover{background:#f0f4f8}
+  .q-row.active{background:#e8f0fe;border-left:3px solid #2a6ab4}
+  .q-row.selected{background:#e8f0fe}
+  .q-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;color:#fff}
+  .q-avatar.support{background:#e67e22}
+  .q-avatar.watch{background:#2a6ab4}
+  .q-avatar.strong{background:#27ae60}
+  .q-meta{flex:1;min-width:0}
+  .q-name{font-size:13px;font-weight:700;color:#1a2634;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-skill{font-size:11px;color:#6a8aaa;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;flex-shrink:0}
+  .q-tag.support{background:#fef3cd;color:#7a5c0a}
+  .q-tag.watch{background:#e8f0fe;color:#1a3a6e}
+  .q-tag.strong{background:#d4ede6;color:#1a5c3a}
+  .q-urgency{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .q-urgency.high{background:#e74c3c}
+  .q-urgency.med{background:#f39c12}
+  .q-urgency.low{background:#27ae60}
+
+  /* Drilldown right panel */
+  .drill-header{padding:20px 24px 14px;border-bottom:1px solid #dde4ec}
+  .drill-name{font-size:18px;font-weight:800;color:#1a2634;margin-bottom:2px}
+  .drill-skill{font-size:13px;color:#6a8aaa;font-weight:500;margin-bottom:10px}
+  .drill-tier-row{display:flex;gap:8px;flex-wrap:wrap}
+  .tier-chip{padding:5px 12px;border-radius:10px;font-size:11px;font-weight:700}
+  .tier-chip.support{background:#fef3cd;color:#7a5c0a}
+  .tier-chip.watch{background:#e8f0fe;color:#1a3a6e}
+  .tier-chip.grade{background:#f0f4f8;color:#4a6a8a}
+
+  /* Skill summary */
+  .skill-summary{padding:16px 24px;border-bottom:1px solid #dde4ec}
+  .ss-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;margin-bottom:10px}
+  .skill-bars{display:flex;gap:6px;align-items:flex-end;height:48px;margin-bottom:6px}
+  .sbar{flex:1;border-radius:4px 4px 0 0;background:#2a6ab4;opacity:.5}
+  .sbar.active{opacity:1;background:#2a6ab4}
+  .sbar.low{background:#e74c3c;opacity:.8}
+  .sbar-labels{display:flex;gap:6px;font-size:9px;color:#8a9aaa;font-weight:600}
+  .sbar-label{flex:1;text-align:center}
+
+  /* Intervention notes */
+  .note-row{padding:12px 24px;border-bottom:1px solid #f0f4f8;display:flex;gap:10px}
+  .note-dot{width:8px;height:8px;border-radius:50%;background:#2a6ab4;margin-top:5px;flex-shrink:0}
+  .note-content{flex:1}
+  .note-text{font-size:12px;font-weight:600;color:#1a2634;line-height:1.5;margin-bottom:3px}
+  .note-meta{font-size:10px;color:#8a9aaa;font-weight:500}
+
+  /* Next action footer */
+  .next-action{padding:16px 24px;background:#f8fafb;border-top:1px solid #dde4ec}
+  .na-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;margin-bottom:10px}
+  .action-card{background:#fff;border:1px solid #dde4ec;border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}
+  .action-card:hover{border-color:#2a6ab4;background:#e8f0fe}
+  .action-icon{font-size:20px;flex-shrink:0}
+  .action-text{font-size:12px;font-weight:600;color:#1a2634;line-height:1.4;flex:1}
+  .action-arrow{font-size:14px;color:#6a8aaa}
+
+  /* Mobile */
+  .m-header{padding:48px 20px 12px;background:#fff;border-bottom:1px solid #dde4ec;display:flex;align-items:center;gap:8px}
+  .m-title{font-size:16px;font-weight:800;color:#1a2634;flex:1}
+  .m-badge{background:#e74c3c;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px}
+  .m-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:#fff;border-bottom:1px solid #dde4ec}
+  .ms-cell{padding:12px 8px;text-align:center;border-right:1px solid #dde4ec}
+  .ms-cell:last-child{border-right:none}
+  .ms-val{font-size:18px;font-weight:800;color:#1a2634}
+  .ms-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6a8aaa;margin-top:2px}
+  .m-scroll{flex:1;overflow-y:auto}
+  .m-footer{padding:12px 20px 40px;background:#fff;border-top:1px solid #dde4ec}
+  .m-btn{width:100%;padding:14px;border-radius:14px;border:none;background:#2a6ab4;color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">Intervention Queue</button>
+  <button class="tab" onclick="show('t2',this)">Skill Drilldown Connected</button>
+  <button class="tab" onclick="show('t3',this)">Class-Level Summary</button>
+  <button class="tab" onclick="show('t4',this)">Mobile 390px</button>
+</div>
+
+<!-- TAB 1: Intervention queue -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 21 / Tab 1: Intervention queue</strong>
+    Route: /teacher (support lane). Left panel = queue sorted by tier: Support (red urgency) → Watch (yellow) → Strong (green). Tapping a row loads drilldown in right panel. Queue rows show student name, skill, tier tag, urgency dot. Class-level summary strip above the queue. "Add note" action stays in right panel footer, not in the queue list.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop" style="height:680px">
+        <div class="d-header">
+          <div>
+            <div class="d-title">Intervention Queue</div>
+            <div class="d-subtitle">Ms. Rivera · 2nd Grade · 24 students</div>
+          </div>
+          <div class="d-actions">
+            <div class="d-btn">Export</div>
+            <div class="d-btn primary">+ Add note</div>
+          </div>
+        </div>
+        <div class="class-strip">
+          <div class="cs-cell"><div class="cs-val">24</div><div class="cs-label">Students</div></div>
+          <div class="cs-cell"><div class="cs-val" style="color:#e74c3c">5</div><div class="cs-label">Need support</div><div class="cs-badge support">Needs attention</div></div>
+          <div class="cs-cell"><div class="cs-val" style="color:#2a6ab4">8</div><div class="cs-label">Watch</div><div class="cs-badge watch">Monitor</div></div>
+          <div class="cs-cell"><div class="cs-val" style="color:#27ae60">11</div><div class="cs-label">On track</div><div class="cs-badge strong">Strong</div></div>
+        </div>
+        <div class="d-body">
+          <div class="d-left">
+            <div class="q-section">Support — needs attention (5)</div>
+            <div class="q-row active">
+              <div class="q-urgency high"></div>
+              <div class="q-avatar support">MJ</div>
+              <div class="q-meta">
+                <div class="q-name">Maya Johnson</div>
+                <div class="q-skill">Counting 11–20 · 3 sessions stuck</div>
+              </div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency high"></div>
+              <div class="q-avatar support">TP</div>
+              <div class="q-meta">
+                <div class="q-name">Tyler Park</div>
+                <div class="q-skill">Letter sounds B/D · confusion pattern</div>
+              </div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency med"></div>
+              <div class="q-avatar support">AL</div>
+              <div class="q-meta">
+                <div class="q-name">Aisha Lowe</div>
+                <div class="q-skill">Addition to 10 · slow progress</div>
+              </div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency med"></div>
+              <div class="q-avatar support">RS</div>
+              <div class="q-meta">
+                <div class="q-name">Remy Scott</div>
+                <div class="q-skill">Shape recognition · inconsistent</div>
+              </div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency low"></div>
+              <div class="q-avatar support">OC</div>
+              <div class="q-meta">
+                <div class="q-name">Omar Chen</div>
+                <div class="q-skill">Rhyming words · new to this skill</div>
+              </div>
+              <div class="q-tag support">Support</div>
+            </div>
+
+            <div class="q-section">Watch — monitor (8)</div>
+            <div class="q-row">
+              <div class="q-urgency med"></div>
+              <div class="q-avatar watch">KR</div>
+              <div class="q-meta">
+                <div class="q-name">Kai Rivera</div>
+                <div class="q-skill">Subtraction basics · plateaued</div>
+              </div>
+              <div class="q-tag watch">Watch</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency low"></div>
+              <div class="q-avatar watch">LN</div>
+              <div class="q-meta">
+                <div class="q-name">Lily Nguyen</div>
+                <div class="q-skill">Sight words Set 2 · slower pace</div>
+              </div>
+              <div class="q-tag watch">Watch</div>
+            </div>
+            <div style="padding:10px 14px;font-size:11px;color:#8a9aaa;font-weight:600">+ 6 more in watch tier</div>
+
+            <div class="q-section">On track — strong (11)</div>
+            <div style="padding:12px 14px;font-size:12px;color:#6a8aaa;font-weight:600;line-height:1.5">11 students are making steady progress. No intervention needed this week.</div>
+          </div>
+
+          <!-- Right: drilldown for Maya Johnson -->
+          <div class="d-right">
+            <div class="drill-header">
+              <div class="drill-name">Maya Johnson</div>
+              <div class="drill-skill">Counting 11–20</div>
+              <div class="drill-tier-row">
+                <div class="tier-chip support">Support tier</div>
+                <div class="tier-chip watch">3 sessions stuck</div>
+                <div class="tier-chip grade">Grade 2</div>
+              </div>
+            </div>
+            <div class="skill-summary">
+              <div class="ss-label">5-week skill movement</div>
+              <div class="skill-bars">
+                <div class="sbar" style="height:40%"></div>
+                <div class="sbar" style="height:55%"></div>
+                <div class="sbar low" style="height:35%"></div>
+                <div class="sbar low" style="height:30%"></div>
+                <div class="sbar active" style="height:32%"></div>
+              </div>
+              <div class="sbar-labels">
+                <div class="sbar-label">Wk1</div><div class="sbar-label">Wk2</div><div class="sbar-label">Wk3</div><div class="sbar-label">Wk4</div><div class="sbar-label">This wk</div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:#6a8aaa;font-weight:600;line-height:1.5">Maya was progressing well in weeks 1–2, then hit a plateau on counting past 15. Likely needs concrete practice with physical objects.</div>
+            </div>
+
+            <div style="padding:14px 24px 8px">
+              <div class="ss-label">Intervention notes</div>
+            </div>
+            <div class="note-row">
+              <div class="note-dot" style="background:#e74c3c"></div>
+              <div class="note-content">
+                <div class="note-text">Pulled aside for 5-min counting check — can count to 14 reliably, struggles past 15. Recommend counting bears activity.</div>
+                <div class="note-meta">Ms. Rivera · Mar 20 · Counting 11–20</div>
+              </div>
+            </div>
+            <div class="note-row">
+              <div class="note-dot"></div>
+              <div class="note-content">
+                <div class="note-text">Paired with Kai for peer counting game — Maya more engaged, will observe next session for transfer.</div>
+                <div class="note-meta">Ms. Rivera · Mar 18 · Counting 11–20</div>
+              </div>
+            </div>
+            <div class="note-row">
+              <div class="note-dot" style="background:#f39c12"></div>
+              <div class="note-content">
+                <div class="note-text">Parent notified via app message about counting plateau. Parent confirmed practicing at home with toys.</div>
+                <div class="note-meta">Ms. Rivera · Mar 15 · Counting 11–20</div>
+              </div>
+            </div>
+
+            <div class="next-action">
+              <div class="na-label">What to do next</div>
+              <div class="action-card">
+                <span class="action-icon">🎯</span>
+                <span class="action-text">Pull Maya for a 5-minute guided counting activity today — focus on 15–20 with physical objects</span>
+                <span class="action-arrow">→</span>
+              </div>
+              <div class="action-card">
+                <span class="action-icon">💬</span>
+                <span class="action-text">Send a "try at home" tip to Maya's parent about counting practice</span>
+                <span class="action-arrow">→</span>
+              </div>
+              <div class="action-card">
+                <span class="action-icon">📝</span>
+                <span class="action-text">Add a note after today's intervention</span>
+                <span class="action-arrow">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">Intervention queue — Maya selected</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Skill drilldown connected -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 21 / Tab 2: Skill drilldown connected to queue</strong>
+    Tapping a skill name in the queue loads the skill drilldown in the right panel. Shows all students in that skill grouped by tier (support/watch/strong). Selected student row is highlighted. "Back to queue" breadcrumb at top of right panel. This is the same layout — no new route, just panel swap.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop" style="height:640px">
+        <div class="d-header">
+          <div>
+            <div class="d-title">Skill: Counting 11–20</div>
+            <div class="d-subtitle" style="display:flex;align-items:center;gap:6px"><span style="color:#2a6ab4;cursor:pointer">← Intervention queue</span> <span>·</span> <span>24 students</span></div>
+          </div>
+          <div class="d-actions">
+            <div class="d-btn primary">+ Add group note</div>
+          </div>
+        </div>
+        <div class="d-body">
+          <div class="d-left">
+            <div class="q-section">Support (4 students)</div>
+            <div class="q-row selected">
+              <div class="q-urgency high"></div>
+              <div class="q-avatar support">MJ</div>
+              <div class="q-meta"><div class="q-name">Maya Johnson</div><div class="q-skill">3 sessions stuck · plateau at 15</div></div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency med"></div>
+              <div class="q-avatar support">AL</div>
+              <div class="q-meta"><div class="q-name">Aisha Lowe</div><div class="q-skill">Inconsistent 2 weeks</div></div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-row">
+              <div class="q-urgency low"></div>
+              <div class="q-avatar support">TP</div>
+              <div class="q-meta"><div class="q-name">Tyler Park</div><div class="q-skill">Just started, struggling</div></div>
+              <div class="q-tag support">Support</div>
+            </div>
+            <div class="q-section">Watch (7 students)</div>
+            <div class="q-row">
+              <div class="q-urgency med"></div>
+              <div class="q-avatar watch">KR</div>
+              <div class="q-meta"><div class="q-name">Kai Rivera</div><div class="q-skill">Slower than expected</div></div>
+              <div class="q-tag watch">Watch</div>
+            </div>
+            <div style="padding:8px 14px;font-size:11px;color:#8a9aaa;font-weight:600">+ 6 more</div>
+            <div class="q-section">Strong (13 students)</div>
+            <div style="padding:12px 14px;font-size:12px;color:#27ae60;font-weight:700">13 students on track or ahead ✓</div>
+          </div>
+          <div class="d-right">
+            <div class="drill-header">
+              <div style="font-size:12px;color:#2a6ab4;font-weight:700;margin-bottom:10px;cursor:pointer">← Back to all queue</div>
+              <div class="drill-name">Maya Johnson</div>
+              <div class="drill-skill">Counting 11–20 · viewing skill drilldown</div>
+              <div class="drill-tier-row">
+                <div class="tier-chip support">Support tier</div>
+                <div class="tier-chip grade">Plateau at 15</div>
+              </div>
+            </div>
+            <div class="skill-summary">
+              <div class="ss-label">Class skill distribution</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+                <div style="background:#fef3cd;border-radius:10px;padding:10px;text-align:center">
+                  <div style="font-size:18px;font-weight:800;color:#7a5c0a">4</div>
+                  <div style="font-size:10px;color:#9a7c2a;font-weight:700;text-transform:uppercase">Support</div>
+                </div>
+                <div style="background:#e8f0fe;border-radius:10px;padding:10px;text-align:center">
+                  <div style="font-size:18px;font-weight:800;color:#1a3a6e">7</div>
+                  <div style="font-size:10px;color:#2a5a9e;font-weight:700;text-transform:uppercase">Watch</div>
+                </div>
+                <div style="background:#d4ede6;border-radius:10px;padding:10px;text-align:center">
+                  <div style="font-size:18px;font-weight:800;color:#1a5c3a">13</div>
+                  <div style="font-size:10px;color:#2a7a4a;font-weight:700;text-transform:uppercase">Strong</div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#6a8aaa;line-height:1.5">54% of students are on track or ahead. Focus intervention time on the 4 support students this week.</div>
+            </div>
+            <div class="next-action">
+              <div class="na-label">Suggested group action</div>
+              <div class="action-card">
+                <span class="action-icon">👥</span>
+                <span class="action-text">Small group pull-out: Maya, Aisha, Tyler — 10-min counting activity with manipulatives</span>
+                <span class="action-arrow">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">Skill drilldown — connected to queue</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Class-level summary -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 21 / Tab 3: Class-level watch/support/progress summary</strong>
+    Compact summary view showing all skills with support counts. Skills sorted by support count (most urgent first). Color-coded rows. Clicking a skill row opens the queue filtered to that skill. This is the "overview" tab of the teacher dashboard — not a separate route.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop" style="height:560px">
+        <div class="d-header">
+          <div>
+            <div class="d-title">Class Overview — All Skills</div>
+            <div class="d-subtitle">Ms. Rivera · 24 students · Week of Mar 17</div>
+          </div>
+          <div class="d-actions"><div class="d-btn">View by student</div></div>
+        </div>
+        <div style="overflow-y:auto;height:calc(100% - 64px)">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;padding:12px 24px 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#6a8aaa;border-bottom:1px solid #dde4ec">
+            <div>Skill</div><div style="text-align:center">Total</div><div style="text-align:center;color:#e74c3c">Support</div><div style="text-align:center;color:#f39c12">Watch</div><div style="text-align:center;color:#27ae60">Strong</div>
+          </div>
+          {[['Counting 11–20',24,4,7,13,'support'],['Letter sounds B/D',24,3,9,12,'support'],['Addition to 10',24,2,8,14,'watch'],['Sight words Set 1',24,1,6,17,'watch'],['Shape recognition',24,1,5,18,''],['Subtraction basics',24,0,4,20,''],['Rhyming words',24,0,3,21,'']].map(r=>`...`)}
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;padding:12px 24px;align-items:center;border-bottom:1px solid #f0f4f8;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">
+            <div style="font-size:13px;font-weight:700;color:#1a2634;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#e74c3c;display:inline-block"></span>Counting 11–20</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#1a2634">24</div>
+            <div style="text-align:center;font-size:13px;font-weight:800;color:#e74c3c">4</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#f39c12">7</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#27ae60">13</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;padding:12px 24px;align-items:center;border-bottom:1px solid #f0f4f8;cursor:pointer" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">
+            <div style="font-size:13px;font-weight:700;color:#1a2634;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#e74c3c;display:inline-block"></span>Letter sounds B/D</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#1a2634">24</div>
+            <div style="text-align:center;font-size:13px;font-weight:800;color:#e74c3c">3</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#f39c12">9</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#27ae60">12</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;padding:12px 24px;align-items:center;border-bottom:1px solid #f0f4f8;cursor:pointer" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">
+            <div style="font-size:13px;font-weight:700;color:#1a2634;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#f39c12;display:inline-block"></span>Addition to 10</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#1a2634">24</div>
+            <div style="text-align:center;font-size:13px;font-weight:800;color:#e74c3c">2</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#f39c12">8</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#27ae60">14</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;padding:12px 24px;align-items:center;border-bottom:1px solid #f0f4f8;cursor:pointer" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">
+            <div style="font-size:13px;font-weight:700;color:#1a2634;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#27ae60;display:inline-block"></span>Sight words Set 1</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#1a2634">24</div>
+            <div style="text-align:center;font-size:13px;font-weight:800;color:#e74c3c">1</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#f39c12">6</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#27ae60">17</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;padding:12px 24px;align-items:center;border-bottom:1px solid #f0f4f8;cursor:pointer" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">
+            <div style="font-size:13px;font-weight:700;color:#1a2634;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#27ae60;display:inline-block"></span>Shape recognition</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#1a2634">24</div>
+            <div style="text-align:center;font-size:13px;font-weight:800;color:#e74c3c">0</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#f39c12">5</div>
+            <div style="text-align:center;font-size:13px;font-weight:700;color:#27ae60">19</div>
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">Class overview — all skills</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Mobile -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 21 / Tab 4: Mobile 390px</strong>
+    Queue rows full-width. Tapping opens full-screen drilldown (push navigation, not panel split). "What to do next" action cards are prominent at bottom. Class summary strip is 3-column (Support / Watch / Strong counts). Intervention notes are collapsed — show latest 2, "See all" link.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="m-header">
+          <div class="m-title">Support Queue</div>
+          <div class="m-badge">5 need attention</div>
+        </div>
+        <div class="m-strip">
+          <div class="ms-cell"><div class="ms-val" style="color:#e74c3c">5</div><div class="ms-label">Support</div></div>
+          <div class="ms-cell"><div class="ms-val" style="color:#f39c12">8</div><div class="ms-label">Watch</div></div>
+          <div class="ms-cell"><div class="ms-val" style="color:#27ae60">11</div><div class="ms-label">Strong</div></div>
+        </div>
+        <div class="m-scroll">
+          <div style="padding:8px 14px 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;background:#f8fafb;border-bottom:1px solid #dde4ec">Support — needs attention</div>
+          <div class="q-row active" style="border-left:3px solid #e74c3c">
+            <div class="q-urgency high"></div>
+            <div class="q-avatar support">MJ</div>
+            <div class="q-meta"><div class="q-name">Maya Johnson</div><div class="q-skill">Counting 11–20 · 3 sessions stuck</div></div>
+            <div style="font-size:14px;color:#6a8aaa">→</div>
+          </div>
+          <div class="q-row">
+            <div class="q-urgency high"></div>
+            <div class="q-avatar support">TP</div>
+            <div class="q-meta"><div class="q-name">Tyler Park</div><div class="q-skill">Letter sounds B/D</div></div>
+            <div style="font-size:14px;color:#6a8aaa">→</div>
+          </div>
+          <div class="q-row">
+            <div class="q-urgency med"></div>
+            <div class="q-avatar support">AL</div>
+            <div class="q-meta"><div class="q-name">Aisha Lowe</div><div class="q-skill">Addition to 10</div></div>
+            <div style="font-size:14px;color:#6a8aaa">→</div>
+          </div>
+          <div style="padding:8px 14px 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;background:#f8fafb;border-bottom:1px solid #dde4ec">Watch — monitor</div>
+          <div class="q-row">
+            <div class="q-urgency med"></div>
+            <div class="q-avatar watch">KR</div>
+            <div class="q-meta"><div class="q-name">Kai Rivera</div><div class="q-skill">Subtraction basics</div></div>
+            <div style="font-size:14px;color:#6a8aaa">→</div>
+          </div>
+          <div style="padding:10px 14px;font-size:11px;color:#8a9aaa;font-weight:600">+ 7 more in watch</div>
+          <div style="padding:8px 14px 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#27ae60;background:#f8fafb;border-bottom:1px solid #dde4ec">Strong — 11 students on track ✓</div>
+        </div>
+        <div class="m-footer">
+          <button class="m-btn">View all skills →</button>
+        </div>
+      </div>
+      <div class="phone-label">Mobile — intervention queue</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

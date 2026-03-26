@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Wrong Child Recovery — WonderQuest v2</title>
+<style>
+/* ── Engineering Hint Box ───────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset / Base ────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Phone frame ─────────────────────────────────────────────────── */
+.phone-frame{width:390px;height:780px;background:#f5f0e8;border-radius:40px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25),inset 0 0 0 2px #9b72ff22;border:8px solid #1a1a2e;display:inline-block;vertical-align:top}
+.phone-screen{width:100%;height:100%;overflow-y:auto;position:relative;padding-bottom:24px}
+
+/* ── Page header ─────────────────────────────────────────────────── */
+.page-header{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;background:#f5f0e8;position:sticky;top:0;z-index:10}
+.back-btn{width:32px;height:32px;border-radius:10px;background:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.page-title{font-size:16px;font-weight:800;color:#1a1440}
+
+/* ── Cards ────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:16px;padding:20px;margin:0 16px 12px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+
+/* ── Info box colours ─────────────────────────────────────────────── */
+.info-amber{background:#fffbf0;border-left:4px solid #f59e0b;border-radius:0 10px 10px 0;padding:12px 14px;font-size:13px;color:#92400e;line-height:1.5;margin-bottom:14px}
+.info-red{background:#fff5f5;border-left:4px solid #ef4444;border-radius:0 10px 10px 0;padding:12px 14px;font-size:13px;color:#991b1b;line-height:1.5;margin-bottom:14px}
+.info-green{background:#f0fdf4;border-left:4px solid #22c55e;border-radius:0 10px 10px 0;padding:12px 14px;font-size:13px;color:#15803d;line-height:1.5;margin-bottom:14px}
+.info-violet{background:#f5f0ff;border-left:4px solid #9b72ff;border-radius:0 10px 10px 0;padding:12px 14px;font-size:13px;color:#6d28d9;line-height:1.5;margin-bottom:14px}
+
+/* Child identity row */
+.child-row{display:flex;align-items:center;gap:12px;padding:14px;background:#f8f6ff;border-radius:12px;margin-bottom:14px}
+.child-avatar{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.child-name{font-size:15px;font-weight:800;color:#1a1440}
+.child-meta{font-size:12px;color:#888;margin-top:2px}
+.band-chip{display:inline-flex;align-items:center;gap:4px;background:#f0ebff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;color:#9b72ff;margin-top:3px}
+
+/* Heading */
+.card-heading{font-size:17px;font-weight:800;color:#1a1440;margin-bottom:6px}
+.card-subtext{font-size:13px;color:#666;line-height:1.55;margin-bottom:16px}
+
+/* Buttons */
+.btn-primary{width:100%;padding:14px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-bottom:8px;transition:background .15s}
+.btn-primary:hover{background:#8560e8}
+.btn-secondary{width:100%;padding:13px;background:#f5f0ff;color:#9b72ff;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer;margin-bottom:8px}
+.btn-neutral{width:100%;padding:12px;background:#f5f5f5;color:#555;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:system-ui;cursor:pointer;margin-bottom:8px}
+.btn-danger{width:100%;padding:13px;background:#fff0f0;color:#e74c3c;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer}
+
+/* Divider */
+.divider{height:1px;background:#f0ecf8;margin:14px 0}
+
+/* Support row */
+.support-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#9b72ff;font-weight:600;cursor:pointer;justify-content:center;margin-top:8px}
+
+/* Steps indicator */
+.step-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:#ddd}
+.step-dot.done{background:#50e890}
+.step-dot.active{background:#9b72ff;box-shadow:0 0 0 3px #9b72ff30}
+.step-label{font-size:11px;color:#888;font-weight:600}
+
+/* ── Desktop layout ────────────────────────────────────────────────── */
+.desktop-demo{background:#f5f0e8;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.1);overflow:hidden;max-width:900px}
+.desktop-shell{display:flex;min-height:580px}
+.sidebar{width:240px;background:#fff;border-right:1px solid #ede9f8;padding:20px 0;flex-shrink:0}
+.sidebar-logo{font-size:16px;font-weight:900;color:#9b72ff;padding:0 20px 16px;border-bottom:1px solid #ede9f8;margin-bottom:12px}
+.sidebar-nav-item{padding:9px 20px;font-size:13px;font-weight:600;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px}
+.sidebar-nav-item.active{color:#9b72ff;background:#f8f4ff}
+.desktop-main{flex:1;padding:32px;overflow-y:auto}
+
+/* Desktop cards */
+.d-card{background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.d-card-h{font-size:18px;font-weight:800;color:#1a1440;margin-bottom:8px}
+.d-card-sub{font-size:14px;color:#666;line-height:1.55;margin-bottom:18px}
+
+/* Grid for desktop actions */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.action-card-btn{border:2px solid #ede9f8;border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:#fff;transition:all .15s}
+.action-card-btn:hover{border-color:#9b72ff;background:#f8f4ff}
+.action-card-icon{font-size:28px;margin-bottom:6px;display:block}
+.action-card-label{font-size:13px;font-weight:700;color:#1a1440;display:block;margin-bottom:3px}
+.action-card-sub{font-size:11px;color:#888}
+.action-card-btn.primary-action{border-color:#9b72ff;background:#f8f4ff}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-violet{background:#f0ebff;color:#7c3aed}
+.tag-gray{background:#f0f0f0;color:#555}
+.tag-red{background:#fff0f0;color:#dc2626}
+.tag-orange{background:#fff5eb;color:#d97706}
+</style>
+</head>
+<body>
+
+<!-- Engineering Hint Box -->
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-wrong-child-recovery-v2.html</strong><br>
+  Shown when a parent realises they linked the WRONG child — e.g. linked "Liam" but the account on the device belongs to "Maya".<br>
+  <strong>Three sub-scenarios:</strong><br>
+  (A) Parent linked wrong child immediately after linking — wants to undo before any sessions start.<br>
+  (B) Parent linked wrong child but sessions have already occurred — data is on wrong profile.<br>
+  (C) Child swapped device — same child, new device, parent needs to re-authorise.<br>
+  <strong>Key tone:</strong> Calm, non-accusatory. "It looks like…" framing. Never say "you made a mistake".<br>
+  <strong>Data safety guarantee:</strong> Always show "progress data is never deleted" message.<br>
+  <strong>COPPA note:</strong> No child data is shown in recovery screens except avatar + first name (already confirmed by parent).
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('a')">Mobile — Linked Wrong (No Sessions)</button>
+  <button class="tab-btn" onclick="showTab('b')">Mobile — Sessions Exist</button>
+  <button class="tab-btn" onclick="showTab('c')">Mobile — Device Swap</button>
+  <button class="tab-btn" onclick="showTab('desktop')">Desktop</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB A: Linked Wrong — No Sessions ─────────────────────────── -->
+<div id="tab-a" class="screen active">
+  <p class="section-title">Scenario A — Wrong child linked, no sessions yet (easy undo)</p>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="page-header">
+        <button class="back-btn">‹</button>
+        <span class="page-title">Update linked child</span>
+      </div>
+
+      <!-- Current linked child -->
+      <div class="card">
+        <div class="info-amber">
+          <strong>It looks like this might not be the right profile.</strong> You can update it below — Liam's data (if any) will be saved.
+        </div>
+
+        <div class="card-heading">Currently linked</div>
+        <div class="child-row">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6040cc)">🐻</div>
+          <div>
+            <div class="child-name">Liam</div>
+            <div class="child-meta">Grade K–1 · Violet Band</div>
+            <div class="band-chip">🟣 Level 2</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="card-subtext">No sessions played yet. This is a good time to update the profile before any progress is recorded.</div>
+
+        <button class="btn-primary">✏️ Update to correct child</button>
+        <button class="btn-neutral">Keep Liam — this is correct</button>
+      </div>
+
+      <!-- What happens next -->
+      <div class="card">
+        <div class="card-heading" style="font-size:14px">What happens when you update?</div>
+        <div style="font-size:13px;color:#666;line-height:1.6;margin-top:6px">
+          <div style="margin-bottom:6px">✅ No sessions yet — clean switch, nothing is lost</div>
+          <div style="margin-bottom:6px">✅ Liam's profile is saved and can be re-linked later</div>
+          <div>✅ You'll be taken to the child setup form to enter the correct details</div>
+        </div>
+      </div>
+
+      <div class="support-row">💬 Contact support if you need help</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB B: Sessions Exist ─────────────────────────────────────── -->
+<div id="tab-b" class="screen">
+  <p class="section-title">Scenario B — Wrong child linked, sessions have already occurred</p>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="page-header">
+        <button class="back-btn">‹</button>
+        <span class="page-title">Update linked child</span>
+      </div>
+
+      <!-- Warning -->
+      <div class="card">
+        <div class="info-amber">
+          <strong>Sessions have already been recorded under Liam.</strong> Switching to a different child will not transfer those sessions — they'll stay on Liam's profile.
+        </div>
+
+        <div class="card-heading">Currently linked</div>
+        <div class="child-row">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6040cc)">🐻</div>
+          <div>
+            <div class="child-name">Liam</div>
+            <div class="child-meta">Grade K–1 · Violet Band</div>
+            <div class="band-chip">🟣 Level 2 · 3 sessions</div>
+          </div>
+        </div>
+
+        <!-- Step: choose action -->
+        <div class="divider"></div>
+        <div style="font-size:13px;font-weight:700;color:#1a1440;margin-bottom:12px">What would you like to do?</div>
+
+        <button class="btn-primary">🔄 Link different child instead</button>
+        <button class="btn-secondary">📋 Move Liam's sessions to correct child</button>
+        <button class="btn-neutral">Keep Liam — this is correct after all</button>
+      </div>
+
+      <!-- Data safety note -->
+      <div class="card">
+        <div class="info-green">
+          🔒 <strong>Progress is never deleted.</strong> Liam's 3 sessions and stars are saved permanently and visible in your history.
+        </div>
+        <div class="card-subtext" style="margin-bottom:0">The "Move sessions" option sends a request to our support team — we'll transfer progress within 24 hours.</div>
+      </div>
+
+      <!-- Contact row -->
+      <div class="support-row">💬 Contact support about session transfer</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB C: Device Swap ─────────────────────────────────────────── -->
+<div id="tab-c" class="screen">
+  <p class="section-title">Scenario C — Child swapped device (same child, new device)</p>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="page-header">
+        <button class="back-btn">‹</button>
+        <span class="page-title">Re-authorise child's device</span>
+      </div>
+
+      <!-- Explanation -->
+      <div class="card">
+        <div class="info-violet">
+          <strong>Maya is playing on a new device.</strong> Her progress is safe — you just need to re-authorise this device so her account stays linked.
+        </div>
+
+        <div class="card-heading">Maya's profile</div>
+        <div class="child-row">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#20b8a0)">🦊</div>
+          <div>
+            <div class="child-name">Maya</div>
+            <div class="child-meta">Grade 2–3 · Mint Band</div>
+            <div class="band-chip">🟢 Level 4 · 12 sessions</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="card-subtext">All of Maya's stars, badges, and skills will be available on this device once authorised.</div>
+
+        <button class="btn-primary">✅ Authorise this device for Maya</button>
+        <button class="btn-neutral">This is a different child</button>
+      </div>
+
+      <!-- Steps to complete -->
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:#1a1440;margin-bottom:10px">After authorisation:</div>
+        <div class="step-row">
+          <div class="step-dot done"></div>
+          <div class="step-dot done"></div>
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <span class="step-label">Step 3 of 4 — Device authorisation</span>
+        </div>
+        <div style="font-size:13px;color:#666;line-height:1.6">
+          <div style="margin-bottom:6px">✅ Maya's profile found</div>
+          <div style="margin-bottom:6px">✅ Progress synced from cloud</div>
+          <div style="margin-bottom:6px;color:#9b72ff;font-weight:600">⬤ Authorise new device ← You are here</div>
+          <div style="color:#aaa">⬜ Maya starts playing on new device</div>
+        </div>
+      </div>
+
+      <div class="support-row">💬 Is this a school device? Get help</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: Desktop ─────────────────────────────────────────────── -->
+<div id="tab-desktop" class="screen">
+  <p class="section-title">Desktop — all 3 scenarios in tabbed modal</p>
+  <div class="desktop-demo">
+    <div class="desktop-shell">
+      <div class="sidebar">
+        <div class="sidebar-logo">WonderQuest</div>
+        <div class="sidebar-nav-item active">⚙️ Settings</div>
+        <div class="sidebar-nav-item">🏠 Family overview</div>
+        <div class="sidebar-nav-item">📊 Weekly report</div>
+        <div class="sidebar-nav-item">🔔 Notifications</div>
+      </div>
+      <div class="desktop-main">
+        <!-- Scenario heading -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:22px;font-weight:800;color:#1a1440;margin-bottom:4px">Update linked child</div>
+          <div style="font-size:14px;color:#888">Something doesn't look right? No problem — let's sort it out.</div>
+        </div>
+
+        <!-- Scenario A -->
+        <div class="d-card">
+          <div class="info-amber"><strong>Scenario A — No sessions yet (easy update)</strong></div>
+          <div class="d-card-h">Linked child: Liam</div>
+          <div class="d-card-sub">No sessions have been recorded under Liam yet. You can update the profile to the correct child without any data consequences.</div>
+
+          <div class="child-row" style="max-width:360px">
+            <div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6040cc)">🐻</div>
+            <div>
+              <div class="child-name">Liam</div>
+              <div class="child-meta">Grade K–1 · 0 sessions recorded</div>
+            </div>
+          </div>
+
+          <div class="action-grid" style="max-width:360px">
+            <div class="action-card-btn primary-action">
+              <span class="action-card-icon">✏️</span>
+              <span class="action-card-label">Update child</span>
+              <span class="action-card-sub">Enter correct details</span>
+            </div>
+            <div class="action-card-btn">
+              <span class="action-card-icon">✅</span>
+              <span class="action-card-label">Keep Liam</span>
+              <span class="action-card-sub">This is correct</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scenario B -->
+        <div class="d-card">
+          <div class="info-amber"><strong>Scenario B — Sessions already recorded</strong></div>
+          <div class="d-card-h">Linked child: Liam — 3 sessions recorded</div>
+          <div class="d-card-sub">Switching to a different child will not transfer those sessions automatically. Sessions can be moved by contacting support (within 24 hours).</div>
+
+          <div class="action-grid" style="max-width:540px">
+            <div class="action-card-btn primary-action">
+              <span class="action-card-icon">🔄</span>
+              <span class="action-card-label">Link different child</span>
+              <span class="action-card-sub">Liam's data is saved</span>
+            </div>
+            <div class="action-card-btn">
+              <span class="action-card-icon">📋</span>
+              <span class="action-card-label">Move sessions</span>
+              <span class="action-card-sub">Support request — 24h</span>
+            </div>
+            <div class="action-card-btn">
+              <span class="action-card-icon">✅</span>
+              <span class="action-card-label">Keep Liam</span>
+              <span class="action-card-sub">Actually correct</span>
+            </div>
+          </div>
+
+          <div class="info-green" style="margin-top:8px">🔒 Progress is never deleted. Liam's sessions and stars are saved permanently.</div>
+        </div>
+
+        <!-- Scenario C -->
+        <div class="d-card">
+          <div class="info-violet"><strong>Scenario C — Same child, new device</strong></div>
+          <div class="d-card-h">Maya is on a new device</div>
+          <div class="d-card-sub">Maya's progress is fully synced from the cloud. Authorise this device to restore her stars, badges, and streaks.</div>
+
+          <div class="action-grid" style="max-width:360px">
+            <div class="action-card-btn primary-action">
+              <span class="action-card-icon">✅</span>
+              <span class="action-card-label">Authorise device</span>
+              <span class="action-card-sub">Maya's data restored</span>
+            </div>
+            <div class="action-card-btn">
+              <span class="action-card-icon">🔄</span>
+              <span class="action-card-label">Different child</span>
+              <span class="action-card-sub">Update profile instead</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 5: Spec ─────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component identity:</strong> parent-wrong-child-recovery-v2.html<br>
+      <strong>Role:</strong> Recovery flow when parent has linked the wrong child or a child needs re-authorising on a new device.<br>
+      <strong>Upstream:</strong> Accessible from parent-linked-child-sheet-v2.html "Edit settings" action, or triggered automatically by the system when device mismatch is detected.
+    </div>
+
+    <h2 class="spec-h2">Three Scenarios</h2>
+    <table class="spec-table">
+      <tr><th>Scenario</th><th>Trigger</th><th>Consequences</th><th>Primary CTA</th></tr>
+      <tr><td>A — Wrong child, no sessions</td><td>Parent reports mismatch immediately after linking; 0 sessions on record</td><td>Clean — no data implications</td><td>Update to correct child → re-runs link flow</td></tr>
+      <tr><td>B — Wrong child, sessions exist</td><td>Parent reports mismatch after sessions recorded under wrong name</td><td>Existing sessions stay on wrong profile unless support transfers them</td><td>Link different child OR request session transfer</td></tr>
+      <tr><td>C — Same child, new device</td><td>Child moved to a new tablet/phone; parent needs to re-authorise</td><td>None — data already synced from cloud</td><td>Authorise this device</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Tone Rules</h2>
+    <table class="spec-table">
+      <tr><th>Rule</th><th>Bad copy</th><th>Good copy</th></tr>
+      <tr><td>No blame framing</td><td>"You linked the wrong child"</td><td>"It looks like this might not be the right profile"</td></tr>
+      <tr><td>Data safety first</td><td>"Sessions will be lost if you switch"</td><td>"Sessions stay on Liam's profile — progress is never deleted"</td></tr>
+      <tr><td>Provide escape</td><td>Only "fix it" option</td><td>Always include "Keep [name] — this is correct" escape option</td></tr>
+      <tr><td>Support reachable</td><td>No support link</td><td>Support link always visible at bottom of recovery card</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Data Handling</h2>
+    <table class="spec-table">
+      <tr><th>Action</th><th>What happens to existing data</th><th>Reversible?</th></tr>
+      <tr><td>Update child (Scenario A)</td><td>Old profile (Liam) saved silently; new profile created</td><td><span class="tag tag-green">YES — re-link Liam anytime</span></td></tr>
+      <tr><td>Link different child (Scenario B)</td><td>Existing sessions stay on Liam; new child profile starts fresh</td><td><span class="tag tag-orange">Partial — support can transfer sessions</span></td></tr>
+      <tr><td>Move sessions (Scenario B)</td><td>Support request submitted; manual transfer within 24h</td><td><span class="tag tag-violet">Support-handled</span></td></tr>
+      <tr><td>Authorise device (Scenario C)</td><td>No data changes; device added to authorised list</td><td><span class="tag tag-green">YES — remove device anytime in Settings</span></td></tr>
+    </table>
+
+    <h2 class="spec-h2">Privacy Rules</h2>
+    <p class="spec-p">Only the already-linked child's avatar + first name are shown in recovery screens — the same data the parent entered themselves. No accuracy %, no session content details, no wrong answers are shown anywhere in the recovery flow.</p>
+
+    <h2 class="spec-h2">Entry Points</h2>
+    <table class="spec-table">
+      <tr><th>Entry point</th><th>Scenario presented</th></tr>
+      <tr><td>parent-linked-child-sheet: "Edit settings" → profile mismatch detected</td><td>Auto-detects A or B based on session count</td></tr>
+      <tr><td>System auto-trigger on device mismatch</td><td>Scenario C (new device)</td></tr>
+      <tr><td>Parent goes to Settings → "Update child profile" manually</td><td>Shows all 3 as options with descriptions</td></tr>
+      <tr><td>Support link from parent-linking-recovery-v3</td><td>Support deep-links to Scenario B "Move sessions"</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Mobile vs Desktop Differences</h2>
+    <table class="spec-table">
+      <tr><th>Aspect</th><th>Mobile</th><th>Desktop</th></tr>
+      <tr><td>Layout</td><td>Single scenario per tab (3 separate screens)</td><td>All 3 scenarios shown as stacked cards in Settings main area</td></tr>
+      <tr><td>Navigation</td><td>Back button (‹) in page header</td><td>No dedicated back button; part of Settings page</td></tr>
+      <tr><td>Actions</td><td>Full-width stacked buttons</td><td>2–3 col action grid buttons</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

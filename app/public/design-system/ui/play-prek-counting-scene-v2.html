@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Pre-K Counting Scene v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Scene frame */
+.scene-frame{background:linear-gradient(180deg,#0a1a3e 0%,#1a0a3e 100%);border-radius:20px;padding:20px 16px;margin-bottom:16px;position:relative;min-height:200px;overflow:hidden}
+.scene-bg-stars{position:absolute;inset:0;pointer-events:none}
+.bg-star{position:absolute;font-size:8px;opacity:0.3;animation:twinkle 2s ease infinite}
+@keyframes twinkle{0%,100%{opacity:0.2}50%{opacity:0.6}}
+
+/* Objects display */
+.objects-row{display:flex;justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.object-with-dot{display:flex;flex-direction:column;align-items:center;gap:6px}
+.obj-emoji{font-size:52px;animation:obj-bounce 0.4s ease both}
+.obj-emoji:nth-child(1){animation-delay:0s}
+.obj-emoji:nth-child(2){animation-delay:0.15s}
+.obj-emoji:nth-child(3){animation-delay:0.3s}
+@keyframes obj-bounce{0%{transform:scale(0) translateY(20px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+.obj-dot{width:12px;height:12px;border-radius:50%;background:#ffd166;animation:dot-pop 0.3s 0.5s ease both;opacity:0}
+@keyframes dot-pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* Question text */
+.question-text{font-size:22px;font-weight:900;color:#ffd166;text-align:center;margin-bottom:0;max-width:260px;margin:0 auto;line-height:1.3}
+
+/* Answer cards */
+.answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0}
+.answer-card{background:#1e1550;border:3px solid #2d2570;border-radius:16px;padding:14px;cursor:pointer;text-align:center;transition:border-color 0.15s,transform 0.1s;position:relative;overflow:hidden}
+.answer-card:active{transform:scale(0.96)}
+.answer-card.correct{border-color:#58e8c1;background:#0e2820}
+.answer-card.wrong{border-color:#ff7b6b;background:#2e0a0a}
+.answer-numeral{font-size:36px;font-weight:900;color:#ffd166;line-height:1}
+.dot-grid{display:grid;gap:4px;justify-content:center;margin-top:6px}
+.dot-grid-2{grid-template-columns:repeat(2,10px)}
+.dot-grid-3{grid-template-columns:repeat(3,10px)}
+.dot-grid-4{grid-template-columns:repeat(4,10px)}
+.dg-dot{width:10px;height:10px;border-radius:50%;background:#9b72ff}
+.answer-card.correct .dg-dot{background:#58e8c1}
+.answer-card.wrong .dg-dot{background:#ff7b6b}
+.answer-card:hover:not(.correct):not(.wrong){border-color:#9b72ff}
+
+/* Coach bubble */
+.coach-row{display:flex;align-items:flex-end;gap:10px;margin-top:16px}
+.coach-avatar{width:52px;height:52px;border-radius:50%;background:#2a1a5e;border:3px solid #9b72ff;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.coach-bubble{background:#1e1550;border:2px solid #9b72ff;border-radius:14px 14px 14px 0;padding:10px 12px;font-size:13px;color:#c8b8ff;line-height:1.4;flex:1}
+.coach-bubble strong{color:#ffd166}
+
+/* Correct Celebration */
+.correct-wrap{text-align:center;padding:16px 0}
+.correct-big-emoji{font-size:80px;animation:bounce-in 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes bounce-in{0%{transform:scale(0)}100%{transform:scale(1)}}
+.correct-title{font-size:30px;font-weight:900;color:#58e8c1;margin-top:10px}
+.correct-sub{font-size:15px;color:#9b8fe0;margin-top:6px;line-height:1.4}
+.answer-shown{background:#0e2820;border:3px solid #58e8c1;border-radius:16px;padding:16px;margin:16px 0;display:inline-block}
+.answer-shown-num{font-size:48px;font-weight:900;color:#58e8c1}
+.answer-shown-dots{display:flex;gap:5px;justify-content:center;margin-top:6px}
+.answer-shown-dots .a-dot{width:12px;height:12px;border-radius:50%;background:#58e8c1}
+.star-pop{display:inline-block;animation:star-pop 0.5s 0.3s cubic-bezier(0.175,0.885,0.32,1.275) both;opacity:0}
+@keyframes star-pop{0%{opacity:0;transform:scale(0) rotate(-20deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+
+/* Hint screen */
+.hint-screen{background:#1a1240;border:3px solid #9b72ff;border-radius:20px;padding:20px;margin-bottom:14px}
+.hint-title{font-size:18px;font-weight:900;color:#9b72ff;margin-bottom:12px;text-align:center}
+.counting-anim{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.count-obj{display:flex;flex-direction:column;align-items:center;gap:4px}
+.count-obj .co-emoji{font-size:40px}
+.count-obj .co-num{font-size:16px;font-weight:900;color:#ffd166;background:#2a1a5e;border-radius:8px;padding:2px 8px}
+.count-obj .co-dot-anim{width:14px;height:14px;border-radius:50%;background:#9b72ff;animation:count-pulse 1s ease infinite}
+@keyframes count-pulse{0%,100%{transform:scale(0.8);opacity:0.5}50%{transform:scale(1.2);opacity:1}}
+.phonics-hint-arrow{font-size:28px;color:#ffd166;margin:0 4px}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+
+.btn-next{background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/play/question/{id}</code> → returns <code>{type:"counting", objects:[{emoji,count}], correctAnswer, answerChoices:[{numeral,dotPattern}], questionText}</code>. questionText max 8 words. Submit: <code>POST /api/play/answer</code>. Hint: <code>POST /api/play/hint/{questionId}</code> logs hint usage. Voice: <code>audioUrl</code> field for TTS coach.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('scene3')">Counting Scene (3)</div>
+  <div class="tab" onclick="show('scene5')">Counting Scene (5)</div>
+  <div class="tab" onclick="show('correct')">Correct Celebration</div>
+  <div class="tab" onclick="show('hint')">Hint (coach)</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Counting Scene 3 objects -->
+<div id="scene3" class="panel active">
+  <div class="scene-frame">
+    <div class="scene-bg-stars">
+      <div class="bg-star" style="left:5%;top:10%;animation-delay:0s">✦</div>
+      <div class="bg-star" style="left:90%;top:15%;animation-delay:0.5s">✦</div>
+      <div class="bg-star" style="left:50%;top:5%;animation-delay:1s">✦</div>
+    </div>
+    <div class="objects-row">
+      <div class="object-with-dot">
+        <div class="obj-emoji">🐠</div>
+        <div class="obj-dot"></div>
+      </div>
+      <div class="object-with-dot">
+        <div class="obj-emoji">🐠</div>
+        <div class="obj-dot"></div>
+      </div>
+      <div class="object-with-dot">
+        <div class="obj-emoji">🐠</div>
+        <div class="obj-dot"></div>
+      </div>
+    </div>
+    <div class="question-text">How many fish do you see?</div>
+  </div>
+
+  <div class="answer-grid">
+    <div class="answer-card">
+      <div class="answer-numeral">2</div>
+      <div class="dot-grid dot-grid-2">
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card correct">
+      <div class="answer-numeral">3</div>
+      <div class="dot-grid dot-grid-3">
+        <div class="dg-dot"></div><div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card">
+      <div class="answer-numeral">4</div>
+      <div class="dot-grid dot-grid-4">
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card">
+      <div class="answer-numeral">1</div>
+      <div class="dot-grid">
+        <div class="dg-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="coach-row">
+    <div class="coach-avatar">🦉</div>
+    <div class="coach-bubble">Count the fish with me! <strong>Tap the right number!</strong></div>
+  </div>
+</div>
+
+<!-- TAB 2: Counting Scene 5 objects -->
+<div id="scene5" class="panel">
+  <div class="scene-frame">
+    <div class="scene-bg-stars">
+      <div class="bg-star" style="left:5%;top:10%;animation-delay:0s">✦</div>
+      <div class="bg-star" style="left:90%;top:15%;animation-delay:0.5s">✦</div>
+    </div>
+    <div class="objects-row">
+      <div class="object-with-dot">
+        <div class="obj-emoji">🌟</div>
+        <div class="obj-dot"></div>
+      </div>
+      <div class="object-with-dot">
+        <div class="obj-emoji">🌟</div>
+        <div class="obj-dot"></div>
+      </div>
+      <div class="object-with-dot">
+        <div class="obj-emoji">🌟</div>
+        <div class="obj-dot"></div>
+      </div>
+      <div class="object-with-dot">
+        <div class="obj-emoji">🌟</div>
+        <div class="obj-dot"></div>
+      </div>
+      <div class="object-with-dot">
+        <div class="obj-emoji">🌟</div>
+        <div class="obj-dot"></div>
+      </div>
+    </div>
+    <div class="question-text">How many stars are there?</div>
+  </div>
+
+  <div class="answer-grid">
+    <div class="answer-card">
+      <div class="answer-numeral">3</div>
+      <div class="dot-grid dot-grid-3">
+        <div class="dg-dot"></div><div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card">
+      <div class="answer-numeral">4</div>
+      <div class="dot-grid dot-grid-4">
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card correct">
+      <div class="answer-numeral">5</div>
+      <div class="dot-grid dot-grid-3" style="grid-template-columns:repeat(3,10px)">
+        <div class="dg-dot"></div><div class="dg-dot"></div><div class="dg-dot"></div>
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card">
+      <div class="answer-numeral">2</div>
+      <div class="dot-grid dot-grid-2">
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="coach-row">
+    <div class="coach-avatar">🦉</div>
+    <div class="coach-bubble">Point to each star and count! <strong>How many?</strong></div>
+  </div>
+</div>
+
+<!-- TAB 3: Correct Celebration -->
+<div id="correct" class="panel">
+  <div class="correct-wrap">
+    <div class="correct-big-emoji">🎉</div>
+    <div class="correct-title">YES! That's right!</div>
+    <div class="correct-sub">You counted perfectly!</div>
+
+    <div class="answer-shown">
+      <div class="answer-shown-num">3</div>
+      <div class="answer-shown-dots">
+        <div class="a-dot"></div>
+        <div class="a-dot"></div>
+        <div class="a-dot"></div>
+      </div>
+    </div>
+
+    <div class="star-pop" style="font-size:32px;font-weight:900;color:#ffd166;margin:8px auto;display:block">⭐ +3 stars!</div>
+
+    <div class="objects-row" style="justify-content:center;margin-top:8px">
+      <div class="obj-emoji" style="font-size:40px">🐠</div>
+      <div class="obj-emoji" style="font-size:40px">🐠</div>
+      <div class="obj-emoji" style="font-size:40px">🐠</div>
+    </div>
+
+    <div class="coach-row" style="margin-top:20px">
+      <div class="coach-avatar">🦉</div>
+      <div class="coach-bubble">Amazing counting! You knew it was <strong>3</strong>! You're a star! ⭐</div>
+    </div>
+  </div>
+  <button class="btn-next">Next question! →</button>
+</div>
+
+<!-- TAB 4: Hint (coach counting animation) -->
+<div id="hint" class="panel">
+  <div class="hint-screen">
+    <div class="hint-title">🦉 Let's count together!</div>
+    <div class="counting-anim">
+      <div class="count-obj">
+        <div class="co-emoji">🐠</div>
+        <div class="co-num">1</div>
+        <div class="co-dot-anim" style="animation-delay:0s"></div>
+      </div>
+      <div class="phonics-hint-arrow">→</div>
+      <div class="count-obj">
+        <div class="co-emoji">🐠</div>
+        <div class="co-num">2</div>
+        <div class="co-dot-anim" style="animation-delay:0.4s"></div>
+      </div>
+      <div class="phonics-hint-arrow">→</div>
+      <div class="count-obj">
+        <div class="co-emoji">🐠</div>
+        <div class="co-num">3</div>
+        <div class="co-dot-anim" style="animation-delay:0.8s"></div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:18px;font-weight:900;color:#ffd166;margin-top:8px">
+      1 ... 2 ... 3 fish! 🐠
+    </div>
+  </div>
+
+  <div class="coach-row">
+    <div class="coach-avatar">🦉</div>
+    <div class="coach-bubble">Touch each fish as you count! <strong>One, two, three!</strong> Now you try!</div>
+  </div>
+
+  <div class="answer-grid" style="margin-top:16px">
+    <div class="answer-card">
+      <div class="answer-numeral">2</div>
+      <div class="dot-grid dot-grid-2">
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card" style="border-color:#ffd166;background:#2a1a00">
+      <div class="answer-numeral" style="color:#ffd166">3</div>
+      <div class="dot-grid dot-grid-3">
+        <div class="dg-dot" style="background:#ffd166"></div>
+        <div class="dg-dot" style="background:#ffd166"></div>
+        <div class="dg-dot" style="background:#ffd166"></div>
+      </div>
+    </div>
+    <div class="answer-card">
+      <div class="answer-numeral">4</div>
+      <div class="dot-grid dot-grid-4">
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+        <div class="dg-dot"></div><div class="dg-dot"></div>
+      </div>
+    </div>
+    <div class="answer-card">
+      <div class="answer-numeral">1</div>
+      <div class="dot-grid">
+        <div class="dg-dot"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · play-prek-counting-scene-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900, P0 gold #ffd166</span></div>
+    <div class="spec-row"><span class="sk">Object range</span><span class="sv">1–5 emoji objects</span></div>
+    <div class="spec-row"><span class="sk">Answer cards</span><span class="sv">4 choices, numeral + dot grid</span></div>
+    <div class="spec-row"><span class="sk">Question max</span><span class="sv">8 words for pre-readers</span></div>
+    <div class="spec-row"><span class="sk">Dot grid</span><span class="sv">Visual number recognition, no written numbers in prompt</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Get question</span><span class="sv">GET /api/play/question/{id}</span></div>
+    <div class="spec-row"><span class="sk">Submit answer</span><span class="sv">POST /api/play/answer</span></div>
+    <div class="spec-row"><span class="sk">Get hint</span><span class="sv">POST /api/play/hint/{questionId}</span></div>
+    <div class="spec-row"><span class="sk">Audio</span><span class="sv">audioUrl field → TTS coach voice</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">No timers</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Max 8 words</span><span class="sv">✓ — question text hard limit</span></div>
+    <div class="spec-row"><span class="sk">Replay safe</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Dot patterns</span><span class="sv">Subitizing layout, not random placement</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

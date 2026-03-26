@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Missed Days Return Card — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 900px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 900px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* Card wrapper — can be used as inline card OR modal overlay */
+  .card-stage {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .card-col {
+    flex: 1;
+    min-width: 300px;
+  }
+  .col-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* Return card */
+  .return-card {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 20px;
+    overflow: hidden;
+    animation: card-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes card-enter {
+    from { opacity: 0; transform: scale(0.94) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Card header band */
+  .card-band {
+    padding: 18px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mascot-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .mascot {
+    font-size: 40px;
+    display: block;
+    animation: mascot-wave 1.5s ease-in-out infinite;
+  }
+  @keyframes mascot-wave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+  .mascot-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -4px;
+    font-size: 16px;
+  }
+
+  .band-text { flex: 1; }
+  .band-tag {
+    display: inline-block;
+    border-radius: 8px;
+    padding: 2px 10px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+  .band-tag.amber { background: #2a1800; border: 1px solid #f0a000; color: #f0c060; }
+  .band-tag.violet { background: #1e1470; border: 1px solid #9b72ff; color: #c4b0ff; }
+  .band-tag.gold { background: #2a2010; border: 1px solid #ffd166; color: #ffd166; }
+  .band-tag.mint { background: #0a2a28; border: 1px solid #58e8c1; color: #58e8c1; }
+
+  .band-title { font-size: 18px; font-weight: 900; color: #e8e0ff; line-height: 1.2; }
+  .band-sub { font-size: 12px; color: #9b8ec4; margin-top: 3px; }
+
+  .dismiss-btn {
+    background: transparent;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
+  /* Week bar */
+  .week-bar {
+    display: flex;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #0e0c2a;
+  }
+  .day-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .day-name { font-size: 9px; font-weight: 700; color: #9b8ec4; }
+  .day-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .day-dot.played { background: #1e1470; border: 2px solid #9b72ff; }
+  .day-dot.gap { background: #1a1540; border: 2px solid #2a2060; color: #555; font-size: 10px; }
+  .day-dot.today { background: #2a2060; border: 2px solid #ffd166; }
+  .day-dot.flame { background: linear-gradient(135deg, #3a1800, #5a2a00); border: 2px solid #f0a000; }
+  .day-label { font-size: 8px; color: #9b8ec4; }
+
+  /* Stars safe badge */
+  .star-safe-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 20px 0;
+    background: #1a2a15;
+    border: 2px solid #50e890;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #50e890;
+  }
+  .ss-count { font-size: 22px; font-weight: 900; color: #50e890; }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    padding: 12px 20px;
+    gap: 0;
+  }
+  .stat-item { flex: 1; text-align: center; }
+  .stat-item + .stat-item { border-left: 1px solid #1a1540; }
+  .si-val { font-size: 18px; font-weight: 900; color: #e8e0ff; }
+  .si-lbl { font-size: 10px; color: #9b8ec4; margin-top: 2px; }
+
+  /* Message section */
+  .card-message {
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #c4b0ff;
+    line-height: 1.5;
+    border-top: 1px solid #1a1540;
+  }
+  .card-message strong { color: #e8e0ff; }
+
+  /* Boost offer */
+  .boost-offer {
+    margin: 0 20px 14px;
+    background: #1e1470;
+    border: 2px solid #9b72ff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bo-icon { font-size: 24px; }
+  .bo-text { flex: 1; }
+  .bo-title { font-size: 13px; font-weight: 900; color: #e8e0ff; margin-bottom: 2px; }
+  .bo-desc { font-size: 11px; color: #9b8ec4; }
+  .bo-chip {
+    background: #2d1f80;
+    border: 1px solid #9b72ff;
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b0ff;
+    flex-shrink: 0;
+  }
+
+  /* Actions */
+  .card-actions {
+    padding: 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ca-btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 13px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .ca-btn:hover { transform: scale(1.01); }
+  .ca-btn.primary { background: linear-gradient(135deg, #9b72ff, #7c4dff); color: #fff; }
+  .ca-btn.amber { background: linear-gradient(135deg, #f0a000, #d08000); color: #1a0a00; }
+  .ca-btn.gold { background: linear-gradient(135deg, #ffd166, #f0a000); color: #1a1000; }
+  .ca-btn.ghost { background: transparent; border: 2px solid #2a2060; color: #9b8ec4; font-size: 13px; padding: 9px; }
+
+  /* Phone frame for mobile column */
+  .phone {
+    width: 340px;
+    background: #100b2e;
+    border-radius: 36px;
+    border: 2px solid #2a2060;
+    box-shadow: inset 0 0 0 2px #9b72ff22;
+    overflow: hidden;
+    padding-bottom: 16px;
+  }
+  .phone-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 18px 6px;
+    font-size: 10px;
+    color: #9b8ec4;
+    font-weight: 700;
+  }
+  /* Mobile card is narrower */
+  .phone .return-card {
+    margin: 8px 12px;
+    border-radius: 16px;
+  }
+  .phone .card-band { padding: 14px 14px 10px; }
+  .phone .mascot { font-size: 32px; }
+  .phone .band-title { font-size: 14px; }
+  .phone .band-sub { font-size: 10px; }
+  .phone .card-message { font-size: 12px; padding: 10px 14px; }
+  .phone .star-safe-card { margin: 8px 14px 0; padding: 8px 12px; font-size: 11px; }
+  .phone .ss-count { font-size: 18px; }
+  .phone .stats-row { padding: 8px 14px; }
+  .phone .si-val { font-size: 15px; }
+  .phone .si-lbl { font-size: 9px; }
+  .phone .boost-offer { margin: 0 14px 10px; padding: 10px 12px; }
+  .phone .bo-icon { font-size: 18px; }
+  .phone .bo-title { font-size: 11px; }
+  .phone .bo-desc { font-size: 9px; }
+  .phone .card-actions { padding: 0 14px 14px; gap: 6px; }
+  .phone .ca-btn { font-size: 13px; padding: 10px; }
+  .phone .ca-btn.ghost { font-size: 11px; padding: 8px; }
+  .phone .week-bar { padding: 8px 14px; gap: 4px; }
+  .phone .day-dot { width: 22px; height: 22px; font-size: 10px; }
+  .phone .day-name { font-size: 7px; }
+
+  /* 30-day gold burst */
+  .gold-shimmer {
+    background: linear-gradient(135deg, #1a1500, #2a2010);
+    border-color: #ffd166;
+    box-shadow: 0 0 24px rgba(255,209,102,0.15);
+  }
+  @keyframes gold-pulse-shadow {
+    0%, 100% { box-shadow: 0 0 16px rgba(255,209,102,0.15); }
+    50% { box-shadow: 0 0 32px rgba(255,209,102,0.35); }
+  }
+  .gold-shimmer { animation: card-enter 0.4s cubic-bezier(0.34,1.56,0.64,1) both, gold-pulse-shadow 2s ease-in-out infinite; }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 8px; margin-top: 16px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-missed-days-return-card-v2.html</strong><br>
+  States: <strong>2-day gap</strong> / <strong>7-day gap (streak restore offer)</strong> / <strong>30-day comeback</strong> / <strong>Spec</strong><br>
+  Card component shown at top of home hub on return visit. Desktop: inline card at top of main column (max 520px). Mobile: full-width in phone frame.<br>
+  No "missed" language — never "you missed 2 days". Mascot waves cheerfully. Star count shown explicitly. Week bar shows gap days as neutral (not red).<br>
+  Dismiss ✕ always available. 30-day: gold shimmer pulse animation. Streak restore offer on 7-day.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('gap2')">2-Day Gap</button>
+  <button class="tab-btn" onclick="showTab('gap7')">7-Day Gap</button>
+  <button class="tab-btn" onclick="showTab('gap30')">30-Day Comeback</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: 2-DAY GAP ── -->
+<div class="screen active" id="tab-gap2">
+  <div class="card-stage">
+    <div class="card-col">
+      <div class="col-label">Desktop (inline, max 520px)</div>
+      <div class="return-card">
+        <div class="card-band">
+          <div class="mascot-wrap">
+            <span class="mascot">🦋</span>
+            <span class="mascot-badge">👋</span>
+          </div>
+          <div class="band-text">
+            <div class="band-tag amber">Welcome Back!</div>
+            <div class="band-title">Hey Emma, you're back!</div>
+            <div class="band-sub">You've been away for a couple of days</div>
+          </div>
+          <button class="dismiss-btn">✕</button>
+        </div>
+
+        <!-- Week bar: Mon done, Tue done, Wed gap, Thu gap, Fri today -->
+        <div class="week-bar">
+          <div class="day-cell">
+            <div class="day-name">Mon</div>
+            <div class="day-dot flame">🔥</div>
+            <div class="day-label">Played</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-name">Tue</div>
+            <div class="day-dot flame">🔥</div>
+            <div class="day-label">Played</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-name">Wed</div>
+            <div class="day-dot gap">·</div>
+            <div class="day-label">Away</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-name">Thu</div>
+            <div class="day-dot gap">·</div>
+            <div class="day-label">Away</div>
+          </div>
+          <div class="day-cell">
+            <div class="day-name">Fri</div>
+            <div class="day-dot today">👾</div>
+            <div class="day-label">Today!</div>
+          </div>
+        </div>
+
+        <div class="star-safe-card">
+          <span>⭐</span>
+          <div>
+            <div class="ss-count">18 stars</div>
+            <div style="font-size:11px;margin-top:1px">All safe — nothing changed while you were away</div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-item">
+            <div class="si-val">🏅 5-day</div>
+            <div class="si-lbl">Best streak</div>
+          </div>
+          <div class="stat-item">
+            <div class="si-val">Node 7</div>
+            <div class="si-lbl">Cosmic Castle</div>
+          </div>
+          <div class="stat-item">
+            <div class="si-val">3 quests</div>
+            <div class="si-lbl">Waiting for you</div>
+          </div>
+        </div>
+
+        <div class="card-message">
+          Your adventure in <strong>Cosmic Castle</strong> is exactly where you left it. Ready to keep going?
+        </div>
+
+        <div class="card-actions">
+          <button class="ca-btn amber">▶ Jump Back In!</button>
+          <button class="ca-btn ghost">🗺️ See My Progress First</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile column -->
+    <div class="card-col" style="flex:0 0 auto;min-width:0">
+      <div class="col-label" style="text-align:center">Mobile</div>
+      <div class="phone">
+        <div class="phone-status"><span>9:41</span><span>🔋</span></div>
+        <div class="return-card">
+          <div class="card-band">
+            <div class="mascot-wrap">
+              <span class="mascot">🦋</span>
+              <span class="mascot-badge">👋</span>
+            </div>
+            <div class="band-text">
+              <div class="band-tag amber">Welcome Back!</div>
+              <div class="band-title">Hey Emma, you're back!</div>
+              <div class="band-sub">Away for a couple of days</div>
+            </div>
+            <button class="dismiss-btn">✕</button>
+          </div>
+          <div class="week-bar">
+            <div class="day-cell"><div class="day-name">Mon</div><div class="day-dot flame">🔥</div></div>
+            <div class="day-cell"><div class="day-name">Tue</div><div class="day-dot flame">🔥</div></div>
+            <div class="day-cell"><div class="day-name">Wed</div><div class="day-dot gap">·</div></div>
+            <div class="day-cell"><div class="day-name">Thu</div><div class="day-dot gap">·</div></div>
+            <div class="day-cell"><div class="day-name">Fri</div><div class="day-dot today">👾</div></div>
+          </div>
+          <div class="star-safe-card">
+            <span>⭐</span>
+            <div><div class="ss-count">18 stars safe!</div></div>
+          </div>
+          <div class="card-actions" style="margin-top:12px">
+            <button class="ca-btn amber">▶ Jump Back In!</button>
+            <button class="ca-btn ghost">🗺️ See Progress</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: 7-DAY GAP ── -->
+<div class="screen" id="tab-gap7">
+  <div class="card-stage">
+    <div class="card-col">
+      <div class="col-label">Desktop</div>
+      <div class="return-card">
+        <div class="card-band">
+          <div class="mascot-wrap">
+            <span class="mascot">🦁</span>
+            <span class="mascot-badge">🌟</span>
+          </div>
+          <div class="band-text">
+            <div class="band-tag mint">Hey, it's been a week!</div>
+            <div class="band-title">Great to see you again, Emma!</div>
+            <div class="band-sub">A whole week of adventures waiting for you</div>
+          </div>
+          <button class="dismiss-btn">✕</button>
+        </div>
+
+        <div class="week-bar">
+          <div class="day-cell"><div class="day-name">Mon</div><div class="day-dot gap">·</div><div class="day-label">Away</div></div>
+          <div class="day-cell"><div class="day-name">Tue</div><div class="day-dot gap">·</div><div class="day-label">Away</div></div>
+          <div class="day-cell"><div class="day-name">Wed</div><div class="day-dot gap">·</div><div class="day-label">Away</div></div>
+          <div class="day-cell"><div class="day-name">Thu</div><div class="day-dot gap">·</div><div class="day-label">Away</div></div>
+          <div class="day-cell"><div class="day-name">Fri</div><div class="day-dot gap">·</div><div class="day-label">Away</div></div>
+          <div class="day-cell"><div class="day-name">Sat</div><div class="day-dot gap">·</div><div class="day-label">Away</div></div>
+          <div class="day-cell"><div class="day-name">Sun</div><div class="day-dot today">👾</div><div class="day-label">Today!</div></div>
+        </div>
+
+        <div class="star-safe-card">
+          <span>⭐</span>
+          <div>
+            <div class="ss-count">18 stars</div>
+            <div style="font-size:11px;margin-top:1px">All safe — they never go away, ever!</div>
+          </div>
+        </div>
+
+        <!-- Streak restore offer -->
+        <div class="boost-offer">
+          <div class="bo-icon">🔥</div>
+          <div class="bo-text">
+            <div class="bo-title">Restore your streak today!</div>
+            <div class="bo-desc">Play once today and start a fresh streak. Your best was 5 days — can you beat it?</div>
+          </div>
+          <div class="bo-chip">+1⭐ Bonus</div>
+        </div>
+
+        <div class="card-message">
+          <strong>Cosmic Castle</strong> is waiting at Node 7. Everything's exactly as you left it — let's get back to exploring!
+        </div>
+
+        <div class="card-actions">
+          <button class="ca-btn primary">🔥 Start Fresh Streak!</button>
+          <button class="ca-btn ghost">🗺️ Just check my map</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-col" style="flex:0 0 auto;min-width:0">
+      <div class="col-label" style="text-align:center">Mobile</div>
+      <div class="phone">
+        <div class="phone-status"><span>9:41</span><span>🔋</span></div>
+        <div class="return-card">
+          <div class="card-band">
+            <div class="mascot-wrap">
+              <span class="mascot">🦁</span>
+              <span class="mascot-badge">🌟</span>
+            </div>
+            <div class="band-text">
+              <div class="band-tag mint">Hey, it's been a week!</div>
+              <div class="band-title">Great to see you, Emma!</div>
+            </div>
+            <button class="dismiss-btn">✕</button>
+          </div>
+          <div class="star-safe-card">
+            <span>⭐</span>
+            <div><div class="ss-count">18 stars safe!</div><div style="font-size:9px;margin-top:1px">They never go away</div></div>
+          </div>
+          <div class="boost-offer" style="margin-top:8px">
+            <div class="bo-icon">🔥</div>
+            <div class="bo-text">
+              <div class="bo-title">Start a fresh streak!</div>
+              <div class="bo-desc">+1⭐ bonus for playing today</div>
+            </div>
+          </div>
+          <div class="card-actions" style="margin-top:8px">
+            <button class="ca-btn primary">🔥 Start Fresh Streak!</button>
+            <button class="ca-btn ghost">🗺️ Check my map</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: 30-DAY COMEBACK ── -->
+<div class="screen" id="tab-gap30">
+  <div class="card-stage">
+    <div class="card-col">
+      <div class="col-label">Desktop — 30-day gold theme</div>
+      <div class="return-card gold-shimmer">
+        <div class="card-band" style="background:linear-gradient(135deg, #2a2010, #1a1500)">
+          <div class="mascot-wrap">
+            <span class="mascot" style="animation:none;font-size:48px">🦁</span>
+            <span class="mascot-badge" style="font-size:20px">🏆</span>
+          </div>
+          <div class="band-text">
+            <div class="band-tag gold">🎉 Legend Returns!</div>
+            <div class="band-title" style="color:#fff8e0">Welcome back, Emma!</div>
+            <div class="band-sub" style="color:#c4a840">It's been a whole month — this is huge!</div>
+          </div>
+          <button class="dismiss-btn" style="border-color:#ffd16644;color:#ffd166">✕</button>
+        </div>
+
+        <div class="week-bar" style="background:#1a1500">
+          <div class="day-cell"><div class="day-name">Mon</div><div class="day-dot gap">·</div></div>
+          <div class="day-cell"><div class="day-name">Tue</div><div class="day-dot gap">·</div></div>
+          <div class="day-cell"><div class="day-name">Wed</div><div class="day-dot gap">·</div></div>
+          <div class="day-cell"><div class="day-name">Thu</div><div class="day-dot gap">·</div></div>
+          <div class="day-cell"><div class="day-name">Fri</div><div class="day-dot gap">·</div></div>
+          <div class="day-cell"><div class="day-name">Sat</div><div class="day-dot gap">·</div></div>
+          <div class="day-cell"><div class="day-name">Today</div><div class="day-dot today" style="border-color:#ffd166">👑</div></div>
+        </div>
+
+        <div class="star-safe-card" style="border-color:#ffd166;color:#ffd166;background:#1a1500">
+          <span>🏆</span>
+          <div>
+            <div class="ss-count" style="color:#ffd166">18 stars + Legend Badge</div>
+            <div style="font-size:11px;margin-top:1px">Your stars waited the whole time — they're all here!</div>
+          </div>
+        </div>
+
+        <!-- Comeback boost -->
+        <div class="boost-offer" style="background:#2a2010;border-color:#ffd166;margin-top:14px">
+          <div class="bo-icon">🎁</div>
+          <div class="bo-text">
+            <div class="bo-title" style="color:#fff8e0">Comeback Celebration!</div>
+            <div class="bo-desc">Big adventures need big rewards. Today you get a special bonus!</div>
+          </div>
+          <div class="bo-chip" style="background:#2a2010;border-color:#ffd166;color:#ffd166">+2⭐ +100XP</div>
+        </div>
+
+        <div class="card-message" style="color:#c4a840">
+          <strong style="color:#fff8e0">Cosmic Castle</strong> has been patiently waiting at Node 7. Everything's safe — let's make today legendary!
+        </div>
+
+        <div class="card-actions">
+          <button class="ca-btn gold">👑 Claim My Comeback!</button>
+          <button class="ca-btn ghost" style="border-color:#ffd16640;color:#c4a840">🗺️ View my world first</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-col" style="flex:0 0 auto;min-width:0">
+      <div class="col-label" style="text-align:center">Mobile</div>
+      <div class="phone">
+        <div class="phone-status"><span>9:41</span><span style="color:#ffd166">👑</span></div>
+        <div class="return-card gold-shimmer">
+          <div class="card-band" style="background:linear-gradient(135deg,#2a2010,#1a1500)">
+            <div class="mascot-wrap">
+              <span class="mascot" style="animation:none">🦁</span>
+              <span class="mascot-badge">🏆</span>
+            </div>
+            <div class="band-text">
+              <div class="band-tag gold">🎉 Legend Returns!</div>
+              <div class="band-title" style="color:#fff8e0;font-size:14px">Welcome back!</div>
+            </div>
+            <button class="dismiss-btn" style="border-color:#ffd16644;color:#ffd166">✕</button>
+          </div>
+          <div class="star-safe-card" style="border-color:#ffd166;color:#ffd166;background:#1a1500">
+            <span>🏆</span>
+            <div><div class="ss-count" style="color:#ffd166">18 stars safe!</div><div style="font-size:9px">+Legend Badge earned!</div></div>
+          </div>
+          <div class="boost-offer" style="background:#2a2010;border-color:#ffd166;margin-top:8px">
+            <div class="bo-icon">🎁</div>
+            <div class="bo-text">
+              <div class="bo-title" style="font-size:11px;color:#fff8e0">Comeback Bonus!</div>
+              <div class="bo-desc">Today: +2⭐ +100XP</div>
+            </div>
+          </div>
+          <div class="card-actions" style="margin-top:10px">
+            <button class="ca-btn gold">👑 Claim My Comeback!</button>
+            <button class="ca-btn ghost" style="border-color:#ffd16640;color:#c4a840">🗺️ See my world</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-missed-days-return-card-v2.html</div></div>
+    <div class="spec-row"><div class="spec-k">Usage</div><div class="spec-v">Inline card at top of home hub on return after gap. Dismissible.</div></div>
+    <div class="spec-row"><div class="spec-k">States</div><div class="spec-v">2-day gap (amber) · 7-day gap (mint) · 30-day comeback (gold)</div></div>
+    <div class="spec-row"><div class="spec-k">Entry animation</div><div class="spec-v">card-enter: scale 0.94→1 + translateY 10px→0 · 0.4s spring</div></div>
+
+    <h3>Language Rules</h3>
+    <div class="spec-row"><div class="spec-k">Never use</div><div class="spec-v">"Missed days", "you didn't play", "your streak is broken", "you fell behind"</div></div>
+    <div class="spec-row"><div class="spec-k">2-day</div><div class="spec-v">"You've been away for a couple of days" — neutral, warm</div></div>
+    <div class="spec-row"><div class="spec-k">7-day</div><div class="spec-v">"It's been a week!" — energetic, forward-looking</div></div>
+    <div class="spec-row"><div class="spec-k">30-day</div><div class="spec-v">"Legend Returns!" / "It's been a whole month — this is huge!" — celebration, not shame</div></div>
+
+    <h3>Week Bar</h3>
+    <div class="spec-row"><div class="spec-k">Played days</div><div class="spec-v">Orange flame dot (background #3a1800, border #f0a000)</div></div>
+    <div class="spec-row"><div class="spec-k">Gap days</div><div class="spec-v">Dim dot with "·" — neutral gray, never red, label: "Away"</div></div>
+    <div class="spec-row"><div class="spec-k">Today</div><div class="spec-v">Violet/gold border dot — "Today!" label</div></div>
+
+    <h3>Star Safety</h3>
+    <div class="spec-row"><div class="spec-k">Badge</div><div class="spec-v">Always shown with explicit star count — "18 stars safe!"</div></div>
+    <div class="spec-row"><div class="spec-k">30-day extra</div><div class="spec-v">"+Legend Badge earned!" on star-safe row. Gold color scheme.</div></div>
+    <div class="spec-row"><div class="spec-k">Rule</div><div class="spec-v">Stars can never decrease from gap/absence. Shown explicitly to reassure.</div></div>
+
+    <h3>Boost / Offer Section</h3>
+    <div class="spec-row"><div class="spec-k">7-day</div><div class="spec-v">Streak restore offer: "+1⭐ bonus for playing today". Forward-looking.</div></div>
+    <div class="spec-row"><div class="spec-k">30-day</div><div class="spec-v">Comeback celebration: "+2⭐ +100XP". Legend Badge chip.</div></div>
+    <div class="spec-row"><div class="spec-k">2-day</div><div class="spec-v">No boost offer — just warm re-engagement CTA.</div></div>
+
+    <h3>Animations</h3>
+    <div class="spec-row"><div class="spec-k">Mascot</div><div class="spec-v">mascot-wave: rotate -8→+8deg, 1.5s loop. Disabled on 30-day (static gold pose).</div></div>
+    <div class="spec-row"><div class="spec-k">30-day shimmer</div><div class="spec-v">gold-pulse-shadow: box-shadow 16→32px rgba(255,209,102,0.15→0.35), 2s loop</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

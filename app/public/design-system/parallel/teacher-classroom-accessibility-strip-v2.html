@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Item 233 · Teacher Classroom Accessibility Strip v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* Engineering hint box */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* Tab switcher */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid rgba(255,255,255,.06);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: rgba(240,246,255,.5);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color .2s, border-color .2s, background .2s;
+    }
+    .tab-btn:hover {
+      color: #f0f6ff;
+      background: rgba(255,255,255,.04);
+    }
+    .tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: rgba(56,189,248,.06);
+    }
+
+    /* Screens */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Card base */
+    .card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    /* ===== TAB 1 — ACCESSIBILITY STRIP ===== */
+
+    .strip-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .strip-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .strip-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(56,189,248,.6);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: default;
+      flex-shrink: 0;
+    }
+
+    .strip-metrics {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric-cell {
+      flex: 1;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: border-color .2s, background .2s;
+    }
+    .metric-cell:hover {
+      border-color: rgba(56,189,248,.3);
+      background: rgba(56,189,248,.04);
+    }
+    .metric-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .metric-count {
+      font-size: 32px;
+      font-weight: 800;
+      color: #38bdf8;
+      line-height: 1;
+    }
+    .metric-label {
+      font-size: 12px;
+      color: rgba(240,246,255,.6);
+      text-align: center;
+      font-weight: 500;
+    }
+    .metric-view {
+      font-size: 11px;
+      color: #50e890;
+      text-decoration: none;
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 4px;
+      padding: 2px 8px;
+      transition: background .2s, border-color .2s;
+      margin-top: 2px;
+    }
+    .metric-view:hover {
+      background: rgba(80,232,144,.12);
+      border-color: #50e890;
+    }
+
+    .privacy-note {
+      background: rgba(255,209,102,.08);
+      border: 1px solid rgba(255,209,102,.3);
+      border-left: 4px solid #ffd166;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: rgba(240,246,255,.85);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .privacy-note .lock-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .summary-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .summary-section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,.06);
+    }
+
+    .summary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .summary-row {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .band-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: .5px;
+      flex-shrink: 0;
+      min-width: 60px;
+    }
+    .band-p0 { background: rgba(255,209,102,.15); color: #ffd166; border: 1px solid rgba(255,209,102,.35); }
+    .band-p1 { background: rgba(155,114,255,.15); color: #9b72ff; border: 1px solid rgba(155,114,255,.35); }
+    .band-p2 { background: rgba(88,232,193,.15); color: #58e8c1; border: 1px solid rgba(88,232,193,.35); }
+    .band-p3 { background: rgba(255,123,107,.15); color: #ff7b6b; border: 1px solid rgba(255,123,107,.35); }
+
+    .summary-row-info {
+      flex: 1;
+    }
+    .summary-row-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f6ff;
+      margin-bottom: 4px;
+    }
+    .summary-row-title span {
+      color: rgba(240,246,255,.5);
+      font-weight: 400;
+    }
+    .feature-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .feature-chip {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: rgba(240,246,255,.7);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .no-features {
+      font-size: 12px;
+      color: rgba(240,246,255,.3);
+      font-style: italic;
+    }
+
+    /* ===== TAB 2 — LIVE SESSION ===== */
+
+    .session-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .session-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .session-header-left h2 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .session-header-left .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.3);
+      color: #50e890;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 3px 10px;
+      margin-top: 6px;
+      letter-spacing: .5px;
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #50e890;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(.8); }
+    }
+
+    .encourage-btn {
+      background: linear-gradient(135deg, #38bdf8, #50e890);
+      color: #0d1117;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      white-space: nowrap;
+    }
+    .encourage-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .encourage-btn:active { transform: translateY(0); }
+
+    .session-stats {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .session-stat {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green { background: #50e890; }
+    .dot-amber { background: #ffd166; }
+    .dot-grey { background: rgba(240,246,255,.25); }
+    .stat-label { color: rgba(240,246,255,.7); }
+    .stat-count { color: #f0f6ff; font-weight: 700; }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .student-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 80px;
+      position: relative;
+      transition: border-color .2s;
+    }
+    .student-card:hover { border-color: rgba(255,255,255,.15); }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-band {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 10px;
+      letter-spacing: .4px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .card-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f6ff;
+    }
+
+    .activity-bar-wrap {
+      background: rgba(255,255,255,.07);
+      border-radius: 3px;
+      height: 5px;
+      overflow: hidden;
+    }
+    .activity-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #38bdf8, #50e890);
+      transition: width .5s ease;
+    }
+
+    .access-chips-row {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      min-height: 16px;
+    }
+    .access-chip-tiny {
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .more-indicator {
+      background: #161b22;
+      border: 1px dashed rgba(255,255,255,.12);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: rgba(240,246,255,.4);
+      font-weight: 600;
+      min-height: 80px;
+    }
+
+    .privacy-bar {
+      background: rgba(56,189,248,.06);
+      border: 1px solid rgba(56,189,248,.18);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: rgba(240,246,255,.6);
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .privacy-bar strong { color: #38bdf8; }
+
+    /* Encourage toast */
+    .toast {
+      display: none;
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #161b22;
+      border: 1px solid #50e890;
+      border-radius: 10px;
+      padding: 12px 22px;
+      font-size: 14px;
+      color: #50e890;
+      font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      z-index: 9999;
+      white-space: nowrap;
+    }
+
+    /* ===== TAB 3 — SPEC ===== */
+
+    .spec-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .spec-wrapper h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #38bdf8;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 700px) {
+      .spec-grid { grid-template-columns: 1fr; }
+      .strip-metrics { flex-wrap: wrap; }
+    }
+
+    .spec-card { padding: 18px; }
+    .spec-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .spec-card.can h3 { color: #50e890; }
+    .spec-card.cannot h3 { color: #ff7b6b; }
+    .spec-card.privacy h3 { color: #38bdf8; }
+    .spec-card.action h3 { color: #ffd166; }
+
+    .spec-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .spec-list li {
+      font-size: 13px;
+      color: rgba(240,246,255,.8);
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .spec-list li::before {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    .spec-card.can .spec-list li::before { content: '✓'; color: #50e890; }
+    .spec-card.cannot .spec-list li::before { content: '✗'; color: #ff7b6b; }
+    .spec-card.privacy .spec-list li::before { content: '🔒'; font-size: 11px; top: 1px; }
+    .spec-card.action .spec-list li::before { content: '▶'; color: #ffd166; font-size: 9px; top: 3px; }
+
+    .spec-full { margin-bottom: 16px; }
+    .spec-full h3 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: #9b72ff;
+      margin-bottom: 12px;
+    }
+
+    .sql-block {
+      background: #0d1117;
+      border: 1px solid rgba(155,114,255,.2);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      color: #9b72ff;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .sql-comment { color: rgba(155,114,255,.5); }
+    .sql-keyword { color: #58e8c1; }
+    .sql-fn { color: #ffd166; }
+
+    .ferpa-card { margin-bottom: 16px; }
+    .ferpa-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: #ff7b6b;
+      margin-bottom: 10px;
+    }
+    .ferpa-card p {
+      font-size: 13px;
+      color: rgba(240,246,255,.75);
+      line-height: 1.6;
+    }
+    .ferpa-card p strong { color: #ff7b6b; }
+
+    .usecase-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: #58e8c1;
+      margin-bottom: 10px;
+    }
+    .usecase-card p {
+      font-size: 13px;
+      color: rgba(240,246,255,.75);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 233 · teacher-classroom-accessibility-strip-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Classroom Accessibility Strip</button>
+    <button class="tab-btn" onclick="showTab(1)">Classroom Session View</button>
+    <button class="tab-btn" onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ===== TAB 1 ===== -->
+  <div class="screen active" id="screen-0">
+    <div class="strip-wrapper">
+
+      <div class="strip-header">
+        <h2>♿ Accessibility Overview — Class 4B</h2>
+        <span class="info-icon" title="Aggregate accessibility counts only. No individual student data shown.">i</span>
+      </div>
+
+      <!-- 5-cell metrics strip -->
+      <div class="strip-metrics">
+
+        <div class="metric-cell">
+          <span class="metric-icon">🔇</span>
+          <span class="metric-count">3</span>
+          <span class="metric-label">Audio off</span>
+          <a href="#" class="metric-view" onclick="return false;">View</a>
+        </div>
+
+        <div class="metric-cell">
+          <span class="metric-icon">🐢</span>
+          <span class="metric-count">5</span>
+          <span class="metric-label">Slow reading</span>
+          <a href="#" class="metric-view" onclick="return false;">View</a>
+        </div>
+
+        <div class="metric-cell">
+          <span class="metric-icon">🌗</span>
+          <span class="metric-count">1</span>
+          <span class="metric-label">High contrast</span>
+          <a href="#" class="metric-view" onclick="return false;">View</a>
+        </div>
+
+        <div class="metric-cell">
+          <span class="metric-icon">🎯</span>
+          <span class="metric-count">4</span>
+          <span class="metric-label">Low motion</span>
+          <a href="#" class="metric-view" onclick="return false;">View</a>
+        </div>
+
+        <div class="metric-cell">
+          <span class="metric-icon">📱</span>
+          <span class="metric-count">2</span>
+          <span class="metric-label">Large buttons</span>
+          <a href="#" class="metric-view" onclick="return false;">View</a>
+        </div>
+
+      </div>
+
+      <!-- Privacy note -->
+      <div class="privacy-note">
+        <span class="lock-icon">🔒</span>
+        <span><strong>Important privacy note:</strong> Student names are not shown here. The teacher can see counts only. Settings are configured by parents.</span>
+      </div>
+
+      <!-- Student Accessibility Summary by band -->
+      <div class="summary-section-title">Student Accessibility Summary</div>
+
+      <div class="summary-list">
+
+        <div class="summary-row">
+          <span class="band-badge band-p0">P0 · 3</span>
+          <div class="summary-row-info">
+            <div class="summary-row-title">Gold group <span>— 3 students</span></div>
+            <div class="feature-chips">
+              <span class="feature-chip">🔇 Audio off</span>
+              <span class="feature-chip">🐢 Slow reading</span>
+              <span class="feature-chip">🎯 Low motion</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <span class="band-badge band-p1">P1 · 5</span>
+          <div class="summary-row-info">
+            <div class="summary-row-title">Violet group <span>— 5 students</span></div>
+            <div class="feature-chips">
+              <span class="feature-chip">🐢 Slow reading</span>
+              <span class="feature-chip">📱 Large buttons</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <span class="band-badge band-p2">P2 · 6</span>
+          <div class="summary-row-info">
+            <div class="summary-row-title">Mint group <span>— 6 students</span></div>
+            <div class="feature-chips">
+              <span class="feature-chip">🌗 High contrast</span>
+              <span class="feature-chip">🎯 Low motion</span>
+              <span class="feature-chip">🐢 Slow reading</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <span class="band-badge band-p3">P3 · 4</span>
+          <div class="summary-row-info">
+            <div class="summary-row-title">Coral group <span>— 4 students</span></div>
+            <div class="feature-chips">
+              <span class="no-features">No active accessibility features</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2 ===== -->
+  <div class="screen" id="screen-1">
+    <div class="session-wrapper">
+
+      <div class="session-header">
+        <div class="session-header-left">
+          <h2>Live Session — Class 4B</h2>
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            18 students active
+          </div>
+        </div>
+        <button class="encourage-btn" onclick="sendEncouragement()">
+          ✨ Send encouragement to all
+        </button>
+      </div>
+
+      <!-- Status legend -->
+      <div class="session-stats">
+        <div class="session-stat">
+          <span class="stat-dot dot-green"></span>
+          <span class="stat-label">Active</span>
+          <span class="stat-count">14</span>
+        </div>
+        <div class="session-stat">
+          <span class="stat-dot dot-amber"></span>
+          <span class="stat-label">Idle &gt;2 min</span>
+          <span class="stat-count">3</span>
+        </div>
+        <div class="session-stat">
+          <span class="stat-dot dot-grey"></span>
+          <span class="stat-label">Disconnected</span>
+          <span class="stat-count">1</span>
+        </div>
+      </div>
+
+      <!-- 4×5 grid — 8 cards + "10 more" -->
+      <div class="student-grid">
+
+        <!-- Card 1 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p0">P0</span>
+            <span class="status-dot dot-green"></span>
+          </div>
+          <div class="card-name">Aiden</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:82%"></div>
+          </div>
+          <div class="access-chips-row">
+            <span class="access-chip-tiny" title="Audio off">🔇</span>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p1">P1</span>
+            <span class="status-dot dot-green"></span>
+          </div>
+          <div class="card-name">Priya</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:67%"></div>
+          </div>
+          <div class="access-chips-row">
+            <span class="access-chip-tiny" title="Slow reading">🐢</span>
+            <span class="access-chip-tiny" title="Large buttons">📱</span>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p2">P2</span>
+            <span class="status-dot dot-green"></span>
+          </div>
+          <div class="card-name">Marcus</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:91%"></div>
+          </div>
+          <div class="access-chips-row">
+            <span class="access-chip-tiny" title="High contrast">🌗</span>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p0">P0</span>
+            <span class="status-dot dot-amber"></span>
+          </div>
+          <div class="card-name">Sofia</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:45%"></div>
+          </div>
+          <div class="access-chips-row">
+            <span class="access-chip-tiny" title="Slow reading">🐢</span>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p3">P3</span>
+            <span class="status-dot dot-green"></span>
+          </div>
+          <div class="card-name">Luca</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:73%"></div>
+          </div>
+          <div class="access-chips-row"></div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p2">P2</span>
+            <span class="status-dot dot-green"></span>
+          </div>
+          <div class="card-name">Yuki</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:58%"></div>
+          </div>
+          <div class="access-chips-row">
+            <span class="access-chip-tiny" title="Low motion">🎯</span>
+          </div>
+        </div>
+
+        <!-- Card 7 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p1">P1</span>
+            <span class="status-dot dot-amber"></span>
+          </div>
+          <div class="card-name">Fatou</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:30%"></div>
+          </div>
+          <div class="access-chips-row">
+            <span class="access-chip-tiny" title="Audio off">🔇</span>
+            <span class="access-chip-tiny" title="Low motion">🎯</span>
+          </div>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="student-card">
+          <div class="card-top">
+            <span class="card-band band-p3">P3</span>
+            <span class="status-dot dot-grey"></span>
+          </div>
+          <div class="card-name">Oscar</div>
+          <div class="activity-bar-wrap">
+            <div class="activity-bar-fill" style="width:0%"></div>
+          </div>
+          <div class="access-chips-row"></div>
+        </div>
+
+        <!-- + 10 more -->
+        <div class="more-indicator">+ 10 more</div>
+
+      </div>
+
+      <!-- Privacy reminder -->
+      <div class="privacy-bar">
+        <strong>Visibility policy:</strong>&nbsp; You see first name, band, relative activity level, and active accessibility chips only. Individual question data and specific XP amounts are not visible to teachers.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== TAB 3 ===== -->
+  <div class="screen" id="screen-2">
+    <div class="spec-wrapper">
+      <h2>Spec — Teacher Classroom Accessibility Strip v2</h2>
+
+      <div class="spec-grid">
+
+        <div class="card spec-card can">
+          <h3>Teacher can see</h3>
+          <ul class="spec-list">
+            <li>Student first names within their own class</li>
+            <li>Band assignment (P0–P3)</li>
+            <li>Relative activity level (visual bar only)</li>
+            <li>Active accessibility chips — icons only, no setting values</li>
+            <li>Total time in session</li>
+            <li>Aggregate accessibility counts per class</li>
+          </ul>
+        </div>
+
+        <div class="card spec-card cannot">
+          <h3>Teacher cannot see</h3>
+          <ul class="spec-list">
+            <li>Individual question accuracy</li>
+            <li>Which questions were attempted</li>
+            <li>Specific XP amounts</li>
+            <li>Accessibility setting values (e.g., which voice speed — just "slow reading" is on)</li>
+            <li>Student surnames or identifiers beyond first name</li>
+            <li>Parent-configured preference details</li>
+          </ul>
+        </div>
+
+        <div class="card spec-card privacy">
+          <h3>Privacy rules</h3>
+          <ul class="spec-list">
+            <li>Accessibility prefs configured by parents only</li>
+            <li>Teacher has read-only visibility of active features (awareness only)</li>
+            <li>Teacher cannot change a child's accessibility settings</li>
+            <li>Accessibility strip shows aggregate counts, never named individuals</li>
+            <li>Band grouping used in summary — never individual names</li>
+          </ul>
+        </div>
+
+        <div class="card spec-card action">
+          <h3>Classroom actions</h3>
+          <ul class="spec-list">
+            <li>Send positive encouragement banner to one or all students</li>
+            <li>Max 80 characters per message</li>
+            <li>Platform-routed only — not email or SMS</li>
+            <li>No targeting by accessibility status allowed</li>
+            <li>Encouragement is generic positive only — not evaluative</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- SQL block -->
+      <div class="card spec-full">
+        <h3>DB Query — Classroom Accessibility Summary</h3>
+        <div class="sql-block"><span class="sql-comment">-- Classroom accessibility summary</span>
+<span class="sql-keyword">SELECT</span>
+  <span class="sql-fn">COUNT</span>(*) <span class="sql-keyword">FILTER</span> (<span class="sql-keyword">WHERE NOT</span> readout_enabled)        <span class="sql-keyword">AS</span> audio_off,
+  <span class="sql-fn">COUNT</span>(*) <span class="sql-keyword">FILTER</span> (<span class="sql-keyword">WHERE</span> voice_speed = <span style="color:#50e890">'slow'</span>)      <span class="sql-keyword">AS</span> slow_reading,
+  <span class="sql-fn">COUNT</span>(*) <span class="sql-keyword">FILTER</span> (<span class="sql-keyword">WHERE</span> display_mode = <span style="color:#50e890">'high_contrast'</span>) <span class="sql-keyword">AS</span> high_contrast,
+  <span class="sql-fn">COUNT</span>(*) <span class="sql-keyword">FILTER</span> (<span class="sql-keyword">WHERE</span> reduced_motion = <span style="color:#ffd166">true</span>)       <span class="sql-keyword">AS</span> low_motion,
+  <span class="sql-fn">COUNT</span>(*) <span class="sql-keyword">FILTER</span> (<span class="sql-keyword">WHERE</span> large_buttons = <span style="color:#ffd166">true</span>)        <span class="sql-keyword">AS</span> large_buttons
+<span class="sql-keyword">FROM</span> child_accessibility_prefs cap
+<span class="sql-keyword">JOIN</span> class_memberships cm <span class="sql-keyword">ON</span> cm.child_id = cap.child_id
+<span class="sql-keyword">WHERE</span> cm.class_id = :class_id <span class="sql-keyword">AND</span> cm.is_active = <span style="color:#ffd166">true</span></div>
+      </div>
+
+      <!-- FERPA -->
+      <div class="card ferpa-card">
+        <h3>FERPA Compliance</h3>
+        <p>
+          <strong>Aggregate counts only</strong> are exposed to the teacher. Individual accessibility preferences are accessible only to the parent who set them and school administrators. No personally identifiable education records are surfaced through this strip. Band-level groupings in the summary do not constitute individual identification.
+        </p>
+      </div>
+
+      <!-- Use case -->
+      <div class="card usecase-card">
+        <h3>Use Case</h3>
+        <p>
+          Teacher awareness — for example: "3 students have audio off — make sure instructions are also written on the board." This information is for pedagogical support only. It is not used for assessment, grading, or any evaluative purpose.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Encouragement toast -->
+  <div class="toast" id="encourage-toast">
+    ✨ Encouragement sent to all 18 students!
+  </div>
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+        b.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.screen').forEach(function(s, i) {
+        s.classList.toggle('active', i === t);
+      });
+    }
+
+    function sendEncouragement() {
+      var toast = document.getElementById('encourage-toast');
+      toast.style.display = 'block';
+      clearTimeout(toast._hideTimer);
+      toast._hideTimer = setTimeout(function() {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

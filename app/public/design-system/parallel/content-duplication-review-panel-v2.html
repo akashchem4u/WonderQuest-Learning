@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duplication Review Panel — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ─── PAGE SHELL ─────────────────────────────────────────────────── */
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+.btn-danger{background:transparent;color:#ff7b6b;border:1px solid rgba(255,123,107,.3);}
+.btn-danger:hover{background:rgba(255,123,107,.08);}
+.btn-amber{background:transparent;color:#f0c040;border:1px solid rgba(240,192,64,.3);}
+
+.page-body{padding:24px 28px;max-width:1400px;}
+
+/* ─── STAT ROW ───────────────────────────────────────────────────── */
+.stat-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;}
+.sc-num{font-size:22px;font-weight:700;}
+.sc-lbl{font-size:11px;color:rgba(240,246,255,.4);margin-top:3px;}
+.sc-sub{font-size:11px;margin-top:4px;}
+.num-ok{color:#50e890;}
+.num-warn{color:#f0c040;}
+.num-err{color:#ff7b6b;}
+.num-white{color:#f0f6ff;}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── FILTER BAR ─────────────────────────────────────────────────── */
+.filter-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filter-bar input{background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 12px;color:#f0f6ff;font-size:13px;width:220px;}
+.filter-bar input:focus{outline:none;border-color:#50e890;}
+.filter-bar input::placeholder{color:rgba(240,246,255,.35);}
+.fc{padding:5px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);background:transparent;transition:all .15s;}
+.fc:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25);}
+.fc.active{background:#50e890;color:#0d1117;border-color:#50e890;font-weight:600;}
+
+/* ─── DUPLICATE PAIR CARDS ───────────────────────────────────────── */
+.dup-pair{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.dup-pair.dp-exact{border-left:3px solid #ff7b6b;}
+.dup-pair.dp-near{border-left:3px solid #f0c040;}
+.dup-pair.dp-concept{border-left:3px solid rgba(155,114,255,.6);}
+.dup-pair.dp-resolved{border-left:3px solid #50e890;opacity:.55;}
+
+.dp-header{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none;}
+.dp-type-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:9px;flex-shrink:0;}
+.dtb-exact{background:rgba(255,123,107,.18);color:#ff7b6b;}
+.dtb-near{background:rgba(240,192,64,.15);color:#f0c040;}
+.dtb-concept{background:rgba(155,114,255,.15);color:#9b72ff;}
+.dtb-resolved{background:rgba(80,232,144,.12);color:#50e890;}
+.dp-title{flex:1;font-size:13px;font-weight:600;color:#f0f6ff;}
+.dp-sim{font-size:12px;color:rgba(240,246,255,.5);}
+.dp-sim strong{color:#f0c040;}
+.dp-sim.high strong{color:#ff7b6b;}
+.dp-chevron{font-size:12px;color:rgba(240,246,255,.35);transition:transform .2s;}
+.dp-chevron.open{transform:rotate(180deg);}
+
+.dp-body{padding:0 16px 14px;display:none;}
+.dp-body.open{display:block;}
+.dp-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.dp-side{background:#0d1117;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.06);}
+.dps-id{font-size:10px;color:rgba(240,246,255,.35);font-family:monospace;margin-bottom:4px;}
+.dps-skill{font-size:11px;font-weight:600;color:rgba(240,246,255,.5);margin-bottom:6px;}
+.dps-q{font-size:13px;color:#f0f6ff;line-height:1.5;margin-bottom:10px;}
+.dps-answer-row{display:flex;gap:6px;flex-wrap:wrap;}
+.dps-ans{font-size:11px;padding:3px 8px;border-radius:9px;background:rgba(255,255,255,.06);color:rgba(240,246,255,.6);}
+.dps-ans.correct{background:rgba(80,232,144,.15);color:#50e890;font-weight:600;}
+.dp-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+.dpm-item{font-size:11px;color:rgba(240,246,255,.35);}
+.dpm-item strong{color:rgba(240,246,255,.55);}
+
+/* Diff highlight */
+.diff-match{background:rgba(240,192,64,.15);border-radius:2px;padding:0 2px;color:#f0c040;}
+.diff-diff{background:rgba(80,232,144,.1);border-radius:2px;padding:0 2px;color:#50e890;}
+
+.dp-actions{display:flex;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);flex-wrap:wrap;}
+.dp-reason{font-size:12px;color:rgba(240,246,255,.4);margin-top:4px;}
+
+/* ─── SIMILARITY SCORE RING ──────────────────────────────────────── */
+.sim-ring{width:42px;height:42px;flex-shrink:0;}
+
+/* ─── SECTION BLOCK ──────────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.sb-action{font-size:12px;color:#50e890;cursor:pointer;background:none;border:none;font-family:inherit;}
+
+/* ─── STATS TABLE ────────────────────────────────────────────────── */
+.stats-table{width:100%;border-collapse:collapse;font-size:13px;}
+.stats-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.stats-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);}
+.stats-table tr:last-child td{border-bottom:none;}
+.stats-table tr:hover td{background:rgba(255,255,255,.02);}
+
+/* ─── BAND PILLS ─────────────────────────────────────────────────── */
+.band-pill{font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;}
+.bp-p0{background:rgba(255,209,102,.15);color:#ffd166;}
+.bp-p1{background:rgba(155,114,255,.15);color:#9b72ff;}
+.bp-p2{background:rgba(88,232,193,.15);color:#58e8c1;}
+.bp-p3{background:rgba(255,123,107,.15);color:#ff7b6b;}
+
+/* ─── EMPTY STATE ────────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:48px 20px;color:rgba(240,246,255,.3);}
+.es-icon{font-size:36px;margin-bottom:12px;}
+.es-text{font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Duplication Review Panel</h1>
+  <span class="ph-sub">Detect and merge near-duplicate questions and skills across the content library</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⬇ Export CSV</button>
+    <button class="btn btn-primary">▶ Run Dedup Scan</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Duplication Review Panel v2:</strong> Dedup scan runs on-demand or weekly (cron).
+    <br><strong>Similarity types:</strong> Exact (≥98% token match) / Near (85–97%) / Concept (same learning objective, different wording; manual flag only).
+    <br><strong>Algorithm:</strong> Cosine similarity on TF-IDF of question body + answer options. Embeddings comparison (sentence-transformers) for concept-level.
+    <br><strong>Resolution actions:</strong> Keep Both (different skill context) / Merge → Keep A (retire B) / Merge → Keep B (retire A) / Rewrite One / Mark Not Duplicate.
+    <br>Retiring a question: sets q_status=retired, removes from adaptive pool. Linked skill re-scored. If q_count drops &lt;4 → skill flagged for review.
+    <br><strong>Tabs:</strong> All Pairs / Exact Matches / Near Matches / Concept Overlaps / Resolved / Settings.
+  </div>
+
+  <!-- STAT STRIP -->
+  <div class="stat-strip">
+    <div class="stat-card">
+      <div class="sc-num num-err">38</div>
+      <div class="sc-lbl">Open Pairs</div>
+      <div class="sc-sub" style="color:rgba(240,246,255,.4);">Needs review</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-err">7</div>
+      <div class="sc-lbl">Exact Matches</div>
+      <div class="sc-sub" style="color:#ff7b6b;">≥98% similarity</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-warn">19</div>
+      <div class="sc-lbl">Near Matches</div>
+      <div class="sc-sub" style="color:#f0c040;">85–97% similarity</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num" style="color:#9b72ff;">12</div>
+      <div class="sc-lbl">Concept Overlaps</div>
+      <div class="sc-sub" style="color:rgba(240,246,255,.4);">Manual flagged</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-ok">144</div>
+      <div class="sc-lbl">Resolved (All Time)</div>
+      <div class="sc-sub" style="color:#50e890;">82 merged · 62 kept</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('all')">All Pairs <span style="background:rgba(255,123,107,.2);color:#ff7b6b;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">38</span></button>
+    <button class="tab-btn" onclick="showTab('exact')">Exact <span style="background:rgba(255,123,107,.2);color:#ff7b6b;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">7</span></button>
+    <button class="tab-btn" onclick="showTab('near')">Near Match</button>
+    <button class="tab-btn" onclick="showTab('concept')">Concept Overlap</button>
+    <button class="tab-btn" onclick="showTab('resolved')">Resolved</button>
+    <button class="tab-btn" onclick="showTab('settings')">Settings</button>
+  </div>
+
+  <!-- TAB: ALL PAIRS -->
+  <div id="tab-all" class="screen active">
+
+    <div class="filter-bar">
+      <input type="text" placeholder="Search by QID, skill, or text…">
+      <span class="fc active">All Types</span>
+      <span class="fc">Exact</span>
+      <span class="fc">Near</span>
+      <span class="fc">Concept</span>
+      <span class="fc">P0 Pre-K</span>
+      <span class="fc">P1 K–1</span>
+      <span class="fc">P2 G2–3</span>
+      <span class="fc">P3 G4–5</span>
+      <span style="margin-left:auto;font-size:12px;color:rgba(240,246,255,.4);">Sort: Similarity ↓</span>
+    </div>
+
+    <!-- Pair 1 — Exact -->
+    <div class="dup-pair dp-exact">
+      <div class="dp-header" onclick="togglePair(this)">
+        <span class="dp-type-badge dtb-exact">Exact</span>
+        <span class="dp-title">QID-0341 ↔ QID-0489 — "How many legs does a dog have?"</span>
+        <span class="dp-sim high"><strong>99.1%</strong> similar</span>
+        <span class="band-pill bp-p0">P0</span>
+        <span class="dp-chevron">▼</span>
+      </div>
+      <div class="dp-body">
+        <div class="dp-compare">
+          <div class="dp-side">
+            <div class="dps-id">QID-0341</div>
+            <div class="dps-skill">SK-0042 · Animals &amp; Pets</div>
+            <div class="dps-q"><span class="diff-match">How many legs does a dog have?</span></div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">2</span>
+              <span class="dps-ans correct">4 ✓</span>
+              <span class="dps-ans">6</span>
+              <span class="dps-ans">8</span>
+            </div>
+            <div class="dp-meta">
+              <span class="dpm-item">Status: <strong>Published</strong></span>
+              <span class="dpm-item">Created: <strong>2023-11-14</strong></span>
+              <span class="dpm-item">Skip rate: <strong>12%</strong></span>
+            </div>
+          </div>
+          <div class="dp-side">
+            <div class="dps-id">QID-0489</div>
+            <div class="dps-skill">SK-0058 · Body Parts (Animals)</div>
+            <div class="dps-q"><span class="diff-match">How many legs does a dog have?</span></div>
+            <div class="dps-answer-row">
+              <span class="dps-ans correct">4 ✓</span>
+              <span class="dps-ans">2</span>
+              <span class="dps-ans">6</span>
+              <span class="dps-ans">3</span>
+            </div>
+            <div class="dp-meta">
+              <span class="dpm-item">Status: <strong>Published</strong></span>
+              <span class="dpm-item">Created: <strong>2024-01-08</strong></span>
+              <span class="dpm-item">Skip rate: <strong>9%</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="dp-actions">
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 12px;">Merge → Keep QID-0341</button>
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 12px;">Merge → Keep QID-0489</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">Keep Both (diff context)</button>
+          <button class="btn btn-amber" style="font-size:12px;padding:6px 12px;">Rewrite QID-0489</button>
+        </div>
+        <div class="dp-reason">Note: Same question body, different answer option ordering and different skill. Check if both skills legitimately need this concept.</div>
+      </div>
+    </div>
+
+    <!-- Pair 2 — Exact -->
+    <div class="dup-pair dp-exact">
+      <div class="dp-header" onclick="togglePair(this)">
+        <span class="dp-type-badge dtb-exact">Exact</span>
+        <span class="dp-title">QID-0102 ↔ QID-0619 — "Which shape has 3 sides?"</span>
+        <span class="dp-sim high"><strong>98.7%</strong> similar</span>
+        <span class="band-pill bp-p0">P0</span>
+        <span class="dp-chevron">▼</span>
+      </div>
+      <div class="dp-body">
+        <div class="dp-compare">
+          <div class="dp-side">
+            <div class="dps-id">QID-0102</div>
+            <div class="dps-skill">SK-0011 · Shapes: 2D Basics</div>
+            <div class="dps-q"><span class="diff-match">Which shape has 3 sides?</span></div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">Circle</span>
+              <span class="dps-ans correct">Triangle ✓</span>
+              <span class="dps-ans">Square</span>
+              <span class="dps-ans">Rectangle</span>
+            </div>
+            <div class="dp-meta">
+              <span class="dpm-item">Status: <strong>Published</strong></span>
+              <span class="dpm-item">Skip: <strong>8%</strong></span>
+            </div>
+          </div>
+          <div class="dp-side">
+            <div class="dps-id">QID-0619</div>
+            <div class="dps-skill">SK-0088 · Counting Sides</div>
+            <div class="dps-q"><span class="diff-match">Which shape has 3 sides?</span></div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">Rectangle</span>
+              <span class="dps-ans">Circle</span>
+              <span class="dps-ans correct">Triangle ✓</span>
+              <span class="dps-ans">Pentagon</span>
+            </div>
+            <div class="dp-meta">
+              <span class="dpm-item">Status: <strong>Draft</strong></span>
+              <span class="dpm-item">Skip: <strong>—</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="dp-actions">
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 12px;">Merge → Keep QID-0102</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">Keep Both</button>
+          <button class="btn btn-amber" style="font-size:12px;padding:6px 12px;">Rewrite QID-0619</button>
+        </div>
+        <div class="dp-reason">QID-0619 is still in Draft — safe to retire and rewrite with a distinct question for SK-0088.</div>
+      </div>
+    </div>
+
+    <!-- Pair 3 — Near Match -->
+    <div class="dup-pair dp-near">
+      <div class="dp-header" onclick="togglePair(this)">
+        <span class="dp-type-badge dtb-near">Near</span>
+        <span class="dp-title">QID-0214 ↔ QID-0388 — "What do plants need to grow?" vs "What do plants need to make food?"</span>
+        <span class="dp-sim"><strong>91.4%</strong> similar</span>
+        <span class="band-pill bp-p1">P1</span>
+        <span class="dp-chevron">▼</span>
+      </div>
+      <div class="dp-body">
+        <div class="dp-compare">
+          <div class="dp-side">
+            <div class="dps-id">QID-0214</div>
+            <div class="dps-skill">SK-0082 · Plant Needs</div>
+            <div class="dps-q">What do plants need <span class="diff-match">to grow</span>?</div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">Just soil</span>
+              <span class="dps-ans correct">Sunlight, water, soil ✓</span>
+              <span class="dps-ans">Only water</span>
+              <span class="dps-ans">Only sunlight</span>
+            </div>
+            <div class="dp-meta">
+              <span class="dpm-item">Status: <strong>Published</strong></span>
+              <span class="dpm-item">Skip: <strong>15%</strong></span>
+            </div>
+          </div>
+          <div class="dp-side">
+            <div class="dps-id">QID-0388</div>
+            <div class="dps-skill">SK-0214 · Plants &amp; Sunlight</div>
+            <div class="dps-q">What do plants need <span class="diff-diff">to make food</span>?</div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">Water only</span>
+              <span class="dps-ans correct">Sunlight ✓</span>
+              <span class="dps-ans">Soil only</span>
+              <span class="dps-ans">Nothing</span>
+            </div>
+            <div class="dp-meta">
+              <span class="dpm-item">Status: <strong>Published</strong></span>
+              <span class="dpm-item">Skip: <strong>22%</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="dp-actions">
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">Keep Both (distinct objectives)</button>
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 12px;">Merge → Keep QID-0214</button>
+          <button class="btn btn-amber" style="font-size:12px;padding:6px 12px;">Rewrite QID-0388</button>
+        </div>
+        <div class="dp-reason">Different learning objective (general growth needs vs. photosynthesis food-making). Recommend "Keep Both" but update wording to increase differentiation.</div>
+      </div>
+    </div>
+
+    <!-- Pair 4 — Near Match -->
+    <div class="dup-pair dp-near">
+      <div class="dp-header" onclick="togglePair(this)">
+        <span class="dp-type-badge dtb-near">Near</span>
+        <span class="dp-title">QID-0512 ↔ QID-0513 — Counting by 2s (nearly identical, answer differs)</span>
+        <span class="dp-sim"><strong>89.2%</strong> similar</span>
+        <span class="band-pill bp-p1">P1</span>
+        <span class="dp-chevron">▼</span>
+      </div>
+      <div class="dp-body">
+        <div class="dp-compare">
+          <div class="dp-side">
+            <div class="dps-id">QID-0512</div>
+            <div class="dps-skill">SK-0101 · Skip Counting</div>
+            <div class="dps-q">Count by 2s: 2, 4, <span class="diff-match">6, 8</span>, ___</div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">9</span>
+              <span class="dps-ans correct">10 ✓</span>
+              <span class="dps-ans">11</span>
+              <span class="dps-ans">12</span>
+            </div>
+            <div class="dp-meta"><span class="dpm-item">Status: <strong>Published</strong></span></div>
+          </div>
+          <div class="dp-side">
+            <div class="dps-id">QID-0513</div>
+            <div class="dps-skill">SK-0101 · Skip Counting</div>
+            <div class="dps-q">Count by 2s: 2, 4, <span class="diff-match">6, 8</span>, 10, ___</div>
+            <div class="dps-answer-row">
+              <span class="dps-ans">11</span>
+              <span class="dps-ans correct">12 ✓</span>
+              <span class="dps-ans">13</span>
+              <span class="dps-ans">14</span>
+            </div>
+            <div class="dp-meta"><span class="dpm-item">Status: <strong>Published</strong></span></div>
+          </div>
+        </div>
+        <div class="dp-actions">
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">Keep Both (diff sequence length)</button>
+          <button class="btn btn-amber" style="font-size:12px;padding:6px 12px;">Rewrite QID-0513 for variety</button>
+        </div>
+        <div class="dp-reason">Same structure but different step in the sequence — considered progressive difficulty. Recommend rewriting QID-0513 to use a different starting number.</div>
+      </div>
+    </div>
+
+    <!-- Pair 5 — Concept Overlap -->
+    <div class="dup-pair dp-concept">
+      <div class="dp-header" onclick="togglePair(this)">
+        <span class="dp-type-badge dtb-concept">Concept</span>
+        <span class="dp-title">SK-0082 (Plant Needs) ↔ SK-0214 (Plants &amp; Sunlight) — Overlapping learning objectives</span>
+        <span class="dp-sim"><strong>Manual flag</strong></span>
+        <span class="band-pill bp-p1">P1</span>
+        <span class="dp-chevron">▼</span>
+      </div>
+      <div class="dp-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="dp-side">
+            <div class="dps-id">SK-0082</div>
+            <div class="dps-skill" style="color:#9b72ff;font-size:12px;font-weight:600;">Plant Needs (general)</div>
+            <div style="font-size:13px;color:rgba(240,246,255,.7);line-height:1.5;margin-top:6px;">
+              Learning objective: "Student understands what plants need to survive (water, sunlight, soil)."<br>
+              6 questions. All published.
+            </div>
+          </div>
+          <div class="dp-side">
+            <div class="dps-id">SK-0214</div>
+            <div class="dps-skill" style="color:#9b72ff;font-size:12px;font-weight:600;">Plants &amp; Sunlight (specific)</div>
+            <div style="font-size:13px;color:rgba(240,246,255,.7);line-height:1.5;margin-top:6px;">
+              Learning objective: "Student understands the role of sunlight in plant food production."<br>
+              5 questions. 3 published, 2 under review.
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:rgba(240,246,255,.5);margin-bottom:12px;">
+          Overlap identified: 2 questions in SK-0214 (QID-0388, QID-0391) address the same concept as SK-0082 questions. Adaptive engine may serve both to the same learner in one session.
+        </div>
+        <div class="dp-actions">
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">Keep Both Skills (add exclusion rule)</button>
+          <button class="btn btn-amber" style="font-size:12px;padding:6px 12px;">Merge Skills</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">Mark Not Duplicate</button>
+        </div>
+        <div class="dp-reason">Concept overlap at skill level. SK-0214 is a conceptual deepening of SK-0082. Recommend adding adaptive exclusion: if learner mastered SK-0082, skip overlapping questions in SK-0214.</div>
+      </div>
+    </div>
+
+    <!-- Pair 6 — Resolved example -->
+    <div class="dup-pair dp-resolved">
+      <div class="dp-header" onclick="togglePair(this)">
+        <span class="dp-type-badge dtb-resolved">Resolved</span>
+        <span class="dp-title">QID-0201 ↔ QID-0205 — Merged · QID-0205 retired 2024-03-10</span>
+        <span class="dp-sim"><strong>99.8%</strong> was similar</span>
+        <span class="band-pill bp-p0">P0</span>
+        <span class="dp-chevron">▼</span>
+      </div>
+      <div class="dp-body">
+        <div style="font-size:13px;color:rgba(240,246,255,.5);padding:6px 0;">
+          Resolution: Merged → Kept QID-0201. QID-0205 retired (status=retired). SK-0029 re-scored — q_count now 6 (still ≥4). ✓
+          <br>Resolved by: Curriculum Lead · 2024-03-10
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:16px;font-size:12px;color:rgba(240,246,255,.35);">
+      Showing 5 open pairs of 38 · <button class="btn btn-secondary" style="padding:5px 12px;font-size:11px;margin-left:8px;">Load More</button>
+    </div>
+  </div>
+
+  <!-- TAB: EXACT -->
+  <div id="tab-exact" class="screen">
+    <div class="section-block">
+      <div class="sb-head">
+        <span class="sb-title">7 Exact Match Pairs (≥98% similarity)</span>
+        <button class="sb-action">Merge All Exact →</button>
+      </div>
+      <table class="stats-table">
+        <thead><tr><th>Pair</th><th>QID A</th><th>QID B</th><th>Similarity</th><th>Band</th><th>Status A</th><th>Status B</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td style="font-family:monospace;font-size:11px;">QID-0341</td><td style="font-family:monospace;font-size:11px;">QID-0489</td><td style="color:#ff7b6b;font-weight:700;">99.1%</td><td><span class="band-pill bp-p0">P0</span></td><td style="color:#50e890;">Published</td><td style="color:#50e890;">Published</td><td><button class="btn-xs bx-danger" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,123,107,.3);color:#ff7b6b;background:transparent;cursor:pointer;">Merge</button></td></tr>
+          <tr><td>2</td><td style="font-family:monospace;font-size:11px;">QID-0102</td><td style="font-family:monospace;font-size:11px;">QID-0619</td><td style="color:#ff7b6b;font-weight:700;">98.7%</td><td><span class="band-pill bp-p0">P0</span></td><td style="color:#50e890;">Published</td><td style="color:#f0c040;">Draft</td><td><button class="btn-xs bx-danger" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,123,107,.3);color:#ff7b6b;background:transparent;cursor:pointer;">Merge</button></td></tr>
+          <tr><td>3</td><td style="font-family:monospace;font-size:11px;">QID-0077</td><td style="font-family:monospace;font-size:11px;">QID-0544</td><td style="color:#ff7b6b;font-weight:700;">99.9%</td><td><span class="band-pill bp-p1">P1</span></td><td style="color:#50e890;">Published</td><td style="color:#50e890;">Published</td><td><button class="btn-xs bx-danger" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,123,107,.3);color:#ff7b6b;background:transparent;cursor:pointer;">Merge</button></td></tr>
+          <tr><td>4</td><td style="font-family:monospace;font-size:11px;">QID-0198</td><td style="font-family:monospace;font-size:11px;">QID-0602</td><td style="color:#ff7b6b;font-weight:700;">98.2%</td><td><span class="band-pill bp-p2">P2</span></td><td style="color:#50e890;">Published</td><td style="color:#f0c040;">Review</td><td><button class="btn-xs bx-danger" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,123,107,.3);color:#ff7b6b;background:transparent;cursor:pointer;">Merge</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: NEAR -->
+  <div id="tab-near" class="screen">
+    <div style="font-size:13px;color:rgba(240,246,255,.5);margin-bottom:16px;">19 near-match pairs (85–97% similarity) — review individually to determine if rewrite or merge is appropriate.</div>
+    <div class="empty-state">
+      <div class="es-icon">🔍</div>
+      <div class="es-text">Near-match pairs are shown in the All Pairs tab above — filter by "Near" to narrow.</div>
+    </div>
+  </div>
+
+  <!-- TAB: CONCEPT -->
+  <div id="tab-concept" class="screen">
+    <div style="font-size:13px;color:rgba(240,246,255,.5);margin-bottom:16px;">12 concept-level overlaps identified by curriculum reviewers. These require judgement — algorithm cannot auto-resolve.</div>
+    <div class="empty-state">
+      <div class="es-icon">🧠</div>
+      <div class="es-text">Concept overlaps are shown in the All Pairs tab. These require manual review by the curriculum team.</div>
+    </div>
+  </div>
+
+  <!-- TAB: RESOLVED -->
+  <div id="tab-resolved" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Resolved Pairs (last 30 days)</span></div>
+      <table class="stats-table">
+        <thead><tr><th>Date</th><th>Pair</th><th>Resolution</th><th>Resolved By</th></tr></thead>
+        <tbody>
+          <tr><td>2024-03-22</td><td style="font-family:monospace;font-size:11px;">QID-0201 ↔ QID-0205</td><td style="color:#50e890;">Merged → QID-0201 kept</td><td>Curriculum Lead</td></tr>
+          <tr><td>2024-03-19</td><td style="font-family:monospace;font-size:11px;">QID-0118 ↔ QID-0422</td><td style="color:#f0c040;">Rewrote QID-0422</td><td>Content Writer</td></tr>
+          <tr><td>2024-03-17</td><td style="font-family:monospace;font-size:11px;">QID-0311 ↔ QID-0319</td><td style="color:rgba(240,246,255,.5);">Kept Both (diff context)</td><td>Curriculum Lead</td></tr>
+          <tr><td>2024-03-14</td><td style="font-family:monospace;font-size:11px;">QID-0044 ↔ QID-0601</td><td style="color:#50e890;">Merged → QID-0044 kept</td><td>Auto (confidence ≥99.5%)</td></tr>
+          <tr><td>2024-03-11</td><td style="font-family:monospace;font-size:11px;">SK-0019 ↔ SK-0028</td><td style="color:#9b72ff;">Added exclusion rule</td><td>Curriculum Lead</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: SETTINGS -->
+  <div id="tab-settings" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Dedup Scan Settings</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Exact Match Threshold</div>
+          <div style="font-size:18px;font-weight:700;color:#ff7b6b;">≥ 98%</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;">cosine similarity (TF-IDF)</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Near Match Threshold</div>
+          <div style="font-size:18px;font-weight:700;color:#f0c040;">85–97%</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;">cosine similarity (TF-IDF)</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Scan Scope</div>
+          <div style="font-size:14px;font-weight:600;color:#f0f6ff;">Within band only</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;">Cross-band duplicates excluded</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Scan Schedule</div>
+          <div style="font-size:14px;font-weight:600;color:#f0f6ff;">Weekly — Sunday 02:00 UTC</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;">Last run: 2024-03-21</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Auto-Merge Rule</div>
+          <div style="font-size:14px;font-weight:600;color:#f0f6ff;">≥ 99.5% + one is Draft</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;">Keep the Published version automatically</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;">Notify</div>
+          <div style="font-size:14px;font-weight:600;color:#f0f6ff;">Curriculum Lead + Slack #content-ops</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;">On scan completion</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button class="btn btn-primary">Save Settings</button>
+        <button class="btn btn-secondary">▶ Run Scan Now</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-body -->
+
+<script>
+function showTab(tab) {
+  const tabs = ['all','exact','near','concept','resolved','settings'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+
+function togglePair(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.dp-chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  body.style.display = isOpen ? 'none' : 'block';
+  chevron.classList.toggle('open', !isOpen);
+}
+
+// Open first pair by default
+document.addEventListener('DOMContentLoaded', () => {
+  const first = document.querySelector('.dp-header');
+  if (first) togglePair(first);
+});
+
+document.querySelectorAll('.fc').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const group = chip.parentElement;
+    group.querySelectorAll('.fc').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

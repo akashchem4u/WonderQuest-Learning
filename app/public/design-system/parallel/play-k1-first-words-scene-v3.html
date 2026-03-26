@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-k1-first-words-scene-v3.html
+  =====================================================
+  K-1 first/sight words play scene. Violet (#9b72ff) theme throughout.
+  Four tabs: Active (Read the Word) / Correct / Wrong / Spec
+  - Word hero: large Nunito 900 word displayed in 160px hero card (no picture cue)
+  - Answer choices: 2×2 grid of picture+label answer cards — child must read word and match to meaning
+  - This tests actual word reading, not phonics. Harder than picture→word.
+  - Correct: word hero turns green, matching answer card highlights, coach celebrates
+  - Wrong: "Try reading each letter — what word do you see?" — no shaming
+  - No timer, no accuracy %, stars never decrease
+  - letter-glow animation on hero word card
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · K-1 First Words Scene v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820;
+    color: var(--text); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .phone-frame {
+    width: 390px; min-height: 780px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #9b72ff22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column; margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; color: var(--muted); font-weight: 700;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .top-bar {
+    background: var(--card); padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(155,114,255,0.12); border: none;
+    color: var(--violet); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(155,114,255,0.15); padding: 4px 10px;
+    border-radius: 12px; border: 1px solid rgba(155,114,255,0.3);
+    font-size: 0.85rem; font-weight: 900; color: var(--violet);
+  }
+
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    background: var(--card); flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; background: rgba(155,114,255,0.2); }
+  .ps-seg.done { background: var(--violet); }
+  .ps-seg.active { background: rgba(155,114,255,0.6); }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 18px 20px 12px; gap: 14px; overflow-y: auto;
+  }
+
+  .coach-inline {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(155,114,255,0.08); border-radius: 14px;
+    padding: 12px 14px; border: 1px solid rgba(155,114,255,0.2);
+  }
+  .coach-avatar-sm {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a1858, #9b72ff44);
+    border: 2px solid var(--violet);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .coach-bubble { flex: 1; font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .coach-bubble .phonics { color: var(--violet); font-size: 1rem; font-weight: 900; }
+
+  /* Word hero — just the word, big Nunito */
+  .word-hero-wrap { display: flex; justify-content: center; }
+  .word-hero {
+    width: 280px; height: 120px;
+    background: var(--card2); border-radius: 20px;
+    border: 3px solid var(--violet);
+    display: flex; align-items: center; justify-content: center;
+    animation: violet-glow 2.5s ease-in-out infinite;
+  }
+  .word-hero .hero-word-text {
+    font-family: 'Nunito', sans-serif;
+    font-size: 3.2rem; font-weight: 900; color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .word-hero.correct-hero {
+    background: var(--correct-bg); border-color: var(--correct);
+    animation: correct-glow 0.6s ease-out;
+  }
+  .word-hero.correct-hero .hero-word-text { color: var(--correct); }
+
+  @keyframes violet-glow {
+    0%, 100% { box-shadow: 0 0 12px rgba(155,114,255,0.3), 0 0 30px rgba(155,114,255,0.1); }
+    50% { box-shadow: 0 0 24px rgba(155,114,255,0.6), 0 0 50px rgba(155,114,255,0.25); }
+  }
+  @keyframes correct-glow {
+    0% { box-shadow: 0 0 0 rgba(80,232,144,0); }
+    50% { box-shadow: 0 0 40px rgba(80,232,144,0.6); }
+    100% { box-shadow: 0 0 20px rgba(80,232,144,0.3); }
+  }
+
+  .scene-question {
+    text-align: center; font-size: 0.95rem; font-weight: 700; color: var(--muted);
+  }
+
+  /* Answer cards — picture + word label */
+  .answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .answer-card {
+    background: var(--card2); border: 3px solid #3a3060;
+    border-radius: 16px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 14px 10px 10px; gap: 6px; transition: all 0.15s;
+    animation: obj-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
+  }
+  .answer-card:nth-child(1) { animation-delay: 0.05s; }
+  .answer-card:nth-child(2) { animation-delay: 0.10s; }
+  .answer-card:nth-child(3) { animation-delay: 0.15s; }
+  .answer-card:nth-child(4) { animation-delay: 0.20s; }
+  .answer-card .ac-emoji { font-size: 2.2rem; }
+  .answer-card .ac-label { font-size: 0.88rem; font-weight: 900; color: var(--muted); }
+  .answer-card:hover { border-color: var(--violet); transform: translateY(-2px); }
+  .answer-card:hover .ac-label { color: var(--violet); }
+  .answer-card.selected-correct {
+    background: var(--correct-bg); border-color: var(--correct); animation: none;
+  }
+  .answer-card.selected-correct .ac-label { color: var(--correct); }
+  .answer-card.selected-wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    animation: shake 0.5s ease-out;
+  }
+  .answer-card.dimmed { opacity: 0.35; pointer-events: none; }
+
+  @keyframes obj-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .bottom-bar {
+    padding: 12px 16px 20px; background: var(--card); border-top: 1px solid #2a2050;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-replay, .btn-hint, .btn-idk {
+    flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-replay { background: #2a2050; color: var(--violet); border: 1px solid #3a3060; }
+  .btn-hint { background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); }
+  .btn-idk { background: transparent; color: var(--wrong); border: 2px solid rgba(255,123,107,0.3); }
+
+  .correct-cta {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    color: white; font-family: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .wrong-banner {
+    background: var(--wrong-bg); border: 2px solid var(--wrong);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .wrong-banner .w-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .wrong-banner .w-text { font-size: 0.88rem; font-weight: 700; color: var(--wrong); line-height: 1.3; }
+  .wrong-banner .w-text span { color: var(--text); }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: #2a0a00; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>📖 Play · K-1 First Words Scene</h1>
+<p class="subtitle">v3 · Violet K-1 theme · 4 states · Read the word, tap the picture</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('active')">Active (Read "jump")</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== ACTIVE STATE ===== -->
+<div id="tab-active" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 11</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">First Words Quest</span>
+      <div class="star-counter">⭐ 11</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline">
+        <div class="coach-avatar-sm">🦁</div>
+        <div class="coach-bubble">
+          <span class="phonics">Read the word — then tap its picture!</span><br>
+          Take your time — say each letter sound.
+        </div>
+      </div>
+
+      <div class="word-hero-wrap">
+        <div class="word-hero">
+          <span class="hero-word-text">jump</span>
+        </div>
+      </div>
+
+      <div class="scene-question">Tap the picture that matches the word</div>
+
+      <div class="answer-grid">
+        <div class="answer-card">
+          <span class="ac-emoji">😴</span>
+          <span class="ac-label">sleep</span>
+        </div>
+        <div class="answer-card">
+          <span class="ac-emoji">🏃</span>
+          <span class="ac-label">run</span>
+        </div>
+        <div class="answer-card">
+          <span class="ac-emoji">🐸</span>
+          <span class="ac-label">jump</span>
+        </div>
+        <div class="answer-card">
+          <span class="ac-emoji">🍎</span>
+          <span class="ac-label">eat</span>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — keep trying!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORRECT STATE ===== -->
+<div id="tab-correct" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 12</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">First Words Quest</span>
+      <div class="star-counter">⭐ 12</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline" style="border-color:#50e890; background:#0d2a1a;">
+        <div class="coach-avatar-sm" style="border-color:#50e890;">🦁</div>
+        <div class="coach-bubble">
+          <span style="color:#50e890; font-size:1rem;">✨ You READ that word!</span><br>
+          J-U-M-P says "jump" — and you knew it! That's real reading!
+        </div>
+      </div>
+
+      <div class="word-hero-wrap">
+        <div class="word-hero correct-hero">
+          <span class="hero-word-text">jump</span>
+        </div>
+      </div>
+
+      <div class="scene-question" style="color:#50e890;">✓ jump = 🐸 You got it!</div>
+
+      <div class="answer-grid">
+        <div class="answer-card dimmed">
+          <span class="ac-emoji">😴</span>
+          <span class="ac-label">sleep</span>
+        </div>
+        <div class="answer-card dimmed">
+          <span class="ac-emoji">🏃</span>
+          <span class="ac-label">run</span>
+        </div>
+        <div class="answer-card selected-correct">
+          <span class="ac-emoji">🐸</span>
+          <span class="ac-label">jump ✓</span>
+        </div>
+        <div class="answer-card dimmed">
+          <span class="ac-emoji">🍎</span>
+          <span class="ac-label">eat</span>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="correct-cta">Next Word ✨ +1⭐</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WRONG STATE ===== -->
+<div id="tab-wrong" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 11</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">First Words Quest</span>
+      <div class="star-counter">⭐ 11</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <span class="w-icon">📖</span>
+        <div class="w-text">
+          Not quite — look at the word again.<br>
+          <span>Sound out each letter: j… u… m… p… What does it say?</span>
+        </div>
+      </div>
+
+      <div class="word-hero-wrap">
+        <div class="word-hero">
+          <span class="hero-word-text">jump</span>
+        </div>
+      </div>
+
+      <div class="scene-question">Tap the picture that matches the word</div>
+
+      <div class="answer-grid">
+        <div class="answer-card selected-wrong">
+          <span class="ac-emoji">😴</span>
+          <span class="ac-label">sleep</span>
+        </div>
+        <div class="answer-card">
+          <span class="ac-emoji">🏃</span>
+          <span class="ac-label">run</span>
+        </div>
+        <div class="answer-card">
+          <span class="ac-emoji">🐸</span>
+          <span class="ac-label">jump</span>
+        </div>
+        <div class="answer-card">
+          <span class="ac-emoji">🍎</span>
+          <span class="ac-label">eat</span>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-k1-first-words-scene-v3 · Engineering Spec</h2>
+
+    <h3>Purpose</h3>
+    <ul>
+      <li>K-1 sight/first-word reading scene — child reads a printed word and taps the matching picture</li>
+      <li>Higher-order than picture→word (Pre-K): child must decode the written word, not just recognize a shape</li>
+      <li>Violet (#9b72ff) K-1 theme. No timer, no accuracy %, stars never decrease.</li>
+    </ul>
+
+    <h3>Tabs / States</h3>
+    <ul>
+      <li><span class="token tok-muted">Active</span> Large word hero (no picture cue), 2×2 answer cards with emoji + word label</li>
+      <li><span class="token tok-green">Correct</span> Word hero → green text, correct card highlighted, "You READ that word!" celebration</li>
+      <li><span class="token tok-red">Wrong</span> Wrong card shakes + red border, letter-by-letter sound-out prompt</li>
+      <li><span class="token tok-muted">Spec</span> This document</li>
+    </ul>
+
+    <h3>Word Hero</h3>
+    <ul>
+      <li>280×120px wide card (wider than tall — optimized for horizontal word display)</li>
+      <li>Nunito 900, 3.2rem — large enough to trace with finger</li>
+      <li>No picture cue — this tests word decoding, not guessing from visual context</li>
+      <li><code>violet-glow</code> box-shadow animation while awaiting answer</li>
+    </ul>
+
+    <h3>Answer Cards</h3>
+    <ul>
+      <li>2×2 grid, each card has large emoji + word label text below</li>
+      <li>Label text provided to support non-fluent readers (scaffolding)</li>
+      <li><code>obj-pop</code> staggered entry animation</li>
+      <li>Wrong: shake + red border, other choices remain active</li>
+      <li>Correct: green border + dimmed others</li>
+    </ul>
+
+    <h3>Word Sets (K-1 Level)</h3>
+    <ul>
+      <li>CVC words: cat, dog, run, hop, jump, sit, big, red</li>
+      <li>High-frequency sight words: the, is, at, he, she, it, go, to</li>
+      <li>Action verbs preferred — more visually distractable than nouns</li>
+    </ul>
+
+    <h3>Coach Script Examples</h3>
+    <ul>
+      <li>Active: "Read the word — then tap its picture! Take your time — say each letter sound."</li>
+      <li>Correct: "You READ that word! J-U-M-P says 'jump' — and you knew it! That's real reading!"</li>
+      <li>Wrong: "Not quite — sound out each letter: j… u… m… p… What does it say?"</li>
+    </ul>
+
+    <h3>Design Tokens (K-1 Violet)</h3>
+    <ul>
+      <li>Violet: <code>#9b72ff</code> — progress segs, hero border, CTA</li>
+      <li>CTA: <code>linear-gradient(135deg, #9b72ff, #7248e8)</code></li>
+      <li>Correct: <code>#50e890</code> text + border / <code>#0d2a1a</code> bg</li>
+      <li>Star-safe badge always shown on active + wrong states</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

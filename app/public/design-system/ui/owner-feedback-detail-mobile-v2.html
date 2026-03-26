@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Feedback Detail Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #060a0f; color: #c8d4e0; min-height: 100vh; }
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #1a2230; color: #ffd166; }
+  .tab.active { background: #ffd166; color: #0d1117; }
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; min-height: 720px; background: #0d1117; border-radius: 36px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.7), 0 0 0 2px #1e2a3a; flex-shrink: 0; position: relative; display: flex; flex-direction: column; }
+  .phone-label { font-size: 11px; color: #ffd166; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+  .status-bar { height: 44px; background: #060a0f; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+  .status-bar-time { font-size: 14px; font-weight: 700; color: #e8f0f8; }
+
+  /* ── Header variants ── */
+  .detail-header { padding: 12px 18px 16px; flex-shrink: 0; }
+  .dh-crit { background: #1a0808; border-bottom: 1px solid rgba(224,64,64,.3); }
+  .dh-bug { background: #0a1520; border-bottom: 1px solid rgba(96,168,232,.2); }
+  .dh-ux { background: #12102a; border-bottom: 1px solid rgba(155,114,255,.2); }
+  .dh-praise { background: #0a1400; border-bottom: 1px solid rgba(255,209,102,.2); }
+  .dh-back { font-size: 12px; color: rgba(255,255,255,.5); font-weight: 600; margin-bottom: 6px; }
+  .dh-type-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .dh-type-chip { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .tc-crit { background: rgba(224,64,64,.3); color: #ff7070; }
+  .tc-bug { background: rgba(96,168,232,.2); color: #60a8e8; }
+  .tc-ux { background: rgba(155,114,255,.2); color: #9b72ff; }
+  .tc-praise { background: rgba(255,209,102,.15); color: #ffd166; }
+  .dh-title { font-size: 17px; font-weight: 700; color: #e8f0f8; line-height: 1.3; }
+  .dh-meta { font-size: 12px; color: #7a8a9e; margin-top: 4px; }
+
+  /* ── Scroll body ── */
+  .scroll-body { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+  /* ── Detail section ── */
+  .detail-section { padding: 14px 18px; border-bottom: 1px solid #1e2a3a; }
+  .ds-label { font-size: 10px; font-weight: 700; color: #5a6a7e; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .ds-value { font-size: 14px; color: #e8f0f8; line-height: 1.6; }
+  .ds-quote { font-size: 14px; color: #c8d4e0; font-style: italic; line-height: 1.6; background: rgba(255,255,255,.04); border-left: 3px solid #ffd166; border-radius: 0 8px 8px 0; padding: 10px 12px; }
+
+  /* ── Impact chips ── */
+  .impact-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .impact-chip { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 20px; }
+  .ic-red { background: rgba(224,64,64,.15); color: #ff8080; border: 1px solid rgba(224,64,64,.3); }
+  .ic-yellow { background: rgba(255,209,102,.1); color: #ffd166; border: 1px solid rgba(255,209,102,.25); }
+  .ic-blue { background: rgba(96,168,232,.1); color: #60a8e8; border: 1px solid rgba(96,168,232,.2); }
+  .ic-green { background: rgba(80,184,128,.1); color: #50b880; border: 1px solid rgba(80,184,128,.2); }
+
+  /* ── Stack trace ── */
+  .stack-trace { background: #0a0f14; border-radius: 10px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; color: #7a9aaa; line-height: 1.6; overflow-x: auto; }
+  .st-error { color: #ff7070; }
+
+  /* ── Metadata grid ── */
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .meta-item { background: #121820; border-radius: 10px; padding: 10px 12px; }
+  .mi-label { font-size: 10px; color: #5a6a7e; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+  .mi-value { font-size: 13px; color: #e8f0f8; font-weight: 600; }
+
+  /* ── Fixed action bar ── */
+  .action-bar { position: absolute; bottom: 0; left: 0; right: 0; background: #0d1117; border-top: 1px solid #1e2a3a; padding: 12px 18px 28px; }
+  .action-bar-buttons { display: flex; gap: 8px; }
+  .ab-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .ab-resolve { background: #50b880; color: #fff; }
+  .ab-assign { background: #2a3a5e; color: #60a8e8; }
+  .ab-escalate { background: rgba(224,64,64,.2); color: #ff7070; border: 1.5px solid rgba(224,64,64,.4); }
+
+  /* ── Audit trail ── */
+  .audit-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e2a3a; }
+  .audit-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .audit-text { flex: 1; }
+  .audit-event { font-size: 13px; font-weight: 700; color: #e8f0f8; }
+  .audit-detail { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+  .audit-time { font-size: 11px; color: #5a6a7e; flex-shrink: 0; }
+
+  /* ── Spec ── */
+  .spec-section { background: #0d1117; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #1e2a3a; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #ffd166; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #7a8a9e; font-size: 11px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #1e2a3a; letter-spacing: .06em; }
+  td { padding: 8px; border-bottom: 1px solid #121820; color: #9aaabe; }
+  td:first-child { color: #e8f0f8; font-weight: 600; }
+  code { background: #1a2230; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('bug-critical')">Bug / Critical</button>
+  <button class="tab" onclick="show('ux-feedback')">UX Feedback</button>
+  <button class="tab" onclick="show('praise')">Praise</button>
+  <button class="tab" onclick="show('resolved-archived')">Resolved / Archived</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BUG / CRITICAL -->
+<div id="bug-critical" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Owner Feedback Detail — Mobile</strong><br>
+    Mobile version of owner-feedback-detail. Compact layout: type hero at top, scrollable body sections,
+    fixed action bar at bottom. Critical = <code>bg #1a0808</code> header, non-dismissible until triage.
+    Route: <code>/owner/feedback/:id</code>. Same data as desktop detail; adapted for 390px.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Critical bug -->
+    <div>
+      <div class="phone-label">P0 Critical — bug detail</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span style="font-size:12px;color:#ff7070;font-weight:700;">🚨 CRITICAL</span></div>
+        <div class="detail-header dh-crit">
+          <div class="dh-back">← Feedback Queue</div>
+          <div class="dh-type-row">
+            <span class="dh-type-chip tc-crit">P0 Critical</span>
+            <span class="dh-type-chip tc-bug">Bug Report</span>
+          </div>
+          <div class="dh-title">App crash on session start (iOS 17)</div>
+          <div class="dh-meta">FBK-00412 · 12 min ago · 14 affected sessions</div>
+        </div>
+
+        <div class="scroll-body">
+          <!-- Impact -->
+          <div class="detail-section">
+            <div class="ds-label">Impact</div>
+            <div class="impact-row">
+              <span class="impact-chip ic-red">14 sessions blocked</span>
+              <span class="impact-chip ic-red">3 schools</span>
+              <span class="impact-chip ic-yellow">Alpha cohort</span>
+            </div>
+          </div>
+
+          <!-- User report -->
+          <div class="detail-section">
+            <div class="ds-label">User report</div>
+            <div class="ds-quote">"App freezes immediately when my daughter tries to start her quest. It just goes white and closes."</div>
+            <div style="margin-top:8px;display:flex;gap:8px;font-size:12px;color:#7a8a9e;">
+              <span>📱 iOS 17.2</span><span>·</span><span>iPhone 13</span><span>·</span><span>Parent app v2.4.1</span>
+            </div>
+          </div>
+
+          <!-- Stack trace -->
+          <div class="detail-section">
+            <div class="ds-label">Error log</div>
+            <div class="stack-trace">
+              <div class="st-error">Fatal error: EXC_BAD_ACCESS (SIGSEGV)</div>
+              <div>at SessionStartViewController.viewDidLoad</div>
+              <div>at UIApplication.sendEvent</div>
+              <div style="color:#5a6a7e;">Thread 1: com.wonderquest.app</div>
+              <div style="color:#5a6a7e;">Frame 0: libsystem_kernel.dylib</div>
+            </div>
+          </div>
+
+          <!-- Metadata -->
+          <div class="detail-section">
+            <div class="ds-label">Metadata</div>
+            <div class="meta-grid">
+              <div class="meta-item"><div class="mi-label">Route</div><div class="mi-value" style="font-size:11px;font-family:monospace;">/session/start</div></div>
+              <div class="meta-item"><div class="mi-label">Error rate</div><div class="mi-value" style="color:#ff7070;">62% ↑</div></div>
+              <div class="meta-item"><div class="mi-label">First seen</div><div class="mi-value">11:12 AM</div></div>
+              <div class="meta-item"><div class="mi-label">Assigned</div><div class="mi-value">@devteam</div></div>
+            </div>
+          </div>
+
+          <!-- Audit trail -->
+          <div class="detail-section">
+            <div class="ds-label">Audit trail</div>
+            <div class="audit-item">
+              <div class="audit-dot" style="background:#e04040;"></div>
+              <div class="audit-text"><div class="audit-event">Auto-created as P0</div><div class="audit-detail">Error rate threshold crossed</div></div>
+              <div class="audit-time">11:12</div>
+            </div>
+            <div class="audit-item">
+              <div class="audit-dot" style="background:#60a8e8;"></div>
+              <div class="audit-text"><div class="audit-event">Assigned to @devteam</div><div class="audit-detail">Auto-route: bug type</div></div>
+              <div class="audit-time">11:12</div>
+            </div>
+            <div class="audit-item" style="border:none;">
+              <div class="audit-dot" style="background:#ffd166;"></div>
+              <div class="audit-text"><div class="audit-event">Owner notified</div><div class="audit-detail">Push notification sent</div></div>
+              <div class="audit-time">11:15</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fixed action bar -->
+        <div class="action-bar">
+          <div class="action-bar-buttons">
+            <button class="ab-btn ab-escalate">Escalate</button>
+            <button class="ab-btn ab-assign">Reassign</button>
+            <button class="ab-btn ab-resolve">Resolve</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P1 Bug detail -->
+    <div>
+      <div class="phone-label">P1 Bug — in progress</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span style="font-size:12px;color:#60a8e8;font-weight:700;">● In Progress</span></div>
+        <div class="detail-header dh-bug">
+          <div class="dh-back">← Feedback Queue</div>
+          <div class="dh-type-row">
+            <span class="dh-type-chip" style="background:rgba(240,192,48,.15);color:#f0c030;">P1 High</span>
+            <span class="dh-type-chip tc-bug">Bug Report</span>
+          </div>
+          <div class="dh-title">Progress chart fails to load for some parents</div>
+          <div class="dh-meta">FBK-00408 · 2 hrs ago · @uxteam · 7 affected users</div>
+        </div>
+
+        <div class="scroll-body">
+          <div class="detail-section">
+            <div class="ds-label">Description</div>
+            <div class="ds-value">Parent progress chart on home page fails to render. White box shown instead of chart. Affects ~3% of parent users — likely cache or chart component version mismatch.</div>
+          </div>
+          <div class="detail-section">
+            <div class="ds-label">User quote</div>
+            <div class="ds-quote">"The progress screen is just blank. I can't see what my son has been doing all week."</div>
+          </div>
+          <div class="detail-section">
+            <div class="ds-label">Metadata</div>
+            <div class="meta-grid">
+              <div class="meta-item"><div class="mi-label">Route</div><div class="mi-value" style="font-size:11px;font-family:monospace;">/parent/progress</div></div>
+              <div class="meta-item"><div class="mi-label">Affected</div><div class="mi-value">7 users</div></div>
+              <div class="meta-item"><div class="mi-label">Assigned</div><div class="mi-value">@uxteam</div></div>
+              <div class="meta-item"><div class="mi-label">SLA remaining</div><div class="mi-value" style="color:#f0c030;">1.8 hrs</div></div>
+            </div>
+          </div>
+          <div class="detail-section">
+            <div class="ds-label">Severity history</div>
+            <div class="audit-item">
+              <div class="audit-dot" style="background:#f0c030;"></div>
+              <div class="audit-text"><div class="audit-event">Created as P2</div><div class="audit-detail">User-reported UX bug</div></div>
+              <div class="audit-time">09:02</div>
+            </div>
+            <div class="audit-item" style="border:none;">
+              <div class="audit-dot" style="background:#e07070;"></div>
+              <div class="audit-text"><div class="audit-event">Promoted to P1</div><div class="audit-detail">7 reports in 2 hrs · auto-promoted</div></div>
+              <div class="audit-time">11:10</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <div class="action-bar-buttons">
+            <button class="ab-btn ab-assign">Reassign</button>
+            <button class="ab-btn ab-resolve">Mark resolved</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ UX FEEDBACK -->
+<div id="ux-feedback" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · UX Feedback detail</strong><br>
+    UX reports have: screenshot attachment, device/OS tags, route, component path. Fix-in-editor deeplink
+    for content issues: <code>/content/editor?node=:id&amp;source=feedback&amp;feedbackId=:fid</code>.
+    Related pattern links routes to design system component if matched.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">UX feedback — with screenshot</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span style="font-size:12px;color:#60a8e8;font-weight:700;">● Open</span></div>
+        <div class="detail-header dh-ux">
+          <div class="dh-back">← Feedback Queue</div>
+          <div class="dh-type-row">
+            <span class="dh-type-chip" style="background:rgba(240,192,48,.15);color:#f0c030;">P2 Medium</span>
+            <span class="dh-type-chip tc-ux">UX Feedback</span>
+          </div>
+          <div class="dh-title">Button contrast too low in dark mode on streak reminder</div>
+          <div class="dh-meta">FBK-00405 · 4 hrs ago · 2 reports</div>
+        </div>
+
+        <div class="scroll-body">
+          <div class="detail-section">
+            <div class="ds-label">Screenshot (attached)</div>
+            <div style="background:#121820;border-radius:10px;padding:20px;text-align:center;border:1.5px dashed #2a3a5e;">
+              <div style="font-size:32px;margin-bottom:6px;">📸</div>
+              <div style="font-size:13px;color:#7a8a9e;">streak-reminder-dark.png · 1.2 MB</div>
+              <button style="margin-top:8px;padding:6px 14px;border-radius:8px;border:1.5px solid #2a3a5e;background:transparent;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#60a8e8;cursor:pointer;">View full size</button>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">User report</div>
+            <div class="ds-quote">"The 'Keep my streak' button is really hard to see at night — the text blends into the background."</div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">Device context</div>
+            <div class="impact-row">
+              <span class="impact-chip ic-blue">📱 Android 14</span>
+              <span class="impact-chip ic-blue">Dark mode</span>
+              <span class="impact-chip ic-blue">Samsung S23</span>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">Route & component</div>
+            <div style="font-family:'Courier New',monospace;font-size:12px;color:#9b72ff;background:#121820;border-radius:8px;padding:10px;">
+              /child/launcher → StreakReminderCard → PrimaryButton
+            </div>
+            <button style="margin-top:8px;padding:7px 14px;border-radius:8px;border:1.5px solid rgba(155,114,255,.3);background:transparent;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#9b72ff;cursor:pointer;">View in design system →</button>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">Related patterns (2)</div>
+            <div style="background:#121820;border-radius:10px;padding:10px 12px;margin-bottom:6px;">
+              <div style="font-size:12px;font-weight:700;color:#e8f0f8;">Dark mode button contrast</div>
+              <div style="font-size:11px;color:#7a8a9e;margin-top:2px;">WCAG AA requires 4.5:1 ratio — current: 2.8:1</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <div class="action-bar-buttons">
+            <button class="ab-btn ab-assign">Assign @uxteam</button>
+            <button class="ab-btn ab-resolve">Resolve</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PRAISE -->
+<div id="praise" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Praise detail</strong><br>
+    Praise items: user profile, quote highlight, usage context, highlight-worthy flag, post-highlight state.
+    Highlight bank route: <code>/owner/marketing/highlights</code>. Praise never blocked; all can be highlighted or archived.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">Praise — highlight-worthy</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span style="font-size:12px;color:#ffd166;font-weight:700;">⭐ Praise</span></div>
+        <div class="detail-header dh-praise">
+          <div class="dh-back">← Feedback Queue</div>
+          <div class="dh-type-row">
+            <span class="dh-type-chip tc-praise">⭐ Praise</span>
+            <span class="dh-type-chip" style="background:rgba(80,184,128,.15);color:#50b880;">Highlight-worthy</span>
+          </div>
+          <div class="dh-title">"My daughter asks to do her quests every day now!"</div>
+          <div class="dh-meta">FBK-00401 · 3 hrs ago</div>
+        </div>
+
+        <div class="scroll-body">
+          <div class="detail-section">
+            <div class="ds-label">User</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:44px;height:44px;background:#1a2230;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">👩</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#e8f0f8;">Sarah M.</div>
+                <div style="font-size:12px;color:#7a8a9e;">Parent · 3-month user · Maya's mum</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">Full message</div>
+            <div class="ds-quote" style="border-left-color:#ffd166;">"I just wanted to say WonderQuest is amazing. My daughter asks to do her quests every day now — and her teacher said she's made huge progress in reading. Thank you for making learning so fun!"</div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">Usage context</div>
+            <div class="meta-grid">
+              <div class="meta-item"><div class="mi-label">Account age</div><div class="mi-value">3 months</div></div>
+              <div class="meta-item"><div class="mi-label">Child's streak</div><div class="mi-value">14 days 🔥</div></div>
+              <div class="meta-item"><div class="mi-label">World</div><div class="mi-value">🔥 Fire World</div></div>
+              <div class="meta-item"><div class="mi-label">Teacher tier</div><div class="mi-value" style="color:#1a8050;">Strong ✓</div></div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="ds-label">Highlight suggestion</div>
+            <div style="background:#1a1400;border:1.5px solid rgba(255,209,102,.25);border-radius:12px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:4px;">✨ Auto-tags for highlight bank:</div>
+              <div class="impact-row">
+                <span class="impact-chip" style="background:rgba(255,209,102,.1);color:#ffd166;border:1px solid rgba(255,209,102,.3);">#parent-testimonial</span>
+                <span class="impact-chip" style="background:rgba(255,209,102,.1);color:#ffd166;border:1px solid rgba(255,209,102,.3);">#reading-progress</span>
+                <span class="impact-chip" style="background:rgba(255,209,102,.1);color:#ffd166;border:1px solid rgba(255,209,102,.3);">#daily-habit</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <div class="action-bar-buttons">
+            <button class="ab-btn" style="background:#1a1400;color:#ffd166;border:1.5px solid rgba(255,209,102,.4);">⭐ Add to highlights</button>
+            <button class="ab-btn" style="background:#1e2a3a;color:#7a8a9e;">Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ RESOLVED / ARCHIVED -->
+<div id="resolved-archived" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Resolved / Archived states</strong><br>
+    Resolved: mint background, reopen available. Archived: grey + opacity 0.65, reopen available with reason.
+    Archived items auto-hide from default queue view after 30 days.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">Resolved detail</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span style="font-size:12px;color:#50b880;font-weight:700;">✓ Resolved</span></div>
+        <div style="background:#081a0e;border-bottom:1px solid rgba(80,184,128,.2);padding:12px 18px 16px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:4px;">← Resolved Archive</div>
+          <div style="font-size:17px;font-weight:700;color:#e8f0f8;line-height:1.3;">Progress chart blank screen</div>
+          <div style="font-size:12px;color:#50b880;margin-top:4px;">✓ Resolved 2 hrs ago · by @uxteam · in 22 min</div>
+        </div>
+        <div class="scroll-body">
+          <div class="detail-section">
+            <div class="ds-label">Resolution</div>
+            <div class="ds-value">Chart component version mismatch after v2.4.0 deploy. Hotfix deployed: pinned chart-renderer@1.8.2. Verified fix on 3 affected devices.</div>
+          </div>
+          <div class="detail-section">
+            <div class="ds-label">Resolution metadata</div>
+            <div class="meta-grid">
+              <div class="meta-item"><div class="mi-label">Time to resolve</div><div class="mi-value" style="color:#50b880;">22 min</div></div>
+              <div class="meta-item"><div class="mi-label">Resolved by</div><div class="mi-value">@uxteam</div></div>
+              <div class="meta-item"><div class="mi-label">Method</div><div class="mi-value">Hotfix deploy</div></div>
+              <div class="meta-item"><div class="mi-label">Verified</div><div class="mi-value">3 devices ✓</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <div style="padding-bottom:4px;font-size:12px;color:#7a8a9e;text-align:center;">Resolved — monitoring for recurrence</div>
+          <div class="action-bar-buttons" style="margin-top:6px;">
+            <button class="ab-btn" style="background:#1e2a3a;color:#60a8e8;">Reopen</button>
+            <button class="ab-btn" style="background:#1e2a3a;color:#7a8a9e;">Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>// MOBILE ADAPTATIONS FROM DESKTOP</h3>
+    <table>
+      <tr><th>Feature</th><th>Desktop</th><th>Mobile</th></tr>
+      <tr><td>Layout</td><td>Side-by-side panels</td><td>Vertical scroll, single column</td></tr>
+      <tr><td>Action buttons</td><td>Inline in section</td><td>Fixed bottom action bar</td></tr>
+      <tr><td>Stack trace</td><td>Expandable code block</td><td>Inline scrollable code block</td></tr>
+      <tr><td>Screenshot</td><td>Inline preview</td><td>Tap to full-screen</td></tr>
+      <tr><td>Audit trail</td><td>Right panel timeline</td><td>Scrollable section at bottom</td></tr>
+      <tr><td>Metadata</td><td>4-col grid</td><td>2-col grid</td></tr>
+    </table>
+  </div>
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>owner-bg</td><td><code>#0d1117</code></td><td>Phone background</td></tr>
+      <tr><td>critical-header-bg</td><td><code>#1a0808</code></td><td>P0 detail header</td></tr>
+      <tr><td>resolved-header-bg</td><td><code>#081a0e</code></td><td>Resolved detail header</td></tr>
+      <tr><td>praise-header-bg</td><td><code>#0a1400</code></td><td>Praise detail header</td></tr>
+      <tr><td>action-bar-bg</td><td><code>#0d1117</code></td><td>Fixed bottom bar</td></tr>
+      <tr><td>phone-width</td><td>390px</td><td>Owner mobile frame</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Resolution Center v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; background: #0d1117; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.55); overflow: hidden; flex-shrink: 0; font-family: 'Sora', 'Segoe UI', sans-serif; }
+  .phone-inner { overflow-y: auto; max-height: 820px; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #a0a8b8; background: #0d1117; }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #0d1117; border-bottom: 1px solid #2a3040; position: sticky; top: 0; z-index: 10; }
+  .topbar-back { font-size: 18px; color: #a0a8b8; cursor: pointer; }
+  .topbar-title { font-size: 15px; font-weight: 700; color: #e0e6f0; }
+  .topbar-sub { font-size: 11px; color: #445566; margin-top: 1px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+  .topbar-btn { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+  /* KPI strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #2a3040; margin: 12px 16px; border-radius: 10px; overflow: hidden; }
+  .kpi-cell { background: #141a26; padding: 10px 8px; text-align: center; }
+  .kpi-val { font-size: 18px; font-weight: 800; }
+  .kpi-lbl { font-size: 9px; color: #445566; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  /* Status chips */
+  .status-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+  .chip-open { background: #1a1200; color: #ffd166; border: 1px solid #ffd16644; }
+  .chip-inprogress { background: #1e2a3a; color: #5599ee; border: 1px solid #5599ee44; }
+  .chip-resolved { background: #0d1a12; color: #58e8c1; border: 1px solid #58e8c144; }
+  .chip-critical { background: #1a0e0e; color: #ff9999; border: 1px solid #ff6b6b44; }
+  .chip-archived { background: #1a1e2a; color: #445566; border: 1px solid #2a3040; }
+
+  /* Assignee chip */
+  .assignee-chip { display: inline-flex; align-items: center; gap: 6px; background: #1e2a3a; border: 1px solid #2a3a50; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: #a8c4e8; cursor: pointer; }
+  .assignee-avatar { width: 16px; height: 16px; border-radius: 50%; background: #5599ee; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: #fff; flex-shrink: 0; }
+
+  /* Severity chip */
+  .severity-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; cursor: pointer; }
+  .sev-p0 { background: #1a0e0e; color: #ff9999; border: 1px solid #ff6b6b44; }
+  .sev-p1 { background: #1a1200; color: #ffcc44; border: 1px solid #ffcc4444; }
+  .sev-p2 { background: #1e2433; color: #a8c4e8; border: 1px solid #5599ee33; }
+
+  /* Resolution card row */
+  .res-row { margin: 0 16px 8px; background: #141a26; border-radius: 12px; padding: 14px; border-left: 4px solid transparent; }
+  .res-row.open { border-left-color: #ffd166; }
+  .res-row.inprogress { border-left-color: #5599ee; }
+  .res-row.resolved { border-left-color: #58e8c1; background: #0d1a12; }
+  .res-row.critical { border-left-color: #ff6b6b; background: #1a0e0e; }
+  .res-row.archived { border-left-color: #2a3040; opacity: 0.6; }
+  .res-title { font-size: 13px; font-weight: 700; color: #e0e6f0; margin-bottom: 8px; line-height: 1.4; }
+  .res-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .res-body { font-size: 12px; color: #778899; line-height: 1.6; margin-bottom: 8px; }
+  .res-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .res-btn { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; }
+  .btn-assign { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; }
+  .btn-in-progress { background: #5599ee22; color: #88bbff; border: 1px solid #5599ee44; }
+  .btn-resolve { background: #58e8c122; color: #58e8c1; border: 1px solid #58e8c144; }
+  .btn-escalate { background: #ff6b6b22; color: #ff9999; border: 1px solid #ff6b6b44; }
+  .btn-archive { background: #1e2433; color: #445566; border: 1px solid #2a3040; }
+  .btn-ticket { background: #ffd166; color: #1a1400; }
+  .btn-reopen { background: #1e2433; color: #a0a8b8; border: 1px solid #2a3040; }
+
+  /* Ticket badge */
+  .ticket-badge { display: inline-flex; align-items: center; gap: 5px; background: #1e2a3a; border: 1px solid #5599ee44; border-radius: 8px; padding: 4px 9px; font-size: 11px; color: #88bbff; font-weight: 600; }
+
+  /* Assignment modal overlay (bottom sheet) */
+  .assign-sheet { background: #141a26; border-radius: 20px 20px 0 0; border-top: 2px solid #2a3040; padding: 20px 16px 32px; }
+  .assign-sheet-hdr { font-size: 14px; font-weight: 800; color: #e0e6f0; margin-bottom: 16px; }
+  .assignee-option { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; }
+  .assignee-option.selected { background: #1e2a3a; border: 1px solid #5599ee44; }
+  .assignee-option:not(.selected) { background: #1a1f2e; }
+  .ao-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .ao-name { font-size: 13px; font-weight: 700; color: #e0e6f0; }
+  .ao-role { font-size: 11px; color: #445566; margin-top: 1px; }
+  .ao-check { margin-left: auto; font-size: 16px; color: #5599ee; }
+
+  /* Severity transition row */
+  .sev-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e2433; }
+  .sev-from { font-size: 12px; color: #667; }
+  .sev-arrow { font-size: 14px; color: #445566; }
+  .sev-to { font-size: 12px; font-weight: 700; }
+  .sev-reason { font-size: 11px; color: #445566; margin-top: 2px; }
+
+  /* Archive row (resolved) */
+  .archive-row { margin: 0 16px 6px; background: #0d1117; border: 1px solid #1e2433; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; opacity: 0.7; }
+  .archive-type { font-size: 18px; flex-shrink: 0; }
+  .archive-info { flex: 1; }
+  .archive-title { font-size: 12px; font-weight: 700; color: #a0a8b8; }
+  .archive-meta { font-size: 11px; color: #445566; margin-top: 2px; }
+  .archive-badge { font-size: 10px; font-weight: 700; color: #445566; background: #1e2433; border-radius: 6px; padding: 2px 8px; }
+
+  /* Section header */
+  .sec-hdr { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 8px; }
+  .sec-hdr-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #445566; }
+  .sec-hdr-action { font-size: 11px; font-weight: 700; color: #5599ee; cursor: pointer; }
+
+  /* Spec */
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('workflow')">Resolution Workflow</button>
+  <button class="tab" onclick="show('assign')">Assignment + Owners</button>
+  <button class="tab" onclick="show('severity')">Severity Transitions</button>
+  <button class="tab" onclick="show('archive')">Resolved Archive</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══ TAB 1: RESOLUTION WORKFLOW ═══ -->
+<div id="workflow" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — Resolution Workflow</strong><br>
+    Active resolution queue showing open items through all states. Left border color encodes state: gold=open, blue=in-progress, mint=resolved, red=critical, grey=archived. Each row: type badge + title + assignee chip + severity chip + action buttons appropriate to current state. Critical non-dismissible until resolved.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">Active Resolution Queue</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Resolution Center</div>
+              <div class="topbar-sub">Feedback Queue</div>
+            </div>
+            <div class="topbar-actions">
+              <div class="topbar-btn">Filter</div>
+            </div>
+          </div>
+
+          <!-- KPI strip -->
+          <div class="kpi-strip">
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#ff6b6b;">2</div>
+              <div class="kpi-lbl">Critical</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#ffd166;">8</div>
+              <div class="kpi-lbl">Open</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#5599ee;">5</div>
+              <div class="kpi-lbl">In Prog</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#58e8c1;">14</div>
+              <div class="kpi-lbl">Resolved</div>
+            </div>
+          </div>
+
+          <!-- Critical -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title" style="color:#ff6b6b;">🔴 Critical — Cannot Dismiss</div>
+          </div>
+
+          <div class="res-row critical">
+            <div class="res-meta-row">
+              <div class="status-chip chip-critical">🔴 Critical</div>
+              <div class="severity-chip sev-p0">P0</div>
+              <div class="assignee-chip">
+                <div class="assignee-avatar">DT</div>
+                @devteam
+              </div>
+            </div>
+            <div class="res-title">/play crash on band-complete trigger</div>
+            <div class="res-body">127 sessions affected. Stack trace: TypeError on BandCelebration.animationRef</div>
+            <div class="res-actions">
+              <div class="ticket-badge">🎫 ENG-4821</div>
+              <button class="res-btn btn-resolve">Mark Resolved</button>
+            </div>
+          </div>
+
+          <!-- Open -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">Open — Needs Triage</div>
+            <div class="sec-hdr-action">View all 8</div>
+          </div>
+
+          <div class="res-row open">
+            <div class="res-meta-row">
+              <div class="status-chip chip-open">Open</div>
+              <div class="severity-chip sev-p1">P1</div>
+              <div class="assignee-chip" style="border-color:#ffd16633;color:#ffd16688;">
+                + Assign
+              </div>
+            </div>
+            <div class="res-title">Wrong answer key in P1 fractions node</div>
+            <div class="res-body">node_frac_add_01 · 1/2+1/4 answer set to 2/4, should be 3/4</div>
+            <div class="res-actions">
+              <button class="res-btn btn-assign">Assign</button>
+              <button class="res-btn btn-in-progress">In Progress</button>
+              <button class="res-btn btn-archive">Archive</button>
+            </div>
+          </div>
+
+          <div class="res-row open">
+            <div class="res-meta-row">
+              <div class="status-chip chip-open">Open</div>
+              <div class="severity-chip sev-p2">P2</div>
+              <div class="assignee-chip">
+                <div class="assignee-avatar" style="background:#9b72ff;">UX</div>
+                @uxteam
+              </div>
+            </div>
+            <div class="res-title">Skill map node labels overlap on iPhone SE</div>
+            <div class="res-body">375px viewport · NodeLabel component · 3 related reports</div>
+            <div class="res-actions">
+              <button class="res-btn btn-in-progress">In Progress</button>
+              <button class="res-btn btn-resolve">Resolve</button>
+            </div>
+          </div>
+
+          <!-- In progress -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title" style="color:#5599ee;">In Progress</div>
+            <div class="sec-hdr-action">View all 5</div>
+          </div>
+
+          <div class="res-row inprogress">
+            <div class="res-meta-row">
+              <div class="status-chip chip-inprogress">In Progress</div>
+              <div class="severity-chip sev-p1">P1</div>
+              <div class="assignee-chip">
+                <div class="assignee-avatar" style="background:#58e8c1;color:#042018;">CM</div>
+                @content
+              </div>
+              <div class="ticket-badge">🎫 ENG-4819</div>
+            </div>
+            <div class="res-title">Fraction visual mislabeled in node_frac_vis_03</div>
+            <div class="res-body">Fix in progress via Content Editor · Expected deploy Friday</div>
+            <div class="res-actions">
+              <button class="res-btn btn-resolve">Mark Resolved</button>
+              <button class="res-btn btn-escalate">Escalate</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Resolve Confirmation Flow</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div><div class="topbar-title">Mark Resolved</div></div>
+          </div>
+
+          <!-- Context strip -->
+          <div style="margin:14px 16px;background:#141a26;border-radius:12px;padding:14px;border-left:4px solid #5599ee;">
+            <div class="res-meta-row" style="margin-bottom:8px;">
+              <div class="status-chip chip-inprogress">In Progress</div>
+              <div class="ticket-badge">🎫 ENG-4819</div>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#e0e6f0;margin-bottom:4px;">Fraction visual mislabeled</div>
+            <div style="font-size:12px;color:#778899;">node_frac_vis_03 · Assigned to @content</div>
+          </div>
+
+          <!-- Resolve form -->
+          <div style="padding:0 16px;">
+            <div style="font-size:12px;font-weight:700;color:#a0a8b8;margin-bottom:10px;">Resolution Notes</div>
+            <div style="background:#141a26;border:1px solid #5599ee44;border-radius:10px;padding:12px;margin-bottom:14px;">
+              <textarea style="width:100%;background:transparent;border:none;color:#c8d4e4;font-size:12px;font-family:inherit;resize:none;outline:none;line-height:1.6;" rows="3" placeholder="Describe what was fixed and verified…">Fixed answer key in CMS v1.3.3 — deployed to staging, confirmed correct on 3 devices. Closing.</textarea>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:#a0a8b8;margin-bottom:10px;">Verification method</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:10px;background:#1e2a3a;border:1.5px solid #5599ee44;border-radius:10px;padding:10px 12px;cursor:pointer;">
+                <div style="width:16px;height:16px;border-radius:50%;background:#5599ee;flex-shrink:0;"></div>
+                <div style="font-size:12px;font-weight:700;color:#e0e6f0;">Fix deployed and tested</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#141a26;border:1px solid #2a3040;border-radius:10px;padding:10px 12px;cursor:pointer;">
+                <div style="width:16px;height:16px;border-radius:50%;border:2px solid #445566;flex-shrink:0;"></div>
+                <div style="font-size:12px;color:#667;">Cannot reproduce — closing</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#141a26;border:1px solid #2a3040;border-radius:10px;padding:10px 12px;cursor:pointer;">
+                <div style="width:16px;height:16px;border-radius:50%;border:2px solid #445566;flex-shrink:0;"></div>
+                <div style="font-size:12px;color:#667;">Duplicate — resolved via other ticket</div>
+              </div>
+            </div>
+            <button style="width:100%;padding:14px;border-radius:12px;border:none;background:#58e8c1;color:#042018;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">✓ Mark Resolved</button>
+            <button style="width:100%;padding:12px;border-radius:12px;border:1px solid #2a3040;background:transparent;color:#445566;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;">Cancel</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ TAB 2: ASSIGNMENT + OWNERS ═══ -->
+<div id="assign" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Assignment + Owner Chips</strong><br>
+    Assign flow: tapping an assignee chip opens the bottom sheet. Options: unassigned / @devteam / @uxteam / @content / specific person. Post-assign, chip updates in-place. Owner (self) chip shows as "Me". Bulk-assign available from list view.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Assign Bottom Sheet</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div><div class="topbar-title">Wrong answer key in fractions</div></div>
+          </div>
+
+          <!-- Context card -->
+          <div style="margin:14px 16px;background:#141a26;border-radius:12px;padding:12px;border-left:4px solid #ffd166;">
+            <div class="res-meta-row" style="margin-bottom:6px;">
+              <div class="status-chip chip-open">Open</div>
+              <div class="severity-chip sev-p1">P1</div>
+              <div class="assignee-chip" style="border-color:#ffd16633;color:#ffd16688;">+ Assign</div>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#e0e6f0;">Wrong answer key in P1 fractions node</div>
+          </div>
+
+          <!-- Assign sheet -->
+          <div class="assign-sheet" style="margin:0;position:relative;border-radius:0;">
+            <div class="assign-sheet-hdr">Assign to</div>
+
+            <div class="assignee-option" style="background:#1a1f2e;">
+              <div class="ao-avatar" style="background:#445566;font-size:16px;">—</div>
+              <div>
+                <div class="ao-name" style="color:#778899;">Unassigned</div>
+                <div class="ao-role">No owner yet</div>
+              </div>
+            </div>
+
+            <div class="assignee-option selected">
+              <div class="ao-avatar" style="background:#58e8c1;color:#042018;">CM</div>
+              <div>
+                <div class="ao-name">@content · Content Team</div>
+                <div class="ao-role">Content fixes and CMS updates</div>
+              </div>
+              <div class="ao-check">✓</div>
+            </div>
+
+            <div class="assignee-option">
+              <div class="ao-avatar" style="background:#5599ee;">DT</div>
+              <div>
+                <div class="ao-name">@devteam · Engineering</div>
+                <div class="ao-role">Code bugs, crashes, infra</div>
+              </div>
+            </div>
+
+            <div class="assignee-option">
+              <div class="ao-avatar" style="background:#9b72ff;">UX</div>
+              <div>
+                <div class="ao-name">@uxteam · Design</div>
+                <div class="ao-role">UX / UI issues</div>
+              </div>
+            </div>
+
+            <div class="assignee-option">
+              <div class="ao-avatar" style="background:#ffd166;color:#1a1400;">ME</div>
+              <div>
+                <div class="ao-name">Me (Owner)</div>
+                <div class="ao-role">Take this personally</div>
+              </div>
+            </div>
+
+            <button style="width:100%;margin-top:14px;padding:13px;border-radius:12px;border:none;background:#ffd166;color:#1a1400;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Assign to @content</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Post-Assign — Updated Row</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div><div class="topbar-title">Resolution Center</div></div>
+          </div>
+          <div style="margin:14px 16px 8px;font-size:11px;font-weight:700;text-transform:uppercase;color:#445566;letter-spacing:0.08em;">Open</div>
+
+          <!-- Unassigned row -->
+          <div class="res-row open">
+            <div class="res-meta-row">
+              <div class="status-chip chip-open">Open</div>
+              <div class="severity-chip sev-p2">P2</div>
+              <div class="assignee-chip" style="border-color:#ffd16633;color:#ffd16688;">+ Assign</div>
+            </div>
+            <div class="res-title">MapOverlay tap targets small on SE</div>
+            <div class="res-actions">
+              <button class="res-btn btn-assign">Assign</button>
+              <button class="res-btn btn-in-progress">In Progress</button>
+            </div>
+          </div>
+
+          <!-- Assigned row -->
+          <div class="res-row open">
+            <div class="res-meta-row">
+              <div class="status-chip chip-open">Open</div>
+              <div class="severity-chip sev-p1">P1</div>
+              <div class="assignee-chip">
+                <div class="assignee-avatar" style="background:#58e8c1;color:#042018;">CM</div>
+                @content
+              </div>
+            </div>
+            <div class="res-title">Wrong answer key in P1 fractions node</div>
+            <div class="res-body">Assigned to @content just now</div>
+            <div class="res-actions">
+              <button class="res-btn btn-in-progress">In Progress</button>
+              <button class="res-btn btn-resolve">Resolve</button>
+            </div>
+          </div>
+
+          <!-- Self-owned row -->
+          <div class="res-row inprogress">
+            <div class="res-meta-row">
+              <div class="status-chip chip-inprogress">In Progress</div>
+              <div class="severity-chip sev-p0">P0</div>
+              <div class="assignee-chip" style="border-color:#ffd16666;color:#ffd166;">
+                <div class="assignee-avatar" style="background:#ffd166;color:#1a1400;">ME</div>
+                Me
+              </div>
+            </div>
+            <div class="res-title">/play crash on band-complete · ENG-4821</div>
+            <div class="res-actions">
+              <button class="res-btn btn-resolve">Mark Resolved</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: SEVERITY TRANSITIONS ═══ -->
+<div id="severity" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — Severity / State Transitions</strong><br>
+    Valid state machine transitions with reason chips. Each transition requires a confirmation step. Downgrade (P0→P1) requires note. Critical to resolved bypasses archive step — goes directly to resolved with audit entry. State colors: P0=red, P1=gold, P2=blue.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Severity Change Sheet</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div><div class="topbar-title">Change Severity</div></div>
+          </div>
+
+          <!-- Current severity -->
+          <div style="margin:14px 16px;background:#1a0e0e;border:1px solid #ff6b6b44;border-radius:12px;padding:12px 14px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#ff9999;letter-spacing:0.08em;margin-bottom:6px;">Current Severity</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="severity-chip sev-p0" style="font-size:13px;padding:5px 12px;">P0 · Critical</div>
+              <div style="font-size:12px;color:#ff9999;">127 sessions affected</div>
+            </div>
+          </div>
+
+          <!-- New severity options -->
+          <div style="padding:0 16px;">
+            <div style="font-size:12px;font-weight:700;color:#a0a8b8;margin-bottom:10px;">Change to</div>
+
+            <div style="background:#1a1200;border:1.5px solid #ffcc4466;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <div class="severity-chip sev-p1">P1 · High</div>
+                <div style="font-size:11px;color:#667;">Recommended ↓</div>
+              </div>
+              <div style="font-size:12px;color:#778899;">Still impactful but not service-breaking. Use when error rate drops below 5%.</div>
+            </div>
+
+            <div style="background:#141a26;border:1px solid #2a3040;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;">
+              <div style="margin-bottom:4px;">
+                <div class="severity-chip sev-p2">P2 · Normal</div>
+              </div>
+              <div style="font-size:12px;color:#556677;">Low impact. Affects small subset of users. Not blocking.</div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;color:#a0a8b8;margin:14px 0 8px;">Downgrade reason (required)</div>
+            <div style="background:#141a26;border:1px solid #5599ee44;border-radius:10px;padding:12px;margin-bottom:16px;">
+              <textarea style="width:100%;background:transparent;border:none;color:#c8d4e4;font-size:12px;font-family:inherit;resize:none;outline:none;line-height:1.6;" rows="2" placeholder="Why is severity being reduced?">Error rate dropped from 8.4% to 1.2% after hotfix deploy.</textarea>
+            </div>
+
+            <button style="width:100%;padding:14px;border-radius:12px;border:none;background:#ffd166;color:#1a1400;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Downgrade to P1</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">State Transition Log</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div><div class="topbar-title">State History</div></div>
+          </div>
+
+          <div style="padding:14px 16px 8px;font-size:13px;font-weight:700;color:#e0e6f0;">/play crash · ENG-4821</div>
+
+          <!-- Transition log -->
+          <div style="padding:0 16px;">
+            <div class="sev-row">
+              <div style="width:6px;height:6px;border-radius:50%;background:#58e8c1;flex-shrink:0;margin-top:2px;"></div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="sev-from">P1</div>
+                  <div class="sev-arrow">→</div>
+                  <div class="sev-to" style="color:#58e8c1;">Resolved</div>
+                </div>
+                <div class="sev-reason">Hotfix ENG-4821 deployed · error rate 0%</div>
+              </div>
+              <div style="font-size:10px;color:#445566;">Today 11:20</div>
+            </div>
+            <div class="sev-row">
+              <div style="width:6px;height:6px;border-radius:50%;background:#ffcc44;flex-shrink:0;margin-top:2px;"></div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="sev-from">P0</div>
+                  <div class="sev-arrow">→</div>
+                  <div class="sev-to" style="color:#ffcc44;">P1</div>
+                </div>
+                <div class="sev-reason">Error rate dropped 8.4%→1.2% after hotfix</div>
+              </div>
+              <div style="font-size:10px;color:#445566;">Today 10:45</div>
+            </div>
+            <div class="sev-row">
+              <div style="width:6px;height:6px;border-radius:50%;background:#5599ee;flex-shrink:0;margin-top:2px;"></div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="sev-from">Open</div>
+                  <div class="sev-arrow">→</div>
+                  <div class="sev-to" style="color:#5599ee;">In Progress</div>
+                </div>
+                <div class="sev-reason">Assigned to @devteam · Ticket ENG-4821 created</div>
+              </div>
+              <div style="font-size:10px;color:#445566;">Today 9:44</div>
+            </div>
+            <div class="sev-row">
+              <div style="width:6px;height:6px;border-radius:50%;background:#ff6b6b;flex-shrink:0;margin-top:2px;"></div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="sev-from">New</div>
+                  <div class="sev-arrow">→</div>
+                  <div class="sev-to" style="color:#ff6b6b;">P0 Critical</div>
+                </div>
+                <div class="sev-reason">Auto-escalated after 15 min unacknowledged</div>
+              </div>
+              <div style="font-size:10px;color:#445566;">Today 9:26</div>
+            </div>
+            <div class="sev-row" style="border-bottom:none;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#ffd166;flex-shrink:0;margin-top:2px;"></div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="sev-from">—</div>
+                  <div class="sev-arrow">→</div>
+                  <div class="sev-to" style="color:#ffd166;">Open</div>
+                </div>
+                <div class="sev-reason">Report created via in-app feedback (parent)</div>
+              </div>
+              <div style="font-size:10px;color:#445566;">Today 9:11</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: RESOLVED ARCHIVE ═══ -->
+<div id="archive" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — Resolved Archive Row</strong><br>
+    Resolved and archived items in the queue. Resolved rows: mint left border, muted opacity, ticket badge, resolve reason chip. Archived rows: grey border, fully muted, "Archived" badge. Reopen available on resolved items. Bulk archive on resolved items from long-press / select mode.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Resolved + Archive Section</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Resolution Center</div>
+              <div class="topbar-sub">Resolved · 14 items</div>
+            </div>
+            <div class="topbar-actions">
+              <div class="topbar-btn">Select</div>
+            </div>
+          </div>
+
+          <div class="sec-hdr">
+            <div class="sec-hdr-title" style="color:#58e8c1;">✓ Recently Resolved</div>
+            <div class="sec-hdr-action">Archive all →</div>
+          </div>
+
+          <!-- Resolved rows -->
+          <div class="res-row resolved">
+            <div class="res-meta-row" style="margin-bottom:8px;">
+              <div class="status-chip chip-resolved">✓ Resolved</div>
+              <div class="ticket-badge">🎫 ENG-4821</div>
+              <div class="severity-chip" style="background:#141a26;color:#445566;border-color:#2a3040;">P0→P1</div>
+            </div>
+            <div class="res-title" style="color:#a0b8a8;">/play crash on band-complete trigger</div>
+            <div class="res-body" style="color:#58e8c199;">Resolved: Fix deployed · Error rate 0% · 11:20 AM today</div>
+            <div class="res-actions">
+              <button class="res-btn btn-reopen">Reopen</button>
+              <button class="res-btn btn-archive">Archive</button>
+            </div>
+          </div>
+
+          <div class="res-row resolved">
+            <div class="res-meta-row" style="margin-bottom:8px;">
+              <div class="status-chip chip-resolved">✓ Resolved</div>
+              <div class="severity-chip" style="background:#141a26;color:#445566;border-color:#2a3040;">P1</div>
+            </div>
+            <div class="res-title" style="color:#a0b8a8;">Fraction visual mislabeled — node_frac_vis_03</div>
+            <div class="res-body" style="color:#58e8c199;">Resolved: Content fix deployed v1.3.3 · Yesterday</div>
+            <div class="res-actions">
+              <button class="res-btn btn-reopen">Reopen</button>
+              <button class="res-btn btn-archive">Archive</button>
+            </div>
+          </div>
+
+          <div class="res-row resolved">
+            <div class="res-meta-row" style="margin-bottom:8px;">
+              <div class="status-chip chip-resolved">✓ Resolved</div>
+              <div class="severity-chip" style="background:#141a26;color:#445566;border-color:#2a3040;">P2</div>
+            </div>
+            <div class="res-title" style="color:#a0b8a8;">Parent login timeout too short on iOS</div>
+            <div class="res-body" style="color:#58e8c199;">Resolved: Session duration increased to 30d · 3 days ago</div>
+            <div class="res-actions">
+              <button class="res-btn btn-reopen">Reopen</button>
+              <button class="res-btn btn-archive">Archive</button>
+            </div>
+          </div>
+
+          <div class="sec-hdr" style="margin-top:8px;">
+            <div class="sec-hdr-title">Archived</div>
+            <div class="sec-hdr-action">View all 47</div>
+          </div>
+
+          <!-- Archive rows (muted) -->
+          <div class="archive-row">
+            <div class="archive-type">🐛</div>
+            <div class="archive-info">
+              <div class="archive-title">Login button unresponsive on Android 12</div>
+              <div class="archive-meta">Archived · Not reproducible · 5 days ago</div>
+            </div>
+            <div class="archive-badge">Archived</div>
+          </div>
+          <div class="archive-row">
+            <div class="archive-type">📝</div>
+            <div class="archive-info">
+              <div class="archive-title">Typo in onboarding step 3</div>
+              <div class="archive-meta">Archived · Duplicate of ENG-4810 · 1 wk ago</div>
+            </div>
+            <div class="archive-badge">Duplicate</div>
+          </div>
+          <div class="archive-row">
+            <div class="archive-type">👍</div>
+            <div class="archive-info">
+              <div class="archive-title">Great app, my son loves it!</div>
+              <div class="archive-meta">Praise · Highlighted · Archived · 1 wk ago</div>
+            </div>
+            <div class="archive-badge">Highlighted</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC ═══ -->
+<div id="spec" class="panel">
+  <div class="hint">
+    <strong>Tab 5 — Spec Notes</strong><br>
+    State machine, valid transitions, assignee options, severity rules, bulk actions, and design tokens.
+  </div>
+
+  <div class="spec-h2">Feedback Item State Machine</div>
+  <table class="spec-table">
+    <tr><th>State</th><th>Left border</th><th>Valid transitions</th><th>Notes</th></tr>
+    <tr><td>Open</td><td><code>#ffd166</code> gold</td><td>→ In Progress, → Resolved, → Archived</td><td>Default on creation</td></tr>
+    <tr><td>In Progress</td><td><code>#5599ee</code> blue</td><td>→ Resolved, → Escalated, → Open</td><td>Requires assignee</td></tr>
+    <tr><td>Resolved</td><td><code>#58e8c1</code> mint</td><td>→ Archived, → Open (reopen)</td><td>Requires resolution note</td></tr>
+    <tr><td>Critical</td><td><code>#ff6b6b</code> red</td><td>→ In Progress (required first), → Resolved</td><td>Non-dismissible. Cannot go directly to Archive.</td></tr>
+    <tr><td>Archived</td><td><code>#2a3040</code> grey</td><td>→ Open (unarchive)</td><td>Hidden from main queue; visible in archive section</td></tr>
+  </table>
+
+  <div class="spec-h2">Severity Levels</div>
+  <table class="spec-table">
+    <tr><th>Severity</th><th>Color</th><th>Definition</th><th>Auto-escalate</th></tr>
+    <tr><td>P0 Critical</td><td><code>#ff6b6b</code></td><td>Service-breaking; wide impact (&gt;50 users or &gt;5% error rate)</td><td>15 min → pages on-call</td></tr>
+    <tr><td>P1 High</td><td><code>#ffcc44</code></td><td>Significant issue; some users blocked</td><td>None</td></tr>
+    <tr><td>P2 Normal</td><td><code>#5599ee</code></td><td>Minor / cosmetic; workaround available</td><td>None</td></tr>
+  </table>
+
+  <div class="spec-h2">Assignee Options</div>
+  <table class="spec-table">
+    <tr><th>Option</th><th>Avatar color</th><th>Use for</th></tr>
+    <tr><td>@devteam</td><td><code>#5599ee</code></td><td>Code bugs, crashes, backend, infra</td></tr>
+    <tr><td>@uxteam</td><td><code>#9b72ff</code></td><td>UX issues, design, accessibility</td></tr>
+    <tr><td>@content</td><td><code>#58e8c1</code></td><td>Content errors, answer keys, CMS fixes</td></tr>
+    <tr><td>Me (Owner)</td><td><code>#ffd166</code></td><td>Owner takes personal ownership</td></tr>
+    <tr><td>Unassigned</td><td><code>#445566</code></td><td>Default state — must be assigned before In Progress</td></tr>
+  </table>
+
+  <div class="spec-h2">Bulk Actions</div>
+  <div class="spec-note">Activate via "Select" button in topbar. Multi-select checkboxes appear on rows. Bulk actions available: Archive selected (resolved items only) · Assign all selected · Change severity (all selected). Bulk resolve not available — each item must be resolved individually with a note.</div>
+
+  <div class="spec-h2">Resolution Note Rules</div>
+  <div class="spec-note">
+    Resolution notes are required when: (1) marking any P0 or P1 as resolved; (2) downgrading severity. Optional for P2. Note persists in audit trail and is visible to team. Max 500 characters. Verification method radio is required for P0/P1 resolve.
+  </div>
+
+  <div class="spec-h2">Design Tokens</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>Owner base bg</td><td><code>#0d1117</code></td></tr>
+    <tr><td>Surface card</td><td><code>#141a26</code></td></tr>
+    <tr><td>Border default</td><td><code>#2a3040</code></td></tr>
+    <tr><td>Gold accent</td><td><code>#ffd166</code></td></tr>
+    <tr><td>State: Open</td><td>Border <code>#ffd166</code></td></tr>
+    <tr><td>State: In Progress</td><td>Border <code>#5599ee</code></td></tr>
+    <tr><td>State: Resolved</td><td>Border <code>#58e8c1</code> · bg <code>#0d1a12</code></td></tr>
+    <tr><td>State: Critical</td><td>Border <code>#ff6b6b</code> · bg <code>#1a0e0e</code></td></tr>
+    <tr><td>State: Archived</td><td>Border <code>#2a3040</code> · opacity 0.6</td></tr>
+    <tr><td>Font</td><td>Sora · owner dashboard</td></tr>
+    <tr><td>Phone frame</td><td>390px · border <code>#2a3040</code></td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

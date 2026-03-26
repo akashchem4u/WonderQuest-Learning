@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Session Complete v2 — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito',sans-serif;background:#08061a;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#06041a;flex-wrap:wrap;border-bottom:1px solid #1a1440}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #2a1f6e;background:transparent;color:#9b8fd4;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;transition:all .2s}
+  .tab.active{background:#4c2fad;border-color:#7b56e8;color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#1a1400;border:1px solid #3d2f00;border-left:3px solid #ffd166;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#c8a84b;line-height:1.6}
+  .eng-note strong{color:#ffd166;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .phone{width:390px;min-height:844px;border-radius:40px;border:2px solid #2a1f6e;overflow:hidden;box-shadow:0 0 60px rgba(76,47,173,0.35);display:flex;flex-direction:column;position:relative}
+  .phone-label{text-align:center;margin-top:10px;font-size:12px;color:#5a4a8a;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* Animations */
+  @keyframes fall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(250px) rotate(400deg);opacity:0}}
+  @keyframes bounceIn{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+  @keyframes starPop{0%{transform:scale(0) rotate(-20deg);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+  @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+
+  .confetti{position:absolute;width:8px;height:8px;border-radius:2px;animation:fall 2.5s ease-in infinite}
+  .bounce{animation:bounceIn .5s cubic-bezier(.34,1.56,.64,1) both}
+  .float{animation:floatY 2.5s ease-in-out infinite}
+  .star-pop:nth-child(1){animation:starPop .4s .1s both}
+  .star-pop:nth-child(2){animation:starPop .4s .25s both}
+  .star-pop:nth-child(3){animation:starPop .4s .4s both}
+
+  /* Overlays */
+  .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:60px 24px 0;text-align:center;z-index:5}
+  .ov-celebration{background:radial-gradient(ellipse at 50% 30%,rgba(155,114,255,.35) 0%,rgba(16,11,46,.97) 60%)}
+  .ov-tomorrow{background:radial-gradient(ellipse at 50% 30%,rgba(88,232,193,.2) 0%,rgba(10,20,16,.97) 60%)}
+  .ov-replay{background:radial-gradient(ellipse at 50% 30%,rgba(255,209,102,.2) 0%,rgba(20,12,4,.97) 60%)}
+  .ov-calm{background:linear-gradient(180deg,#0d1f1a 0%,#100b2e 100%)}
+
+  /* Hero */
+  .hero-emoji{font-size:88px;margin-bottom:12px}
+  .hero-title{font-size:30px;font-weight:900;color:#ffd166;margin-bottom:6px;line-height:1.1}
+  .hero-sub{font-size:15px;color:#9b8fd4;font-weight:700;margin-bottom:20px;line-height:1.4}
+
+  /* Star row */
+  .star-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+  .star-row span{font-size:40px}
+
+  /* Stat pills */
+  .stat-row{display:flex;gap:10px;justify-content:center;margin-bottom:22px;width:100%}
+  .stat-pill{flex:1;background:rgba(155,114,255,.12);border:1.5px solid rgba(155,114,255,.25);border-radius:16px;padding:14px 8px;text-align:center}
+  .sp-val{font-size:22px;font-weight:900;color:#e8e0ff;margin-bottom:2px}
+  .sp-label{font-size:10px;font-weight:700;color:#7b69b8;text-transform:uppercase;letter-spacing:.8px}
+
+  /* Action cards */
+  .action-cards{display:flex;flex-direction:column;gap:10px;width:100%;margin-bottom:16px}
+  .ac{border-radius:18px;padding:18px 20px;cursor:pointer;border:2px solid transparent;display:flex;align-items:center;gap:14px;transition:all .2s;text-align:left}
+  .ac.primary{background:linear-gradient(135deg,#6b3fdb,#9b72ff);border:none;box-shadow:0 4px 20px rgba(107,63,219,.5)}
+  .ac.secondary{background:#1e1640;border-color:#2a1f6e}
+  .ac.secondary:hover{border-color:#9b72ff}
+  .ac-icon{font-size:28px;flex-shrink:0}
+  .ac-text{flex:1}
+  .ac-title{font-size:16px;font-weight:900;color:#e8e0ff;margin-bottom:2px}
+  .ac-sub{font-size:12px;color:#7b69b8;font-weight:700}
+  .ac.primary .ac-sub{color:rgba(255,255,255,.7)}
+
+  /* Tomorrow card */
+  .tomorrow-card{background:rgba(88,232,193,.06);border:1.5px solid rgba(88,232,193,.2);border-radius:20px;padding:18px 20px;margin-bottom:16px;width:100%;text-align:left}
+  .tc-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#2a6a5a;margin-bottom:6px}
+  .tc-title{font-size:15px;font-weight:900;color:#58e8c1;margin-bottom:3px}
+  .tc-sub{font-size:12px;color:#4a8a7a;font-weight:700;line-height:1.4}
+  .tc-progress{height:6px;background:#0a2018;border-radius:3px;overflow:hidden;margin-top:10px}
+  .tc-fill{height:100%;background:linear-gradient(90deg,#1a5c3a,#58e8c1);border-radius:3px;width:68%}
+
+  /* Calm variant */
+  .calm-card{background:rgba(155,114,255,.06);border:1.5px solid rgba(155,114,255,.15);border-radius:20px;padding:18px 20px;margin-bottom:16px;width:100%}
+  .cc-icon{font-size:32px;margin-bottom:8px;display:block;text-align:center}
+  .cc-text{font-size:14px;font-weight:700;color:#7b69b8;text-align:center;line-height:1.5}
+
+  /* Dismiss */
+  .dismiss{font-size:11px;color:#3a2a5a;font-weight:700;margin-top:8px}
+
+  /* Background content (play screen behind overlay) */
+  .play-bg{width:100%;height:100%;background:#100b2e;position:relative;display:flex;flex-direction:column}
+  .play-bg-bar{display:flex;align-items:center;padding:44px 20px 12px;gap:8px}
+  .pbg-fill{flex:1;height:8px;background:#2a1f6e;border-radius:4px;overflow:hidden}
+  .pbg-progress{height:100%;background:#9b72ff;width:100%;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">Celebration — Main</button>
+  <button class="tab" onclick="show('t2',this)">Continue Tomorrow</button>
+  <button class="tab" onclick="show('t3',this)">Replay This Quest</button>
+  <button class="tab" onclick="show('t4',this)">Low-Stimulation Variant</button>
+</div>
+
+<!-- TAB 1: Main celebration -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 26 / Tab 1: Session-complete celebration — main</strong>
+    Full-screen overlay over /play. Next action must be visible under 2 seconds. Two primary choices: "Play again!" and "Done for now" — equal prominence, Play Again uses the purple gradient. Stars shown (🌟 count), minutes shown, skills count shown. Zero accuracy %. Zero "You missed X". Auto-dismiss to home after 5s if no tap, or on tap anywhere outside buttons. Pairs with child-return-rewards-v2.html.
+  </div>
+  <div class="frame-wrap">
+    <!-- Full celebration -->
+    <div>
+      <div class="phone">
+        <div class="play-bg">
+          <div class="play-bg-bar">
+            <span style="font-size:16px;color:#5a4a8a">←</span>
+            <div class="pbg-fill"><div class="pbg-progress"></div></div>
+            <span style="font-size:13px;font-weight:800;color:#ffd166">⭐ 14</span>
+          </div>
+        </div>
+        <div class="ov ov-celebration">
+          <!-- Confetti -->
+          <div class="confetti" style="background:#ffd166;top:5%;left:12%;animation-delay:0s"></div>
+          <div class="confetti" style="background:#9b72ff;top:3%;left:55%;animation-delay:.4s"></div>
+          <div class="confetti" style="background:#58e8c1;top:8%;left:78%;animation-delay:.8s"></div>
+          <div class="confetti" style="background:#ff7b6b;top:4%;left:32%;animation-delay:1.2s"></div>
+          <div class="confetti" style="background:#ffd166;top:10%;left:88%;animation-delay:1.6s"></div>
+
+          <div class="hero-emoji bounce">🎉</div>
+          <div class="hero-title">Quest complete!</div>
+          <div class="star-row">
+            <span class="star-pop">⭐</span>
+            <span class="star-pop">⭐</span>
+            <span class="star-pop">⭐</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="sp-val">🌟 14</div><div class="sp-label">Stars</div></div>
+            <div class="stat-pill"><div class="sp-val">18</div><div class="sp-label">Minutes</div></div>
+            <div class="stat-pill"><div class="sp-val">3</div><div class="sp-label">Skills</div></div>
+          </div>
+          <div class="action-cards">
+            <div class="ac primary">
+              <span class="ac-icon">🚀</span>
+              <div class="ac-text">
+                <div class="ac-title">Play again!</div>
+                <div class="ac-sub">Start a new quest right now</div>
+              </div>
+              <span style="font-size:20px;color:rgba(255,255,255,.6)">→</span>
+            </div>
+            <div class="ac secondary">
+              <span class="ac-icon">✋</span>
+              <div class="ac-text">
+                <div class="ac-title">Done for now</div>
+                <div class="ac-sub">Come back tomorrow</div>
+              </div>
+              <span style="font-size:20px;color:#4a3a7a">→</span>
+            </div>
+          </div>
+          <div class="dismiss">Tap anywhere to continue</div>
+        </div>
+      </div>
+      <div class="phone-label">Main celebration</div>
+    </div>
+    <!-- Great session with quest name -->
+    <div>
+      <div class="phone">
+        <div class="play-bg">
+          <div class="play-bg-bar">
+            <span style="font-size:16px;color:#5a4a8a">←</span>
+            <div class="pbg-fill"><div class="pbg-progress"></div></div>
+            <span style="font-size:13px;font-weight:800;color:#ffd166">⭐ 22</span>
+          </div>
+        </div>
+        <div class="ov ov-celebration">
+          <div class="confetti" style="background:#ffd166;top:4%;left:20%;animation-delay:.1s"></div>
+          <div class="confetti" style="background:#58e8c1;top:7%;left:65%;animation-delay:.6s"></div>
+
+          <div class="hero-emoji bounce">🏆</div>
+          <div class="hero-title">Amazing!</div>
+          <div class="hero-sub">🌙 The Counting Cavern — complete!</div>
+          <div class="star-row">
+            <span class="star-pop">⭐</span>
+            <span class="star-pop">⭐</span>
+            <span class="star-pop">⭐</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat-pill"><div class="sp-val">🌟 22</div><div class="sp-label">Stars</div></div>
+            <div class="stat-pill"><div class="sp-val">24</div><div class="sp-label">Minutes</div></div>
+          </div>
+          <!-- Level up bonus -->
+          <div style="background:rgba(155,114,255,.15);border:1.5px solid #9b72ff;border-radius:14px;padding:12px 16px;width:100%;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:24px">🚀</span>
+            <div>
+              <div style="font-size:13px;font-weight:900;color:#9b72ff">Level up!</div>
+              <div style="font-size:11px;color:#7b69b8;font-weight:700">You unlocked the Crystal Cave quest!</div>
+            </div>
+          </div>
+          <div class="action-cards">
+            <div class="ac primary">
+              <span class="ac-icon">💎</span>
+              <div class="ac-text">
+                <div class="ac-title">Try Crystal Cave!</div>
+                <div class="ac-sub">Your new unlocked quest</div>
+              </div>
+              <span style="font-size:20px;color:rgba(255,255,255,.6)">→</span>
+            </div>
+            <div class="ac secondary">
+              <span class="ac-icon">✋</span>
+              <div class="ac-text">
+                <div class="ac-title">Done for now</div>
+                <div class="ac-sub">See you next time!</div>
+              </div>
+            </div>
+          </div>
+          <div class="dismiss">Tap anywhere to continue</div>
+        </div>
+      </div>
+      <div class="phone-label">With level-up bonus</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Continue tomorrow -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 26 / Tab 2: Continue tomorrow state</strong>
+    Shown when child taps "Done for now" OR when session ends at a natural stopping point. Calmer than the celebration screen. Shows quest progress card (how far along). "Come back tomorrow" framing — positive, forward-looking, no "you stopped early" language. One main CTA: back to home. One secondary: log out / hand to grown-up.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="play-bg">
+          <div class="play-bg-bar">
+            <div class="pbg-fill"><div class="pbg-progress" style="width:68%"></div></div>
+          </div>
+        </div>
+        <div class="ov ov-tomorrow">
+          <div class="hero-emoji float">🌙</div>
+          <div class="hero-title" style="color:#58e8c1">See you tomorrow!</div>
+          <div class="hero-sub">Great adventuring today, Luna ✨<br>Your quest will be right here waiting.</div>
+          <div class="tomorrow-card">
+            <div class="tc-label">Quest saved</div>
+            <div class="tc-title">🌙 The Counting Cavern · Level 3</div>
+            <div class="tc-sub">68% complete — pick up right here next time</div>
+            <div class="tc-progress"><div class="tc-fill"></div></div>
+          </div>
+          <div class="action-cards">
+            <div class="ac primary" style="background:linear-gradient(135deg,#1a5c3a,#58e8c1)">
+              <span class="ac-icon">🏠</span>
+              <div class="ac-text">
+                <div class="ac-title" style="color:#0a2018">Back to home</div>
+                <div class="ac-sub" style="color:rgba(10,32,24,.7)">Quest saved automatically</div>
+              </div>
+            </div>
+            <div class="ac secondary">
+              <span class="ac-icon">🔒</span>
+              <div class="ac-text">
+                <div class="ac-title">Hand to grown-up</div>
+                <div class="ac-sub">Lock screen for handoff</div>
+              </div>
+            </div>
+          </div>
+          <div class="dismiss">Tap anywhere to go home</div>
+        </div>
+      </div>
+      <div class="phone-label">Continue tomorrow</div>
+    </div>
+    <!-- Short session variant -->
+    <div>
+      <div class="phone">
+        <div class="play-bg">
+          <div class="play-bg-bar">
+            <div class="pbg-fill"><div class="pbg-progress" style="width:20%"></div></div>
+          </div>
+        </div>
+        <div class="ov ov-tomorrow">
+          <div class="hero-emoji float">✨</div>
+          <div class="hero-title" style="color:#58e8c1;font-size:24px">Nice work today!</div>
+          <div class="hero-sub">Even a short adventure counts ⭐<br>Come back any time to keep going!</div>
+          <div class="stat-row">
+            <div class="stat-pill" style="background:rgba(88,232,193,.08);border-color:rgba(88,232,193,.2)">
+              <div class="sp-val" style="color:#58e8c1">🌟 4</div><div class="sp-label">Stars</div>
+            </div>
+            <div class="stat-pill" style="background:rgba(88,232,193,.08);border-color:rgba(88,232,193,.2)">
+              <div class="sp-val" style="color:#58e8c1">6</div><div class="sp-label">Minutes</div>
+            </div>
+          </div>
+          <div class="action-cards">
+            <div class="ac secondary" style="background:rgba(88,232,193,.08);border-color:rgba(88,232,193,.2)">
+              <span class="ac-icon">▶</span>
+              <div class="ac-text">
+                <div class="ac-title">Keep playing a bit more?</div>
+                <div class="ac-sub">Jump back in right now</div>
+              </div>
+            </div>
+            <div class="ac secondary">
+              <span class="ac-icon">🏠</span>
+              <div class="ac-text">
+                <div class="ac-title">Done for now</div>
+                <div class="ac-sub">Come back tomorrow</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Short session variant</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Replay -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 26 / Tab 3: Replay this quest state</strong>
+    Shown when child completes a quest and taps "Play again" — presents the same quest as "replay" OR a new quest. Replay card shows the quest name + level badge. New quest card shows a teaser for what's next. One tap to replay, one tap for new. Same calm-confident tone — not a decision tree, just two cards.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="play-bg">
+          <div class="play-bg-bar">
+            <div class="pbg-fill"><div class="pbg-progress"></div></div>
+          </div>
+        </div>
+        <div class="ov ov-replay">
+          <div class="hero-emoji bounce" style="font-size:72px">⚡</div>
+          <div class="hero-title" style="color:#ffd166">What's next?</div>
+          <div class="hero-sub">Pick your next adventure!</div>
+          <!-- Replay card -->
+          <div class="action-cards" style="width:100%;margin-bottom:0">
+            <div class="ac secondary" style="background:linear-gradient(135deg,#1a0f3e,#2a1468);border-color:#4c2fad;flex-direction:column;align-items:flex-start;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px;width:100%">
+                <span class="ac-icon">🔄</span>
+                <div class="ac-text">
+                  <div class="ac-title">Replay Counting Cavern</div>
+                  <div class="ac-sub">Try to beat your score!</div>
+                </div>
+              </div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;gap:6px;align-items:center">
+                  <span style="font-size:11px;font-weight:700;color:#ffd166;background:rgba(255,209,102,.15);padding:3px 8px;border-radius:8px">Level 3</span>
+                  <span style="font-size:11px;font-weight:700;color:#9b72ff">🌟 14 last time</span>
+                </div>
+                <span style="font-size:14px;color:#4a3a7a;font-weight:700">→</span>
+              </div>
+            </div>
+            <div class="ac primary">
+              <span class="ac-icon">💎</span>
+              <div class="ac-text">
+                <div class="ac-title">New quest: Crystal Cave</div>
+                <div class="ac-sub">Just unlocked! Level 4</div>
+              </div>
+              <span style="font-size:20px;color:rgba(255,255,255,.6)">→</span>
+            </div>
+            <div class="ac secondary">
+              <span class="ac-icon">🗺</span>
+              <div class="ac-text">
+                <div class="ac-title">Browse all quests</div>
+                <div class="ac-sub">See everything available</div>
+              </div>
+            </div>
+          </div>
+          <div class="dismiss" style="margin-top:14px">Tap anywhere to go home</div>
+        </div>
+      </div>
+      <div class="phone-label">Replay / new quest choice</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Low-stimulation -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 26 / Tab 4: Low-stimulation variant</strong>
+    For bedtime sessions, tired children, or parent preference for calmer endings. No confetti, no burst rings, no animations beyond a gentle float. Soft teal palette. Stars still shown (no accuracy %). Next action still clear. Can be triggered by: time-of-day logic (8pm+), session length under 5 min, or parent preference toggle. Pairs with child-return-rewards-v2.html low-stimulation guidance.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="play-bg" style="background:#0d1f1a">
+          <div class="play-bg-bar">
+            <div class="pbg-fill" style="background:#0a2a1a"><div class="pbg-progress" style="background:#58e8c1"></div></div>
+          </div>
+        </div>
+        <div class="ov ov-calm">
+          <div class="hero-emoji float" style="font-size:72px">🌙</div>
+          <div class="hero-title" style="color:#58e8c1;font-size:24px">Well done, Luna.</div>
+          <div class="hero-sub" style="color:#4a8a7a">A lovely adventure today.<br>Time to rest now ⭐</div>
+          <div class="calm-card">
+            <span class="cc-icon">🌟</span>
+            <div class="cc-text">You earned <strong style="color:#ffd166">🌟 12 stars</strong> today.<br>Your quest is saved and ready for next time.</div>
+          </div>
+          <div class="action-cards">
+            <div class="ac" style="background:#0a2a1a;border-color:rgba(88,232,193,.3)">
+              <span class="ac-icon">🏠</span>
+              <div class="ac-text">
+                <div class="ac-title" style="color:#58e8c1">Done for tonight</div>
+                <div class="ac-sub" style="color:#2a6a5a">Sleep well! See you tomorrow 🌙</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#1a4a3a;font-weight:700">Tap anywhere to close</div>
+        </div>
+      </div>
+      <div class="phone-label">Low-stimulation — bedtime variant</div>
+    </div>
+    <!-- Low stim mid-session exit -->
+    <div>
+      <div class="phone">
+        <div class="play-bg" style="background:#0d1f1a">
+          <div class="play-bg-bar">
+            <div class="pbg-fill" style="background:#0a2a1a"><div class="pbg-progress" style="background:#58e8c1;width:45%"></div></div>
+          </div>
+        </div>
+        <div class="ov ov-calm">
+          <div class="hero-emoji float" style="font-size:64px">✨</div>
+          <div class="hero-title" style="color:#58e8c1;font-size:22px">Good stopping point</div>
+          <div class="hero-sub" style="color:#4a8a7a">Your progress is saved.<br>Come back any time to continue.</div>
+          <div class="tomorrow-card" style="background:rgba(88,232,193,.04);border-color:rgba(88,232,193,.15)">
+            <div class="tc-label">Saved here</div>
+            <div class="tc-title">🌙 The Counting Cavern · Level 3</div>
+            <div class="tc-sub">45% complete</div>
+            <div class="tc-progress"><div class="tc-fill" style="width:45%"></div></div>
+          </div>
+          <div class="action-cards">
+            <div class="ac" style="background:#0a2a1a;border-color:rgba(88,232,193,.3)">
+              <span class="ac-icon">🏠</span>
+              <div class="ac-text">
+                <div class="ac-title" style="color:#58e8c1">Back to home</div>
+                <div class="ac-sub" style="color:#2a6a5a">Quest saved automatically</div>
+              </div>
+            </div>
+            <div class="ac secondary" style="background:rgba(88,232,193,.04);border-color:rgba(88,232,193,.1)">
+              <span class="ac-icon">▶</span>
+              <div class="ac-text">
+                <div class="ac-title" style="color:#4a8a7a">Keep playing</div>
+                <div class="ac-sub" style="color:#2a5a4a">A few more minutes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Low-stimulation — mid-session exit</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

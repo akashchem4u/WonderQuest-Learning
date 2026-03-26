@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-session-complete-mobile-v3 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-session-complete-mobile-v3.html    ║
+     ║                                                              ║
+     ║  Session complete screen (MOBILE layout, phone frame).       ║
+     ║  Single-column scroll, no side-by-side grid.                 ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Normal          : standard mobile session end       ║
+     ║  Tab 2 — Perfect         : gold segs + bonus stars           ║
+     ║  Tab 3 — Band Variants   : Pre-K/G2-3/G4-5 color themes      ║
+     ║  Tab 4 — Spec            : layout rules, differences from DT  ║
+     ║                                                              ║
+     ║  MOBILE DIFFERENCES FROM DESKTOP                             ║
+     ║  • Phone frame 390px / 700px                                 ║
+     ║  • Single column, no right summary panel                     ║
+     ║  • Stats shown as horizontal scrollable chips (not list)     ║
+     ║  • Hero headline smaller (1.8rem not 2.4rem)                 ║
+     ║  • Coach row below stats, not in side panel                  ║
+     ║  • CTAs: full-width primary + smaller secondary below        ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .phone-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 28px 20px 28px; gap: 14px; overflow: hidden;
+  }
+
+  /* Confetti */
+  .confetti-field { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+  .c-dot { position: absolute; border-radius: 50%; animation: c-fall linear infinite; }
+  @keyframes c-fall {
+    0%   { transform: translateY(-10px) rotate(0); opacity: 0.9; }
+    100% { transform: translateY(700px) rotate(720deg); opacity: 0; }
+  }
+
+  /* Content layer */
+  .sc-content { display: flex; flex-direction: column; gap: 14px; flex: 1; position: relative; z-index: 2; }
+
+  /* Band chip */
+  .sc-band-chip {
+    font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    border-radius: 16px; padding: 3px 10px; background: #221960; color: #9b72ff; border: 1px solid #9b72ff44;
+    align-self: flex-start;
+  }
+
+  /* Headline */
+  .sc-headline { font-size: 1.8rem; font-weight: 900; line-height: 1.2; color: #fff; }
+  .sc-sub { font-size: 0.88rem; font-weight: 700; color: #b0a0e0; line-height: 1.5; }
+
+  /* Star count */
+  .sc-star-row { display: flex; align-items: center; gap: 10px; }
+  .sc-star-emoji { font-size: 2.4rem; }
+  .sc-star-count { font-size: 2.2rem; font-weight: 900; color: #ffd166; line-height: 1; }
+  .sc-star-label { font-size: 0.78rem; font-weight: 700; color: #9080c0; }
+
+  /* Progress segs */
+  .sc-segs { display: flex; gap: 4px; }
+  .sc-seg { flex: 1; height: 7px; border-radius: 3.5px; }
+  .sc-seg.done { background: #9b72ff; }
+  .sc-seg.done.gold { background: #ffd166; }
+
+  /* Stat chips — horizontal scroll */
+  .sc-stat-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .sc-stat-chips::-webkit-scrollbar { display: none; }
+  .sc-stat-chip {
+    flex-shrink: 0; background: #1a1440; border: 1.5px solid #2a2060; border-radius: 12px;
+    padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 80px;
+  }
+  .sc-chip-val { font-size: 1.1rem; font-weight: 900; color: #fff; }
+  .sc-chip-label { font-size: 0.65rem; font-weight: 700; color: #9080c0; }
+
+  /* Coach row */
+  .sc-coach {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #1a1440; border: 1.5px solid #9b72ff33; border-radius: 12px; padding: 11px 13px;
+    flex-shrink: 0;
+  }
+  .sc-coach-avatar { font-size: 1.4rem; flex-shrink: 0; }
+  .sc-coach-text { font-size: 0.8rem; font-weight: 700; color: #c8bef0; line-height: 1.4; }
+  .sc-coach-name { font-size: 0.66rem; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+
+  /* CTAs */
+  .sc-cta-primary {
+    width: 100%; height: 54px; border-radius: 27px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sc-cta-secondary {
+    width: 100%; height: 46px; border-radius: 23px;
+    background: transparent; border: 1.5px solid #2a1f60; color: #9080c0;
+    font-size: 0.88rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sc-cta-row { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; margin-top: auto; }
+
+  /* Perfect badge */
+  .perfect-badge {
+    background: linear-gradient(135deg, #3a2000, #1a1000); border: 2px solid #ffd166;
+    border-radius: 12px; padding: 9px 14px;
+    display: flex; align-items: center; gap: 9px; box-shadow: 0 0 12px #ffd16633;
+    flex-shrink: 0;
+  }
+  .perfect-icon { font-size: 1.5rem; }
+  .perfect-text { font-size: 0.82rem; font-weight: 900; color: #ffe08a; }
+  .perfect-text span { color: #fff; display: block; font-size: 0.72rem; font-weight: 700; }
+
+  /* Band chip variants */
+  .chip-gold  { background: #2a1800; color: #ffd166; border-color: #ffd16644; }
+  .chip-mint  { background: #0d2018; color: #58e8c1; border-color: #58e8c144; }
+  .chip-coral { background: #1e0e08; color: #ff7b6b; border-color: #ff7b6b44; }
+
+  /* Dual phones for band variants */
+  .dual-wrap { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .phone-wrap .phone { width: 310px; height: 560px; border-radius: 32px; }
+  .phone-label { font-size: 0.76rem; font-weight: 700; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-session-complete-mobile-v3 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Normal</button>
+  <button class="tab-btn" onclick="showTab('t2')">Perfect</button>
+  <button class="tab-btn" onclick="showTab('t3')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Normal ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Normal — Single-Column Mobile (K-1 Violet)</h4>
+    Band chip + headline + sub + star row + segs + stat chips (horizontal scroll) + coach + CTAs.
+    Stats as horizontal-scroll chips (not vertical list like desktop).
+    CTA: full-width primary + ghost secondary below.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="sc-content">
+        <div class="sc-band-chip">K-1 · Beginning Sounds</div>
+        <div class="sc-headline">Session<br>Complete! 🎉</div>
+        <div class="sc-sub">You finished all 5 questions — great work!</div>
+        <div class="sc-star-row">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count">7</div>
+            <div class="sc-star-label">Stars today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div>
+        </div>
+        <div class="sc-stat-chips">
+          <div class="sc-stat-chip"><div class="sc-chip-val">5/5</div><div class="sc-chip-label">Questions</div></div>
+          <div class="sc-stat-chip"><div class="sc-chip-val" style="color:#ffd166;">+7 ⭐</div><div class="sc-chip-label">Stars</div></div>
+          <div class="sc-stat-chip"><div class="sc-chip-val" style="color:#9b72ff;">+55</div><div class="sc-chip-label">XP</div></div>
+          <div class="sc-stat-chip"><div class="sc-chip-val">3 🔥</div><div class="sc-chip-label">Streak</div></div>
+        </div>
+        <div class="sc-coach">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text">
+            <div class="sc-coach-name">Coach Leo</div>
+            You're getting really good at beginning sounds! Keep it up tomorrow!
+          </div>
+        </div>
+      </div>
+      <div class="sc-cta-row">
+        <button class="sc-cta-primary">Continue →</button>
+        <button class="sc-cta-secondary">Play Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Perfect ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Perfect — Gold Segs, Perfect Badge</h4>
+    Gold "Perfect!" badge above headline. Segs fill gold.
+    Confetti particles. Perfect bonus chip (+3 ⭐) in stat chips row.
+    Primary CTA gold gradient.
+  </div>
+  <div class="phone">
+    <div class="confetti-field">
+      <div class="c-dot" style="width:5px;height:5px;background:#ffd166;left:8%;animation-duration:2.2s;animation-delay:0s;"></div>
+      <div class="c-dot" style="width:4px;height:4px;background:#9b72ff;left:22%;animation-duration:2.6s;animation-delay:0.3s;"></div>
+      <div class="c-dot" style="width:6px;height:4px;border-radius:2px;background:#58e8c1;left:40%;animation-duration:2.0s;animation-delay:0.1s;"></div>
+      <div class="c-dot" style="width:4px;height:4px;background:#ff7b6b;left:60%;animation-duration:2.4s;animation-delay:0.5s;"></div>
+      <div class="c-dot" style="width:5px;height:5px;background:#ffd166;left:78%;animation-duration:2.1s;animation-delay:0.2s;"></div>
+      <div class="c-dot" style="width:4px;height:4px;background:#9b72ff;left:90%;animation-duration:2.8s;animation-delay:0.7s;"></div>
+    </div>
+    <div class="phone-inner">
+      <div class="sc-content">
+        <div class="perfect-badge">
+          <div class="perfect-icon">🏆</div>
+          <div class="perfect-text">Perfect Session!<span>Every question right!</span></div>
+        </div>
+        <div class="sc-headline" style="color:#ffd166;">Session<br>Complete! 🌟</div>
+        <div class="sc-star-row">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count" style="color:#ffd166;">10</div>
+            <div class="sc-star-label">Stars today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+          <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+          <div class="sc-seg done gold"></div>
+        </div>
+        <div class="sc-stat-chips">
+          <div class="sc-stat-chip"><div class="sc-chip-val">5/5</div><div class="sc-chip-label">Questions</div></div>
+          <div class="sc-stat-chip"><div class="sc-chip-val" style="color:#ffd166;">+10 ⭐</div><div class="sc-chip-label">Stars</div></div>
+          <div class="sc-stat-chip" style="border-color:#ffd16655;background:#2a1800;"><div class="sc-chip-val" style="color:#ffd166;">+3 ⭐</div><div class="sc-chip-label" style="color:#ffe08a;">Perfect!</div></div>
+          <div class="sc-stat-chip"><div class="sc-chip-val" style="color:#9b72ff;">+80</div><div class="sc-chip-label">XP</div></div>
+        </div>
+        <div class="sc-coach" style="background:#2a1800;border-color:#ffd16633;">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text" style="color:#ffe8a0;">
+            <div class="sc-coach-name" style="color:#ffd166;">Coach Leo</div>
+            PERFECT! You got every one right — you're on 🔥 today!
+          </div>
+        </div>
+      </div>
+      <div class="sc-cta-row">
+        <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a0c00;">Continue →</button>
+        <button class="sc-cta-secondary">Play Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Band Variants ── -->
+<div class="screen" id="t3">
+  <div class="anno" style="max-width:760px;">
+    <h4>Band Variants — Pre-K Gold · G2-3 Mint · G4-5 Coral</h4>
+    Same single-column layout. Only band chip color, seg fill, and star chip accent change.
+    Coach message differs per band. CTA gradient uses band color.
+  </div>
+  <div class="dual-wrap">
+
+    <!-- Pre-K Gold -->
+    <div class="phone-wrap">
+      <div class="phone-label" style="color:#ffd166;">Pre-K · Gold</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="sc-content">
+            <div class="sc-band-chip chip-gold">Pre-K · Shapes</div>
+            <div class="sc-headline">Session<br>Complete! 🎉</div>
+            <div class="sc-star-row">
+              <div class="sc-star-emoji">⭐</div>
+              <div><div class="sc-star-count" style="color:#ffd166;">3</div><div class="sc-star-label">Stars today</div></div>
+            </div>
+            <div class="sc-segs">
+              <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+              <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+              <div class="sc-seg done gold"></div>
+            </div>
+            <div class="sc-stat-chips">
+              <div class="sc-stat-chip" style="background:#1e1200;border-color:#ffd16644;"><div class="sc-chip-val">5/5</div><div class="sc-chip-label">Questions</div></div>
+              <div class="sc-stat-chip" style="background:#1e1200;border-color:#ffd16644;"><div class="sc-chip-val" style="color:#ffd166;">+3 ⭐</div><div class="sc-chip-label">Stars</div></div>
+            </div>
+            <div class="sc-coach" style="background:#1e1200;border-color:#ffd16633;">
+              <div class="sc-coach-avatar">🦁</div>
+              <div class="sc-coach-text" style="color:#ffe8a0;"><div class="sc-coach-name" style="color:#ffd166;">Coach Leo</div>You found all the shapes — amazing!</div>
+            </div>
+          </div>
+          <div class="sc-cta-row">
+            <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a0c00;">Continue →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- G2-3 Mint -->
+    <div class="phone-wrap">
+      <div class="phone-label" style="color:#58e8c1;">G2-3 · Mint</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="sc-content">
+            <div class="sc-band-chip chip-mint">G2-3 · Multiplication</div>
+            <div class="sc-headline">Session<br>Complete! 🎉</div>
+            <div class="sc-star-row">
+              <div class="sc-star-emoji">⭐</div>
+              <div><div class="sc-star-count" style="color:#58e8c1;">12</div><div class="sc-star-label">Stars today</div></div>
+            </div>
+            <div class="sc-segs">
+              <div class="sc-seg done" style="background:#58e8c1;"></div>
+              <div class="sc-seg done" style="background:#58e8c1;"></div>
+              <div class="sc-seg done" style="background:#58e8c1;"></div>
+              <div class="sc-seg done" style="background:#58e8c1;"></div>
+              <div class="sc-seg done" style="background:#58e8c1;"></div>
+            </div>
+            <div class="sc-stat-chips">
+              <div class="sc-stat-chip" style="background:#0d2018;border-color:#58e8c144;"><div class="sc-chip-val">5/5</div><div class="sc-chip-label">Questions</div></div>
+              <div class="sc-stat-chip" style="background:#0d2018;border-color:#58e8c144;"><div class="sc-chip-val" style="color:#58e8c1;">+12 ⭐</div><div class="sc-chip-label">Stars</div></div>
+              <div class="sc-stat-chip" style="background:#0d2018;border-color:#58e8c144;"><div class="sc-chip-val" style="color:#9b72ff;">+70</div><div class="sc-chip-label">XP</div></div>
+            </div>
+            <div class="sc-coach" style="background:#0d2018;border-color:#58e8c133;">
+              <div class="sc-coach-avatar">🦁</div>
+              <div class="sc-coach-text" style="color:#a0e8d8;"><div class="sc-coach-name" style="color:#58e8c1;">Coach Leo</div>Skip-counting is getting easier for you!</div>
+            </div>
+          </div>
+          <div class="sc-cta-row">
+            <button class="sc-cta-primary" style="background:linear-gradient(135deg,#58e8c1,#30b090);color:#051a14;">Continue →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- G4-5 Coral -->
+    <div class="phone-wrap">
+      <div class="phone-label" style="color:#ff7b6b;">G4-5 · Coral</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="sc-content">
+            <div class="sc-band-chip chip-coral">G4-5 · Inference</div>
+            <div class="sc-headline">Session<br>Complete! 🎉</div>
+            <div class="sc-star-row">
+              <div class="sc-star-emoji">⭐</div>
+              <div><div class="sc-star-count" style="color:#ff7b6b;">19</div><div class="sc-star-label">Stars today</div></div>
+            </div>
+            <div class="sc-segs">
+              <div class="sc-seg done" style="background:#ff7b6b;"></div>
+              <div class="sc-seg done" style="background:#ff7b6b;"></div>
+              <div class="sc-seg done" style="background:#ff7b6b;"></div>
+              <div class="sc-seg done" style="background:#ff7b6b;"></div>
+              <div class="sc-seg done" style="background:#ff7b6b;"></div>
+            </div>
+            <div class="sc-stat-chips">
+              <div class="sc-stat-chip" style="background:#1e0e08;border-color:#ff7b6b44;"><div class="sc-chip-val">5/5</div><div class="sc-chip-label">Questions</div></div>
+              <div class="sc-stat-chip" style="background:#1e0e08;border-color:#ff7b6b44;"><div class="sc-chip-val" style="color:#ff7b6b;">+19 ⭐</div><div class="sc-chip-label">Stars</div></div>
+              <div class="sc-stat-chip" style="background:#1e0e08;border-color:#ff7b6b44;"><div class="sc-chip-val">5 🔥</div><div class="sc-chip-label">Streak</div></div>
+            </div>
+            <div class="sc-coach" style="background:#1e0e08;border-color:#ff7b6b33;">
+              <div class="sc-coach-avatar">🦁</div>
+              <div class="sc-coach-text" style="color:#ffa090;"><div class="sc-coach-name" style="color:#ff7b6b;">Coach Leo</div>Your inference skills are getting sharp!</div>
+            </div>
+          </div>
+          <div class="sc-cta-row">
+            <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ff7b6b,#d04a38);color:#fff;">Continue →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Mobile vs Desktop Differences</h4>
+      <ul>
+        <li>Mobile: single column; Desktop: 2-col grid</li>
+        <li>Mobile headline: 1.8rem; Desktop: 2.4rem</li>
+        <li>Mobile stats: horizontal-scroll chips; Desktop: vertical list</li>
+        <li>Mobile CTAs: full-width stacked; Desktop: side-by-side row</li>
+        <li>Mobile segs: 7px; Desktop: 8px</li>
+        <li>Mobile phone frame: 390×700px; Desktop: max-width 960px</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Stat Chips</h4>
+      <ul>
+        <li>Horizontal scroll row: <code>overflow-x: auto; scrollbar-width: none</code></li>
+        <li>Each chip: <code>flex-shrink: 0; min-width: 80px</code></li>
+        <li>Val: 1.1rem Nunito 900; Label: 0.65rem</li>
+        <li>Perfect bonus chip: gold bg tint + gold val</li>
+        <li class="dont">❌ Never show wrong-answer chip</li>
+        <li class="dont">❌ Never show accuracy % chip</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Touch Targets</h4>
+      <ul>
+        <li>Primary CTA: 54px height (safe for thumb tap)</li>
+        <li>Secondary CTA: 46px (smaller but still ≥44px)</li>
+        <li><code>-webkit-tap-highlight-color: transparent</code> on both</li>
+        <li>Gap between primary and secondary: 8px</li>
+        <li>CTAs always at bottom of phone inner — margin-top auto</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star-Safe</h4>
+      <ul>
+        <li>Same star-safe rules as desktop version</li>
+        <li>"Play Again" → same star-safe overlay (see desktop spec)</li>
+        <li>Star count chip always shows positive delta (+N ⭐)</li>
+        <li class="dont">❌ Never negative delta</li>
+        <li class="dont">❌ Never accuracy %</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

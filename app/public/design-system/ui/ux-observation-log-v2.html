@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UX Observation Log — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #e8edf3; min-height: 100vh; }
+  .tab-bar { display: flex; background: #161e28; border-bottom: 1px solid #1e2d3d; }
+  .tab-btn { flex: 1; padding: 14px 10px; background: none; border: none; color: #6a8aa0; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .page-title { font-size: 22px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #6a8aa0; }
+  .export-btn { display: flex; align-items: center; gap: 8px; background: rgba(88,200,240,0.1); border: 1.5px solid rgba(88,200,240,0.3); border-radius: 10px; padding: 10px 18px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; color: #58c8f0; cursor: pointer; transition: all 0.2s; }
+  .export-btn:hover { background: rgba(88,200,240,0.18); }
+
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; }
+  .hint-label { font-size: 11px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .hint-box p { font-size: 13px; color: #e8c84a; line-height: 1.5; }
+
+  /* Stats strip */
+  .stats-strip { display: flex; gap: 16px; margin-bottom: 24px; }
+  .stat-pill { background: #161e28; border: 1px solid #1e2d3d; border-radius: 10px; padding: 14px 20px; flex: 1; }
+  .stat-pill-val { font-size: 24px; font-weight: 700; color: #58c8f0; }
+  .stat-pill-label { font-size: 11px; color: #6a8aa0; margin-top: 3px; }
+
+  /* Log table */
+  .log-table { width: 100%; border-collapse: collapse; }
+  .log-table th { text-align: left; font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; padding: 12px 16px; border-bottom: 1px solid #1e2d3d; background: #161e28; }
+  .log-table td { padding: 14px 16px; font-size: 13px; color: #c8d8e8; border-bottom: 1px solid #161e28; vertical-align: top; }
+  .log-table tr:hover td { background: rgba(88,200,240,0.03); }
+  .ts { font-size: 11px; color: #3a5568; font-family: 'Courier New', monospace; white-space: nowrap; }
+  .pid { font-size: 12px; font-weight: 600; color: #58c8f0; }
+  .obs-text-cell { max-width: 360px; line-height: 1.5; }
+  .tag-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag-chip { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+  .chip-friction { background: rgba(255,94,94,0.12); color: #ff5e5e; }
+  .chip-delight { background: rgba(255,209,102,0.12); color: #ffd166; }
+  .chip-confusion { background: rgba(255,140,66,0.12); color: #ff8c42; }
+  .chip-success { background: rgba(108,201,108,0.12); color: #6cc96c; }
+
+  /* Add observation form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .form-field label { display: block; font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
+  input[type="text"], select, textarea {
+    width: 100%; background: #161e28; border: 1.5px solid #1e2d3d; border-radius: 10px;
+    padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 13px; color: #e8edf3;
+    outline: none; transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus { border-color: #58c8f0; }
+  select option { background: #161e28; }
+  textarea { resize: vertical; min-height: 90px; }
+  ::placeholder { color: #3a5568; }
+  .full-width { grid-column: 1 / -1; }
+  .tag-toggle-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .tag-toggle { padding: 8px 16px; border-radius: 20px; border: 1.5px solid #1e2d3d; background: #161e28; font-size: 12px; font-weight: 600; color: #6a8aa0; cursor: pointer; transition: all 0.2s; }
+  .tag-toggle.t-friction { border-color: #ff5e5e; color: #ff5e5e; background: rgba(255,94,94,0.08); }
+  .tag-toggle.t-delight { border-color: #ffd166; color: #ffd166; background: rgba(255,209,102,0.08); }
+  .tag-toggle.t-confusion { border-color: #ff8c42; color: #ff8c42; background: rgba(255,140,66,0.08); }
+  .tag-toggle.t-success { border-color: #6cc96c; color: #6cc96c; background: rgba(108,201,108,0.08); }
+  .add-btn { background: linear-gradient(135deg, #58c8f0, #3aa0c8); border: none; border-radius: 12px; padding: 14px 32px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #10161e; cursor: pointer; }
+
+  /* Tag filter */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-chip { padding: 9px 18px; border-radius: 20px; border: 1.5px solid #1e2d3d; background: none; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; color: #6a8aa0; cursor: pointer; transition: all 0.2s; }
+  .filter-chip.active { border-color: #58c8f0; color: #58c8f0; background: rgba(88,200,240,0.1); }
+  .filter-chip.f-friction.active { border-color: #ff5e5e; color: #ff5e5e; background: rgba(255,94,94,0.08); }
+  .filter-chip.f-delight.active { border-color: #ffd166; color: #ffd166; background: rgba(255,209,102,0.08); }
+  .filter-chip.f-confusion.active { border-color: #ff8c42; color: #ff8c42; background: rgba(255,140,66,0.08); }
+  .filter-chip.f-success.active { border-color: #6cc96c; color: #6cc96c; background: rgba(108,201,108,0.08); }
+  .filtered-count { font-size: 13px; color: #6a8aa0; margin-bottom: 16px; }
+
+  /* Export */
+  .export-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; padding: 28px; margin-bottom: 16px; }
+  .export-card h3 { font-size: 16px; font-weight: 600; color: #e8edf3; margin-bottom: 8px; }
+  .export-card p { font-size: 13px; color: #6a8aa0; line-height: 1.6; margin-bottom: 20px; }
+  .export-options { display: flex; flex-direction: column; gap: 12px; }
+  .export-option { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #10161e; border: 1px solid #1e2d3d; border-radius: 10px; }
+  .export-option-info { }
+  .export-option-title { font-size: 14px; font-weight: 600; color: #e8edf3; margin-bottom: 3px; }
+  .export-option-sub { font-size: 12px; color: #6a8aa0; }
+  .dl-btn { background: rgba(88,200,240,0.1); border: 1px solid rgba(88,200,240,0.3); border-radius: 8px; padding: 9px 18px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; color: #58c8f0; cursor: pointer; white-space: nowrap; }
+
+  /* Spec */
+  .spec-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 14px; }
+  .spec-block h3 { font-size: 13px; font-weight: 600; color: #58c8f0; margin-bottom: 10px; }
+  .spec-block p, .spec-block li { font-size: 13px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 18px; }
+
+  .log-wrapper { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('live')">Live Log</button>
+  <button class="tab-btn" onclick="show('add')">Add Observation</button>
+  <button class="tab-btn" onclick="show('filter')">Tag Filter</button>
+  <button class="tab-btn" onclick="show('export')">Export</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- LIVE LOG -->
+<div id="live" class="tab-panel active">
+  <div class="container">
+    <div class="header-row">
+      <div>
+        <div class="page-title">UX Observation Log</div>
+        <div class="page-sub">Session: WQ-BETA-2026-W12 · Moderator: R. Kwan · 14 entries</div>
+      </div>
+      <button class="export-btn" onclick="show('export')">⬇ Export CSV</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-pill">
+        <div class="stat-pill-val">14</div>
+        <div class="stat-pill-label">Total Observations</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-val" style="color:#ff5e5e">6</div>
+        <div class="stat-pill-label">Friction</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-val" style="color:#ffd166">4</div>
+        <div class="stat-pill-label">Delight</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-val" style="color:#ff8c42">3</div>
+        <div class="stat-pill-label">Confusion</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-val" style="color:#6cc96c">5</div>
+        <div class="stat-pill-label">Success</div>
+      </div>
+    </div>
+
+    <div class="log-wrapper">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Participant</th>
+            <th>Observation</th>
+            <th>Tags</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="ts">14:38:22</div></td>
+            <td><div class="pid">P-07</div></td>
+            <td class="obs-text-cell">Child immediately said "I got a star!" and tried to replay badge animation. Tapped badge icon 4 times. No repeat animation triggered — confusion visible.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-delight">Delight</span><span class="tag-chip chip-confusion">Confusion</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">14:31:09</div></td>
+            <td><div class="pid">P-07</div></td>
+            <td class="obs-text-cell">Navigated from Home → Badge Room in 2 taps without prompting. Strong wayfinding.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-success">Success</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">14:19:45</div></td>
+            <td><div class="pid">P-06</div></td>
+            <td class="obs-text-cell">Streak saver overlay appeared but participant immediately dismissed it without reading. Said "I didn't know what that was."</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-friction">Friction</span><span class="tag-chip chip-confusion">Confusion</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">14:08:33</div></td>
+            <td><div class="pid">P-06</div></td>
+            <td class="obs-text-cell">Voice guide volume was significantly louder than the question audio. Participant visibly startled. Adjusted device volume manually.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-friction">Friction</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">13:54:17</div></td>
+            <td><div class="pid">P-05</div></td>
+            <td class="obs-text-cell">Completed 5-question set with zero hesitation. Celebration screen prompted a verbal "yes!" — strong emotional reward signal.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-success">Success</span><span class="tag-chip chip-delight">Delight</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">13:41:02</div></td>
+            <td><div class="pid">P-05</div></td>
+            <td class="obs-text-cell">World map background rotation confused participant — thought they navigated to a different section. Took 30 sec to re-orient.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-confusion">Confusion</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">13:28:50</div></td>
+            <td><div class="pid">P-04</div></td>
+            <td class="obs-text-cell">Parent mode: weekly report scanned in ~20 seconds. Participant correctly identified child's weakest skill without any prompting.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-success">Success</span></div></td>
+          </tr>
+          <tr>
+            <td><div class="ts">13:15:38</div></td>
+            <td><div class="pid">P-04</div></td>
+            <td class="obs-text-cell">Offline placeholder appeared mid-session (wifi drop). Participant tried tapping "retry" 6 times in 10 seconds. No feedback between taps — felt broken.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-friction">Friction</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ADD OBSERVATION -->
+<div id="add" class="tab-panel">
+  <div class="container" style="max-width:760px">
+    <div class="page-title">Add Observation</div>
+    <div class="page-sub" style="margin-bottom:20px">Session WQ-BETA-2026-W12 · Real-time entry</div>
+    <div class="hint-box">
+      <div class="hint-label">Best Practice</div>
+      <p>Log observations immediately — within 60 seconds of occurrence. Use verbatim quotes where possible. Avoid interpretation; record what you saw, not what it means.</p>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Timestamp (auto)</label>
+        <input type="text" value="14:42:07" readonly style="opacity:0.6">
+      </div>
+      <div class="form-field">
+        <label>Participant ID</label>
+        <input type="text" placeholder="e.g. P-08">
+      </div>
+      <div class="form-field full-width">
+        <label>Observation</label>
+        <textarea placeholder="Describe exactly what you observed. Use participant's own words in quotes when relevant. Avoid evaluative language — 'participant tapped X 4 times' not 'participant was confused.'"></textarea>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px">Tags</div>
+    <div class="tag-toggle-row">
+      <div class="tag-toggle" onclick="toggleTag(this,'t-friction')">Friction</div>
+      <div class="tag-toggle" onclick="toggleTag(this,'t-delight')">Delight</div>
+      <div class="tag-toggle" onclick="toggleTag(this,'t-confusion')">Confusion</div>
+      <div class="tag-toggle" onclick="toggleTag(this,'t-success')">Success</div>
+    </div>
+
+    <button class="add-btn" onclick="show('live')">Add to Log</button>
+  </div>
+</div>
+
+<!-- TAG FILTER -->
+<div id="filter" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Tag Filter</div>
+    <div class="page-sub" style="margin-bottom:20px">Filter the observation log by tag type</div>
+
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="setFilter(this,'all')">All (14)</button>
+      <button class="filter-chip f-friction" onclick="setFilter(this,'friction')">Friction (6)</button>
+      <button class="filter-chip f-delight" onclick="setFilter(this,'delight')">Delight (4)</button>
+      <button class="filter-chip f-confusion" onclick="setFilter(this,'confusion')">Confusion (3)</button>
+      <button class="filter-chip f-success" onclick="setFilter(this,'success')">Success (5)</button>
+    </div>
+
+    <div class="filtered-count" id="filter-count">Showing all 14 observations</div>
+
+    <div class="log-wrapper">
+      <table class="log-table">
+        <thead>
+          <tr><th>Timestamp</th><th>Participant</th><th>Observation</th><th>Tags</th></tr>
+        </thead>
+        <tbody>
+          <tr data-tags="delight confusion">
+            <td><div class="ts">14:38:22</div></td>
+            <td><div class="pid">P-07</div></td>
+            <td class="obs-text-cell">Child tried to replay badge animation. Tapped badge icon 4 times — no repeat triggered.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-delight">Delight</span><span class="tag-chip chip-confusion">Confusion</span></div></td>
+          </tr>
+          <tr data-tags="friction confusion">
+            <td><div class="ts">14:19:45</div></td>
+            <td><div class="pid">P-06</div></td>
+            <td class="obs-text-cell">Streak saver dismissed immediately. "I didn't know what that was."</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-friction">Friction</span><span class="tag-chip chip-confusion">Confusion</span></div></td>
+          </tr>
+          <tr data-tags="friction">
+            <td><div class="ts">14:08:33</div></td>
+            <td><div class="pid">P-06</div></td>
+            <td class="obs-text-cell">Voice guide volume too loud. Participant startled. Manually adjusted device volume.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-friction">Friction</span></div></td>
+          </tr>
+          <tr data-tags="success delight">
+            <td><div class="ts">13:54:17</div></td>
+            <td><div class="pid">P-05</div></td>
+            <td class="obs-text-cell">Completed set with zero hesitation. "Yes!" verbal reaction at celebration screen.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-success">Success</span><span class="tag-chip chip-delight">Delight</span></div></td>
+          </tr>
+          <tr data-tags="friction">
+            <td><div class="ts">13:15:38</div></td>
+            <td><div class="pid">P-04</div></td>
+            <td class="obs-text-cell">Offline placeholder — retry tapped 6 times in 10 sec with no feedback between taps.</td>
+            <td><div class="tag-chips"><span class="tag-chip chip-friction">Friction</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div id="export" class="tab-panel">
+  <div class="container" style="max-width:720px">
+    <div class="page-title">Export Log</div>
+    <div class="page-sub" style="margin-bottom:24px">Session WQ-BETA-2026-W12 · 14 observations</div>
+
+    <div class="export-card">
+      <h3>Export Options</h3>
+      <p>Export your observation log for sharing with the research team, loading into analysis tools, or archiving session data.</p>
+      <div class="export-options">
+        <div class="export-option">
+          <div class="export-option-info">
+            <div class="export-option-title">Full Session CSV</div>
+            <div class="export-option-sub">All 14 observations with timestamps, participant IDs, text, and tags</div>
+          </div>
+          <button class="dl-btn">⬇ Download</button>
+        </div>
+        <div class="export-option">
+          <div class="export-option-info">
+            <div class="export-option-title">Friction Only CSV</div>
+            <div class="export-option-sub">6 friction-tagged observations — ready for issue triage</div>
+          </div>
+          <button class="dl-btn">⬇ Download</button>
+        </div>
+        <div class="export-option">
+          <div class="export-option-info">
+            <div class="export-option-title">Delight Highlights</div>
+            <div class="export-option-sub">4 delight moments — suitable for stakeholder summary</div>
+          </div>
+          <button class="dl-btn">⬇ Download</button>
+        </div>
+        <div class="export-option">
+          <div class="export-option-info">
+            <div class="export-option-title">Markdown Summary</div>
+            <div class="export-option-sub">Session summary formatted for Notion or GitHub</div>
+          </div>
+          <button class="dl-btn">⬇ Download</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Export Note</div>
+      <p>CSV exports include session metadata header. Participant IDs are anonymized by default — raw IDs available in the full export with researcher access level.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="container">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>ux-observation-log-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Researcher/moderator observation log tool. Running log with timestamps, participant IDs, observation text, tag chips, and export functionality.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #10161e · Accent: #58c8f0</li>
+        <li>Viewport: Desktop 900px+ · Hint box: #2a1f00 / #ffd166</li>
+        <li>Tags: Friction (#ff5e5e), Delight (#ffd166), Confusion (#ff8c42), Success (#6cc96c)</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Tabs</h3>
+      <ul>
+        <li>Live Log — running observation table with stats strip</li>
+        <li>Add Observation — form for real-time entry</li>
+        <li>Tag Filter — filter log by tag type</li>
+        <li>Export — CSV and Markdown export options</li>
+        <li>Spec — this document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['live','add','filter','export','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+  function toggleTag(el, cls) {
+    const classes = ['t-friction','t-delight','t-confusion','t-success'];
+    if (el.classList.contains(cls)) { classes.forEach(c => el.classList.remove(c)); }
+    else { classes.forEach(c => el.classList.remove(c)); el.classList.add(cls); }
+  }
+  function setFilter(el, type) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    const rows = document.querySelectorAll('#filter table tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const tags = row.getAttribute('data-tags') || '';
+      if (type === 'all' || tags.includes(type)) { row.style.display = ''; visible++; }
+      else { row.style.display = 'none'; }
+    });
+    const label = type === 'all' ? 'all 14' : visible + ' ' + type;
+    document.getElementById('filter-count').textContent = 'Showing ' + label + ' observation' + (visible !== 1 ? 's' : '');
+  }
+</script>
+</body>
+</html>

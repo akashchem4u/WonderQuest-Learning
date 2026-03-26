@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Question Browser Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;min-height:600px}
+.shell-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-right{display:flex;gap:8px;align-items:center}
+.sh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui}
+.sh-btn-pri{background:#50e890;color:#080c12}
+.sh-btn-sec{background:rgba(255,255,255,.07);color:#f0f6ff}
+
+/* Filter bar */
+.filter-bar{background:#080c12;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fb-group{display:flex;gap:4px;align-items:center}
+.fb-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-right:4px}
+.fb-chip{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.fc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.fb-search{background:#161c26;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:5px 12px;font-size:11px;color:#f0f6ff;font-family:system-ui;outline:none;width:220px;margin-left:auto}
+.fb-count{font-size:10px;color:rgba(255,255,255,.25);font-weight:700}
+
+/* Two-pane layout */
+.browser-layout{display:grid;grid-template-columns:380px 1fr;flex:1;overflow:hidden}
+
+/* Question list pane */
+.q-list-pane{border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;display:flex;flex-direction:column}
+.q-list-pane::-webkit-scrollbar{width:4px}
+.q-list-pane::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+.q-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .12s;position:relative}
+.q-item:hover{background:rgba(255,255,255,.02)}
+.q-item.selected{background:rgba(80,232,144,.05);border-left:2px solid #50e890}
+.q-item.flagged{border-left:2px solid #f85149}
+.q-item.review{border-left:2px solid #f59e0b}
+.qi-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.qi-id{font-size:9px;font-weight:700;color:rgba(255,255,255,.25)}
+.qi-type{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+.qi-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:auto}
+.qs-live{background:rgba(80,232,144,.1);color:#50e890}
+.qs-review{background:rgba(245,158,11,.1);color:#f59e0b}
+.qs-blocked{background:rgba(248,81,73,.1);color:#f85149}
+.qi-text{font-size:11px;color:#f0f6ff;line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qi-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.qi-band{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.qb-p0{background:rgba(255,209,102,.1);color:#ffd166}
+.qb-p1{background:rgba(155,114,255,.1);color:#9b72ff}
+.qb-p2{background:rgba(88,232,193,.08);color:#58e8c1}
+.qb-p3{background:rgba(255,123,107,.1);color:#ff7b6b}
+.qi-subject{font-size:9px;color:rgba(255,255,255,.3)}
+.qi-sessions{font-size:9px;color:rgba(255,255,255,.25)}
+.qi-error{font-size:9px;font-weight:700;color:#f85149;margin-top:2px}
+.qi-warn{font-size:9px;font-weight:700;color:#f59e0b;margin-top:2px}
+
+/* Question detail pane */
+.q-detail-pane{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+.qdp-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.qdp-id{font-size:10px;font-weight:700;color:rgba(255,255,255,.3)}
+.qdp-question{font-size:15px;font-weight:700;color:#f0f6ff;line-height:1.4;flex:1}
+.qdp-actions{display:flex;gap:6px;flex-shrink:0}
+.qdp-act{font-size:10px;font-weight:700;padding:5px 10px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui}
+.qdp-edit{background:rgba(80,232,144,.12);color:#50e890}
+.qdp-block{background:rgba(248,81,73,.1);color:#f85149}
+.qdp-flag{background:rgba(245,158,11,.1);color:#f59e0b}
+
+/* Answer options */
+.answer-list{display:flex;flex-direction:column;gap:6px}
+.answer-opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06)}
+.answer-opt.correct{border-color:rgba(80,232,144,.3);background:rgba(80,232,144,.05)}
+.answer-opt.wrong-correct{border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.05)}
+.ao-letter{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)}
+.answer-opt.correct .ao-letter{background:rgba(80,232,144,.2);color:#50e890}
+.answer-opt.wrong-correct .ao-letter{background:rgba(248,81,73,.2);color:#f85149}
+.ao-text{font-size:12px;color:#f0f6ff;flex:1;line-height:1.4}
+.ao-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;margin-left:auto;flex-shrink:0}
+.ao-correct-tag{background:rgba(80,232,144,.15);color:#50e890}
+.ao-wrong-tag{background:rgba(248,81,73,.15);color:#f85149;animation:pulse .8s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.7}to{opacity:1}}
+
+/* Meta grid */
+.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.meta-cell{background:#161c26;border-radius:8px;padding:10px 12px;border:1px solid rgba(255,255,255,.04)}
+.mc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:4px}
+.mc-val{font-size:13px;font-weight:700;color:#f0f6ff}
+.mc-val.alert{color:#f85149}
+.mc-val.warn{color:#f59e0b}
+
+/* Error reports */
+.error-list{display:flex;flex-direction:column;gap:6px}
+.error-item{background:#161c26;border-radius:8px;padding:10px 12px;border:1px solid rgba(248,81,73,.15);display:flex;gap:10px}
+.ei-dot{width:6px;height:6px;border-radius:50%;background:#f85149;flex-shrink:0;margin-top:4px}
+.ei-body{flex:1}
+.ei-type{font-size:10px;font-weight:700;color:#f85149;margin-bottom:2px}
+.ei-text{font-size:11px;color:rgba(255,255,255,.6);line-height:1.4}
+.ei-meta{font-size:9px;color:rgba(255,255,255,.3);margin-top:3px}
+
+/* Skill linkage */
+.skill-link-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161c26;border-radius:8px;border:1px solid rgba(255,255,255,.05)}
+.slr-icon{font-size:14px}
+.slr-title{font-size:12px;font-weight:700;color:#f0f6ff;flex:1}
+.slr-id{font-size:10px;color:rgba(255,255,255,.3)}
+.slr-status{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px}
+
+/* Section header inside detail pane */
+.dp-section-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-question-browser-desktop-v3.html</strong><br>
+  Two-pane question browser for the content team. Left pane: scrollable question list with filter. Right pane: question detail with answer preview, stats, error reports, and skill linkage.<br>
+  <strong>Questions vs Skills:</strong> Each Skill (SK-XXXX) contains multiple Questions (QID-XXXX). A skill typically has 4–8 questions. The question browser shows individual questions, not skills.<br>
+  <strong>Flagged view:</strong> Questions with active error reports shown with red/amber left border. Wrong-answer-as-correct: the incorrectly marked answer is highlighted red in the answer preview.<br>
+  <strong>Actions per question:</strong> Edit (opens editor) · Flag · Block (marks parent skill as blocked if threshold reached) · Dismiss report.<br>
+  <strong>Privacy:</strong> Reporter shown as "Teacher, [School]" only. No individual teacher name. No student data.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('flagged')">Flagged Questions</button>
+  <button class="tab-btn" onclick="showTab('all')">All Questions</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Flagged View ───────────────────────────────────────── -->
+<div id="tab-flagged" class="screen active">
+  <p class="section-title">Question browser — flagged questions, selected item detail</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">❓ Question Browser</div>
+      <div class="sh-right">
+        <span class="fb-count">8 flagged · 284 total</span>
+        <button class="sh-btn sh-btn-sec">↓ Export</button>
+        <button class="sh-btn sh-btn-pri">+ New Question</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="fb-group">
+        <div class="fb-label">Status</div>
+        <button class="fb-chip fc-a">Flagged (8)</button>
+        <button class="fb-chip fc-i">Blocked</button>
+        <button class="fb-chip fc-i">All</button>
+      </div>
+      <div class="fb-group">
+        <div class="fb-label">Band</div>
+        <button class="fb-chip fc-a">All</button>
+        <button class="fb-chip fc-i" style="color:#ffd166">P0</button>
+        <button class="fb-chip fc-i" style="color:#9b72ff">P1</button>
+        <button class="fb-chip fc-i" style="color:#58e8c1">P2</button>
+        <button class="fb-chip fc-i" style="color:#ff7b6b">P3</button>
+      </div>
+      <div class="fb-group">
+        <div class="fb-label">Type</div>
+        <button class="fb-chip fc-a">All</button>
+        <button class="fb-chip fc-i">MCQ</button>
+        <button class="fb-chip fc-i">True/False</button>
+        <button class="fb-chip fc-i">Sort</button>
+      </div>
+      <input class="fb-search" placeholder="Search questions…" readonly>
+    </div>
+
+    <div class="browser-layout">
+      <!-- Left: Question list -->
+      <div class="q-list-pane">
+        <!-- Flagged items -->
+        <div class="q-item flagged selected">
+          <div class="qi-top">
+            <span class="qi-id">QID-3280</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-blocked">Blocked</span>
+          </div>
+          <div class="qi-text">Which fraction is equivalent to ¾? Select all that apply.</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p2">P2 G2–3</span>
+            <span class="qi-subject">Maths · Fractions</span>
+          </div>
+          <div class="qi-error">Wrong answer marked correct · 8 reports · SK-0284</div>
+        </div>
+        <div class="q-item flagged">
+          <div class="qi-top">
+            <span class="qi-id">QID-3285</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-blocked">Blocked</span>
+          </div>
+          <div class="qi-text">What is ⅔ + ⅙?</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p2">P2 G2–3</span>
+            <span class="qi-subject">Maths · Fractions</span>
+          </div>
+          <div class="qi-error">Wrong answer marked correct · 5 reports · SK-0284</div>
+        </div>
+        <div class="q-item flagged">
+          <div class="qi-top">
+            <span class="qi-id">QID-4012</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-blocked">Blocked</span>
+          </div>
+          <div class="qi-text">What is 17 ÷ 3? Write the quotient and remainder.</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p3">P3 G4–5</span>
+            <span class="qi-subject">Maths · Division</span>
+          </div>
+          <div class="qi-error">Asset 404 · img_div_rem_03.png missing · SK-0291</div>
+        </div>
+        <div class="q-item review">
+          <div class="qi-top">
+            <span class="qi-id">QID-2901</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-review">Review</span>
+          </div>
+          <div class="qi-text">How many thousands are in the number 4,352?</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p2">P2 G2–3</span>
+            <span class="qi-subject">Maths · Number Sense</span>
+          </div>
+          <div class="qi-warn">Skip rate 68% · Parent skill under review · SK-0318</div>
+        </div>
+        <div class="q-item review">
+          <div class="qi-top">
+            <span class="qi-id">QID-3110</span>
+            <span class="qi-type">True/False</span>
+            <span class="qi-status qs-review">Review</span>
+          </div>
+          <div class="qi-text">The author uses a metaphor in this paragraph. True or False?</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p3">P3 G4–5</span>
+            <span class="qi-subject">Literacy · Reading</span>
+          </div>
+          <div class="qi-warn">Abort rate 44% · SK-0325</div>
+        </div>
+        <div class="q-item review">
+          <div class="qi-top">
+            <span class="qi-id">QID-1840</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-review">Review</span>
+          </div>
+          <div class="qi-text">Which animal lives in a pond habitat?</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p0">P0 Pre-K</span>
+            <span class="qi-subject">Science · Biology</span>
+          </div>
+          <div class="qi-warn">2 wrong-answer reports · SK-0197</div>
+        </div>
+        <div class="q-item review">
+          <div class="qi-top">
+            <span class="qi-id">QID-2741</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-review">Review</span>
+          </div>
+          <div class="qi-text">Measure this line in centimetres.</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p1">P1 K–1</span>
+            <span class="qi-subject">Maths · Measurement</span>
+          </div>
+          <div class="qi-warn">Skip rate 62% · SK-0271</div>
+        </div>
+        <div class="q-item review">
+          <div class="qi-top">
+            <span class="qi-id">QID-2980</span>
+            <span class="qi-type">MCQ</span>
+            <span class="qi-status qs-live">Live</span>
+          </div>
+          <div class="qi-text">Nouns: Which word is a noun? "The cat sat on the mat."</div>
+          <div class="qi-meta">
+            <span class="qi-band qb-p1">P1 K–1</span>
+            <span class="qi-subject">Literacy · Grammar</span>
+          </div>
+          <div class="qi-error">1 wrong-answer report · Monitoring · SK-0302</div>
+        </div>
+      </div>
+
+      <!-- Right: Question detail -->
+      <div class="q-detail-pane">
+        <div class="qdp-hdr">
+          <div>
+            <div class="qdp-id">QID-3280 · SK-0284 · Fractions: Mixed Numbers · P2 G2–3</div>
+            <div class="qdp-question">Which fraction is equivalent to ¾? Select all that apply.</div>
+          </div>
+          <div class="qdp-actions">
+            <button class="qdp-act qdp-edit">✏️ Edit</button>
+            <button class="qdp-act qdp-flag">⚑ Flag</button>
+            <button class="qdp-act qdp-block">🔒 Block</button>
+          </div>
+        </div>
+
+        <!-- Answer options -->
+        <div>
+          <div class="dp-section-hdr" style="margin-bottom:8px">Answer Options</div>
+          <div class="answer-list">
+            <div class="answer-opt">
+              <div class="ao-letter">A</div>
+              <div class="ao-text">6/8</div>
+              <span class="ao-tag ao-correct-tag">✓ Correct</span>
+            </div>
+            <div class="answer-opt wrong-correct">
+              <div class="ao-letter">B</div>
+              <div class="ao-text">9/16 <span style="font-size:9px;color:rgba(255,255,255,.4)">(⅝ of 1.5 — incorrect calculation)</span></div>
+              <span class="ao-tag ao-wrong-tag">⚠ Wrong — marked correct</span>
+            </div>
+            <div class="answer-opt correct">
+              <div class="ao-letter">C</div>
+              <div class="ao-text">12/16</div>
+              <span class="ao-tag ao-correct-tag">✓ Correct</span>
+            </div>
+            <div class="answer-opt">
+              <div class="ao-letter">D</div>
+              <div class="ao-text">3/5</div>
+            </div>
+          </div>
+          <div style="background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.15);border-radius:7px;padding:8px 12px;margin-top:8px">
+            <div style="font-size:10px;font-weight:700;color:#f85149;margin-bottom:3px">⚠ Answer key error — Option B incorrectly marked as correct</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5)">Fix: UPDATE question_answers SET is_correct=false WHERE question_id=3280 AND answer_letter='B'. Applies to parent skill SK-0284. Requires redeploy + owner unblock confirmation.</div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div>
+          <div class="dp-section-hdr" style="margin-bottom:8px">Question Stats</div>
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="mc-label">Total Impressions</div>
+              <div class="mc-val">4,218</div>
+            </div>
+            <div class="meta-cell">
+              <div class="mc-label">Correct Rate</div>
+              <div class="mc-val warn">38%</div>
+            </div>
+            <div class="meta-cell">
+              <div class="mc-label">Skip Rate</div>
+              <div class="mc-val">14%</div>
+            </div>
+            <div class="meta-cell">
+              <div class="mc-label">Avg Time on Q</div>
+              <div class="mc-val">28s</div>
+            </div>
+            <div class="meta-cell">
+              <div class="mc-label">Error Reports</div>
+              <div class="mc-val alert">8 reports</div>
+            </div>
+            <div class="meta-cell">
+              <div class="mc-label">First Seen</div>
+              <div class="mc-val" style="font-size:11px">Mar 10, 2025</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error reports -->
+        <div>
+          <div class="dp-section-hdr" style="margin-bottom:8px">Error Reports (8)</div>
+          <div class="error-list">
+            <div class="error-item">
+              <div class="ei-dot"></div>
+              <div class="ei-body">
+                <div class="ei-type">Wrong answer marked as correct</div>
+                <div class="ei-text">"Option B (9/16) is shown as correct but that's wrong. My students are all getting this question 'right' with the wrong answer."</div>
+                <div class="ei-meta">Teacher, Riverside Elementary · Mar 23 · Session ID #928471</div>
+              </div>
+            </div>
+            <div class="error-item">
+              <div class="ei-dot"></div>
+              <div class="ei-body">
+                <div class="ei-type">Wrong answer marked as correct</div>
+                <div class="ei-text">"The answer key accepts 9/16 which is clearly not ¾. Several students flagged this to me."</div>
+                <div class="ei-meta">Teacher, Cedar Valley Prep · Mar 22</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);padding:6px 0">+ 6 more reports (all same issue: Option B wrongly accepted)</div>
+          </div>
+        </div>
+
+        <!-- Skill linkage -->
+        <div>
+          <div class="dp-section-hdr" style="margin-bottom:8px">Parent Skill</div>
+          <div class="skill-link-row">
+            <div class="slr-icon">🔒</div>
+            <div class="slr-title">Fractions: Mixed Numbers</div>
+            <div class="slr-id">SK-0284</div>
+            <span class="slr-status qs-blocked">Blocked</span>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:6px">This question is part of SK-0284 (8 questions total). Fixing this question's answer key and redeploying will allow the skill to be unblocked (pending curriculum review + owner confirmation).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── All Questions ──────────────────────────────────────── -->
+<div id="tab-all" class="screen">
+  <p class="section-title">Question browser — all questions, no filter (showing first page)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">❓ Question Browser</div>
+      <div class="sh-right">
+        <span class="fb-count">284 skills · ~1,820 questions total</span>
+        <button class="sh-btn sh-btn-sec">↓ Export</button>
+        <button class="sh-btn sh-btn-pri">+ New Question</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="fb-group">
+        <div class="fb-label">Status</div>
+        <button class="fb-chip fc-i">Flagged</button>
+        <button class="fb-chip fc-i">Blocked</button>
+        <button class="fb-chip fc-a">All (1,820)</button>
+      </div>
+      <div class="fb-group">
+        <div class="fb-label">Type</div>
+        <button class="fb-chip fc-a">All</button>
+        <button class="fb-chip fc-i">MCQ</button>
+        <button class="fb-chip fc-i">True/False</button>
+        <button class="fb-chip fc-i">Sort</button>
+        <button class="fb-chip fc-i">Match</button>
+      </div>
+      <input class="fb-search" placeholder="Search questions…" readonly>
+    </div>
+    <div class="browser-layout">
+      <div class="q-list-pane">
+        <div class="q-item selected">
+          <div class="qi-top"><span class="qi-id">QID-0001</span><span class="qi-type">MCQ</span><span class="qi-status qs-live">Live</span></div>
+          <div class="qi-text">Which shape has 3 sides?</div>
+          <div class="qi-meta"><span class="qi-band qb-p0">P0</span><span class="qi-subject">Maths · Shapes</span><span class="qi-sessions">12,841 impressions</span></div>
+        </div>
+        <div class="q-item">
+          <div class="qi-top"><span class="qi-id">QID-0002</span><span class="qi-type">MCQ</span><span class="qi-status qs-live">Live</span></div>
+          <div class="qi-text">How many sides does a square have?</div>
+          <div class="qi-meta"><span class="qi-band qb-p0">P0</span><span class="qi-subject">Maths · Shapes</span><span class="qi-sessions">11,204 impressions</span></div>
+        </div>
+        <div class="q-item">
+          <div class="qi-top"><span class="qi-id">QID-0003</span><span class="qi-type">True/False</span><span class="qi-status qs-live">Live</span></div>
+          <div class="qi-text">A circle has corners. True or False?</div>
+          <div class="qi-meta"><span class="qi-band qb-p0">P0</span><span class="qi-subject">Maths · Shapes</span></div>
+        </div>
+        <div class="q-item">
+          <div class="qi-top"><span class="qi-id">QID-0004</span><span class="qi-type">Sort</span><span class="qi-status qs-live">Live</span></div>
+          <div class="qi-text">Sort these numbers from smallest to largest: 3, 7, 1, 5</div>
+          <div class="qi-meta"><span class="qi-band qb-p0">P0</span><span class="qi-subject">Maths · Number Sense</span></div>
+        </div>
+        <div class="q-item">
+          <div class="qi-top"><span class="qi-id">QID-0012</span><span class="qi-type">MCQ</span><span class="qi-status qs-live">Live</span></div>
+          <div class="qi-text">Which letter makes the 'sh' sound in "ship"?</div>
+          <div class="qi-meta"><span class="qi-band qb-p1">P1</span><span class="qi-subject">Literacy · Phonics</span></div>
+        </div>
+        <div class="q-item review">
+          <div class="qi-top"><span class="qi-id">QID-2741</span><span class="qi-type">MCQ</span><span class="qi-status qs-review">Review</span></div>
+          <div class="qi-text">Measure this line in centimetres.</div>
+          <div class="qi-meta"><span class="qi-band qb-p1">P1</span><span class="qi-subject">Maths · Measurement</span></div>
+          <div class="qi-warn">Skip rate 62%</div>
+        </div>
+        <div class="q-item flagged">
+          <div class="qi-top"><span class="qi-id">QID-3280</span><span class="qi-type">MCQ</span><span class="qi-status qs-blocked">Blocked</span></div>
+          <div class="qi-text">Which fraction is equivalent to ¾? Select all that apply.</div>
+          <div class="qi-meta"><span class="qi-band qb-p2">P2</span><span class="qi-subject">Maths · Fractions</span></div>
+          <div class="qi-error">Wrong answer marked correct · 8 reports</div>
+        </div>
+        <div style="padding:10px 16px;font-size:10px;color:rgba(255,255,255,.25);text-align:center">Showing 7 of ~1,820 questions · Scroll to load more</div>
+      </div>
+      <div class="q-detail-pane">
+        <div style="font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:6px">QID-0001 · SK-0001 · Shapes: Basic · P0 Pre-K</div>
+        <div style="font-size:15px;font-weight:700;color:#f0f6ff;margin-bottom:14px;line-height:1.4">Which shape has 3 sides?</div>
+        <div class="dp-section-hdr" style="margin-bottom:8px">Answer Options</div>
+        <div class="answer-list">
+          <div class="answer-opt"><div class="ao-letter">A</div><div class="ao-text">Circle</div></div>
+          <div class="answer-opt correct"><div class="ao-letter">B</div><div class="ao-text">Triangle</div><span class="ao-tag ao-correct-tag">✓ Correct</span></div>
+          <div class="answer-opt"><div class="ao-letter">C</div><div class="ao-text">Square</div></div>
+          <div class="answer-opt"><div class="ao-letter">D</div><div class="ao-text">Rectangle</div></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="dp-section-hdr" style="margin-bottom:8px">Question Stats</div>
+          <div class="meta-grid">
+            <div class="meta-cell"><div class="mc-label">Impressions</div><div class="mc-val">12,841</div></div>
+            <div class="meta-cell"><div class="mc-label">Correct Rate</div><div class="mc-val" style="color:#50e890">94%</div></div>
+            <div class="meta-cell"><div class="mc-label">Skip Rate</div><div class="mc-val">2%</div></div>
+            <div class="meta-cell"><div class="mc-label">Avg Time on Q</div><div class="mc-val">8s</div></div>
+            <div class="meta-cell"><div class="mc-label">Error Reports</div><div class="mc-val">0</div></div>
+            <div class="meta-cell"><div class="mc-label">Created</div><div class="mc-val" style="font-size:11px">Jan 5, 2025</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-question-browser-desktop-v3.html<br>
+      <strong>Two-pane question browser.</strong> Left: scrollable question list with status + flag indicators. Right: question detail with answer preview, stats, error reports, skill linkage. Wrong-answer-as-correct highlighted in red. Reporter = "Teacher, [School]" only.
+    </div>
+    <h2 class="spec-h2">Question vs Skill Relationship</h2>
+    <p class="spec-p">Each Skill (SK-XXXX) contains 4–8 Questions (QID-XXXX). Error reports are filed against individual questions (question_error_reports table with question_id FK). Auto-block threshold is evaluated at the skill level: if ≥ 3 questions in a skill have confirmed error reports, OR total error reports for the skill exceeds threshold → delivery_locked=true on the parent skill. Individual questions can be flagged without blocking the entire skill.</p>
+    <h2 class="spec-h2">Wrong-Answer-as-Correct Display</h2>
+    <p class="spec-p">When a question has a "wrong answer marked as correct" report, the detail pane highlights the incorrectly marked answer option in red. The correct answers remain highlighted in green. A fix instruction (SQL UPDATE statement) is shown for engineers. The fix must be deployed before the skill can be unblocked. This is a read-only reference — actual edits happen in the CMS editor, not in this view.</p>
+    <h2 class="spec-h2">Privacy — Reporter Field</h2>
+    <p class="spec-p">Error report cards show "Teacher, [School]" only. No individual teacher name is stored in the content team's view. The full reporter identity (teacher_id) is stored in error_reports table for audit purposes, but is not surfaced in the content browser. Student session IDs are shown as reference only (no student name or demographic data).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

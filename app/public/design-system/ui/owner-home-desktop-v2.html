@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Home Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #060b12; min-height: 100vh; padding: 24px 16px 40px; }
+.page-title { font-size: 13px; font-weight: 800; color: #ffd166; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; text-align: center; opacity: 0.7; }
+
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; max-width: 1080px; margin-left: auto; margin-right: auto; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; max-width: 1080px; margin: 0 auto; }
+.tab { padding: 9px 14px; border-radius: 8px 8px 0 0; background: #1a2030; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #607080; }
+.tab.active { background: #0d1117; color: #ffd166; }
+.panel { display: none; background: #0d1117; border-radius: 0 8px 8px 8px; max-width: 1080px; margin: 0 auto; overflow: hidden; box-shadow: 0 4px 40px rgba(0,0,0,0.6); min-height: 600px; }
+.panel.active { display: block; }
+
+/* Nav */
+.app-nav { background: #080e16; padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 24px; border-bottom: 1px solid #1e2d40; }
+.nav-logo { font-size: 16px; font-weight: 900; color: #fff; letter-spacing: -0.02em; }
+.nav-logo span { color: #ffd166; }
+.nav-link { font-size: 12px; font-weight: 600; color: #4a6080; cursor: pointer; }
+.nav-link.active { color: #ffd166; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.nav-score { background: #1a2030; border: 1.5px solid #ffd166; color: #ffd166; font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 8px; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: #ffd166; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #1a0f00; }
+
+/* KPI strip */
+.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #1e2d40; border-bottom: 1px solid #1e2d40; }
+.kpi { background: #0d1117; padding: 18px 20px; }
+.kpi-val { font-size: 28px; font-weight: 900; color: #ffd166; line-height: 1; }
+.kpi-lbl { font-size: 11px; color: #4a6080; margin-top: 4px; }
+.kpi-trend { font-size: 11px; font-weight: 700; margin-top: 3px; }
+.trend-up { color: #44cc88; }
+.trend-down { color: #cc4444; }
+.trend-flat { color: #607080; }
+.kpi-sub { font-size: 10px; color: #4a6080; margin-top: 2px; }
+
+/* Main layout */
+.main-layout { display: grid; grid-template-columns: 1fr 280px; gap: 0; min-height: 500px; }
+.main-area { padding: 24px; border-right: 1px solid #1e2d40; }
+.sidebar { padding: 20px 18px; }
+
+/* GO/NO-GO card */
+.readiness-card { background: #111824; border: 2px solid #ffd166; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; }
+.rc-top { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.rc-score-circle { width: 72px; height: 72px; border-radius: 50%; background: #0a1520; border: 3px solid #ffd166; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+.rc-score-val { font-size: 22px; font-weight: 900; color: #ffd166; line-height: 1; }
+.rc-score-max { font-size: 9px; color: #4a6080; }
+.rc-title { font-size: 18px; font-weight: 900; color: #fff; }
+.rc-sub { font-size: 11px; color: #4a6080; margin-top: 3px; }
+.rc-verdict { display: inline-block; padding: 4px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; margin-top: 6px; }
+.verdict-nogo { background: #3a1010; color: #ff6666; border: 1px solid #cc3333; }
+.verdict-close { background: #2a2000; color: #ffd166; border: 1px solid #ffd166; }
+.verdict-go { background: #0a3020; color: #44cc88; border: 1px solid #44cc88; }
+
+/* Score breakdown */
+.score-breakdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.score-seg { background: #0a1520; border-radius: 8px; padding: 10px 12px; text-align: center; }
+.score-seg-cat { font-size: 9px; color: #4a6080; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.score-seg-val { font-size: 16px; font-weight: 900; }
+.score-seg-max { font-size: 9px; color: #4a6080; margin-top: 1px; }
+
+/* Blockers */
+.blockers-card { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+.bc-title { font-size: 13px; font-weight: 800; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.blocker-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1e2d40; }
+.blocker-item:last-child { border-bottom: none; }
+.b-sev { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.b-p0 { background: #3a1010; color: #ff6666; }
+.b-p1 { background: #2a2000; color: #ffd166; }
+.b-p2 { background: #0a2030; color: #66aaff; }
+.b-title { font-size: 12px; font-weight: 700; color: #e0e8f0; margin-bottom: 2px; }
+.b-meta { font-size: 10px; color: #4a6080; }
+.b-action { margin-left: auto; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; border: none; background: #1e2d40; color: #ffd166; font-family: inherit; flex-shrink: 0; }
+
+/* Alert feed */
+.alert-feed { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px 20px; }
+.alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1e2d40; }
+.alert-item:last-child { border-bottom: none; }
+.a-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.a-red { background: #ff4444; }
+.a-amber { background: #ffd166; }
+.a-blue { background: #4488ff; }
+.a-green { background: #44cc88; }
+.a-text { font-size: 11px; color: #c0d0e0; line-height: 1.4; }
+.a-time { font-size: 10px; color: #4a6080; margin-top: 2px; }
+
+/* Sidebar */
+.sb-title { font-size: 11px; font-weight: 800; color: #4a6080; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+.qa-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #111824; border: 1px solid #1e2d40; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+.qa-btn:hover { border-color: #ffd166; }
+.qa-icon { font-size: 16px; }
+.qa-label { font-size: 12px; font-weight: 700; color: #c0d0e0; }
+.qa-sub { font-size: 10px; color: #4a6080; margin-top: 1px; }
+
+/* Readiness detail (tab 2) */
+.readiness-detail { padding: 24px; }
+.rd-header { font-size: 20px; font-weight: 900; color: #ffd166; margin-bottom: 4px; }
+.rd-sub { font-size: 12px; color: #4a6080; margin-bottom: 20px; }
+.rd-criterion { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
+.rd-score-chip { width: 52px; height: 52px; border-radius: 50%; border: 2px solid #1e2d40; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+.rd-score-num { font-size: 16px; font-weight: 900; }
+.rd-score-max { font-size: 9px; color: #4a6080; }
+.rd-crit-name { font-size: 13px; font-weight: 800; color: #e0e8f0; margin-bottom: 3px; }
+.rd-crit-note { font-size: 11px; color: #4a6080; line-height: 1.4; }
+.rd-bar { height: 6px; background: #1e2d40; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.rd-fill { height: 100%; border-radius: 3px; }
+
+/* Spec */
+.spec-body { padding: 24px; }
+.spec-block { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+.spec-title { font-size: 14px; font-weight: 800; color: #ffd166; margin-bottom: 10px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.spec-list li { font-size: 12px; color: #8090a8; padding-left: 16px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #ffd166; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Owner Home Desktop v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> Desktop 1024px+ owner canonical home. Dark bg #0d1117, gold #ffd166. KPI strip: route health, feedback queue, adoption, release score. Main: GO/NO-GO readiness card + top blockers. Right sidebar: quick actions. GO criteria ≥90/100.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Dashboard Home</button>
+  <button class="tab" onclick="show('t2')">Readiness Card</button>
+  <button class="tab" onclick="show('t3')">Alert Feed</button>
+  <button class="tab" onclick="show('t4')">Quick Actions</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Dashboard Home -->
+<div class="panel active" id="t1">
+  <div class="app-nav">
+    <div class="nav-logo">Wonder<span>Quest</span></div>
+    <span class="nav-link active">Home</span>
+    <span class="nav-link">Feedback</span>
+    <span class="nav-link">Routes</span>
+    <span class="nav-link">Adoption</span>
+    <span class="nav-link">Content</span>
+    <div class="nav-right">
+      <div class="nav-score">Score: 72/100</div>
+      <div class="nav-avatar">OM</div>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-val">94%</div>
+      <div class="kpi-lbl">Route Health</div>
+      <div class="kpi-trend trend-up">↑ +2% this week</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:#ff6666;">23</div>
+      <div class="kpi-lbl">Feedback Queue</div>
+      <div class="kpi-trend trend-down">↑ 6 new P0 items</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val">68%</div>
+      <div class="kpi-lbl">App Adoption</div>
+      <div class="kpi-trend trend-up">↑ +4% vs last month</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:#ffd166;">72</div>
+      <div class="kpi-lbl">Release Score</div>
+      <div class="kpi-trend trend-flat">→ Need 90 for GO</div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <!-- Main area -->
+    <div class="main-area">
+      <!-- Readiness Card -->
+      <div class="readiness-card">
+        <div class="rc-top">
+          <div class="rc-score-circle">
+            <div class="rc-score-val">72</div>
+            <div class="rc-score-max">/ 100</div>
+          </div>
+          <div>
+            <div class="rc-title">Alpha Release Readiness</div>
+            <div class="rc-sub">Target: ≥90 for GO · Current: 72 · Gap: 18 points</div>
+            <div class="rc-verdict verdict-nogo">NO-GO — 18 points below threshold</div>
+          </div>
+        </div>
+        <div class="score-breakdown">
+          <div class="score-seg">
+            <div class="score-seg-cat">P0 Feedback</div>
+            <div class="score-seg-val" style="color:#ff6666;">14/25</div>
+            <div class="score-seg-max">of 25 pts</div>
+          </div>
+          <div class="score-seg">
+            <div class="score-seg-cat">Routes</div>
+            <div class="score-seg-val" style="color:#ffd166;">22/25</div>
+            <div class="score-seg-max">of 25 pts</div>
+          </div>
+          <div class="score-seg">
+            <div class="score-seg-cat">Content</div>
+            <div class="score-seg-val" style="color:#ffd166;">18/20</div>
+            <div class="score-seg-max">of 20 pts</div>
+          </div>
+          <div class="score-seg">
+            <div class="score-seg-cat">QA + Sign-off</div>
+            <div class="score-seg-val" style="color:#ff6666;">18/30</div>
+            <div class="score-seg-max">of 30 pts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Blockers -->
+      <div class="blockers-card">
+        <div class="bc-title"><span style="color:#ff6666;">●</span> Top Blockers (6 open)</div>
+        <div class="blocker-item">
+          <span class="b-sev b-p0">P0</span>
+          <div>
+            <div class="b-title">Child session crashes on iPad OS 17.3 — answer submit</div>
+            <div class="b-meta">#BUG-441 · Opened 20 Mar · Unassigned · QA blocked</div>
+          </div>
+          <button class="b-action">Assign</button>
+        </div>
+        <div class="blocker-item">
+          <span class="b-sev b-p0">P0</span>
+          <div>
+            <div class="b-title">Parent linking flow — email OTP not delivered (3 reports)</div>
+            <div class="b-meta">#BUG-438 · Opened 18 Mar · Dev in progress</div>
+          </div>
+          <button class="b-action">Review</button>
+        </div>
+        <div class="blocker-item">
+          <span class="b-sev b-p0">P0</span>
+          <div>
+            <div class="b-title">Teacher SNS badge not updating after session completion</div>
+            <div class="b-meta">#BUG-435 · Opened 16 Mar · Fix in review</div>
+          </div>
+          <button class="b-action">Review</button>
+        </div>
+        <div class="blocker-item">
+          <span class="b-sev b-p1">P1</span>
+          <div>
+            <div class="b-title">Owner dashboard KPI figures 24h delayed (should be real-time)</div>
+            <div class="b-meta">#BUG-430 · Opened 14 Mar · Backend work needed</div>
+          </div>
+          <button class="b-action">Triage</button>
+        </div>
+        <div class="blocker-item">
+          <span class="b-sev b-p1">P1</span>
+          <div>
+            <div class="b-title">Voice coach audio drops mid-session on Android 13</div>
+            <div class="b-meta">#BUG-428 · Opened 12 Mar · Pending repro</div>
+          </div>
+          <button class="b-action">Triage</button>
+        </div>
+        <div class="blocker-item">
+          <span class="b-sev b-p2">P2</span>
+          <div>
+            <div class="b-title">Child world picker — unlock animation stutters on older devices</div>
+            <div class="b-meta">#BUG-422 · Opened 9 Mar · Low priority</div>
+          </div>
+          <button class="b-action">View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sb-title">Quick Actions</div>
+      <div class="qa-btn"><span class="qa-icon">🔍</span><div><div class="qa-label">Triage Feedback</div><div class="qa-sub">23 items · 6 P0 urgent</div></div></div>
+      <div class="qa-btn"><span class="qa-icon">📊</span><div><div class="qa-label">View Route Health</div><div class="qa-sub">94% healthy · 3 degraded</div></div></div>
+      <div class="qa-btn"><span class="qa-icon">🚀</span><div><div class="qa-label">Run Release Check</div><div class="qa-sub">Last run 2h ago</div></div></div>
+      <div class="qa-btn"><span class="qa-icon">📱</span><div><div class="qa-label">Adoption Report</div><div class="qa-sub">68% · +4% this month</div></div></div>
+      <div class="qa-btn"><span class="qa-icon">✅</span><div><div class="qa-label">Content QA Queue</div><div class="qa-sub">12 items awaiting review</div></div></div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1e2d40;">
+        <div class="sb-title">Alert Feed (5 new)</div>
+        <div class="alert-item"><div class="a-dot a-red"></div><div><div class="a-text">P0 crash report — iPad session abort</div><div class="a-time">12 min ago</div></div></div>
+        <div class="alert-item"><div class="a-dot a-amber"></div><div><div class="a-text">Feedback queue threshold reached (23 items)</div><div class="a-time">1h ago</div></div></div>
+        <div class="alert-item"><div class="a-dot a-blue"></div><div><div class="a-text">New school onboarded — Thornfield Academy</div><div class="a-time">3h ago</div></div></div>
+        <div class="alert-item"><div class="a-dot a-green"></div><div><div class="a-text">Route health improved to 94% after deploy</div><div class="a-time">5h ago</div></div></div>
+        <div class="alert-item"><div class="a-dot a-amber"></div><div><div class="a-text">QA sign-off blocked — waiting on BUG-441</div><div class="a-time">6h ago</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Readiness Card (detailed) -->
+<div class="panel" id="t2">
+  <div class="app-nav"><div class="nav-logo">Wonder<span>Quest</span></div><span class="nav-link active">Home</span><div class="nav-right"><div class="nav-score">Score: 72/100</div></div></div>
+  <div class="readiness-detail">
+    <div class="rd-header">Alpha Release Readiness</div>
+    <div class="rd-sub">GO criteria: ≥90/100 · Current: 72/100 · Status: NO-GO</div>
+
+    <div class="rd-criterion">
+      <div class="rd-score-chip" style="border-color:#ff6666;"><div class="rd-score-num" style="color:#ff6666;">14</div><div class="rd-score-max">/ 25</div></div>
+      <div style="flex:1;">
+        <div class="rd-crit-name">P0 Feedback Resolution (25 pts)</div>
+        <div class="rd-crit-note">3 P0 bugs open (BUG-441, 438, 435). All must be resolved + verified for full 25pts.</div>
+        <div class="rd-bar"><div class="rd-fill" style="width:56%;background:#ff6666;"></div></div>
+      </div>
+    </div>
+    <div class="rd-criterion">
+      <div class="rd-score-chip" style="border-color:#ffd166;"><div class="rd-score-num" style="color:#ffd166;">22</div><div class="rd-score-max">/ 25</div></div>
+      <div style="flex:1;">
+        <div class="rd-crit-name">Route Coverage (25 pts)</div>
+        <div class="rd-crit-note">3 degraded routes costing 3 points. Routes: /child/play, /parent/report, /teacher/support-lane.</div>
+        <div class="rd-bar"><div class="rd-fill" style="width:88%;background:#ffd166;"></div></div>
+      </div>
+    </div>
+    <div class="rd-criterion">
+      <div class="rd-score-chip" style="border-color:#44cc88;"><div class="rd-score-num" style="color:#44cc88;">18</div><div class="rd-score-max">/ 20</div></div>
+      <div style="flex:1;">
+        <div class="rd-crit-name">Content Quality (20 pts)</div>
+        <div class="rd-crit-note">P0 and P1 content fully QA'd. 2 P2 question sets pending review. Minor gap.</div>
+        <div class="rd-bar"><div class="rd-fill" style="width:90%;background:#44cc88;"></div></div>
+      </div>
+    </div>
+    <div class="rd-criterion">
+      <div class="rd-score-chip" style="border-color:#ff6666;"><div class="rd-score-num" style="color:#ff6666;">12</div><div class="rd-score-max">/ 20</div></div>
+      <div style="flex:1;">
+        <div class="rd-crit-name">QA Sign-off (20 pts)</div>
+        <div class="rd-crit-note">QA blocked on BUG-441. 4 regression tests failing. QA lead has not signed off.</div>
+        <div class="rd-bar"><div class="rd-fill" style="width:60%;background:#ff6666;"></div></div>
+      </div>
+    </div>
+    <div class="rd-criterion">
+      <div class="rd-score-chip" style="border-color:#ff6666;"><div class="rd-score-num" style="color:#ff6666;">6</div><div class="rd-score-max">/ 10</div></div>
+      <div style="flex:1;">
+        <div class="rd-crit-name">Stakeholder Sign-off (10 pts)</div>
+        <div class="rd-crit-note">Product owner signed off. Engineering lead and content lead sign-off pending.</div>
+        <div class="rd-bar"><div class="rd-fill" style="width:60%;background:#ff6666;"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Alert Feed -->
+<div class="panel" id="t3">
+  <div class="app-nav"><div class="nav-logo">Wonder<span>Quest</span></div><span class="nav-link active">Home</span><div class="nav-right"><div class="nav-score">Score: 72/100</div></div></div>
+  <div style="padding:24px;">
+    <div style="font-size:20px;font-weight:900;color:#ffd166;margin-bottom:4px;">Alert Feed</div>
+    <div style="font-size:12px;color:#4a6080;margin-bottom:20px;">All system alerts · Last 24 hours</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="background:#111824;border:1px solid #3a1010;border-left:3px solid #ff4444;border-radius:10px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#ff8888;">🔴 P0 Alert — 12 min ago</div><div style="font-size:12px;color:#c0d0e0;margin-top:4px;">iPad session crash reported (BUG-441). 3 affected users. QA investigating.</div></div>
+      <div style="background:#111824;border:1px solid #2a2000;border-left:3px solid #ffd166;border-radius:10px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#ffd166;">🟡 Warning — 1h ago</div><div style="font-size:12px;color:#c0d0e0;margin-top:4px;">Feedback queue reached 23 items. Daily threshold is 20. Triage recommended.</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-left:3px solid #4488ff;border-radius:10px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#88aaff;">🔵 Info — 3h ago</div><div style="font-size:12px;color:#c0d0e0;margin-top:4px;">New school onboarded: Thornfield Academy. 3 teacher accounts created.</div></div>
+      <div style="background:#111824;border:1px solid #0a3020;border-left:3px solid #44cc88;border-radius:10px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#44cc88;">🟢 Resolved — 5h ago</div><div style="font-size:12px;color:#c0d0e0;margin-top:4px;">Route health recovered to 94% following hotfix deploy v2.1.4.</div></div>
+      <div style="background:#111824;border:1px solid #2a2000;border-left:3px solid #ffd166;border-radius:10px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#ffd166;">🟡 Warning — 6h ago</div><div style="font-size:12px;color:#c0d0e0;margin-top:4px;">QA sign-off blocked. BUG-441 must be resolved before regression suite can complete.</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-left:3px solid #4488ff;border-radius:10px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#88aaff;">🔵 Info — 8h ago</div><div style="font-size:12px;color:#c0d0e0;margin-top:4px;">Adoption report generated. 68% of linked households active this week (+4% vs last month).</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Quick Actions -->
+<div class="panel" id="t4">
+  <div class="app-nav"><div class="nav-logo">Wonder<span>Quest</span></div><span class="nav-link active">Home</span><div class="nav-right"><div class="nav-score">Score: 72/100</div></div></div>
+  <div style="padding:24px;">
+    <div style="font-size:20px;font-weight:900;color:#ffd166;margin-bottom:4px;">Quick Actions</div>
+    <div style="font-size:12px;color:#4a6080;margin-bottom:20px;">Owner shortcuts</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div style="background:#111824;border:1px solid #1e2d40;border-radius:12px;padding:18px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#ffd166'" onmouseout="this.style.borderColor='#1e2d40'"><div style="font-size:24px;margin-bottom:8px;">🔍</div><div style="font-size:13px;font-weight:800;color:#e0e8f0;margin-bottom:4px;">Triage Feedback Queue</div><div style="font-size:11px;color:#4a6080;">23 items · 6 P0 need immediate action</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-radius:12px;padding:18px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#ffd166'" onmouseout="this.style.borderColor='#1e2d40'"><div style="font-size:24px;margin-bottom:8px;">📊</div><div style="font-size:13px;font-weight:800;color:#e0e8f0;margin-bottom:4px;">Route Health Monitor</div><div style="font-size:11px;color:#4a6080;">3 degraded routes · Live status</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-radius:12px;padding:18px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#ffd166'" onmouseout="this.style.borderColor='#1e2d40'"><div style="font-size:24px;margin-bottom:8px;">🚀</div><div style="font-size:13px;font-weight:800;color:#e0e8f0;margin-bottom:4px;">Release Readiness Check</div><div style="font-size:11px;color:#4a6080;">72/100 · Run full check</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-radius:12px;padding:18px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#ffd166'" onmouseout="this.style.borderColor='#1e2d40'"><div style="font-size:24px;margin-bottom:8px;">📱</div><div style="font-size:13px;font-weight:800;color:#e0e8f0;margin-bottom:4px;">Adoption Drilldown</div><div style="font-size:11px;color:#4a6080;">68% active · Band and school breakdown</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-radius:12px;padding:18px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#ffd166'" onmouseout="this.style.borderColor='#1e2d40'"><div style="font-size:24px;margin-bottom:8px;">✅</div><div style="font-size:13px;font-weight:800;color:#e0e8f0;margin-bottom:4px;">Content QA Queue</div><div style="font-size:11px;color:#4a6080;">12 questions pending review</div></div>
+      <div style="background:#111824;border:1px solid #1e2d40;border-radius:12px;padding:18px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#ffd166'" onmouseout="this.style.borderColor='#1e2d40'"><div style="font-size:24px;margin-bottom:8px;">🏫</div><div style="font-size:13px;font-weight:800;color:#e0e8f0;margin-bottom:4px;">School Management</div><div style="font-size:11px;color:#4a6080;">14 schools · 1 new this week</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="panel" id="t5">
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Component Spec: Owner Home Desktop v2</div>
+      <ul class="spec-list">
+        <li>Desktop 1024px+, Sora, bg #0d1117, gold #ffd166</li>
+        <li>KPI strip: 4 columns — Route Health, Feedback Queue, Adoption, Release Score</li>
+        <li>Main layout: fluid content area + 280px right sidebar</li>
+        <li>GO/NO-GO readiness card: score circle, verdict chip, 4-segment breakdown grid</li>
+        <li>GO threshold: ≥90/100. Scoring: P0 feedback 25pts + routes 25pts + content 20pts + QA 20pts + sign-off 10pts</li>
+        <li>Blockers list: severity chip (P0/P1/P2), title, metadata, action button</li>
+        <li>Sidebar: quick action buttons with label + live count sub-text</li>
+        <li>Alert feed in sidebar: colored dot + text + timestamp</li>
+        <li>Tab 2: full readiness detail — per-criterion score ring, bar, description</li>
+        <li>Tab 3: alert feed — color-coded cards by severity (red/amber/blue/green)</li>
+        <li>Tab 4: quick actions grid — 6 cards with icon, label, live context</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

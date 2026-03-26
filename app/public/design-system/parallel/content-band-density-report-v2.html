@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Band Density Report v2 — WonderQuest Content</title>
+<style>
+/* ─── RESET & TOKENS ─────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ─── ENGINEERING HINT ──────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;color:#5a4000;line-height:1.5;}
+
+/* ─── PAGE SHELL ────────────────────────────────────────────── */
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:700;}
+.ph-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:9px;background:rgba(245,158,11,.15);color:#f59e0b;margin-left:4px;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.4);margin-left:auto;}
+.page-body{padding:24px 28px;max-width:1400px;}
+
+/* ─── TABS ──────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:0;}
+.tab-btn{padding:9px 20px;background:transparent;border:none;border-bottom:2px solid transparent;font-family:inherit;font-size:13px;font-weight:600;color:rgba(240,246,255,.45);cursor:pointer;transition:all .15s;margin-bottom:-1px;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#f59e0b;border-bottom-color:#f59e0b;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ─── SECTION HEADER ────────────────────────────────────────── */
+.sec-header{margin-bottom:16px;}
+.sec-title{font-size:15px;font-weight:700;color:#f0f6ff;}
+.sec-sub{font-size:12px;color:rgba(240,246,255,.4);margin-top:3px;}
+
+/* ─── BAND SUMMARY CARDS ────────────────────────────────────── */
+.band-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px;}
+.band-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;}
+.bc-header{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;}
+.bc-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.dot-p0{background:#ffd166;}
+.dot-p1{background:#9b72ff;}
+.dot-p2{background:#58e8c1;}
+.dot-p3{background:#ff7b6b;}
+.bc-name{font-size:14px;font-weight:700;}
+.bc-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.badge-ok{background:rgba(80,232,144,.15);color:#50e890;}
+.badge-warn{background:rgba(240,192,64,.15);color:#f0c040;}
+.badge-err{background:rgba(255,123,107,.18);color:#ff7b6b;}
+.bc-divider{height:1px;background:rgba(255,255,255,.06);}
+.bc-metrics{padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+.bcm-label{font-size:10px;color:rgba(240,246,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.bcm-val{font-size:16px;font-weight:700;}
+.bcm-val-sm{font-size:13px;font-weight:600;}
+.v-green{color:#50e890;}
+.v-amber{color:#f59e0b;}
+.v-red{color:#ff7b6b;}
+.v-white{color:#f0f6ff;}
+.v-violet{color:#9b72ff;}
+.bc-footer{padding:10px 16px;background:rgba(255,255,255,.02);display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(240,246,255,.4);border-top:1px solid rgba(255,255,255,.06);}
+.bc-footer strong{color:#f0f6ff;}
+
+/* ─── DENSITY CHART ─────────────────────────────────────────── */
+.chart-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;margin-bottom:32px;}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(240,246,255,.6);}
+.cl-swatch{width:10px;height:10px;border-radius:2px;}
+.sw-p0{background:#ffd166;}
+.sw-p1{background:#9b72ff;}
+.sw-p2{background:#58e8c1;}
+.sw-p3{background:#ff7b6b;}
+.density-chart-wrap{overflow-x:auto;}
+.density-chart{min-width:560px;}
+.dc-group{display:flex;flex-direction:column;gap:3px;margin-bottom:20px;}
+.dc-subject-label{font-size:12px;font-weight:600;color:rgba(240,246,255,.7);margin-bottom:6px;}
+.dc-bar-row{display:flex;align-items:center;gap:8px;}
+.dc-band-tag{font-size:10px;font-weight:700;width:22px;text-align:right;flex-shrink:0;}
+.dc-bar-track{flex:1;height:14px;background:rgba(255,255,255,.04);border-radius:4px;position:relative;overflow:visible;}
+.dc-bar-fill{height:100%;border-radius:4px;transition:width .3s ease;position:relative;}
+.dc-bar-val{font-size:10px;color:rgba(240,246,255,.5);width:28px;flex-shrink:0;text-align:right;}
+/* target line */
+.target-line{position:absolute;top:-3px;bottom:-3px;width:2px;background:rgba(240,192,64,.55);border-radius:2px;}
+.target-label{font-size:9px;color:rgba(240,192,64,.7);position:absolute;top:-14px;white-space:nowrap;}
+
+/* ─── DISTRIBUTION CHART ────────────────────────────────────── */
+.dist-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;margin-bottom:32px;}
+.dist-bars{display:flex;align-items:flex-end;gap:12px;height:140px;margin-bottom:12px;}
+.dist-col{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+.dist-bar-wrap{display:flex;align-items:flex-end;height:120px;width:100%;}
+.dist-bar{width:100%;border-radius:4px 4px 0 0;background:#50e890;transition:height .3s ease;position:relative;}
+.dist-bar.highlight{background:#f59e0b;}
+.dist-bar-count{font-size:12px;font-weight:700;color:#f0f6ff;position:absolute;top:-20px;left:50%;transform:translateX(-50%);white-space:nowrap;}
+.dist-label{font-size:10px;color:rgba(240,246,255,.45);text-align:center;white-space:nowrap;}
+.dist-axis{border-top:1px solid rgba(255,255,255,.1);padding-top:8px;}
+.dist-note{display:flex;align-items:center;gap:8px;font-size:12px;color:#f59e0b;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 14px;}
+.dist-note svg{flex-shrink:0;}
+
+/* ─── P3 DEEP DIVE ──────────────────────────────────────────── */
+.p3-banner{background:rgba(255,123,107,.07);border:1px solid rgba(255,123,107,.25);border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;}
+.p3-banner-icon{font-size:22px;flex-shrink:0;}
+.p3-banner-text h3{font-size:13px;font-weight:700;color:#ff7b6b;}
+.p3-banner-text p{font-size:12px;color:rgba(240,246,255,.55);margin-top:3px;}
+
+/* ─── TABLE ──────────────────────────────────────────────────── */
+.table-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:rgba(240,246,255,.35);padding:10px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);}
+td{padding:11px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.td-subject{font-weight:600;}
+.td-num{font-variant-numeric:tabular-nums;color:rgba(240,246,255,.8);}
+.td-num-bold{font-weight:700;}
+.td-gap{font-weight:700;color:#ff7b6b;}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:9px;}
+.s-behind{background:rgba(245,158,11,.13);color:#f59e0b;}
+.s-close{background:rgba(255,193,7,.12);color:#ffc107;}
+.s-critical{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.status-dot{width:6px;height:6px;border-radius:50%;}
+.sdot-amber{background:#f59e0b;}
+.sdot-yellow{background:#ffc107;}
+.sdot-red{background:#ff7b6b;}
+
+/* ─── ACTIONS LIST ──────────────────────────────────────────── */
+.actions-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px;}
+.actions-list{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.action-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:rgba(255,255,255,.025);border-radius:8px;border-left:3px solid #f59e0b;}
+.action-item.critical{border-left-color:#ff7b6b;background:rgba(255,123,107,.04);}
+.action-item.info{border-left-color:#58e8c1;background:rgba(88,232,193,.03);}
+.ai-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.ai-body{}
+.ai-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.ai-sub{font-size:11px;color:rgba(240,246,255,.45);margin-top:3px;}
+
+/* ─── SPEC TAB ───────────────────────────────────────────────── */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.spec-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;}
+.spec-block h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#f59e0b;margin-bottom:12px;}
+.spec-row{display:flex;flex-direction:column;gap:3px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05);}
+.spec-row:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.spec-key{font-size:10px;color:rgba(240,246,255,.35);text-transform:uppercase;letter-spacing:.05em;}
+.spec-val{font-size:12px;color:#f0f6ff;font-family:monospace;margin-top:2px;}
+.spec-val code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;color:#58e8c1;}
+.spec-val.v-amber{color:#f59e0b;font-family:inherit;font-weight:600;}
+
+/* ─── DB SCHEMA ──────────────────────────────────────────────── */
+.db-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;grid-column:1/-1;}
+.db-block h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#58e8c1;margin-bottom:12px;}
+.db-table-name{font-size:13px;font-weight:700;font-family:monospace;color:#9b72ff;margin-bottom:8px;}
+.db-cols{display:flex;flex-direction:column;gap:5px;}
+.db-col-row{display:flex;gap:12px;font-family:monospace;font-size:11px;}
+.dbc-name{color:#f0f6ff;min-width:180px;}
+.dbc-type{color:#58e8c1;min-width:80px;}
+.dbc-note{color:rgba(240,246,255,.35);}
+.db-refresh{font-size:11px;color:rgba(240,246,255,.4);margin-top:10px;}
+</style>
+</head>
+<body>
+
+<!-- PAGE HEADER -->
+<header class="page-header">
+  <h1>Content Band Density Report <span class="ph-badge">v2</span></h1>
+  <span class="ph-sub">Content Team · WonderQuest CMS</span>
+</header>
+
+<div class="page-body">
+
+  <!-- ENGINEERING HINT -->
+  <div class="eng-hint">ITEM 253 &middot; content-band-density-report-v2.html &middot; WonderQuest parallel-agent build</div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('density')">Band Density Report</button>
+    <button class="tab-btn" onclick="showTab('p3')">P3 Deep Dive</button>
+    <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TAB 1: BAND DENSITY REPORT                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="tab-density" class="tab-panel active">
+
+    <div class="sec-header">
+      <div class="sec-title">Band Density Report — v2.6 Snapshot</div>
+      <div class="sec-sub">Snapshot date: 24 Mar 2026 &nbsp;·&nbsp; All bands &nbsp;·&nbsp; All subjects</div>
+    </div>
+
+    <!-- BAND SUMMARY CARDS -->
+    <div class="band-cards">
+
+      <!-- P0 -->
+      <div class="band-card">
+        <div class="bc-header">
+          <span class="bc-dot dot-p0"></span>
+          <div>
+            <div class="bc-name">P0 Starters</div>
+          </div>
+          <span class="bc-badge badge-ok">Healthy</span>
+        </div>
+        <div class="bc-divider"></div>
+        <div class="bc-metrics">
+          <div>
+            <div class="bcm-label">Total Skills</div>
+            <div class="bcm-val v-white">68</div>
+          </div>
+          <div>
+            <div class="bcm-label">Questions</div>
+            <div class="bcm-val v-white">524</div>
+          </div>
+          <div>
+            <div class="bcm-label">Avg Q/Skill</div>
+            <div class="bcm-val v-green">7.7</div>
+          </div>
+          <div>
+            <div class="bcm-label">Published</div>
+            <div class="bcm-val v-green">97%</div>
+          </div>
+        </div>
+        <div class="bc-footer">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#50e890" stroke-width="1.5"/><path d="M4 6l1.5 1.5L8 4.5" stroke="#50e890" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><strong>0</strong> at-risk skills</span>
+        </div>
+      </div>
+
+      <!-- P1 -->
+      <div class="band-card">
+        <div class="bc-header">
+          <span class="bc-dot dot-p1"></span>
+          <div>
+            <div class="bc-name">P1 Adventurers</div>
+          </div>
+          <span class="bc-badge badge-ok">Healthy</span>
+        </div>
+        <div class="bc-divider"></div>
+        <div class="bc-metrics">
+          <div>
+            <div class="bcm-label">Total Skills</div>
+            <div class="bcm-val v-white">72</div>
+          </div>
+          <div>
+            <div class="bcm-label">Questions</div>
+            <div class="bcm-val v-white">558</div>
+          </div>
+          <div>
+            <div class="bcm-label">Avg Q/Skill</div>
+            <div class="bcm-val v-green">7.8</div>
+          </div>
+          <div>
+            <div class="bcm-label">Published</div>
+            <div class="bcm-val v-green">96%</div>
+          </div>
+        </div>
+        <div class="bc-footer">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#f59e0b" stroke-width="1.5"/><path d="M6 4v3M6 8.5v.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span><strong>1</strong> at-risk skill</span>
+        </div>
+      </div>
+
+      <!-- P2 -->
+      <div class="band-card">
+        <div class="bc-header">
+          <span class="bc-dot dot-p2"></span>
+          <div>
+            <div class="bc-name">P2 Explorers</div>
+          </div>
+          <span class="bc-badge badge-warn">Monitor</span>
+        </div>
+        <div class="bc-divider"></div>
+        <div class="bc-metrics">
+          <div>
+            <div class="bcm-label">Total Skills</div>
+            <div class="bcm-val v-white">62</div>
+          </div>
+          <div>
+            <div class="bcm-label">Questions</div>
+            <div class="bcm-val v-white">463</div>
+          </div>
+          <div>
+            <div class="bcm-label">Avg Q/Skill</div>
+            <div class="bcm-val v-amber">7.5</div>
+          </div>
+          <div>
+            <div class="bcm-label">Published</div>
+            <div class="bcm-val v-amber">78%</div>
+          </div>
+        </div>
+        <div class="bc-footer">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#f59e0b" stroke-width="1.5"/><path d="M6 4v3M6 8.5v.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span><strong>3</strong> at-risk skills</span>
+        </div>
+      </div>
+
+      <!-- P3 -->
+      <div class="band-card">
+        <div class="bc-header">
+          <span class="bc-dot dot-p3"></span>
+          <div>
+            <div class="bc-name">P3 Trailblazers</div>
+          </div>
+          <span class="bc-badge badge-err">⚠ At Risk</span>
+        </div>
+        <div class="bc-divider"></div>
+        <div class="bc-metrics">
+          <div>
+            <div class="bcm-label">Total Skills</div>
+            <div class="bcm-val v-white">38</div>
+          </div>
+          <div>
+            <div class="bcm-label">Questions</div>
+            <div class="bcm-val v-white">279</div>
+          </div>
+          <div>
+            <div class="bcm-label">Avg Q/Skill</div>
+            <div class="bcm-val v-amber">7.3</div>
+          </div>
+          <div>
+            <div class="bcm-label">Published</div>
+            <div class="bcm-val v-red">51%</div>
+          </div>
+        </div>
+        <div class="bc-footer">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1.5L1.5 10.5h9L6 1.5z" stroke="#ff7b6b" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 5v2.5M6 9v.5" stroke="#ff7b6b" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span><strong>6</strong> at-risk skills &nbsp;⚠</span>
+        </div>
+      </div>
+
+    </div><!-- /band-cards -->
+
+    <!-- DENSITY COMPARISON CHART -->
+    <div class="chart-card">
+      <div class="sec-header" style="margin-bottom:14px;">
+        <div class="sec-title">Density Comparison by Subject</div>
+        <div class="sec-sub">Bar length = published skills per band per subject. Dashed line = P3 target.</div>
+      </div>
+      <div class="chart-legend">
+        <div class="cl-item"><span class="cl-swatch sw-p0"></span>P0 Starters</div>
+        <div class="cl-item"><span class="cl-swatch sw-p1"></span>P1 Adventurers</div>
+        <div class="cl-item"><span class="cl-swatch sw-p2"></span>P2 Explorers</div>
+        <div class="cl-item"><span class="cl-swatch sw-p3"></span>P3 Trailblazers</div>
+        <div class="cl-item">
+          <svg width="18" height="10" viewBox="0 0 18 10"><line x1="0" y1="5" x2="18" y2="5" stroke="rgba(240,192,64,.7)" stroke-width="1.5" stroke-dasharray="3 2"/></svg>
+          <span>P3 Target</span>
+        </div>
+      </div>
+      <div class="density-chart-wrap">
+        <div class="density-chart" id="densityChart"></div>
+      </div>
+    </div>
+
+    <!-- QUESTIONS PER SKILL DISTRIBUTION -->
+    <div class="dist-card">
+      <div class="sec-header" style="margin-bottom:18px;">
+        <div class="sec-title">Questions per Skill — Distribution</div>
+        <div class="sec-sub">Target: ≥6 questions per skill across all bands</div>
+      </div>
+      <div class="dist-bars">
+        <!-- bars rendered inline -->
+        <div class="dist-col">
+          <div class="dist-bar-wrap">
+            <div class="dist-bar highlight" style="height:14%;position:relative;">
+              <span class="dist-bar-count">5</span>
+            </div>
+          </div>
+          <div class="dist-axis"></div>
+          <div class="dist-label">&lt;4</div>
+        </div>
+        <div class="dist-col">
+          <div class="dist-bar-wrap">
+            <div class="dist-bar highlight" style="height:33%;position:relative;">
+              <span class="dist-bar-count">12</span>
+            </div>
+          </div>
+          <div class="dist-axis"></div>
+          <div class="dist-label">4–5</div>
+        </div>
+        <div class="dist-col">
+          <div class="dist-bar-wrap">
+            <div class="dist-bar" style="height:100%;position:relative;">
+              <span class="dist-bar-count">148</span>
+            </div>
+          </div>
+          <div class="dist-axis"></div>
+          <div class="dist-label">6–7</div>
+        </div>
+        <div class="dist-col">
+          <div class="dist-bar-wrap">
+            <div class="dist-bar" style="height:65%;position:relative;">
+              <span class="dist-bar-count">97</span>
+            </div>
+          </div>
+          <div class="dist-axis"></div>
+          <div class="dist-label">8–10</div>
+        </div>
+        <div class="dist-col">
+          <div class="dist-bar-wrap">
+            <div class="dist-bar" style="height:20%;position:relative;">
+              <span class="dist-bar-count">22</span>
+            </div>
+          </div>
+          <div class="dist-axis"></div>
+          <div class="dist-label">&gt;10</div>
+        </div>
+      </div>
+      <div class="dist-note">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L1.5 14h13L8 2z" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 7v3" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".75" fill="#f59e0b"/></svg>
+        <span><strong>5 skills below target of 6 questions</strong> — review required. 12 additional skills in the 4–5 range; monitor for regression.</span>
+      </div>
+    </div>
+
+  </div><!-- /tab-density -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TAB 2: P3 DEEP DIVE                                         -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="tab-p3" class="tab-panel">
+
+    <div class="p3-banner">
+      <div class="p3-banner-icon">⚠</div>
+      <div class="p3-banner-text">
+        <h3>P3 Band: Significant Coverage Gap</h3>
+        <p>51% published against v2.6 target. Social Studies and Arts are at critical zero. P3 expansion scope targeting v2.7 if unresolved before v2.6 gate.</p>
+      </div>
+    </div>
+
+    <!-- P3 BY SUBJECT TABLE -->
+    <div class="sec-header">
+      <div class="sec-title">P3 Coverage by Subject</div>
+      <div class="sec-sub">Published / Draft / Blocked counts vs subject target. Gap = Target − (Published + Draft)</div>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Published</th>
+            <th>Draft</th>
+            <th>Blocked</th>
+            <th>Target</th>
+            <th>Gap</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-subject">Maths</td>
+            <td class="td-num">12</td>
+            <td class="td-num">1</td>
+            <td class="td-num">0</td>
+            <td class="td-num">18</td>
+            <td class="td-gap">−7</td>
+            <td><span class="status-pill s-behind"><span class="status-dot sdot-amber"></span>Behind</span></td>
+          </tr>
+          <tr>
+            <td class="td-subject">Literacy</td>
+            <td class="td-num">14</td>
+            <td class="td-num">2</td>
+            <td class="td-num">0</td>
+            <td class="td-num">18</td>
+            <td class="td-gap" style="color:#ffc107;">−2</td>
+            <td><span class="status-pill s-close"><span class="status-dot sdot-yellow"></span>Close</span></td>
+          </tr>
+          <tr>
+            <td class="td-subject">Science</td>
+            <td class="td-num">8</td>
+            <td class="td-num">1</td>
+            <td class="td-num">1</td>
+            <td class="td-num">15</td>
+            <td class="td-gap">−7</td>
+            <td><span class="status-pill s-behind"><span class="status-dot sdot-amber"></span>Behind</span></td>
+          </tr>
+          <tr>
+            <td class="td-subject">Social Studies</td>
+            <td class="td-num" style="color:#ff7b6b;font-weight:700;">0</td>
+            <td class="td-num">0</td>
+            <td class="td-num">0</td>
+            <td class="td-num">12</td>
+            <td class="td-gap">−12</td>
+            <td><span class="status-pill s-critical"><span class="status-dot sdot-red"></span>Critical</span></td>
+          </tr>
+          <tr>
+            <td class="td-subject">Arts</td>
+            <td class="td-num" style="color:#ff7b6b;font-weight:700;">0</td>
+            <td class="td-num">0</td>
+            <td class="td-num">0</td>
+            <td class="td-num">8</td>
+            <td class="td-gap">−6</td>
+            <td><span class="status-pill s-critical"><span class="status-dot sdot-red"></span>Critical</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RECOMMENDED ACTIONS -->
+    <div class="sec-header">
+      <div class="sec-title">Recommended Actions</div>
+      <div class="sec-sub">Auto-generated from gap analysis snapshot · 24 Mar 2026</div>
+    </div>
+
+    <div class="actions-card">
+      <ul class="actions-list">
+        <li class="action-item critical">
+          <div class="ai-icon">🔴</div>
+          <div class="ai-body">
+            <div class="ai-title">12 Social Studies skills needed — see Gap Analysis</div>
+            <div class="ai-sub">Zero published and zero draft. Full commission required immediately. Auto-flag created in safety_flags (Info severity).</div>
+          </div>
+        </li>
+        <li class="action-item critical">
+          <div class="ai-icon">🔴</div>
+          <div class="ai-body">
+            <div class="ai-title">6 Arts skills needed — commission needed</div>
+            <div class="ai-sub">Zero published and zero draft. No content seed present. Auto-flag created in safety_flags (Info severity). Assign to content lead.</div>
+          </div>
+        </li>
+        <li class="action-item">
+          <div class="ai-icon">⚠️</div>
+          <div class="ai-body">
+            <div class="ai-title">7 Maths skills behind target — prioritise drafts for review</div>
+            <div class="ai-sub">1 skill in draft. Commission 6 additional. Escalate Science blocked skill before 28 Mar.</div>
+          </div>
+        </li>
+        <li class="action-item info">
+          <div class="ai-icon">📋</div>
+          <div class="ai-body">
+            <div class="ai-title">Content seed batch for P3 targeted at v2.7 if not resolved by 28 Mar</div>
+            <div class="ai-sub">If Social Studies and Arts gaps are not closed before the v2.6 gate, P3 full expansion scope moves to v2.7. Owner sign-off required.</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-p3 -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TAB 3: SPEC                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="tab-spec" class="tab-panel">
+
+    <div class="sec-header">
+      <div class="sec-title">Technical Specification</div>
+      <div class="sec-sub">Density metric definitions, flag logic, DB schema, and v2.7 scope notes</div>
+    </div>
+
+    <div class="spec-grid">
+
+      <div class="spec-block">
+        <h3>Density Metric</h3>
+        <div class="spec-row">
+          <div class="spec-key">Formula</div>
+          <div class="spec-val"><code>questions_count / skills_count</code> per band per subject</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Target</div>
+          <div class="spec-val v-amber">≥ 6.0 questions per skill</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Flag threshold</div>
+          <div class="spec-val">Below 4 = immediate flag</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Granularity</div>
+          <div class="spec-val">Band × Subject × Snapshot date</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <h3>At-Risk Flag Logic</h3>
+        <div class="spec-row">
+          <div class="spec-key">Condition A</div>
+          <div class="spec-val"><code>review_status = 'Blocked'</code></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Condition B</div>
+          <div class="spec-val"><code>questions_count &lt; 4</code></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Condition C</div>
+          <div class="spec-val"><code>in_review &gt; 14 days</code></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Trigger</div>
+          <div class="spec-val">Any one condition met = at-risk</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <h3>P3 Gap Severity</h3>
+        <div class="spec-row">
+          <div class="spec-key">Social Studies</div>
+          <div class="spec-val v-amber">Critical — 0 published skills</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Arts</div>
+          <div class="spec-val v-amber">Critical — 0 published skills</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Auto-flag target</div>
+          <div class="spec-val"><code>safety_flags</code> table</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Flag severity</div>
+          <div class="spec-val">Info</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <h3>v2.7 Scope Note</h3>
+        <div class="spec-row">
+          <div class="spec-key">Trigger</div>
+          <div class="spec-val">P3 gaps not resolved before v2.6 gate</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Scope action</div>
+          <div class="spec-val v-amber">P3 content expansion moves to v2.7</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Deadline</div>
+          <div class="spec-val">28 Mar 2026</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Owner sign-off</div>
+          <div class="spec-val">Required before deferral</div>
+        </div>
+      </div>
+
+      <div class="db-block spec-block">
+        <h3>Database Schema</h3>
+        <div class="db-table-name">band_density_snapshots</div>
+        <div class="db-cols">
+          <div class="db-col-row"><span class="dbc-name">date</span><span class="dbc-type">DATE</span><span class="dbc-note">snapshot date, refreshed daily</span></div>
+          <div class="db-col-row"><span class="dbc-name">band_id</span><span class="dbc-type">UUID</span><span class="dbc-note">references bands(id)</span></div>
+          <div class="db-col-row"><span class="dbc-name">subject_id</span><span class="dbc-type">UUID</span><span class="dbc-note">references subjects(id)</span></div>
+          <div class="db-col-row"><span class="dbc-name">published_count</span><span class="dbc-type">INTEGER</span><span class="dbc-note">published skills</span></div>
+          <div class="db-col-row"><span class="dbc-name">draft_count</span><span class="dbc-type">INTEGER</span><span class="dbc-note">skills in draft</span></div>
+          <div class="db-col-row"><span class="dbc-name">blocked_count</span><span class="dbc-type">INTEGER</span><span class="dbc-note">skills blocked in review</span></div>
+          <div class="db-col-row"><span class="dbc-name">review_count</span><span class="dbc-type">INTEGER</span><span class="dbc-note">skills currently under review</span></div>
+          <div class="db-col-row"><span class="dbc-name">question_count</span><span class="dbc-type">INTEGER</span><span class="dbc-note">total questions across band×subject</span></div>
+        </div>
+        <div class="db-refresh">Refresh cadence: daily at 02:00 UTC via scheduled job</div>
+      </div>
+
+    </div>
+
+  </div><!-- /tab-spec -->
+
+</div><!-- /page-body -->
+
+<script>
+/* ─── TABS ─────────────────────────────────────────────── */
+function showTab(t) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const labels = { density: 'Band Density Report', p3: 'P3 Deep Dive', spec: 'Spec' };
+  btns.forEach(b => { if (b.textContent.trim() === labels[t]) b.classList.add('active'); });
+}
+
+/* ─── DENSITY CHART ────────────────────────────────────── */
+(function buildDensityChart() {
+  const subjects = ['Maths', 'Literacy', 'Science', 'Social Studies', 'Arts'];
+  // [P0, P1, P2, P3] published skills per subject
+  const data = {
+    'Maths':          [15, 16, 14, 12],
+    'Literacy':       [16, 17, 13, 14],
+    'Science':        [13, 14, 12,  8],
+    'Social Studies': [12, 13, 11,  0],
+    'Arts':           [12, 12,  9,  2],
+  };
+  const colors = ['#ffd166','#9b72ff','#58e8c1','#ff7b6b'];
+  const bandLabels = ['P0','P1','P2','P3'];
+  // P3 target per subject
+  const p3Target = { 'Maths': 18, 'Literacy': 18, 'Science': 15, 'Social Studies': 12, 'Arts': 8 };
+  const maxVal = 20;
+  const trackWidthPct = 100; // percent of available width
+
+  const container = document.getElementById('densityChart');
+  if (!container) return;
+
+  subjects.forEach(subj => {
+    const group = document.createElement('div');
+    group.className = 'dc-group';
+
+    const label = document.createElement('div');
+    label.className = 'dc-subject-label';
+    label.textContent = subj;
+    group.appendChild(label);
+
+    data[subj].forEach((val, i) => {
+      const row = document.createElement('div');
+      row.className = 'dc-bar-row';
+
+      const tag = document.createElement('span');
+      tag.className = 'dc-band-tag';
+      tag.style.color = colors[i];
+      tag.textContent = bandLabels[i];
+      row.appendChild(tag);
+
+      const track = document.createElement('div');
+      track.className = 'dc-bar-track';
+      track.style.position = 'relative';
+
+      const fill = document.createElement('div');
+      fill.className = 'dc-bar-fill';
+      fill.style.background = colors[i];
+      fill.style.width = (val / maxVal * 100) + '%';
+      fill.style.opacity = i === 3 && val === 0 ? '0.3' : '1';
+      track.appendChild(fill);
+
+      // P3 target dashed line
+      if (i === 3) {
+        const target = p3Target[subj];
+        const tLine = document.createElement('div');
+        tLine.style.cssText = `position:absolute;top:-3px;bottom:-3px;width:2px;background:rgba(240,192,64,.7);border-radius:2px;left:${(target / maxVal * 100)}%;`;
+        const tLabel = document.createElement('span');
+        tLabel.style.cssText = `position:absolute;top:-14px;left:${(target / maxVal * 100)}%;font-size:9px;color:rgba(240,192,64,.75);transform:translateX(-50%);white-space:nowrap;`;
+        tLabel.textContent = 'Target ' + target;
+        track.appendChild(tLine);
+        track.appendChild(tLabel);
+      }
+
+      row.appendChild(track);
+
+      const valSpan = document.createElement('span');
+      valSpan.className = 'dc-bar-val';
+      valSpan.textContent = val;
+      if (i === 3 && val < p3Target[subj]) valSpan.style.color = '#ff7b6b';
+      row.appendChild(valSpan);
+
+      group.appendChild(row);
+    });
+
+    container.appendChild(group);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owner Device Coverage Board — WonderQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d1117;
+      --card:    #161b22;
+      --accent:  #50e890;
+      --text:    #f0f6ff;
+      --border:  rgba(255,255,255,.06);
+      --muted:   #8b949e;
+      --pass:    #238636;
+      --pass-fg: #3fb950;
+      --fail:    #da3633;
+      --fail-fg: #f85149;
+      --partial: #9e6a03;
+      --partial-fg: #e3b341;
+      --untested-bg: rgba(139,148,158,.1);
+      --untested-fg: #8b949e;
+      --radius:  10px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      line-height: 1.5;
+    }
+
+    /* ── Engineering Hint ── */
+    .hint-box {
+      background: #2d2000;
+      border: 1.5px solid #e3b341;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .hint-box .hint-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .hint-box .hint-content {
+      font-size: 12.5px;
+      color: #e3b341;
+      line-height: 1.65;
+      font-family: 'Inter', monospace;
+    }
+    .hint-box .hint-content strong {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      display: block;
+      margin-bottom: 4px;
+      color: #f0c040;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      margin-bottom: 28px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: var(--text);
+    }
+    .page-header .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .badge-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.25);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      margin-top: 8px;
+    }
+
+    /* ── Tab Nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 10px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section Title ── */
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title .pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(80,232,144,.12);
+      color: var(--accent);
+    }
+
+    /* ── Coverage Matrix ── */
+    .matrix-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    table.coverage-matrix {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1020px;
+      font-size: 12.5px;
+    }
+    .coverage-matrix thead th {
+      background: #0f1419;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .coverage-matrix thead th:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: #0f1419;
+      min-width: 160px;
+    }
+    .coverage-matrix tbody tr:nth-child(odd) td { background: var(--card); }
+    .coverage-matrix tbody tr:nth-child(even) td { background: #0f1419; }
+    .coverage-matrix tbody tr:last-child td { border-top: 2px solid var(--border); background: #0d1117; font-weight: 600; }
+    .coverage-matrix tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      vertical-align: middle;
+    }
+    .coverage-matrix tbody td:first-child {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text);
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      font-size: 12px;
+    }
+    .coverage-matrix tbody tr:nth-child(odd) td:first-child { background: var(--card); }
+    .coverage-matrix tbody tr:nth-child(even) td:first-child { background: #0f1419; }
+    .coverage-matrix tbody tr:last-child td:first-child { background: #0d1117; }
+
+    /* ── Cell Status Chips ── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      min-width: 62px;
+    }
+    .chip.pass    { background: rgba(35,134,54,.25); color: var(--pass-fg); }
+    .chip.fail    { background: rgba(218,54,51,.2);  color: var(--fail-fg); }
+    .chip.partial { background: rgba(158,106,3,.25); color: var(--partial-fg); }
+    .chip.untested{ background: var(--untested-bg);  color: var(--untested-fg); }
+
+    /* ── Summary Cells ── */
+    .pct-cell {
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .pct-high { color: var(--pass-fg); }
+    .pct-mid  { color: var(--partial-fg); }
+    .pct-low  { color: var(--fail-fg); }
+
+    /* ── Issue Log ── */
+    .overall-bar-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .overall-pct {
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .overall-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .prog-bar-outer {
+      flex: 1;
+      min-width: 180px;
+      height: 10px;
+      background: rgba(255,255,255,.06);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .prog-bar-inner {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), #38c47a);
+    }
+
+    .issue-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+    .issue-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .issue-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .issue-card-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .issue-card-meta {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .issue-card-meta span { display: flex; align-items: center; gap: 5px; }
+    .issue-card-notes {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+    .issue-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .link-badge {
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(255,255,255,.05);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .btn-fix {
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.3);
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      min-height: 36px;
+      transition: background .15s;
+    }
+    .btn-fix:hover { background: rgba(80,232,144,.2); }
+
+    /* ── Spec Tab ── */
+    .spec-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      margin-bottom: 24px;
+    }
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .spec-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .spec-kv {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .spec-row {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      font-size: 12.5px;
+    }
+    .spec-row dt {
+      color: var(--muted);
+      min-width: 90px;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+    .spec-row dd { color: var(--text); word-break: break-word; }
+    .spec-row dd code {
+      background: rgba(255,255,255,.07);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-family: 'SF Mono', 'Fira Mono', monospace;
+    }
+
+    .schema-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+    }
+    table.schema-table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 560px;
+      font-size: 12.5px;
+    }
+    .schema-table th {
+      background: #0f1419;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .schema-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .schema-table tr:last-child td { border-bottom: none; }
+    .schema-table tr:nth-child(odd) td { background: var(--card); }
+    .schema-table tr:nth-child(even) td { background: #0f1419; }
+    .schema-table td code {
+      background: rgba(255,255,255,.07);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-family: 'SF Mono', 'Fira Mono', monospace;
+    }
+
+    .rules-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rules-list li {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .rule-num {
+      background: rgba(80,232,144,.15);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+
+    /* ── Focus ── */
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    @media (max-width: 600px) {
+      body { padding: 16px 10px 40px; }
+      .page-header h1 { font-size: 18px; }
+      .overall-pct { font-size: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering Hint Box -->
+  <div class="hint-box" role="note" aria-label="Engineering hint">
+    <span class="hint-icon" aria-hidden="true">&#9888;</span>
+    <div class="hint-content">
+      <strong>Engineering Hint</strong>
+      owner-device-coverage-board-v2 &nbsp;|&nbsp; Persona: Owner &nbsp;|&nbsp; Route: /owner/qa/device-coverage &nbsp;|&nbsp;
+      DB: device_coverage { id, device_label TEXT, os TEXT, browser TEXT, feature_area TEXT, status ENUM('pass','fail','partial','untested'), tested_by TEXT, tested_at TIMESTAMPTZ, notes TEXT }
+      &nbsp;|&nbsp; Privacy: No child PII; device data = technical metadata only
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <h1>Device Coverage Board</h1>
+    <p class="subtitle">Track compatibility status across devices and browsers for each feature area.</p>
+    <span class="badge-item" aria-label="Design System item 289">&#9632; DS #289 &nbsp;&middot;&nbsp; Owner QA</span>
+  </header>
+
+  <!-- Tab Nav -->
+  <nav class="tab-nav" role="tablist" aria-label="Device Coverage sections">
+    <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-matrix"   id="btn-matrix"   onclick="showTab('matrix')"   type="button">Coverage Matrix</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-issues"   id="btn-issues"   onclick="showTab('issues')"   type="button">Issue Log</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-spec"     id="btn-spec"     onclick="showTab('spec')"     type="button">Spec</button>
+  </nav>
+
+  <!-- TAB 1: Coverage Matrix -->
+  <section id="tab-matrix" class="tab-panel active" role="tabpanel" aria-labelledby="btn-matrix">
+    <div class="section-title">
+      Feature &times; Device Matrix
+      <span class="pill">10 Devices &middot; 8 Features</span>
+    </div>
+
+    <div class="matrix-wrap" role="region" aria-label="Device coverage matrix, scrollable horizontally">
+      <table class="coverage-matrix" aria-label="Feature area versus device compatibility status">
+        <thead>
+          <tr>
+            <th scope="col">Feature Area</th>
+            <th scope="col">iPhone 14<br/><span style="font-weight:400;font-size:10px;">iOS Safari</span></th>
+            <th scope="col">iPhone SE<br/><span style="font-weight:400;font-size:10px;">iOS Safari</span></th>
+            <th scope="col">iPad 10th<br/><span style="font-weight:400;font-size:10px;">iPadOS Safari</span></th>
+            <th scope="col">iPad mini<br/><span style="font-weight:400;font-size:10px;">iPadOS Safari</span></th>
+            <th scope="col">Android Phone<br/><span style="font-weight:400;font-size:10px;">Chrome</span></th>
+            <th scope="col">Android Tablet<br/><span style="font-weight:400;font-size:10px;">Chrome</span></th>
+            <th scope="col">MacBook<br/><span style="font-weight:400;font-size:10px;">Chrome</span></th>
+            <th scope="col">MacBook<br/><span style="font-weight:400;font-size:10px;">Safari</span></th>
+            <th scope="col">Windows<br/><span style="font-weight:400;font-size:10px;">Chrome</span></th>
+            <th scope="col">Windows<br/><span style="font-weight:400;font-size:10px;">Firefox</span></th>
+            <th scope="col" style="min-width:72px;">Row Pass%</th>
+          </tr>
+        </thead>
+        <tbody id="matrix-body">
+          <!-- Rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB 2: Issue Log -->
+  <section id="tab-issues" class="tab-panel" role="tabpanel" aria-labelledby="btn-issues">
+
+    <div class="overall-bar-wrap" aria-label="Overall coverage rate">
+      <div>
+        <div class="overall-pct" aria-label="76 percent">76%</div>
+        <div class="overall-label">Overall Pass Rate</div>
+      </div>
+      <div class="prog-bar-outer" role="progressbar" aria-valuenow="76" aria-valuemin="0" aria-valuemax="100" aria-label="76% pass rate">
+        <div class="prog-bar-inner" style="width:76%"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:right;min-width:120px;">
+        61 / 80 cells passing<br/>
+        <span style="color:var(--fail-fg);">3 Fail</span> &nbsp;&middot;&nbsp;
+        <span style="color:var(--partial-fg);">5 Partial</span> &nbsp;&middot;&nbsp;
+        <span style="color:var(--untested-fg);">11 Untested</span>
+      </div>
+    </div>
+
+    <div class="section-title">Failed &amp; Partial Items</div>
+
+    <div class="issue-grid" id="issue-cards">
+      <!-- Cards injected by JS -->
+    </div>
+  </section>
+
+  <!-- TAB 3: Spec -->
+  <section id="tab-spec" class="tab-panel" role="tabpanel" aria-labelledby="btn-spec">
+
+    <div class="section-title">Component Specification</div>
+
+    <div class="spec-grid">
+      <div class="spec-card">
+        <div class="spec-card-title">Component Info</div>
+        <dl class="spec-kv">
+          <div class="spec-row"><dt>Component</dt><dd><code>DeviceCoverageBoard</code></dd></div>
+          <div class="spec-row"><dt>Route</dt><dd><code>/owner/qa/device-coverage</code></dd></div>
+          <div class="spec-row"><dt>Auth</dt><dd>Owner only — role check required on load</dd></div>
+          <div class="spec-row"><dt>DS Item</dt><dd>#289</dd></div>
+          <div class="spec-row"><dt>Version</dt><dd>v2</dd></div>
+        </dl>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-title">Props</div>
+        <dl class="spec-kv">
+          <div class="spec-row"><dt><code>ownerId</code></dt><dd>string — required; scopes data fetch</dd></div>
+          <div class="spec-row"><dt><code>releaseTag</code></dt><dd>string — optional; filter by release</dd></div>
+          <div class="spec-row"><dt><code>onExport</code></dt><dd>() =&gt; void — trigger coverage report export</dd></div>
+          <div class="spec-row"><dt><code>featureFilter</code></dt><dd>string[] — optional; subset feature rows</dd></div>
+          <div class="spec-row"><dt><code>readOnly</code></dt><dd>boolean — disable status edits (default: false)</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="section-title">DB Schema — <code style="font-size:13px;color:var(--muted)">device_coverage</code></div>
+    <div class="schema-table-wrap">
+      <table class="schema-table" aria-label="Database schema for device_coverage table">
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td><code>UUID</code></td><td>Primary key</td></tr>
+          <tr><td><code>device_label</code></td><td><code>TEXT</code></td><td>Human-readable device name (e.g. "iPhone 14")</td></tr>
+          <tr><td><code>os</code></td><td><code>TEXT</code></td><td>Operating system name and version</td></tr>
+          <tr><td><code>browser</code></td><td><code>TEXT</code></td><td>Browser name and version</td></tr>
+          <tr><td><code>feature_area</code></td><td><code>TEXT</code></td><td>Feature area identifier (e.g. "voice_coach_audio")</td></tr>
+          <tr><td><code>status</code></td><td><code>ENUM('pass','fail','partial','untested')</code></td><td>Test result status</td></tr>
+          <tr><td><code>tested_by</code></td><td><code>TEXT</code></td><td>Tester name or user ID</td></tr>
+          <tr><td><code>tested_at</code></td><td><code>TIMESTAMPTZ</code></td><td>Timestamp of when test was recorded</td></tr>
+          <tr><td><code>notes</code></td><td><code>TEXT</code></td><td>Optional notes or reproduction steps</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Rules</div>
+    <ul class="rules-list" aria-label="Coverage board rules">
+      <li>
+        <span class="rule-num" aria-hidden="true">1</span>
+        <span>A <strong>Fail</strong> status automatically creates a linked <code>feedback_item</code> in the feedback system with severity derived from the feature's P-level.</span>
+      </li>
+      <li>
+        <span class="rule-num" aria-hidden="true">2</span>
+        <span>All <strong>P0 features</strong> must be tested on every device before any release is gated as ready. Untested P0 cells block release.</span>
+      </li>
+      <li>
+        <span class="rule-num" aria-hidden="true">3</span>
+        <span><strong>Untested</strong> cells appear as amber warnings in the release checklist — treated as a blocking risk until resolved.</span>
+      </li>
+      <li>
+        <span class="rule-num" aria-hidden="true">4</span>
+        <span>A full <strong>coverage report</strong> (JSON + CSV) is exported automatically as part of the release gate workflow and archived in the release artifact store.</span>
+      </li>
+      <li>
+        <span class="rule-num" aria-hidden="true">5</span>
+        <span><strong>No child PII</strong> is stored or transmitted. All data in <code>device_coverage</code> is technical metadata only; tester identity uses owner-role user IDs.</span>
+      </li>
+    </ul>
+  </section>
+
+  <script>
+    /* ─── Tab System ─── */
+    function showTab(t) {
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'tab-' + t);
+      });
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        const isActive = b.id === 'btn-' + t;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    /* ─── Matrix Data ─── */
+    const DEVICES = [
+      'iPhone 14',
+      'iPhone SE',
+      'iPad 10th',
+      'iPad mini',
+      'Android Phone',
+      'Android Tablet',
+      'MacBook Chrome',
+      'MacBook Safari',
+      'Windows Chrome',
+      'Windows Firefox',
+    ];
+
+    // P = pass, F = fail, T = partial, U = untested
+    const FEATURES = [
+      {
+        label: 'Voice Coach Audio',
+        row: ['P','P','P','F','P','P','P','P','P','P'],
+      },
+      {
+        label: 'Touch Targets',
+        row: ['P','P','P','P','P','P','P','P','P','P'],
+      },
+      {
+        label: 'Theme Rendering',
+        row: ['P','P','P','P','P','T','P','P','P','P'],
+      },
+      {
+        label: 'Quest Flow',
+        row: ['P','P','P','P','P','P','P','P','P','U'],
+      },
+      {
+        label: 'Offline / IndexedDB',
+        row: ['P','P','U','U','P','P','P','P','P','T'],
+      },
+      {
+        label: 'Accessibility (High Contrast)',
+        row: ['P','P','P','P','P','U','P','P','P','P'],
+      },
+      {
+        label: 'Quiet Hours',
+        row: ['P','P','P','P','P','P','P','P','U','U'],
+      },
+      {
+        label: 'Parent Dashboard',
+        row: ['P','P','P','U','P','P','P','P','P','P'],
+      },
+    ];
+
+    const STATUS_MAP = {
+      P: { cls: 'pass',    label: 'Pass',     icon: '&#10003;' },
+      F: { cls: 'fail',    label: 'Fail',     icon: '&#10007;' },
+      T: { cls: 'partial', label: 'Partial',  icon: '&#126;' },
+      U: { cls: 'untested',label: 'Untested', icon: '&#63;' },
+    };
+
+    function pctClass(p) {
+      if (p >= 80) return 'pct-high';
+      if (p >= 60) return 'pct-mid';
+      return 'pct-low';
+    }
+
+    function buildMatrix() {
+      const tbody = document.getElementById('matrix-body');
+      let html = '';
+      const devicePassCounts = new Array(DEVICES.length).fill(0);
+      const deviceTotalCounts = new Array(DEVICES.length).fill(0);
+
+      FEATURES.forEach(feat => {
+        let rowPass = 0, rowTotal = feat.row.length;
+        let cells = '';
+        feat.row.forEach((s, di) => {
+          const st = STATUS_MAP[s];
+          cells += `<td><span class="chip ${st.cls}" aria-label="${DEVICES[di]}: ${feat.label} — ${st.label}">${st.icon} ${st.label}</span></td>`;
+          deviceTotalCounts[di]++;
+          if (s === 'P') { rowPass++; devicePassCounts[di]++; }
+        });
+        const rp = Math.round((rowPass / rowTotal) * 100);
+        html += `<tr>
+          <td>${feat.label}</td>
+          ${cells}
+          <td class="pct-cell ${pctClass(rp)}">${rp}%</td>
+        </tr>`;
+      });
+
+      // Summary row
+      let sumCells = '';
+      devicePassCounts.forEach((pass, di) => {
+        const total = deviceTotalCounts[di];
+        const p = Math.round((pass / total) * 100);
+        sumCells += `<td class="pct-cell ${pctClass(p)}">${p}%</td>`;
+      });
+      html += `<tr>
+        <td style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);">Column Pass%</td>
+        ${sumCells}
+        <td></td>
+      </tr>`;
+
+      tbody.innerHTML = html;
+    }
+
+    /* ─── Issue Cards ─── */
+    const ISSUES = [
+      {
+        status: 'fail',
+        device: 'iPad mini',
+        feature: 'Voice Coach Audio',
+        tester: 'R. Patel',
+        date: '2026-03-18',
+        notes: 'Web Audio API context fails to resume after first suspend on iPadOS 17.4. Audio plays once then goes silent. Requires page reload to restore.',
+        linkedItem: 'OBS-0412',
+        priority: 'P0',
+      },
+      {
+        status: 'partial',
+        device: 'Android Tablet',
+        feature: 'Theme Rendering',
+        tester: 'S. Kim',
+        date: '2026-03-20',
+        notes: 'Custom font variable --wq-heading-font not applied on first paint on Samsung Galaxy Tab S8. Falls back to system font until full render cycle completes.',
+        linkedItem: 'OBS-0438',
+        priority: 'P1',
+      },
+      {
+        status: 'partial',
+        device: 'Windows Firefox',
+        feature: 'Offline / IndexedDB',
+        tester: 'T. Nguyen',
+        date: '2026-03-21',
+        notes: 'Service worker cache strategy not persisting quest state across Firefox restart on Windows 11. Partial data recovery observed — active quests lost, completed quests intact.',
+        linkedItem: 'OBS-0451',
+        priority: 'P1',
+      },
+      {
+        status: 'partial',
+        device: 'Windows Firefox',
+        feature: 'Quest Flow',
+        tester: 'T. Nguyen',
+        date: '2026-03-21',
+        notes: 'Step-advance animation stutters on Firefox 124 due to CSS @property not being supported. Fallback to static transition applied but feels degraded.',
+        linkedItem: 'OBS-0453',
+        priority: 'P2',
+      },
+    ];
+
+    const STATUS_LABEL = { fail: 'Fail', partial: 'Partial' };
+    const STATUS_COLOR = { fail: 'var(--fail-fg)', partial: 'var(--partial-fg)' };
+
+    function buildIssues() {
+      const container = document.getElementById('issue-cards');
+      container.innerHTML = ISSUES.map(issue => `
+        <article class="issue-card" aria-label="${issue.device} — ${issue.feature}: ${STATUS_LABEL[issue.status]}">
+          <div class="issue-card-header">
+            <div class="issue-card-title">${issue.feature}</div>
+            <span class="chip ${issue.status}" style="flex-shrink:0;">
+              ${issue.status === 'fail' ? '&#10007;' : '&#126;'} ${STATUS_LABEL[issue.status]}
+            </span>
+          </div>
+          <div class="issue-card-meta">
+            <span>&#128241; ${issue.device}</span>
+            <span>&#128101; Tested by ${issue.tester} &nbsp;&middot;&nbsp; ${issue.date}</span>
+            <span style="color:${STATUS_COLOR[issue.status]}">&#9650; Priority ${issue.priority}</span>
+          </div>
+          <p class="issue-card-notes">${issue.notes}</p>
+          <div class="issue-card-footer">
+            <span class="link-badge" aria-label="Linked observation ${issue.linkedItem}">&#128279; ${issue.linkedItem}</span>
+            <button class="btn-fix" type="button" aria-label="Link to fix for ${issue.feature} on ${issue.device}">Link to Fix</button>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    /* ─── Init ─── */
+    buildMatrix();
+    buildIssues();
+  </script>
+</body>
+</html>

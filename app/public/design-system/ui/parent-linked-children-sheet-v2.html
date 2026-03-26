@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Linked Children Sheet v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Sora',sans-serif;background:#ede8de;color:#1a1a1a;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:10px;background:#2c7a6e;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #1f5f56}
+  .tab{padding:7px 12px;border-radius:16px;border:none;font-family:'Sora',sans-serif;font-weight:700;font-size:10px;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);transition:all .2s}
+  .tab.active{background:#fff;color:#2c7a6e}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#f5f0e8;margin:16px auto;border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15);position:relative}
+
+  /* Background dimmed content (behind sheet) */
+  .bg-content{padding:16px;opacity:.35;pointer-events:none}
+  .bg-nav{background:#2c7a6e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+  .bg-logo{font-size:15px;font-weight:800;color:#fff}
+  .bg-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px}
+  .bg-dim{height:80px;background:rgba(0,0,0,.05);border-radius:14px;margin-bottom:10px}
+
+  /* Bottom sheet overlay */
+  .sheet-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;z-index:10}
+  .bottom-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:90%;overflow-y:auto}
+  .sheet-handle{width:36px;height:4px;background:rgba(0,0,0,.15);border-radius:3px;margin:10px auto 0}
+  .sheet-header{padding:14px 20px 12px;border-bottom:1px solid rgba(0,0,0,.08)}
+  .sh-title{font-size:16px;font-weight:800;color:#1a1a1a}
+  .sh-sub{font-size:11px;color:#888;font-weight:600;margin-top:3px}
+  .sheet-body{padding:14px 16px 20px}
+
+  /* Child rows */
+  .child-row{display:flex;align-items:center;gap:12px;background:#f9f7f3;border-radius:14px;padding:12px;margin-bottom:10px;border:2px solid transparent;cursor:pointer;transition:all .15s}
+  .child-row.active{background:rgba(44,122,110,.06);border-color:#2c7a6e}
+  .cr-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;position:relative}
+  .cr-active-dot{position:absolute;bottom:2px;right:2px;width:10px;height:10px;border-radius:50%;background:#2c7a6e;border:2px solid #fff}
+  .cr-info{flex:1;min-width:0}
+  .cr-name{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:2px}
+  .cr-world{font-size:11px;color:#888;font-weight:600}
+  .cr-last{font-size:10px;color:#aaa;font-weight:600;margin-top:2px}
+  .cr-arrow{font-size:16px;color:#aaa;flex-shrink:0}
+  .cr-badge{background:#2c7a6e;color:#fff;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;flex-shrink:0}
+
+  /* Add child CTA */
+  .add-child-row{display:flex;align-items:center;gap:12px;padding:12px;border:2px dashed rgba(44,122,110,.3);border-radius:14px;cursor:pointer;margin-bottom:12px;transition:all .15s}
+  .add-child-row:hover{border-color:#2c7a6e;background:rgba(44,122,110,.04)}
+  .add-icon{width:48px;height:48px;border-radius:50%;background:rgba(44,122,110,.1);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  .add-text{}
+  .add-title{font-size:13px;font-weight:700;color:#2c7a6e;margin-bottom:2px}
+  .add-sub{font-size:11px;color:#888;font-weight:600}
+
+  /* Privacy note */
+  .privacy-note{background:rgba(44,122,110,.05);border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start}
+  .pn-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+  .pn-text{font-size:10px;color:#666;font-weight:600;line-height:1.5}
+
+  /* Child quick view */
+  .quick-view{background:#fff;border-radius:16px;margin:0 16px;border:1px solid rgba(0,0,0,.08);overflow:hidden}
+  .qv-header{background:linear-gradient(135deg,#2c7a6e,#1f5f56);padding:16px;color:#fff;display:flex;align-items:center;gap:12px}
+  .qv-avatar{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px}
+  .qv-name{font-size:16px;font-weight:800}
+  .qv-sub{font-size:11px;opacity:.75;margin-top:2px}
+  .qv-stats{display:flex;border-bottom:1px solid rgba(0,0,0,.08)}
+  .qvs{flex:1;text-align:center;padding:12px 8px;border-right:1px solid rgba(0,0,0,.06)}
+  .qvs:last-child{border-right:none}
+  .qvs-val{font-size:18px;font-weight:800;color:#2c7a6e}
+  .qvs-lbl{font-size:9px;color:#aaa;font-weight:700;text-transform:uppercase;margin-top:2px}
+  .qv-body{padding:14px 16px}
+  .qv-skill{display:flex;align-items:center;gap:8px;padding:5px 0}
+  .qv-skill-name{font-size:11px;font-weight:600;color:#444;width:80px;flex-shrink:0}
+  .qv-bar{flex:1;background:rgba(0,0,0,.07);border-radius:5px;height:6px;overflow:hidden}
+  .qv-fill{height:100%;border-radius:5px}
+  .qv-tier{font-size:9px;font-weight:700;padding:2px 6px;border-radius:7px;flex-shrink:0}
+  .tier-s{background:rgba(44,122,110,.12);color:#2c7a6e}
+  .tier-g{background:rgba(240,180,41,.15);color:#c17d00}
+  .tier-o{background:rgba(232,108,90,.12);color:#c44}
+  .qv-actions{display:flex;gap:8px;padding:0 16px 14px}
+  .qv-btn{flex:1;padding:10px;border-radius:10px;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer;border:none}
+  .qv-btn.primary{background:#2c7a6e;color:#fff}
+  .qv-btn.secondary{background:rgba(44,122,110,.1);color:#2c7a6e}
+
+  /* Add child flow */
+  .add-flow{padding:16px}
+  .add-step{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid rgba(0,0,0,.08)}
+  .as-num{width:24px;height:24px;border-radius:50%;background:#2c7a6e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+  .as-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .as-title{font-size:13px;font-weight:700;color:#1a1a1a}
+  .as-body{font-size:12px;color:#666;font-weight:600;line-height:1.5}
+  .code-box{background:#f5f0e8;border:2px solid rgba(44,122,110,.3);border-radius:12px;padding:14px;text-align:center;margin:10px 0}
+  .code-val{font-size:28px;font-weight:800;color:#2c7a6e;letter-spacing:6px}
+  .code-lbl{font-size:10px;color:#888;font-weight:600;margin-top:4px}
+  .input-row{background:#f5f0e8;border:1px solid rgba(0,0,0,.12);border-radius:10px;padding:12px;font-size:13px;color:#1a1a1a;font-weight:600;width:100%;margin-top:8px}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:#444}
+  .spec-body h3{color:#2c7a6e;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(44,122,110,.1);border:1px solid #2c7a6e;border-radius:6px;padding:2px 8px;font-size:10px;color:#2c7a6e;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('sheet-2')">Child Sheet (2 children)</button>
+  <button class="tab" onclick="show('sheet-3')">Child Sheet (3 children)</button>
+  <button class="tab" onclick="show('child-quick')">Child Detail Quick View</button>
+  <button class="tab" onclick="show('add-child')">Add Child Flow</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>parent-linked-children-sheet-v2.html</code> — 375px mobile · Sora · #f5f0e8 · child switcher bottom sheet
+</div>
+
+<!-- CHILD SHEET — 2 CHILDREN -->
+<div id="sheet-2" class="panel active">
+  <div class="screen">
+    <!-- Background content -->
+    <div style="background:#2c7a6e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;opacity:.35">
+      <div style="font-size:15px;font-weight:800;color:#fff">⭐ WonderQuest</div>
+      <div style="font-size:11px;color:#fff;font-weight:700">Family Home</div>
+    </div>
+    <div style="padding:10px 12px;opacity:.3">
+      <div style="background:#fff;border-radius:14px;height:80px;margin-bottom:8px"></div>
+      <div style="background:#fff;border-radius:14px;height:120px;margin-bottom:8px"></div>
+    </div>
+    <!-- Bottom sheet -->
+    <div class="sheet-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sh-title">Your Learners</div>
+          <div class="sh-sub">Tap a child to switch · Active: Alex</div>
+        </div>
+        <div class="sheet-body">
+          <!-- Active child -->
+          <div class="child-row active">
+            <div class="cr-avatar">🧒<div class="cr-active-dot"></div></div>
+            <div class="cr-info">
+              <div class="cr-name">Alex</div>
+              <div class="cr-world">🌊 Ocean World · Level 3</div>
+              <div class="cr-last">Played today · 4-day streak 🔥</div>
+            </div>
+            <div class="cr-badge">Active</div>
+          </div>
+          <!-- Second child -->
+          <div class="child-row">
+            <div class="cr-avatar">👧</div>
+            <div class="cr-info">
+              <div class="cr-name">Maya</div>
+              <div class="cr-world">🌲 Forest World · Level 5</div>
+              <div class="cr-last">Played yesterday · 3-day streak</div>
+            </div>
+            <div class="cr-arrow">›</div>
+          </div>
+          <!-- Add child -->
+          <div class="add-child-row">
+            <div class="add-icon">➕</div>
+            <div class="add-text">
+              <div class="add-title">Add another learner</div>
+              <div class="add-sub">Link a child's school account</div>
+            </div>
+          </div>
+          <!-- Privacy note -->
+          <div class="privacy-note">
+            <div class="pn-icon">🔒</div>
+            <div class="pn-text">Your child's progress data is private. Only parents and linked teachers can view learning reports. WonderQuest never shares data with third parties.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHILD SHEET — 3 CHILDREN -->
+<div id="sheet-3" class="panel">
+  <div class="screen">
+    <div style="background:#2c7a6e;padding:14px 16px;opacity:.35">
+      <div style="font-size:15px;font-weight:800;color:#fff">⭐ WonderQuest</div>
+    </div>
+    <div style="padding:10px 12px;opacity:.3">
+      <div style="background:#fff;border-radius:14px;height:70px;margin-bottom:8px"></div>
+    </div>
+    <div class="sheet-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sh-title">Your Learners</div>
+          <div class="sh-sub">3 learners linked · Active: Maya</div>
+        </div>
+        <div class="sheet-body">
+          <div class="child-row">
+            <div class="cr-avatar">🧒</div>
+            <div class="cr-info">
+              <div class="cr-name">Alex</div>
+              <div class="cr-world">🌊 Ocean World · Level 3</div>
+              <div class="cr-last">Played today · 🔥 4-day streak</div>
+            </div>
+            <div class="cr-arrow">›</div>
+          </div>
+          <div class="child-row active">
+            <div class="cr-avatar">👧<div class="cr-active-dot"></div></div>
+            <div class="cr-info">
+              <div class="cr-name">Maya</div>
+              <div class="cr-world">🌲 Forest World · Level 5</div>
+              <div class="cr-last">Played yesterday · 🔥 3-day streak</div>
+            </div>
+            <div class="cr-badge">Active</div>
+          </div>
+          <div class="child-row">
+            <div class="cr-avatar">👦</div>
+            <div class="cr-info">
+              <div class="cr-name">Luca</div>
+              <div class="cr-world">🌞 Meadow World · Level 1</div>
+              <div class="cr-last">Played 3 days ago · Just started!</div>
+            </div>
+            <div class="cr-arrow">›</div>
+          </div>
+          <div class="add-child-row" style="padding:10px">
+            <div class="add-icon">➕</div>
+            <div class="add-text">
+              <div class="add-title">Add another learner</div>
+              <div class="add-sub">Link a child's school account</div>
+            </div>
+          </div>
+          <div class="privacy-note">
+            <div class="pn-icon">🔒</div>
+            <div class="pn-text">Privacy protected — your children's data is only shared with linked teachers and family members you approve.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHILD DETAIL QUICK VIEW -->
+<div id="child-quick" class="panel">
+  <div class="screen">
+    <div style="background:#2c7a6e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;opacity:.35">
+      <div style="font-size:15px;font-weight:800;color:#fff">⭐ WonderQuest</div>
+      <div style="font-size:11px;color:#fff;font-weight:700">Family Home</div>
+    </div>
+    <div style="padding:10px 12px;opacity:.3">
+      <div style="background:#fff;border-radius:14px;height:60px;margin-bottom:8px"></div>
+    </div>
+    <div class="sheet-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="quick-view" style="margin:14px 16px 0;box-shadow:none;border:none">
+          <div class="qv-header">
+            <div class="qv-avatar">🧒</div>
+            <div>
+              <div class="qv-name">Alex</div>
+              <div class="qv-sub">🌊 Ocean World · Level 3 · Grade 1</div>
+            </div>
+          </div>
+          <div class="qv-stats">
+            <div class="qvs"><div class="qvs-val">⭐32</div><div class="qvs-lbl">This week</div></div>
+            <div class="qvs"><div class="qvs-val">🔥4</div><div class="qvs-lbl">Day streak</div></div>
+            <div class="qvs"><div class="qvs-val">14</div><div class="qvs-lbl">Sessions</div></div>
+          </div>
+          <div class="qv-body">
+            <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Skill snapshot</div>
+            <div class="qv-skill">
+              <div class="qv-skill-name">Letter Sounds</div>
+              <div class="qv-bar"><div class="qv-fill" style="width:85%;background:#2c7a6e"></div></div>
+              <div class="qv-tier tier-s">Strength</div>
+            </div>
+            <div class="qv-skill">
+              <div class="qv-skill-name">Sight Words</div>
+              <div class="qv-bar"><div class="qv-fill" style="width:62%;background:#f0b429"></div></div>
+              <div class="qv-tier tier-g">Growing</div>
+            </div>
+            <div class="qv-skill">
+              <div class="qv-skill-name">Word Blending</div>
+              <div class="qv-bar"><div class="qv-fill" style="width:38%;background:#e86c5a"></div></div>
+              <div class="qv-tier tier-o">Opportunity</div>
+            </div>
+            <div style="margin-top:10px;padding:8px;background:#f5f0e8;border-radius:10px;font-size:11px;color:#555;font-weight:600">
+              <span style="color:#2c7a6e;font-weight:700">Teacher note:</span> "Word Blending is a great opportunity area to practice at home." — Ms. Rodriguez
+            </div>
+          </div>
+          <div class="qv-actions">
+            <button class="qv-btn primary">Full report</button>
+            <button class="qv-btn secondary">Switch to Alex</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px">
+          <div class="privacy-note">
+            <div class="pn-icon">🔒</div>
+            <div class="pn-text">This is a summary view. Skill tiers reflect Alex's current learning trajectory, not test scores.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CHILD FLOW -->
+<div id="add-child" class="panel">
+  <div class="screen">
+    <div style="background:#2c7a6e;padding:14px 16px;opacity:.35">
+      <div style="font-size:15px;font-weight:800;color:#fff">⭐ WonderQuest</div>
+    </div>
+    <div class="sheet-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sh-title">Add a Learner</div>
+          <div class="sh-sub">Link your child's WonderQuest account</div>
+        </div>
+        <div class="sheet-body">
+          <div class="add-flow" style="padding:0">
+            <div class="add-step">
+              <div class="as-header">
+                <div class="as-num">1</div>
+                <div class="as-title">Get your child's code</div>
+              </div>
+              <div class="as-body">Ask your child's teacher for their WonderQuest learner code, or find it in the WonderQuest child app under "My Profile".</div>
+            </div>
+            <div class="add-step">
+              <div class="as-header">
+                <div class="as-num">2</div>
+                <div class="as-title">Enter the code below</div>
+              </div>
+              <div class="as-body">Type or paste the 6-digit code to link the account.</div>
+              <div class="code-box">
+                <div style="font-size:28px;font-weight:800;color:rgba(44,122,110,.3);letter-spacing:8px">_ _ _ _ _ _</div>
+                <div class="code-lbl">Enter 6-digit learner code</div>
+              </div>
+            </div>
+            <div class="add-step">
+              <div class="as-header">
+                <div class="as-num">3</div>
+                <div class="as-title">Confirm and link</div>
+              </div>
+              <div class="as-body">You'll see your child's name and school to confirm before linking.</div>
+              <button style="width:100%;background:#2c7a6e;color:#fff;border:none;border-radius:12px;padding:13px;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-top:10px">Confirm &amp; link learner</button>
+            </div>
+          </div>
+          <div class="privacy-note" style="margin-top:4px">
+            <div class="pn-icon">🔒</div>
+            <div class="pn-text">Linking requires your child's teacher or school to approve the connection. Your child's data is never shared without consent.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: parent-linked-children-sheet-v2.html</h3>
+      <ul>
+        <li>375px mobile · Sora · bg <code>#f5f0e8</code></li>
+        <li>Bottom sheet pattern — slides up over dimmed background content</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Child Sheet (2 children):</strong> Active child highlighted, second child tappable, add child CTA, privacy note</li>
+        <li><strong>Child Sheet (3 children):</strong> All three shown, active highlighted, add CTA still visible</li>
+        <li><strong>Child Detail Quick View:</strong> Expanded per-child stat panel in sheet, skill tier bars, teacher note, switch/full report CTAs</li>
+        <li><strong>Add Child Flow:</strong> 3-step linking flow with code entry box, privacy disclosure</li>
+      </ul>
+      <h3>Parent Language Rules</h3>
+      <ul>
+        <li>NEVER accuracy % in quick view — tiers: Opportunity / Growing / Strength</li>
+        <li>Privacy note always present</li>
+        <li>Teacher notes framed as "Opportunity areas" not "failing"</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">375px mobile</span>
+        <span class="spec-tag">bg #f5f0e8</span>
+        <span class="spec-tag">nav #2c7a6e</span>
+        <span class="spec-tag">Sora font</span>
+        <span class="spec-tag">Bottom sheet pattern</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

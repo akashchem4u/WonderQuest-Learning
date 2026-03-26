@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Weekly Report — Mobile v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent weekly report — Mobile variant (390px frame)       │
+  │  Parent bg: #f5f0e8                                        │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Report Overview                                      │
+  │    2. Skills View                                          │
+  │    3. Suggestions                                          │
+  │    4. Spec                                                  │
+  │                                                            │
+  │  Mobile differences from desktop:                         │
+  │  - Stat chips horizontal-scroll (not 5-col grid)          │
+  │  - Skills as vertical list (not table)                     │
+  │  - Session log collapsed to cards                          │
+  │  - No side-by-side columns                                 │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #2a2060; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 40px; }
+.tab-bar { display: flex; gap: 4px; padding: 0 0 12px; overflow-x: auto; scrollbar-width: none; width: 100%; max-width: 420px; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 14px; border: none; background: #3a3070; color: #b0a0e0; font: 600 0.72rem system-ui; cursor: pointer; border-radius: 8px; white-space: nowrap; flex-shrink: 0; transition: all 0.18s; }
+.tab-btn.active { background: #9b72ff; color: #fff; }
+.screen { display: none; width: 100%; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+.phone { width: 390px; max-width: 100%; background: #f5f0e8; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 0 0 2px #9b72ff22; }
+.status-bar { height: 44px; display: flex; align-items: flex-end; padding: 0 20px 8px; justify-content: space-between; }
+.sb-time { font: 600 0.8rem system-ui; color: #1a1240; }
+.sb-icons { display: flex; gap: 4px; font-size: 0.8rem; color: #1a1240; }
+.page-content { padding: 16px 16px 0; overflow-y: auto; max-height: 620px; }
+.home-indicator-bar { height: 28px; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 120px; height: 5px; border-radius: 3px; background: #2a1a80; opacity: 0.2; }
+
+/* ─── Report Header ─── */
+.report-header-m { background: linear-gradient(135deg, #1a1240, #2a1860); border-radius: 16px; padding: 18px; margin-bottom: 14px; color: #e8e4f8; }
+.report-eyebrow-m { font: 600 0.68rem system-ui; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.report-title-m { font: 700 1.1rem system-ui; margin-bottom: 4px; }
+.report-period-m { font: 400 0.72rem system-ui; color: #b0a0e0; margin-bottom: 12px; }
+.report-child-row { display: flex; align-items: center; gap: 10px; }
+.report-avatar-m { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #ede8ff, #d8d0ff); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.report-band-m { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 12px; font: 700 0.68rem system-ui; background: #9b72ff33; color: #c8b0ff; margin-top: 3px; }
+
+/* ─── Stat Chips ─── */
+.stat-chips-m { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
+.stat-chips-m::-webkit-scrollbar { display: none; }
+.stat-chip-m { flex-shrink: 0; background: #fff; border-radius: 12px; padding: 10px 12px; border: 1px solid #e0d8f0; text-align: center; min-width: 68px; }
+.chip-val-m { font: 900 1rem system-ui; display: block; margin-bottom: 1px; }
+.chip-label-m { font: 400 0.6rem system-ui; color: #9080a0; }
+.chip-delta-m { font: 600 0.58rem system-ui; margin-top: 2px; }
+
+/* ─── Section Cards ─── */
+.section-card-m { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e0d8f0; margin-bottom: 12px; }
+.sc-title-m { font: 700 0.88rem system-ui; color: #1a1240; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+/* ─── Skill List Mobile ─── */
+.skill-item-m { margin-bottom: 12px; }
+.skill-item-m:last-child { margin-bottom: 0; }
+.skill-meta-m { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.skill-name-m { font: 600 0.8rem system-ui; color: #1a1240; }
+.skill-right-m { display: flex; align-items: center; gap: 8px; }
+.skill-pct-m { font: 700 0.78rem system-ui; }
+.skill-delta-m { font: 600 0.68rem system-ui; }
+.skill-bar-track-m { height: 6px; background: #e8e0f0; border-radius: 3px; overflow: hidden; }
+.skill-bar-fill-m { height: 100%; border-radius: 3px; }
+.skill-status-m { font: 400 0.68rem system-ui; margin-top: 3px; }
+.du { color: #30a060; }
+.dd { color: #c04040; }
+.ds { color: #9080a0; }
+
+/* ─── Session Log ─── */
+.session-card-m { padding: 10px 12px; background: #faf8ff; border-radius: 10px; border: 1px solid #e0d8f0; margin-bottom: 8px; }
+.session-top-m { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.session-date-m { font: 600 0.78rem system-ui; color: #4a3880; }
+.session-stars-m { font: 700 0.78rem system-ui; color: #ffd166; }
+.session-skills-m { font: 400 0.72rem system-ui; color: #6a5890; }
+.session-meta-m { display: flex; gap: 10px; margin-top: 4px; }
+.session-dur-m { font: 400 0.68rem system-ui; color: #9080a0; }
+.session-perfect-m { font-size: 0.72rem; }
+
+/* ─── Suggestion Cards ─── */
+.suggestion-m { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e0d8f0; margin-bottom: 12px; }
+.sug-header-m { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sug-icon-m { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.sug-title-m { font: 700 0.85rem system-ui; color: #1a1240; }
+.sug-body-m { font: 400 0.78rem/1.5 system-ui; color: #5a5070; }
+.sug-tag-m { display: inline-block; padding: 2px 10px; border-radius: 12px; font: 600 0.62rem system-ui; margin-top: 8px; }
+
+/* ─── Spec ─── */
+#screen-spec-m2 { display: none; background: #f5f0e8; padding: 24px; }
+#screen-spec-m2.active { display: block; }
+.spec-shell-m { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e0d8f0; }
+.spec-title-m { font: 700 1rem system-ui; color: #1a1240; margin-bottom: 14px; }
+.spec-table-m { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 14px; }
+.spec-table-m th { text-align: left; padding: 7px 10px; background: #ede8ff; color: #4a3880; font: 700 0.66rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table-m td { padding: 8px 10px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-rule-m { font-weight: 700; color: #1a1240; }
+.spec-detail-m { color: #6a5890; font-size: 0.7rem; line-height: 1.45; }
+.spec-section-m { font: 700 0.82rem system-ui; color: #3d2a8a; margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')">📊 Overview</button>
+  <button class="tab-btn" onclick="showTab('skills')">📚 Skills</button>
+  <button class="tab-btn" onclick="showTab('suggestions')">💡 Tips</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="screen active" id="screen-overview">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+
+      <!-- Report header -->
+      <div class="report-header-m">
+        <div class="report-eyebrow-m">Weekly Report · March 18–24</div>
+        <div class="report-title-m">Maya's amazing week! 🌟</div>
+        <div class="report-period-m">Generated Sunday, March 24, 2026</div>
+        <div class="report-child-row">
+          <div class="report-avatar-m">🦁</div>
+          <div>
+            <div style="font:700 0.88rem system-ui;color:#fff;">Maya</div>
+            <div class="report-band-m"><span style="width:6px;height:6px;border-radius:50%;background:#9b72ff;"></span>K–1 · Level 2 Star Explorer</div>
+          </div>
+          <button style="margin-left:auto;padding:6px 12px;background:#9b72ff;color:#fff;border:none;border-radius:8px;font:600 0.7rem system-ui;cursor:pointer;">PDF →</button>
+        </div>
+      </div>
+
+      <!-- Stat chips -->
+      <div class="stat-chips-m">
+        <div class="stat-chip-m"><span class="chip-val-m" style="color:#ffd166;">⭐ 42</span><span class="chip-label-m">Stars</span><div class="chip-delta-m du">↑ 8</div></div>
+        <div class="stat-chip-m"><span class="chip-val-m" style="color:#9b72ff;">14</span><span class="chip-label-m">Sessions</span><div class="chip-delta-m du">↑ 3</div></div>
+        <div class="stat-chip-m"><span class="chip-val-m" style="color:#58e8c1;">3.2h</span><span class="chip-label-m">Time</span><div class="chip-delta-m ds">→</div></div>
+        <div class="stat-chip-m"><span class="chip-val-m" style="color:#ff7b6b;">2</span><span class="chip-label-m">Badges</span><div class="chip-delta-m du">New!</div></div>
+        <div class="stat-chip-m"><span class="chip-val-m" style="color:#9b72ff;">🔥 5</span><span class="chip-label-m">Streak</span><div class="chip-delta-m du">↑ 2</div></div>
+      </div>
+
+      <!-- Summary text -->
+      <div style="padding:12px 14px;background:#fff;border-radius:12px;border:1px solid #e0d8f0;margin-bottom:12px;font:400 0.8rem/1.5 system-ui;color:#3a3060;">
+        Maya had a great week! Her rhyming skills jumped from <strong>76% → 88%</strong> — a huge milestone for Kindergarten. She completed all 5 days and earned 2 new badges. 🎉
+      </div>
+
+      <!-- Skills snapshot -->
+      <div class="section-card-m">
+        <div class="sc-title-m">📚 Skills this week</div>
+        <div class="skill-item-m">
+          <div class="skill-meta-m"><span class="skill-name-m">Rhyming words</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#9b72ff;">88%</span><span class="skill-delta-m du">↑12%</span></div></div>
+          <div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:88%;background:#9b72ff;"></div></div>
+          <div class="skill-status-m" style="color:#30a060;">Strong ✓</div>
+        </div>
+        <div class="skill-item-m">
+          <div class="skill-meta-m"><span class="skill-name-m">Letter sounds</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#9b72ff;">74%</span><span class="skill-delta-m du">↑6%</span></div></div>
+          <div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:74%;background:#9b72ff;"></div></div>
+          <div class="skill-status-m" style="color:#30a060;">Strong ✓</div>
+        </div>
+        <div class="skill-item-m">
+          <div class="skill-meta-m"><span class="skill-name-m">Counting objects</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#806000;">60%</span><span class="skill-delta-m ds">→</span></div></div>
+          <div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:60%;background:#ffd166;"></div></div>
+          <div class="skill-status-m" style="color:#806000;">Building</div>
+        </div>
+        <div class="skill-item-m">
+          <div class="skill-meta-m"><span class="skill-name-m">First words</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#806000;">45%</span><span class="skill-delta-m du">↑8%</span></div></div>
+          <div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:45%;background:#ffd166;"></div></div>
+          <div class="skill-status-m" style="color:#806000;">Building</div>
+        </div>
+      </div>
+
+      <!-- Session log -->
+      <div class="sc-title-m" style="margin-left:2px;">📅 Session log</div>
+      <div class="session-card-m"><div class="session-top-m"><span class="session-date-m">Today (Fri)</span><span class="session-stars-m">⭐ 9</span></div><div class="session-skills-m">Rhyming words, Letter sounds</div><div class="session-meta-m"><span class="session-dur-m">14 min</span><span class="session-perfect-m">⭐ Perfect</span></div></div>
+      <div class="session-card-m"><div class="session-top-m"><span class="session-date-m">Thursday</span><span class="session-stars-m">⭐ 9</span></div><div class="session-skills-m">Rhyming words, Counting</div><div class="session-meta-m"><span class="session-dur-m">12 min</span></div></div>
+      <div class="session-card-m"><div class="session-top-m"><span class="session-date-m">Wednesday</span><span class="session-stars-m">⭐ 9</span></div><div class="session-skills-m">Letter sounds, First words</div><div class="session-meta-m"><span class="session-dur-m">15 min</span></div></div>
+      <div class="session-card-m"><div class="session-top-m"><span class="session-date-m">Monday</span><span class="session-stars-m">⭐ 7</span></div><div class="session-skills-m">Letter sounds, First words</div><div class="session-meta-m"><span class="session-dur-m">11 min</span><span class="session-perfect-m">⭐ Perfect</span></div></div>
+
+      <div style="height:16px;"></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SKILLS -->
+<div class="screen" id="screen-skills">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div style="font:700 1rem system-ui;color:#1a1240;margin-bottom:6px;">📚 Skills Breakdown</div>
+      <div style="font:400 0.75rem system-ui;color:#6a5890;margin-bottom:14px;">March 18–24 · K–1 Band</div>
+
+      <div class="section-card-m">
+        <div class="sc-title-m">📖 Reading &amp; Phonics</div>
+        <div class="skill-item-m"><div class="skill-meta-m"><span class="skill-name-m">Rhyming words</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#9b72ff;">88%</span><span class="skill-delta-m du">↑12%</span></div></div><div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:88%;background:#9b72ff;"></div></div><div style="font:400 0.68rem system-ui;color:#30a060;margin-top:3px;">Strong — big jump this week!</div></div>
+        <div class="skill-item-m"><div class="skill-meta-m"><span class="skill-name-m">Letter sounds</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#9b72ff;">74%</span><span class="skill-delta-m du">↑6%</span></div></div><div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:74%;background:#9b72ff;"></div></div><div style="font:400 0.68rem system-ui;color:#30a060;margin-top:3px;">Strong — steady improvement</div></div>
+        <div class="skill-item-m"><div class="skill-meta-m"><span class="skill-name-m">First words</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#806000;">45%</span><span class="skill-delta-m du">↑8%</span></div></div><div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:45%;background:#ffd166;"></div></div><div style="font:400 0.68rem system-ui;color:#806000;margin-top:3px;">Building toward mastery</div></div>
+      </div>
+
+      <div class="section-card-m">
+        <div class="sc-title-m">➕ Math</div>
+        <div class="skill-item-m"><div class="skill-meta-m"><span class="skill-name-m">Counting objects</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#806000;">60%</span><span class="skill-delta-m ds">→</span></div></div><div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:60%;background:#ffd166;"></div></div><div style="font:400 0.68rem system-ui;color:#9080a0;margin-top:3px;">Stable — needs more practice</div></div>
+        <div class="skill-item-m"><div class="skill-meta-m"><span class="skill-name-m">Simple addition</span><div class="skill-right-m"><span class="skill-pct-m" style="color:#9080a0;">30%</span><span style="font:600 0.68rem system-ui;color:#9b72ff;">New</span></div></div><div class="skill-bar-track-m"><div class="skill-bar-fill-m" style="width:30%;background:#d8c8ff;"></div></div><div style="font:400 0.68rem system-ui;color:#9b72ff;margin-top:3px;">Just started this week!</div></div>
+      </div>
+
+      <div style="padding:12px 14px;background:#ede8ff;border-radius:12px;border:1px solid #c0b0f0;font:400 0.76rem/1.5 system-ui;color:#3a2070;margin-bottom:12px;">
+        💡 <strong>Normal for Kindergarten:</strong> Skills at 40–60% are exactly where we'd expect for K. Maya is on track across all subjects.
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SUGGESTIONS -->
+<div class="screen" id="screen-suggestions">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div style="font:700 1rem system-ui;color:#1a1240;margin-bottom:6px;">💡 Tips for this week</div>
+      <div style="font:400 0.75rem system-ui;color:#6a5890;margin-bottom:14px;">Ways to support Maya beyond the app</div>
+
+      <div class="suggestion-m">
+        <div class="sug-header-m"><div class="sug-icon-m" style="background:#ede8ff;">🎵</div><div class="sug-title-m">Keep the rhyming going!</div></div>
+        <div class="sug-body-m">Maya's rhyming jumped to 88%! Try rhyme games in the car: "I say cat, you say a word that rhymes!" Nursery rhymes at bedtime also reinforce these patterns naturally.</div>
+        <span class="sug-tag-m" style="background:#ede8ff;color:#4a2090;">📖 Reading · High impact</span>
+      </div>
+
+      <div class="suggestion-m">
+        <div class="sug-header-m"><div class="sug-icon-m" style="background:#fff8e0;">🔢</div><div class="sug-title-m">Make counting hands-on</div></div>
+        <div class="sug-body-m">Counting is at 60% and stuck. Real-world counting helps — try counting stairs, apples at the store, or steps to her bedroom. Touching objects while counting is especially effective.</div>
+        <span class="sug-tag-m" style="background:#fff8e0;color:#806010;">➕ Math · Building</span>
+      </div>
+
+      <div class="suggestion-m">
+        <div class="sug-header-m"><div class="sug-icon-m" style="background:#f0fdf8;">📚</div><div class="sug-title-m">Point to words in books</div></div>
+        <div class="sug-body-m">When reading together, point to simple words like "the", "is", "on" as you read aloud. Ask Maya to spot them on the page — this bridges practice to real reading.</div>
+        <span class="sug-tag-m" style="background:#f0fdf8;color:#1a5030;">📖 Reading · Building</span>
+      </div>
+
+      <div style="padding:12px 14px;background:#f5f0ff;border-radius:12px;border:1.5px solid #c0b0f0;font:400 0.76rem/1.5 system-ui;color:#3a2070;margin-bottom:12px;">
+        🌟 <strong>Overall:</strong> Maya is on a 5-day streak — a new personal record! Keeping the morning routine stable will compound her progress significantly.
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div class="screen" id="screen-spec">
+  <div style="background:#f5f0e8;border-radius:20px;padding:24px;width:100%;max-width:420px;">
+    <div class="spec-title-m">Weekly Report Mobile — Spec</div>
+
+    <div class="spec-section-m">Mobile Differences</div>
+    <table class="spec-table-m">
+      <thead><tr><th>Aspect</th><th>Mobile</th><th>Desktop</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule-m">Stats</td><td class="spec-detail-m">Horizontal-scroll chips</td><td class="spec-detail-m">5-col headline grid</td></tr>
+        <tr><td class="spec-rule-m">Skills</td><td class="spec-detail-m">Vertical list with bar + delta</td><td class="spec-detail-m">Full table with columns</td></tr>
+        <tr><td class="spec-rule-m">Sessions</td><td class="spec-detail-m">Cards (one per session)</td><td class="spec-detail-m">Row-based log table</td></tr>
+        <tr><td class="spec-rule-m">Habits</td><td class="spec-detail-m">Omitted — in Settings instead</td><td class="spec-detail-m">Dedicated tab with bar chart</td></tr>
+        <tr><td class="spec-rule-m">Export</td><td class="spec-detail-m">PDF button in header</td><td class="spec-detail-m">PDF + Email buttons</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-m">Accuracy % Rule</div>
+    <div style="padding:12px 14px;background:#fff;border-radius:10px;border:1px solid #e0d8f0;font:400 0.75rem/1.5 system-ui;color:#6a5890;">
+      Weekly report <strong>CAN</strong> show accuracy % to parent (88%, 74% etc.) — this is the one place where % is appropriate. Parent needs full context. But child-facing screens <strong>NEVER</strong> show %. Stars only for children.
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

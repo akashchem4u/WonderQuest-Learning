@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Notification Settings (Desktop)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a1a2e; min-height: 100vh; }
+  nav { background: #2c7a6e; color: #fff; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-weight: 700; font-size: 1.2rem; letter-spacing: -.5px; }
+  nav .nav-right { display: flex; gap: 20px; font-size: .85rem; opacity: .9; }
+  .tabs { display: flex; background: #e8e2d6; border-bottom: 2px solid #d4ccc0; }
+  .tab { padding: 14px 24px; cursor: pointer; font-size: .88rem; font-weight: 500; color: #5a5a7a; border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab.active { color: #2c7a6e; border-bottom-color: #2c7a6e; background: #f5f0e8; }
+  .tab:hover:not(.active) { background: #ddd8cc; }
+  .panel { display: none; padding: 32px; max-width: 980px; margin: 0 auto; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; border-radius: 10px; padding: 14px 18px; font-size: .84rem; margin-bottom: 28px; line-height: 1.5; }
+  .hint strong { color: #ffe599; }
+  h2 { font-size: 1.4rem; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+  .sub { color: #6b7280; font-size: .88rem; margin-bottom: 24px; }
+  .section-card { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .section-card h3 { font-size: 1rem; font-weight: 700; color: #2c7a6e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-card h3 .icon { font-size: 1.1rem; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: .78rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; padding: 0 12px 10px 12px; text-align: left; }
+  th.center { text-align: center; }
+  td { padding: 12px; border-top: 1px solid #f0ede8; font-size: .88rem; vertical-align: middle; }
+  td .cat-name { font-weight: 600; color: #1a1a2e; }
+  td .cat-desc { font-size: .78rem; color: #6b7280; margin-top: 2px; }
+  .toggle { position: relative; display: inline-block; width: 42px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #d1d5db; border-radius: 24px; transition: .3s; }
+  .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: #2c7a6e; }
+  input:checked + .slider:before { transform: translateX(18px); }
+  .center-cell { text-align: center; }
+  .channel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .channel-card { background: #f8f5f0; border-radius: 12px; padding: 20px; border: 2px solid transparent; transition: border .2s; }
+  .channel-card.active-ch { border-color: #2c7a6e; background: #edf7f5; }
+  .channel-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .channel-card .ch-desc { font-size: .8rem; color: #6b7280; margin-bottom: 14px; }
+  .channel-card .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: .83rem; color: #374151; }
+  .badge-on { background: #2c7a6e; color: #fff; border-radius: 20px; padding: 2px 10px; font-size: .72rem; font-weight: 600; }
+  .badge-off { background: #e5e7eb; color: #6b7280; border-radius: 20px; padding: 2px 10px; font-size: .72rem; font-weight: 600; }
+  .qh-row { display: flex; gap: 20px; align-items: flex-start; }
+  .qh-block { flex: 1; background: #f8f5f0; border-radius: 12px; padding: 20px; }
+  .qh-block h4 { font-size: .9rem; font-weight: 700; margin-bottom: 14px; color: #374151; }
+  .time-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .time-label { font-size: .83rem; color: #6b7280; width: 55px; }
+  .time-select { background: #fff; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 8px 12px; font-size: .88rem; font-family: 'Sora', sans-serif; color: #1a1a2e; }
+  .day-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .day-chip { padding: 6px 12px; border-radius: 20px; font-size: .78rem; font-weight: 600; cursor: pointer; border: 2px solid #d1d5db; background: #fff; color: #6b7280; transition: all .2s; }
+  .day-chip.on { background: #2c7a6e; color: #fff; border-color: #2c7a6e; }
+  .bypass-list { display: flex; flex-direction: column; gap: 12px; }
+  .bypass-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #f8f5f0; border-radius: 10px; }
+  .bypass-icon { font-size: 1.4rem; }
+  .bypass-info .bi-title { font-weight: 600; font-size: .9rem; color: #1a1a2e; }
+  .bypass-info .bi-desc { font-size: .8rem; color: #6b7280; margin-top: 2px; }
+  .bypass-tag { margin-left: auto; font-size: .75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+  .tag-always { background: #dcfce7; color: #166534; }
+  .tag-toggle { background: #fef9c3; color: #854d0e; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+  .spec-table th { background: #2c7a6e; color: #fff; padding: 10px 14px; text-align: left; }
+  .spec-table td { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; }
+  .spec-table tr:nth-child(even) td { background: #f9f7f3; }
+  .save-btn { background: #2c7a6e; color: #fff; border: none; border-radius: 10px; padding: 12px 32px; font-size: .9rem; font-weight: 600; font-family: 'Sora', sans-serif; cursor: pointer; margin-top: 20px; }
+  .save-btn:hover { background: #245f56; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🌟 WonderQuest</span>
+  <div class="nav-right">
+    <span>Emma's Dashboard</span>
+    <span>Settings</span>
+    <span>Help</span>
+  </div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('cat')">Category Settings</div>
+  <div class="tab" onclick="show('channels')">Delivery Channels</div>
+  <div class="tab" onclick="show('quiet')">Quiet Hours</div>
+  <div class="tab" onclick="show('bypass')">Emergency Bypass</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- PANEL 1: Category Settings -->
+<div id="cat" class="panel active">
+  <div class="hint"><strong>Tip:</strong> Each category can be toggled independently. Use per-channel overrides in the Delivery Channels tab to fine-tune exactly where each notification lands.</div>
+  <h2>Notification Categories</h2>
+  <p class="sub">Choose which events send you notifications across all channels.</p>
+  <div class="section-card">
+    <h3><span class="icon">🔔</span> Category Toggles</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th class="center">Push</th>
+          <th class="center">Email</th>
+          <th class="center">SMS</th>
+          <th class="center">Enabled</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="cat-name">Badge Earned</div><div class="cat-desc">When Mia earns a new badge or achievement</div></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+        </tr>
+        <tr>
+          <td><div class="cat-name">Streak Milestone</div><div class="cat-desc">When Mia hits a streak milestone (7, 14, 30 days)</div></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+        </tr>
+        <tr>
+          <td><div class="cat-name">Skill Milestone</div><div class="cat-desc">When a skill moves to a new growth tier</div></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+        </tr>
+        <tr>
+          <td><div class="cat-name">Teacher Message</div><div class="cat-desc">New message or note from Mia's teacher</div></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+        </tr>
+        <tr>
+          <td><div class="cat-name">Activity Ready</div><div class="cat-desc">New practice activity or challenge assigned</div></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+        </tr>
+        <tr>
+          <td><div class="cat-name">Weekly Report</div><div class="cat-desc">Weekly summary of Mia's learning journey</div></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td>
+          <td class="center-cell"><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button class="save-btn">Save Changes</button>
+</div>
+
+<!-- PANEL 2: Delivery Channels -->
+<div id="channels" class="panel">
+  <div class="hint"><strong>Channels:</strong> Push is recommended for timely updates. Email is great for weekly summaries. SMS is reserved for urgent teacher messages and bypasses quiet hours.</div>
+  <h2>Delivery Channels</h2>
+  <p class="sub">Configure how each channel reaches you. SMS requires a verified phone number.</p>
+  <div class="channel-grid">
+    <div class="channel-card active-ch">
+      <h4>📱 Push Notifications</h4>
+      <div class="ch-desc">Sent to your WonderQuest app on this device. Fast and quiet-hours aware.</div>
+      <div class="row"><span>Channel status</span><span class="badge-on">Active</span></div>
+      <div class="row"><span>Delivery delay</span><span>Instant</span></div>
+      <div class="row"><span>Quiet hours</span><span>Respected ✓</span></div>
+      <div class="row"><span>Categories enabled</span><span>5 of 6</span></div>
+      <div class="row"><span>Bundling</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
+    </div>
+    <div class="channel-card active-ch">
+      <h4>📧 Email</h4>
+      <div class="ch-desc">Sent to your registered email. Good for weekly reports and skill milestones.</div>
+      <div class="row"><span>Channel status</span><span class="badge-on">Active</span></div>
+      <div class="row"><span>Email address</span><span>emma@family.com</span></div>
+      <div class="row"><span>Delivery delay</span><span>~2 min</span></div>
+      <div class="row"><span>Quiet hours</span><span>Respected ✓</span></div>
+      <div class="row"><span>Digest mode</span><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
+    </div>
+    <div class="channel-card">
+      <h4>💬 SMS</h4>
+      <div class="ch-desc">Text messages to your phone. Bypasses quiet hours for urgent messages only.</div>
+      <div class="row"><span>Channel status</span><span class="badge-off">Not set up</span></div>
+      <div class="row"><span>Phone number</span><span style="color:#9ca3af">Not verified</span></div>
+      <div class="row"><span>Quiet hours</span><span>Bypass for urgent</span></div>
+      <div class="row"><span>Cost</span><span>Standard rates apply</span></div>
+      <div class="row"><span>Enable SMS</span><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
+    </div>
+  </div>
+  <div class="section-card" style="margin-top:24px;">
+    <h3><span class="icon">⚙️</span> Channel-Specific Overrides</h3>
+    <table>
+      <thead><tr><th>Category</th><th class="center">Push Only</th><th class="center">Email Only</th><th class="center">Both</th></tr></thead>
+      <tbody>
+        <tr><td><div class="cat-name">Badge Earned</div></td><td class="center-cell">●</td><td class="center-cell"></td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Streak Milestone</div></td><td class="center-cell"></td><td class="center-cell"></td><td class="center-cell">●</td></tr>
+        <tr><td><div class="cat-name">Skill Milestone</div></td><td class="center-cell"></td><td class="center-cell"></td><td class="center-cell">●</td></tr>
+        <tr><td><div class="cat-name">Teacher Message</div></td><td class="center-cell"></td><td class="center-cell"></td><td class="center-cell">●</td></tr>
+        <tr><td><div class="cat-name">Activity Ready</div></td><td class="center-cell">●</td><td class="center-cell"></td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Weekly Report</div></td><td class="center-cell"></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <button class="save-btn">Save Channels</button>
+</div>
+
+<!-- PANEL 3: Quiet Hours -->
+<div id="quiet" class="panel">
+  <div class="hint"><strong>Quiet Hours:</strong> Notifications are held and delivered in a morning bundle when quiet hours end. <strong>Teacher urgent messages always bypass quiet hours.</strong></div>
+  <h2>Quiet Hours Setup</h2>
+  <p class="sub">Define when WonderQuest should hold non-urgent notifications.</p>
+  <div class="qh-row">
+    <div class="qh-block">
+      <h4>🌙 Quiet Window</h4>
+      <div class="time-row">
+        <span class="time-label">From</span>
+        <select class="time-select">
+          <option>8:00 PM</option><option>8:30 PM</option><option selected>9:00 PM</option><option>9:30 PM</option><option>10:00 PM</option>
+        </select>
+      </div>
+      <div class="time-row">
+        <span class="time-label">To</span>
+        <select class="time-select">
+          <option>6:00 AM</option><option selected>7:00 AM</option><option>7:30 AM</option><option>8:00 AM</option>
+        </select>
+      </div>
+      <div style="margin-top:14px; font-size:.82rem; color:#6b7280;">Quiet window: <strong style="color:#2c7a6e">9:00 PM – 7:00 AM</strong> (10 hours)</div>
+    </div>
+    <div class="qh-block">
+      <h4>📅 Active Days</h4>
+      <div style="font-size:.82rem; color:#6b7280; margin-bottom:10px;">Quiet hours active on selected days:</div>
+      <div class="day-chips">
+        <span class="day-chip on">Mon</span>
+        <span class="day-chip on">Tue</span>
+        <span class="day-chip on">Wed</span>
+        <span class="day-chip on">Thu</span>
+        <span class="day-chip on">Fri</span>
+        <span class="day-chip on">Sat</span>
+        <span class="day-chip on">Sun</span>
+      </div>
+      <div style="margin-top:14px; font-size:.82rem; color:#6b7280;">Currently: <strong style="color:#2c7a6e">Every day</strong></div>
+    </div>
+    <div class="qh-block">
+      <h4>📦 Bundled Delivery</h4>
+      <div style="font-size:.83rem; color:#374151; line-height:1.6;">
+        <div style="margin-bottom:8px;">Held notifications deliver at:</div>
+        <div style="background:#edf7f5; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
+          <strong>7:05 AM</strong> — Morning bundle
+        </div>
+        <div style="font-size:.78rem; color:#6b7280;">All non-urgent notifications queued during quiet hours arrive together so you can review them at once.</div>
+      </div>
+    </div>
+  </div>
+  <div class="section-card" style="margin-top:20px;">
+    <h3><span class="icon">⚡</span> Per-Category Quiet Hours Override</h3>
+    <table>
+      <thead><tr><th>Category</th><th class="center">Respect Quiet Hours</th><th class="center">Always Immediate</th></tr></thead>
+      <tbody>
+        <tr><td><div class="cat-name">Badge Earned</div></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Streak Milestone</div></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Skill Milestone</div></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Teacher Message</div><div style="font-size:.76rem;color:#9a2a2a;margin-top:2px;">Urgent always bypasses</div></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Activity Ready</div></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+        <tr><td><div class="cat-name">Weekly Report</div></td><td class="center-cell">●</td><td class="center-cell"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <button class="save-btn">Save Quiet Hours</button>
+</div>
+
+<!-- PANEL 4: Emergency Bypass -->
+<div id="bypass" class="panel">
+  <div class="hint"><strong>Emergency Bypass:</strong> Some notification types always reach you regardless of quiet hours or mute settings. These exist to keep families informed about important school communications.</div>
+  <h2>Emergency Bypass Rules</h2>
+  <p class="sub">These notification types are always delivered immediately and cannot be fully silenced.</p>
+  <div class="section-card">
+    <h3><span class="icon">🚨</span> Always-On Channels</h3>
+    <div class="bypass-list">
+      <div class="bypass-item">
+        <span class="bypass-icon">📣</span>
+        <div class="bypass-info">
+          <div class="bi-title">Urgent Teacher Message</div>
+          <div class="bi-desc">When your child's teacher marks a message as urgent — bypasses all quiet hours and mute settings.</div>
+        </div>
+        <span class="bypass-tag tag-always">Always On</span>
+      </div>
+      <div class="bypass-item">
+        <span class="bypass-icon">🏫</span>
+        <div class="bypass-info">
+          <div class="bi-title">School Announcements</div>
+          <div class="bi-desc">Critical school-wide communications routed through WonderQuest by your child's school admin.</div>
+        </div>
+        <span class="bypass-tag tag-always">Always On</span>
+      </div>
+      <div class="bypass-item">
+        <span class="bypass-icon">🔐</span>
+        <div class="bypass-info">
+          <div class="bi-title">Account Security Alerts</div>
+          <div class="bi-desc">Login from new device, password change, or account setting update notifications.</div>
+        </div>
+        <span class="bypass-tag tag-always">Always On</span>
+      </div>
+      <div class="bypass-item">
+        <span class="bypass-icon">🌟</span>
+        <div class="bypass-info">
+          <div class="bi-title">Major Milestone Celebration</div>
+          <div class="bi-desc">When Mia completes a major learning milestone (configurable).</div>
+        </div>
+        <span class="bypass-tag tag-toggle">Configurable</span>
+      </div>
+    </div>
+  </div>
+  <div class="section-card">
+    <h3><span class="icon">📋</span> Bypass Log — Last 30 Days</h3>
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>From</th><th>Delivered Via</th></tr></thead>
+      <tbody>
+        <tr><td>Mar 18</td><td>Urgent Teacher Message</td><td>Ms. Chen</td><td>Push + Email</td></tr>
+        <tr><td>Mar 10</td><td>Major Milestone</td><td>WonderQuest</td><td>Push</td></tr>
+        <tr><td>Feb 28</td><td>School Announcement</td><td>Lincoln Elementary</td><td>Push + Email</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PANEL 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Spec Reference:</strong> This panel documents the design intent and data contract for the Notification Settings desktop screen.</div>
+  <h2>Specification</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Screen</td><td>parent-notification-settings-desktop-v2</td></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+ (max-width 980px container)</td></tr>
+    <tr><td>Font</td><td>Sora (Google Fonts CDN)</td></tr>
+    <tr><td>Background</td><td>#f5f0e8 (parent)</td></tr>
+    <tr><td>Nav color</td><td>#2c7a6e</td></tr>
+    <tr><td>Tabs</td><td>Category Settings / Delivery Channels / Quiet Hours / Emergency Bypass / Spec</td></tr>
+    <tr><td>Notification categories</td><td>Badge, Streak, Skill Milestone, Teacher Message, Activity, Weekly Report</td></tr>
+    <tr><td>Channels</td><td>Push (default on), Email (opt-in), SMS (requires verify)</td></tr>
+    <tr><td>Quiet hours</td><td>Time range picker + day-of-week, bundle delivery on wake</td></tr>
+    <tr><td>Bypass types</td><td>Urgent teacher, school announcements, security, major milestones</td></tr>
+    <tr><td>Parent rules</td><td>No accuracy %, no missed-day framing, forward-looking only</td></tr>
+    <tr><td>Contact safety</td><td>No PII exposed in teacher notifications</td></tr>
+    <tr><td>Design tokens</td><td>Hint box: bg #2a1f00, border #ffd166, text #ffd166</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

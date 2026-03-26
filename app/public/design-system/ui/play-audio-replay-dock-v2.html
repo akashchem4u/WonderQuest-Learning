@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Audio Replay Dock v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Progress ribbon */
+  .ribbon{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(155,114,255,.08);border-bottom:1px solid rgba(155,114,255,.2)}
+  .r-stars{font-weight:900;font-size:13px;color:#ffd166}
+  .r-dots{display:flex;gap:4px}
+  .rdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15)}
+  .rdot.done{background:#9b72ff}
+  .rdot.cur{background:#9b72ff;box-shadow:0 0 6px #9b72ff}
+
+  /* Question stays visible above dock */
+  .question-zone{padding:16px}
+  .q-type-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:10px;padding:3px 10px;font-size:10px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .q-text{font-size:18px;font-weight:900;color:#fff;margin-bottom:12px}
+  .q-stimulus{background:rgba(255,255,255,.06);border-radius:14px;padding:14px;font-size:36px;text-align:center;margin-bottom:14px}
+  .answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ans{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.12);border-radius:13px;padding:12px 8px;text-align:center;font-size:14px;font-weight:900;cursor:pointer}
+
+  /* Audio dock */
+  .audio-dock{background:rgba(0,0,0,.3);border-top:1px solid rgba(255,255,255,.08);padding:16px}
+  .audio-dock-inner{background:rgba(155,114,255,.1);border:2px solid rgba(155,114,255,.3);border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+
+  /* Speaker button with pulse ring */
+  .speaker-wrap{position:relative;width:72px;height:72px;display:flex;align-items:center;justify-content:center}
+  .pulse-ring{position:absolute;border-radius:50%;border:2px solid rgba(155,114,255,.4);animation:ringPulse 1.5s ease-out infinite}
+  .pulse-ring-1{width:72px;height:72px}
+  .pulse-ring-2{width:72px;height:72px;animation-delay:.5s}
+  .pulse-ring-3{width:72px;height:72px;animation-delay:1s}
+  @keyframes ringPulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.8);opacity:0}}
+  .speaker-btn{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#9b72ff,#7a52dd);border:none;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;box-shadow:0 4px 20px rgba(155,114,255,.4);position:relative;z-index:1;flex-shrink:0}
+  .tap-label{font-size:13px;font-weight:900;color:rgba(255,255,255,.75)}
+
+  /* Waveform animation */
+  .waveform{display:flex;align-items:center;gap:3px;height:40px}
+  .wbar{width:4px;border-radius:4px;background:#9b72ff;animation:waveAnim 1s ease-in-out infinite}
+  .wbar:nth-child(1){height:14px;animation-delay:0s}
+  .wbar:nth-child(2){height:28px;animation-delay:.1s}
+  .wbar:nth-child(3){height:18px;animation-delay:.2s}
+  .wbar:nth-child(4){height:36px;animation-delay:.3s}
+  .wbar:nth-child(5){height:22px;animation-delay:.4s}
+  .wbar:nth-child(6){height:30px;animation-delay:.5s}
+  .wbar:nth-child(7){height:16px;animation-delay:.6s}
+  .wbar:nth-child(8){height:24px;animation-delay:.7s}
+  .wbar:nth-child(9){height:12px;animation-delay:.8s}
+  .wbar:nth-child(10){height:20px;animation-delay:.9s}
+  @keyframes waveAnim{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.3)}}
+
+  /* Replay count */
+  .replay-count{font-size:10px;color:rgba(255,255,255,.35);font-weight:700}
+
+  /* Complete state */
+  .audio-complete{background:rgba(88,232,193,.1);border:2px solid rgba(88,232,193,.3);border-radius:20px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .complete-icon{font-size:36px}
+  .complete-label{font-size:13px;font-weight:900;color:#58e8c1}
+
+  /* No audio */
+  .no-audio{background:rgba(255,255,255,.04);border:2px dashed rgba(255,255,255,.1);border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+  .no-audio-icon{font-size:32px;opacity:.4}
+  .no-audio-text{font-size:12px;color:rgba(255,255,255,.4);font-weight:700}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('audio-prompt')">Audio Prompt</button>
+  <button class="tab" onclick="show('audio-playing')">Audio Playing (waveform)</button>
+  <button class="tab" onclick="show('audio-complete')">Audio Complete</button>
+  <button class="tab" onclick="show('no-audio')">No Audio Available</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-audio-replay-dock-v2.html</code> — Audio replay controls · speaker button + pulse ring · waveform animation · 375px mobile
+</div>
+
+<!-- AUDIO PROMPT -->
+<div id="audio-prompt" class="panel active">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-zone">
+      <div class="q-type-tag">🔊 Listening</div>
+      <div class="q-text">Which animal makes this sound?</div>
+      <div class="q-stimulus">🎧</div>
+      <div class="answer-grid">
+        <div class="ans">🐬 Dolphin</div>
+        <div class="ans">🦈 Shark</div>
+        <div class="ans">🐳 Whale</div>
+        <div class="ans">🦀 Crab</div>
+      </div>
+    </div>
+    <div class="audio-dock">
+      <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:700;text-align:center;margin-bottom:6px">Tap to hear the question</div>
+      <div class="audio-dock-inner">
+        <div class="speaker-wrap">
+          <div class="pulse-ring pulse-ring-1"></div>
+          <div class="pulse-ring pulse-ring-2"></div>
+          <button class="speaker-btn">🔊</button>
+        </div>
+        <div class="tap-label">Tap to hear again</div>
+        <div class="replay-count">Played 0 times · Tap as many times as you need!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIO PLAYING -->
+<div id="audio-playing" class="panel">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-zone">
+      <div class="q-type-tag">🔊 Listening</div>
+      <div class="q-text">Which animal makes this sound?</div>
+      <div class="q-stimulus" style="position:relative;overflow:hidden">
+        <span>🎧</span>
+        <div style="position:absolute;inset:0;background:rgba(155,114,255,.08);display:flex;align-items:center;justify-content:center;border-radius:14px">
+          <div style="font-size:11px;color:#9b72ff;font-weight:900;animation:blink 1s ease-in-out infinite">🔊 Playing...</div>
+        </div>
+      </div>
+      <div class="answer-grid">
+        <div class="ans">🐬 Dolphin</div>
+        <div class="ans">🦈 Shark</div>
+        <div class="ans">🐳 Whale</div>
+        <div class="ans">🦀 Crab</div>
+      </div>
+    </div>
+    <div class="audio-dock">
+      <div style="font-size:11px;color:#9b72ff;font-weight:700;text-align:center;margin-bottom:6px;animation:blink 1s ease-in-out infinite">Listening now...</div>
+      <div class="audio-dock-inner" style="background:rgba(155,114,255,.2);border-color:#9b72ff">
+        <div class="waveform">
+          <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+          <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="speaker-btn" style="width:48px;height:48px;font-size:20px">⏹</button>
+          <div>
+            <div style="font-size:13px;font-weight:900;color:#fff">Audio playing...</div>
+            <div class="replay-count" style="margin-top:2px">Replay 2 · 0:04 remaining</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIO COMPLETE -->
+<div id="audio-complete" class="panel">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-zone">
+      <div class="q-type-tag">🔊 Listening</div>
+      <div class="q-text">Which animal makes this sound?</div>
+      <div class="q-stimulus">🎧 ✓</div>
+      <div class="answer-grid">
+        <div class="ans">🐬 Dolphin</div>
+        <div class="ans">🦈 Shark</div>
+        <div class="ans" style="background:rgba(88,232,193,.1);border-color:#58e8c1">🐳 Whale</div>
+        <div class="ans">🦀 Crab</div>
+      </div>
+    </div>
+    <div class="audio-dock">
+      <div style="font-size:11px;color:#58e8c1;font-weight:700;text-align:center;margin-bottom:6px">Audio finished! Pick your answer.</div>
+      <div class="audio-dock-inner" style="background:rgba(88,232,193,.06);border-color:rgba(88,232,193,.3)">
+        <div class="audio-complete">
+          <div class="complete-icon">✅</div>
+          <div class="complete-label">Heard it!</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;width:100%">
+          <button class="speaker-btn" style="width:48px;height:48px;font-size:20px;background:rgba(88,232,193,.2)">🔁</button>
+          <div>
+            <div style="font-size:13px;font-weight:900;color:#58e8c1">Hear it again?</div>
+            <div class="replay-count" style="margin-top:2px">Played 1 time · No limit!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NO AUDIO AVAILABLE -->
+<div id="no-audio" class="panel">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-zone">
+      <div class="q-type-tag">🔤 Spelling</div>
+      <div class="q-text">Which word is spelled correctly?</div>
+      <div class="q-stimulus">🌊</div>
+      <div class="answer-grid">
+        <div class="ans">wuter</div>
+        <div class="ans">water</div>
+        <div class="ans">waiter</div>
+        <div class="ans">woter</div>
+      </div>
+    </div>
+    <div class="audio-dock">
+      <div style="font-size:11px;color:rgba(255,255,255,.35);font-weight:700;text-align:center;margin-bottom:6px">Audio not available for this question</div>
+      <div class="no-audio">
+        <div class="no-audio-icon">🔇</div>
+        <div class="no-audio-text">No audio for this question type</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">This is a visual spelling question — just pick the answer above!</div>
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border-radius:12px;padding:8px 12px;margin-top:8px">
+          <span style="font-size:18px">🦉</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.45)">Pip can help if you need a hint →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: play-audio-replay-dock-v2.html</h3>
+      <ul>
+        <li>375px mobile · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>Audio replay controls docked below the question</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Audio Prompt:</strong> Speaker button with pulse ring animation, "Tap to hear again" label, replay count shown subtly</li>
+        <li><strong>Audio Playing:</strong> CSS waveform bars animating, stop button, "Listening..." indicator, question stays visible above</li>
+        <li><strong>Audio Complete:</strong> Completion check, replay button remains available, no replay limit mentioned positively</li>
+        <li><strong>No Audio Available:</strong> Silent state for visual-only questions, owl help suggestion</li>
+      </ul>
+      <h3>Design Rules</h3>
+      <ul>
+        <li>Question always visible above audio dock</li>
+        <li>Replay count shown subtly — never judgmentally</li>
+        <li>No replay limit enforced or implied negatively</li>
+        <li>Waveform uses CSS-only animation (no JS audio API required)</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">375px mobile</span>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adult Surface Palette v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* ─── AUDIENCE SHELLS ─── */
+  /* Home: neutral warm stone */
+  .shell-home { background: #f8f5f0; color: #2a2420; font-family: 'Sora','Segoe UI',sans-serif; }
+  /* Parent: warm parchment */
+  .shell-parent { background: #f5f0e8; color: #2c2418; font-family: 'Sora','Segoe UI',sans-serif; }
+  /* Teacher: cool steel */
+  .shell-teacher { background: #f0f4f8; color: #1c2430; font-family: 'Sora','Segoe UI',sans-serif; }
+  /* Owner: dark ops */
+  .shell-owner { background: #0d1117; color: #e0e6f0; font-family: 'Sora','Segoe UI',sans-serif; }
+
+  /* Phone frame */
+  .frame-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 32px; }
+  .frame { width: 375px; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.45); overflow: hidden; flex-shrink: 0; }
+  .frame-inner { overflow-y: auto; max-height: 760px; }
+  .frame-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .desktop-frame { width: 860px; border-radius: 16px; border: 6px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.45); overflow: hidden; flex-shrink: 0; }
+  .desktop-inner { overflow-x: auto; }
+
+  /* Status bar (for mobile frames) */
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; }
+
+  /* ─── PALETTE SHOWCASE ─── */
+  .palette-section { margin-bottom: 36px; }
+  .palette-audience-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .palette-audience-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+  .palette-audience-name { font-size: 16px; font-weight: 800; color: #e0e6f0; }
+  .palette-audience-sub { font-size: 12px; color: #445566; }
+
+  /* Swatch row */
+  .swatch-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .swatch-card { border-radius: 10px; overflow: hidden; flex: 1; min-width: 100px; max-width: 160px; }
+  .swatch-color { height: 56px; }
+  .swatch-info { padding: 8px 10px; }
+  .swatch-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #445566; }
+  .swatch-hex { font-size: 11px; font-weight: 600; color: #a0b0c0; font-family: 'Courier New', monospace; margin-top: 2px; }
+  .swatch-desc { font-size: 10px; color: #556677; margin-top: 2px; line-height: 1.4; }
+
+  /* Alert accent chips */
+  .alert-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .alert-chip { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+  /* Live preview card (simulated UI fragment) */
+  .live-preview { border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+
+  /* ─── HOME PALETTE ─── */
+  .home-bg { background: #f8f5f0; }
+  .home-surface { background: #ffffff; }
+  .home-surface-2 { background: #f2ede6; }
+  .home-border { border: 1px solid #e8e2d8; }
+  .home-text-primary { color: #2a2420; }
+  .home-text-secondary { color: #7a6e64; }
+  .home-accent { background: #5a7d6e; color: #fff; }
+  .home-alert-info { background: #e8f4f0; color: #2a6a5a; border: 1px solid #b8ddd4; }
+  .home-alert-warn { background: #fff8e6; color: #7a5e00; border: 1px solid #f0d888; }
+
+  /* ─── PARENT PALETTE ─── */
+  .parent-bg { background: #f5f0e8; }
+  .parent-surface { background: #fffdf8; }
+  .parent-surface-2 { background: #ede8de; }
+  .parent-border { border: 1px solid #e0d8c8; }
+  .parent-text-primary { color: #2c2418; }
+  .parent-text-secondary { color: #7a6854; }
+  .parent-accent { background: #2c7a6e; color: #fff; }
+  .parent-tier-support { background: #fff3e0; color: #b05800; border: 1px solid #f0c88044; }
+  .parent-tier-strength { background: #e8f8f0; color: #1a6a4a; border: 1px solid #88ddb044; }
+  .parent-tier-next { background: #eef4ff; color: #2a5090; border: 1px solid #99b8f044; }
+
+  /* ─── TEACHER PALETTE ─── */
+  .teacher-bg { background: #f0f4f8; }
+  .teacher-surface { background: #ffffff; }
+  .teacher-surface-2 { background: #e4eaf0; }
+  .teacher-border { border: 1px solid #d0dae4; }
+  .teacher-text-primary { color: #1c2430; }
+  .teacher-text-secondary { color: #607080; }
+  .teacher-accent { background: #2a5080; color: #fff; }
+  .teacher-alert-flag { background: #fff0f0; color: #9a1a1a; border: 1px solid #f0b0b044; }
+  .teacher-alert-watch { background: #fff8e8; color: #7a5000; border: 1px solid #f0d07844; }
+  .teacher-alert-strong { background: #e8f8f0; color: #1a6040; border: 1px solid #88d8b044; }
+
+  /* ─── OWNER PALETTE ─── */
+  .owner-bg { background: #0d1117; }
+  .owner-surface { background: #141a26; }
+  .owner-surface-2 { background: #1e2433; }
+  .owner-border { border: 1px solid #2a3040; }
+  .owner-text-primary { color: #e0e6f0; }
+  .owner-text-secondary { color: #445566; }
+  .owner-accent { background: #ffd166; color: #1a1400; }
+  .owner-alert-critical { background: #1a0e0e; color: #ff9999; border: 1px solid #ff6b6b44; }
+  .owner-alert-warn { background: #1a1200; color: #ffd166; border: 1px solid #ffd16644; }
+  .owner-alert-ok { background: #0d1a12; color: #58e8c1; border: 1px solid #58e8c144; }
+
+  /* ─── SPEC ─── */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+
+  /* Contrast badge */
+  .contrast-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  .pass-aaa { background: #1a6040; color: #58e8c1; }
+  .pass-aa { background: #1a4030; color: #88d8b0; }
+  .fail { background: #4a1010; color: #ff9999; }
+
+  /* Nav chrome for live previews */
+  .nav-bar { display: flex; align-items: center; gap: 14px; padding: 10px 16px; font-size: 12px; font-weight: 700; }
+  .nav-item { opacity: 0.5; }
+  .nav-item.active { opacity: 1; }
+  .card-row { display: flex; gap: 10px; padding: 0 16px; margin-bottom: 12px; }
+  .preview-card { flex: 1; border-radius: 12px; padding: 12px 14px; }
+  .preview-card-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .preview-card-body { font-size: 11px; opacity: 0.6; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('home')">Home</button>
+  <button class="tab" onclick="show('parent')">Parent</button>
+  <button class="tab" onclick="show('teacher')">Teacher</button>
+  <button class="tab" onclick="show('owner')">Owner</button>
+  <button class="tab" onclick="show('spec')">Spec + Tokens</button>
+</div>
+
+<!-- ═══ TAB 1: HOME ═══ -->
+<div id="home" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — Home / Landing Surface Palette</strong><br>
+    Neutral warm stone atmosphere. Bridges child world (dark cosmic) and parent world (warm parchment). Welcoming, minimal, high trust. Used on: <code>/</code> route, login, signup, plan selection. Key distinction from parent: cooler base, less saturated. Accent: muted forest teal.
+  </div>
+
+  <!-- Swatch grid -->
+  <div class="palette-section">
+    <div class="palette-audience-hdr">
+      <div class="palette-audience-dot" style="background:#5a7d6e;"></div>
+      <div>
+        <div class="palette-audience-name">Home / Landing</div>
+        <div class="palette-audience-sub">Route: / · Neutral warm stone · Forest teal accent</div>
+      </div>
+    </div>
+    <div class="swatch-row">
+      <div class="swatch-card">
+        <div class="swatch-color home-bg"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Base Background</div>
+          <div class="swatch-hex">#f8f5f0</div>
+          <div class="swatch-desc">Warm stone — welcoming but neutral</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color home-surface"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Card Surface</div>
+          <div class="swatch-hex">#ffffff</div>
+          <div class="swatch-desc">Pure white — trust + clarity</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color home-surface-2"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Surface Alt</div>
+          <div class="swatch-hex">#f2ede6</div>
+          <div class="swatch-desc">Slightly deeper — section dividers</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#e8e2d8;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Border Default</div>
+          <div class="swatch-hex">#e8e2d8</div>
+          <div class="swatch-desc">Warm grey border</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#5a7d6e;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Accent / CTA</div>
+          <div class="swatch-hex">#5a7d6e</div>
+          <div class="swatch-desc">Forest teal — muted, trustworthy</div>
+        </div>
+      </div>
+    </div>
+    <div class="alert-row">
+      <div class="alert-chip home-alert-info">ℹ Info</div>
+      <div class="alert-chip home-alert-warn">⚠ Warning</div>
+      <div class="alert-chip" style="background:#f8eee8;color:#7a3800;border:1px solid #f0c09844;">⚡ Action required</div>
+    </div>
+  </div>
+
+  <!-- Live preview -->
+  <div class="frame-wrap">
+    <div>
+      <div class="frame-label">Home Mobile — Light</div>
+      <div class="frame">
+        <div class="frame-inner">
+          <div class="shell-home">
+            <div class="status-bar home-text-secondary" style="background:#f8f5f0;border-bottom:1px solid #e8e2d8;">
+              <span style="color:#2a2420;">9:41</span><span>●●● 🔋</span>
+            </div>
+            <div style="padding:20px 16px 10px; text-align:center;">
+              <div style="font-size:32px;margin-bottom:6px;">🌟</div>
+              <div style="font-size:22px;font-weight:900;color:#2a2420;margin-bottom:4px;">WonderQuest</div>
+              <div style="font-size:13px;color:#7a6e64;margin-bottom:20px;">Learning adventures for curious kids</div>
+            </div>
+            <div style="padding:0 16px 12px;">
+              <div style="background:#fff;border:1px solid #e8e2d8;border-radius:14px;padding:16px;margin-bottom:12px;">
+                <div style="font-size:13px;font-weight:700;color:#2a2420;margin-bottom:4px;">🎒 Start Learning</div>
+                <div style="font-size:12px;color:#7a6e64;line-height:1.5;margin-bottom:12px;">Join thousands of kids on their learning journey.</div>
+                <button style="width:100%;padding:12px;border-radius:10px;border:none;background:#5a7d6e;color:#fff;font-size:14px;font-weight:700;font-family:inherit;">Get Started Free</button>
+              </div>
+              <div style="background:#f2ede6;border-radius:12px;padding:14px;margin-bottom:10px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#7a6e64;letter-spacing:0.08em;margin-bottom:10px;">How it works</div>
+                <div style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#5a7d6e22;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🗺</div>
+                  <div><div style="font-size:12px;font-weight:700;color:#2a2420;">Explore skill maps</div><div style="font-size:11px;color:#7a6e64;">Each band unlocks new adventures</div></div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#5a7d6e22;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">📊</div>
+                  <div><div style="font-size:12px;font-weight:700;color:#2a2420;">Parents stay in the loop</div><div style="font-size:11px;color:#7a6e64;">Gentle progress updates, no scores</div></div>
+                </div>
+              </div>
+              <div class="home-alert-info" style="border-radius:10px;padding:10px 12px;font-size:12px;">
+                📖 Already have an account? <span style="color:#5a7d6e;font-weight:700;cursor:pointer;">Sign in →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: PARENT ═══ -->
+<div id="parent" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Parent Surface Palette</strong><br>
+    Warm parchment — intimate, calm, paper-like. Distinct from Home (warmer/more saturated) and Teacher (cooler). Key design rule: NEVER accuracy %, NEVER "missed day" framing. Tier system: support=warm amber, strength=warm green, next=soft blue. Accent: deep teal <code>#2c7a6e</code>.
+  </div>
+
+  <div class="palette-section">
+    <div class="palette-audience-hdr">
+      <div class="palette-audience-dot" style="background:#2c7a6e;"></div>
+      <div>
+        <div class="palette-audience-name">Parent Dashboard</div>
+        <div class="palette-audience-sub">Route: /parent · Warm parchment · Deep teal accent</div>
+      </div>
+    </div>
+    <div class="swatch-row">
+      <div class="swatch-card">
+        <div class="swatch-color parent-bg"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Base Background</div>
+          <div class="swatch-hex">#f5f0e8</div>
+          <div class="swatch-desc">Warm parchment — intimate</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color parent-surface"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Card Surface</div>
+          <div class="swatch-hex">#fffdf8</div>
+          <div class="swatch-desc">Warm white — slightly cream</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color parent-surface-2"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Surface Alt</div>
+          <div class="swatch-hex">#ede8de</div>
+          <div class="swatch-desc">Section dividers, footers</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#2c7a6e;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Accent / CTA</div>
+          <div class="swatch-hex">#2c7a6e</div>
+          <div class="swatch-desc">Deep teal — calm, assured</div>
+        </div>
+      </div>
+    </div>
+    <div class="swatch-row" style="margin-top:4px;">
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#fff3e0;border:1px solid #f0c880;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Tier: Support</div>
+          <div class="swatch-hex">#fff3e0 / #b05800</div>
+          <div class="swatch-desc">Warm amber — never "struggling"</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#e8f8f0;border:1px solid #88ddb0;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Tier: Strength</div>
+          <div class="swatch-hex">#e8f8f0 / #1a6a4a</div>
+          <div class="swatch-desc">Warm green — growing</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#eef4ff;border:1px solid #99b8f0;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Tier: Next</div>
+          <div class="swatch-hex">#eef4ff / #2a5090</div>
+          <div class="swatch-desc">Soft blue — forward-looking</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <div>
+      <div class="frame-label">Parent Mobile — Warm Parchment</div>
+      <div class="frame">
+        <div class="frame-inner">
+          <div class="shell-parent">
+            <div class="status-bar" style="background:#f5f0e8;border-bottom:1px solid #e0d8c8;color:#7a6854;">
+              <span style="color:#2c2418;">9:41</span><span>●●● 🔋</span>
+            </div>
+            <div style="padding:14px 16px 8px;border-bottom:1px solid #e0d8c8;">
+              <div style="font-size:15px;font-weight:800;color:#2c2418;">Good morning, Sarah 👋</div>
+              <div style="font-size:12px;color:#7a6854;margin-top:2px;">Mia had a great session yesterday</div>
+            </div>
+            <!-- Child card -->
+            <div style="padding:12px 16px;">
+              <div style="background:#fffdf8;border:1px solid #e0d8c8;border-radius:14px;padding:14px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                  <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#58e8c1,#2c7a6e);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#042018;">M</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:700;color:#2c2418;">Mia · G2–3</div>
+                    <div style="font-size:11px;color:#7a6854;">🔥 21-day streak</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <div style="flex:1;min-width:80px;background:#e8f8f0;border:1px solid #88ddb044;border-radius:10px;padding:8px 10px;">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1a6a4a;letter-spacing:0.07em;">Strength</div>
+                    <div style="font-size:12px;font-weight:700;color:#2c2418;margin-top:2px;">Multiplication</div>
+                  </div>
+                  <div style="flex:1;min-width:80px;background:#fff3e0;border:1px solid #f0c88044;border-radius:10px;padding:8px 10px;">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#b05800;letter-spacing:0.07em;">Support</div>
+                    <div style="font-size:12px;font-weight:700;color:#2c2418;margin-top:2px;">Fractions</div>
+                  </div>
+                  <div style="flex:1;min-width:80px;background:#eef4ff;border:1px solid #99b8f044;border-radius:10px;padding:8px 10px;">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#2a5090;letter-spacing:0.07em;">Next Up</div>
+                    <div style="font-size:12px;font-weight:700;color:#2c2418;margin-top:2px;">Division</div>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#ede8de;border-radius:12px;padding:12px 14px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#7a6854;letter-spacing:0.08em;margin-bottom:8px;">Try at Home</div>
+                <div style="font-size:12px;color:#2c2418;line-height:1.6;">Use a pizza to practice fractions — cut it into 4 equal slices and ask "what's 1 out of 4?"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: TEACHER ═══ -->
+<div id="teacher" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — Teacher Surface Palette</strong><br>
+    Cool steel blue — professional, clinical precision. Clearly distinct from parent (cooler, less warm). Alert system: flag=red, watch=amber, strong=green. Accent: deep navy blue <code>#2a5080</code>. Desktop-optimized with 3-column layouts; mobile shows condensed summaries. Sora font, professional tone.
+  </div>
+
+  <div class="palette-section">
+    <div class="palette-audience-hdr">
+      <div class="palette-audience-dot" style="background:#2a5080;"></div>
+      <div>
+        <div class="palette-audience-name">Teacher Dashboard</div>
+        <div class="palette-audience-sub">Route: /teacher · Cool steel · Deep navy accent</div>
+      </div>
+    </div>
+    <div class="swatch-row">
+      <div class="swatch-card">
+        <div class="swatch-color teacher-bg"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Base Background</div>
+          <div class="swatch-hex">#f0f4f8</div>
+          <div class="swatch-desc">Cool steel blue — professional</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color teacher-surface"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Card Surface</div>
+          <div class="swatch-hex">#ffffff</div>
+          <div class="swatch-desc">Pure white — clinical precision</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color teacher-surface-2"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Surface Alt</div>
+          <div class="swatch-hex">#e4eaf0</div>
+          <div class="swatch-desc">Cool grey — headers, sidebars</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#2a5080;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Accent / CTA</div>
+          <div class="swatch-hex">#2a5080</div>
+          <div class="swatch-desc">Deep navy — authoritative</div>
+        </div>
+      </div>
+    </div>
+    <div class="alert-row">
+      <div class="alert-chip teacher-alert-flag">🚩 Flag</div>
+      <div class="alert-chip teacher-alert-watch">👁 Watch</div>
+      <div class="alert-chip teacher-alert-strong">✓ Strong</div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <div>
+      <div class="frame-label">Teacher Mobile — Cool Steel</div>
+      <div class="frame">
+        <div class="frame-inner">
+          <div class="shell-teacher">
+            <div class="status-bar" style="background:#f0f4f8;border-bottom:1px solid #d0dae4;color:#607080;">
+              <span style="color:#1c2430;">9:41</span><span>●●● 🔋</span>
+            </div>
+            <div style="background:#fff;border-bottom:1px solid #d0dae4;padding:12px 16px;">
+              <div style="font-size:15px;font-weight:800;color:#1c2430;">Class Overview</div>
+              <div style="font-size:12px;color:#607080;">Ms. Chen · Room 12 · 24 students</div>
+            </div>
+            <!-- KPI strip -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#d0dae4;margin:12px 16px;border-radius:10px;overflow:hidden;">
+              <div style="background:#fff;padding:10px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#9a1a1a;">4</div>
+                <div style="font-size:10px;color:#607080;text-transform:uppercase;letter-spacing:0.06em;">Flag</div>
+              </div>
+              <div style="background:#fff;padding:10px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#7a5000;">7</div>
+                <div style="font-size:10px;color:#607080;text-transform:uppercase;letter-spacing:0.06em;">Watch</div>
+              </div>
+              <div style="background:#fff;padding:10px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#1a6040;">13</div>
+                <div style="font-size:10px;color:#607080;text-transform:uppercase;letter-spacing:0.06em;">Strong</div>
+              </div>
+            </div>
+            <!-- Alert strip -->
+            <div style="margin:0 16px 10px;background:#fff0f0;border:1px solid #f0b0b044;border-radius:10px;padding:10px 12px;font-size:12px;color:#9a1a1a;">
+              🚩 <strong>4 students</strong> need attention this week
+            </div>
+            <!-- Student rows -->
+            <div style="padding:0 16px;">
+              <div style="background:#fff;border:1px solid #d0dae4;border-left:3px solid #9a2a2a;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#e4eaf0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2a5080;flex-shrink:0;">LK</div>
+                <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#1c2430;">Liam K.</div><div style="font-size:11px;color:#607080;">Fractions · Support tier · 3 wks</div></div>
+                <div style="font-size:11px;color:#9a1a1a;font-weight:700;">Flag →</div>
+              </div>
+              <div style="background:#fff;border:1px solid #d0dae4;border-left:3px solid #c07800;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:#e4eaf0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2a5080;flex-shrink:0;">AJ</div>
+                <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#1c2430;">Aisha J.</div><div style="font-size:11px;color:#607080;">Division · Watch tier · 1 wk</div></div>
+                <div style="font-size:11px;color:#c07800;font-weight:700;">Watch →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: OWNER ═══ -->
+<div id="owner" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — Owner Surface Palette</strong><br>
+    Dark ops — high-information density, dark background, bright accent. Clearly distinct from all light-mode audiences. Gold accent <code>#ffd166</code> for CTAs and active states. Alert system: critical=red non-dismissible, warning=gold, ok=mint. Sora font, data-dense layout.
+  </div>
+
+  <div class="palette-section">
+    <div class="palette-audience-hdr">
+      <div class="palette-audience-dot" style="background:#ffd166;"></div>
+      <div>
+        <div class="palette-audience-name">Owner Dashboard</div>
+        <div class="palette-audience-sub">Route: /owner · Dark ops · Gold accent</div>
+      </div>
+    </div>
+    <div class="swatch-row">
+      <div class="swatch-card">
+        <div class="swatch-color owner-bg"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Base Background</div>
+          <div class="swatch-hex">#0d1117</div>
+          <div class="swatch-desc">Deep dark ops — high focus</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color owner-surface"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Card Surface</div>
+          <div class="swatch-hex">#141a26</div>
+          <div class="swatch-desc">Elevated dark card</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color owner-surface-2"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Surface Alt</div>
+          <div class="swatch-hex">#1e2433</div>
+          <div class="swatch-desc">Tab bars, headers</div>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#ffd166;"></div>
+        <div class="swatch-info" style="background:#1e2433;">
+          <div class="swatch-role">Accent / CTA</div>
+          <div class="swatch-hex">#ffd166</div>
+          <div class="swatch-desc">Gold — standout on dark</div>
+        </div>
+      </div>
+    </div>
+    <div class="alert-row">
+      <div class="alert-chip owner-alert-critical">🔴 Critical</div>
+      <div class="alert-chip owner-alert-warn">⚠ Warning</div>
+      <div class="alert-chip owner-alert-ok">✓ Healthy</div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <div>
+      <div class="frame-label">Owner Mobile — Dark Ops</div>
+      <div class="frame" style="border-color:#2a3040;">
+        <div class="frame-inner">
+          <div class="shell-owner">
+            <div class="status-bar" style="background:#0d1117;color:#445566;">
+              <span style="color:#e0e6f0;">9:41</span><span>●●● 🔋</span>
+            </div>
+            <div style="padding:12px 16px 10px;border-bottom:1px solid #2a3040;">
+              <div style="font-size:15px;font-weight:800;color:#e0e6f0;">Owner Dashboard</div>
+              <div style="font-size:12px;color:#445566;">Live · 2 critical alerts</div>
+            </div>
+            <div style="background:#1a0e0e;border:1px solid #ff6b6b44;border-radius:10px;margin:12px 16px;padding:10px 12px;font-size:12px;color:#ff9999;">
+              🔴 <strong>/play crash</strong> — 127 affected sessions
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2a3040;margin:0 16px 12px;border-radius:10px;overflow:hidden;">
+              <div style="background:#141a26;padding:10px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#ff6b6b;">2</div>
+                <div style="font-size:10px;color:#445566;text-transform:uppercase;letter-spacing:0.06em;">Critical</div>
+              </div>
+              <div style="background:#141a26;padding:10px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#ffd166;">1,284</div>
+                <div style="font-size:10px;color:#445566;text-transform:uppercase;letter-spacing:0.06em;">DAU</div>
+              </div>
+              <div style="background:#141a26;padding:10px;text-align:center;">
+                <div style="font-size:18px;font-weight:800;color:#58e8c1;">98.1%</div>
+                <div style="font-size:10px;color:#445566;text-transform:uppercase;letter-spacing:0.06em;">Uptime</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC + TOKENS ═══ -->
+<div id="spec" class="panel">
+  <div class="hint">
+    <strong>Tab 5 — Spec + Full Token Reference</strong><br>
+    Complete token table, contrast ratios, audience differentiation rationale, and desktop vs mobile surface notes.
+  </div>
+
+  <div class="spec-h2">Audience Differentiation Matrix</div>
+  <table class="spec-table">
+    <tr><th>Audience</th><th>Base bg</th><th>Card</th><th>Accent</th><th>Feel</th></tr>
+    <tr><td>Home</td><td><code>#f8f5f0</code> warm stone</td><td><code>#ffffff</code></td><td><code>#5a7d6e</code> forest teal</td><td>Welcoming, neutral trust</td></tr>
+    <tr><td>Parent</td><td><code>#f5f0e8</code> warm parchment</td><td><code>#fffdf8</code></td><td><code>#2c7a6e</code> deep teal</td><td>Intimate, paper-like, calm</td></tr>
+    <tr><td>Teacher</td><td><code>#f0f4f8</code> cool steel</td><td><code>#ffffff</code></td><td><code>#2a5080</code> deep navy</td><td>Professional, clinical, data-dense</td></tr>
+    <tr><td>Owner</td><td><code>#0d1117</code> dark ops</td><td><code>#141a26</code></td><td><code>#ffd166</code> gold</td><td>High-focus, ops-grade, night mode</td></tr>
+  </table>
+
+  <div class="spec-h2">Full Token Reference</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Home</th><th>Parent</th><th>Teacher</th><th>Owner</th></tr>
+    <tr><td>base-bg</td><td><code>#f8f5f0</code></td><td><code>#f5f0e8</code></td><td><code>#f0f4f8</code></td><td><code>#0d1117</code></td></tr>
+    <tr><td>surface-1</td><td><code>#ffffff</code></td><td><code>#fffdf8</code></td><td><code>#ffffff</code></td><td><code>#141a26</code></td></tr>
+    <tr><td>surface-2</td><td><code>#f2ede6</code></td><td><code>#ede8de</code></td><td><code>#e4eaf0</code></td><td><code>#1e2433</code></td></tr>
+    <tr><td>border-default</td><td><code>#e8e2d8</code></td><td><code>#e0d8c8</code></td><td><code>#d0dae4</code></td><td><code>#2a3040</code></td></tr>
+    <tr><td>text-primary</td><td><code>#2a2420</code></td><td><code>#2c2418</code></td><td><code>#1c2430</code></td><td><code>#e0e6f0</code></td></tr>
+    <tr><td>text-secondary</td><td><code>#7a6e64</code></td><td><code>#7a6854</code></td><td><code>#607080</code></td><td><code>#445566</code></td></tr>
+    <tr><td>accent</td><td><code>#5a7d6e</code></td><td><code>#2c7a6e</code></td><td><code>#2a5080</code></td><td><code>#ffd166</code></td></tr>
+    <tr><td>alert-high</td><td><code>#f8eee8</code> / <code>#7a3800</code></td><td><code>#fff3e0</code> / <code>#b05800</code></td><td><code>#fff0f0</code> / <code>#9a1a1a</code></td><td><code>#1a0e0e</code> / <code>#ff9999</code></td></tr>
+    <tr><td>alert-mid</td><td><code>#fff8e6</code> / <code>#7a5e00</code></td><td><code>#eef4ff</code> / <code>#2a5090</code></td><td><code>#fff8e8</code> / <code>#7a5000</code></td><td><code>#1a1200</code> / <code>#ffd166</code></td></tr>
+    <tr><td>alert-ok</td><td><code>#e8f4f0</code> / <code>#2a6a5a</code></td><td><code>#e8f8f0</code> / <code>#1a6a4a</code></td><td><code>#e8f8f0</code> / <code>#1a6040</code></td><td><code>#0d1a12</code> / <code>#58e8c1</code></td></tr>
+  </table>
+
+  <div class="spec-h2">Contrast Ratios (WCAG 2.1)</div>
+  <table class="spec-table">
+    <tr><th>Pair</th><th>Ratio</th><th>Grade</th></tr>
+    <tr><td>Home: #2a2420 on #f8f5f0</td><td>14.2:1</td><td><span class="contrast-badge pass-aaa">AAA</span></td></tr>
+    <tr><td>Parent: #2c2418 on #f5f0e8</td><td>13.8:1</td><td><span class="contrast-badge pass-aaa">AAA</span></td></tr>
+    <tr><td>Parent: #2c7a6e on #fffdf8</td><td>5.2:1</td><td><span class="contrast-badge pass-aa">AA</span></td></tr>
+    <tr><td>Parent: #b05800 on #fff3e0</td><td>5.4:1</td><td><span class="contrast-badge pass-aa">AA</span></td></tr>
+    <tr><td>Teacher: #1c2430 on #f0f4f8</td><td>14.6:1</td><td><span class="contrast-badge pass-aaa">AAA</span></td></tr>
+    <tr><td>Teacher: #9a1a1a on #fff0f0</td><td>5.8:1</td><td><span class="contrast-badge pass-aa">AA</span></td></tr>
+    <tr><td>Owner: #e0e6f0 on #0d1117</td><td>13.4:1</td><td><span class="contrast-badge pass-aaa">AAA</span></td></tr>
+    <tr><td>Owner: #ffd166 on #0d1117</td><td>9.8:1</td><td><span class="contrast-badge pass-aaa">AAA</span></td></tr>
+    <tr><td>Owner: #ff9999 on #1a0e0e</td><td>6.1:1</td><td><span class="contrast-badge pass-aa">AA</span></td></tr>
+  </table>
+
+  <div class="spec-h2">Desktop vs Mobile Surface Notes</div>
+  <div class="spec-note">
+    <strong>Home:</strong> Desktop uses centered max-width 1080px container, 3-col feature grid on surface-2 background. Mobile uses full-bleed card stacking.<br><br>
+    <strong>Parent:</strong> Desktop: left sidebar (surface-2) + main panel (base-bg) + optional right activity panel. Mobile: single column, all cards full-width. Tier badges remain same colors on both.<br><br>
+    <strong>Teacher:</strong> Desktop: fixed left nav (surface-2, 220px) + main content area (base-bg) + optional detail panel. Student list uses compact table rows on desktop, card rows on mobile. Intervention timeline always full-width.<br><br>
+    <strong>Owner:</strong> Desktop: top-level nav bar (surface-2) + content area (base-bg). Route health uses multi-column grid. Feedback queue and detail use a master-detail split on desktop (queue list left, detail right). Mobile collapses to stack.
+  </div>
+
+  <div class="spec-h2">Font Usage by Audience</div>
+  <table class="spec-table">
+    <tr><th>Audience</th><th>Font</th><th>Weight</th><th>Notes</th></tr>
+    <tr><td>Child (/play, /child)</td><td>Nunito</td><td>900 (black)</td><td>All child-facing text — friendly, rounded</td></tr>
+    <tr><td>Home / Parent / Teacher / Owner</td><td>Sora</td><td>400 body, 700 headings, 800 hero</td><td>Adult-facing — modern, readable</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

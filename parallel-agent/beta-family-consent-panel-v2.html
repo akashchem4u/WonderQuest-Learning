@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Family Consent Panel — WonderQuest v2</title>
+<style>
+/* ──── ENGINEERING HINT ──── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px 18px;font-family:monospace;font-size:12px;line-height:1.7;margin-bottom:20px}
+.eng-hint strong{color:#7a5c00}
+
+/* ──── RESET & BASE ──── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ──── TAB BAR ──── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:760px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#f59e0b;color:#fff}
+.screen{display:none}
+.screen.active{display:block}
+
+/* ──── CARD ──── */
+.panel{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:32px 36px;max-width:680px;margin:0 auto}
+.panel-wide{max-width:760px}
+.card-title{font-size:20px;font-weight:800;color:#f0f6ff;margin-bottom:6px}
+.card-sub{font-size:13px;color:#8b949e;margin-bottom:24px;line-height:1.5}
+
+/* ──── STEP PROGRESS ──── */
+.step-progress{display:flex;align-items:flex-start;margin-bottom:32px;gap:0}
+.step-col{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+.step-node{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;transition:all .2s;flex-shrink:0}
+.step-node.pending{background:rgba(255,255,255,.07);color:#8b949e;border:2px solid rgba(255,255,255,.1)}
+.step-node.active{background:#f59e0b;color:#0d1117;border:2px solid #f59e0b}
+.step-node.complete{background:#50e890;color:#0d1117;border:2px solid #50e890}
+.step-label{font-size:9px;font-weight:700;margin-top:4px;color:#8b949e;text-align:center;white-space:nowrap;max-width:56px}
+.step-label.active-lbl{color:#f59e0b}
+.step-label.complete-lbl{color:#50e890}
+.step-connector{flex:1;height:2px;background:rgba(255,255,255,.1);margin:0 4px;margin-top:16px}
+.step-connector.done{background:#50e890}
+
+/* ──── WIZARD STEPS ──── */
+.wiz-step{display:none}
+.wiz-step.active{display:block}
+
+/* ──── WELCOME ──── */
+.wq-logo{text-align:center;margin-bottom:20px}
+.wq-logo-mark{font-size:52px;line-height:1}
+.wq-logo-text{font-size:22px;font-weight:900;color:#50e890;letter-spacing:-0.5px;margin-top:4px}
+.wq-logo-sub{font-size:11px;color:#8b949e;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
+.welcome-title{font-size:22px;font-weight:900;color:#f0f6ff;text-align:center;margin-bottom:10px}
+.welcome-desc{font-size:14px;color:#8b949e;text-align:center;line-height:1.6;margin-bottom:24px}
+.expect-box{background:#0d1117;border-radius:12px;border:1px solid rgba(255,255,255,.07);padding:18px 20px;margin-bottom:20px}
+.expect-title{font-size:11px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.expect-list{list-style:none}
+.expect-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#f0f6ff;line-height:1.5;margin-bottom:10px}
+.expect-list li:last-child{margin-bottom:0}
+.expect-bullet{width:20px;height:20px;border-radius:50%;background:rgba(80,232,144,.15);border:1px solid rgba(80,232,144,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#50e890;flex-shrink:0;margin-top:1px}
+.cohort-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.35);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#f59e0b;margin:0 auto 0 auto}
+.chip-row{text-align:center;margin-bottom:28px}
+.chip-dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ──── DATA TABLE ──── */
+.data-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.data-table th{font-size:10px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07)}
+.data-table td{font-size:13px;color:#f0f6ff;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);line-height:1.4}
+.data-table td:nth-child(2){color:#8b949e;font-size:12px}
+.data-table td:nth-child(3){color:#50e890;font-size:12px;font-weight:700;white-space:nowrap}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.not-collected{background:rgba(80,232,144,.06);border:1px solid rgba(80,232,144,.2);border-radius:10px;padding:12px 16px;margin-bottom:8px}
+.not-collected-title{font-size:11px;font-weight:800;color:#50e890;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.not-collected p{font-size:12px;color:#8b949e;line-height:1.5}
+
+/* ──── PRIVACY CARDS ──── */
+.rights-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.right-card{background:#0d1117;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.right-icon{font-size:24px;margin-bottom:8px;display:block}
+.right-title{font-size:13px;font-weight:800;color:#f0f6ff;margin-bottom:4px}
+.right-desc{font-size:12px;color:#8b949e;line-height:1.45}
+.coppa-box{background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.3);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.coppa-box .tag{font-size:10px;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.coppa-box p{font-size:12px;color:#f0f6ff;line-height:1.55}
+.ferpa-box{background:rgba(80,232,144,.06);border:1px solid rgba(80,232,144,.2);border-radius:10px;padding:12px 16px;margin-bottom:8px}
+.ferpa-box .tag{font-size:10px;font-weight:800;color:#50e890;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.ferpa-box p{font-size:12px;color:#8b949e;line-height:1.5}
+
+/* ──── CONSENT CHECKBOXES ──── */
+.consent-list{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.consent-item{display:flex;align-items:flex-start;gap:12px;background:#0d1117;border:1.5px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .18s}
+.consent-item:hover{border-color:rgba(80,232,144,.25)}
+.consent-item.checked{border-color:rgba(80,232,144,.4);background:rgba(80,232,144,.04)}
+.consent-item.optional{border-style:dashed}
+.consent-item.optional.checked{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.04)}
+.consent-checkbox{width:20px;height:20px;border-radius:5px;border:2px solid rgba(255,255,255,.2);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .18s;cursor:pointer}
+.consent-item.checked .consent-checkbox{background:#50e890;border-color:#50e890;color:#0d1117}
+.consent-item.optional.checked .consent-checkbox{background:#f59e0b;border-color:#f59e0b}
+.consent-checkbox-check{font-size:12px;font-weight:900;display:none}
+.consent-item.checked .consent-checkbox-check{display:block}
+.consent-text{font-size:13px;color:#f0f6ff;line-height:1.5}
+.optional-badge{font-size:9px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+.sig-group{margin-bottom:8px}
+.sig-label{font-size:12px;font-weight:700;color:#8b949e;margin-bottom:6px;display:block}
+.sig-input{width:100%;background:#0d1117;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;color:#f0f6ff;font-size:14px;font-family:system-ui;padding:11px 14px;transition:border-color .18s;outline:none}
+.sig-input:focus{border-color:#50e890}
+.sig-hint{font-size:11px;color:#8b949e;margin-top:5px}
+
+/* ──── BUTTONS ──── */
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:24px}
+.btn-primary{padding:11px 22px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:700;font-family:system-ui;background:#50e890;color:#0d1117;transition:all .18s}
+.btn-primary:hover:not(:disabled){background:#3dd47a;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-primary.amber{background:#f59e0b;color:#0d1117}
+.btn-primary.amber:hover:not(:disabled){background:#e08e00}
+.btn-secondary{padding:11px 18px;border-radius:10px;border:1.5px solid rgba(255,255,255,.12);cursor:pointer;font-size:14px;font-weight:600;font-family:system-ui;background:transparent;color:#8b949e;transition:all .18s}
+.btn-secondary:hover{border-color:rgba(255,255,255,.25);color:#f0f6ff}
+.btn-spacer{flex:1}
+
+/* ──── DONE STEP ──── */
+.done-center{text-align:center;padding:16px 0}
+.done-icon{font-size:64px;margin-bottom:12px;display:block}
+.done-title{font-size:24px;font-weight:900;color:#50e890;margin-bottom:6px}
+.done-sub{font-size:14px;color:#8b949e;margin-bottom:24px;line-height:1.6}
+.next-steps{background:#0d1117;border-radius:12px;padding:18px 20px;margin-bottom:22px;text-align:left}
+.next-steps-title{font-size:11px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.next-step-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px;color:#f0f6ff;line-height:1.5}
+.next-step-item:last-child{margin-bottom:0}
+.step-num{width:22px;height:22px;border-radius:50%;background:#f59e0b;color:#0d1117;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.dl-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.dl-btn{display:flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#f0f6ff;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui;transition:all .18s;text-decoration:none}
+.dl-btn:hover{border-color:rgba(80,232,144,.4);background:rgba(80,232,144,.06);color:#50e890}
+.dl-icon{font-size:18px}
+.btn-home{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:800;font-family:system-ui;background:#50e890;color:#0d1117;transition:all .18s}
+.btn-home:hover{background:#3dd47a;transform:translateY(-1px)}
+
+/* ──── SUMMARY CARD ──── */
+.summary-card{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:28px 32px;max-width:600px;margin:0 auto}
+.summary-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px}
+.summary-logo{display:flex;align-items:center;gap:8px}
+.summary-logo-mark{font-size:28px}
+.summary-logo-text{font-size:16px;font-weight:900;color:#50e890}
+.consent-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.25);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#50e890;white-space:nowrap}
+.summary-meta{background:#0d1117;border-radius:10px;padding:14px 16px;margin-bottom:18px}
+.meta-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:12px}
+.meta-row:last-child{margin-bottom:0}
+.meta-key{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.meta-val{font-size:12px;color:#f0f6ff;text-align:right}
+.meta-val.green{color:#50e890;font-weight:700}
+.section-label{font-size:11px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+.summary-data-list{list-style:none;margin-bottom:18px}
+.summary-data-list li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#f0f6ff;line-height:1.5;margin-bottom:8px}
+.summary-data-list li:last-child{margin-bottom:0}
+.sdl-dot{width:6px;height:6px;border-radius:50%;background:#50e890;flex-shrink:0;margin-top:7px}
+.rights-reminder{background:rgba(80,232,144,.06);border:1px solid rgba(80,232,144,.18);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#8b949e;line-height:1.5}
+.rights-reminder strong{color:#50e890}
+.summary-actions{display:flex;align-items:center;gap:10px}
+.btn-pdf{display:flex;align-items:center;gap:7px;padding:10px 18px;border-radius:8px;border:1.5px solid rgba(255,255,255,.12);background:transparent;color:#f0f6ff;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui;transition:all .18s}
+.btn-pdf:hover{border-color:rgba(80,232,144,.4);color:#50e890}
+.btn-withdraw{background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#ef4444;font-family:system-ui;transition:opacity .18s;margin-left:auto}
+.btn-withdraw:hover{opacity:.75}
+
+/* ──── WITHDRAW DIALOG ──── */
+.dialog-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center}
+.dialog-overlay.open{display:flex}
+.dialog-box{background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px 32px;max-width:420px;width:90%}
+.dialog-icon{font-size:36px;text-align:center;margin-bottom:12px}
+.dialog-title{font-size:17px;font-weight:800;color:#f0f6ff;margin-bottom:6px;text-align:center}
+.dialog-body{font-size:13px;color:#8b949e;text-align:center;line-height:1.6;margin-bottom:22px}
+.dialog-actions{display:flex;gap:10px}
+.dialog-cancel{flex:1;padding:10px;border-radius:8px;border:1.5px solid rgba(255,255,255,.12);background:transparent;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui;transition:all .18s}
+.dialog-cancel:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25)}
+.dialog-confirm{flex:1;padding:10px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.dialog-confirm:hover{background:#dc2626}
+
+/* ──── SPEC TAB ──── */
+.spec-panel{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:28px 32px;max-width:760px;margin:0 auto}
+.spec-section{margin-bottom:28px}
+.spec-section:last-child{margin-bottom:0}
+.spec-title{font-size:14px;font-weight:800;color:#f0f6ff;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.spec-title span{font-size:18px}
+.code-block{background:#0d1117;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:18px 20px;font-family:'SF Mono',Consolas,monospace;font-size:12px;color:#f0f6ff;line-height:1.7;overflow-x:auto;white-space:pre}
+.code-comment{color:#8b949e}
+.code-key{color:#79c0ff}
+.code-val{color:#a5d6ff}
+.code-type{color:#ffa657}
+.code-str{color:#a8d96c}
+.legal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.legal-card{background:#0d1117;border-radius:10px;border:1px solid rgba(255,255,255,.07);padding:14px 16px}
+.legal-tag{font-size:10px;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.legal-title{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:4px}
+.legal-desc{font-size:12px;color:#8b949e;line-height:1.45}
+.consent-reqs{display:flex;flex-direction:column;gap:8px}
+.req-item{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#f0f6ff;line-height:1.5}
+.req-dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;margin-top:6px}
+.privacy-design-list{display:flex;flex-direction:column;gap:8px}
+.pd-item{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#8b949e;line-height:1.5}
+.pd-icon{font-size:16px;flex-shrink:0}
+
+/* ──── RESPONSIVE ──── */
+@media(max-width:520px){
+  .rights-grid{grid-template-columns:1fr}
+  .legal-grid{grid-template-columns:1fr}
+  .panel{padding:22px 18px}
+  .spec-panel{padding:22px 18px}
+  .summary-card{padding:22px 18px}
+}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>beta-family-consent-panel-v2.html</strong> — Beta family consent and onboarding. Legal/privacy consent before joining beta.<br>
+  Steps: (1) Welcome + What is beta, (2) What we collect during beta, (3) Privacy &amp; data use, (4) Consent checkboxes + signature, (5) Confirmation.<br>
+  COPPA note: parental consent for children under 13 is mandatory.<br>
+  Consent stored in: <strong>beta_consents(user_id, consent_version, agreed_at, ip_hash, user_agent_hash)</strong><br>
+  Consent version: <strong>'beta-v1.0'</strong>. NOT dismissible — must complete to join beta.
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(0)">Consent Flow</button>
+  <button class="tab-btn" onclick="showTab(1)">Consent Summary Card</button>
+  <button class="tab-btn" onclick="showTab(2)">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 0 — CONSENT FLOW
+══════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-0">
+  <div class="panel">
+
+    <!-- Step Progress -->
+    <div class="step-progress" id="step-progress">
+      <div class="step-col">
+        <div class="step-node active" id="sn-1">1</div>
+        <div class="step-label active-lbl" id="sl-1">Welcome</div>
+      </div>
+      <div class="step-connector" id="sc-1-2"></div>
+      <div class="step-col">
+        <div class="step-node pending" id="sn-2">2</div>
+        <div class="step-label" id="sl-2">Data</div>
+      </div>
+      <div class="step-connector" id="sc-2-3"></div>
+      <div class="step-col">
+        <div class="step-node pending" id="sn-3">3</div>
+        <div class="step-label" id="sl-3">Privacy</div>
+      </div>
+      <div class="step-connector" id="sc-3-4"></div>
+      <div class="step-col">
+        <div class="step-node pending" id="sn-4">4</div>
+        <div class="step-label" id="sl-4">Consent</div>
+      </div>
+      <div class="step-connector" id="sc-4-5"></div>
+      <div class="step-col">
+        <div class="step-node pending" id="sn-5">5</div>
+        <div class="step-label" id="sl-5">Done</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 1: WELCOME ── -->
+    <div class="wiz-step active" id="wiz-step-1">
+      <div class="wq-logo">
+        <div class="wq-logo-mark">🌟</div>
+        <div class="wq-logo-text">WonderQuest</div>
+        <div class="wq-logo-sub">Learning Platform</div>
+      </div>
+
+      <div class="welcome-title">Welcome to the WonderQuest Beta Program 🎉</div>
+      <p class="welcome-desc">You've been invited to try WonderQuest before it launches publicly. As a beta family, you'll get early access and help us build a better product for every child.</p>
+
+      <div class="expect-box">
+        <div class="expect-title">What to expect</div>
+        <ul class="expect-list">
+          <li>
+            <div class="expect-bullet">✦</div>
+            <span><strong style="color:#f0f6ff">6-week program</strong> — structured access to WonderQuest across the full beta period with guided milestones</span>
+          </li>
+          <li>
+            <div class="expect-bullet">✦</div>
+            <span><strong style="color:#f0f6ff">Weekly feedback tasks</strong> — short, focused prompts to help us understand what's working and what to improve</span>
+          </li>
+          <li>
+            <div class="expect-bullet">✦</div>
+            <span><strong style="color:#f0f6ff">Direct line to the product team</strong> — a dedicated beta channel where you can share ideas, report issues, and see them actioned</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="chip-row">
+        <span class="cohort-chip">
+          <span class="chip-dot"></span>
+          Family Pilot · Cohort B · Starting April 2026
+        </span>
+      </div>
+
+      <div class="btn-row">
+        <div class="btn-spacer"></div>
+        <button class="btn-primary" onclick="goStep(2)">Next →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: DATA COLLECTED ── -->
+    <div class="wiz-step" id="wiz-step-2">
+      <div class="card-title">What we collect during the beta</div>
+      <p class="card-sub">We only collect data needed to improve the product and make the beta program work. Here's exactly what, why, and for how long.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Why we collect it</th>
+            <th>Retained</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Child play sessions</td>
+            <td>Improve learning engine and content recommendations</td>
+            <td>Beta period + 90 days</td>
+          </tr>
+          <tr>
+            <td>Feedback you submit</td>
+            <td>Fix bugs and improve features</td>
+            <td>Permanently</td>
+          </tr>
+          <tr>
+            <td>App performance logs</td>
+            <td>Debug crashes and slow load times</td>
+            <td>30 days</td>
+          </tr>
+          <tr>
+            <td>Beta journal entries</td>
+            <td>Research insights and product direction</td>
+            <td>Anonymised after beta</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="not-collected">
+        <div class="not-collected-title">🚫 Not collected</div>
+        <p>We do <strong>NOT</strong> collect: location data, contacts, advertising IDs, device camera or microphone data, or any data not listed in the table above.</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(1)">← Back</button>
+        <div class="btn-spacer"></div>
+        <button class="btn-primary" onclick="goStep(3)">Next →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: PRIVACY ── -->
+    <div class="wiz-step" id="wiz-step-3">
+      <div class="card-title">Your privacy rights</div>
+      <p class="card-sub">As a participant in the WonderQuest beta, you and your family have the following rights at all times.</p>
+
+      <div class="rights-grid">
+        <div class="right-card">
+          <span class="right-icon">🚪</span>
+          <div class="right-title">Right to withdraw</div>
+          <p class="right-desc">You can leave the beta at any time. Simply email beta@wonderquest.com and we'll end your participation and begin data deletion within 30 days.</p>
+        </div>
+        <div class="right-card">
+          <span class="right-icon">📋</span>
+          <div class="right-title">Right to access your data</div>
+          <p class="right-desc">You can request a full export of all data we hold about your family at any time. We'll deliver it within 30 days in a portable format.</p>
+        </div>
+        <div class="right-card">
+          <span class="right-icon">🗑️</span>
+          <div class="right-title">Right to delete</div>
+          <p class="right-desc">You can request deletion of your family's data. We'll process it within 30 days. Anonymised research data may be retained per our privacy policy.</p>
+        </div>
+        <div class="right-card">
+          <span class="right-icon">🔕</span>
+          <div class="right-title">Right to opt out of research</div>
+          <p class="right-desc">You can opt out of having your family's data used for research at any time, while still participating in the beta program itself.</p>
+        </div>
+      </div>
+
+      <div class="coppa-box">
+        <div class="tag">⚠ COPPA Notice — Children Under 13</div>
+        <p>As a parent or guardian, <strong>you</strong> are giving consent on behalf of your child. Your child cannot consent independently under the Children's Online Privacy Protection Act (COPPA, 16 CFR Part 312). You can withdraw consent at any time by emailing <strong>beta@wonderquest.com</strong> — we will stop collecting data and delete existing data within 30 days.</p>
+      </div>
+
+      <div class="ferpa-box">
+        <div class="tag">📚 FERPA Note — School-Linked Families</div>
+        <p>If your child's school is also participating in the beta, your child's educational records are additionally protected under the Family Educational Rights and Privacy Act (FERPA). You retain the right to inspect, review, and request corrections to those records.</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(2)">← Back</button>
+        <div class="btn-spacer"></div>
+        <button class="btn-primary" onclick="goStep(4)">Next →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: CONSENT ── -->
+    <div class="wiz-step" id="wiz-step-4">
+      <div class="card-title">Please read and confirm</div>
+      <p class="card-sub">All required items below must be acknowledged before you can join the beta. This consent is stored with your account and can be reviewed at any time.</p>
+
+      <div class="consent-list" id="consent-list">
+        <!-- Required 1 -->
+        <div class="consent-item" id="ci-1" onclick="toggleConsent('ci-1')">
+          <div class="consent-checkbox"><span class="consent-checkbox-check">✓</span></div>
+          <p class="consent-text">I confirm I am the parent or legal guardian of the child(ren) who will use WonderQuest during the beta</p>
+        </div>
+        <!-- Required 2 -->
+        <div class="consent-item" id="ci-2" onclick="toggleConsent('ci-2')">
+          <div class="consent-checkbox"><span class="consent-checkbox-check">✓</span></div>
+          <p class="consent-text">I understand the data collected as described in Step 2 and agree to its use for beta research purposes</p>
+        </div>
+        <!-- Required 3 -->
+        <div class="consent-item" id="ci-3" onclick="toggleConsent('ci-3')">
+          <div class="consent-checkbox"><span class="consent-checkbox-check">✓</span></div>
+          <p class="consent-text">I understand I can withdraw consent at any time by emailing <strong>beta@wonderquest.com</strong></p>
+        </div>
+        <!-- Required 4 -->
+        <div class="consent-item" id="ci-4" onclick="toggleConsent('ci-4')">
+          <div class="consent-checkbox"><span class="consent-checkbox-check">✓</span></div>
+          <p class="consent-text">I agree to the WonderQuest Beta Terms of Participation</p>
+        </div>
+        <!-- Optional -->
+        <div class="consent-item optional" id="ci-5" onclick="toggleConsent('ci-5')">
+          <div class="consent-checkbox"><span class="consent-checkbox-check">✓</span></div>
+          <p class="consent-text">I'm happy for my feedback to be attributed to me by name in internal product documents <span class="optional-badge">Optional</span></p>
+        </div>
+      </div>
+
+      <div class="sig-group">
+        <label class="sig-label" for="sig-input">Digital signature — type your full name</label>
+        <input class="sig-input" id="sig-input" type="text" placeholder="e.g. Sarah Chen" oninput="checkConsent()" autocomplete="name">
+        <p class="sig-hint">By typing your name you are signing this consent form electronically. This signature will be recorded alongside your consent.</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goStep(3)">← Back</button>
+        <div class="btn-spacer"></div>
+        <button class="btn-primary amber" id="agree-btn" disabled onclick="goStep(5)">I Agree &amp; Join Beta</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 5: DONE ── -->
+    <div class="wiz-step" id="wiz-step-5">
+      <div class="done-center">
+        <span class="done-icon">✅</span>
+        <div class="done-title">Welcome to the beta! 🎉</div>
+        <p class="done-sub">Thanks for joining. Your beta access starts now.<br>Here's everything you need to get started.</p>
+
+        <div class="next-steps">
+          <div class="next-steps-title">Next steps</div>
+          <div class="next-step-item">
+            <div class="step-num">1</div>
+            <span><strong style="color:#f0f6ff">Download the app</strong> — grab WonderQuest from the App Store, Google Play, or use the web app directly in your browser</span>
+          </div>
+          <div class="next-step-item">
+            <div class="step-num">2</div>
+            <span><strong style="color:#f0f6ff">Complete setup</strong> — add your child's profile, choose their learning band, and set your weekly session goal</span>
+          </div>
+          <div class="next-step-item">
+            <div class="step-num">3</div>
+            <span><strong style="color:#f0f6ff">Start your first testing task</strong> — check your beta dashboard for this week's focus area and feedback prompt</span>
+          </div>
+        </div>
+
+        <div class="dl-row">
+          <a class="dl-btn" href="#">
+            <span class="dl-icon">🍎</span>
+            App Store
+          </a>
+          <a class="dl-btn" href="#">
+            <span class="dl-icon">🤖</span>
+            Google Play
+          </a>
+          <a class="dl-btn" href="#">
+            <span class="dl-icon">🌐</span>
+            Web app
+          </a>
+        </div>
+
+        <button class="btn-home">Go to Beta Home →</button>
+      </div>
+    </div>
+
+  </div><!-- /panel -->
+</div><!-- /screen-0 -->
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 1 — CONSENT SUMMARY CARD
+══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-1">
+  <div class="summary-card">
+    <div class="summary-header">
+      <div class="summary-logo">
+        <span class="summary-logo-mark">🌟</span>
+        <span class="summary-logo-text">WonderQuest</span>
+      </div>
+      <span class="consent-badge">✓ Consent on file · beta-v1.0</span>
+    </div>
+
+    <p style="font-size:12px;color:#8b949e;margin-bottom:16px;line-height:1.5">This card summarises the consent you gave when joining the WonderQuest beta program. It is linked from <strong style="color:#f0f6ff">Settings → Beta Consent</strong> and can be reviewed at any time.</p>
+
+    <div class="summary-meta">
+      <div class="meta-row">
+        <span class="meta-key">Consent version</span>
+        <span class="meta-val green">beta-v1.0</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Agreed</span>
+        <span class="meta-val">March 24, 2026 at 14:32 UTC</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Parent / guardian</span>
+        <span class="meta-val">Sarah Chen</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Children covered</span>
+        <span class="meta-val">Emma Chen · Noah Chen</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Attribution opt-in</span>
+        <span class="meta-val" style="color:#f59e0b">No</span>
+      </div>
+    </div>
+
+    <div class="section-label">What you consented to</div>
+    <ul class="summary-data-list">
+      <li><span class="sdl-dot"></span>Child play session data collected to improve the learning engine (retained beta + 90 days)</li>
+      <li><span class="sdl-dot"></span>Feedback you submit used to fix bugs and improve features (retained permanently)</li>
+      <li><span class="sdl-dot"></span>App performance logs used for crash debugging (retained 30 days)</li>
+      <li><span class="sdl-dot"></span>Beta journal entries used for research insights (anonymised after beta)</li>
+      <li><span class="sdl-dot"></span>No location, contacts, advertising IDs, or unlisted data collected</li>
+    </ul>
+
+    <div class="rights-reminder">
+      <strong>Your rights are always active.</strong> You can withdraw consent, access your data, or request deletion at any time — email <strong>beta@wonderquest.com</strong>. Withdrawal triggers data deletion within 30 days.
+    </div>
+
+    <div class="summary-actions">
+      <button class="btn-pdf" onclick="alert('PDF download would be triggered here.')">
+        <span>📄</span>
+        Download PDF copy
+      </button>
+      <button class="btn-withdraw" onclick="openWithdraw()">Withdraw Consent</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 2 — SPEC
+══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-2">
+  <div class="spec-panel">
+
+    <div class="spec-section">
+      <div class="spec-title"><span>🗃️</span> Consent Data Model</div>
+      <div class="code-block"><span class="code-key">beta_consents</span> <span style="color:#8b949e">(</span>
+  <span class="code-key">id</span>                 <span class="code-type">UUID</span>        <span class="code-key">PRIMARY KEY</span><span class="code-comment">,</span>
+  <span class="code-key">user_id</span>            <span class="code-type">UUID</span>        <span class="code-key">REFERENCES</span> users<span style="color:#8b949e">(</span>id<span style="color:#8b949e">)</span><span class="code-comment">,</span>
+  <span class="code-key">consent_version</span>    <span class="code-type">TEXT</span>        <span class="code-key">NOT NULL</span><span class="code-comment">,   -- 'beta-v1.0'</span>
+  <span class="code-key">children_ids</span>       <span class="code-type">UUID</span><span style="color:#8b949e">[]</span><span class="code-comment">,</span>
+  <span class="code-key">agreed_at</span>          <span class="code-type">TIMESTAMPTZ</span> <span class="code-key">NOT NULL</span><span class="code-comment">,</span>
+  <span class="code-key">ip_hash</span>            <span class="code-type">TEXT</span><span class="code-comment">,           -- SHA-256 of IP, not raw IP</span>
+  <span class="code-key">user_agent_hash</span>    <span class="code-type">TEXT</span><span class="code-comment">,           -- SHA-256 of UA string</span>
+  <span class="code-key">attribution_opt_in</span> <span class="code-type">BOOLEAN</span>     <span class="code-key">DEFAULT</span> <span class="code-val">false</span><span class="code-comment">,</span>
+  <span class="code-key">withdrawn_at</span>       <span class="code-type">TIMESTAMPTZ</span> <span style="color:#8b949e">nullable</span><span class="code-comment">,</span>
+  <span class="code-key">withdrawn_reason</span>   <span class="code-type">TEXT</span>        <span style="color:#8b949e">nullable</span>
+<span style="color:#8b949e">)</span></div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-title"><span>⚖️</span> Legal Requirements</div>
+      <div class="legal-grid">
+        <div class="legal-card">
+          <div class="legal-tag">COPPA · 16 CFR Part 312</div>
+          <div class="legal-title">Children's Online Privacy Protection</div>
+          <p class="legal-desc">Verifiable parental consent required before collecting personal information from children under 13. Parent must be identifiable; cannot rely on child self-reporting age.</p>
+        </div>
+        <div class="legal-card">
+          <div class="legal-tag">FERPA</div>
+          <div class="legal-title">Educational Records Protection</div>
+          <p class="legal-desc">If the child's school is a beta partner, student educational records are protected. Parents retain right to inspect, review, and amend records.</p>
+        </div>
+        <div class="legal-card">
+          <div class="legal-tag">GDPR · Article 8</div>
+          <div class="legal-title">EU / UK Parental Consent Age</div>
+          <p class="legal-desc">In the EU, parental consent required for children under 16. In the UK (post-Brexit UK GDPR), the age threshold is under 13. Consent must be verifiable.</p>
+        </div>
+        <div class="legal-card">
+          <div class="legal-tag">Valid Consent Criteria</div>
+          <div class="legal-title">Consent must be…</div>
+          <p class="legal-desc">Freely given — Specific — Informed — Unambiguous. Pre-ticked boxes or bundled consent does not satisfy GDPR standards. Each consent item must be granular.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-title"><span>🔐</span> Privacy by Design</div>
+      <div class="privacy-design-list">
+        <div class="pd-item"><span class="pd-icon">🔒</span><span>IP address stored as <strong style="color:#f0f6ff">SHA-256 hash only</strong> — raw IP never persisted. Hash is non-reversible without the original value.</span></div>
+        <div class="pd-item"><span class="pd-icon">🔒</span><span>User agent string stored as <strong style="color:#f0f6ff">SHA-256 hash only</strong> — preserves fraud-audit trail without storing identifiable device strings.</span></div>
+        <div class="pd-item"><span class="pd-icon">🗑️</span><span>Withdrawal sets <code style="color:#a5d6ff">withdrawn_at</code> and triggers an automated data-deletion job that completes within <strong style="color:#f0f6ff">30 days</strong>.</span></div>
+        <div class="pd-item"><span class="pd-icon">🔄</span><span>If consent terms change, re-consent is required. A new <code style="color:#a5d6ff">beta_consents</code> row is created; the old row is not modified.</span></div>
+        <div class="pd-item"><span class="pd-icon">📝</span><span>Feedback submitted by the parent is retained permanently but may be anonymised on request.</span></div>
+        <div class="pd-item"><span class="pd-icon">🎓</span><span>Beta journal entries are anonymised after the beta period ends — research value preserved, identity removed.</span></div>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-title"><span>✅</span> Consent Validation Rules (front-end)</div>
+      <div class="consent-reqs">
+        <div class="req-item"><span class="req-dot"></span>All 4 required checkboxes must be in checked state before the "I Agree" button becomes enabled</div>
+        <div class="req-item"><span class="req-dot"></span>Signature field must contain at least 2 characters (whitespace-trimmed) before "I Agree" is enabled</div>
+        <div class="req-item"><span class="req-dot"></span>The optional attribution checkbox (ci-5) does not gate the submit button</div>
+        <div class="req-item"><span class="req-dot"></span>The flow is NOT dismissible — no skip/close affordance exists; user must complete or navigate away entirely</div>
+        <div class="req-item"><span class="req-dot"></span>On submission, <code style="color:#a5d6ff">consent_version</code> is always set to <code style="color:#a8d96c">'beta-v1.0'</code>; <code style="color:#a5d6ff">agreed_at</code> is server-set UTC timestamp</div>
+        <div class="req-item"><span class="req-dot"></span><code style="color:#a5d6ff">attribution_opt_in</code> reflects state of optional checkbox ci-5 at time of submission</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     WITHDRAW DIALOG
+══════════════════════════════════════════════════════════ -->
+<div class="dialog-overlay" id="withdraw-overlay" onclick="closeWithdrawOutside(event)">
+  <div class="dialog-box">
+    <div class="dialog-icon">⚠️</div>
+    <div class="dialog-title">Withdraw Beta Consent?</div>
+    <p class="dialog-body">This will end your family's participation in the WonderQuest beta. Your data will be scheduled for deletion within 30 days. This action cannot be undone without re-applying for the beta program.</p>
+    <div class="dialog-actions">
+      <button class="dialog-cancel" onclick="closeWithdraw()">Keep Consent</button>
+      <button class="dialog-confirm" onclick="confirmWithdraw()">Yes, Withdraw</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── TAB SWITCHING ──
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(function(s, i) {
+    s.classList.toggle('active', i === t);
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+    b.classList.toggle('active', i === t);
+  });
+}
+
+// ── STEP WIZARD ──
+var currentStep = 1;
+var totalSteps = 5;
+
+function goStep(n) {
+  if (n < 1 || n > totalSteps) return;
+
+  // Hide current, show target
+  document.getElementById('wiz-step-' + currentStep).classList.remove('active');
+  document.getElementById('wiz-step-' + n).classList.add('active');
+
+  // Update progress nodes
+  for (var i = 1; i <= totalSteps; i++) {
+    var node = document.getElementById('sn-' + i);
+    var lbl = document.getElementById('sl-' + i);
+    if (!node) continue;
+    if (i < n) {
+      node.className = 'step-node complete';
+      node.textContent = '✓';
+      lbl.className = 'step-label complete-lbl';
+    } else if (i === n) {
+      node.className = 'step-node active';
+      node.textContent = i;
+      lbl.className = 'step-label active-lbl';
+    } else {
+      node.className = 'step-node pending';
+      node.textContent = i;
+      lbl.className = 'step-label';
+    }
+  }
+
+  // Update connectors
+  var connectorIds = ['sc-1-2','sc-2-3','sc-3-4','sc-4-5'];
+  connectorIds.forEach(function(cid, idx) {
+    var el = document.getElementById(cid);
+    if (!el) return;
+    el.classList.toggle('done', idx < n - 1);
+  });
+
+  currentStep = n;
+
+  // If arriving at step 5, hide progress bar cleanly
+  if (n === 5) {
+    document.getElementById('step-progress').style.display = 'none';
+  } else {
+    document.getElementById('step-progress').style.display = 'flex';
+  }
+}
+
+// ── CONSENT CHECKBOXES ──
+function toggleConsent(id) {
+  var item = document.getElementById(id);
+  item.classList.toggle('checked');
+  checkConsent();
+}
+
+function checkConsent() {
+  var required = ['ci-1','ci-2','ci-3','ci-4'];
+  var allChecked = required.every(function(id) {
+    return document.getElementById(id).classList.contains('checked');
+  });
+  var sig = document.getElementById('sig-input').value.trim();
+  var btn = document.getElementById('agree-btn');
+  btn.disabled = !(allChecked && sig.length >= 2);
+}
+
+// ── WITHDRAW DIALOG ──
+function openWithdraw() {
+  document.getElementById('withdraw-overlay').classList.add('open');
+}
+function closeWithdraw() {
+  document.getElementById('withdraw-overlay').classList.remove('open');
+}
+function closeWithdrawOutside(e) {
+  if (e.target === document.getElementById('withdraw-overlay')) closeWithdraw();
+}
+function confirmWithdraw() {
+  closeWithdraw();
+  alert('Withdrawal recorded. Your data will be deleted within 30 days. You will receive a confirmation email at your registered address.');
+}
+</script>
+</body>
+</html>

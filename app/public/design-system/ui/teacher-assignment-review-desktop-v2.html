@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Assignment Review Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #e8ecf0; min-height: 100vh; padding: 24px 16px 40px; }
+.page-title { font-size: 13px; font-weight: 800; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; text-align: center; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; max-width: 960px; margin-left: auto; margin-right: auto; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; max-width: 960px; margin: 0 auto; }
+.tab { padding: 9px 14px; border-radius: 8px 8px 0 0; background: #d0d8e4; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #607080; }
+.tab.active { background: #f0f4f8; color: #2a5080; }
+.panel { display: none; background: #f0f4f8; border-radius: 0 8px 8px 8px; max-width: 960px; margin: 0 auto; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.12); min-height: 600px; }
+.panel.active { display: block; }
+
+/* Nav */
+.app-nav { background: #2a5080; padding: 0 24px; display: flex; align-items: center; height: 52px; gap: 20px; }
+.nav-logo { font-size: 15px; font-weight: 900; color: #fff; }
+.nav-link { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); }
+.nav-link.active { color: #fff; border-bottom: 2px solid #ffd166; height: 52px; display: flex; align-items: center; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; }
+
+/* Two-panel layout */
+.two-panel { display: grid; grid-template-columns: 300px 1fr; min-height: 600px; }
+.list-col { background: #fff; border-right: 1px solid #d0dae4; overflow-y: auto; }
+.detail-col { background: #f0f4f8; padding: 20px 24px; overflow-y: auto; }
+
+/* List col header */
+.list-hdr { padding: 14px 16px 10px; border-bottom: 1px solid #d0dae4; background: #fff; position: sticky; top: 0; z-index: 5; }
+.list-hdr-title { font-size: 13px; font-weight: 800; color: #1c2430; }
+.list-filter { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+.f-chip { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; cursor: pointer; border: 1.5px solid #d0dae4; background: #f8fafc; color: #607080; }
+.f-chip.active { background: #2a5080; color: #fff; border-color: #2a5080; }
+
+/* Assignment list items */
+.a-item { padding: 12px 16px; border-bottom: 1px solid #f0f4f8; cursor: pointer; transition: background 0.1s; }
+.a-item:hover { background: #f8fafc; }
+.a-item.selected { background: #f0f6ff; border-left: 3px solid #2a5080; }
+.a-item.overdue { border-left: 3px solid #9a2a2a; background: #fff8f8; }
+.a-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.a-item-name { font-size: 12px; font-weight: 800; color: #1c2430; }
+.a-status { padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.s-sent { background: #e8f8f0; color: #1a6040; }
+.s-queued { background: #e8f0ff; color: #2a4080; }
+.s-draft { background: #f0e8ff; color: #6030a0; }
+.s-overdue { background: #fff0f0; color: #9a2a2a; }
+.a-item-sub { font-size: 10px; color: #607080; }
+.a-item-meta { display: flex; gap: 10px; margin-top: 5px; }
+.a-meta-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+.a-prog { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.a-prog-bar { flex: 1; height: 4px; background: #e4eaf0; border-radius: 2px; overflow: hidden; }
+.a-prog-fill { height: 100%; border-radius: 2px; }
+
+/* Detail col */
+.detail-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.detail-title { font-size: 20px; font-weight: 900; color: #1c2430; }
+.detail-sub { font-size: 12px; color: #607080; margin-top: 3px; }
+.btn-row { display: flex; gap: 8px; }
+.btn { padding: 8px 16px; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+.btn-primary { background: #2a5080; color: #fff; }
+.btn-secondary { background: #e4eaf0; color: #2a5080; }
+.btn-danger { background: #fff0f0; color: #9a2a2a; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.d-card { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 16px; }
+.d-card-title { font-size: 12px; font-weight: 800; color: #2a5080; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+.d-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #f8fafc; font-size: 11px; }
+.d-row:last-child { border-bottom: none; }
+.d-k { color: #607080; }
+.d-v { font-weight: 700; color: #1c2430; text-align: right; }
+
+/* Learner group preview */
+.group-preview { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.g-av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #fff; }
+
+/* Completion preview */
+.comp-bar-lg { height: 16px; background: #e4eaf0; border-radius: 8px; overflow: hidden; margin: 10px 0 5px; display: flex; }
+.comp-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+
+/* Learner completion list */
+.comp-list { display: flex; flex-direction: column; gap: 6px; }
+.comp-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e8eef4; }
+.comp-av { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.comp-name { font-size: 11px; font-weight: 700; color: #1c2430; }
+.comp-status { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+
+/* Edit form */
+.edit-form { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 20px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; font-weight: 700; color: #607080; text-transform: uppercase; letter-spacing: 0.06em; }
+.form-input { padding: 9px 12px; border: 1.5px solid #d0dae4; border-radius: 8px; font-family: inherit; font-size: 13px; color: #1c2430; background: #f8fafc; outline: none; }
+.form-select { padding: 9px 12px; border: 1.5px solid #d0dae4; border-radius: 8px; font-family: inherit; font-size: 13px; color: #1c2430; background: #f8fafc; outline: none; }
+
+/* Spec */
+.spec-body { padding: 24px; }
+.spec-block { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+.spec-title { font-size: 14px; font-weight: 800; color: #2a5080; margin-bottom: 10px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.spec-list li { font-size: 12px; color: #445566; padding-left: 16px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #2a5080; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Teacher Assignment Review Desktop v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> Desktop 900px+ two-panel assignment review. Left panel: assignment list with filter chips (Sent/Queued/Draft/Overdue). Right panel: selected assignment detail — skill, learner group preview, schedule, completion preview. Contact-safe throughout.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Assignment Review</button>
+  <button class="tab" onclick="show('t2')">Assignment Detail</button>
+  <button class="tab" onclick="show('t3')">Completion Status</button>
+  <button class="tab" onclick="show('t4')">Edit / Resend</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Assignment Review (2-panel) -->
+<div class="panel active" id="t1">
+  <div class="app-nav">
+    <span class="nav-logo">WonderQuest</span>
+    <span class="nav-link">Dashboard</span>
+    <span class="nav-link active">Assignments</span>
+    <div class="nav-right"><div class="nav-avatar">MS</div></div>
+  </div>
+  <div class="two-panel">
+    <!-- LEFT: Assignment list -->
+    <div class="list-col">
+      <div class="list-hdr">
+        <div class="list-hdr-title">All Assignments (22)</div>
+        <div class="list-filter">
+          <span class="f-chip active">All</span>
+          <span class="f-chip">Sent</span>
+          <span class="f-chip">Queued</span>
+          <span class="f-chip">Draft</span>
+          <span class="f-chip">Overdue</span>
+        </div>
+      </div>
+
+      <div class="a-item selected">
+        <div class="a-item-top"><span class="a-item-name">Place Value to 1000</span><span class="a-status s-sent">Sent</span></div>
+        <div class="a-item-sub">P0 Core · Whole Class · 24 learners</div>
+        <div class="a-prog"><span style="font-size:9px;color:#607080;">87%</span><div class="a-prog-bar"><div class="a-prog-fill" style="width:87%;background:#1a8050;"></div></div></div>
+        <div style="font-size:9px;color:#607080;margin-top:3px;">Due 19 Mar · Assigned 12 Mar</div>
+      </div>
+      <div class="a-item overdue">
+        <div class="a-item-top"><span class="a-item-name">Addition Strategies</span><span class="a-status s-overdue">Overdue</span></div>
+        <div class="a-item-sub">P0 Core · Support Tier · 8 learners</div>
+        <div class="a-prog"><span style="font-size:9px;color:#9a2a2a;">50%</span><div class="a-prog-bar"><div class="a-prog-fill" style="width:50%;background:#9a2a2a;"></div></div></div>
+        <div style="font-size:9px;color:#9a2a2a;margin-top:3px;">Due 17 Mar · Overdue 6 days</div>
+      </div>
+      <div class="a-item">
+        <div class="a-item-top"><span class="a-item-name">Fractions: Halves &amp; Quarters</span><span class="a-status s-sent">Sent</span></div>
+        <div class="a-item-sub">P1 · Whole Class · 24 learners</div>
+        <div class="a-prog"><span style="font-size:9px;color:#1a8050;">92%</span><div class="a-prog-bar"><div class="a-prog-fill" style="width:92%;background:#1a8050;"></div></div></div>
+        <div style="font-size:9px;color:#607080;margin-top:3px;">Due 21 Mar · 4 days remaining</div>
+      </div>
+      <div class="a-item">
+        <div class="a-item-top"><span class="a-item-name">Times Tables: 2s &amp; 5s</span><span class="a-status s-sent">Sent</span></div>
+        <div class="a-item-sub">P2 · Custom Group · 12 learners</div>
+        <div class="a-prog"><span style="font-size:9px;color:#c07800;">33%</span><div class="a-prog-bar"><div class="a-prog-fill" style="width:33%;background:#c07800;"></div></div></div>
+        <div style="font-size:9px;color:#607080;margin-top:3px;">Due 20 Mar · 3 days remaining</div>
+      </div>
+      <div class="a-item">
+        <div class="a-item-top"><span class="a-item-name">Data: Pictograms</span><span class="a-status s-draft">Draft</span></div>
+        <div class="a-item-sub">P3 · Whole Class · not sent</div>
+        <div style="font-size:9px;color:#8050c0;margin-top:5px;">Not yet assigned</div>
+      </div>
+      <div class="a-item">
+        <div class="a-item-top"><span class="a-item-name">Word Problems: Money</span><span class="a-status s-sent">Sent</span></div>
+        <div class="a-item-sub">P1 · Whole Class · 24 learners</div>
+        <div class="a-prog"><span style="font-size:9px;color:#1a8050;">100%</span><div class="a-prog-bar"><div class="a-prog-fill" style="width:100%;background:#1a8050;"></div></div></div>
+        <div style="font-size:9px;color:#607080;margin-top:3px;">Completed · Due 16 Mar</div>
+      </div>
+      <div class="a-item">
+        <div class="a-item-top"><span class="a-item-name">2D Shapes Review</span><span class="a-status s-overdue">Overdue</span></div>
+        <div class="a-item-sub">P2 · Whole Class · 24 learners</div>
+        <div class="a-prog"><span style="font-size:9px;color:#c07800;">58%</span><div class="a-prog-bar"><div class="a-prog-fill" style="width:58%;background:#c07800;"></div></div></div>
+        <div style="font-size:9px;color:#9a2a2a;margin-top:3px;">Due 18 Mar · Overdue 5 days</div>
+      </div>
+      <div class="a-item">
+        <div class="a-item-top"><span class="a-item-name">Measurement: Length</span><span class="a-status s-queued">Queued</span></div>
+        <div class="a-item-sub">P1 · Whole Class · 24 learners</div>
+        <div style="font-size:9px;color:#2a4080;margin-top:5px;">Sends automatically 25 Mar</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Detail panel -->
+    <div class="detail-col">
+      <div class="detail-hdr">
+        <div>
+          <div class="detail-title">Place Value to 1000</div>
+          <div class="detail-sub">P0 Core · Sent 12 March · Due 19 March</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary">Edit</button>
+          <button class="btn btn-primary">Send Reminder</button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="d-card">
+          <div class="d-card-title">Assignment Info</div>
+          <div class="d-row"><span class="d-k">Skill</span><span class="d-v">Place Value to 1000</span></div>
+          <div class="d-row"><span class="d-k">Band</span><span class="d-v"><span style="background:#fff0f0;color:#9a2a2a;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;">P0 Core</span></span></div>
+          <div class="d-row"><span class="d-k">Questions</span><span class="d-v">15 questions</span></div>
+          <div class="d-row"><span class="d-k">Est. time</span><span class="d-v">20–25 min</span></div>
+          <div class="d-row"><span class="d-k">Assigned</span><span class="d-v">12 March 2026</span></div>
+          <div class="d-row"><span class="d-k">Due</span><span class="d-v">19 March 2026</span></div>
+          <div class="d-row"><span class="d-k">Status</span><span class="d-v"><span style="background:#e8f8f0;color:#1a6040;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;">Active</span></span></div>
+        </div>
+        <div class="d-card">
+          <div class="d-card-title">Learner Group</div>
+          <div class="d-row"><span class="d-k">Group type</span><span class="d-v">Whole Class</span></div>
+          <div class="d-row"><span class="d-k">Learner count</span><span class="d-v">24</span></div>
+          <div class="d-row"><span class="d-k">Tier breakdown</span><span class="d-v">4 Flag · 6 Watch · 14 Strong</span></div>
+          <div class="group-preview">
+            <div class="g-av" style="background:#9a2a2a;">OK</div><div class="g-av" style="background:#9a2a2a;">AH</div><div class="g-av" style="background:#c07800;">JL</div><div class="g-av" style="background:#c07800;">MW</div><div class="g-av" style="background:#1a8050;">SF</div><div class="g-av" style="background:#1a8050;">LM</div><div class="g-av" style="background:#1a8050;">NB</div><div class="g-av" style="background:#d0dae4;color:#607080;">+17</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-card" style="margin-bottom:16px;">
+        <div class="d-card-title">Completion Preview</div>
+        <div style="text-align:center;margin-bottom:8px;font-size:28px;font-weight:900;color:#1a8050;">87%</div>
+        <div class="comp-bar-lg">
+          <div class="comp-seg" style="width:87%;background:#1a8050;">21 done</div>
+          <div class="comp-seg" style="width:9%;background:#c07800;">2 in prog</div>
+          <div class="comp-seg" style="width:4%;background:#9a2a2a;">1</div>
+        </div>
+        <div style="display:flex;gap:12px;font-size:10px;color:#607080;">
+          <span><span style="font-weight:700;color:#1a8050;">21</span> Completed</span>
+          <span><span style="font-weight:700;color:#c07800;">2</span> In Progress</span>
+          <span><span style="font-weight:700;color:#9a2a2a;">1</span> Not Started</span>
+        </div>
+      </div>
+
+      <div class="d-card">
+        <div class="d-card-title">Schedule</div>
+        <div class="d-row"><span class="d-k">Assigned on</span><span class="d-v">Thu 12 Mar · 8:30am (auto)</span></div>
+        <div class="d-row"><span class="d-k">Reminder sent</span><span class="d-v">Mon 16 Mar · 8:30am</span></div>
+        <div class="d-row"><span class="d-k">Due date</span><span class="d-v">Wed 19 Mar · End of day</span></div>
+        <div class="d-row"><span class="d-k">Late extension</span><span class="d-v">+3 days auto-extended</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Assignment Detail (expanded) -->
+<div class="panel" id="t2">
+  <div class="app-nav"><span class="nav-logo">WonderQuest</span><span class="nav-link active">Assignments</span><div class="nav-right"><div class="nav-avatar">MS</div></div></div>
+  <div style="padding:24px;">
+    <div style="font-size:20px;font-weight:900;color:#1c2430;margin-bottom:4px;">Place Value to 1000 — Full Detail</div>
+    <div style="font-size:12px;color:#607080;margin-bottom:20px;">P0 Core · Sent 12 Mar · Due 19 Mar · 24 learners</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+      <div class="d-card"><div class="d-card-title">Assignment Info</div>
+        <div class="d-row"><span class="d-k">Skill</span><span class="d-v">Place Value to 1000</span></div>
+        <div class="d-row"><span class="d-k">Band</span><span class="d-v">P0 Core</span></div>
+        <div class="d-row"><span class="d-k">Questions</span><span class="d-v">15</span></div>
+        <div class="d-row"><span class="d-k">Created by</span><span class="d-v">Ms Sharma</span></div>
+      </div>
+      <div class="d-card"><div class="d-card-title">Completion Stats</div>
+        <div class="d-row"><span class="d-k">Completed</span><span class="d-v" style="color:#1a8050;">21 / 24</span></div>
+        <div class="d-row"><span class="d-k">Avg score</span><span class="d-v">78%</span></div>
+        <div class="d-row"><span class="d-k">Avg time</span><span class="d-v">18 min</span></div>
+        <div class="d-row"><span class="d-k">Hints used</span><span class="d-v">3.2 avg</span></div>
+      </div>
+      <div class="d-card"><div class="d-card-title">Dates</div>
+        <div class="d-row"><span class="d-k">Assigned</span><span class="d-v">12 Mar 2026</span></div>
+        <div class="d-row"><span class="d-k">Reminder</span><span class="d-v">16 Mar 2026</span></div>
+        <div class="d-row"><span class="d-k">Due</span><span class="d-v">19 Mar 2026</span></div>
+        <div class="d-row"><span class="d-k">Extension</span><span class="d-v">22 Mar 2026</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Completion Status -->
+<div class="panel" id="t3">
+  <div class="app-nav"><span class="nav-logo">WonderQuest</span><span class="nav-link active">Assignments</span><div class="nav-right"><div class="nav-avatar">MS</div></div></div>
+  <div style="padding:24px;">
+    <div style="font-size:20px;font-weight:900;color:#1c2430;margin-bottom:4px;">Completion Status</div>
+    <div style="font-size:12px;color:#607080;margin-bottom:20px;">Place Value to 1000 · 24 learners</div>
+    <div class="comp-list">
+      <div class="comp-row"><div class="comp-av" style="background:#1a8050;">SF</div><div><div class="comp-name">Sophia F.</div><div style="font-size:10px;color:#607080;">Completed · 22 min · 94%</div></div><span class="comp-status" style="background:#e8f8f0;color:#1a6040;">Done</span></div>
+      <div class="comp-row"><div class="comp-av" style="background:#1a8050;">LM</div><div><div class="comp-name">Liam M.</div><div style="font-size:10px;color:#607080;">Completed · 18 min · 88%</div></div><span class="comp-status" style="background:#e8f8f0;color:#1a6040;">Done</span></div>
+      <div class="comp-row"><div class="comp-av" style="background:#1a8050;">NB</div><div><div class="comp-name">Noah B.</div><div style="font-size:10px;color:#607080;">Completed · 15 min · 100%</div></div><span class="comp-status" style="background:#e8f8f0;color:#1a6040;">Done</span></div>
+      <div class="comp-row"><div class="comp-av" style="background:#c07800;">JL</div><div><div class="comp-name">Jake L.</div><div style="font-size:10px;color:#607080;">In Progress · 40% through</div></div><span class="comp-status" style="background:#fff8e0;color:#7a5000;">In Progress</span></div>
+      <div class="comp-row"><div class="comp-av" style="background:#c07800;">AH</div><div><div class="comp-name">Amara H.</div><div style="font-size:10px;color:#607080;">In Progress · 60% through</div></div><span class="comp-status" style="background:#fff8e0;color:#7a5000;">In Progress</span></div>
+      <div class="comp-row"><div class="comp-av" style="background:#9a2a2a;">OK</div><div><div class="comp-name">Oliver K.</div><div style="font-size:10px;color:#9a2a2a;">Not started · Flag tier</div></div><span class="comp-status" style="background:#fff0f0;color:#9a2a2a;">Not Started</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Edit/Resend -->
+<div class="panel" id="t4">
+  <div class="app-nav"><span class="nav-logo">WonderQuest</span><span class="nav-link active">Assignments</span><div class="nav-right"><div class="nav-avatar">MS</div></div></div>
+  <div style="padding:24px;">
+    <div style="font-size:20px;font-weight:900;color:#1c2430;margin-bottom:4px;">Edit / Resend Assignment</div>
+    <div style="font-size:12px;color:#607080;margin-bottom:20px;">Place Value to 1000</div>
+    <div class="edit-form">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Assignment Name</label><input class="form-input" type="text" value="Place Value to 1000"></div>
+        <div class="form-group"><label class="form-label">Skill Band</label><select class="form-select"><option selected>P0 — Core</option><option>P1 — Consolidation</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Assign To</label><select class="form-select"><option>Whole Class (24)</option><option>Support Tier</option><option>Custom Group</option></select></div>
+        <div class="form-group"><label class="form-label">New Due Date</label><input class="form-input" type="date" value="2026-03-22"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+        <button class="btn btn-danger">Delete Assignment</button>
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-primary">Save &amp; Resend</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="panel" id="t5">
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Component Spec: Assignment Review Desktop v2</div>
+      <ul class="spec-list">
+        <li>Desktop 900px+, Sora, bg #f0f4f8, nav #2a5080</li>
+        <li>Two-panel layout: 300px scrollable list left, fluid detail panel right</li>
+        <li>List filter chips: All / Sent / Queued / Draft / Overdue — each shows count</li>
+        <li>List items: name, status chip, skill/band, learner count, mini progress bar, due date</li>
+        <li>Overdue items: red left border + light red bg; selected items: blue left border + blue tint</li>
+        <li>Detail panel: assignment info card, learner group card with avatar row, completion preview bar, schedule</li>
+        <li>Completion bar: segmented green/amber/red showing done/in-progress/not-started</li>
+        <li>Tab 3: full per-learner completion list with status chip</li>
+        <li>Tab 4: edit form — name, band, group, new due date; Delete / Save &amp; Resend actions</li>
+        <li>Contact-safe: learner first name + last initial only; no parent contact details shown</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parent Strength Trend Chart · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --accent: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --parent: #a78bfa;
+      --p0: #ffd166;
+      --p1: #9b72ff;
+      --p2: #58e8c1;
+      --p3: #ff7b6b;
+      --muted: rgba(240,246,255,.5);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+    }
+
+    /* Engineering hint box */
+    .eng-hint {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #1a1000;
+    }
+
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .page-header .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 18px;
+      transition: color .15s, border-color .15s;
+      margin-bottom: -1px;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--parent);
+      border-bottom-color: var(--parent);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .card-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* Chart wrapper */
+    .chart-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    .chart-svg {
+      display: block;
+      width: 100%;
+      max-width: 720px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    /* Tooltip */
+    .chart-tooltip {
+      position: fixed;
+      background: #1e2530;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      z-index: 100;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    }
+
+    .chart-tooltip.visible { opacity: 1; }
+
+    .tooltip-week {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .tooltip-subject {
+      font-weight: 700;
+      margin-bottom: 1px;
+    }
+
+    .tooltip-level {
+      font-size: 13px;
+    }
+
+    /* Chart axis labels */
+    .axis-label {
+      font-size: 11px;
+      fill: rgba(240,246,255,.45);
+    }
+
+    .grid-line {
+      stroke: rgba(255,255,255,.05);
+      stroke-width: 1;
+    }
+
+    .axis-line {
+      stroke: rgba(255,255,255,.15);
+      stroke-width: 1;
+    }
+
+    /* Legend */
+    .chart-legend {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Subject chips */
+    .chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chip.maths { border-color: var(--p1); color: var(--p1); }
+    .chip.literacy { border-color: var(--p2); color: var(--p2); }
+    .chip.science { border-color: var(--p3); color: var(--p3); }
+
+    .chart-note {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    /* Strength detail cards */
+    .subject-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .subject-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .subject-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .subject-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .subject-icon.maths { background: rgba(155,114,255,.15); }
+    .subject-icon.literacy { background: rgba(88,232,193,.15); }
+    .subject-icon.science { background: rgba(255,123,107,.15); }
+
+    .subject-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .subject-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      margin-left: auto;
+    }
+
+    .subject-badge.strong { background: rgba(155,114,255,.2); color: var(--p1); }
+    .subject-badge.growing { background: rgba(255,123,107,.15); color: var(--p3); }
+
+    .topics-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .topic-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .topic-pill {
+      background: rgba(255,255,255,.06);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .subject-insight {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.03);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* Spec tab */
+    .spec-section {
+      margin-bottom: 24px;
+    }
+
+    .spec-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--parent);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .spec-key {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: monospace;
+    }
+
+    .spec-val {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .spec-code {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--p2);
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Animated lines */
+    @media (prefers-reduced-motion: no-preference) {
+      .chart-line {
+        stroke-dasharray: 600;
+        stroke-dashoffset: 600;
+        animation: drawLine .9s ease forwards;
+      }
+
+      .chart-line:nth-child(2) { animation-delay: .1s; }
+      .chart-line:nth-child(3) { animation-delay: .25s; }
+      .chart-line:nth-child(4) { animation-delay: .4s; }
+
+      @keyframes drawLine {
+        to { stroke-dashoffset: 0; }
+      }
+
+      .dot-marker {
+        opacity: 0;
+        animation: fadeIn .2s ease forwards;
+      }
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="eng-hint">ITEM 244 · parent-strength-trend-chart-v2.html · WonderQuest parallel-agent build</div>
+
+  <div class="page-header">
+    <h1>Emma's Strengths</h1>
+    <div class="subtitle">How Emma is exploring and growing across subjects</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist" aria-label="Strength chart sections">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-chart" id="btn-chart" onclick="showTab('chart')">Strength Trend</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-details" id="btn-details" onclick="showTab('details')">Strength Details</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-spec" id="btn-spec" onclick="showTab('spec')">Spec</button>
+  </div>
+
+  <!-- Tab 1: Strength Trend Chart -->
+  <div class="tab-panel active" id="tab-chart" role="tabpanel" aria-labelledby="btn-chart">
+    <div class="card">
+      <div class="card-title">Strength Over Time</div>
+      <div class="card-sub">Emma's engagement depth across Maths, Literacy and Science over the last 8 weeks. Higher levels reflect deeper exploration and skill-building.</div>
+
+      <div class="chart-legend" aria-hidden="true">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#9b72ff;"></div>
+          <span>Maths</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#58e8c1;"></div>
+          <span>Literacy</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff7b6b;"></div>
+          <span>Science</span>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <!-- Accessible fallback table -->
+        <table class="sr-only" aria-label="Emma's subject engagement levels by week">
+          <thead>
+            <tr><th>Week</th><th>Maths</th><th>Literacy</th><th>Science</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Week 1</td><td>Exploring</td><td>Growing</td><td>Exploring</td></tr>
+            <tr><td>Week 2</td><td>Exploring</td><td>Growing</td><td>Exploring</td></tr>
+            <tr><td>Week 3</td><td>Growing</td><td>Growing</td><td>Growing</td></tr>
+            <tr><td>Week 4</td><td>Growing</td><td>Strong</td><td>Exploring</td></tr>
+            <tr><td>Week 5</td><td>Growing</td><td>Strong</td><td>Growing</td></tr>
+            <tr><td>Week 6</td><td>Strong</td><td>Strong</td><td>Exploring</td></tr>
+            <tr><td>Week 7</td><td>Strong</td><td>Strong</td><td>Growing</td></tr>
+            <tr><td>Week 8</td><td>Strong</td><td>Strong</td><td>Growing</td></tr>
+          </tbody>
+        </table>
+
+        <svg
+          class="chart-svg"
+          viewBox="0 0 720 280"
+          role="img"
+          aria-label="Line chart showing Emma's engagement levels across Maths, Literacy and Science over 8 weeks. Maths rises from Exploring to Strong. Literacy moves from Growing to Strong. Science fluctuates and ends at Growing."
+          id="strength-chart"
+        >
+          <!-- Grid lines -->
+          <!-- Y = 60 (Strong), Y = 140 (Growing), Y = 220 (Exploring) -->
+          <line class="grid-line" x1="80" y1="60" x2="680" y2="60"/>
+          <line class="grid-line" x1="80" y1="140" x2="680" y2="140"/>
+          <line class="grid-line" x1="80" y1="220" x2="680" y2="220"/>
+
+          <!-- Axes -->
+          <line class="axis-line" x1="80" y1="40" x2="80" y2="240"/>
+          <line class="axis-line" x1="80" y1="240" x2="690" y2="240"/>
+
+          <!-- Y axis labels -->
+          <text class="axis-label" x="72" y="64" text-anchor="end">Strong</text>
+          <text class="axis-label" x="72" y="144" text-anchor="end">Growing</text>
+          <text class="axis-label" x="72" y="224" text-anchor="end">Exploring</text>
+          <text class="axis-label" x="30" y="145" text-anchor="middle" transform="rotate(-90,30,145)">Engagement level</text>
+
+          <!-- X axis labels (Week 1–8) -->
+          <!-- X positions: w1=120, w2=200, w3=280, w4=360, w5=440, w6=520, w7=600, w8=680 -->
+          <text class="axis-label" x="120" y="258" text-anchor="middle">Wk 1</text>
+          <text class="axis-label" x="200" y="258" text-anchor="middle">Wk 2</text>
+          <text class="axis-label" x="280" y="258" text-anchor="middle">Wk 3</text>
+          <text class="axis-label" x="360" y="258" text-anchor="middle">Wk 4</text>
+          <text class="axis-label" x="440" y="258" text-anchor="middle">Wk 5</text>
+          <text class="axis-label" x="520" y="258" text-anchor="middle">Wk 6</text>
+          <text class="axis-label" x="600" y="258" text-anchor="middle">Wk 7</text>
+          <text class="axis-label" x="680" y="258" text-anchor="middle">Wk 8</text>
+
+          <!-- Maths line (violet #9b72ff): Exploring→Exploring→Growing→Growing→Growing→Strong→Strong→Strong -->
+          <!-- Y: 220, 220, 140, 140, 140, 60, 60, 60 -->
+          <polyline
+            class="chart-line"
+            fill="none"
+            stroke="#9b72ff"
+            stroke-width="2.5"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            points="120,220 200,220 280,140 360,140 440,140 520,60 600,60 680,60"
+          />
+
+          <!-- Literacy line (mint #58e8c1): Growing→Growing→Growing→Strong→Strong→Strong→Strong→Strong -->
+          <!-- Y: 140, 140, 140, 60, 60, 60, 60, 60 -->
+          <polyline
+            class="chart-line"
+            fill="none"
+            stroke="#58e8c1"
+            stroke-width="2.5"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            points="120,140 200,140 280,140 360,60 440,60 520,60 600,60 680,60"
+          />
+
+          <!-- Science line (coral #ff7b6b): Exploring→Exploring→Growing→Exploring→Growing→Exploring→Growing→Growing -->
+          <!-- Y: 220, 220, 140, 220, 140, 220, 140, 140 -->
+          <polyline
+            class="chart-line"
+            fill="none"
+            stroke="#ff7b6b"
+            stroke-width="2.5"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            points="120,220 200,220 280,140 360,220 440,140 520,220 600,140 680,140"
+          />
+
+          <!-- Dot markers — Maths -->
+          <circle class="dot-marker" cx="120" cy="220" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="1" data-subject="Maths" data-level="Exploring"/>
+          <circle class="dot-marker" cx="200" cy="220" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="2" data-subject="Maths" data-level="Exploring"/>
+          <circle class="dot-marker" cx="280" cy="140" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="3" data-subject="Maths" data-level="Growing"/>
+          <circle class="dot-marker" cx="360" cy="140" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="4" data-subject="Maths" data-level="Growing"/>
+          <circle class="dot-marker" cx="440" cy="140" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="5" data-subject="Maths" data-level="Growing"/>
+          <circle class="dot-marker" cx="520" cy="60" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="6" data-subject="Maths" data-level="Strong"/>
+          <circle class="dot-marker" cx="600" cy="60" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="7" data-subject="Maths" data-level="Strong"/>
+          <circle class="dot-marker" cx="680" cy="60" r="5" fill="#9b72ff" stroke="#0d1117" stroke-width="2"
+            data-week="8" data-subject="Maths" data-level="Strong"/>
+
+          <!-- Dot markers — Literacy -->
+          <circle class="dot-marker" cx="120" cy="140" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="1" data-subject="Literacy" data-level="Growing"/>
+          <circle class="dot-marker" cx="200" cy="140" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="2" data-subject="Literacy" data-level="Growing"/>
+          <circle class="dot-marker" cx="280" cy="140" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="3" data-subject="Literacy" data-level="Growing"/>
+          <circle class="dot-marker" cx="360" cy="60" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="4" data-subject="Literacy" data-level="Strong"/>
+          <circle class="dot-marker" cx="440" cy="60" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="5" data-subject="Literacy" data-level="Strong"/>
+          <circle class="dot-marker" cx="520" cy="60" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="6" data-subject="Literacy" data-level="Strong"/>
+          <circle class="dot-marker" cx="600" cy="60" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="7" data-subject="Literacy" data-level="Strong"/>
+          <circle class="dot-marker" cx="680" cy="60" r="5" fill="#58e8c1" stroke="#0d1117" stroke-width="2"
+            data-week="8" data-subject="Literacy" data-level="Strong"/>
+
+          <!-- Dot markers — Science -->
+          <circle class="dot-marker" cx="120" cy="220" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="1" data-subject="Science" data-level="Exploring"/>
+          <circle class="dot-marker" cx="200" cy="220" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="2" data-subject="Science" data-level="Exploring"/>
+          <circle class="dot-marker" cx="280" cy="140" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="3" data-subject="Science" data-level="Growing"/>
+          <circle class="dot-marker" cx="360" cy="220" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="4" data-subject="Science" data-level="Exploring"/>
+          <circle class="dot-marker" cx="440" cy="140" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="5" data-subject="Science" data-level="Growing"/>
+          <circle class="dot-marker" cx="520" cy="220" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="6" data-subject="Science" data-level="Exploring"/>
+          <circle class="dot-marker" cx="600" cy="140" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="7" data-subject="Science" data-level="Growing"/>
+          <circle class="dot-marker" cx="680" cy="140" r="5" fill="#ff7b6b" stroke="#0d1117" stroke-width="2"
+            data-week="8" data-subject="Science" data-level="Growing"/>
+
+          <!-- Invisible hit targets for tooltips (larger radius) -->
+          <!-- Maths -->
+          <circle class="dot-hit" cx="120" cy="220" r="14" fill="transparent" tabindex="0"
+            data-week="1" data-subject="Maths" data-level="Exploring" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="200" cy="220" r="14" fill="transparent" tabindex="0"
+            data-week="2" data-subject="Maths" data-level="Exploring" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="280" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="3" data-subject="Maths" data-level="Growing" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="360" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="4" data-subject="Maths" data-level="Growing" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="440" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="5" data-subject="Maths" data-level="Growing" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="520" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="6" data-subject="Maths" data-level="Strong" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="600" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="7" data-subject="Maths" data-level="Strong" data-color="#9b72ff"/>
+          <circle class="dot-hit" cx="680" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="8" data-subject="Maths" data-level="Strong" data-color="#9b72ff"/>
+
+          <!-- Literacy -->
+          <circle class="dot-hit" cx="120" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="1" data-subject="Literacy" data-level="Growing" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="200" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="2" data-subject="Literacy" data-level="Growing" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="280" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="3" data-subject="Literacy" data-level="Growing" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="360" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="4" data-subject="Literacy" data-level="Strong" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="440" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="5" data-subject="Literacy" data-level="Strong" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="520" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="6" data-subject="Literacy" data-level="Strong" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="600" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="7" data-subject="Literacy" data-level="Strong" data-color="#58e8c1"/>
+          <circle class="dot-hit" cx="680" cy="60" r="14" fill="transparent" tabindex="0"
+            data-week="8" data-subject="Literacy" data-level="Strong" data-color="#58e8c1"/>
+
+          <!-- Science -->
+          <circle class="dot-hit" cx="120" cy="220" r="14" fill="transparent" tabindex="0"
+            data-week="1" data-subject="Science" data-level="Exploring" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="200" cy="220" r="14" fill="transparent" tabindex="0"
+            data-week="2" data-subject="Science" data-level="Exploring" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="280" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="3" data-subject="Science" data-level="Growing" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="360" cy="220" r="14" fill="transparent" tabindex="0"
+            data-week="4" data-subject="Science" data-level="Exploring" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="440" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="5" data-subject="Science" data-level="Growing" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="520" cy="220" r="14" fill="transparent" tabindex="0"
+            data-week="6" data-subject="Science" data-level="Exploring" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="600" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="7" data-subject="Science" data-level="Growing" data-color="#ff7b6b"/>
+          <circle class="dot-hit" cx="680" cy="140" r="14" fill="transparent" tabindex="0"
+            data-week="8" data-subject="Science" data-level="Growing" data-color="#ff7b6b"/>
+        </svg>
+      </div>
+
+      <!-- Subject summary chips -->
+      <div class="chips">
+        <div class="chip maths">🌟 Maths — Strong</div>
+        <div class="chip literacy">🌟 Literacy — Strong</div>
+        <div class="chip science">⭐ Science — Growing</div>
+      </div>
+
+      <div class="chart-note">Strength levels reflect how deeply Emma is exploring each area, not test performance.</div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Strength Details -->
+  <div class="tab-panel" id="tab-details" role="tabpanel" aria-labelledby="btn-details">
+    <div class="subject-cards">
+
+      <!-- Maths -->
+      <div class="subject-card">
+        <div class="subject-card-header">
+          <div class="subject-icon maths">🔢</div>
+          <div class="subject-name">Maths</div>
+          <div class="subject-badge strong">🌟 Strong</div>
+        </div>
+        <div class="topics-label">Emma is strong in</div>
+        <div class="topic-pills">
+          <span class="topic-pill">Shapes</span>
+          <span class="topic-pill">Counting</span>
+          <span class="topic-pill">Patterns</span>
+        </div>
+        <div class="subject-insight">
+          Emma has revisited Shapes 3 times this term — it's a favourite!
+        </div>
+      </div>
+
+      <!-- Literacy -->
+      <div class="subject-card">
+        <div class="subject-card-header">
+          <div class="subject-icon literacy">📖</div>
+          <div class="subject-name">Literacy</div>
+          <div class="subject-badge strong">🌟 Strong</div>
+        </div>
+        <div class="topics-label">Emma is strong in</div>
+        <div class="topic-pills">
+          <span class="topic-pill">Sight Words</span>
+          <span class="topic-pill">Short Stories</span>
+        </div>
+        <div class="subject-insight">
+          Emma is exploring longer reading passages this term.
+        </div>
+      </div>
+
+      <!-- Science -->
+      <div class="subject-card">
+        <div class="subject-card-header">
+          <div class="subject-icon science">🔬</div>
+          <div class="subject-name">Science</div>
+          <div class="subject-badge growing">⭐ Growing</div>
+        </div>
+        <div class="topics-label">Emma is exploring</div>
+        <div class="topic-pills">
+          <span class="topic-pill">Animals</span>
+          <span class="topic-pill">Plants</span>
+        </div>
+        <div class="subject-insight">
+          Emma has just started exploring Science — watch this space!
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Tab 3: Spec -->
+  <div class="tab-panel" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+    <div class="card">
+
+      <div class="spec-section">
+        <div class="spec-title">Strength Definition</div>
+        <div class="spec-row">
+          <span class="spec-key">Condition</span>
+          <span class="spec-val"><code>mastery_status IN ('Growing','Strong')</code> on ≥2 sessions in the period. NOT a test score.</span>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-title">Engagement Level Mapping</div>
+        <div class="spec-row">
+          <span class="spec-key">Exploring</span>
+          <span class="spec-val">1–2 sessions in the period</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-key">Growing</span>
+          <span class="spec-val">3–5 sessions with skill progression signals</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-key">Strong</span>
+          <span class="spec-val">6+ sessions with mastery signals</span>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-title">Privacy Rules</div>
+        <div class="spec-row">
+          <span class="spec-val">No accuracy %, no per-question data, no "Emma got this wrong" language anywhere in the UI.</span>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-title">Parent Language Rules</div>
+        <div class="spec-row">
+          <span class="spec-val">Always positive, forward-looking, adventure language. Use "revisited" not "repeated incorrectly". Use "exploring" not "attempting".</span>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-title">Database Schema</div>
+        <div class="spec-code">child_strength_trends (
+  child_id        UUID,
+  subject_id      UUID,
+  week_number     INT,
+  engagement_level ENUM('exploring','growing','strong'),
+  sessions_count  INT,
+  updated_at      TIMESTAMP
+)
+-- Computed weekly by analytics job</div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-title">Chart Implementation</div>
+        <div class="spec-row">
+          <span class="spec-key">Rendering</span>
+          <span class="spec-val">SVG polylines drawn via JS; responsive width via viewBox scaling.</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-key">Reduced motion</span>
+          <span class="spec-val"><code>prefers-reduced-motion</code> — removes line-draw animation, keeps static points visible.</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-key">Accessibility</span>
+          <span class="spec-val">Chart has <code>role="img"</code> + <code>aria-label</code> text summary. Visually-hidden data table fallback via <code>.sr-only</code>.</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-key">WCAG</span>
+          <span class="spec-val">Dot hit targets keyboard-focusable (tabindex=0). Tooltip triggered on both hover and focus.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="chart-tooltip" id="chart-tooltip" role="tooltip" aria-live="polite">
+    <div class="tooltip-week" id="tt-week"></div>
+    <div class="tooltip-subject" id="tt-subject"></div>
+    <div class="tooltip-level" id="tt-level"></div>
+  </div>
+
+  <script>
+    // Tab switching
+    function showTab(t) {
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.getElementById('tab-' + t).classList.add('active');
+      const btn = document.getElementById('btn-' + t);
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
+
+    // Tooltip logic
+    const tooltip = document.getElementById('chart-tooltip');
+    const ttWeek = document.getElementById('tt-week');
+    const ttSubject = document.getElementById('tt-subject');
+    const ttLevel = document.getElementById('tt-level');
+
+    const subjectColors = {
+      'Maths': '#9b72ff',
+      'Literacy': '#58e8c1',
+      'Science': '#ff7b6b'
+    };
+
+    const levelEmoji = {
+      'Exploring': '🌱',
+      'Growing': '⭐',
+      'Strong': '🌟'
+    };
+
+    function showTooltip(e, el) {
+      const week = el.getAttribute('data-week');
+      const subject = el.getAttribute('data-subject');
+      const level = el.getAttribute('data-level');
+      const color = subjectColors[subject] || '#fff';
+
+      ttWeek.textContent = 'Week ' + week;
+      ttSubject.textContent = subject;
+      ttSubject.style.color = color;
+      ttLevel.textContent = (levelEmoji[level] || '') + ' ' + level;
+
+      const x = e.clientX || (e.target ? e.target.getBoundingClientRect().left + 10 : 0);
+      const y = e.clientY || (e.target ? e.target.getBoundingClientRect().top : 0);
+
+      tooltip.style.left = (x + 14) + 'px';
+      tooltip.style.top = (y - 48) + 'px';
+      tooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+      tooltip.classList.remove('visible');
+    }
+
+    document.querySelectorAll('.dot-hit').forEach(dot => {
+      dot.addEventListener('mouseenter', (e) => showTooltip(e, dot));
+      dot.addEventListener('mousemove', (e) => {
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 48) + 'px';
+      });
+      dot.addEventListener('mouseleave', hideTooltip);
+      dot.addEventListener('focus', (e) => showTooltip(e, dot));
+      dot.addEventListener('blur', hideTooltip);
+    });
+
+    // Stagger dot fade-in animations if motion allowed
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReduced) {
+      document.querySelectorAll('.dot-marker').forEach((dot, i) => {
+        dot.style.animationDelay = (0.05 * i + 0.3) + 's';
+      });
+    } else {
+      // Remove animation class and make all visible immediately
+      document.querySelectorAll('.dot-marker').forEach(dot => {
+        dot.style.opacity = '1';
+        dot.classList.remove('dot-marker');
+      });
+      document.querySelectorAll('.chart-line').forEach(line => {
+        line.style.strokeDasharray = 'none';
+        line.style.strokeDashoffset = '0';
+        line.classList.remove('chart-line');
+      });
+    }
+  </script>
+</body>
+</html>

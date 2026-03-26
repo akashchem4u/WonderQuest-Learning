@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-wrong-state-gentle-v3.html
+  ===================================================
+  Gentle wrong answer state component — all band variants.
+  Five tabs: Pre-K Wrong / K-1 Wrong / G2-3 Wrong / G4-5 Wrong / Spec
+  - Language: "Not quite — give it another try!" / "That wasn't it" — NEVER "Wrong!" / "Incorrect!"
+  - Wrong card gets red border + bg + shake animation
+  - Coach gives a specific, actionable hint — NOT just "try again"
+  - Other answer cards remain fully active for retry
+  - Star-safe badge always shown: stars never decrease on wrong answer
+  - Wrong banner: contextual icon + specific hint text (different per question type)
+  - No penalty countdown, no strike tracking shown to child
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · Wrong State Gentle v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--wrong); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--wrong); color: var(--wrong); }
+  .tab-btn.active { background: var(--wrong); border-color: var(--wrong); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 390px; min-height: 720px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #ff7b6b22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column; margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
+  }
+  .sb-gold { color: var(--gold); background: linear-gradient(135deg, #2a1800, #1a0c00); }
+  .sb-default { color: var(--muted); background: var(--bg); border-bottom: 1px solid #2a2050; }
+
+  .top-bar {
+    padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 12px; border: 1px solid;
+    font-size: 0.85rem; font-weight: 900;
+  }
+
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    flex-shrink: 0; border-bottom: 1px solid;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 16px 18px 12px; gap: 13px; overflow-y: auto;
+  }
+
+  /* Wrong banner — the key component */
+  .wrong-banner {
+    border-radius: 14px; padding: 13px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+    border: 2px solid var(--wrong); background: var(--wrong-bg);
+  }
+  .wb-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+  .wb-body { flex: 1; }
+  .wb-headline { font-size: 0.92rem; font-weight: 900; color: var(--wrong); margin-bottom: 3px; }
+  .wb-hint { font-size: 0.84rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+
+  /* Inline coach (smaller, supporting role) */
+  .coach-inline-sm {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,123,107,0.06); border-radius: 12px;
+    padding: 10px 12px; border: 1px solid rgba(255,123,107,0.15);
+  }
+  .ci-avatar { font-size: 1rem; width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,123,107,0.1); border: 1px solid rgba(255,123,107,0.3);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ci-text { font-size: 0.82rem; font-weight: 700; color: var(--muted); line-height: 1.35; }
+  .ci-text .ci-accent { font-weight: 900; }
+
+  /* Answer grid */
+  .ac-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ac-row-4 { display: flex; gap: 8px; }
+  .ac-list { display: flex; flex-direction: column; gap: 8px; }
+  .ac {
+    background: var(--card2); border: 3px solid #3a3060; border-radius: 14px;
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 14px 10px; gap: 6px; min-height: 88px;
+    position: relative; transition: all 0.15s;
+  }
+  .ac:hover { border-color: var(--wrong); }
+  .ac-image { font-size: 2rem; }
+  .ac-text { font-size: 0.84rem; font-weight: 700; color: var(--text); text-align: center; }
+  .ac-letter { font-size: 2.2rem; font-weight: 900; font-family: 'Nunito', sans-serif; }
+  .ac-num { font-size: 1.8rem; font-weight: 900; font-family: 'Nunito', sans-serif; }
+  .ac-sub { font-size: 0.68rem; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .ac.ac-btn { flex: 1; }
+
+  .ac.wrong-card {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    animation: ac-shake 0.5s ease-out;
+  }
+  .ac.wrong-card .ac-text, .ac.wrong-card .ac-letter, .ac.wrong-card .ac-num { color: var(--wrong); }
+
+  @keyframes ac-shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    padding: 12px 16px 20px; background: var(--card); border-top: 1px solid #2a2050;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-replay { flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .btn-hint { flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .btn-idk { flex: 1; padding: 10px 6px; border-radius: 12px;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    background: transparent; color: var(--wrong); border: 2px solid rgba(255,123,107,0.3); }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  /* Band-specific util classes */
+  .gold-border { border-color: #3a2000 !important; }
+  .gold-star { background: rgba(255,209,102,0.15); border-color: rgba(255,209,102,0.3); color: var(--gold); }
+  .violet-btn { background: #2a2050; color: var(--violet); border: 1px solid #3a3060; }
+  .violet-hint { background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); }
+  .gold-btn { background: rgba(255,209,102,0.1); color: var(--gold); border: 1px solid rgba(255,209,102,0.2); }
+  .gold-hint { background: rgba(255,209,102,0.12); color: var(--gold); border: 1px solid rgba(255,209,102,0.25); }
+  .mint-btn { background: #162a22; color: var(--mint); border: 1px solid rgba(88,232,193,0.2); }
+  .mint-hint { background: rgba(88,232,193,0.1); color: var(--mint); border: 1px solid rgba(88,232,193,0.25); }
+  .coral-btn { background: #1a0e0a; color: var(--coral); border: 1px solid rgba(255,123,107,0.2); }
+  .coral-hint { background: rgba(255,123,107,0.1); color: var(--coral); border: 1px solid rgba(255,123,107,0.25); }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .spec-wrap table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  .spec-wrap th, .spec-wrap td { border: 1px solid #d0b040; padding: 6px 10px; text-align: left; font-size: 0.8rem; }
+  .spec-wrap th { background: #f8e880; font-weight: 700; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-gold { background: #ffd166; color: #1a0c00; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-mint { background: #58e8c1; color: #0a2a22; }
+  .tok-coral { background: #ff7b6b; color: white; }
+  .tok-red { background: #ff7b6b; color: white; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>💛 Play · Wrong State (Gentle)</h1>
+<p class="subtitle">v3 · All band variants · Specific actionable hints · Star-safe always shown</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('prek')">Pre-K Wrong</button>
+  <button class="tab-btn" onclick="showTab('k1')">K-1 Wrong</button>
+  <button class="tab-btn" onclick="showTab('g23')">G2-3 Wrong</button>
+  <button class="tab-btn" onclick="showTab('g45')">G4-5 Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== PRE-K WRONG ===== -->
+<div id="tab-prek" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar sb-gold"><span>9:41</span><span>⭐ 4</span></div>
+    <div class="top-bar" style="background: linear-gradient(135deg, #2a1800, #1a0c00); border-color: #3a2000;">
+      <button class="back-btn" style="background: rgba(255,209,102,0.12); color: var(--gold);">←</button>
+      <span class="quest-name" style="color:var(--gold);">Counting Quest</span>
+      <div class="star-counter gold-star">⭐ 4</div>
+    </div>
+    <div class="progress-strip" style="background: linear-gradient(135deg, #2a1800, #1a0c00); border-color: #3a2000;">
+      <div class="ps-seg" style="background: var(--gold);"></div>
+      <div class="ps-seg" style="background: var(--gold);"></div>
+      <div class="ps-seg" style="background: rgba(255,209,102,0.5);"></div>
+      <div class="ps-seg" style="background: rgba(255,209,102,0.2);"></div>
+      <div class="ps-seg" style="background: rgba(255,209,102,0.2);"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <div class="wb-icon">⭐</div>
+        <div class="wb-body">
+          <div class="wb-headline">Not quite — let's count again!</div>
+          <div class="wb-hint">Touch each star and count out loud — 1, 2, 3…</div>
+        </div>
+      </div>
+      <div class="coach-inline-sm">
+        <div class="ci-avatar">🦁</div>
+        <div class="ci-text"><span class="ci-accent" style="color:var(--gold);">Try again!</span> Count each one with your finger.</div>
+      </div>
+      <div class="ac-grid-2x2">
+        <div class="ac wrong-card"><span class="ac-num">4</span></div>
+        <div class="ac"><span class="ac-num">5</span></div>
+        <div class="ac"><span class="ac-num">6</span></div>
+        <div class="ac"><span class="ac-num">7</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay gold-btn">🔊 Replay</button>
+        <button class="btn-hint gold-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== K-1 WRONG ===== -->
+<div id="tab-k1" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar sb-default"><span>9:41</span><span>⭐ 8</span></div>
+    <div class="top-bar" style="background: var(--card); border-color: #2a2050;">
+      <button class="back-btn" style="background: rgba(155,114,255,0.12); color: var(--violet);">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter" style="background: rgba(155,114,255,0.15); border-color: rgba(155,114,255,0.3); color: var(--violet);">⭐ 8</div>
+    </div>
+    <div class="progress-strip" style="background: var(--card); border-color: #2a2050;">
+      <div class="ps-seg" style="background: var(--violet);"></div>
+      <div class="ps-seg" style="background: var(--violet);"></div>
+      <div class="ps-seg" style="background: rgba(155,114,255,0.5);"></div>
+      <div class="ps-seg" style="background: rgba(155,114,255,0.2);"></div>
+      <div class="ps-seg" style="background: rgba(155,114,255,0.2);"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <div class="wb-icon">🔊</div>
+        <div class="wb-body">
+          <div class="wb-headline">That wasn't it — say "bee" out loud.</div>
+          <div class="wb-hint">What's the very first sound you hear?</div>
+        </div>
+      </div>
+      <div class="coach-inline-sm">
+        <div class="ci-avatar">🦁</div>
+        <div class="ci-text"><span class="ci-accent" style="color:var(--violet);">Buh…</span> Listen for the beginning sound!</div>
+      </div>
+      <div class="ac-grid-2x2">
+        <div class="ac wrong-card"><span class="ac-letter">S</span><span class="ac-sub">sss</span></div>
+        <div class="ac"><span class="ac-letter">B</span><span class="ac-sub">buh</span></div>
+        <div class="ac"><span class="ac-letter">D</span><span class="ac-sub">duh</span></div>
+        <div class="ac"><span class="ac-letter">R</span><span class="ac-sub">rrr</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay violet-btn">🔊 Replay</button>
+        <button class="btn-hint violet-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== G2-3 WRONG ===== -->
+<div id="tab-g23" class="screen">
+  <div class="phone-frame" style="box-shadow: 0 0 0 2px #ff7b6b22, 0 30px 80px rgba(0,0,0,0.7);">
+    <div class="status-bar sb-default"><span>9:41</span><span>⭐ 26</span></div>
+    <div class="top-bar" style="background: var(--card); border-color: #1a3030;">
+      <button class="back-btn" style="background: rgba(88,232,193,0.12); color: var(--mint);">←</button>
+      <span class="quest-name">Reading Quest</span>
+      <div class="star-counter" style="background: rgba(88,232,193,0.12); border-color: rgba(88,232,193,0.3); color: var(--mint);">⭐ 26</div>
+    </div>
+    <div class="progress-strip" style="background: var(--card); border-color: #1a3030;">
+      <div class="ps-seg" style="background: var(--mint);"></div>
+      <div class="ps-seg" style="background: var(--mint);"></div>
+      <div class="ps-seg" style="background: rgba(88,232,193,0.5);"></div>
+      <div class="ps-seg" style="background: rgba(88,232,193,0.15);"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <div class="wb-icon">📖</div>
+        <div class="wb-body">
+          <div class="wb-headline">Not quite — read the highlighted part again.</div>
+          <div class="wb-hint">Look for what Maya did <em>when she saw the rain</em>.</div>
+        </div>
+      </div>
+      <div class="coach-inline-sm">
+        <div class="ci-avatar">🦁</div>
+        <div class="ci-text"><span class="ci-accent" style="color:var(--mint);">The answer is in the passage</span> — find the sentence about rain.</div>
+      </div>
+      <div class="ac-list">
+        <div class="ac wrong-card" style="flex-direction:row; justify-content:flex-start; padding:12px 14px; min-height:56px;"><span class="ac-text">She went to the park with her dog.</span></div>
+        <div class="ac" style="flex-direction:row; justify-content:flex-start; padding:12px 14px; min-height:56px;"><span class="ac-text">She stayed inside and read a book.</span></div>
+        <div class="ac" style="flex-direction:row; justify-content:flex-start; padding:12px 14px; min-height:56px;"><span class="ac-text">She called a friend on the phone.</span></div>
+        <div class="ac" style="flex-direction:row; justify-content:flex-start; padding:12px 14px; min-height:56px;"><span class="ac-text">She went back to sleep.</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay mint-btn">📖 Re-read</button>
+        <button class="btn-hint mint-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== G4-5 WRONG ===== -->
+<div id="tab-g45" class="screen">
+  <div class="phone-frame" style="box-shadow: 0 0 0 2px #ff7b6b22, 0 30px 80px rgba(0,0,0,0.7);">
+    <div class="status-bar sb-default"><span>9:41</span><span>⭐ 41</span></div>
+    <div class="top-bar" style="background: var(--card); border-color: #2a1818;">
+      <button class="back-btn" style="background: rgba(255,123,107,0.12); color: var(--coral);">←</button>
+      <span class="quest-name">Reading Quest</span>
+      <div class="star-counter" style="background: rgba(255,123,107,0.12); border-color: rgba(255,123,107,0.3); color: var(--coral);">⭐ 41</div>
+    </div>
+    <div class="progress-strip" style="background: var(--card); border-color: #2a1818;">
+      <div class="ps-seg" style="background: var(--coral);"></div>
+      <div class="ps-seg" style="background: var(--coral);"></div>
+      <div class="ps-seg" style="background: var(--coral);"></div>
+      <div class="ps-seg" style="background: rgba(255,123,107,0.5);"></div>
+      <div class="ps-seg" style="background: rgba(255,123,107,0.15);"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <div class="wb-icon">🔍</div>
+        <div class="wb-body">
+          <div class="wb-headline">Not quite — look at the clues.</div>
+          <div class="wb-hint">What do Dani's actions (slow walk, eyes down, not eating) tell you about how she felt?</div>
+        </div>
+      </div>
+      <div class="coach-inline-sm">
+        <div class="ci-avatar">🦁</div>
+        <div class="ci-text"><span class="ci-accent" style="color:var(--coral);">Inference</span> = reading clues to figure out what isn't stated directly.</div>
+      </div>
+      <div class="ac-list">
+        <div class="ac wrong-card" style="flex-direction:row; justify-content:flex-start; padding:11px 12px; min-height:52px;"><span class="ac-text" style="font-size:0.84rem;">She was bored and wanted to go home.</span></div>
+        <div class="ac" style="flex-direction:row; justify-content:flex-start; padding:11px 12px; min-height:52px;"><span class="ac-text" style="font-size:0.84rem;">She was excited to tell her parents.</span></div>
+        <div class="ac" style="flex-direction:row; justify-content:flex-start; padding:11px 12px; min-height:52px;"><span class="ac-text" style="font-size:0.84rem;">She was upset or disappointed.</span></div>
+        <div class="ac" style="flex-direction:row; justify-content:flex-start; padding:11px 12px; min-height:52px;"><span class="ac-text" style="font-size:0.84rem;">She was confused about the results.</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay coral-btn">📖 Re-read</button>
+        <button class="btn-hint coral-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-wrong-state-gentle-v3 · Engineering Spec</h2>
+
+    <h3>Purpose</h3>
+    <ul>
+      <li>Standardized gentle wrong state — applied across all play scenes via CSS + JS class swap</li>
+      <li>Critical principle: wrong state NEVER shames. Every wrong state gives a specific, actionable hint.</li>
+      <li>Stars never decrease. Star-safe badge always visible on wrong state.</li>
+      <li>Other answer cards remain fully active for retry — child chooses again immediately</li>
+    </ul>
+
+    <h3>Forbidden Language (NEVER use)</h3>
+    <ul>
+      <li>❌ "Wrong!" / "Incorrect!" / "Oops!"</li>
+      <li>❌ "You missed it" / "You failed" / "Try harder"</li>
+      <li>❌ "That's wrong — the answer was X" (never reveal answer preemptively)</li>
+      <li>❌ Strike count display ("2 strikes left")</li>
+      <li>❌ Red X animation on child's face/avatar</li>
+    </ul>
+
+    <h3>Approved Wrong Language Patterns</h3>
+    <table>
+      <tr><th>Pattern</th><th>Example</th></tr>
+      <tr><td>"Not quite — [actionable hint]"</td><td>"Not quite — say 'bee' out loud"</td></tr>
+      <tr><td>"That wasn't it — [specific cue]"</td><td>"That wasn't it — look at the highlighted sentence"</td></tr>
+      <tr><td>"Let's [do strategy] — [encouragement]"</td><td>"Let's count again — touch each star one at a time!"</td></tr>
+      <tr><td>"Give it another try!"</td><td>Used alone or after hint sentence</td></tr>
+    </table>
+
+    <h3>Wrong Banner Structure</h3>
+    <ul>
+      <li>Border: <code>2px solid #ff7b6b</code> — consistent across all bands (wrong color doesn't change)</li>
+      <li>Background: <code>#2a0e0e</code></li>
+      <li>Icon: question-type appropriate (⭐ for counting, 🔊 for phonics, 📖 for reading, 🔍 for inference)</li>
+      <li>Headline: 0.92rem Nunito 900, coral color — the hook</li>
+      <li>Hint: 0.84rem Nunito 700, white — specific actionable instruction</li>
+    </ul>
+
+    <h3>Wrong Card CSS</h3>
+    <ul>
+      <li>Class <code>.wrong-card</code> on the selected wrong answer card</li>
+      <li>Background: <code>#2a0e0e</code>, border: <code>#ff7b6b</code>, text: <code>#ff7b6b</code></li>
+      <li><code>ac-shake</code> keyframe fires once (translateX ±8px, 0.5s ease-out)</li>
+      <li>Other cards remain default style — fully interactive for retry</li>
+    </ul>
+
+    <h3>Coach Role in Wrong State</h3>
+    <ul>
+      <li>Small inline coach (28px avatar, 0.82rem text) in supporting role — not dominant</li>
+      <li>Coach reinforces the STRATEGY (count with finger, listen for the sound) not just "try again"</li>
+      <li>Coach does NOT repeat the wrong banner text — adds a complementary angle</li>
+    </ul>
+
+    <h3>Bottom Bar on Wrong State</h3>
+    <ul>
+      <li>Buttons remain: 🔊 Replay / 💡 Hint / 🤷 IDK yet — all 3 available</li>
+      <li>G2-3 and G4-5 reading: 🔊 Replay → 📖 Re-read (text-primary scenes)</li>
+      <li>Star-safe badge below buttons — explicit reassurance</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

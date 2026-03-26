@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Session Shell Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+
+  /* Desktop screen wrapper */
+  .desktop-screen{min-width:900px;max-width:1060px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Top bar */
+  .top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+  .tb-left{display:flex;align-items:center;gap:12px}
+  .logo{font-size:16px;font-weight:900;color:#ffd166}
+  .session-name{font-size:12px;color:rgba(255,255,255,.5);font-weight:700}
+  .tb-right{display:flex;align-items:center;gap:16px}
+  .tb-stars{font-weight:900;font-size:14px;color:#ffd166;display:flex;align-items:center;gap:5px}
+  .tb-progress{display:flex;gap:5px;align-items:center}
+  .tdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15)}
+  .tdot.done{background:#9b72ff}
+  .tdot.cur{background:#9b72ff;box-shadow:0 0 6px #9b72ff}
+
+  /* 2-col layout */
+  .two-col{display:grid;grid-template-columns:1fr 300px;min-height:580px}
+
+  /* Left: question area */
+  .col-question{padding:28px 28px 24px;display:flex;flex-direction:column}
+  .q-type-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:12px;padding:4px 12px;font-size:11px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;align-self:flex-start}
+  .q-text{font-size:24px;font-weight:900;color:#fff;margin-bottom:20px;line-height:1.3}
+  .q-stimulus{background:rgba(255,255,255,.06);border-radius:20px;padding:24px;text-align:center;font-size:52px;margin-bottom:24px;flex:0 0 auto}
+  .answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:auto}
+  .ans{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;text-align:center;font-size:18px;font-weight:900;cursor:pointer;transition:all .2s}
+  .ans:hover{background:rgba(255,255,255,.12)}
+  .ans.correct{background:rgba(88,232,193,.15);border-color:#58e8c1;color:#58e8c1}
+  .ans.wrong{background:rgba(255,123,107,.1);border-color:rgba(255,123,107,.4)}
+  .ans.highlight{border-color:rgba(155,114,255,.5);background:rgba(155,114,255,.1)}
+
+  /* Right: sidebar */
+  .col-sidebar{padding:24px 20px;border-left:1px solid rgba(255,255,255,.07);background:rgba(0,0,0,.1);display:flex;flex-direction:column;gap:14px}
+  .sidebar-section{background:rgba(255,255,255,.05);border-radius:16px;padding:14px}
+  .ss-title{font-size:10px;font-weight:900;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+
+  /* Coach in sidebar */
+  .coach-area{text-align:center}
+  .coach-emoji{font-size:56px;animation:coachBob 2s ease-in-out infinite}
+  @keyframes coachBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .coach-name{font-size:11px;font-weight:900;color:#9b72ff;margin-top:4px}
+  .coach-message{font-size:12px;color:rgba(255,255,255,.65);line-height:1.4;margin-top:8px;background:rgba(155,114,255,.08);border-radius:10px;padding:8px}
+
+  /* Progress */
+  .progress-bar{background:rgba(255,255,255,.08);border-radius:10px;height:8px;overflow:hidden;margin-top:6px}
+  .progress-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#9b72ff,#58e8c1)}
+
+  /* Hints */
+  .hint-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .hint-chip{background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:5px 10px;font-size:11px;color:#ffd166;font-weight:700;cursor:pointer}
+  .hint-chip.used{opacity:.4;text-decoration:line-through}
+
+  /* Correct state overlay strip */
+  .correct-banner{background:linear-gradient(135deg,rgba(88,232,193,.15),rgba(88,232,193,.05));border:2px solid rgba(88,232,193,.4);border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .cb-icon{font-size:32px}
+  .cb-text{}
+  .cb-title{font-size:16px;font-weight:900;color:#58e8c1}
+  .cb-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px}
+  .next-btn{width:100%;background:#9b72ff;color:#fff;border:none;border-radius:14px;padding:13px;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;cursor:pointer;margin-top:auto}
+
+  /* Hint state */
+  .hint-panel{background:rgba(155,114,255,.1);border:2px solid rgba(155,114,255,.3);border-radius:16px;padding:14px;margin-top:12px}
+  .hint-panel-title{font-size:12px;font-weight:900;color:#9b72ff;margin-bottom:8px;display:flex;align-items:center;gap=6px}
+  .phoneme-row{display:flex;gap:6px;flex-wrap:wrap}
+  .ph-block{background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:900;color:#9b72ff}
+
+  /* Spec */
+  .spec-body{padding:24px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('active-q')">Active Question</button>
+  <button class="tab" onclick="show('correct-state')">Correct State</button>
+  <button class="tab" onclick="show('wrong-hint')">Wrong + Hint</button>
+  <button class="tab" onclick="show('between-q')">Between Questions</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-session-shell-desktop-v2.html</code> — Desktop 900px+ 2-col · question area left / session sidebar right
+</div>
+
+<!-- ACTIVE QUESTION -->
+<div id="active-q" class="panel active">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="tb-left">
+        <div class="logo">⭐ WonderQuest</div>
+        <div class="session-name">Ocean World · Level 3</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-progress">
+          <div class="tdot done"></div><div class="tdot done"></div><div class="tdot done"></div>
+          <div class="tdot cur"></div><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        </div>
+        <div class="tb-stars">⭐ 3</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="col-question">
+        <div class="q-type-tag">🔤 Spelling</div>
+        <div class="q-text">How do you spell what you see?</div>
+        <div class="q-stimulus">🌊</div>
+        <div class="answer-grid">
+          <div class="ans">wuter</div>
+          <div class="ans">water</div>
+          <div class="ans">waiter</div>
+          <div class="ans">woter</div>
+        </div>
+      </div>
+      <div class="col-sidebar">
+        <div class="sidebar-section">
+          <div class="ss-title">Your Coach</div>
+          <div class="coach-area">
+            <div class="coach-emoji">🦉</div>
+            <div class="coach-name">Coach Pip</div>
+            <div class="coach-message">You're doing great! Take your time — there's no rush!</div>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Session Progress</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Questions</span>
+            <span style="font-size:12px;font-weight:900">4 of 8</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:10px">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Stars</span>
+            <span style="font-size:13px;font-weight:900;color:#ffd166">⭐ 3</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Streak</span>
+            <span style="font-size:13px;font-weight:900;color:#ffd166">🔥 4 days</span>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Hints Available</div>
+          <div class="hint-chips">
+            <div class="hint-chip">🔊 Hear it</div>
+            <div class="hint-chip">🔤 See sounds</div>
+            <div class="hint-chip">💡 Coach tip</div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px">Using hints is part of learning!</div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Session Info</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);line-height:1.6">
+            <div>🌊 Ocean World</div>
+            <div style="margin-top:4px">📚 Spelling · Session 6</div>
+            <div style="margin-top:4px">🎯 Goal: 6+ stars</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CORRECT STATE -->
+<div id="correct-state" class="panel">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="tb-left">
+        <div class="logo">⭐ WonderQuest</div>
+        <div class="session-name">Ocean World · Level 3</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-progress">
+          <div class="tdot done"></div><div class="tdot done"></div><div class="tdot done"></div>
+          <div class="tdot done"></div><div class="tdot cur"></div><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        </div>
+        <div class="tb-stars">⭐ 4</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="col-question">
+        <div class="correct-banner">
+          <div class="cb-icon">🌟</div>
+          <div class="cb-text">
+            <div class="cb-title">Correct! +1 Star!</div>
+            <div class="cb-sub">"water" — w-a-t-e-r — five letters!</div>
+          </div>
+        </div>
+        <div class="q-type-tag" style="background:rgba(88,232,193,.1);border-color:rgba(88,232,193,.3);color:#58e8c1">🔤 Spelling</div>
+        <div class="q-text">How do you spell what you see?</div>
+        <div class="q-stimulus" style="background:rgba(88,232,193,.08);border:2px solid rgba(88,232,193,.3)">🌊</div>
+        <div class="answer-grid">
+          <div class="ans" style="opacity:.35">wuter</div>
+          <div class="ans correct">water ✓</div>
+          <div class="ans" style="opacity:.35">waiter</div>
+          <div class="ans" style="opacity:.35">woter</div>
+        </div>
+        <button class="next-btn" style="margin-top:20px">Next question! →</button>
+      </div>
+      <div class="col-sidebar">
+        <div class="sidebar-section" style="background:rgba(88,232,193,.08);border:1px solid rgba(88,232,193,.2)">
+          <div class="ss-title" style="color:#58e8c1">⭐ Star Earned!</div>
+          <div style="font-size:28px;font-weight:900;color:#ffd166;text-align:center;padding:8px 0">⭐ 4</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);text-align:center">+1 this question!</div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Session Progress</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Questions</span>
+            <span style="font-size:12px;font-weight:900">5 of 8</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:62.5%"></div></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Your Coach</div>
+          <div class="coach-area">
+            <div class="coach-emoji">🦉</div>
+            <div class="coach-name">Coach Pip</div>
+            <div class="coach-message" style="background:rgba(88,232,193,.08);border:1px solid rgba(88,232,193,.2)">Amazing! Water has 5 sounds — you got it!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WRONG + HINT -->
+<div id="wrong-hint" class="panel">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="tb-left">
+        <div class="logo">⭐ WonderQuest</div>
+        <div class="session-name">Ocean World · Level 3</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-progress">
+          <div class="tdot done"></div><div class="tdot done"></div><div class="tdot done"></div>
+          <div class="tdot cur"></div><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        </div>
+        <div class="tb-stars">⭐ 3</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="col-question">
+        <div style="background:rgba(255,123,107,.08);border:2px solid rgba(255,123,107,.3);border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span style="font-size:28px">🦉</span>
+          <div>
+            <div style="font-size:14px;font-weight:900;color:#ff7b6b">Let's try again — you've got this!</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Think about how the word sounds...</div>
+          </div>
+        </div>
+        <div class="q-type-tag">🔤 Spelling</div>
+        <div class="q-text">How do you spell what you see?</div>
+        <div class="q-stimulus">🌊</div>
+        <div class="hint-panel">
+          <div class="hint-panel-title">💡 Pip's hint: Sound it out!</div>
+          <div class="phoneme-row">
+            <div class="ph-block">w</div>
+            <div class="ph-block">a</div>
+            <div class="ph-block">t</div>
+            <div class="ph-block">er</div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:8px">wuh - aw - tuh - er = ?</div>
+        </div>
+        <div class="answer-grid" style="margin-top:14px">
+          <div class="ans wrong">wuter ✗</div>
+          <div class="ans highlight">water</div>
+          <div class="ans" style="opacity:.6">waiter</div>
+          <div class="ans" style="opacity:.6">woter</div>
+        </div>
+      </div>
+      <div class="col-sidebar">
+        <div class="sidebar-section">
+          <div class="ss-title">Your Coach</div>
+          <div class="coach-area">
+            <div class="coach-emoji">🦉</div>
+            <div class="coach-name">Coach Pip</div>
+            <div class="coach-message">No worries! Let me show you the sounds. "wuter" and "water" start the same — but listen to the middle!</div>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Hints used this session</div>
+          <div class="hint-chips">
+            <div class="hint-chip used">🔊 Hear it</div>
+            <div class="hint-chip">🔤 See sounds</div>
+            <div class="hint-chip">💡 Coach tip</div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px">Stars are safe no matter what!</div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Session Progress</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Questions</span>
+            <span style="font-size:12px;font-weight:900">4 of 8</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+          <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,.4)">Try again or skip — no pressure!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BETWEEN QUESTIONS -->
+<div id="between-q" class="panel">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="tb-left">
+        <div class="logo">⭐ WonderQuest</div>
+        <div class="session-name">Ocean World · Level 3</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-progress">
+          <div class="tdot done"></div><div class="tdot done"></div><div class="tdot done"></div>
+          <div class="tdot done"></div><div class="tdot cur"></div><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        </div>
+        <div class="tb-stars">⭐ 4</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="col-question" style="align-items:center;justify-content:center;min-height:500px">
+        <div style="text-align:center;padding:32px">
+          <div style="font-size:56px;margin-bottom:16px;animation:coachBob 2s ease-in-out infinite">🌟</div>
+          <div style="font-size:20px;font-weight:900;color:#ffd166;margin-bottom:8px">Great answer!</div>
+          <div style="font-size:14px;color:rgba(255,255,255,.55);margin-bottom:24px">Loading your next question...</div>
+          <div style="display:flex;gap:10px;justify-content:center;margin-bottom:24px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#9b72ff;animation:ldot 1.2s infinite"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#9b72ff;animation:ldot 1.2s infinite;animation-delay:.2s"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#9b72ff;animation:ldot 1.2s infinite;animation-delay:.4s"></div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border:2px solid rgba(155,114,255,.3);border-radius:20px;padding:16px 24px;display:inline-flex;align-items:center;gap:14px;max-width:300px">
+            <div style="font-size:36px;background:rgba(155,114,255,.15);border-radius:12px;width:56px;height:56px;display:flex;align-items:center;justify-content:center">🧩</div>
+            <div style="text-align:left">
+              <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase">Next up</div>
+              <div style="font-size:15px;font-weight:900">Word Builder</div>
+              <div style="font-size:11px;color:#9b72ff;font-weight:700">Phonics · Medium</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sidebar">
+        <div class="sidebar-section" style="background:rgba(255,209,102,.06);border:1px solid rgba(255,209,102,.15)">
+          <div class="ss-title">⭐ Just Earned</div>
+          <div style="font-size:28px;font-weight:900;color:#ffd166;text-align:center;padding:6px 0">+1 Star!</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45);text-align:center">Total: 4 stars</div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Session Progress</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Questions</span>
+            <span style="font-size:12px;font-weight:900">4 of 8 done</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+          <div style="margin-top:8px;font-size:11px;color:#58e8c1;font-weight:700">Halfway there! 🌟</div>
+        </div>
+        <div class="sidebar-section">
+          <div class="ss-title">Your Coach</div>
+          <div class="coach-area">
+            <div class="coach-emoji">🦉</div>
+            <div class="coach-name">Coach Pip</div>
+            <div class="coach-message">Keep it up! Next question is a word builder — you love those!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="desktop-screen">
+    <div class="spec-body">
+      <h3>File: play-session-shell-desktop-v2.html</h3>
+      <ul>
+        <li>Desktop 900px+ · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>2-column layout: left question area / right session sidebar</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Active Question:</strong> Question, stimulus, 2×2 answer grid (left) · coach avatar, progress, star count, session info, hints (right)</li>
+        <li><strong>Correct State:</strong> Correct banner, answer highlighted green, star earned (sidebar updates)</li>
+        <li><strong>Wrong + Hint:</strong> Gentle error banner, hint panel with phoneme cues, coach explanation — no shame</li>
+        <li><strong>Between Questions:</strong> Loading dots, next question preview card, star recap sidebar</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">Desktop 900px+</span>
+        <span class="spec-tag">2-col grid</span>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P0 gold #ffd166</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes ldot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-10px)}}
+</style>
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

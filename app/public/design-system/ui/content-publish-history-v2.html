@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publish History & Rollback v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8edf2;min-width:900px}
+.topbar{background:#0a0f16;border-bottom:1px solid #1e2a38;padding:16px 32px;display:flex;align-items:center;gap:16px}
+.topbar h1{font-size:18px;font-weight:700;color:#58c8f0}
+.tabs{display:flex;gap:0;border-bottom:2px solid #1e2a38;padding:0 32px;background:#0d141c}
+.tab{padding:14px 22px;font-size:13px;font-weight:600;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#58c8f0;border-bottom-color:#58c8f0}
+.tab:hover:not(.active){color:#a0b8cc}
+.pane{display:none;padding:32px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#ffd166;line-height:1.6}
+.hint-box strong{color:#ffe08a}
+.publish-list{display:flex;flex-direction:column;gap:0}
+.publish-item{border-left:3px solid #1e2a38;margin-left:20px;padding:0 0 24px 28px;position:relative}
+.publish-item::before{content:'';position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid #1e2a38;background:#10161e}
+.publish-item.current::before{background:#58e8c1;border-color:#58e8c1}
+.publish-item.current{border-left-color:#58e8c133}
+.publish-item.rolled-back::before{background:#ff6b6b;border-color:#ff6b6b}
+.pub-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:20px}
+.pub-card.current{border-color:#58e8c133}
+.pub-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.pub-id{font-size:14px;font-weight:700;color:#58c8f0;flex:1}
+.pub-date{font-size:12px;color:#6b8099}
+.pub-status{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.status-current{background:#58e8c122;color:#58e8c1;border:1px solid #58e8c133}
+.status-previous{background:#1e2a38;color:#6b8099;border:1px solid #2a3a4e}
+.status-rolledback{background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b33}
+.pub-meta{display:flex;gap:20px;font-size:12px;color:#6b8099;margin-bottom:14px}
+.pub-meta span{display:flex;align-items:center;gap:5px}
+.pub-meta strong{color:#a0b8cc}
+.pub-actions{display:flex;gap:8px}
+.rollback-btn{background:#ff7b6b22;color:#ff7b6b;border:1px solid #ff7b6b44;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.rollback-btn:hover{background:#ff7b6b33}
+.view-btn{background:#1e2a38;border:1px solid #2a3a4e;color:#a0b8cc;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif}
+.view-btn:hover{background:#2a3a4e}
+.modal-backdrop{position:fixed;inset:0;background:#00000088;z-index:100;display:flex;align-items:center;justify-content:center;display:none}
+.modal-backdrop.open{display:flex}
+.modal{background:#131c27;border:1px solid #ff7b6b44;border-radius:12px;padding:32px;max-width:480px;width:100%}
+.modal h3{font-size:16px;font-weight:700;color:#ff7b6b;margin-bottom:16px}
+.modal p{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:20px}
+.modal .confirm-btn{background:#ff7b6b;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.modal .cancel-btn{background:#1e2a38;border:1px solid #2a3a4e;color:#a0b8cc;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;margin-left:8px}
+.detail-panel{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px;margin-bottom:20px}
+.detail-panel h3{font-size:15px;font-weight:700;color:#e8edf2;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #1e2a38;background:#0d141c}
+td{padding:12px 14px;font-size:13px;border-bottom:1px solid #0f1a25}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#0a0f16}
+.flow-step{background:#131c27;border:1px solid #1e2a38;border-radius:8px;padding:16px 20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px}
+.step-num{width:28px;height:28px;border-radius:50%;background:#ff7b6b22;border:2px solid #ff7b6b;color:#ff7b6b;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-info h4{font-size:13px;font-weight:700;color:#e8edf2;margin-bottom:4px}
+.step-info p{font-size:12px;color:#6b8099;line-height:1.5}
+.access-log-table{border-collapse:collapse;width:100%;background:#131c27;border-radius:10px;overflow:hidden;border:1px solid #1e2a38}
+.spec-section{margin-bottom:28px}
+.spec-section h3{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e2a38}
+.spec-section p,.spec-section li{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:6px}
+.spec-section ul{padding-left:18px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-size:20px">📜</span>
+  <h1>Publish History</h1>
+  <div style="flex:1"></div>
+  <span style="font-size:12px;color:#58e8c1;font-weight:600">● Live: pub_2026-03-21_v14</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('history')">Publish History</div>
+  <div class="tab" onclick="show('pub-detail')">Publish Detail</div>
+  <div class="tab" onclick="show('rollback')">Rollback Flow</div>
+  <div class="tab" onclick="show('access-log')">Access Log</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="pane active">
+  <div class="hint-box">
+    <strong>Publish history</strong> shows all content publishes in reverse chronological order. The current live publish is marked green. Rollback is available for the 2 most recent prior versions.
+  </div>
+
+  <div class="publish-list">
+    <div class="publish-item current">
+      <div class="pub-card current">
+        <div class="pub-header">
+          <div class="pub-id">pub_2026-03-21_v14</div>
+          <div class="pub-date">Mar 21, 2026 · 18:42</div>
+          <span class="pub-status status-current">● LIVE</span>
+        </div>
+        <div class="pub-meta">
+          <span><strong>142 Q</strong> published</span>
+          <span><strong>3 batches</strong> included</span>
+          <span>Approved by <strong>roswi@wq.io</strong></span>
+        </div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:12px">Batches: animals_p0, subtraction_p1, phonics_blends</div>
+        <div class="pub-actions">
+          <button class="view-btn" onclick="show('pub-detail')">View Details</button>
+          <span style="font-size:11px;color:#4a6078;padding:7px 0">Current live — rollback not available for active version</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="publish-item">
+      <div class="pub-card">
+        <div class="pub-header">
+          <div class="pub-id">pub_2026-03-19_v13</div>
+          <div class="pub-date">Mar 19, 2026 · 14:15</div>
+          <span class="pub-status status-previous">PREVIOUS</span>
+        </div>
+        <div class="pub-meta">
+          <span><strong>118 Q</strong> published</span>
+          <span><strong>2 batches</strong> included</span>
+          <span>Approved by <strong>roswi@wq.io</strong></span>
+        </div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:12px">Batches: phonics_blends, compare_numbers</div>
+        <div class="pub-actions">
+          <button class="view-btn" onclick="show('pub-detail')">View Details</button>
+          <button class="rollback-btn" onclick="openRollback('pub_2026-03-19_v13')">↺ Rollback to v13</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="publish-item">
+      <div class="pub-card">
+        <div class="pub-header">
+          <div class="pub-id">pub_2026-03-17_v12</div>
+          <div class="pub-date">Mar 17, 2026 · 10:08</div>
+          <span class="pub-status status-previous">PREVIOUS</span>
+        </div>
+        <div class="pub-meta">
+          <span><strong>94 Q</strong> published</span>
+          <span><strong>1 batch</strong> included</span>
+          <span>Approved by <strong>content@wq.io</strong></span>
+        </div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:12px">Batches: sight_words_p1</div>
+        <div class="pub-actions">
+          <button class="view-btn" onclick="show('pub-detail')">View Details</button>
+          <button class="rollback-btn" onclick="openRollback('pub_2026-03-17_v12')">↺ Rollback to v12</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="publish-item rolled-back">
+      <div class="pub-card" style="opacity:.65">
+        <div class="pub-header">
+          <div class="pub-id">pub_2026-03-14_v11</div>
+          <div class="pub-date">Mar 14, 2026 · 09:30</div>
+          <span class="pub-status status-rolledback">ROLLED BACK</span>
+        </div>
+        <div class="pub-meta">
+          <span><strong>87 Q</strong> published</span>
+          <span>Rolled back by <strong>roswi@wq.io</strong></span>
+          <span style="color:#ff6b6b">Reason: Hard block discovered post-publish</span>
+        </div>
+        <div class="pub-actions">
+          <button class="view-btn" onclick="show('pub-detail')">View Details</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="publish-item" style="opacity:.5;padding-bottom:0">
+      <div class="pub-card">
+        <div class="pub-header">
+          <div class="pub-id">pub_2026-03-10_v10</div>
+          <div class="pub-date">Mar 10, 2026</div>
+          <span class="pub-status status-previous">ARCHIVED</span>
+        </div>
+        <div class="pub-meta"><span><strong>72 Q</strong></span><span>Rollback unavailable — too old</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PUBLISH DETAIL -->
+<div id="pub-detail" class="pane">
+  <div class="hint-box">
+    <strong>pub_2026-03-21_v14</strong> — detailed breakdown of all questions published in this version.
+  </div>
+  <div class="detail-panel">
+    <h3>Publish Metadata</h3>
+    <table>
+      <tr><td style="color:#6b8099;width:160px">Publish ID</td><td>pub_2026-03-21_v14</td></tr>
+      <tr><td style="color:#6b8099">Published</td><td>2026-03-21 18:42 UTC</td></tr>
+      <tr><td style="color:#6b8099">Approved by</td><td>roswi@wq.io</td></tr>
+      <tr><td style="color:#6b8099">Questions</td><td>142</td></tr>
+      <tr><td style="color:#6b8099">Batches</td><td>animals_p0, subtraction_p1, phonics_blends</td></tr>
+      <tr><td style="color:#6b8099">Status</td><td><span style="color:#58e8c1;font-weight:700">● LIVE</span></td></tr>
+    </table>
+  </div>
+  <div class="detail-panel">
+    <h3>Questions by Skill</h3>
+    <table>
+      <thead><tr><th>Skill</th><th>Band</th><th>Q Count</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Animals / Living Things</td><td>P0–P2</td><td>24</td><td><span style="color:#58e8c1">Published</span></td></tr>
+        <tr><td>Subtraction Intro</td><td>P0–P2</td><td>23</td><td><span style="color:#58e8c1">Published</span></td></tr>
+        <tr><td>Phonics Blends</td><td>P0–P3</td><td>32</td><td><span style="color:#58e8c1">Published</span></td></tr>
+        <tr><td>Compare Numbers</td><td>P0–P3</td><td>28</td><td><span style="color:#58e8c1">Published</span></td></tr>
+        <tr><td>Sight Words</td><td>P0–P2</td><td>18</td><td><span style="color:#58e8c1">Published</span></td></tr>
+        <tr><td>Addition</td><td>P0–P3</td><td>17</td><td><span style="color:#58e8c1">Published</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ROLLBACK FLOW -->
+<div id="rollback" class="pane">
+  <div class="hint-box">
+    <strong>Rollback replaces the live content set with a prior version.</strong> All learner sessions will immediately receive the rolled-back question set. This action is logged and reversible.
+  </div>
+  <div class="flow-step"><div class="step-num">1</div><div class="step-info"><h4>Select the version to restore</h4><p>Choose from the Publish History tab. Only the 2 most recent prior versions are eligible for rollback.</p></div></div>
+  <div class="flow-step"><div class="step-num">2</div><div class="step-info"><h4>Review the impact</h4><p>The modal shows how many questions will be added/removed and which skills are affected.</p></div></div>
+  <div class="flow-step"><div class="step-num">3</div><div class="step-info"><h4>Confirm rollback</h4><p>Type the publish ID to confirm. The rollback takes effect within 30 seconds for all active sessions.</p></div></div>
+  <div class="flow-step"><div class="step-num">4</div><div class="step-info"><h4>Monitor Access Log</h4><p>Check the Access Log tab to confirm rollback was applied and no errors occurred.</p></div></div>
+  <div style="margin-top:20px">
+    <button class="rollback-btn" style="font-size:14px;padding:12px 28px" onclick="openRollback('pub_2026-03-19_v13')">↺ Initiate Rollback to v13</button>
+  </div>
+</div>
+
+<!-- ACCESS LOG -->
+<div id="access-log" class="pane">
+  <div class="hint-box">
+    <strong>Access log</strong> tracks all publish and rollback actions. Entries are immutable.
+  </div>
+  <table class="access-log-table">
+    <thead><tr><th>Timestamp</th><th>Action</th><th>Actor</th><th>Publish ID</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>2026-03-21 18:42</td><td style="color:#58e8c1;font-weight:600">PUBLISH</td><td>roswi@wq.io</td><td>pub_2026-03-21_v14</td><td>142 Q published</td></tr>
+      <tr><td>2026-03-21 18:41</td><td style="color:#58c8f0;font-weight:600">APPROVE</td><td>roswi@wq.io</td><td>batch_animals_p0</td><td>22 Q approved</td></tr>
+      <tr><td>2026-03-19 14:15</td><td style="color:#58e8c1;font-weight:600">PUBLISH</td><td>roswi@wq.io</td><td>pub_2026-03-19_v13</td><td>118 Q published</td></tr>
+      <tr><td>2026-03-17 10:08</td><td style="color:#58e8c1;font-weight:600">PUBLISH</td><td>content@wq.io</td><td>pub_2026-03-17_v12</td><td>94 Q published</td></tr>
+      <tr><td>2026-03-15 09:02</td><td style="color:#ff7b6b;font-weight:600">ROLLBACK</td><td>roswi@wq.io</td><td>pub_2026-03-14_v11</td><td>Rolled back → v10; reason: hard block found</td></tr>
+      <tr><td>2026-03-14 09:30</td><td style="color:#58e8c1;font-weight:600">PUBLISH</td><td>roswi@wq.io</td><td>pub_2026-03-14_v11</td><td>87 Q published</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="pane">
+  <div class="hint-box"><strong>Publish History spec.</strong> Chronological publish log with rollback capability.</div>
+  <div class="spec-section">
+    <h3>Rollback Eligibility</h3>
+    <ul>
+      <li>Only the 2 most recent prior versions may be rolled back</li>
+      <li>Older versions are archived and not eligible</li>
+      <li>Rollback requires typing the publish ID to confirm</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Statuses</h3>
+    <ul>
+      <li>LIVE — current active content set</li>
+      <li>PREVIOUS — eligible for rollback</li>
+      <li>ROLLED BACK — was previously active, then replaced</li>
+      <li>ARCHIVED — too old for rollback</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Access Log</h3>
+    <p>Every publish, approve, and rollback action is logged with timestamp, actor, and publish ID. Entries are immutable.</p>
+  </div>
+</div>
+
+<!-- ROLLBACK MODAL -->
+<div id="rollback-modal" class="modal-backdrop">
+  <div class="modal">
+    <h3>↺ Confirm Rollback</h3>
+    <p>You are about to roll back the live content to <strong id="rollback-target">pub_2026-03-19_v13</strong>.<br><br>This will remove 24 questions (Animals/Living Things P0) from the live set and restore the prior 118-question set. Active learner sessions will be updated within 30 seconds.</p>
+    <p style="color:#ff7b6b;font-size:12px;margin-bottom:12px">⚠ This action is logged and cannot be undone without another publish.</p>
+    <input id="rollback-confirm-input" type="text" placeholder="Type publish ID to confirm..." style="width:100%;background:#0a0f16;border:1px solid #2a3a4e;border-radius:6px;padding:10px 12px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none;margin-bottom:16px">
+    <div>
+      <button class="confirm-btn" onclick="alert('Rollback initiated!');closeRollback()">Confirm Rollback</button>
+      <button class="cancel-btn" onclick="closeRollback()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['history','pub-detail','rollback','access-log','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+function openRollback(pubId){
+  document.getElementById('rollback-target').textContent=pubId;
+  document.getElementById('rollback-modal').classList.add('open');
+}
+function closeRollback(){
+  document.getElementById('rollback-modal').classList.remove('open');
+}
+document.getElementById('rollback-modal').addEventListener('click',function(e){if(e.target===this)closeRollback();});
+</script>
+</body>
+</html>

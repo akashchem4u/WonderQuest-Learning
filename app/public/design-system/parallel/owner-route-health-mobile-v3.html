@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Route Health Mobile — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone */
+.phone{width:375px;border-radius:36px;border:6px solid #0d1117;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.4);background:#0d1117;display:flex;flex-direction:column}
+.notch{width:110px;height:26px;background:#0d1117;border-radius:0 0 16px 16px;margin:0 auto;flex-shrink:0;border:1px solid #1c2128}
+.mob-hdr{background:#010409;padding:0 14px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.mh-back{color:rgba(255,255,255,.4);font-size:16px}
+.mh-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.mh-recheck{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Incident banner — non-dismissible on P0 */
+.inc-banner{background:rgba(248,81,73,.12);border-bottom:2px solid rgba(248,81,73,.35);padding:8px 12px;flex-shrink:0}
+.ib-text{font-size:10px;font-weight:700;color:#f85149;line-height:1.4}
+
+/* Status strip */
+.status-strip{display:flex;gap:1px;background:rgba(255,255,255,.06);flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ss-cell{flex:1;background:#0d1117;padding:8px 10px;text-align:center}
+.ssc-n{font-size:15px;font-weight:900;color:#f0f6ff}
+.ssc-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.25);margin-top:1px}
+
+/* Content */
+.mob-content{background:#0d1117;padding:10px 12px;overflow-y:auto}
+
+/* Route rows */
+.route-card{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:7px;border:1px solid rgba(255,255,255,.05)}
+.route-card.down{border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.05)}
+.route-card.warn{border-color:rgba(245,158,11,.2)}
+.rc-top{display:flex;align-items:center;gap:8px}
+.rc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rc-name{font-size:12px;font-weight:700;color:#f0f6ff;flex:1}
+.rc-status{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px}
+.rcs-ok{background:rgba(80,232,144,.12);color:#50e890}
+.rcs-down{background:rgba(248,81,73,.15);color:#f85149}
+.rcs-warn{background:rgba(245,158,11,.12);color:#f59e0b}
+.rc-path{font-size:9px;color:rgba(255,255,255,.25);margin-top:3px;margin-left:16px}
+.rc-metrics{display:flex;gap:8px;margin-top:6px;margin-left:16px}
+.rcm-item{display:flex;flex-direction:column;gap:1px}
+.rcm-n{font-size:10px;font-weight:700;color:rgba(255,255,255,.6)}
+.rcm-n.over{color:#f85149}
+.rcm-n.warn{color:#f59e0b}
+.rcm-l{font-size:8px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.04em}
+
+/* Expand detail */
+.rc-detail{background:rgba(248,81,73,.05);border-radius:0 0 7px 7px;padding:8px 10px;margin:6px -12px -10px;font-size:10px;color:#f85149;line-height:1.5;border-top:1px solid rgba(248,81,73,.15)}
+
+/* Incident log */
+.mob-incident{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:7px;border:1px solid rgba(255,255,255,.05)}
+.mi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:8px}
+.mi-row{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.mi-row:last-child{border-bottom:none}
+.mir-sev{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;flex-shrink:0;margin-top:1px}
+.ms-p0{background:rgba(248,81,73,.2);color:#f85149}
+.ms-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.mir-body{flex:1}
+.mir-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.65)}
+.mir-meta{font-size:9px;color:rgba(255,255,255,.3);margin-top:1px}
+
+/* Bottom tabs */
+.mob-tabs{background:#010409;height:54px;display:flex;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05)}
+.mt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.mt.active .mt-icon,.mt.active .mt-label{color:#50e890}
+.mt-icon{font-size:17px;color:rgba(255,255,255,.3)}
+.mt-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.04em}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-route-health-mobile-v3.html</strong><br>
+  Mobile version of route health monitoring. Same 10 routes as desktop — compressed to route cards.<br>
+  <strong>Layout:</strong> Status strip (healthy/down counts) → route cards (status dot + name + p95/uptime chips) → incident log card → bottom nav.<br>
+  <strong>P0 incident:</strong> Non-dismissible red banner above status strip. Routes tab icon turns red in bottom nav.<br>
+  <strong>Refresh:</strong> "Re-check" in header. Normal: 60s. Incident active: 10s (shown as blinking indicator in header).<br>
+  <strong>Route expand:</strong> Tapping a down/degraded route card expands to show error detail + resolution steps inline.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('healthy')">All Healthy</button>
+  <button class="tab-btn" onclick="showTab('incident')">P0 Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── All Healthy ─────────────────────────────────────────── -->
+<div id="tab-healthy" class="screen active">
+  <p class="section-title">Route health mobile — all healthy</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">←</div>
+      <div class="mh-title">📡 Route Health</div>
+      <div class="mh-recheck">Re-check</div>
+    </div>
+    <div class="status-strip">
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">10</div><div class="ssc-l">Healthy</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:rgba(255,255,255,.25)">0</div><div class="ssc-l">Degraded</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:rgba(255,255,255,.25)">0</div><div class="ssc-l">Down</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">99.8%</div><div class="ssc-l">30d Up</div></div>
+    </div>
+    <div class="mob-content">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin-bottom:6px">All Routes</div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Play Session</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-path">/play/session</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">142ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">188ms</div><div class="rcm-l">p99</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.9%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Adaptive Engine</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-path">/api/adaptive/next</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">178ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">230ms</div><div class="rcm-l">p99</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.8%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Assignment Engine</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-path">/api/assignments</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">165ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">210ms</div><div class="rcm-l">p99</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.9%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Auth / SSO</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-path">/auth/sso</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">110ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">160ms</div><div class="rcm-l">p99</div></div>
+          <div class="rcm-item"><div class="rcm-n warn">99.7%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Teacher Dashboard</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-path">/teacher/dashboard</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">98ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">145ms</div><div class="rcm-l">p99</div></div>
+          <div class="rcm-item"><div class="rcm-n">100%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card warn">
+        <div class="rc-top"><div class="rc-dot" style="background:#f59e0b"></div><div class="rc-name">Reports / Export</div><span class="rc-status rcs-warn">Slow</span></div>
+        <div class="rc-path">/api/reports</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n warn">310ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">420ms</div><div class="rcm-l">p99</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.8%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="mob-incident">
+        <div class="mi-label">Incident Log — Last 30 days</div>
+        <div class="mi-row">
+          <span class="mir-sev ms-p0">P0</span>
+          <div class="mir-body"><div class="mir-title">SSO token expiry</div><div class="mir-meta">Auth · 3h 18m · Resolved · Mar 24</div></div>
+        </div>
+        <div class="mi-row">
+          <span class="mir-sev ms-p0">P0</span>
+          <div class="mir-body"><div class="mir-title">Assignment queue failure</div><div class="mir-meta">Assignment · 5h 45m · Resolved · Mar 17</div></div>
+        </div>
+        <div class="mi-row">
+          <span class="mir-sev ms-p1">P1</span>
+          <div class="mir-body"><div class="mir-title">Mastery score lag spike</div><div class="mir-meta">Mastery · 22h · Resolved · Mar 10</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt active"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── P0 Incident ─────────────────────────────────────────── -->
+<div id="tab-incident" class="screen">
+  <p class="section-title">Route health mobile — P0 incident active</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">←</div>
+      <div class="mh-title" style="color:#f85149">📡 Route Health</div>
+      <div class="mh-recheck" style="color:#f85149">10s ●</div>
+    </div>
+    <div class="inc-banner">
+      <div class="ib-text">🚨 P0 INCIDENT: Assignment Engine down · 8–12 schools affected · On-call active</div>
+    </div>
+    <div class="status-strip">
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">9</div><div class="ssc-l">Healthy</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:rgba(255,255,255,.25)">0</div><div class="ssc-l">Degraded</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#f85149">1</div><div class="ssc-l">Down</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#f59e0b">98.9%</div><div class="ssc-l">Current</div></div>
+    </div>
+    <div class="mob-content">
+
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#f85149;margin-bottom:6px">Incident — Down</div>
+
+      <div class="route-card down">
+        <div class="rc-top"><div class="rc-dot" style="background:#f85149"></div><div class="rc-name">Assignment Engine</div><span class="rc-status rcs-down">DOWN</span></div>
+        <div class="rc-path">/api/assignments</div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n over">—</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n over">12.4%</div><div class="rcm-l">Error rate</div></div>
+          <div class="rcm-item"><div class="rcm-n warn">98.1%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+        <div class="rc-detail">
+          Queue processor silent-failing. Redis backlog: 2,400 unprocessed tasks. PD-4412 open · On-call team investigating.
+        </div>
+      </div>
+
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin:10px 0 6px">Healthy Routes</div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Play Session</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">142ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.9%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Adaptive Engine</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">178ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.8%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Auth / SSO</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">110ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">99.7%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="rc-top"><div class="rc-dot" style="background:#50e890"></div><div class="rc-name">Teacher Dashboard</div><span class="rc-status rcs-ok">OK</span></div>
+        <div class="rc-metrics">
+          <div class="rcm-item"><div class="rcm-n">98ms</div><div class="rcm-l">p95</div></div>
+          <div class="rcm-item"><div class="rcm-n">100%</div><div class="rcm-l">Uptime</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt active" style="color:#f85149"><div class="mt-icon" style="color:#f85149">📡</div><div class="mt-label" style="color:#f85149">Routes</div></div>
+      <div class="mt"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ──────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-route-health-mobile-v3.html<br>
+      <strong>Mobile route health monitoring.</strong> Same 10 routes as desktop — card layout. P0 banner non-dismissible. Routes tab icon turns red on incident.
+    </div>
+    <h2 class="spec-h2">Layout Differences from Desktop</h2>
+    <p class="spec-p">Desktop: full table with latency small multiples + sidebar. Mobile: route cards with dot/name/p95/uptime. Latency sparklines omitted on mobile. Sidebar meta collapsed into bottom incident log card. Expand on tap shows inline detail for down/degraded routes.</p>
+    <h2 class="spec-h2">P0 Non-Dismissible Banner</h2>
+    <p class="spec-p">The incident banner at top is rendered above the status strip and cannot be dismissed by the user. It clears automatically when the incident is resolved (route returns to healthy + PagerDuty closed). Also appears on owner home mobile screen.</p>
+    <h2 class="spec-h2">Routes Tab Indicator</h2>
+    <p class="spec-p">During active P0: Routes tab icon in bottom nav turns red (#f85149). During P1: amber (#f59e0b). This matches the convention used on owner home mobile where the Routes tile shows degraded state.</p>
+    <h2 class="spec-h2">Refresh Indicator</h2>
+    <p class="spec-p">Normal: "Re-check" button in header. During incident: header shows "10s ●" with blinking green dot (CSS animation) indicating auto-refresh every 10s. This replaces the "Re-check" text to indicate the system is already polling aggressively.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

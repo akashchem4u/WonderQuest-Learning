@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owner Feedback Routing Board — WonderQuest #283</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --accent: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --muted: #8b949e;
+      --p0: #ffd166;
+      --p1: #9b72ff;
+      --p2: #58e8c1;
+      --p3: #ff7b6b;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .eng-hint {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      color: #333;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .eng-hint strong { font-weight: 700; }
+
+    /* ── Layout ── */
+    .page-wrapper {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-title .badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--accent);
+      color: #0d1117;
+      border-radius: 4px;
+      padding: 2px 7px;
+      letter-spacing: .04em;
+    }
+    .page-subtitle { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .stat-pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-pill strong { color: var(--text); font-weight: 600; }
+    .stat-pill.highlight strong { color: var(--accent); }
+
+    /* ── Tab Nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      border-radius: 4px 4px 0 0;
+      transition: color .15s, border-color .15s;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── Screen visibility ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Action Row ── */
+    .action-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, background .15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    /* ── Board Columns ── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .board { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 540px) {
+      .board { grid-template-columns: 1fr; }
+    }
+
+    .column {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .column-header {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .column-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .col-engineering .column-title { color: var(--p3); }
+    .col-product .column-title { color: var(--p1); }
+    .col-design .column-title { color: var(--p2); }
+    .col-content .column-title { color: var(--p0); }
+
+    .col-count {
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255,255,255,.07);
+      border-radius: 10px;
+      padding: 2px 8px;
+      color: var(--muted);
+    }
+
+    .column-cards { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Feedback Card ── */
+    .fb-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .fb-card-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 2px 7px;
+      letter-spacing: .03em;
+      white-space: nowrap;
+    }
+    /* Classification chips */
+    .chip-bug { background: rgba(255,123,107,.15); color: var(--p3); border: 1px solid rgba(255,123,107,.3); }
+    .chip-feature { background: rgba(155,114,255,.15); color: var(--p1); border: 1px solid rgba(155,114,255,.3); }
+    .chip-ux { background: rgba(88,232,193,.15); color: var(--p2); border: 1px solid rgba(88,232,193,.3); }
+    .chip-content { background: rgba(255,209,102,.15); color: var(--p0); border: 1px solid rgba(255,209,102,.3); }
+
+    /* Severity chips */
+    .chip-p0 { background: rgba(255,209,102,.15); color: var(--p0); border: 1px solid rgba(255,209,102,.3); }
+    .chip-p1 { background: rgba(155,114,255,.15); color: var(--p1); border: 1px solid rgba(155,114,255,.3); }
+    .chip-p2 { background: rgba(88,232,193,.15); color: var(--p2); border: 1px solid rgba(88,232,193,.3); }
+    .chip-p3 { background: rgba(255,255,255,.07); color: var(--muted); border: 1px solid var(--border); }
+
+    /* Status chips */
+    .chip-routed { background: rgba(155,114,255,.15); color: var(--p1); border: 1px solid rgba(155,114,255,.3); }
+    .chip-inprogress { background: rgba(255,209,102,.15); color: var(--p0); border: 1px solid rgba(255,209,102,.3); }
+    .chip-resolved { background: rgba(80,232,144,.15); color: var(--accent); border: 1px solid rgba(80,232,144,.3); }
+    .chip-new { background: rgba(255,123,107,.12); color: var(--p3); border: 1px solid rgba(255,123,107,.25); }
+
+    .fb-summary {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.45;
+    }
+    .fb-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .fb-source {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .fb-days {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .fb-days strong { color: var(--text); }
+
+    /* ── Resolution Log Table ── */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .filter-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .filter-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 14px;
+      cursor: pointer;
+      min-height: 32px;
+      transition: border-color .15s, color .15s;
+    }
+    .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+    .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(80,232,144,.07); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+    thead tr { background: rgba(255,255,255,.03); }
+    th {
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 11px 14px;
+      font-size: 13px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background .12s; }
+    tbody tr:hover { background: rgba(255,255,255,.025); }
+
+    .team-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .team-engineering { background: rgba(255,123,107,.12); color: var(--p3); border: 1px solid rgba(255,123,107,.25); }
+    .team-product { background: rgba(155,114,255,.12); color: var(--p1); border: 1px solid rgba(155,114,255,.25); }
+    .team-design { background: rgba(88,232,193,.12); color: var(--p2); border: 1px solid rgba(88,232,193,.25); }
+    .team-content { background: rgba(255,209,102,.12); color: var(--p0); border: 1px solid rgba(255,209,102,.25); }
+
+    .source-label { font-size: 12px; color: var(--muted); }
+
+    .days-num {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .days-fast { color: var(--accent); }
+    .days-ok { color: var(--p0); }
+    .days-slow { color: var(--p3); }
+
+    /* Table footer */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 0 0;
+    }
+    .footer-stat {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .footer-stat strong { color: var(--text); font-weight: 600; }
+    .footer-stat .accent { color: var(--accent); font-weight: 700; }
+
+    /* ── Spec Tab ── */
+    .spec-section {
+      margin-bottom: 32px;
+    }
+    .spec-section h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin: 14px 0 8px;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .spec-card .label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .spec-card .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .spec-card .value.mono {
+      font-family: 'Menlo', 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    pre.schema {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Menlo', 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--p2);
+      overflow-x: auto;
+      line-height: 1.7;
+    }
+    pre.schema .kw { color: var(--p1); }
+    pre.schema .type { color: var(--p0); }
+    pre.schema .comment { color: var(--muted); }
+
+    .spec-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 400px;
+    }
+    .spec-table th {
+      background: rgba(255,255,255,.03);
+      padding: 9px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-table td {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .spec-table tr:last-child td { border-bottom: none; }
+
+    .rule-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .rule-list li {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .rule-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 22px;
+      padding-top: 1px;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .privacy-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .privacy-card .persona {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .privacy-card .rule {
+      font-size: 13px;
+      color: var(--text);
+    }
+    .privacy-card.child-card { border-left: 3px solid var(--p3); }
+    .privacy-card.parent-card { border-left: 3px solid var(--p0); }
+    .privacy-card.teacher-card { border-left: 3px solid var(--p2); }
+
+    /* ── hidden log rows ── */
+    .log-row { }
+    .log-row.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- Engineering Hint Box -->
+    <div class="eng-hint">
+      <strong>Engineering hint</strong> — owner-feedback-routing-board-v2 | Persona: Owner | Route: /owner/feedback/routing | DB: <code>feedback_items { id, source, raw_text, classification, severity, status ENUM('new','classified','routed','in_progress','resolved'), routed_to ENUM('engineering','product','design','content'), classified_at, routed_at, resolved_at }</code> | Privacy: Parent=cohort label only; Teacher=school name (B2B); child never identified | Routing: Bug→Engineering, Feature/UX→Product/Design, Content→Content
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">
+          Owner Feedback Routing Board
+          <span class="badge">#283</span>
+        </div>
+        <div class="page-subtitle">Classified feedback items routed to the correct team with status tracking</div>
+      </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-pill highlight"><strong>9</strong> routed today</div>
+      <div class="stat-pill"><strong>6 days</strong> avg resolution</div>
+      <div class="stat-pill"><strong>0</strong> unrouted items</div>
+      <div class="stat-pill"><strong>3</strong> in progress</div>
+      <div class="stat-pill"><strong>12</strong> resolved this week</div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist" aria-label="Feedback routing sections">
+      <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="screen-board" onclick="showTab('board')">Routing Board</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="screen-log" onclick="showTab('log')">Resolution Log</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="screen-spec" onclick="showTab('spec')">Spec</button>
+    </nav>
+
+    <!-- ══════════════════════════════════════════
+         TAB 1 — Routing Board
+    ══════════════════════════════════════════ -->
+    <div id="screen-board" class="screen active" role="tabpanel" aria-labelledby="tab-board">
+
+      <div class="action-row">
+        <button class="btn btn-primary" disabled aria-disabled="true">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Route All Unrouted
+        </button>
+      </div>
+
+      <div class="board">
+
+        <!-- Engineering Column -->
+        <div class="column col-engineering">
+          <div class="column-header">
+            <span class="column-title">Engineering</span>
+            <span class="col-count">3</span>
+          </div>
+          <div class="column-cards">
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-bug">Bug</span>
+                <span class="chip chip-p0">P0</span>
+                <span class="chip chip-inprogress">In Progress</span>
+              </div>
+              <div class="fb-summary">Quest audio stops playing after the first activity on Android 14 devices — reproducible every session.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort A-12
+                </span>
+                <span class="fb-days"><strong>4</strong> days open</span>
+              </div>
+            </div>
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-bug">Bug</span>
+                <span class="chip chip-p1">P1</span>
+                <span class="chip chip-routed">Routed</span>
+              </div>
+              <div class="fb-summary">Progress badges not saving when the app is backgrounded mid-activity. Data loss reported by multiple families.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort B-7
+                </span>
+                <span class="fb-days"><strong>2</strong> days open</span>
+              </div>
+            </div>
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-bug">Bug</span>
+                <span class="chip chip-p2">P2</span>
+                <span class="chip chip-resolved">Resolved</span>
+              </div>
+              <div class="fb-summary">Login screen spinner persists indefinitely on low-bandwidth connections instead of showing an error state.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort C-3
+                </span>
+                <span class="fb-days"><strong>6</strong> days open</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Product Column -->
+        <div class="column col-product">
+          <div class="column-header">
+            <span class="column-title">Product</span>
+            <span class="col-count">3</span>
+          </div>
+          <div class="column-cards">
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-feature">Feature</span>
+                <span class="chip chip-p1">P1</span>
+                <span class="chip chip-inprogress">In Progress</span>
+              </div>
+              <div class="fb-summary">Parents want a weekly digest email summarising their child's quest completions and earned badges.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort D-1
+                </span>
+                <span class="fb-days"><strong>8</strong> days open</span>
+              </div>
+            </div>
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-feature">Feature</span>
+                <span class="chip chip-p2">P2</span>
+                <span class="chip chip-routed">Routed</span>
+              </div>
+              <div class="fb-summary">Teachers request bulk assignment of quests to an entire classroom at once rather than per-student selection.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Sunrise Academy
+                </span>
+                <span class="fb-days"><strong>3</strong> days open</span>
+              </div>
+            </div>
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-feature">Feature</span>
+                <span class="chip chip-p3">P3</span>
+                <span class="chip chip-resolved">Resolved</span>
+              </div>
+              <div class="fb-summary">Request for a leaderboard scoped to a single cohort so children can celebrate shared milestones together.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort A-5
+                </span>
+                <span class="fb-days"><strong>11</strong> days open</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Design Column -->
+        <div class="column col-design">
+          <div class="column-header">
+            <span class="column-title">Design</span>
+            <span class="col-count">2</span>
+          </div>
+          <div class="column-cards">
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-ux">UX</span>
+                <span class="chip chip-p1">P1</span>
+                <span class="chip chip-inprogress">In Progress</span>
+              </div>
+              <div class="fb-summary">Dashboard is overwhelming for new parents — suggest grouping sections under collapsible headings to reduce cognitive load.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort B-9
+                </span>
+                <span class="fb-days"><strong>5</strong> days open</span>
+              </div>
+            </div>
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-ux">UX</span>
+                <span class="chip chip-p2">P2</span>
+                <span class="chip chip-routed">Routed</span>
+              </div>
+              <div class="fb-summary">Tap targets on the activity selection carousel are too small on phones — users frequently mis-tap adjacent items.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort E-2
+                </span>
+                <span class="fb-days"><strong>1</strong> day open</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Content Column -->
+        <div class="column col-content">
+          <div class="column-header">
+            <span class="column-title">Content</span>
+            <span class="col-count">2</span>
+          </div>
+          <div class="column-cards">
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-content">Content</span>
+                <span class="chip chip-p1">P1</span>
+                <span class="chip chip-resolved">Resolved</span>
+              </div>
+              <div class="fb-summary">Quest narration for the "Ocean Explorer" module uses vocabulary above age-5 reading level — needs simplification.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Maple Grove School
+                </span>
+                <span class="fb-days"><strong>7</strong> days open</span>
+              </div>
+            </div>
+
+            <div class="fb-card">
+              <div class="fb-card-top">
+                <span class="chip chip-content">Content</span>
+                <span class="chip chip-p2">P2</span>
+                <span class="chip chip-routed">Routed</span>
+              </div>
+              <div class="fb-summary">Missing Spanish-language track for the "Stars & Space" quest series — several bilingual cohorts have flagged the gap.</div>
+              <div class="fb-meta">
+                <span class="fb-source">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.4"/></svg>
+                  Cohort F-4
+                </span>
+                <span class="fb-days"><strong>9</strong> days open</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB 2 — Resolution Log
+    ══════════════════════════════════════════ -->
+    <div id="screen-log" class="screen" role="tabpanel" aria-labelledby="tab-log">
+
+      <div class="filter-row">
+        <span class="filter-label">Filter:</span>
+        <button class="filter-btn active" onclick="filterLog('all', this)">All Teams</button>
+        <button class="filter-btn" onclick="filterLog('engineering', this)">Engineering</button>
+        <button class="filter-btn" onclick="filterLog('product', this)">Product</button>
+        <button class="filter-btn" onclick="filterLog('design', this)">Design</button>
+        <button class="filter-btn" onclick="filterLog('content', this)">Content</button>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-label="Resolution log">
+          <thead>
+            <tr>
+              <th>Item Summary</th>
+              <th>Team</th>
+              <th>Classified At</th>
+              <th>Resolved At</th>
+              <th>Days</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody">
+
+            <tr class="log-row" data-team="engineering">
+              <td>Quest audio stops on Android 14 mid-session</td>
+              <td><span class="team-badge team-engineering">Engineering</span></td>
+              <td>Mar 18, 2026</td>
+              <td>Mar 21, 2026</td>
+              <td><span class="days-num days-fast">3</span></td>
+              <td><span class="source-label">Cohort A-12</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="product">
+              <td>Cohort leaderboard request for shared milestones</td>
+              <td><span class="team-badge team-product">Product</span></td>
+              <td>Mar 14, 2026</td>
+              <td>Mar 21, 2026</td>
+              <td><span class="days-num days-ok">7</span></td>
+              <td><span class="source-label">Cohort A-5</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="content">
+              <td>Ocean Explorer narration above age-5 reading level</td>
+              <td><span class="team-badge team-content">Content</span></td>
+              <td>Mar 13, 2026</td>
+              <td>Mar 20, 2026</td>
+              <td><span class="days-num days-ok">7</span></td>
+              <td><span class="source-label">Maple Grove School</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="engineering">
+              <td>Login spinner hangs on low-bandwidth connections</td>
+              <td><span class="team-badge team-engineering">Engineering</span></td>
+              <td>Mar 12, 2026</td>
+              <td>Mar 18, 2026</td>
+              <td><span class="days-num days-ok">6</span></td>
+              <td><span class="source-label">Cohort C-3</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="design">
+              <td>Onboarding flow has no back navigation on step 3</td>
+              <td><span class="team-badge team-design">Design</span></td>
+              <td>Mar 11, 2026</td>
+              <td>Mar 15, 2026</td>
+              <td><span class="days-num days-fast">4</span></td>
+              <td><span class="source-label">Cohort D-6</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="product">
+              <td>Notification opt-out preference not persisting across sessions</td>
+              <td><span class="team-badge team-product">Product</span></td>
+              <td>Mar 10, 2026</td>
+              <td>Mar 18, 2026</td>
+              <td><span class="days-num days-ok">8</span></td>
+              <td><span class="source-label">Cohort B-2</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="content">
+              <td>Dinosaur Quest missing age-3 difficulty tier entirely</td>
+              <td><span class="team-badge team-content">Content</span></td>
+              <td>Mar 8, 2026</td>
+              <td>Mar 14, 2026</td>
+              <td><span class="days-num days-fast">6</span></td>
+              <td><span class="source-label">Cohort G-1</span></td>
+            </tr>
+
+            <tr class="log-row" data-team="engineering">
+              <td>Crash on iOS 17.4 when returning from background after 10+ min</td>
+              <td><span class="team-badge team-engineering">Engineering</span></td>
+              <td>Mar 5, 2026</td>
+              <td>Mar 10, 2026</td>
+              <td><span class="days-num days-fast">5</span></td>
+              <td><span class="source-label">Cohort H-8</span></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <span class="footer-stat">Avg resolution time: <strong>5.8 days</strong></span>
+        <span class="footer-stat">Resolved within 7 days: <span class="accent">78%</span> of items</span>
+        <span class="footer-stat" id="log-count">Showing <strong>8</strong> of 8 items</span>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB 3 — Spec
+    ══════════════════════════════════════════ -->
+    <div id="screen-spec" class="screen" role="tabpanel" aria-labelledby="tab-spec">
+
+      <!-- Component Identity -->
+      <div class="spec-section">
+        <h2>Component Identity</h2>
+        <div class="spec-grid">
+          <div class="spec-card">
+            <div class="label">Component</div>
+            <div class="value mono">FeedbackRoutingBoard</div>
+          </div>
+          <div class="spec-card">
+            <div class="label">Design System Item</div>
+            <div class="value">#283</div>
+          </div>
+          <div class="spec-card">
+            <div class="label">Route</div>
+            <div class="value mono">/owner/feedback/routing</div>
+          </div>
+          <div class="spec-card">
+            <div class="label">Auth</div>
+            <div class="value">Owner</div>
+          </div>
+          <div class="spec-card">
+            <div class="label">Version</div>
+            <div class="value">v2</div>
+          </div>
+          <div class="spec-card">
+            <div class="label">Accessibility</div>
+            <div class="value">WCAG 2.1 AA</div>
+          </div>
+        </div>
+
+        <h3>Props</h3>
+        <div class="spec-table-wrap">
+          <table class="spec-table" aria-label="Component props">
+            <thead>
+              <tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>initialTab</code></td><td>string</td><td>'board'</td><td>Which tab to show on mount ('board' | 'log' | 'spec')</td></tr>
+              <tr><td><code>teamFilter</code></td><td>string[]</td><td>all teams</td><td>Restricts board columns shown to listed teams</td></tr>
+              <tr><td><code>dateRange</code></td><td>DateRange</td><td>last 30 days</td><td>Filter window for the resolution log</td></tr>
+              <tr><td><code>onRoute</code></td><td>function</td><td>—</td><td>Callback fired when "Route All Unrouted" is triggered</td></tr>
+              <tr><td><code>readOnly</code></td><td>boolean</td><td>false</td><td>Hides action buttons; useful for embedded views</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DB Schema -->
+      <div class="spec-section">
+        <h2>Database Schema</h2>
+        <pre class="schema"><span class="kw">TABLE</span> feedback_items (
+  id             <span class="type">UUID</span>           <span class="comment">-- primary key</span>
+  source         <span class="type">VARCHAR(128)</span>   <span class="comment">-- cohort label or school name</span>
+  raw_text       <span class="type">TEXT</span>           <span class="comment">-- original feedback string</span>
+  classification <span class="type">VARCHAR(32)</span>    <span class="comment">-- 'bug' | 'feature' | 'ux' | 'content'</span>
+  severity       <span class="type">VARCHAR(4)</span>     <span class="comment">-- 'p0' | 'p1' | 'p2' | 'p3'</span>
+  status         <span class="type">ENUM</span>(
+                   'new',
+                   'classified',
+                   'routed',
+                   'in_progress',
+                   'resolved'
+                 )
+  routed_to      <span class="type">ENUM</span>(
+                   'engineering',
+                   'product',
+                   'design',
+                   'content'
+                 )
+  classified_at  <span class="type">TIMESTAMPTZ</span>
+  routed_at      <span class="type">TIMESTAMPTZ</span>
+  resolved_at    <span class="type">TIMESTAMPTZ</span>
+);</pre>
+      </div>
+
+      <!-- Routing Matrix -->
+      <div class="spec-section">
+        <h2>Routing Matrix</h2>
+        <div class="spec-table-wrap">
+          <table class="spec-table" aria-label="Classification to team routing matrix">
+            <thead>
+              <tr><th>Classification</th><th>Routed To</th><th>Typical Severity</th><th>SLA Target</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="chip chip-bug" style="font-size:12px;">Bug</span></td>
+                <td><span class="team-badge team-engineering">Engineering</span></td>
+                <td>P0 – P2</td>
+                <td>P0: 24 h · P1: 3 days · P2: 7 days</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-feature" style="font-size:12px;">Feature</span></td>
+                <td><span class="team-badge team-product">Product</span></td>
+                <td>P1 – P3</td>
+                <td>Backlog triage within 5 days</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-ux" style="font-size:12px;">UX</span></td>
+                <td><span class="team-badge team-design">Design</span></td>
+                <td>P1 – P2</td>
+                <td>Design review within 7 days</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-content" style="font-size:12px;">Content</span></td>
+                <td><span class="team-badge team-content">Content</span></td>
+                <td>P1 – P3</td>
+                <td>Editorial review within 10 days</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Privacy Rules -->
+      <div class="spec-section">
+        <h2>Privacy Rules</h2>
+        <div class="privacy-grid">
+          <div class="privacy-card child-card">
+            <div class="persona">Child</div>
+            <div class="rule">Never identified in feedback records. No name, avatar, or learner ID is stored or surfaced in routing views.</div>
+          </div>
+          <div class="privacy-card parent-card">
+            <div class="persona">Parent</div>
+            <div class="rule">Identified by cohort label only (e.g. "Cohort A-12"). No personally identifiable information is retained.</div>
+          </div>
+          <div class="privacy-card teacher-card">
+            <div class="persona">Teacher (B2B)</div>
+            <div class="rule">Identified by school name under the B2B data-sharing agreement. Individual teacher names are not stored.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Business Rules -->
+      <div class="spec-section">
+        <h2>Business Rules</h2>
+        <ul class="rule-list" aria-label="Business rules">
+          <li>
+            <span class="rule-num">BR-1</span>
+            <span>Every feedback item must be classified before routing. Items with <code>status = 'new'</code> are never directly assigned to a team; the classifier pipeline must run first.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR-2</span>
+            <span>A P0 bug automatically triggers an on-call alert to Engineering within 5 minutes of classification. No manual routing step is required for P0 items.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR-3</span>
+            <span>The "Route All Unrouted" action is disabled (greyed out) when zero items have <code>status = 'classified'</code>. This prevents accidental no-op submissions.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR-4</span>
+            <span>Resolution log rows are retained for 90 days then archived to cold storage. The board UI only queries the active 90-day window.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR-5</span>
+            <span>Routing decisions are immutable once set. Re-routing requires an explicit override action that is logged with the acting owner's ID and a mandatory reason field.</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+    <!-- end spec tab -->
+
+  </div><!-- end page-wrapper -->
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach(function(btn, i) {
+        var tabs = ['board', 'log', 'spec'];
+        btn.classList.toggle('active', tabs[i] === t);
+        btn.setAttribute('aria-selected', tabs[i] === t ? 'true' : 'false');
+      });
+      document.querySelectorAll('.screen').forEach(function(s) {
+        s.classList.toggle('active', s.id === 'screen-' + t);
+      });
+    }
+
+    function filterLog(team, btn) {
+      // Update active filter button
+      document.querySelectorAll('.filter-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      var rows = document.querySelectorAll('.log-row');
+      var visible = 0;
+      rows.forEach(function(row) {
+        var match = team === 'all' || row.getAttribute('data-team') === team;
+        row.classList.toggle('hidden', !match);
+        if (match) visible++;
+      });
+
+      var countEl = document.getElementById('log-count');
+      countEl.innerHTML = 'Showing <strong>' + visible + '</strong> of ' + rows.length + ' items';
+    }
+  </script>
+</body>
+</html>

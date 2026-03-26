@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Content Skill Coverage Map v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #070c12; font-family: 'Sora', sans-serif; min-height: 100vh; padding: 20px; }
+.hint-box { background: #fffbe6; border: 2px solid #f0c030; border-radius: 10px; padding: 14px 18px; max-width: 1100px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 1100px; margin-left: auto; margin-right: auto; }
+.tab-btn { background: #10161e; color: #58c8f0; border: 1.5px solid #1e3040; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #58c8f0; color: #0a0f18; border-color: #58c8f0; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Desktop frame */
+.desktop-frame { max-width: 1100px; margin: 0 auto; background: #10161e; border-radius: 16px; border: 2px solid #1e3040; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,.6); min-height: 600px; }
+
+/* Top nav */
+.top-nav { background: #080e16; padding: 0 24px; display: flex; align-items: center; height: 50px; border-bottom: 1px solid #1e3040; }
+.nav-brand { color: #58c8f0; font-size: 14px; font-weight: 700; margin-right: 24px; display: flex; align-items: center; gap: 8px; }
+.nav-dot { width: 8px; height: 8px; background: #58c8f0; border-radius: 50%; }
+.nav-item { color: #6080a0; font-size: 12px; padding: 0 14px; height: 100%; display: flex; align-items: center; cursor: pointer; border-bottom: 2px solid transparent; }
+.nav-item.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.role-chip { background: #1e3040; border-radius: 14px; padding: 4px 12px; font-size: 11px; color: #58c8f0; }
+
+/* Page header */
+.page-header { background: #0d1420; padding: 14px 24px; border-bottom: 1px solid #1e3040; display: flex; align-items: center; gap: 16px; }
+.page-title { font-size: 15px; font-weight: 700; color: #d0e8f8; flex: 1; }
+.legend { display: flex; gap: 14px; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6080a0; }
+.legend-box { width: 14px; height: 14px; border-radius: 4px; }
+.lb-ok { background: #1a5030; border: 1px solid #50c880; }
+.lb-warn { background: #2a2000; border: 1px solid #f0c030; }
+.lb-crit { background: #2a0808; border: 1px solid #ff6060; }
+.lb-empty { background: #131c28; border: 1px solid #1e3040; }
+
+/* Band filter chips */
+.band-filter { display: flex; gap: 8px; padding: 12px 24px; border-bottom: 1px solid #1e3040; flex-wrap: wrap; }
+.band-chip { border: 1.5px solid; border-radius: 16px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.band-chip.active-chip { opacity: 1; }
+.band-chip:not(.active-chip) { opacity: .5; }
+.chip-p0 { background: #2a2000; border-color: #ffd166; color: #ffd166; }
+.chip-p1 { background: #1a0e30; border-color: #9b72ff; color: #9b72ff; }
+.chip-p2 { background: #0e2a22; border-color: #58e8c1; color: #58e8c1; }
+.chip-p3 { background: #2a1010; border-color: #ff7b6b; color: #ff7b6b; }
+
+/* Coverage heatmap */
+.heatmap-wrap { padding: 20px 24px; overflow-x: auto; }
+.heatmap-grid { display: grid; min-width: 700px; }
+.heatmap-header-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.heatmap-skill-label { width: 160px; flex-shrink: 0; font-size: 11px; font-weight: 700; color: #6080a0; text-transform: uppercase; letter-spacing: .4px; }
+.node-headers { display: flex; gap: 6px; flex: 1; }
+.node-col-header { flex: 1; text-align: center; font-size: 10px; color: #6080a0; font-weight: 700; min-width: 52px; }
+.heatmap-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.skill-row-label { width: 160px; flex-shrink: 0; }
+.skill-name { font-size: 12px; font-weight: 600; color: #d0e8f8; }
+.skill-band { font-size: 10px; margin-top: 2px; }
+.band-p0-label { color: #ffd166; }
+.band-p1-label { color: #9b72ff; }
+.band-p2-label { color: #58e8c1; }
+.band-p3-label { color: #ff7b6b; }
+.node-cells { display: flex; gap: 6px; flex: 1; }
+.cell { flex: 1; min-width: 52px; border-radius: 8px; padding: 7px 4px; text-align: center; cursor: pointer; transition: transform .15s; border: 1px solid transparent; }
+.cell:hover { transform: scale(1.05); }
+.cell-ok { background: #1a5030; border-color: #2a7050; }
+.cell-warn { background: #2a2000; border-color: #5a4000; }
+.cell-crit { background: #2a0808; border-color: #6a1010; animation: cell-pulse .8s ease-in-out infinite; }
+@keyframes cell-pulse { 0%,100% { border-color: #6a1010; } 50% { border-color: #ff6060; } }
+.cell-empty { background: #131c28; border-color: #1e3040; }
+.cell-num { font-size: 13px; font-weight: 700; }
+.cell-num-ok { color: #80e0a0; }
+.cell-num-warn { color: #f0c030; }
+.cell-num-crit { color: #ff8080; }
+.cell-num-empty { color: #3a4a5a; }
+.cell-sub { font-size: 8px; color: #6080a0; margin-top: 2px; }
+
+/* Skill details panel */
+.detail-panel { background: #0d1420; border-top: 1px solid #1e3040; padding: 16px 24px; display: flex; gap: 16px; flex-wrap: wrap; }
+.dp-kpi { background: #131c28; border-radius: 10px; padding: 10px 16px; text-align: center; min-width: 80px; }
+.dp-kpi .d-val { font-size: 18px; font-weight: 700; }
+.dp-kpi .d-lbl { font-size: 10px; color: #6080a0; margin-top: 2px; }
+
+/* Drill-down band view */
+.band-drill { padding: 20px 24px; }
+.band-hero { background: #0d1420; border-radius: 14px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; border: 1px solid #1e3040; }
+.band-icon { font-size: 32px; }
+.band-info { flex: 1; }
+.band-name { font-size: 16px; font-weight: 700; color: #d0e8f8; }
+.band-stats { font-size: 12px; color: #6080a0; margin-top: 4px; }
+.band-score-bar { height: 8px; background: #1e3040; border-radius: 5px; overflow: hidden; margin-top: 8px; }
+.band-score-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #58c8f0, #50c880); }
+.skill-coverage-table { width: 100%; border-collapse: collapse; }
+.skill-coverage-table th { background: #0d1420; font-size: 11px; font-weight: 700; color: #6080a0; padding: 9px 12px; text-align: left; border-bottom: 1px solid #1e3040; }
+.skill-coverage-table td { padding: 10px 12px; font-size: 12px; color: #a0c0d8; border-bottom: 1px solid #131c28; vertical-align: middle; }
+.skill-coverage-table tr:hover td { background: #131c28; }
+.node-coverage-row { display: flex; gap: 4px; }
+.node-pill { border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 700; }
+.pill-ok { background: #1a5030; color: #80e0a0; }
+.pill-warn { background: #2a2000; color: #f0c030; }
+.pill-crit { background: #2a0808; color: #ff8080; }
+.add-content-btn { background: #58c8f0; color: #0a0f18; border: none; border-radius: 10px; padding: 5px 12px; font-size: 11px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; }
+.add-content-btn.warn-btn { background: #f0c030; color: #1a0f00; }
+.add-content-btn.crit-btn { background: #ff6060; color: #fff; }
+
+/* Critical gaps */
+.gaps-header { padding: 16px 24px; border-bottom: 1px solid #1e3040; display: flex; align-items: center; gap: 12px; }
+.gaps-title { font-size: 15px; font-weight: 700; color: #d0e8f8; flex: 1; }
+.gaps-count { font-size: 12px; font-weight: 700; color: #ff8080; }
+.gap-card { background: #131c28; border-radius: 14px; border-left: 4px solid #ff6060; margin: 12px 24px; padding: 14px; }
+.gap-card.warn { border-left-color: #f0c030; }
+.gap-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.gap-sev { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+.gap-crit { background: #2a0808; color: #ff8080; }
+.gap-warn { background: #2a2000; color: #f0c030; }
+.gap-title { font-size: 13px; font-weight: 700; color: #d0e8f8; flex: 1; }
+.gap-meta { font-size: 11px; color: #6080a0; margin-bottom: 8px; }
+.gap-coverage-bar { height: 6px; background: #1e3040; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.gap-cov-fill { height: 100%; border-radius: 4px; }
+.gap-actions { display: flex; gap: 8px; }
+
+/* Spec */
+.spec-wrap { padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.spec-section { margin-bottom: 20px; }
+.spec-title { font-size: 12px; font-weight: 700; color: #58c8f0; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.spec-table th { background: #131c28; color: #58c8f0; padding: 7px 10px; text-align: left; border-bottom: 1px solid #1e3040; }
+.spec-table td { color: #6080a0; padding: 6px 10px; border-bottom: 1px solid #10161e; vertical-align: top; }
+.spec-rule { background: #131c28; border-left: 3px solid #58c8f0; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 6px; font-size: 11px; color: #6080a0; }
+.spec-rule strong { color: #58c8f0; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>🗺️ content-skill-coverage-map-v2.html</strong> — Content density heatmap by band/skill/node. Warn/critical thresholds. Edit entry points.<br>
+  <strong>Tabs:</strong> 1 · Coverage Map (heatmap grid: skill rows × node columns, ok/warn/critical/empty cells, band filter chips, detail panel) &nbsp;|&nbsp; 2 · Band Drill-Down (P2 G2-3 Mint: skill table with node-level coverage pills + add-content buttons) &nbsp;|&nbsp; 3 · Critical Gaps (prioritized list: crit/warn cards with coverage bars, add-content CTAs) &nbsp;|&nbsp; 4 · Add Content Entry (quick-add flow from gap card: skill/node pre-filled, upload or create) &nbsp;|&nbsp; 5 · Spec (coverage thresholds, color system, routes).<br>
+  <strong>Design:</strong> Content-admin surface <code>#10161e</code> bg · Sora · <code>#58c8f0</code> accent · Desktop wide.
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('cov-map')">1 · Coverage Map</button>
+  <button class="tab-btn" onclick="show('cov-band')">2 · Band Drill-Down</button>
+  <button class="tab-btn" onclick="show('cov-gaps')">3 · Critical Gaps</button>
+  <button class="tab-btn" onclick="show('cov-add')">4 · Add Content</button>
+  <button class="tab-btn" onclick="show('cov-spec')">5 · Spec</button>
+</div>
+
+<!-- TAB 1: Coverage Map -->
+<div id="cov-map" class="tab active">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="nav-dot"></div>WonderQuest Admin</div>
+      <div class="nav-item">Questions</div>
+      <div class="nav-item active">Coverage Map</div>
+      <div class="nav-item">Import</div>
+      <div class="nav-right"><div class="role-chip">content_admin</div></div>
+    </div>
+    <div class="page-header">
+      <div class="page-title">Skill Coverage Map — All Bands</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box lb-ok"></div>OK (≥6)</div>
+        <div class="legend-item"><div class="legend-box lb-warn"></div>Warn (4–5)</div>
+        <div class="legend-item"><div class="legend-box lb-crit"></div>Critical (&lt;4)</div>
+        <div class="legend-item"><div class="legend-box lb-empty"></div>No content</div>
+      </div>
+    </div>
+    <div class="band-filter">
+      <div class="band-chip chip-p0 active-chip">P0 Pre-K</div>
+      <div class="band-chip chip-p1 active-chip">P1 K–1</div>
+      <div class="band-chip chip-p2 active-chip">P2 G2–3</div>
+      <div class="band-chip chip-p3 active-chip">P3 G4–5</div>
+      <div style="margin-left:auto; display:flex; gap:8px;">
+        <div style="background:#131c28; border:1px solid #1e3040; border-radius:14px; padding:5px 14px; font-size:11px; color:#6080a0; cursor:pointer;">Filter skill →</div>
+      </div>
+    </div>
+    <div class="heatmap-wrap">
+      <div class="heatmap-header-row">
+        <div class="heatmap-skill-label">Skill</div>
+        <div class="node-headers">
+          <div class="node-col-header">Node 1</div>
+          <div class="node-col-header">Node 2</div>
+          <div class="node-col-header">Node 3</div>
+          <div class="node-col-header">Node 4</div>
+          <div class="node-col-header">Node 5</div>
+        </div>
+      </div>
+      <!-- P0 skills -->
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Phonics · Intro</div>
+          <div class="skill-band band-p0-label">P0 Pre-K</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">9</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">8</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">7</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-warn"><div class="cell-num cell-num-warn">5</div><div class="cell-sub">Warn</div></div>
+          <div class="cell cell-empty"><div class="cell-num cell-num-empty">0</div><div class="cell-sub">Empty</div></div>
+        </div>
+      </div>
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Sight Words · L1</div>
+          <div class="skill-band band-p0-label">P0 Pre-K</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">10</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">9</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">8</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">6</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">7</div><div class="cell-sub">OK</div></div>
+        </div>
+      </div>
+      <!-- P1 skills -->
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Phonics · Blends</div>
+          <div class="skill-band band-p1-label">P1 K–1</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">8</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-warn"><div class="cell-num cell-num-warn">5</div><div class="cell-sub">Warn</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">7</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-crit"><div class="cell-num cell-num-crit">3</div><div class="cell-sub">CRIT</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">6</div><div class="cell-sub">OK</div></div>
+        </div>
+      </div>
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Number Sense</div>
+          <div class="skill-band band-p1-label">P1 K–1</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">9</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">8</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">6</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-warn"><div class="cell-num cell-num-warn">4</div><div class="cell-sub">Warn</div></div>
+          <div class="cell cell-empty"><div class="cell-num cell-num-empty">0</div><div class="cell-sub">Empty</div></div>
+        </div>
+      </div>
+      <!-- P2 skills -->
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Reading Comp.</div>
+          <div class="skill-band band-p2-label">P2 G2–3</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">10</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">9</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">8</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-warn"><div class="cell-num cell-num-warn">5</div><div class="cell-sub">Warn</div></div>
+          <div class="cell cell-crit"><div class="cell-num cell-num-crit">2</div><div class="cell-sub">CRIT</div></div>
+        </div>
+      </div>
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Vocabulary · B</div>
+          <div class="skill-band band-p2-label">P2 G2–3</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">7</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">6</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">8</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">6</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-empty"><div class="cell-num cell-num-empty">0</div><div class="cell-sub">Empty</div></div>
+        </div>
+      </div>
+      <!-- P3 skill -->
+      <div class="heatmap-row">
+        <div class="skill-row-label">
+          <div class="skill-name">Writing · Essays</div>
+          <div class="skill-band band-p3-label">P3 G4–5</div>
+        </div>
+        <div class="node-cells">
+          <div class="cell cell-ok"><div class="cell-num cell-num-ok">6</div><div class="cell-sub">OK</div></div>
+          <div class="cell cell-warn"><div class="cell-num cell-num-warn">4</div><div class="cell-sub">Warn</div></div>
+          <div class="cell cell-empty"><div class="cell-num cell-num-empty">0</div><div class="cell-sub">Empty</div></div>
+          <div class="cell cell-empty"><div class="cell-num cell-num-empty">0</div><div class="cell-sub">Empty</div></div>
+          <div class="cell cell-empty"><div class="cell-num cell-num-empty">0</div><div class="cell-sub">Empty</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div style="font-size:12px; font-weight:700; color:#6080a0; align-self:center; margin-right:4px;">Summary:</div>
+      <div class="dp-kpi"><div class="d-val" style="color:#58c8f0;">32</div><div class="d-lbl">Total nodes</div></div>
+      <div class="dp-kpi"><div class="d-val" style="color:#50c880;">22</div><div class="d-lbl">OK</div></div>
+      <div class="dp-kpi"><div class="d-val" style="color:#f0c030;">6</div><div class="d-lbl">Warnings</div></div>
+      <div class="dp-kpi"><div class="d-val" style="color:#ff6060;">2</div><div class="d-lbl">Critical</div></div>
+      <div class="dp-kpi"><div class="d-val" style="color:#3a4a5a;">4</div><div class="d-lbl">Empty</div></div>
+      <div style="margin-left:auto; display:flex; gap:8px; align-self:center;">
+        <button style="background:#ff6060; color:#fff; border:none; border-radius:12px; padding:7px 16px; font-size:12px; font-family:'Sora',sans-serif; font-weight:700; cursor:pointer;">View 2 Critical →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Band Drill-Down -->
+<div id="cov-band" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="nav-dot"></div>WonderQuest Admin</div>
+      <div class="nav-item active">Coverage Map</div>
+      <div class="nav-right"><div class="role-chip">content_admin</div></div>
+    </div>
+    <div class="band-drill">
+      <div style="display:flex; gap:8px; margin-bottom:16px; align-items:center;">
+        <div class="band-chip chip-p0" style="opacity:.4;">P0 Pre-K</div>
+        <div class="band-chip chip-p1" style="opacity:.4;">P1 K–1</div>
+        <div class="band-chip chip-p2 active-chip">P2 G2–3 (selected)</div>
+        <div class="band-chip chip-p3" style="opacity:.4;">P3 G4–5</div>
+      </div>
+      <div class="band-hero">
+        <div class="band-icon">🌿</div>
+        <div class="band-info">
+          <div class="band-name">P2 G2–3 · Mint Band</div>
+          <div class="band-stats">3 skills · 15 nodes · 8 OK · 4 Warn · 2 Crit · 1 Empty</div>
+          <div class="band-score-bar"><div class="band-score-fill" style="width:67%"></div></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:20px; font-weight:700; color:#58e8c1;">67%</div>
+          <div style="font-size:10px; color:#6080a0;">coverage OK</div>
+        </div>
+      </div>
+      <table class="skill-coverage-table">
+        <thead>
+          <tr>
+            <th>Skill</th>
+            <th>Node 1</th><th>Node 2</th><th>Node 3</th><th>Node 4</th><th>Node 5</th>
+            <th>Overall</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600; color:#d0e8f8;">Reading Comp.</td>
+            <td><span class="node-pill pill-ok">10</span></td>
+            <td><span class="node-pill pill-ok">9</span></td>
+            <td><span class="node-pill pill-ok">8</span></td>
+            <td><span class="node-pill pill-warn">5</span></td>
+            <td><span class="node-pill pill-crit">2</span></td>
+            <td><span style="color:#f0c030; font-size:12px; font-weight:700;">⚠️ 2 issues</span></td>
+            <td><button class="add-content-btn crit-btn">Add to Node 5</button></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600; color:#d0e8f8;">Vocabulary · B</td>
+            <td><span class="node-pill pill-ok">7</span></td>
+            <td><span class="node-pill pill-ok">6</span></td>
+            <td><span class="node-pill pill-ok">8</span></td>
+            <td><span class="node-pill pill-ok">6</span></td>
+            <td style="color:#3a4a5a;">—</td>
+            <td><span style="color:#6080a0; font-size:12px;">Node 5 empty</span></td>
+            <td><button class="add-content-btn">Add Node 5</button></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600; color:#d0e8f8;">Writing · Paragraphs</td>
+            <td><span class="node-pill pill-ok">8</span></td>
+            <td><span class="node-pill pill-ok">7</span></td>
+            <td><span class="node-pill pill-ok">6</span></td>
+            <td><span class="node-pill pill-warn">4</span></td>
+            <td><span class="node-pill pill-warn">5</span></td>
+            <td><span style="color:#f0c030; font-size:12px; font-weight:700;">⚠️ 2 warnings</span></td>
+            <td><button class="add-content-btn warn-btn">Add to N4, N5</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Critical Gaps -->
+<div id="cov-gaps" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="nav-dot"></div>WonderQuest Admin</div>
+      <div class="nav-item active">Coverage Map</div>
+      <div class="nav-right"><div class="role-chip">content_admin</div></div>
+    </div>
+    <div class="gaps-header">
+      <div class="gaps-title">Content Gaps — Prioritized</div>
+      <div class="gaps-count">2 CRITICAL · 6 Warnings</div>
+    </div>
+    <!-- Critical gap 1 -->
+    <div class="gap-card">
+      <div class="gap-header">
+        <span class="gap-sev gap-crit">🔴 CRITICAL</span>
+        <div class="gap-title">Reading Comp. · P2 · Node 5</div>
+      </div>
+      <div class="gap-meta">P2 G2–3 Mint · Reading Comprehension · Node 5 "Advanced Stories"</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="font-size:13px; font-weight:700; color:#ff8080;">2 / 8 questions</div>
+        <div style="flex:1; height:7px; background:#1e3040; border-radius:4px; overflow:hidden;"><div style="width:25%; height:100%; background:#ff6060; border-radius:4px;"></div></div>
+        <div style="font-size:11px; color:#6080a0;">25% coverage</div>
+      </div>
+      <div style="font-size:12px; color:#9090a0; margin-bottom:8px;">Node may run dry mid-session. Students in P2 who reach Node 5 will experience repeat questions. Must add ≥ 4 questions before release.</div>
+      <div class="gap-actions">
+        <button class="add-content-btn crit-btn">+ Add Content for This Node</button>
+        <button style="background:#1e3040; border:1px solid #2a3a50; border-radius:10px; padding:5px 12px; font-size:11px; color:#6080a0; font-family:'Sora',sans-serif; cursor:pointer;">View Skill Tree</button>
+      </div>
+    </div>
+    <!-- Critical gap 2 -->
+    <div class="gap-card">
+      <div class="gap-header">
+        <span class="gap-sev gap-crit">🔴 CRITICAL</span>
+        <div class="gap-title">Phonics Blends · P1 · Node 4</div>
+      </div>
+      <div class="gap-meta">P1 K–1 Violet · Phonics Blends · Node 4 "Complex Clusters"</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="font-size:13px; font-weight:700; color:#ff8080;">3 / 8 questions</div>
+        <div style="flex:1; height:7px; background:#1e3040; border-radius:4px; overflow:hidden;"><div style="width:37.5%; height:100%; background:#ff6060; border-radius:4px;"></div></div>
+        <div style="font-size:11px; color:#6080a0;">37% coverage</div>
+      </div>
+      <div style="font-size:12px; color:#9090a0; margin-bottom:8px;">Active node for 34 students this week. Critical risk of session interruption. Priority: add 3+ questions immediately.</div>
+      <div class="gap-actions">
+        <button class="add-content-btn crit-btn">+ Add Content for This Node</button>
+        <button style="background:#1e3040; border:1px solid #2a3a50; border-radius:10px; padding:5px 12px; font-size:11px; color:#6080a0; font-family:'Sora',sans-serif; cursor:pointer;">Bulk Import</button>
+      </div>
+    </div>
+    <!-- Warning gap -->
+    <div class="gap-card warn">
+      <div class="gap-header">
+        <span class="gap-sev gap-warn">⚠️ Warning</span>
+        <div class="gap-title">Phonics Intro · P0 · Node 4</div>
+      </div>
+      <div class="gap-meta">P0 Pre-K Gold · Phonics Intro · Node 4</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="font-size:13px; font-weight:700; color:#f0c030;">5 / 8 questions</div>
+        <div style="flex:1; height:7px; background:#1e3040; border-radius:4px; overflow:hidden;"><div style="width:62.5%; height:100%; background:#f0c030; border-radius:4px;"></div></div>
+        <div style="font-size:11px; color:#6080a0;">62% coverage</div>
+      </div>
+      <div class="gap-actions">
+        <button class="add-content-btn warn-btn">+ Add Content</button>
+      </div>
+    </div>
+    <div style="padding:10px 24px; font-size:12px; color:#6080a0; text-align:center;">+ 5 more warnings <span style="color:#58c8f0; cursor:pointer;">View all →</span></div>
+  </div>
+</div>
+
+<!-- TAB 4: Add Content Entry -->
+<div id="cov-add" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="nav-dot"></div>WonderQuest Admin</div>
+      <div class="nav-item active">Coverage Map</div>
+      <div class="nav-right"><div class="role-chip">content_admin</div></div>
+    </div>
+    <div style="max-width:700px; margin:0 auto; padding:24px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+        <span style="color:#58c8f0; cursor:pointer; font-size:13px;">← Critical Gaps</span>
+        <span style="color:#6080a0; font-size:13px;">→</span>
+        <span style="font-size:14px; font-weight:700; color:#d0e8f8;">Add Content: Reading Comp. · Node 5</span>
+        <span style="background:#2a0808; color:#ff8080; font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; margin-left:auto;">CRITICAL</span>
+      </div>
+      <!-- Pre-filled context -->
+      <div style="background:#0d1420; border-radius:14px; border:1px solid #1e3040; padding:16px; margin-bottom:18px;">
+        <div style="font-size:11px; font-weight:700; color:#6080a0; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">Pre-filled from gap</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div><div style="font-size:10px; color:#6080a0; margin-bottom:3px;">Band</div><div style="background:#1e3040; border-radius:8px; padding:6px 10px; font-size:12px; color:#58e8c1; font-weight:600;">P2 G2–3 Mint</div></div>
+          <div><div style="font-size:10px; color:#6080a0; margin-bottom:3px;">Skill</div><div style="background:#1e3040; border-radius:8px; padding:6px 10px; font-size:12px; color:#d0e8f8; font-weight:600;">Reading Comp.</div></div>
+          <div><div style="font-size:10px; color:#6080a0; margin-bottom:3px;">Node</div><div style="background:#1e3040; border-radius:8px; padding:6px 10px; font-size:12px; color:#ff8080; font-weight:600;">Node 5 (2/8 Q)</div></div>
+        </div>
+        <div style="background:#2a0808; border-radius:10px; padding:8px 12px; margin-top:12px; font-size:12px; color:#ff9090;">Need ≥ 4 more questions to clear critical threshold. Target: 6 minimum, 8 ideal.</div>
+      </div>
+      <!-- Add options -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+        <div style="background:#131c28; border:2px solid #58c8f0; border-radius:14px; padding:18px; text-align:center; cursor:pointer;">
+          <div style="font-size:28px; margin-bottom:8px;">✏️</div>
+          <div style="font-size:14px; font-weight:700; color:#58c8f0;">Create Questions</div>
+          <div style="font-size:12px; color:#6080a0; margin-top:4px;">Write individual questions in the editor</div>
+          <button style="background:#58c8f0; color:#0a0f18; border:none; border-radius:12px; padding:8px 16px; font-size:12px; font-family:'Sora',sans-serif; font-weight:700; cursor:pointer; margin-top:12px; width:100%;">Open Editor</button>
+        </div>
+        <div style="background:#131c28; border:1.5px solid #1e3040; border-radius:14px; padding:18px; text-align:center; cursor:pointer;">
+          <div style="font-size:28px; margin-bottom:8px;">📄</div>
+          <div style="font-size:14px; font-weight:700; color:#d0e8f8;">Bulk Import CSV</div>
+          <div style="font-size:12px; color:#6080a0; margin-top:4px;">Upload many questions at once</div>
+          <button style="background:#1e3040; color:#58c8f0; border:1px solid #2a4060; border-radius:12px; padding:8px 16px; font-size:12px; font-family:'Sora',sans-serif; font-weight:700; cursor:pointer; margin-top:12px; width:100%;">Upload CSV</button>
+        </div>
+      </div>
+      <!-- Quick-add single question form -->
+      <div style="background:#131c28; border-radius:14px; border:1px solid #1e3040; padding:18px;">
+        <div style="font-size:13px; font-weight:700; color:#58c8f0; margin-bottom:14px;">Quick Add — Single Question</div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px; font-weight:700; color:#6080a0; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.4px;">Question</label>
+          <textarea style="width:100%; background:#0d1420; border:1.5px solid #1e3040; border-radius:10px; padding:10px 12px; font-size:13px; font-family:'Sora',sans-serif; color:#d0e8f8; min-height:70px; resize:vertical;" placeholder="What is the main idea of this passage?"></textarea>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+          <input type="text" style="background:#0d1420; border:1.5px solid #1e3040; border-radius:10px; padding:8px 12px; font-size:12px; font-family:'Sora',sans-serif; color:#d0e8f8;" placeholder="Option A">
+          <input type="text" style="background:#0d1420; border:1.5px solid #50c880; border-radius:10px; padding:8px 12px; font-size:12px; font-family:'Sora',sans-serif; color:#80e0a0;" placeholder="Option B (correct ✓)">
+          <input type="text" style="background:#0d1420; border:1.5px solid #1e3040; border-radius:10px; padding:8px 12px; font-size:12px; font-family:'Sora',sans-serif; color:#d0e8f8;" placeholder="Option C">
+          <input type="text" style="background:#0d1420; border:1.5px solid #1e3040; border-radius:10px; padding:8px 12px; font-size:12px; font-family:'Sora',sans-serif; color:#d0e8f8;" placeholder="Option D">
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button style="background:#1e3040; color:#6080a0; border:1px solid #2a3a50; border-radius:12px; padding:8px 18px; font-size:12px; font-family:'Sora',sans-serif; cursor:pointer;">Save Draft</button>
+          <button class="add-content-btn">Save &amp; Add to Node</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="cov-spec" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="nav-dot"></div>WonderQuest Admin</div>
+      <div class="nav-right"><div class="role-chip">content_admin</div></div>
+    </div>
+    <div class="spec-wrap">
+      <div>
+        <div class="spec-section">
+          <div class="spec-title">Routes / API</div>
+          <table class="spec-table">
+            <tr><th>Endpoint</th><th>Purpose</th></tr>
+            <tr><td>GET /coverage/map</td><td>Full coverage matrix (all bands/skills/nodes)</td></tr>
+            <tr><td>GET /coverage/band/:bandId</td><td>Band-level drill-down</td></tr>
+            <tr><td>GET /coverage/gaps</td><td>Prioritized gap list (crit then warn)</td></tr>
+            <tr><td>GET /coverage/summary</td><td>Aggregate counts (ok/warn/crit/empty)</td></tr>
+            <tr><td>POST /questions/create</td><td>Create question, auto-links to skill+node</td></tr>
+            <tr><td>GET /coverage/node/:nodeId</td><td>Node-level question list + count</td></tr>
+          </table>
+        </div>
+        <div class="spec-section">
+          <div class="spec-title">Coverage Color System</div>
+          <table class="spec-table">
+            <tr><th>State</th><th>Threshold</th><th>Color</th><th>Cell bg</th></tr>
+            <tr><td>OK</td><td>≥ 6 questions</td><td>#50c880</td><td>#1a5030</td></tr>
+            <tr><td>Warning</td><td>4–5 questions</td><td>#f0c030</td><td>#2a2000</td></tr>
+            <tr><td>Critical</td><td>&lt; 4 questions</td><td>#ff6060 (pulse)</td><td>#2a0808</td></tr>
+            <tr><td>Empty</td><td>0 questions</td><td>#3a4a5a</td><td>#131c28</td></tr>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="spec-section">
+          <div class="spec-title">Coverage Thresholds</div>
+          <div class="spec-rule"><strong>Target:</strong> 8 questions per node — ideal for adaptive variety.</div>
+          <div class="spec-rule"><strong>OK minimum:</strong> 6 questions — sufficient for most sessions.</div>
+          <div class="spec-rule"><strong>Warning (&lt;6):</strong> Session may begin to repeat questions for active students. Add content soon.</div>
+          <div class="spec-rule"><strong>Critical (&lt;4):</strong> Node will run dry mid-session for students actively using it. Blocks release if any active node is critical.</div>
+          <div class="spec-rule"><strong>Empty (0):</strong> Node not yet published. Not a blocker if node is not in active use.</div>
+        </div>
+        <div class="spec-section">
+          <div class="spec-title">Design Tokens</div>
+          <table class="spec-table">
+            <tr><th>Token</th><th>Value</th></tr>
+            <tr><td>Surface bg</td><td>#10161e</td></tr>
+            <tr><td>Accent</td><td>#58c8f0</td></tr>
+            <tr><td>P0 band</td><td>#ffd166</td></tr>
+            <tr><td>P1 band</td><td>#9b72ff</td></tr>
+            <tr><td>P2 band</td><td>#58e8c1</td></tr>
+            <tr><td>P3 band</td><td>#ff7b6b</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

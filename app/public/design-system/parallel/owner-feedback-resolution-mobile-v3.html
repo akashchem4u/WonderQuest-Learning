@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Resolution Mobile — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone */
+.phone{width:375px;border-radius:36px;border:6px solid #0d1117;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.4);background:#0d1117;display:flex;flex-direction:column}
+.notch{width:110px;height:26px;background:#0d1117;border-radius:0 0 16px 16px;margin:0 auto;flex-shrink:0;border:1px solid #1c2128}
+.mob-hdr{background:#010409;padding:0 14px;height:50px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.mh-back{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.mh-title{font-size:12px;font-weight:800;color:#f0f6ff;flex:1}
+.mh-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+.ms-resolved{background:rgba(80,232,144,.15);color:#50e890}
+.ms-wontfix{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.ms-escalated{background:rgba(248,81,73,.15);color:#f85149}
+
+/* Content */
+.mob-content{background:#0d1117;padding:10px 12px}
+
+/* Status banner */
+.mob-status-banner{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:10px}
+.msb-resolved{background:rgba(80,232,144,.07);border:1px solid rgba(80,232,144,.18)}
+.msb-wontfix{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+.msb-escalated{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.2)}
+.msb-icon{font-size:18px;flex-shrink:0}
+.msb-body{flex:1}
+.msb-title{font-size:12px;font-weight:800;color:#f0f6ff}
+.msb-sub{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4;margin-top:2px}
+.msb-time{font-size:9px;color:rgba(255,255,255,.2);margin-top:3px}
+
+/* Sections */
+.mob-section{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.ms-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:7px}
+.ms-text{font-size:11px;color:rgba(255,255,255,.6);line-height:1.55}
+.ms-meta-row{display:flex;justify-content:space-between;padding:3px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.ms-meta-row:last-child{border-bottom:none}
+.mr-label{color:rgba(255,255,255,.3)}
+.mr-val{color:#f0f6ff;font-weight:600}
+
+/* Log */
+.log-item{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.log-item:last-child{border-bottom:none}
+.li-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.li-text{font-size:10px;color:rgba(255,255,255,.5);flex:1}
+.li-time{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px}
+
+/* Reply sent */
+.reply-sent{background:rgba(80,232,144,.05);border-color:rgba(80,232,144,.12)}
+.reply-note{font-size:9px;color:rgba(80,232,144,.5);margin-top:5px}
+
+/* Action row */
+.mob-action-row{display:flex;gap:5px;flex-wrap:wrap;padding:10px 12px;background:#010409;flex-shrink:0;border-top:1px solid rgba(255,255,255,.06)}
+.mob-act{flex:1;min-width:0;padding:8px 4px;border-radius:7px;font-size:9px;font-weight:700;font-family:system-ui;border:none;cursor:pointer;text-align:center}
+.ma-reopen{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)}
+
+/* Bottom tabs */
+.mob-tabs{background:#010409;height:54px;display:flex;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05)}
+.mt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.mt.active .mt-icon,.mt.active .mt-label{color:#50e890}
+.mt-icon{font-size:17px;color:rgba(255,255,255,.3)}
+.mt-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.04em}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-feedback-resolution-mobile-v3.html</strong><br>
+  Mobile view of a resolved / won't-fix / escalated feedback item. Same 3 resolution states as desktop but in single-column stacked layout.<br>
+  <strong>Navigation:</strong> Reached by tapping a resolved item in the feedback queue. Back arrow returns to queue.<br>
+  <strong>Differences from desktop:</strong> No sidebar — meta merged inline. Activity log collapsed by default (expandable). Reopen button in sticky footer action row.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('resolved')">Resolved</button>
+  <button class="tab-btn" onclick="showTab('wontfix')">Won't Fix</button>
+  <button class="tab-btn" onclick="showTab('escalated')">Escalated</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Resolved ───────────────────────────────────────────── -->
+<div id="tab-resolved" class="screen active">
+  <p class="section-title">Feedback resolution mobile — resolved</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">← Queue</div>
+      <div class="mh-title">Bug #FB-2041</div>
+      <span class="mh-status ms-resolved">✅ Resolved</span>
+    </div>
+    <div class="mob-content">
+
+      <div class="mob-status-banner msb-resolved">
+        <div class="msb-icon">✅</div>
+        <div class="msb-body">
+          <div class="msb-title">Resolved</div>
+          <div class="msb-sub">SSO token expiry bug fixed in hotfix v2.4.8 · Deployed</div>
+          <div class="msb-time">Today, 11:32 AM · 3h 18m to resolve (within SLA)</div>
+        </div>
+      </div>
+
+      <div class="mob-section">
+        <div class="ms-label">Original Feedback</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+          <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:rgba(248,81,73,.2);color:#f85149">P0</span>
+          <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">Bug</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.25)">Riverside Elementary · Teacher</span>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:4px">Students can't log in — SSO token expired</div>
+        <div class="ms-text">Entire class locked out since 8am. SSO keeps saying "session expired" immediately after login.</div>
+      </div>
+
+      <div class="mob-section" style="border-color:rgba(80,232,144,.12)">
+        <div class="ms-label" style="color:rgba(80,232,144,.5)">Resolution Note · Internal only</div>
+        <div class="ms-text">Root cause: JWT refresh token TTL inadvertently set to 1h in env vars during last deploy. Fixed in hotfix v2.4.8. Deployed 11:30 AM. All sessions re-issued. Post-mortem scheduled Thu.</div>
+      </div>
+
+      <div class="mob-section reply-sent">
+        <div class="ms-label">Owner Reply · Sent to Teacher</div>
+        <div class="ms-text">Hi — we identified a configuration error in our last deploy causing SSO sessions to expire too quickly. We've deployed a fix and students should be able to log in now. Sorry for the disruption. Let us know if you see further issues.</div>
+        <div class="reply-note">✓ Delivered to teacher's notification panel · Today 11:33 AM</div>
+      </div>
+
+      <div class="mob-section">
+        <div class="ms-label">Item Details</div>
+        <div class="ms-meta-row"><div class="mr-label">School</div><div class="mr-val">Riverside Elementary</div></div>
+        <div class="ms-meta-row"><div class="mr-label">Role</div><div class="mr-val">Teacher</div></div>
+        <div class="ms-meta-row"><div class="mr-label">Time to resolve</div><div class="mr-val" style="color:#50e890">3h 18m ✓ SLA</div></div>
+        <div class="ms-meta-row"><div class="mr-label">Linked hotfix</div><div class="mr-val" style="color:#9b72ff">v2.4.8</div></div>
+      </div>
+
+      <div class="mob-section">
+        <div class="ms-label">Activity Log</div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#50e890"></div>
+          <div style="flex:1"><div class="li-text">Item resolved — hotfix v2.4.8 deployed</div><div class="li-time">Today 11:32 AM</div></div>
+        </div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#9b72ff"></div>
+          <div style="flex:1"><div class="li-text">Owner reply sent to teacher notification</div><div class="li-time">Today 11:31 AM</div></div>
+        </div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#f85149"></div>
+          <div style="flex:1"><div class="li-text">Escalated to on-call via PagerDuty</div><div class="li-time">Today 8:20 AM</div></div>
+        </div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#f59e0b"></div>
+          <div style="flex:1"><div class="li-text">Auto-triaged → P0 → #on-call Slack</div><div class="li-time">Today 8:15 AM</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="mob-action-row">
+      <button class="mob-act ma-reopen" style="flex:none;padding:8px 16px">↩ Reopen</button>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt active"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Won't Fix ──────────────────────────────────────────── -->
+<div id="tab-wontfix" class="screen">
+  <p class="section-title">Feedback resolution mobile — won't fix</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">← Queue</div>
+      <div class="mh-title">Feature #FB-2038</div>
+      <span class="mh-status ms-wontfix">🚫 Won't Fix</span>
+    </div>
+    <div class="mob-content">
+
+      <div class="mob-status-banner msb-wontfix">
+        <div class="msb-icon">🚫</div>
+        <div class="msb-body">
+          <div class="msb-title">Won't Fix</div>
+          <div class="msb-sub">Out of scope. Teacher notified with explanation.</div>
+          <div class="msb-time">Yesterday, 3:44 PM</div>
+        </div>
+      </div>
+
+      <div class="mob-section">
+        <div class="ms-label">Original Feedback</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+          <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:rgba(155,114,255,.15);color:#9b72ff">Feature</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.25)">Lincoln Academy · Teacher</span>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:4px">Add parent-teacher video call built into the platform</div>
+        <div class="ms-text">It would be great if parents could book a 15-min video call with teachers directly inside WonderQuest instead of a separate tool.</div>
+      </div>
+
+      <div class="mob-section" style="border-color:rgba(255,255,255,.08)">
+        <div class="ms-label">Won't Fix Reason · Internal only</div>
+        <div class="ms-text">Video conferencing is out of scope for WonderQuest's core mission. Calendar integrations are on the Q4 roadmap — pointing teacher to that instead.</div>
+      </div>
+
+      <div class="mob-section reply-sent">
+        <div class="ms-label">Owner Reply · Sent to Teacher</div>
+        <div class="ms-text">Thank you for the suggestion! Built-in video is outside our current scope, but calendar + scheduling integrations are coming in Q4. We've noted this request.</div>
+        <div class="reply-note">✓ Delivered to teacher's notification panel · Yesterday 3:45 PM</div>
+      </div>
+
+    </div>
+    <div class="mob-action-row">
+      <button class="mob-act ma-reopen" style="flex:none;padding:8px 16px">↩ Reopen</button>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt active"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Escalated ─────────────────────────────────────────── -->
+<div id="tab-escalated" class="screen">
+  <p class="section-title">Feedback resolution mobile — escalated (still open)</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">← Queue</div>
+      <div class="mh-title">Bug #FB-2039</div>
+      <span class="mh-status ms-escalated">🚨 Escalated</span>
+    </div>
+    <div class="mob-content">
+
+      <div class="mob-status-banner msb-escalated">
+        <div class="msb-icon">🚨</div>
+        <div class="msb-body">
+          <div class="msb-title" style="color:#f85149">Escalated — On-Call Active</div>
+          <div class="msb-sub">PagerDuty #PD-4412 · Engineering acknowledged · SLA: 1h remaining</div>
+          <div class="msb-time">Today, 6:15 AM</div>
+        </div>
+      </div>
+
+      <div class="mob-section" style="border-color:rgba(248,81,73,.15)">
+        <div class="ms-label">Original Feedback</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+          <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:rgba(248,81,73,.2);color:#f85149">P0</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.25)">Lincoln Academy · Teacher</span>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:4px">Assignment engine silent-failing — no tasks delivered</div>
+        <div class="ms-text">Assigned skills yesterday — students see empty session today. No error shown. Happening across all 24 students.</div>
+      </div>
+
+      <div class="mob-section" style="border-color:rgba(248,81,73,.15)">
+        <div class="ms-label" style="color:rgba(248,81,73,.5)">Escalation Note · Internal</div>
+        <div class="ms-text">PagerDuty #PD-4412 created 6:15 AM. Engineering lead acknowledged 6:22 AM. Root cause under investigation — suspected queue processing failure. Multiple schools affected.</div>
+      </div>
+
+      <div class="mob-section reply-sent">
+        <div class="ms-label">Owner Reply · Sent to Teacher</div>
+        <div class="ms-text">We're aware of an issue affecting assignment delivery and our engineering team is actively investigating. We'll send an update as soon as we have a resolution timeline. Thank you for reporting this.</div>
+        <div class="reply-note">✓ Delivered to teacher's notification panel · Today 6:20 AM</div>
+      </div>
+
+      <div class="mob-section">
+        <div class="ms-label">Activity Log</div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#9b72ff"></div>
+          <div style="flex:1"><div class="li-text">Owner reply sent to teacher notification</div><div class="li-time">Today 6:20 AM</div></div>
+        </div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#f85149"></div>
+          <div style="flex:1"><div class="li-text">Escalated → PagerDuty #PD-4412</div><div class="li-time">Today 6:15 AM</div></div>
+        </div>
+        <div class="log-item">
+          <div class="li-dot" style="background:#f59e0b"></div>
+          <div style="flex:1"><div class="li-text">Auto-triaged → P0 → #on-call Slack</div><div class="li-time">Today 6:11 AM</div></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt active"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ──────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-feedback-resolution-mobile-v3.html<br>
+      <strong>Mobile post-resolution view.</strong> Same 3 states as desktop but single-column stacked. No sidebar. Meta merged inline. Reopen in sticky footer.
+    </div>
+    <h2 class="spec-h2">Layout Differences from Desktop</h2>
+    <p class="spec-p">Sidebar meta merged into inline meta section. Activity log shown expanded by default on mobile (collapsed to last 3 entries on small phone heights). Reopen button in sticky footer action row (not sidebar). Reply textarea omitted on resolved/won't-fix items — reply was already sent.</p>
+    <h2 class="spec-h2">Escalated Items on Mobile</h2>
+    <p class="spec-p">Escalated items remain in the active queue on mobile — they are not "resolved" views. They appear here for reference alongside resolved/won't-fix items in the "All" filter. The mobile queue shows a 🚨 badge on the Feedback tab while any P0 escalation is open.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

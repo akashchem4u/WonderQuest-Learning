@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest #296 — Child Bonus Round Launcher v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ── */
+    :root {
+      --bg:       #0d1117;
+      --card:     #161b22;
+      --accent:   #50e890;
+      --text:     #f0f6ff;
+      --border:   rgba(255,255,255,.06);
+      --muted:    #8b949e;
+      --p0:       #ffd166;
+      --p1:       #9b72ff;
+      --p2:       #58e8c1;
+      --p3:       #ff7b6b;
+      --band-accent: var(--accent);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .eng-hint {
+      background: #fffbea;
+      border-left: 4px solid #f0c000;
+      color: #1a1400;
+      font-family: 'Inter', monospace;
+      font-size: 11.5px;
+      line-height: 1.6;
+      padding: 14px 18px;
+      margin: 0;
+    }
+    .eng-hint strong { font-weight: 700; display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ── Tab Nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      padding: 0 24px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 14px 20px;
+      border-bottom: 3px solid transparent;
+      transition: color .15s, border-color .15s;
+      letter-spacing: .02em;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Tab Panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Controls Bar ── */
+    .controls-bar {
+      background: #1a2030;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: center;
+    }
+    .controls-bar label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-right: 8px;
+    }
+    .pill-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      min-height: 32px;
+    }
+    .pill-btn:hover { background: rgba(255,255,255,.07); }
+    .pill-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0d1117;
+    }
+    .pill-btn.band-p0.active { background: var(--p0); border-color: var(--p0); color: #1a1400; }
+    .pill-btn.band-p1.active { background: var(--p1); border-color: var(--p1); color: #fff; }
+    .pill-btn.band-p2.active { background: var(--p2); border-color: var(--p2); color: #0d1117; }
+    .pill-btn.band-p3.active { background: var(--p3); border-color: var(--p3); color: #fff; }
+
+    /* ── Launcher Preview Wrapper ── */
+    .launcher-preview {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 24px;
+      min-height: 600px;
+    }
+
+    /* ── Full-Screen Launcher Card ── */
+    .launcher-screen {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,.5);
+    }
+
+    /* Confetti canvas layer */
+    .confetti-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 260px;
+      pointer-events: none;
+      z-index: 1;
+      border-radius: 28px 28px 0 0;
+      overflow: hidden;
+    }
+    canvas#confettiCanvas { width: 100%; height: 100%; }
+
+    /* Celebration hero */
+    .celebration-hero {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 36px 24px 24px;
+    }
+    .mascot-wrap {
+      font-size: 80px;
+      line-height: 1;
+      margin-bottom: 12px;
+      display: block;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,.4));
+      animation: mascot-bounce 1.4s ease-in-out infinite;
+    }
+    @keyframes mascot-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .completion-headline {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+    .completion-headline .quest-name {
+      color: var(--band-accent);
+      display: block;
+    }
+
+    /* XP chip */
+    .xp-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0;
+    }
+    .xp-chip.p0 { background: rgba(255,209,102,.12); border-color: rgba(255,209,102,.3); color: var(--p0); }
+    .xp-chip.p1 { background: rgba(155,114,255,.12); border-color: rgba(155,114,255,.3); color: var(--p1); }
+    .xp-chip.p2 { background: rgba(88,232,193,.12); border-color: rgba(88,232,193,.3); color: var(--p2); }
+    .xp-chip.p3 { background: rgba(255,123,107,.12); border-color: rgba(255,123,107,.3); color: var(--p3); }
+
+    /* Divider */
+    .screen-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 24px;
+    }
+
+    /* Bonus section */
+    .bonus-section {
+      padding: 24px;
+    }
+    .bonus-unlocked-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(80,232,144,.18), rgba(80,232,144,.06));
+      border: 1.5px solid rgba(80,232,144,.4);
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      animation: badge-glow 2s ease-in-out infinite;
+    }
+    .bonus-unlocked-badge.p0 {
+      background: linear-gradient(135deg, rgba(255,209,102,.18), rgba(255,209,102,.06));
+      border-color: rgba(255,209,102,.4);
+      color: var(--p0);
+    }
+    .bonus-unlocked-badge.p1 {
+      background: linear-gradient(135deg, rgba(155,114,255,.18), rgba(155,114,255,.06));
+      border-color: rgba(155,114,255,.4);
+      color: var(--p1);
+    }
+    .bonus-unlocked-badge.p2 {
+      background: linear-gradient(135deg, rgba(88,232,193,.18), rgba(88,232,193,.06));
+      border-color: rgba(88,232,193,.4);
+      color: var(--p2);
+    }
+    .bonus-unlocked-badge.p3 {
+      background: linear-gradient(135deg, rgba(255,123,107,.18), rgba(255,123,107,.06));
+      border-color: rgba(255,123,107,.4);
+      color: var(--p3);
+    }
+    @keyframes badge-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(80,232,144,0); }
+      50% { box-shadow: 0 0 16px 2px rgba(80,232,144,.2); }
+    }
+
+    /* Bonus quest preview card */
+    .bonus-quest-preview {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .bonus-quest-icon {
+      font-size: 42px;
+      line-height: 1;
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,.4));
+    }
+    .bonus-quest-info { flex: 1; min-width: 0; }
+    .bonus-quest-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .subject-chip {
+      display: inline-block;
+      background: rgba(255,255,255,.08);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* CTAs */
+    .cta-start {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 56px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      margin-bottom: 12px;
+      letter-spacing: .01em;
+    }
+    .cta-start:hover { transform: scale(1.02); box-shadow: 0 8px 32px rgba(80,232,144,.35); }
+    .cta-start:active { transform: scale(.98); }
+    .cta-start.p0 { background: var(--p0); color: #1a1400; }
+    .cta-start.p0:hover { box-shadow: 0 8px 32px rgba(255,209,102,.35); }
+    .cta-start.p1 { background: var(--p1); color: #fff; }
+    .cta-start.p1:hover { box-shadow: 0 8px 32px rgba(155,114,255,.35); }
+    .cta-start.p2 { background: var(--p2); color: #0d1117; }
+    .cta-start.p2:hover { box-shadow: 0 8px 32px rgba(88,232,193,.35); }
+    .cta-start.p3 { background: var(--p3); color: #fff; }
+    .cta-start.p3:hover { box-shadow: 0 8px 32px rgba(255,123,107,.35); }
+
+    .cta-skip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 44px;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color .15s;
+      letter-spacing: .01em;
+    }
+    .cta-skip:hover { color: var(--text); }
+
+    /* Safe note */
+    .safe-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 0 24px 20px;
+      line-height: 1.5;
+    }
+
+    /* ── States Tab ── */
+    .states-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 32px;
+      padding: 40px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .state-card-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .state-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-left: 4px;
+    }
+    .state-screen {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    .state-hero {
+      padding: 28px 22px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .state-mascot { font-size: 56px; line-height: 1; display: block; margin-bottom: 10px; }
+    .state-title { font-size: 18px; font-weight: 900; color: var(--text); line-height: 1.3; margin-bottom: 6px; }
+    .state-subtitle { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .state-body { padding: 20px 22px; }
+    .state-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 48px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .state-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 44px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .quiet-hours-screen .state-hero { background: linear-gradient(160deg, #0d1a2f 0%, #161b22 100%); }
+    .double-complete .state-hero { background: linear-gradient(160deg, rgba(255,209,102,.08), transparent); }
+    .bonus-preview-mini {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .bonus-preview-mini .icon { font-size: 28px; }
+    .bonus-preview-mini .name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .bonus-preview-mini .sub { font-size: 11px; color: var(--muted); }
+
+    /* ── Spec Tab ── */
+    .spec-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+    .spec-section { margin-bottom: 36px; }
+    .spec-section h2 {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table td {
+      padding: 10px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .spec-table td:first-child {
+      width: 160px;
+      font-weight: 700;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .spec-table td:last-child { color: var(--text); font-family: 'Inter', monospace; }
+    .spec-code {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+    .spec-code .kw { color: #ff79c6; }
+    .spec-code .ty { color: var(--p2); }
+    .spec-code .cm { color: var(--muted); }
+    .spec-code .st { color: var(--p0); }
+    .spec-code .nu { color: var(--p1); }
+    .rules-list { list-style: none; padding: 0; }
+    .rules-list li {
+      display: flex;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .rules-list li:last-child { border-bottom: none; }
+    .rules-list .rule-icon { font-size: 16px; flex-shrink: 0; }
+    .rules-list .rule-text .rule-title { font-weight: 700; display: block; margin-bottom: 2px; }
+    .rules-list .rule-text .rule-body { color: var(--muted); }
+
+    /* ── Theme map ── */
+    /* themes control mascot + bg accent; applied via JS class on .launcher-screen */
+    .theme-space   .celebration-hero { background: radial-gradient(ellipse at 50% 0%, rgba(155,114,255,.18) 0%, transparent 70%); }
+    .theme-animals .celebration-hero { background: radial-gradient(ellipse at 50% 0%, rgba(80,232,144,.14) 0%, transparent 70%); }
+    .theme-sports  .celebration-hero { background: radial-gradient(ellipse at 50% 0%, rgba(255,209,102,.14) 0%, transparent 70%); }
+    .theme-arts    .celebration-hero { background: radial-gradient(ellipse at 50% 0%, rgba(255,123,107,.14) 0%, transparent 70%); }
+    .theme-ocean   .celebration-hero { background: radial-gradient(ellipse at 50% 0%, rgba(88,232,193,.14) 0%, transparent 70%); }
+    .theme-building .celebration-hero { background: radial-gradient(ellipse at 50% 0%, rgba(255,209,102,.12) 0%, transparent 70%); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .controls-bar { padding: 12px 16px; gap: 14px; }
+      .launcher-preview { padding: 16px; }
+      .launcher-screen { border-radius: 0; max-width: 100%; }
+      .states-grid { grid-template-columns: 1fr; padding: 24px 16px; }
+      .spec-wrap { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Engineering Hint Box ── -->
+<div class="eng-hint">
+  <strong>Engineering hint — child-bonus-round-launcher-v2</strong>
+  Persona: Child (all bands) &nbsp;|&nbsp; Route: <code>/child/play/bonus</code><br />
+  Props: <code>{ child_first_name, completed_quest_name, active_theme_family_id, current_band, xp_earned, xp_label, bonus_quest_name, bonus_quest_subject }</code><br />
+  DB: <code>child_bonus_rounds { id, child_id, parent_quest_id, bonus_quest_id, launched BOOLEAN, completed BOOLEAN, xp_awarded INT, launched_at TIMESTAMPTZ }</code><br />
+  Privacy: First name only; no accuracy %; no timer; bonus = optional, never required; no penalty for skipping
+</div>
+
+<!-- ── Tab Nav ── -->
+<nav class="tab-nav" role="tablist" aria-label="Screen sections">
+  <button class="tab-btn active" role="tab" aria-selected="true"  onclick="showTab('launcher')">Launcher</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" onclick="showTab('states')">States</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" onclick="showTab('spec')">Spec</button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — LAUNCHER
+══════════════════════════════════════════ -->
+<div id="tab-launcher" class="tab-panel active">
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label>Theme</label>
+      <div class="pill-group" id="themeGroup">
+        <button class="pill-btn active" data-theme="space"    onclick="setTheme('space',this)">🚀 Space</button>
+        <button class="pill-btn"        data-theme="animals"  onclick="setTheme('animals',this)">🦁 Animals</button>
+        <button class="pill-btn"        data-theme="sports"   onclick="setTheme('sports',this)">⚽ Sports</button>
+        <button class="pill-btn"        data-theme="arts"     onclick="setTheme('arts',this)">🎨 Arts</button>
+        <button class="pill-btn"        data-theme="ocean"    onclick="setTheme('ocean',this)">🌊 Ocean</button>
+        <button class="pill-btn"        data-theme="building" onclick="setTheme('building',this)">🏗️ Building</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label>Band</label>
+      <div class="pill-group" id="bandGroup">
+        <button class="pill-btn band-p0 active" data-band="p0" onclick="setBand('p0',this)">P0</button>
+        <button class="pill-btn band-p1"         data-band="p1" onclick="setBand('p1',this)">P1</button>
+        <button class="pill-btn band-p2"         data-band="p2" onclick="setBand('p2',this)">P2</button>
+        <button class="pill-btn band-p3"         data-band="p3" onclick="setBand('p3',this)">P3</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Launcher Preview -->
+  <div class="launcher-preview">
+    <div class="launcher-screen theme-space" id="launcherScreen">
+
+      <!-- Confetti layer -->
+      <div class="confetti-layer" aria-hidden="true">
+        <canvas id="confettiCanvas"></canvas>
+      </div>
+
+      <!-- Celebration hero -->
+      <div class="celebration-hero" id="celebHero">
+        <span class="mascot-wrap" id="launcherMascot" role="img" aria-label="Celebrating mascot">🚀</span>
+        <h1 class="completion-headline">
+          You finished
+          <span class="quest-name" id="launcherQuestName">The Solar System!</span>
+          🎉
+        </h1>
+        <div style="margin-top:12px;">
+          <span class="xp-chip p0" id="launcherXpChip">✨ +12 Star Dust</span>
+        </div>
+      </div>
+
+      <div class="screen-divider"></div>
+
+      <!-- Bonus section -->
+      <div class="bonus-section">
+        <div class="bonus-unlocked-badge p0" id="launcherBadge">🌟 Bonus Round Unlocked!</div>
+
+        <div class="bonus-quest-preview" id="launcherBonusPreview">
+          <span class="bonus-quest-icon" id="launcherBonusIcon" role="img" aria-label="Bonus quest theme icon">🛸</span>
+          <div class="bonus-quest-info">
+            <div class="bonus-quest-name" id="launcherBonusName">Alien Math Challenge</div>
+            <span class="subject-chip" id="launcherSubject">Math</span>
+          </div>
+        </div>
+
+        <button class="cta-start p0" id="launcherStartBtn" aria-label="Start the bonus round">
+          Start Bonus Round! 🚀
+        </button>
+        <button class="cta-skip" id="launcherSkipBtn" aria-label="Skip bonus round for now">
+          Maybe later →
+        </button>
+      </div>
+
+      <p class="safe-note" id="launcherNote">No rush — bonus rounds are always here when you're ready!</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — STATES
+══════════════════════════════════════════ -->
+<div id="tab-states" class="tab-panel">
+  <div class="states-grid">
+
+    <!-- State 1: Standard (bonus available) -->
+    <div class="state-card-wrap">
+      <div class="state-label">Standard — Bonus Available</div>
+      <div class="state-screen">
+        <div class="state-hero" style="background:radial-gradient(ellipse at 50% 0%, rgba(80,232,144,.12) 0%, transparent 70%);">
+          <span class="state-mascot">🚀</span>
+          <div class="state-title">You finished The Solar System! 🎉</div>
+          <div style="margin-top:8px;">
+            <span class="xp-chip" style="font-size:12px;">✨ +12 Star Dust</span>
+          </div>
+        </div>
+        <div class="state-body">
+          <div class="bonus-unlocked-badge" style="font-size:11px;margin-bottom:14px;">🌟 Bonus Round Unlocked!</div>
+          <div class="bonus-preview-mini">
+            <span class="icon">🛸</span>
+            <div>
+              <div class="name">Alien Math Challenge</div>
+              <div class="sub">Math</div>
+            </div>
+          </div>
+          <button class="state-cta">Start Bonus Round! 🚀</button>
+          <button class="state-secondary">Maybe later →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 2: No bonus available -->
+    <div class="state-card-wrap">
+      <div class="state-label">No Bonus Available</div>
+      <div class="state-screen">
+        <div class="state-hero" style="background:radial-gradient(ellipse at 50% 0%, rgba(255,209,102,.10) 0%, transparent 70%);">
+          <span class="state-mascot">🌟</span>
+          <div class="state-title">Amazing quest, Emma!</div>
+          <div class="state-subtitle">You're doing incredible things. See you next time!</div>
+        </div>
+        <div class="state-body">
+          <button class="state-cta" style="background:#9b72ff;">Back to Home 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 3: Bonus completed (double complete) -->
+    <div class="state-card-wrap">
+      <div class="state-label">Bonus Completed — Double Complete!</div>
+      <div class="state-screen double-complete">
+        <div class="state-hero" style="background:radial-gradient(ellipse at 50% 0%, rgba(255,209,102,.14) 0%, transparent 70%);">
+          <span class="state-mascot">🏆</span>
+          <div class="state-title">DOUBLE COMPLETE! 🏆</div>
+          <div class="state-subtitle">You're unstoppable, Emma! Two quests in a row!</div>
+          <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <span class="xp-chip p0" style="font-size:11px;">✨ +12 Star Dust</span>
+            <span class="xp-chip p0" style="font-size:11px;">🌟 +8 Bonus Star Dust</span>
+          </div>
+        </div>
+        <div class="state-body">
+          <button class="state-cta" style="background:var(--p0);color:#1a1400;">Back to Home 🏠</button>
+          <button class="state-secondary" style="margin-top:6px;">See all my stars ✨</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 4: Parent quiet hours -->
+    <div class="state-card-wrap">
+      <div class="state-label">Parent Quiet Hours — Bonus Suppressed</div>
+      <div class="state-screen quiet-hours-screen">
+        <div class="state-hero" style="background:linear-gradient(160deg, #0d1a2f 0%, #161b22 100%);">
+          <span class="state-mascot">🌙</span>
+          <div class="state-title">Shhh… it's quiet time 🌙</div>
+          <div class="state-subtitle">Great quest today, Emma! Bonus rounds open back up tomorrow.</div>
+        </div>
+        <div class="state-body">
+          <button class="state-cta" style="background:#58e8c1;color:#0d1117;">Back to Home 🏠</button>
+          <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:12px;line-height:1.5;">
+            Quiet hours are set by your grown-up. <br/>Keep up the amazing work!
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — SPEC
+══════════════════════════════════════════ -->
+<div id="tab-spec" class="tab-panel">
+  <div class="spec-wrap">
+
+    <div class="spec-section">
+      <h2>Component Identity</h2>
+      <table class="spec-table">
+        <tr><td>Component</td><td>BonusRoundLauncher</td></tr>
+        <tr><td>Design Item</td><td>#296</td></tr>
+        <tr><td>File</td><td>child-bonus-round-launcher-v2.html</td></tr>
+        <tr><td>Route</td><td>/child/play/bonus</td></tr>
+        <tr><td>Auth</td><td>Child session required</td></tr>
+        <tr><td>Persona</td><td>Child (all bands: P0, P1, P2, P3)</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h2>Props</h2>
+      <div class="spec-code">
+<span class="kw">interface</span> <span class="ty">BonusRoundLauncherProps</span> {
+  child_first_name:      <span class="ty">string</span>;          <span class="cm">// first name only — no last name</span>
+  completed_quest_name:  <span class="ty">string</span>;
+  active_theme_family_id:<span class="ty">string</span>;          <span class="cm">// space | animals | sports | arts | ocean | building</span>
+  current_band:          <span class="ty">'P0'|'P1'|'P2'|'P3'</span>;
+  xp_earned:             <span class="ty">number</span>;
+  xp_label:              <span class="ty">string</span>;           <span class="cm">// e.g. "Star Dust", "Points", "XP"</span>
+  bonus_quest_name:      <span class="ty">string | null</span>;   <span class="cm">// null → no-bonus state</span>
+  bonus_quest_subject:   <span class="ty">string | null</span>;
+}</div>
+    </div>
+
+    <div class="spec-section">
+      <h2>Database Schema</h2>
+      <div class="spec-code">
+<span class="kw">TABLE</span> <span class="ty">child_bonus_rounds</span> (
+  id             <span class="ty">UUID</span>          <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  child_id       <span class="ty">UUID</span>          <span class="kw">NOT NULL REFERENCES</span> children(id),
+  parent_quest_id<span class="ty">UUID</span>          <span class="kw">NOT NULL REFERENCES</span> quests(id),
+  bonus_quest_id <span class="ty">UUID</span>          <span class="kw">NOT NULL REFERENCES</span> quests(id),
+  launched       <span class="ty">BOOLEAN</span>       <span class="kw">NOT NULL DEFAULT</span> <span class="nu">FALSE</span>,
+  completed      <span class="ty">BOOLEAN</span>       <span class="kw">NOT NULL DEFAULT</span> <span class="nu">FALSE</span>,
+  xp_awarded     <span class="ty">INT</span>           <span class="kw">DEFAULT</span> <span class="nu">NULL</span>,   <span class="cm">-- set only on completion</span>
+  launched_at    <span class="ty">TIMESTAMPTZ</span>   <span class="kw">DEFAULT</span> <span class="nu">NULL</span>
+);</div>
+    </div>
+
+    <div class="spec-section">
+      <h2>Component States</h2>
+      <table class="spec-table">
+        <tr><td>standard</td><td>Bonus available — shows quest preview + Start / Maybe later CTAs</td></tr>
+        <tr><td>no_bonus</td><td>No bonus attached — celebration only, single Back to Home CTA</td></tr>
+        <tr><td>double_complete</td><td>Child already finished bonus — DOUBLE COMPLETE celebration, no further CTA</td></tr>
+        <tr><td>quiet_hours</td><td>Parent has enabled quiet hours — celebration shown, bonus CTA suppressed</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h2>Design Rules</h2>
+      <ul class="rules-list">
+        <li>
+          <span class="rule-icon">🚫</span>
+          <div class="rule-text">
+            <span class="rule-title">No timer, ever</span>
+            <span class="rule-body">No countdown, no expiry language on the bonus offer. The bonus is available at the child's own pace.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rule-icon">🚫</span>
+          <div class="rule-text">
+            <span class="rule-title">No accuracy percentage</span>
+            <span class="rule-body">The screen must never display accuracy, wrong-answer counts, or performance metrics of any kind.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rule-icon">✅</span>
+          <div class="rule-text">
+            <span class="rule-title">Bonus is always optional</span>
+            <span class="rule-body">"Maybe later →" must always be present and visually equivalent weight. No shaming copy ("Are you sure?", "Don't quit!") permitted.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rule-icon">✅</span>
+          <div class="rule-text">
+            <span class="rule-title">No penalty for skipping</span>
+            <span class="rule-body">xp_awarded is only written on bonus completion. Skipping the bonus produces zero DB write and zero negative feedback to the child.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rule-icon">🌙</span>
+          <div class="rule-text">
+            <span class="rule-title">Quiet hours suppresses bonus CTA</span>
+            <span class="rule-body">When the parent's quiet hours window is active, render the quiet_hours state — celebration is shown but the Start Bonus CTA is hidden. Never show an error or lock icon.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rule-icon">🔒</span>
+          <div class="rule-text">
+            <span class="rule-title">Child-safe language throughout</span>
+            <span class="rule-body">Zero negative language. All copy must be celebratory, warm, and pressure-free. First name only — never display last name, email, or account identifiers.</span>
+          </div>
+        </li>
+        <li>
+          <span class="rule-icon">♿</span>
+          <div class="rule-text">
+            <span class="rule-title">WCAG 2.1 AA + Touch targets</span>
+            <span class="rule-body">All interactive elements ≥ 44 × 44 px. Colour contrast ≥ 4.5 : 1 for text. Full-screen layout on mobile (≤ 600 px).</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="spec-section">
+      <h2>Theme × Band Matrix</h2>
+      <table class="spec-table">
+        <tr><td>Theme</td><td>Mascot emoji / icon family used in celebration hero and bonus preview</td></tr>
+        <tr><td>space</td><td>🚀 🛸 🌌 ⭐ — hero bg: purple glow</td></tr>
+        <tr><td>animals</td><td>🦁 🐯 🐶 🦊 — hero bg: green glow</td></tr>
+        <tr><td>sports</td><td>⚽ 🏀 🏆 🎯 — hero bg: gold glow</td></tr>
+        <tr><td>arts</td><td>🎨 🖌️ 🎭 🌈 — hero bg: red/pink glow</td></tr>
+        <tr><td>ocean</td><td>🌊 🐠 🐙 🐬 — hero bg: teal glow</td></tr>
+        <tr><td>building</td><td>🏗️ 🧱 🔨 🏠 — hero bg: amber glow</td></tr>
+        <tr><td>P0 band</td><td>accent #ffd166 (Pre-K / Kindergarten)</td></tr>
+        <tr><td>P1 band</td><td>accent #9b72ff (Grade 1–2)</td></tr>
+        <tr><td>P2 band</td><td>accent #58e8c1 (Grade 3–4)</td></tr>
+        <tr><td>P3 band</td><td>accent #ff7b6b (Grade 5+)</td></tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+  /* ── Tab system ── */
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected','false');
+    });
+    document.getElementById('tab-' + t).classList.add('active');
+    const btn = [...document.querySelectorAll('.tab-btn')].find(b => b.getAttribute('onclick').includes("'" + t + "'"));
+    if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected','true'); }
+  }
+
+  /* ── Theme data ── */
+  const THEME_DATA = {
+    space:    { mascot:'🚀', bonusIcon:'🛸', questName:'The Solar System!', bonusName:'Alien Math Challenge', subject:'Math' },
+    animals:  { mascot:'🦁', bonusIcon:'🐾', questName:'Safari Adventure!',  bonusName:'Animal Alphabet Hunt',  subject:'Reading' },
+    sports:   { mascot:'⚽', bonusIcon:'🏆', questName:'Champion Cup Quest!', bonusName:'Goal Score Challenge',  subject:'Logic' },
+    arts:     { mascot:'🎨', bonusIcon:'🌈', questName:'Colors of the World!',bonusName:'Rainbow Puzzle Art',    subject:'Creativity' },
+    ocean:    { mascot:'🐠', bonusIcon:'🐙', questName:'Deep Sea Dive!',      bonusName:'Coral Reef Count',       subject:'Science' },
+    building: { mascot:'🏗️', bonusIcon:'🔨', questName:'Build & Explore!',    bonusName:'Bridge Builder Blast',   subject:'Engineering' },
+  };
+
+  /* ── Band data ── */
+  const BAND_DATA = {
+    p0: { cls:'p0', xpLabel:'Star Dust',  xp:12 },
+    p1: { cls:'p1', xpLabel:'Power Gems', xp:15 },
+    p2: { cls:'p2', xpLabel:'Wave Points',xp:18 },
+    p3: { cls:'p3', xpLabel:'Fire XP',    xp:20 },
+  };
+
+  let currentTheme = 'space';
+  let currentBand  = 'p0';
+
+  function applyLauncher() {
+    const td = THEME_DATA[currentTheme];
+    const bd = BAND_DATA[currentBand];
+    const screen = document.getElementById('launcherScreen');
+
+    // theme class
+    screen.className = 'launcher-screen theme-' + currentTheme;
+
+    // mascot
+    document.getElementById('launcherMascot').textContent = td.mascot;
+    document.getElementById('launcherMascot').setAttribute('aria-label', currentTheme + ' mascot celebrating');
+
+    // quest name
+    document.getElementById('launcherQuestName').textContent = td.questName;
+
+    // xp chip
+    const xpChip = document.getElementById('launcherXpChip');
+    xpChip.className = 'xp-chip ' + bd.cls;
+    xpChip.textContent = '✨ +' + bd.xp + ' ' + bd.xpLabel;
+
+    // badge
+    const badge = document.getElementById('launcherBadge');
+    badge.className = 'bonus-unlocked-badge ' + bd.cls;
+
+    // bonus icon + name + subject
+    document.getElementById('launcherBonusIcon').textContent = td.bonusIcon;
+    document.getElementById('launcherBonusIcon').setAttribute('aria-label', currentTheme + ' bonus icon');
+    document.getElementById('launcherBonusName').textContent = td.bonusName;
+    document.getElementById('launcherSubject').textContent   = td.subject;
+
+    // CTA button color
+    const startBtn = document.getElementById('launcherStartBtn');
+    startBtn.className = 'cta-start ' + bd.cls;
+  }
+
+  function setTheme(theme, btn) {
+    currentTheme = theme;
+    document.querySelectorAll('#themeGroup .pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyLauncher();
+    startConfetti();
+  }
+
+  function setBand(band, btn) {
+    currentBand = band;
+    document.querySelectorAll('#bandGroup .pill-btn').forEach(b => {
+      b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    applyLauncher();
+  }
+
+  /* ── Confetti ── */
+  const CONFETTI_COLORS = ['#50e890','#ffd166','#9b72ff','#58e8c1','#ff7b6b','#ffffff','#f0c040'];
+  let confettiParticles = [];
+  let rafId = null;
+  let confettiRunning = false;
+  let confettiStartTime = 0;
+
+  function startConfetti() {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth || 420;
+    canvas.height = canvas.offsetHeight || 260;
+    confettiParticles = [];
+    const count = 80;
+    for (let i = 0; i < count; i++) {
+      confettiParticles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height * -.5 - 10,
+        w: 6 + Math.random() * 7,
+        h: 3 + Math.random() * 5,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        speed: 1.2 + Math.random() * 2.4,
+        angle: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.18,
+        drift: (Math.random() - 0.5) * 0.8,
+      });
+    }
+    confettiStartTime = performance.now();
+    if (!confettiRunning) {
+      confettiRunning = true;
+      requestAnimationFrame(animateConfetti);
+    }
+  }
+
+  function animateConfetti(now) {
+    const canvas = document.getElementById('confettiCanvas');
+    if (!canvas) { confettiRunning = false; return; }
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth || 420;
+    canvas.height = canvas.offsetHeight || 260;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const elapsed = now - confettiStartTime;
+    const alpha = elapsed > 2400 ? Math.max(0, 1 - (elapsed - 2400) / 800) : 1;
+
+    confettiParticles.forEach(p => {
+      p.y += p.speed;
+      p.x += p.drift;
+      p.angle += p.spin;
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+
+    if (elapsed < 3200 && alpha > 0) {
+      requestAnimationFrame(animateConfetti);
+    } else {
+      confettiRunning = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', () => {
+    applyLauncher();
+    startConfetti();
+  });
+</script>
+
+</body>
+</html>

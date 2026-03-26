@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Release Readiness Detail — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:900px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Detail page */
+.detail-wrap{background:#0d1117;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);min-height:400px}
+.detail-hdr{background:#010409;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:10px}
+.dh-back{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.dh-sep{font-size:11px;color:rgba(255,255,255,.2)}
+.dh-breadcrumb{font-size:11px;color:rgba(255,255,255,.4)}
+.dh-title{font-size:11px;font-weight:700;color:#f0f6ff}
+
+.detail-body{padding:20px 24px}
+
+/* Category header */
+.cat-header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.cat-icon-lg{font-size:28px}
+.cat-title{font-size:18px;font-weight:900;color:#f0f6ff}
+.cat-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.cat-score{font-size:12px;font-weight:800;padding:4px 12px;border-radius:8px;margin-left:auto}
+.cs-fail{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.cs-pass{background:rgba(80,232,144,.15);color:#50e890}
+
+/* Check items */
+.check-section{margin-bottom:18px}
+.cs-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);margin-bottom:8px}
+.check-item{background:#161b22;border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.check-item.fail-item{border-color:rgba(248,81,73,.3)}
+.check-item.pass-item{border-color:rgba(80,232,144,.1)}
+.check-item.warn-item{border-color:rgba(245,158,11,.2)}
+.ci-row{display:flex;align-items:flex-start;gap:10px}
+.ci-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.ci-body{flex:1}
+.ci-name{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.ci-desc{font-size:11px;color:rgba(255,255,255,.5);line-height:1.4;margin-bottom:4px}
+.ci-evidence{background:rgba(255,255,255,.04);border-radius:6px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.55);font-family:monospace;line-height:1.5;margin-top:4px}
+.ci-val{font-size:12px;font-weight:700;flex-shrink:0;min-width:60px;text-align:right}
+.ci-val-fail{color:#f85149}
+.ci-val-pass{color:#50e890}
+
+/* Resolution steps */
+.resolution{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.2);border-radius:10px;padding:12px 14px;margin-top:8px}
+.res-title{font-size:11px;font-weight:800;color:#f85149;margin-bottom:8px}
+.res-step{display:flex;gap:8px;margin-bottom:6px;font-size:11px;color:rgba(255,255,255,.6);line-height:1.4}
+.res-num{width:18px;height:18px;border-radius:50%;background:rgba(248,81,73,.2);color:#f85149;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+
+/* History log */
+.log-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
+.log-item:last-child{border-bottom:none}
+.log-time{color:rgba(255,255,255,.25);flex-shrink:0;width:80px}
+.log-text{color:rgba(255,255,255,.55);flex:1}
+.log-status{font-size:10px;font-weight:700;flex-shrink:0}
+.ls-fail{color:#f85149}
+.ls-pass{color:#50e890}
+.ls-warn{color:#f59e0b}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-release-readiness-detail-v2.html</strong><br>
+  Release readiness detail — drill-down page for a specific gate category (e.g. Performance) showing check evidence, failure reasons, and step-by-step resolution guidance.<br>
+  <strong>Route:</strong> /console/release-gate/:category (e.g. /console/release-gate/performance)<br>
+  <strong>Linked from:</strong> "View detail →" on blocker cards in owner-release-gate-desktop.<br>
+  <strong>Contains:</strong> Category score + individual check items + failure evidence (latency traces, test output snippets) + resolution steps + check history log.<br>
+  <strong>Evidence data:</strong> Sourced from CI/CD pipeline metrics (not user data). No student/teacher/parent data visible here.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('perf')">Performance (Blocked)</button>
+  <button class="tab-btn" onclick="showTab('content')">Content (Warning)</button>
+  <button class="tab-btn" onclick="showTab('privacy')">Privacy (Pass)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Performance Detail (Blocked) ─────────────────────────────── -->
+<div id="tab-perf" class="screen active">
+  <p class="section-title">Release readiness detail — Performance (blocked)</p>
+  <div class="detail-wrap">
+    <div class="detail-hdr">
+      <span class="dh-back">← Release Gate</span>
+      <span class="dh-sep">/</span>
+      <span class="dh-title">Performance</span>
+    </div>
+    <div class="detail-body">
+      <div class="cat-header">
+        <div class="cat-icon-lg">⚡</div>
+        <div>
+          <div class="cat-title">Performance</div>
+          <div class="cat-sub">CI/CD build #247 · Checked Mar 24 at 9:14am</div>
+        </div>
+        <span class="cat-score cs-fail">6 / 25 ✗ BLOCKER</span>
+      </div>
+
+      <div class="check-section">
+        <div class="cs-title">Latency Checks</div>
+
+        <div class="check-item fail-item">
+          <div class="ci-row">
+            <div class="ci-icon">❌</div>
+            <div class="ci-body">
+              <div class="ci-name">p95 latency ≤ 200ms — ALL critical routes</div>
+              <div class="ci-desc">Measures 95th percentile response time across play session, adaptive engine, teacher portal, parent portal, and auth routes over 5-minute load test window.</div>
+              <div class="ci-evidence">
+                Route: /api/adaptive/next-question<br>
+                p95: 210ms (threshold: 200ms) ✗<br>
+                p50: 88ms ✓<br>
+                p99: 348ms ✓<br>
+                Sample size: 12,400 requests
+              </div>
+              <div class="resolution">
+                <div class="res-title">⛔ Resolution steps</div>
+                <div class="res-step"><div class="res-num">1</div><div>Review PR #892 — "Add assignment priority to adaptive engine query". Likely cause: N+1 query when fetching teacher assignments for each student.</div></div>
+                <div class="res-step"><div class="res-num">2</div><div>Add SELECT in batch (single query per session, not per question). Or cache teacher assignments for session duration.</div></div>
+                <div class="res-step"><div class="res-num">3</div><div>Re-run load test in staging: <code style="font-size:10px;color:#f59e0b">npm run loadtest:ci</code></div></div>
+                <div class="res-step"><div class="res-num">4</div><div>Push fix to CI — gate re-checks automatically on next build.</div></div>
+              </div>
+            </div>
+            <div class="ci-val ci-val-fail">210ms</div>
+          </div>
+        </div>
+
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">p99 latency ≤ 500ms</div>
+              <div class="ci-desc">Soft tail latency check — not a hard blocker even if failed, but tracked.</div>
+              <div class="ci-evidence">p99: 348ms ✓</div>
+            </div>
+            <div class="ci-val ci-val-pass">348ms ✓</div>
+          </div>
+        </div>
+
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">Lighthouse mobile score ≥ 85</div>
+              <div class="ci-desc">Automated Lighthouse audit on production-preview build for play session and teacher home.</div>
+              <div class="ci-evidence">Play session: 88 ✓ · Teacher home: 91 ✓</div>
+            </div>
+            <div class="ci-val ci-val-pass">88 ✓</div>
+          </div>
+        </div>
+
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">Load test: 5,000 concurrent users, no errors</div>
+              <div class="ci-desc">k6 load test simulating 5k concurrent active play sessions for 10 minutes.</div>
+              <div class="ci-evidence">Result: Passed · 0 errors · Max CPU: 68% · Max DB connections: 320/500</div>
+            </div>
+            <div class="ci-val ci-val-pass">Pass</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="check-section">
+        <div class="cs-title">Check History — Last 5 Builds</div>
+        <div class="log-item"><div class="log-time">Build #247</div><div class="log-text">p95 = 210ms after PR #892 merged</div><div class="log-status ls-fail">✗ FAIL</div></div>
+        <div class="log-item"><div class="log-time">Build #246</div><div class="log-text">p95 = 192ms — before assignment engine PR</div><div class="log-status ls-pass">✓ PASS</div></div>
+        <div class="log-item"><div class="log-time">Build #245</div><div class="log-text">p95 = 188ms</div><div class="log-status ls-pass">✓ PASS</div></div>
+        <div class="log-item"><div class="log-time">Build #244</div><div class="log-text">p95 = 195ms</div><div class="log-status ls-pass">✓ PASS</div></div>
+        <div class="log-item"><div class="log-time">Build #243</div><div class="log-text">p95 = 201ms — brief regression, fixed build #244</div><div class="log-status ls-warn">⚠ WARN</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Content Detail (Warning) ──────────────────────────────────── -->
+<div id="tab-content" class="screen">
+  <p class="section-title">Release readiness detail — Content (warning only)</p>
+  <div class="detail-wrap">
+    <div class="detail-hdr">
+      <span class="dh-back">← Release Gate</span>
+      <span class="dh-sep">/</span>
+      <span class="dh-title">Content</span>
+    </div>
+    <div class="detail-body">
+      <div class="cat-header">
+        <div class="cat-icon-lg">📚</div>
+        <div>
+          <div class="cat-title">Content</div>
+          <div class="cat-sub">CI/CD build #247 · 1 warning (not a hard blocker)</div>
+        </div>
+        <span class="cat-score" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">16 / 20 ⚠ Warning</span>
+      </div>
+      <div class="check-section">
+        <div class="cs-title">Content Checks</div>
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">Question bank validation — new P3 questions (14 new)</div>
+              <div class="ci-desc">Automated schema validation + answer key verification for all new question bank entries in this release.</div>
+              <div class="ci-evidence">14 questions validated · 0 schema errors · 0 missing answer keys</div>
+            </div>
+            <div class="ci-val ci-val-pass">Pass</div>
+          </div>
+        </div>
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">COPPA scan — no PII in question text/images</div>
+              <div class="ci-desc">Automated PII scan on all new content assets. Checks for names, addresses, phone numbers, emails in question text and image alt-text.</div>
+              <div class="ci-evidence">Scanned: 14 questions, 8 images · PII found: 0</div>
+            </div>
+            <div class="ci-val ci-val-pass">Clean</div>
+          </div>
+        </div>
+        <div class="check-item warn-item">
+          <div class="ci-row">
+            <div class="ci-icon">⚠️</div>
+            <div class="ci-body">
+              <div class="ci-name">Curriculum alignment review — Fractions: Mixed Number Operations</div>
+              <div class="ci-desc">New skill added in this release. Requires curriculum lead sign-off confirming alignment with Common Core standards before skill is available to students.</div>
+              <div class="ci-evidence">
+                Status: Pending · Submitted to Chen W. (curriculum) Mar 22<br>
+                Expected: Mar 27 · Skill is locked until approved
+              </div>
+              <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:11px;color:#f59e0b">⚠ Not a hard blocker — this skill will remain locked in the release until curriculum review completes. Students will not see it. Release can proceed.</div>
+            </div>
+            <div class="ci-val" style="color:#f59e0b">Pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Privacy Detail (Pass) ─────────────────────────────────────── -->
+<div id="tab-privacy" class="screen">
+  <p class="section-title">Release readiness detail — Privacy (all pass)</p>
+  <div class="detail-wrap">
+    <div class="detail-hdr">
+      <span class="dh-back">← Release Gate</span>
+      <span class="dh-sep">/</span>
+      <span class="dh-title">Privacy &amp; Compliance</span>
+    </div>
+    <div class="detail-body">
+      <div class="cat-header">
+        <div class="cat-icon-lg">🔒</div>
+        <div>
+          <div class="cat-title">Privacy &amp; Compliance</div>
+          <div class="cat-sub">All checks passed · FERPA + COPPA + Data residency</div>
+        </div>
+        <span class="cat-score cs-pass">20 / 20 ✓</span>
+      </div>
+      <div class="check-section">
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">FERPA audit — no new student PII exposure pathways</div>
+              <div class="ci-desc">Automated analysis of new API endpoints and data models added in this release. Checks for unintended student PII exposure to unauthorized parties.</div>
+              <div class="ci-evidence">New endpoints: 8 · PII exposure risk: 0 · New data models: 1 (teacher_assignments) · PII fields: None</div>
+            </div>
+            <div class="ci-val ci-val-pass">Clean</div>
+          </div>
+        </div>
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">COPPA compliance — no tracking of under-13 without verified consent</div>
+              <div class="ci-desc">Checks that no new analytics events added in this release track child users without school consent flow being in place.</div>
+              <div class="ci-evidence">New analytics events: 3 (assignment_created, assignment_completed, assignment_removed) · Tracked for: teacher only · Child data: Not included</div>
+            </div>
+            <div class="ci-val ci-val-pass">Clean</div>
+          </div>
+        </div>
+        <div class="check-item pass-item">
+          <div class="ci-row">
+            <div class="ci-icon">✅</div>
+            <div class="ci-body">
+              <div class="ci-name">Data residency — US school data stays in US-East-1</div>
+              <div class="ci-desc">New teacher_assignments table uses same DB cluster as all other school data. No cross-region replication of school data.</div>
+              <div class="ci-evidence">DB cluster: us-east-1-primary · Replication: us-east-1-replica only · No EU/other regions for US school data</div>
+            </div>
+            <div class="ci-val ci-val-pass">Verified</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-release-readiness-detail-v2.html<br>
+      <strong>Route:</strong> /console/release-gate/:category<br>
+      <strong>Evidence data source:</strong> CI/CD pipeline metrics. No user data visible here — all evidence is infrastructure/code metrics only.
+    </div>
+    <h2 class="spec-h2">Evidence Data Sources</h2>
+    <p style="font-size:13px;color:#444;line-height:1.6">Performance evidence: k6 load test metrics, p95/p99 from production preview environment. Quality evidence: Jest coverage report, regression test runner output. Content evidence: Automated question bank schema validator + COPPA PII scanner (regex-based). Privacy evidence: Automated API endpoint analyser + new DB migration scanner. Sign-off: GitHub pull request approvals mapped to stakeholder identities.</p>
+    <h2 class="spec-h2">Hard Blocker vs Warning</h2>
+    <p style="font-size:13px;color:#444;line-height:1.6">Hard blockers prevent launch entirely. Warnings allow launch but are logged and tracked. If a warning-flagged item is not resolved within 7 days post-launch, it escalates to a blocker for the NEXT release. This prevents warnings from being perpetually ignored.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

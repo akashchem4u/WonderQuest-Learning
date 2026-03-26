@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Session Reset Panel — WonderQuest Internal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --card2: #1c2230;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --muted: #8b949e;
+    --border: rgba(255,255,255,.06);
+    --hover: rgba(255,255,255,.04);
+    --beta: #f59e0b;
+    --danger: #ef4444;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Engineering hint box */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    color: #1a1200;
+    font-size: 12px;
+    line-height: 1.6;
+    font-family: monospace;
+  }
+  .eng-hint strong { color: #7c4d00; font-size: 13px; }
+
+  /* Header */
+  .app-header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-badge {
+    background: var(--accent);
+    color: #0d1117;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    letter-spacing: .5px;
+  }
+  .app-title { font-size: 16px; font-weight: 700; }
+  .app-subtitle { color: var(--muted); font-size: 12px; }
+  .owner-badge {
+    background: rgba(245,158,11,.15);
+    border: 1px solid rgba(245,158,11,.3);
+    color: var(--beta);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+  .danger-badge {
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.3);
+    color: var(--danger);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+    margin-right: 8px;
+  }
+
+  /* Tab nav */
+  .tab-nav {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--beta); border-bottom-color: var(--beta); }
+
+  /* Main content */
+  .main { padding: 24px; max-width: 1300px; margin: 0 auto; }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ===== SHARED COMPONENTS ===== */
+
+  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-header-title {
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-body { padding: 18px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 8px;
+  }
+  .form-label .req { color: var(--beta); }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--beta);
+  }
+  .form-select option { background: var(--card); }
+  .form-input.pin-input {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 8px;
+    text-align: center;
+    font-family: monospace;
+    max-width: 160px;
+  }
+  .form-input::placeholder { color: rgba(139,148,158,.5); }
+
+  /* ===== TAB 1: RESET PANEL ===== */
+
+  .reset-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* --- Child Selector (left) --- */
+  .child-search-wrap { padding: 14px 14px 10px; border-bottom: 1px solid var(--border); }
+  .search-input-wrap { position: relative; }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    padding: 9px 12px 9px 32px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--beta); }
+  .search-input::placeholder { color: rgba(139,148,158,.5); }
+
+  .family-list { padding: 8px 0; }
+  .family-group { border-bottom: 1px solid var(--border); }
+  .family-group:last-child { border-bottom: none; }
+  .family-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    padding: 10px 14px 6px;
+  }
+  .family-cohort {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 6px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .cohort-a { background: rgba(80,232,144,.15); color: var(--accent); }
+  .cohort-b { background: rgba(56,189,248,.15); color: #38bdf8; }
+  .cohort-teacher { background: rgba(245,158,11,.15); color: var(--beta); }
+
+  .child-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .child-row:hover { background: var(--hover); }
+  .child-row.selected-child { background: rgba(245,158,11,.07); }
+  .child-info { display: flex; align-items: center; gap: 10px; }
+  .child-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .av-emma { background: rgba(56,189,248,.2); color: #38bdf8; }
+  .av-noah { background: rgba(80,232,144,.2); color: var(--accent); }
+  .av-aria { background: rgba(167,139,250,.2); color: #a78bfa; }
+  .av-class { background: rgba(245,158,11,.2); color: var(--beta); }
+  .child-name-wrap {}
+  .child-name { font-size: 13px; font-weight: 600; }
+  .child-band {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .select-btn {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .select-btn:hover { border-color: var(--beta); color: var(--beta); }
+  .select-btn.is-selected {
+    border-color: var(--beta);
+    background: rgba(245,158,11,.12);
+    color: var(--beta);
+  }
+
+  .selected-child-banner {
+    margin: 10px 14px 14px;
+    background: rgba(245,158,11,.08);
+    border: 1.5px solid rgba(245,158,11,.35);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .scb-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--beta);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 4px;
+  }
+  .scb-name { font-size: 14px; font-weight: 700; }
+  .scb-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* --- Reset Config (right) --- */
+  .reset-type-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 12px;
+  }
+
+  .reset-type-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .reset-type-card {
+    background: var(--bg);
+    border: 2px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    position: relative;
+  }
+  .reset-type-card:hover { border-color: rgba(255,255,255,.18); }
+  .reset-type-card.selected { border-color: var(--beta); background: rgba(245,158,11,.05); }
+  .reset-type-card.danger-card.selected { border-color: var(--danger); background: rgba(239,68,68,.05); }
+  .reset-type-card input[type="radio"] { display: none; }
+
+  .rtc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .rtc-title-wrap { display: flex; align-items: center; gap: 8px; }
+  .rtc-icon { font-size: 18px; }
+  .rtc-title { font-size: 15px; font-weight: 700; }
+  .rtc-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 0; }
+  .irreversible-badge {
+    background: rgba(239,68,68,.15);
+    border: 1px solid rgba(239,68,68,.3);
+    color: var(--danger);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: .4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .rtc-warning {
+    margin-top: 10px;
+    background: rgba(239,68,68,.08);
+    border: 1px solid rgba(239,68,68,.2);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 12px;
+    color: #fca5a5;
+    display: none;
+  }
+  .danger-card.selected .rtc-warning { display: block; }
+
+  .rtc-extra {
+    margin-top: 12px;
+    display: none;
+  }
+  .reset-type-card.selected .rtc-extra { display: block; }
+
+  .rtc-extra-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .rtc-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,.03);
+    border-radius: 6px;
+    border-left: 2px solid rgba(255,255,255,.1);
+  }
+
+  .band-chips, .subject-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .chip {
+    padding: 6px 13px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255,255,255,.1);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .chip:hover { border-color: rgba(245,158,11,.5); color: var(--text); }
+  .chip.chip-active { border-color: var(--beta); background: rgba(245,158,11,.15); color: var(--beta); }
+
+  /* Confirmation section */
+  .confirm-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 4px;
+    display: none;
+  }
+  .confirm-section.visible { display: block; }
+
+  .confirm-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 14px;
+  }
+
+  .reset-summary-box {
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+  }
+  .rsb-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .rsb-content { font-size: 14px; font-weight: 700; }
+  .rsb-type { color: var(--beta); }
+  .rsb-child { color: var(--text); }
+
+  .confirm-fields {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 16px;
+  }
+
+  .btn-execute {
+    width: 100%;
+    padding: 13px;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .btn-execute:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+    background: #6b7280;
+  }
+  .btn-execute:not(:disabled):hover { background: #dc2626; }
+
+  .cancel-link {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color .15s;
+    text-decoration: none;
+  }
+  .cancel-link:hover { color: var(--text); }
+
+  /* ===== TAB 2: RESET HISTORY ===== */
+
+  .stats-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-item { display: flex; align-items: center; gap: 8px; }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-val { font-size: 15px; font-weight: 800; }
+  .stat-lbl { font-size: 12px; color: var(--muted); }
+  .stats-divider { width: 1px; height: 24px; background: var(--border); }
+
+  .audit-table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .audit-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .audit-table th {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.02);
+    white-space: nowrap;
+  }
+  .audit-table td {
+    padding: 13px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .audit-table tr:last-child td { border-bottom: none; }
+  .audit-table tr:hover td { background: var(--hover); }
+
+  .ref-id {
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    background: rgba(255,255,255,.05);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .type-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 5px;
+    gap: 4px;
+  }
+  .tp-full { background: rgba(239,68,68,.15); color: #fca5a5; }
+  .tp-scenario { background: rgba(245,158,11,.15); color: var(--beta); }
+  .tp-partial { background: rgba(80,232,144,.12); color: var(--accent); }
+
+  .reversed-no {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    background: rgba(255,255,255,.05);
+    padding: 2px 8px;
+    border-radius: 5px;
+  }
+
+  .reversal-note {
+    background: rgba(239,68,68,.07);
+    border: 1px solid rgba(239,68,68,.15);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .reversal-note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .reversal-note-text { font-size: 12px; color: #fca5a5; line-height: 1.6; }
+  .reversal-note-text strong { font-weight: 700; }
+
+  /* ===== TAB 3: SPEC ===== */
+
+  .spec-section { margin-bottom: 28px; }
+  .spec-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .spec-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .code-block {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: #e6edf3;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .kw { color: #ff7b72; }
+  .type-color { color: #79c0ff; }
+  .comment { color: #8b949e; font-style: italic; }
+  .str-color { color: #a5d6ff; }
+
+  .safety-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .safety-rule {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .safety-rule-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .safety-rule-text { font-size: 13px; line-height: 1.5; }
+  .safety-rule-text strong { color: var(--text); }
+  .safety-rule-text span { color: var(--muted); }
+
+  /* Success overlay */
+  .success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13,17,23,.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .success-overlay.show { display: flex; }
+  .success-card {
+    background: var(--card);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: 16px;
+    padding: 36px 40px;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+  }
+  .success-icon { font-size: 48px; margin-bottom: 16px; }
+  .success-title { font-size: 22px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+  .success-body { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  .success-ref {
+    font-family: monospace;
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 8px 18px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+  .success-close {
+    padding: 11px 28px;
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,.15);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .success-close:hover { border-color: rgba(255,255,255,.35); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.2); }
+
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div class="main" style="padding-top:20px; padding-bottom:0;">
+  <div class="eng-hint">
+    <strong>beta-session-reset-panel-v2.html</strong> — Beta session reset panel. Owner/beta-admin only. Allows resetting a child's progress to test first-run flows, onboarding, or specific scenarios. Reset types: Full Reset (wipes all progress — nuclear option), Scenario Reset (set child to a specific test scenario/state), Partial Reset (reset specific band/subject only). All resets logged in beta_resets audit table. Requires confirmation with typed reason. Child account data is NOT deleted — only progress records reset. Cannot be undone.
+  </div>
+</div>
+
+<!-- App Header -->
+<header class="app-header">
+  <div class="app-header-left">
+    <span class="logo-badge">WQ</span>
+    <div>
+      <div class="app-title">Beta Session Reset Panel</div>
+      <div class="app-subtitle">Internal admin tool — irreversible operations</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:0;">
+    <span class="danger-badge">&#9888; Destructive</span>
+    <span class="owner-badge">Owner / Beta Admin</span>
+  </div>
+</header>
+
+<!-- Tab Nav -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('reset')">Reset Panel</button>
+  <button class="tab-btn" onclick="showTab('history')">Reset History</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</nav>
+
+<!-- ==================== TAB 1: RESET PANEL ==================== -->
+<div id="tab-reset" class="tab-panel active">
+  <div class="main">
+
+    <div style="margin-bottom:20px;">
+      <div class="section-title">Session Reset</div>
+      <div class="section-sub">Select a child, choose a reset type, and confirm. All resets are logged and cannot be reversed.</div>
+    </div>
+
+    <div class="reset-layout">
+
+      <!-- LEFT: Child Selector -->
+      <div class="card" style="border-color: var(--border);">
+        <div class="card-header">
+          <span class="card-header-title">&#128100; Child Selector</span>
+          <span style="font-size:11px;color:var(--muted);font-weight:600;">3 families</span>
+        </div>
+
+        <div class="child-search-wrap">
+          <div class="search-input-wrap">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" class="search-input" placeholder="Search families or children..." oninput="filterChildren(this.value)">
+          </div>
+        </div>
+
+        <div class="family-list" id="family-list">
+
+          <!-- Chen Family -->
+          <div class="family-group" data-family="chen">
+            <div class="family-name">
+              Chen Family
+              <span class="family-cohort cohort-b">Cohort B</span>
+            </div>
+            <div class="child-row" data-child="emma" onclick="selectChild('emma')">
+              <div class="child-info">
+                <div class="child-avatar av-emma">EC</div>
+                <div class="child-name-wrap">
+                  <div class="child-name">Emma Chen</div>
+                  <div class="child-band">Band P2</div>
+                </div>
+              </div>
+              <button class="select-btn is-selected" id="btn-emma" onclick="event.stopPropagation(); selectChild('emma')">Selected</button>
+            </div>
+            <div class="child-row" data-child="noah" onclick="selectChild('noah')">
+              <div class="child-info">
+                <div class="child-avatar av-noah">NC</div>
+                <div class="child-name-wrap">
+                  <div class="child-name">Noah Chen</div>
+                  <div class="child-band">Band P1</div>
+                </div>
+              </div>
+              <button class="select-btn" id="btn-noah" onclick="event.stopPropagation(); selectChild('noah')">Select</button>
+            </div>
+          </div>
+
+          <!-- Patel Family -->
+          <div class="family-group" data-family="patel">
+            <div class="family-name">
+              Patel Family
+              <span class="family-cohort cohort-a">Cohort A</span>
+            </div>
+            <div class="child-row" data-child="aria" onclick="selectChild('aria')">
+              <div class="child-info">
+                <div class="child-avatar av-aria">AP</div>
+                <div class="child-name-wrap">
+                  <div class="child-name">Aria Patel</div>
+                  <div class="child-band">Band P0</div>
+                </div>
+              </div>
+              <button class="select-btn" id="btn-aria" onclick="event.stopPropagation(); selectChild('aria')">Select</button>
+            </div>
+          </div>
+
+          <!-- Johnson Family -->
+          <div class="family-group" data-family="johnson">
+            <div class="family-name">
+              Johnson Family
+              <span class="family-cohort cohort-teacher">Teacher</span>
+            </div>
+            <div class="child-row" data-child="class" onclick="selectChild('class')">
+              <div class="child-info">
+                <div class="child-avatar av-class">CL</div>
+                <div class="child-name-wrap">
+                  <div class="child-name">Class account</div>
+                  <div class="child-band">Shared classroom</div>
+                </div>
+              </div>
+              <button class="select-btn" id="btn-class" onclick="event.stopPropagation(); selectChild('class')">Select</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Selected banner -->
+        <div id="selected-banner" class="selected-child-banner">
+          <div class="scb-label">Selected</div>
+          <div class="scb-name" id="selected-name">Emma Chen</div>
+          <div class="scb-meta" id="selected-meta">P2 &middot; Family Cohort B</div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Reset Configuration -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-title">&#9881; Reset Configuration</span>
+            <span style="font-size:11px;color:var(--muted);">Choose type below</span>
+          </div>
+          <div class="card-body">
+
+            <div class="reset-type-title">Reset Type</div>
+
+            <div class="reset-type-cards">
+
+              <!-- 1. Full Reset -->
+              <label class="reset-type-card danger-card" id="card-full" onclick="selectResetType('full')">
+                <input type="radio" name="reset-type" value="full">
+                <div class="rtc-header">
+                  <div class="rtc-title-wrap">
+                    <span class="rtc-icon">&#128465;</span>
+                    <span class="rtc-title">Full Reset</span>
+                  </div>
+                  <span class="irreversible-badge">&#9888; Irreversible</span>
+                </div>
+                <div class="rtc-desc">Wipe all progress, XP, stars, streaks, and session history. Use for testing first-run experience.</div>
+                <div class="rtc-warning">
+                  <strong>&#9888; This cannot be undone.</strong> All progress will be permanently deleted from play_sessions, skill_progress, and user XP/streak fields.
+                </div>
+              </label>
+
+              <!-- 2. Scenario Reset -->
+              <label class="reset-type-card" id="card-scenario" onclick="selectResetType('scenario')">
+                <input type="radio" name="reset-type" value="scenario">
+                <div class="rtc-header">
+                  <div class="rtc-title-wrap">
+                    <span class="rtc-icon">&#127919;</span>
+                    <span class="rtc-title">Scenario Reset</span>
+                  </div>
+                </div>
+                <div class="rtc-desc">Set child to a specific test scenario. Full reset first, then applies fixture data server-side.</div>
+                <div class="rtc-extra">
+                  <div class="rtc-extra-label">Scenario</div>
+                  <select class="form-select" id="scenario-select" onclick="event.stopPropagation()" onchange="updateSummary()">
+                    <option value="">-- Select scenario --</option>
+                    <option value="first-run">First-run (new user)</option>
+                    <option value="mid-progress">Mid-progress (3 skills complete)</option>
+                    <option value="near-level-up">Near level-up</option>
+                    <option value="achievement-unlock">Achievement unlock</option>
+                    <option value="streak-restore">Streak restore</option>
+                    <option value="returning-7d">Returning after 7 days</option>
+                  </select>
+                  <div class="rtc-note">Child will be set to this exact state after reset. Fixture data applied server-side.</div>
+                </div>
+              </label>
+
+              <!-- 3. Partial Reset -->
+              <label class="reset-type-card" id="card-partial" onclick="selectResetType('partial')">
+                <input type="radio" name="reset-type" value="partial">
+                <div class="rtc-header">
+                  <div class="rtc-title-wrap">
+                    <span class="rtc-icon">&#128194;</span>
+                    <span class="rtc-title">Partial Reset</span>
+                  </div>
+                </div>
+                <div class="rtc-desc">Reset only specific band or subject. Only selected band/subject progress will be deleted.</div>
+                <div class="rtc-extra" onclick="event.stopPropagation()">
+                  <div class="rtc-extra-label" style="margin-bottom:6px;">Band</div>
+                  <div class="band-chips">
+                    <button type="button" class="chip" data-band="P0" onclick="toggleChip(this,'band')">P0</button>
+                    <button type="button" class="chip" data-band="P1" onclick="toggleChip(this,'band')">P1</button>
+                    <button type="button" class="chip chip-active" data-band="P2" onclick="toggleChip(this,'band')">P2</button>
+                    <button type="button" class="chip" data-band="P3" onclick="toggleChip(this,'band')">P3</button>
+                  </div>
+                  <div class="rtc-extra-label" style="margin-top:10px;margin-bottom:6px;">Subject</div>
+                  <div class="subject-chips">
+                    <button type="button" class="chip" data-subject="Math" onclick="toggleChip(this,'subject')">Math</button>
+                    <button type="button" class="chip" data-subject="Science" onclick="toggleChip(this,'subject')">Science</button>
+                    <button type="button" class="chip" data-subject="ELA" onclick="toggleChip(this,'subject')">ELA</button>
+                    <button type="button" class="chip" data-subject="Social Studies" onclick="toggleChip(this,'subject')">Social Studies</button>
+                    <button type="button" class="chip" data-subject="Arts" onclick="toggleChip(this,'subject')">Arts</button>
+                  </div>
+                  <div class="rtc-note">Only selected band/subject progress will be reset. Other progress preserved.</div>
+                </div>
+              </label>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Confirmation Section -->
+        <div class="confirm-section" id="confirm-section">
+          <div class="confirm-title">Confirmation Required</div>
+
+          <div class="reset-summary-box">
+            <div class="rsb-label">You are about to:</div>
+            <div class="rsb-content">
+              <span class="rsb-type" id="summary-type">Full Reset</span>
+              <span style="color:var(--muted);margin:0 6px;">&middot;</span>
+              <span class="rsb-child" id="summary-child">Emma Chen</span>
+            </div>
+          </div>
+
+          <div class="confirm-fields">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Reason <span class="req">*</span></label>
+              <input type="text" class="form-input" id="reset-reason" placeholder="Why is this reset needed?" oninput="checkConfirmReady()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Admin PIN <span class="req">*</span></label>
+              <input type="password" class="form-input pin-input" id="admin-pin" maxlength="4" placeholder="••••" oninput="checkConfirmReady()">
+            </div>
+          </div>
+
+          <button class="btn-execute" id="btn-execute" disabled onclick="executeReset()">
+            &#128465; Execute Reset
+          </button>
+          <a class="cancel-link" onclick="cancelReset()">Cancel</a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 2: RESET HISTORY ==================== -->
+<div id="tab-history" class="tab-panel">
+  <div class="main">
+
+    <div style="margin-bottom:20px;">
+      <div class="section-title">Reset History</div>
+      <div class="section-sub">Audit log of all beta session resets. Cannot be modified or deleted.</div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-dot" style="background:#8b949e;"></div>
+        <div>
+          <div class="stat-val">18</div>
+          <div class="stat-lbl">total resets this beta</div>
+        </div>
+      </div>
+      <div class="stats-divider"></div>
+      <div class="stat-item">
+        <div class="stat-dot" style="background:var(--danger);"></div>
+        <div>
+          <div class="stat-val">3</div>
+          <div class="stat-lbl">full resets</div>
+        </div>
+      </div>
+      <div class="stats-divider"></div>
+      <div class="stat-item">
+        <div class="stat-dot" style="background:var(--beta);"></div>
+        <div>
+          <div class="stat-val">9</div>
+          <div class="stat-lbl">scenario resets</div>
+        </div>
+      </div>
+      <div class="stats-divider"></div>
+      <div class="stat-item">
+        <div class="stat-dot" style="background:var(--accent);"></div>
+        <div>
+          <div class="stat-val">6</div>
+          <div class="stat-lbl">partial resets</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit table -->
+    <div class="audit-table-wrap">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>Reset ID</th>
+            <th>Child</th>
+            <th>Type</th>
+            <th>Scenario / Scope</th>
+            <th>Admin</th>
+            <th>Reason</th>
+            <th>Date</th>
+            <th>Reversed?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="ref-id">RST-0018</span></td>
+            <td><strong>Emma Chen</strong></td>
+            <td><span class="type-pill tp-scenario">&#127919; Scenario</span></td>
+            <td style="color:var(--muted);">Mid-progress</td>
+            <td>Owner</td>
+            <td style="color:var(--muted);max-width:220px;">Testing achievement unlock flow</td>
+            <td style="color:var(--muted);white-space:nowrap;">March 22</td>
+            <td><span class="reversed-no">No</span></td>
+          </tr>
+          <tr>
+            <td><span class="ref-id">RST-0017</span></td>
+            <td><strong>Noah Chen</strong></td>
+            <td><span class="type-pill tp-partial">&#128194; Partial</span></td>
+            <td style="color:var(--muted);">P1 &middot; Math</td>
+            <td>Owner</td>
+            <td style="color:var(--muted);max-width:220px;">Re-test fractions difficulty calibration</td>
+            <td style="color:var(--muted);white-space:nowrap;">March 21</td>
+            <td><span class="reversed-no">No</span></td>
+          </tr>
+          <tr>
+            <td><span class="ref-id">RST-0016</span></td>
+            <td><strong>Aria Patel</strong></td>
+            <td><span class="type-pill tp-full">&#128465; Full Reset</span></td>
+            <td style="color:var(--muted);">—</td>
+            <td>Owner</td>
+            <td style="color:var(--muted);max-width:220px;">Full reset for new onboarding test</td>
+            <td style="color:var(--muted);white-space:nowrap;">March 20</td>
+            <td><span class="reversed-no">No</span></td>
+          </tr>
+          <tr>
+            <td><span class="ref-id">RST-0015</span></td>
+            <td><strong>Emma Chen</strong></td>
+            <td><span class="type-pill tp-scenario">&#127919; Scenario</span></td>
+            <td style="color:var(--muted);">First-run</td>
+            <td>Owner</td>
+            <td style="color:var(--muted);max-width:220px;">Testing first-run tutorial</td>
+            <td style="color:var(--muted);white-space:nowrap;">March 19</td>
+            <td><span class="reversed-no">No</span></td>
+          </tr>
+          <tr>
+            <td><span class="ref-id">RST-0014</span></td>
+            <td><strong>Class Account</strong></td>
+            <td><span class="type-pill tp-scenario">&#127919; Scenario</span></td>
+            <td style="color:var(--muted);">Near level-up</td>
+            <td>Owner</td>
+            <td style="color:var(--muted);max-width:220px;">Testing level-up celebration</td>
+            <td style="color:var(--muted);white-space:nowrap;">March 18</td>
+            <td><span class="reversed-no">No</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Reversal note -->
+    <div class="reversal-note">
+      <div class="reversal-note-icon">&#128683;</div>
+      <div class="reversal-note-text">
+        <strong>Reversal:</strong> Session resets cannot be reversed. The <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">before_snapshot</code> JSONB field is stored for debugging reference only — it is not a restoration mechanism. Contact engineering if urgent recovery is needed.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 3: SPEC ==================== -->
+<div id="tab-spec" class="tab-panel">
+  <div class="main">
+
+    <div style="margin-bottom:20px;">
+      <div class="section-title">Reset Spec</div>
+      <div class="section-sub">Schema, execution logic, and safety rules for the beta session reset system.</div>
+    </div>
+
+    <!-- Audit Schema -->
+    <div class="spec-section">
+      <div class="spec-section-title">Audit Schema — beta_resets</div>
+      <div class="code-block"><span class="kw">CREATE TABLE</span> beta_resets (
+  id               <span class="type-color">UUID</span>         <span class="kw">PRIMARY KEY</span>,
+  ref_id           <span class="type-color">TEXT</span>,         <span class="comment">-- RST-NNNN</span>
+  child_id         <span class="type-color">UUID</span>         <span class="kw">REFERENCES</span> users(id),
+  admin_id         <span class="type-color">UUID</span>         <span class="kw">REFERENCES</span> users(id),
+  reset_type       <span class="type-color">ENUM</span>(<span class="str-color">'full'</span>, <span class="str-color">'scenario'</span>, <span class="str-color">'partial'</span>),
+  scenario_key     <span class="type-color">TEXT</span>         <span class="kw">NULLABLE</span>,
+  band_scope       <span class="type-color">ENUM</span>(<span class="str-color">'p0'</span>,<span class="str-color">'p1'</span>,<span class="str-color">'p2'</span>,<span class="str-color">'p3'</span>) <span class="kw">NULLABLE</span>,
+  subject_scope    <span class="type-color">TEXT</span>         <span class="kw">NULLABLE</span>,
+  reason           <span class="type-color">TEXT</span>         <span class="kw">NOT NULL</span>,
+  executed_at      <span class="type-color">TIMESTAMPTZ</span>  <span class="kw">DEFAULT</span> NOW(),
+  <span class="comment">-- audit fields</span>
+  ip_hash          <span class="type-color">TEXT</span>,
+  before_snapshot  <span class="type-color">JSONB</span>        <span class="comment">-- child's XP/stars/progress before reset (for reference)</span>
+);</div>
+    </div>
+
+    <!-- Execution Logic -->
+    <div class="spec-section">
+      <div class="spec-section-title">Reset Execution — Server-Side Only</div>
+      <div class="code-block"><span class="comment">-- Full reset:</span>
+<span class="kw">DELETE FROM</span> play_sessions  <span class="kw">WHERE</span> child_id = :id;
+<span class="kw">DELETE FROM</span> skill_progress <span class="kw">WHERE</span> child_id = :id;
+<span class="kw">UPDATE</span>      users          <span class="kw">SET</span> xp=0, streak=0, level=1 <span class="kw">WHERE</span> id = :id;
+
+<span class="comment">-- Scenario reset:</span>
+<span class="comment">--   Full reset (above), then apply scenario fixture (server-side seed data)</span>
+<span class="kw">CALL</span> apply_scenario_fixture(child_id := :id, scenario := :scenario_key);
+
+<span class="comment">-- Partial reset:</span>
+<span class="kw">DELETE FROM</span> skill_progress
+  <span class="kw">WHERE</span> child_id  = :id
+    <span class="kw">AND</span> band_id    = :band
+    <span class="kw">AND</span> subject_id = :subject;</div>
+    </div>
+
+    <!-- Safety Rules -->
+    <div class="spec-section">
+      <div class="spec-section-title">Safety Rules</div>
+      <div class="safety-rules">
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#128274;</div>
+          <div class="safety-rule-text">
+            <strong>Admin PIN required</strong><br>
+            <span>Separate from login password. 4-digit PIN verified server-side before any reset executes.</span>
+          </div>
+        </div>
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#128247;</div>
+          <div class="safety-rule-text">
+            <strong>before_snapshot stored</strong><br>
+            <span><code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">JSONB</code> snapshot of child's XP, stars, streak, and progress captured before execution. Non-restorable — for debugging reference only.</span>
+          </div>
+        </div>
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#9203;</div>
+          <div class="safety-rule-text">
+            <strong>Rate limit: max 5 resets per child per day</strong><br>
+            <span>Enforced server-side. Prevents accidental bulk resets. Returns <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">429 Too Many Requests</code> if limit exceeded.</span>
+          </div>
+        </div>
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#9989;</div>
+          <div class="safety-rule-text">
+            <strong>is_beta_admin gating</strong><br>
+            <span>Only users with <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">is_beta_admin = true</code> can execute resets. Enforced at API middleware layer.</span>
+          </div>
+        </div>
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#128220;</div>
+          <div class="safety-rule-text">
+            <strong>Audit log is immutable</strong><br>
+            <span>No DELETE or UPDATE on <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">beta_resets</code> ever. RLS policy enforces append-only. All resets permanently logged with ip_hash, admin_id, and reason.</span>
+          </div>
+        </div>
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#128683;</div>
+          <div class="safety-rule-text">
+            <strong>Account data not deleted</strong><br>
+            <span>Child account (email, profile, settings) is never touched. Only <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">play_sessions</code>, <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">skill_progress</code>, and XP/streak fields on <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">users</code> row.</span>
+          </div>
+        </div>
+        <div class="safety-rule">
+          <div class="safety-rule-icon">&#128721;</div>
+          <div class="safety-rule-text">
+            <strong>Cannot be undone</strong><br>
+            <span>There is no rollback mechanism. The <code style="font-family:monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px;">before_snapshot</code> is advisory only. Contact engineering for urgent database-level recovery.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reset Types Reference -->
+    <div class="spec-section">
+      <div class="spec-section-title">Reset Types Reference</div>
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <table class="audit-table" style="border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>scenario_key</th>
+                <th>band_scope</th>
+                <th>subject_scope</th>
+                <th>Effect</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="type-pill tp-full">Full Reset</span></td>
+                <td style="font-family:monospace;font-size:12px;color:var(--muted);">NULL</td>
+                <td style="font-family:monospace;font-size:12px;color:var(--muted);">NULL</td>
+                <td style="font-family:monospace;font-size:12px;color:var(--muted);">NULL</td>
+                <td style="font-size:12px;color:var(--muted);">Wipes all play_sessions, skill_progress, xp, streak, level</td>
+              </tr>
+              <tr>
+                <td><span class="type-pill tp-scenario">Scenario Reset</span></td>
+                <td style="font-family:monospace;font-size:12px;color:var(--beta);">'first-run' etc.</td>
+                <td style="font-family:monospace;font-size:12px;color:var(--muted);">NULL</td>
+                <td style="font-family:monospace;font-size:12px;color:var(--muted);">NULL</td>
+                <td style="font-size:12px;color:var(--muted);">Full reset + apply_scenario_fixture()</td>
+              </tr>
+              <tr>
+                <td><span class="type-pill tp-partial">Partial Reset</span></td>
+                <td style="font-family:monospace;font-size:12px;color:var(--muted);">NULL</td>
+                <td style="font-family:monospace;font-size:12px;color:var(--accent);">'p0'..'p3'</td>
+                <td style="font-family:monospace;font-size:12px;color:var(--accent);">subject name</td>
+                <td style="font-size:12px;color:var(--muted);">Deletes skill_progress for band + subject only</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-card">
+    <div class="success-icon">&#9989;</div>
+    <div class="success-title">Reset Executed</div>
+    <div class="success-body" id="success-body">The reset has been applied and logged to the beta_resets audit table.</div>
+    <div class="success-ref" id="success-ref">RST-0019</div>
+    <button class="success-close" onclick="closeSuccess()">Done</button>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  const childData = {
+    emma:  { name: 'Emma Chen',     meta: 'P2 · Family Cohort B',    band: 'P2' },
+    noah:  { name: 'Noah Chen',     meta: 'P1 · Family Cohort B',    band: 'P1' },
+    aria:  { name: 'Aria Patel',    meta: 'P0 · Family Cohort A',    band: 'P0' },
+    class: { name: 'Class account', meta: 'Shared · Johnson Family', band: '—'  },
+  };
+
+  let selectedChild = 'emma';
+  let selectedResetType = null;
+
+  // ── Tab switching ──
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + t).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // ── Child selection ──
+  function selectChild(id) {
+    selectedChild = id;
+    // Reset button states
+    document.querySelectorAll('.select-btn').forEach(b => {
+      b.classList.remove('is-selected');
+      b.textContent = 'Select';
+    });
+    const btn = document.getElementById('btn-' + id);
+    if (btn) { btn.classList.add('is-selected'); btn.textContent = 'Selected'; }
+    // Update row highlight
+    document.querySelectorAll('.child-row').forEach(r => r.classList.remove('selected-child'));
+    const row = document.querySelector(`.child-row[data-child="${id}"]`);
+    if (row) row.classList.add('selected-child');
+    // Update banner
+    const d = childData[id];
+    document.getElementById('selected-name').textContent = d.name;
+    document.getElementById('selected-meta').textContent = d.meta;
+    updateSummary();
+  }
+
+  // ── Reset type selection ──
+  function selectResetType(type) {
+    selectedResetType = type;
+    ['full','scenario','partial'].forEach(t => {
+      document.getElementById('card-' + t).classList.remove('selected');
+    });
+    document.getElementById('card-' + type).classList.add('selected');
+    // Show confirm section
+    document.getElementById('confirm-section').classList.add('visible');
+    updateSummary();
+    checkConfirmReady();
+  }
+
+  function updateSummary() {
+    const child = childData[selectedChild] || {};
+    document.getElementById('summary-child').textContent = child.name || '—';
+    const typeLabels = {
+      full: 'Full Reset',
+      scenario: 'Scenario Reset → ' + (document.getElementById('scenario-select')?.options[document.getElementById('scenario-select').selectedIndex]?.text || ''),
+      partial: 'Partial Reset'
+    };
+    document.getElementById('summary-type').textContent = selectedResetType ? typeLabels[selectedResetType] : '—';
+  }
+
+  // ── Band/Subject chips ──
+  function toggleChip(el, group) {
+    const siblings = el.closest('.' + (group === 'band' ? 'band-chips' : 'subject-chips')).querySelectorAll('.chip');
+    siblings.forEach(c => c.classList.remove('chip-active'));
+    el.classList.add('chip-active');
+    updateSummary();
+  }
+
+  // ── Confirm readiness ──
+  function checkConfirmReady() {
+    const reason = document.getElementById('reset-reason').value.trim();
+    const pin = document.getElementById('admin-pin').value.trim();
+    const btn = document.getElementById('btn-execute');
+    btn.disabled = !(reason.length >= 3 && pin.length === 4 && selectedResetType);
+  }
+
+  // ── Execute reset ──
+  let resetCounter = 19;
+  function executeReset() {
+    const refId = 'RST-' + String(resetCounter).padStart(4, '0');
+    resetCounter++;
+    const child = childData[selectedChild] || {};
+    const typeLabels = { full: 'Full Reset', scenario: 'Scenario Reset', partial: 'Partial Reset' };
+    document.getElementById('success-ref').textContent = refId;
+    document.getElementById('success-body').textContent =
+      typeLabels[selectedResetType] + ' applied to ' + child.name + '. Logged to beta_resets audit table.';
+    document.getElementById('success-overlay').classList.add('show');
+  }
+
+  function closeSuccess() {
+    document.getElementById('success-overlay').classList.remove('show');
+    cancelReset();
+  }
+
+  function cancelReset() {
+    selectedResetType = null;
+    ['full','scenario','partial'].forEach(t => {
+      document.getElementById('card-' + t).classList.remove('selected');
+    });
+    document.getElementById('confirm-section').classList.remove('visible');
+    document.getElementById('reset-reason').value = '';
+    document.getElementById('admin-pin').value = '';
+    document.getElementById('btn-execute').disabled = true;
+  }
+
+  // ── Search filter ──
+  function filterChildren(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('.family-group').forEach(group => {
+      const familyName = group.querySelector('.family-name').textContent.toLowerCase();
+      let anyVisible = false;
+      group.querySelectorAll('.child-row').forEach(row => {
+        const name = row.querySelector('.child-name').textContent.toLowerCase();
+        const matches = !q || name.includes(q) || familyName.includes(q);
+        row.style.display = matches ? '' : 'none';
+        if (matches) anyVisible = true;
+      });
+      group.style.display = anyVisible ? '' : 'none';
+    });
+  }
+
+  // ── Init ──
+  selectChild('emma');
+</script>
+</body>
+</html>

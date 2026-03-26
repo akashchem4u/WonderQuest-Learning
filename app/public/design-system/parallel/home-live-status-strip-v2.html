@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>home-live-status-strip-v2 — WonderQuest Live Status Strip</title>
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #f0f6ff;
+      min-height: 100vh;
+    }
+
+    /* ── Engineering Hint Box ─────────────────────────────────────────── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #1a1a00;
+      line-height: 1.6;
+      border-radius: 4px;
+    }
+    .hint-box strong { color: #7c4a00; }
+
+    /* ── Page Shell ───────────────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    .page-header {
+      margin-bottom: 24px;
+    }
+
+    .page-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0f6ff;
+      letter-spacing: -0.01em;
+    }
+
+    .page-header p {
+      font-size: 13px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    /* ── Tab Nav ──────────────────────────────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #8b949e;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      margin-bottom: -1px;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: #f0f6ff; }
+
+    .tab-btn.active {
+      color: #50e890;
+      border-bottom-color: #50e890;
+    }
+
+    /* ── Tab Panels ───────────────────────────────────────────────────── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section label ────────────────────────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 10px;
+    }
+
+    /* ── Context hint ─────────────────────────────────────────────────── */
+    .context-note {
+      font-size: 12px;
+      color: #8b949e;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .context-note strong { color: #f0f6ff; }
+
+    /* ── Home-page mockup shell ───────────────────────────────────────── */
+    .mockup-page {
+      background: #0f1118;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 380px;
+    }
+
+    .mockup-body {
+      padding: 28px 24px;
+    }
+
+    .mockup-body h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f0f6ff;
+      margin-bottom: 6px;
+    }
+
+    .mockup-body p {
+      font-size: 13px;
+      color: #8b949e;
+      line-height: 1.6;
+    }
+
+    .mock-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .mock-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px;
+      height: 80px;
+    }
+
+    /* ── Toggle button ────────────────────────────────────────────────── */
+    .toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #8b949e;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .15s;
+      margin-bottom: 12px;
+    }
+    .toggle-btn:hover { color: #f0f6ff; background: rgba(255,255,255,.07); }
+    .toggle-btn.active-toggle { color: #50e890; border-color: rgba(80,232,144,.3); }
+
+    /* ══════════════════════════════════════════════════════════════════
+       STATUS STRIP — SHARED BASE
+    ══════════════════════════════════════════════════════════════════ */
+
+    /* --- Pulse dot animation --- */
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 currentColor; opacity: .8; }
+      70%  { box-shadow: 0 0 0 5px transparent; opacity: 1; }
+      100% { box-shadow: 0 0 0 0 transparent; opacity: .8; }
+    }
+
+    @keyframes pulse-ring-fast {
+      0%   { box-shadow: 0 0 0 0 currentColor; opacity: .9; }
+      60%  { box-shadow: 0 0 0 6px transparent; opacity: 1; }
+      100% { box-shadow: 0 0 0 0 transparent; opacity: .9; }
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.green {
+      background: #50e890;
+      color: rgba(80,232,144,.6);
+    }
+
+    .status-dot.amber {
+      background: #f59e0b;
+      color: rgba(245,158,11,.6);
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    .status-dot.red {
+      background: #ef4444;
+      color: rgba(239,68,68,.6);
+      animation: pulse-ring-fast 1.2s ease-out infinite;
+    }
+
+    .status-dot.violet {
+      background: #a78bfa;
+      color: rgba(167,139,250,.6);
+      animation: pulse-ring 2.5s ease-out infinite;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       TAB 1 — ALL GOOD
+    ══════════════════════════════════════════════════════════════════ */
+
+    /* Thin strip */
+    .strip-all-good {
+      height: 40px;
+      background: #0d1117;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+
+    .strip-all-good .strip-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .strip-all-good .strip-left .status-text {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #f0f6ff;
+    }
+
+    .strip-all-good .strip-left .updated-text {
+      font-size: 11.5px;
+      color: #8b949e;
+    }
+
+    .strip-all-good .sep {
+      width: 1px;
+      height: 16px;
+      background: rgba(255,255,255,.1);
+      flex-shrink: 0;
+    }
+
+    .strip-all-good .strip-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    .strip-all-good .strip-right .uptime {
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    .strip-all-good .strip-right .uptime strong {
+      color: #50e890;
+      font-weight: 600;
+    }
+
+    .strip-all-good .strip-right .sessions {
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    .strip-all-good .strip-right .sessions strong {
+      color: #f0f6ff;
+      font-weight: 600;
+    }
+
+    .strip-dismiss {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: color .15s, background .15s;
+      flex-shrink: 0;
+    }
+    .strip-dismiss:hover { color: #f0f6ff; background: rgba(255,255,255,.06); }
+
+    /* Full-width banner variant */
+    .banner-all-good {
+      background: rgba(80,232,144,.05);
+      border-bottom: 2px solid rgba(80,232,144,.2);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .banner-all-good .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .banner-all-good .banner-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #50e890;
+    }
+
+    .banner-all-good .banner-sub {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+
+    .banner-all-good .banner-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .stat-chip .stat-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+
+    .stat-chip .stat-label {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .stat-chip.green .stat-value { color: #50e890; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       TAB 2 — DEGRADED
+    ══════════════════════════════════════════════════════════════════ */
+
+    .strip-degraded {
+      background: rgba(245,158,11,.08);
+      border-bottom: 2px solid rgba(245,158,11,.3);
+      padding: 0 16px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .strip-degraded .dg-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .strip-degraded .dg-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #f59e0b;
+      white-space: nowrap;
+    }
+
+    .strip-degraded .dg-center {
+      font-size: 12px;
+      color: #d4a017;
+      padding: 0 10px;
+      border-left: 1px solid rgba(245,158,11,.2);
+      border-right: 1px solid rgba(245,158,11,.2);
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .strip-degraded .dg-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .strip-degraded .dg-meta {
+      font-size: 12px;
+      color: #8b949e;
+      white-space: nowrap;
+    }
+
+    .strip-degraded .dg-meta em {
+      color: #f59e0b;
+      font-style: normal;
+      font-weight: 500;
+    }
+
+    .status-link {
+      font-size: 12px;
+      font-weight: 500;
+      color: #50e890;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: opacity .15s;
+    }
+    .status-link:hover { opacity: .75; text-decoration: underline; }
+
+    /* Sessions impact note */
+    .sessions-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #8b949e;
+      background: rgba(245,158,11,.06);
+      border: 1px solid rgba(245,158,11,.15);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+    .sessions-note .dot-small {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #f59e0b;
+      flex-shrink: 0;
+    }
+
+    /* Affected components row below strip */
+    .affected-row {
+      background: rgba(245,158,11,.04);
+      border-bottom: 1px solid rgba(245,158,11,.12);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .affected-row .af-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: #8b949e;
+    }
+
+    .component-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: rgba(245,158,11,.1);
+      border: 1px solid rgba(245,158,11,.25);
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #f59e0b;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       TAB 3 — ACTIVE INCIDENT
+    ══════════════════════════════════════════════════════════════════ */
+
+    .strip-incident {
+      background: rgba(239,68,68,.1);
+      border-bottom: 2px solid rgba(239,68,68,.5);
+      padding: 0 16px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .strip-incident .inc-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .strip-incident .inc-badge {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #ef4444;
+      white-space: nowrap;
+    }
+
+    .inc-p0-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 6px;
+      background: rgba(239,68,68,.2);
+      border: 1px solid rgba(239,68,68,.4);
+      border-radius: 3px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #ef4444;
+      letter-spacing: .03em;
+    }
+
+    .strip-incident .inc-center {
+      font-size: 12.5px;
+      color: #fca5a5;
+      padding: 0 10px;
+      border-left: 1px solid rgba(239,68,68,.2);
+      border-right: 1px solid rgba(239,68,68,.2);
+      line-height: 1.4;
+    }
+
+    .strip-incident .inc-center .inc-id {
+      font-size: 11px;
+      color: #8b949e;
+      margin-left: 6px;
+    }
+
+    .strip-incident .inc-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .strip-incident .eta-text {
+      font-size: 12px;
+      color: #8b949e;
+      white-space: nowrap;
+    }
+
+    .strip-incident .eta-text strong {
+      color: #f0f6ff;
+      font-weight: 600;
+    }
+
+    .view-incident-btn {
+      padding: 4px 10px;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.35);
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #fca5a5;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .view-incident-btn:hover { background: rgba(239,68,68,.2); }
+
+    /* Incident expanded panel */
+    .incident-panel {
+      background: rgba(239,68,68,.04);
+      border-bottom: 1px solid rgba(239,68,68,.15);
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .3s ease, padding .3s ease;
+    }
+    .incident-panel.open {
+      max-height: 400px;
+    }
+    .incident-panel-inner {
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .incident-panel-inner { grid-template-columns: 1fr; }
+    }
+
+    .panel-section h4 {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 10px;
+    }
+
+    /* Timeline */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 10px;
+      position: relative;
+      padding-bottom: 14px;
+    }
+
+    .timeline-item:last-child { padding-bottom: 0; }
+
+    .timeline-dot-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 14px;
+    }
+
+    .tl-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .tl-dot.past { background: #8b949e; }
+
+    .tl-line {
+      width: 1px;
+      flex: 1;
+      background: rgba(255,255,255,.08);
+      margin-top: 4px;
+    }
+
+    .timeline-item:last-child .tl-line { display: none; }
+
+    .tl-content {}
+    .tl-time {
+      font-size: 11px;
+      color: #8b949e;
+      font-weight: 600;
+    }
+    .tl-msg {
+      font-size: 12.5px;
+      color: #f0f6ff;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    /* Routes list */
+    .routes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .route-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .route-path {
+      font-family: 'Courier New', monospace;
+      font-size: 11.5px;
+      color: #fca5a5;
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.15);
+      border-radius: 3px;
+      padding: 1px 6px;
+    }
+
+    .workaround-note {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 5px;
+      font-size: 12px;
+      color: #8b949e;
+      line-height: 1.5;
+    }
+
+    .workaround-note strong { color: #f0f6ff; }
+
+    /* Persona message bar */
+    .persona-msg-bar {
+      background: rgba(80,232,144,.05);
+      border-bottom: 1px solid rgba(80,232,144,.12);
+      padding: 8px 20px;
+      font-size: 12px;
+      color: #86efac;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .persona-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       TAB 4 — SCHEDULED MAINTENANCE
+    ══════════════════════════════════════════════════════════════════ */
+
+    .strip-maintenance {
+      background: rgba(167,139,250,.08);
+      border-bottom: 2px solid rgba(167,139,250,.3);
+      padding: 0 16px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .strip-maintenance .mt-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .strip-maintenance .mt-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #c4b5fd;
+      white-space: nowrap;
+    }
+
+    .strip-maintenance .mt-center {
+      font-size: 12px;
+      color: #a78bfa;
+      padding: 0 10px;
+      border-left: 1px solid rgba(167,139,250,.2);
+      border-right: 1px solid rgba(167,139,250,.2);
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .strip-maintenance .mt-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .countdown-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: rgba(167,139,250,.1);
+      border: 1px solid rgba(167,139,250,.25);
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #c4b5fd;
+    }
+
+    .dismiss-remind-btn {
+      padding: 5px 12px;
+      background: rgba(167,139,250,.1);
+      border: 1px solid rgba(167,139,250,.3);
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #c4b5fd;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .dismiss-remind-btn:hover { background: rgba(167,139,250,.18); }
+
+    .cal-link {
+      font-size: 12px;
+      color: #a78bfa;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: opacity .15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cal-link:hover { opacity: .75; text-decoration: underline; }
+
+    /* Maintenance detail sub-row */
+    .mt-detail-row {
+      background: rgba(167,139,250,.04);
+      border-bottom: 1px solid rgba(167,139,250,.1);
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .mt-detail-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    .mt-detail-item .mt-di-label {
+      font-weight: 600;
+      color: #a78bfa;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       TAB 5 — SPEC
+    ══════════════════════════════════════════════════════════════════ */
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .spec-grid { grid-template-columns: 1fr; }
+    }
+
+    .spec-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .spec-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .spec-card h3 .spec-icon {
+      font-size: 15px;
+    }
+
+    .spec-code {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 11.5px;
+      color: #8b949e;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    .spec-code .kw { color: #79c0ff; }
+    .spec-code .ty { color: #ffa657; }
+    .spec-code .cm { color: #8b949e; font-style: italic; }
+    .spec-code .st { color: #a5d6ff; }
+    .spec-code .fn { color: #d2a8ff; }
+
+    .spec-rule-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .spec-rule {
+      display: flex;
+      gap: 8px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #8b949e;
+    }
+
+    .spec-rule .rule-bullet {
+      color: #50e890;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .spec-rule strong { color: #f0f6ff; }
+    .spec-rule code {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      background: rgba(255,255,255,.06);
+      border-radius: 3px;
+      padding: 1px 4px;
+      color: #a5d6ff;
+    }
+
+    .status-enum-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .enum-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .enum-pill.operational { background: rgba(80,232,144,.1); border-color: rgba(80,232,144,.3); color: #50e890; }
+    .enum-pill.degraded    { background: rgba(245,158,11,.1);  border-color: rgba(245,158,11,.3);  color: #f59e0b; }
+    .enum-pill.incident    { background: rgba(239,68,68,.1);   border-color: rgba(239,68,68,.3);   color: #ef4444; }
+    .enum-pill.maintenance { background: rgba(167,139,250,.1); border-color: rgba(167,139,250,.3); color: #a78bfa; }
+
+    .enum-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Visibility matrix */
+    .visibility-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .visibility-table th,
+    .visibility-table td {
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+
+    .visibility-table th {
+      color: #8b949e;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .visibility-table td { color: #f0f6ff; }
+
+    .vis-yes {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #50e890;
+      font-weight: 600;
+      font-size: 11.5px;
+    }
+
+    .vis-no {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #8b949e;
+      font-weight: 500;
+      font-size: 11.5px;
+    }
+
+    .vis-cond {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #f59e0b;
+      font-weight: 500;
+      font-size: 11.5px;
+    }
+
+    /* ── Dismissed state ─────────────────────────────────────────── */
+    .dismissed-notice {
+      display: none;
+      height: 28px;
+      background: #0d1117;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+
+    .dismissed-notice.visible {
+      display: flex;
+    }
+
+    .dismissed-notice .dn-text {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .dn-restore {
+      font-size: 11px;
+      color: #50e890;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+    .dn-restore:hover { opacity: .75; }
+
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Engineering Hint Box -->
+  <div class="hint-box">
+    <strong>home-live-status-strip-v2.html</strong> — Live status strip component.
+    Data source: <strong>platform_status</strong> table (<code>id, status ENUM operational/degraded/incident/maintenance, message, updated_at</code>).
+    Shown to: <strong>all adult personas (teacher, parent, owner)</strong>. Child personas: <strong>never shown</strong>.
+    Strip variants: <strong>All Good</strong> (green dot, hidden/minimal), <strong>Degraded</strong> (amber, visible with message),
+    <strong>Active Incident</strong> (red, non-dismissible), <strong>Scheduled Maintenance</strong> (violet, dismissible 1h before window).
+    <code>active_sessions_now</code> = count of sessions with <code>last_ping_at</code> within 90 seconds.
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Live Status Strip</h1>
+    <p>Thin horizontal bar at top of home screen — adult personas only (teacher, parent, owner)</p>
+  </div>
+
+  <!-- Tab Nav -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="showTab(1)">1 — All Good</button>
+    <button class="tab-btn" onclick="showTab(2)">2 — Degraded</button>
+    <button class="tab-btn" onclick="showTab(3)">3 — Active Incident</button>
+    <button class="tab-btn" onclick="showTab(4)">4 — Scheduled Maintenance</button>
+    <button class="tab-btn" onclick="showTab(5)">5 — Spec</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       TAB 1 — ALL GOOD
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-1">
+
+    <div class="context-note">
+      Strip is subtle and non-intrusive when all systems are operational. No attention-drawing animation.
+      A small <strong>×</strong> dismiss button is present (session-only dismissal). Toggle below to compare thin vs. banner variant.
+    </div>
+
+    <!-- Variant toggle -->
+    <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="toggle-btn active-toggle" id="btn-thin" onclick="showVariant('thin')">Thin strip (40px)</button>
+      <button class="toggle-btn" id="btn-banner" onclick="showVariant('banner')">Banner variant</button>
+    </div>
+
+    <!-- Thin strip variant -->
+    <div id="variant-thin">
+      <div class="section-label">Thin Strip — Mockup</div>
+
+      <!-- Dismissed notice -->
+      <div class="dismissed-notice" id="dismissed-notice-1">
+        <span class="dn-text">Status strip dismissed for this session.</span>
+        <button class="dn-restore" onclick="restoreStrip('1')">Restore</button>
+      </div>
+
+      <!-- The strip itself -->
+      <div class="mockup-page" id="strip-mockup-1">
+        <div class="strip-all-good" id="strip-1">
+          <!-- Left -->
+          <div class="strip-left">
+            <span class="status-dot green"></span>
+            <span class="status-text">All systems operational</span>
+            <span class="sep"></span>
+            <span class="updated-text">Updated 2 min ago</span>
+          </div>
+          <!-- Right -->
+          <div class="strip-right">
+            <span class="uptime"><strong>99.97%</strong> uptime this month</span>
+            <span class="sep"></span>
+            <span class="sessions"><strong>1,247</strong> active sessions now</span>
+            <button class="strip-dismiss" title="Dismiss for this session" onclick="dismissStrip('1')">×</button>
+          </div>
+        </div>
+        <!-- Mock page body below strip -->
+        <div class="mockup-body">
+          <h3>Teacher Dashboard</h3>
+          <p>Your class overview and recent activity will appear here.</p>
+          <div class="mock-cards">
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Annotation -->
+      <div style="margin-top:12px; padding:12px 14px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:6px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#8b949e; margin-bottom:8px;">Behaviour notes</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="spec-rule"><span class="rule-bullet">→</span><span>Strip height: <strong>40px</strong>. Zero animation on green state — purely informational.</span></div>
+          <div class="spec-rule"><span class="rule-bullet">→</span><span>Session count <strong>1,247</strong> is fetched from <code>play_sessions WHERE last_ping_at &gt; NOW() - INTERVAL '90 seconds'</code>.</span></div>
+          <div class="spec-rule"><span class="rule-bullet">→</span><span>Dismiss stores flag in <code>sessionStorage</code>; strip re-appears on next page load / tab open.</span></div>
+          <div class="spec-rule"><span class="rule-bullet">→</span><span>Strip data polled every <strong>60 s</strong> via <code>GET /api/status/current</code>. No WebSocket for MVP.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner variant -->
+    <div id="variant-banner" style="display:none;">
+      <div class="section-label">Banner Variant — Mockup</div>
+
+      <div class="mockup-page">
+        <div class="banner-all-good">
+          <!-- Left -->
+          <div class="banner-left">
+            <span class="status-dot green"></span>
+            <div>
+              <div class="banner-title">All systems operational</div>
+              <div class="banner-sub">Updated 2 minutes ago · Next check in 58 s</div>
+            </div>
+          </div>
+          <!-- Right -->
+          <div class="banner-right">
+            <div class="stat-chip green">
+              <span class="stat-value">99.97%</span>
+              <span class="stat-label">Uptime this month</span>
+            </div>
+            <div style="width:1px; height:32px; background:rgba(255,255,255,.08);"></div>
+            <div class="stat-chip">
+              <span class="stat-value">1,247</span>
+              <span class="stat-label">Active sessions now</span>
+            </div>
+            <div style="width:1px; height:32px; background:rgba(255,255,255,.08);"></div>
+            <div class="stat-chip">
+              <span class="stat-value">0</span>
+              <span class="stat-label">Open incidents</span>
+            </div>
+            <button class="strip-dismiss" title="Dismiss">×</button>
+          </div>
+        </div>
+        <!-- Mock page body -->
+        <div class="mockup-body">
+          <h3>Teacher Dashboard</h3>
+          <p>Your class overview and recent activity will appear here.</p>
+          <div class="mock-cards">
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; padding:12px 14px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:6px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#8b949e; margin-bottom:8px;">When to use banner variant</div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Banner variant is shown on wider viewports as an opt-in setting (owner persona only) or on admin/status dashboards.</span></div>
+        <div class="spec-rule" style="margin-top:6px;"><span class="rule-bullet">→</span><span>On mobile, only the thin strip variant is used regardless of setting.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-1 -->
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       TAB 2 — DEGRADED
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-2">
+
+    <div class="context-note">
+      Amber strip. <strong>Non-dismissible</strong> while degradation is active. Session count still shown with an impact note.
+      Strip becomes visible and warrants attention but is not alarming.
+    </div>
+
+    <div class="section-label">Degraded Strip — Mockup</div>
+
+    <div class="mockup-page">
+      <!-- Main strip -->
+      <div class="strip-degraded">
+        <div class="dg-left">
+          <span class="status-dot amber"></span>
+          <span class="dg-label">Partial degradation detected</span>
+        </div>
+        <div class="dg-center">
+          Affected: Question loading (P1–P3 bands) &nbsp;·&nbsp; Progress saves may be delayed
+        </div>
+        <div class="dg-right">
+          <span class="dg-meta"><em>Investigating</em> · Started 14 min ago</span>
+          <div class="sessions-note">
+            <span class="dot-small"></span>
+            <span>1,183 sessions — may be impacted</span>
+          </div>
+          <a href="#" class="status-link">View status page →</a>
+        </div>
+      </div>
+      <!-- Affected components sub-row -->
+      <div class="affected-row">
+        <span class="af-label">Affected components:</span>
+        <span class="component-chip">Question Engine</span>
+        <span class="component-chip">Progress API</span>
+        <span class="component-chip">Band P1</span>
+        <span class="component-chip">Band P2</span>
+        <span class="component-chip">Band P3</span>
+      </div>
+      <!-- Mock page body -->
+      <div class="mockup-body">
+        <h3>Teacher Dashboard</h3>
+        <p>Your class overview and recent activity will appear here.</p>
+        <div class="mock-cards">
+          <div class="mock-card"></div>
+          <div class="mock-card"></div>
+          <div class="mock-card"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; padding:12px 14px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:6px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#8b949e; margin-bottom:8px;">Behaviour notes</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div class="spec-rule"><span class="rule-bullet">→</span><span><strong>Non-dismissible</strong> while <code>status = 'degraded'</code>. No × button rendered.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Affected components list sourced from <code>platform_status.affected_components TEXT[]</code>.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>"Investigating · Started N min ago" is computed from <code>started_at</code> field on the status row.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Strip transitions to this state within one 60 s polling cycle after status changes to <code>degraded</code>.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>"View status page" links to the public status page (<code>/status</code>) — accessible without login.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-2 -->
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       TAB 3 — ACTIVE INCIDENT (P0)
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-3">
+
+    <div class="context-note">
+      Red strip. <strong>Absolutely non-dismissible</strong> — no × button. Shows incident ID, ETA, and a collapsible detail panel.
+      Teacher/parent personas see a student-impact message.
+    </div>
+
+    <div class="section-label">Active Incident Strip — Mockup</div>
+
+    <div class="mockup-page">
+
+      <!-- Main strip — NON-DISMISSIBLE -->
+      <div class="strip-incident">
+        <div class="inc-left">
+          <span class="status-dot red"></span>
+          <span class="inc-badge">Active Incident</span>
+          <span class="inc-p0-pill">P0</span>
+        </div>
+        <div class="inc-center">
+          Platform login affected for some users
+          <span class="inc-id">INC-2024-0089</span>
+        </div>
+        <div class="inc-right">
+          <span class="eta-text">ETA: <strong>~45 min</strong> · Engineers on call</span>
+          <button class="view-incident-btn" onclick="toggleIncidentPanel()">View incident ↓</button>
+        </div>
+      </div>
+
+      <!-- Expandable incident details panel -->
+      <div class="incident-panel" id="incident-panel">
+        <div class="incident-panel-inner">
+
+          <!-- Timeline -->
+          <div class="panel-section">
+            <h4>Incident Timeline</h4>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot-col">
+                  <div class="tl-dot past"></div>
+                  <div class="tl-line"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-time">09:14 UTC</div>
+                  <div class="tl-msg">Automated alert: elevated login failure rate detected (&gt;15% error rate on /auth/login)</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot-col">
+                  <div class="tl-dot past"></div>
+                  <div class="tl-line"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-time">09:18 UTC</div>
+                  <div class="tl-msg">On-call engineer acknowledged. Investigation started. Auth service logs being reviewed.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot-col">
+                  <div class="tl-dot"></div>
+                </div>
+                <div class="tl-content">
+                  <div class="tl-time">09:31 UTC — Latest</div>
+                  <div class="tl-msg">Root cause identified: auth token signing key rotation issue. Fix being deployed. ETA ~45 min.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Affected routes + workaround -->
+          <div class="panel-section">
+            <h4>Affected Routes</h4>
+            <div class="routes-list">
+              <div class="route-item"><span class="route-path">/play</span></div>
+              <div class="route-item"><span class="route-path">/auth/login</span></div>
+            </div>
+            <div class="workaround-note">
+              <strong>Workaround:</strong> Students already logged in are not affected. New logins may fail intermittently — advise students to retry in 1–2 minutes.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Persona-specific message bar (teacher/parent) -->
+      <div class="persona-msg-bar">
+        <span class="persona-icon">👩‍🏫</span>
+        <span>Your students' progress is being saved locally and will sync automatically when the incident is resolved.</span>
+      </div>
+
+      <!-- Mock page body -->
+      <div class="mockup-body">
+        <h3>Teacher Dashboard</h3>
+        <p>Your class overview and recent activity will appear here.</p>
+        <div class="mock-cards">
+          <div class="mock-card"></div>
+          <div class="mock-card"></div>
+          <div class="mock-card"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:12px; padding:12px 14px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:6px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#8b949e; margin-bottom:8px;">Behaviour notes</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div class="spec-rule"><span class="rule-bullet">→</span><span><strong>No dismiss button</strong>. Strip cannot be hidden during an active P0 incident — enforced in render logic.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Status change to <code>incident</code> triggers push notification (FCM/APNs) within <strong>60 s</strong> to all teacher/parent/owner devices.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Timeline entries sourced from <code>status_incidents</code> table joined on <code>status_id</code>.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>ETA shown as <code>eta_mins</code> from the status row, formatted as "~N min" (or "~N h M min" if over 60).</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Persona message shown only when <code>user.role IN ('teacher', 'parent')</code>. Owner sees a different message with raw metrics.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-3 -->
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       TAB 4 — SCHEDULED MAINTENANCE
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-4">
+
+    <div class="context-note">
+      Violet strip shown when a maintenance window is scheduled. Dismissible with a "remind 1h before" option.
+      Countdown display is a <strong>static formatted string</strong> — not a live JS countdown timer.
+    </div>
+
+    <!-- Dismissed state for maintenance -->
+    <div class="dismissed-notice" id="dismissed-notice-4">
+      <span class="dn-text">Maintenance reminder dismissed. You will be reminded 1 hour before the window (Tonight 10 PM UTC).</span>
+      <button class="dn-restore" onclick="restoreStrip('4')">Show again</button>
+    </div>
+
+    <div class="section-label" style="margin-top:4px;">Scheduled Maintenance Strip — Mockup</div>
+
+    <div class="mockup-page" id="strip-mockup-4">
+      <!-- Main strip -->
+      <div class="strip-maintenance">
+        <div class="mt-left">
+          <span class="status-dot violet"></span>
+          <span class="mt-label">Scheduled maintenance: Tonight 11 PM – 1 AM UTC</span>
+        </div>
+        <div class="mt-center">
+          Brief downtime expected &nbsp;·&nbsp; All data will be preserved
+        </div>
+        <div class="mt-right">
+          <div class="countdown-chip">
+            <span>Starts in</span>
+            <strong>4h 32m</strong>
+          </div>
+          <a href="#" class="cal-link" onclick="handleCalendar(event)">
+            📅 Add to calendar
+          </a>
+          <button class="dismiss-remind-btn" onclick="dismissMaintenance()">Dismiss until reminded</button>
+        </div>
+      </div>
+      <!-- Maintenance detail sub-row -->
+      <div class="mt-detail-row">
+        <div class="mt-detail-item">
+          <span class="mt-di-label">Window:</span>
+          <span>Tonight 11:00 PM – 1:00 AM UTC (2 hours)</span>
+        </div>
+        <div style="width:1px; height:14px; background:rgba(167,139,250,.15);"></div>
+        <div class="mt-detail-item">
+          <span class="mt-di-label">Impact:</span>
+          <span>Full platform unavailable · No data loss</span>
+        </div>
+        <div style="width:1px; height:14px; background:rgba(167,139,250,.15);"></div>
+        <div class="mt-detail-item">
+          <span class="mt-di-label">Reminder:</span>
+          <span>Push notification sent 1 h before window</span>
+        </div>
+      </div>
+      <!-- Mock page body -->
+      <div class="mockup-body">
+        <h3>Teacher Dashboard</h3>
+        <p>Your class overview and recent activity will appear here.</p>
+        <div class="mock-cards">
+          <div class="mock-card"></div>
+          <div class="mock-card"></div>
+          <div class="mock-card"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; padding:12px 14px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:6px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#8b949e; margin-bottom:8px;">Behaviour notes</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>"Starts in 4h 32m" is a <strong>static pre-formatted string</strong> computed server-side at render/poll time. No JS <code>setInterval</code>.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>"Dismiss until reminded" writes a row to <code>status_dismissals(user_id, status_id, dismissed_at, remind_at)</code> with <code>remind_at = window_start - 1h</code>.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>"Add to calendar" triggers a client-side .ics file download with the maintenance window event data.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>Strip re-appears at <code>remind_at</code> even if previously dismissed — remind_at is checked server-side on each poll response.</span></div>
+        <div class="spec-rule"><span class="rule-bullet">→</span><span>If a maintenance window is <strong>currently active</strong> (within the window), strip switches to a non-dismissible "Maintenance in progress" state.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-4 -->
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       TAB 5 — SPEC
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-5">
+
+    <!-- Status ENUM -->
+    <div style="margin-bottom:20px;">
+      <div class="section-label">Status Enum Values</div>
+      <div class="status-enum-row">
+        <span class="enum-pill operational"><span class="enum-dot"></span> operational</span>
+        <span class="enum-pill degraded"><span class="enum-dot"></span> degraded</span>
+        <span class="enum-pill incident"><span class="enum-dot"></span> incident</span>
+        <span class="enum-pill maintenance"><span class="enum-dot"></span> maintenance</span>
+      </div>
+    </div>
+
+    <div class="spec-grid">
+
+      <!-- DB Schema -->
+      <div class="spec-card">
+        <h3><span class="spec-icon">🗄</span> DB Schema</h3>
+        <div class="spec-code">
+<span class="cm">-- Current platform status (one active row at a time)</span>
+<span class="kw">CREATE TABLE</span> platform_status (
+  id              <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY</span>,
+  status          <span class="ty">status_enum</span> <span class="kw">NOT NULL</span>,
+  message         <span class="ty">TEXT</span>,
+  affected_components <span class="ty">TEXT[]</span>,
+  started_at      <span class="ty">TIMESTAMPTZ</span>,
+  resolved_at     <span class="ty">TIMESTAMPTZ</span>,
+  eta_mins        <span class="ty">INT</span>,
+  updated_at      <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL</span>
+);
+
+<span class="cm">-- Timeline entries for incident history</span>
+<span class="kw">CREATE TABLE</span> status_incidents (
+  id              <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY</span>,
+  status_id       <span class="ty">UUID</span>        <span class="kw">REFERENCES</span> platform_status,
+  message         <span class="ty">TEXT</span>        <span class="kw">NOT NULL</span>,
+  created_at      <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL</span>
+);
+
+<span class="cm">-- Per-user dismissal + remind state</span>
+<span class="kw">CREATE TABLE</span> status_dismissals (
+  user_id         <span class="ty">UUID</span>        <span class="kw">REFERENCES</span> users,
+  status_id       <span class="ty">UUID</span>        <span class="kw">REFERENCES</span> platform_status,
+  dismissed_at    <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL</span>,
+  remind_at       <span class="ty">TIMESTAMPTZ</span>,
+  <span class="kw">PRIMARY KEY</span>(user_id, status_id)
+);
+
+<span class="cm">-- Active sessions: live count</span>
+<span class="cm">-- active_sessions_now =</span>
+<span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> play_sessions
+  <span class="kw">WHERE</span> last_ping_at &gt; <span class="fn">NOW</span>() - <span class="ty">INTERVAL</span> <span class="st">'90 seconds'</span>;
+        </div>
+      </div>
+
+      <!-- API + Polling -->
+      <div class="spec-card">
+        <h3><span class="spec-icon">🔌</span> API &amp; Polling</h3>
+        <div class="spec-code">
+<span class="cm">-- Poll endpoint (60 s interval, MVP)</span>
+<span class="fn">GET</span> /api/status/current
+
+<span class="cm">-- Response shape</span>
+{
+  <span class="st">"status"</span>:      <span class="st">"operational"</span>,
+  <span class="st">"message"</span>:     <span class="ty">null</span>,
+  <span class="st">"affected"</span>:    [],
+  <span class="st">"started_at"</span>:  <span class="ty">null</span>,
+  <span class="st">"eta_mins"</span>:    <span class="ty">null</span>,
+  <span class="st">"updated_at"</span>:  <span class="st">"2024-03-24T09:35:00Z"</span>,
+  <span class="st">"incidents"</span>:   [],  <span class="cm">// timeline entries</span>
+  <span class="st">"active_sessions_now"</span>: <span class="ty">1247</span>,
+  <span class="st">"uptime_30d_pct"</span>: <span class="ty">99.97</span>,
+  <span class="st">"dismiss_state"</span>: {   <span class="cm">// null if not dismissed</span>
+    <span class="st">"dismissed_at"</span>: <span class="st">"..."</span>,
+    <span class="st">"remind_at"</span>:    <span class="st">"..."</span>
+  }
+}
+
+<span class="cm">-- No WebSocket for MVP. Polling via setInterval(60000).</span>
+<span class="cm">-- On tab focus, an immediate poll is triggered.</span>
+        </div>
+      </div>
+
+      <!-- Visibility Rules -->
+      <div class="spec-card">
+        <h3><span class="spec-icon">👤</span> Visibility Rules</h3>
+        <table class="visibility-table">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>operational</th>
+              <th>degraded</th>
+              <th>incident</th>
+              <th>maintenance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>teacher</td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+            </tr>
+            <tr>
+              <td>parent</td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+            </tr>
+            <tr>
+              <td>owner</td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+              <td><span class="vis-yes">✓ shown</span></td>
+            </tr>
+            <tr>
+              <td>child</td>
+              <td><span class="vis-no">✗ hidden</span></td>
+              <td><span class="vis-no">✗ hidden</span></td>
+              <td><span class="vis-no">✗ hidden</span></td>
+              <td><span class="vis-no">✗ hidden</span></td>
+            </tr>
+            <tr>
+              <td>guest</td>
+              <td><span class="vis-no">✗ hidden</span></td>
+              <td><span class="vis-no">✗ hidden</span></td>
+              <td><span class="vis-cond">⚠ shown</span></td>
+              <td><span class="vis-cond">⚠ shown</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px;">
+          <div class="spec-rule" style="font-size:11.5px; color:#8b949e;">
+            <span class="rule-bullet">→</span>
+            <span>Guest users see the strip only for <code>incident</code> and <code>maintenance</code> states — so they understand why login may fail.</span>
+          </div>
+          <div class="spec-rule" style="font-size:11.5px; color:#8b949e; margin-top:5px;">
+            <span class="rule-bullet">→</span>
+            <span>Visibility enforced server-side in API middleware; client never receives strip data for hidden personas.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dismissal & Notification Rules -->
+      <div class="spec-card">
+        <h3><span class="spec-icon">🔔</span> Dismissal &amp; Notifications</h3>
+        <div class="spec-rule-list">
+          <div class="spec-rule">
+            <span class="rule-bullet">→</span>
+            <span><strong>operational</strong>: dismissible (session-only via <code>sessionStorage</code>). No server record needed.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="rule-bullet">→</span>
+            <span><strong>degraded</strong>: <strong>not dismissible</strong> while status is active. Strip must remain visible.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="rule-bullet">→</span>
+            <span><strong>incident (P0)</strong>: <strong>not dismissible</strong>. Also triggers push notification (FCM/APNs) within <strong>60 s</strong> of status change to all teacher/parent/owner devices with notifications enabled.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="rule-bullet">→</span>
+            <span><strong>maintenance</strong>: dismissible. Dismissal writes to <code>status_dismissals</code> with <code>remind_at = window_start - 1h</code>. Push reminder sent at <code>remind_at</code>.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="rule-bullet">→</span>
+            <span>On next poll after <code>remind_at</code>, API returns <code>dismiss_state: null</code>, causing strip to re-appear.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="rule-bullet">→</span>
+            <span>Strip is re-shown immediately when status escalates (e.g., operational → incident), regardless of dismiss state.</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /spec-grid -->
+
+    <!-- Strip height summary -->
+    <div style="margin-top:20px; padding:14px 16px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:8px;">
+      <div class="section-label" style="margin-bottom:10px;">Strip Height &amp; Visual Weight</div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+        <div style="padding:10px; background:#0d1117; border:1px solid rgba(80,232,144,.2); border-radius:6px; text-align:center;">
+          <div style="font-size:20px; font-weight:800; color:#50e890;">40px</div>
+          <div style="font-size:11px; color:#8b949e; margin-top:3px;">Operational (thin)</div>
+        </div>
+        <div style="padding:10px; background:#0d1117; border:1px solid rgba(245,158,11,.2); border-radius:6px; text-align:center;">
+          <div style="font-size:20px; font-weight:800; color:#f59e0b;">44px</div>
+          <div style="font-size:11px; color:#8b949e; margin-top:3px;">Degraded + sub-row</div>
+        </div>
+        <div style="padding:10px; background:#0d1117; border:1px solid rgba(239,68,68,.2); border-radius:6px; text-align:center;">
+          <div style="font-size:20px; font-weight:800; color:#ef4444;">46px</div>
+          <div style="font-size:11px; color:#8b949e; margin-top:3px;">Incident + expand</div>
+        </div>
+        <div style="padding:10px; background:#0d1117; border:1px solid rgba(167,139,250,.2); border-radius:6px; text-align:center;">
+          <div style="font-size:20px; font-weight:800; color:#a78bfa;">44px</div>
+          <div style="font-size:11px; color:#8b949e; margin-top:3px;">Maintenance + detail</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-5 -->
+
+</div><!-- /page-wrapper -->
+
+<script>
+  /* ── Tab switching ──────────────────────────────────────────── */
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + t).classList.add('active');
+    document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+  }
+
+  /* ── Tab 1: variant toggle ──────────────────────────────────── */
+  function showVariant(v) {
+    var thin   = document.getElementById('variant-thin');
+    var banner = document.getElementById('variant-banner');
+    var btnThin   = document.getElementById('btn-thin');
+    var btnBanner = document.getElementById('btn-banner');
+
+    if (v === 'thin') {
+      thin.style.display   = 'block';
+      banner.style.display = 'none';
+      btnThin.classList.add('active-toggle');
+      btnBanner.classList.remove('active-toggle');
+    } else {
+      thin.style.display   = 'none';
+      banner.style.display = 'block';
+      btnBanner.classList.add('active-toggle');
+      btnThin.classList.remove('active-toggle');
+    }
+  }
+
+  /* ── Tab 1: dismiss strip (session-only) ───────────────────── */
+  function dismissStrip(id) {
+    var mockup  = document.getElementById('strip-mockup-' + id);
+    var notice  = document.getElementById('dismissed-notice-' + id);
+    var strip   = document.getElementById('strip-' + id);
+    if (strip) strip.style.display = 'none';
+    if (notice) notice.classList.add('visible');
+  }
+
+  function restoreStrip(id) {
+    var notice = document.getElementById('dismissed-notice-' + id);
+    var strip  = document.getElementById('strip-' + id);
+    if (strip) strip.style.display = '';
+    if (notice) notice.classList.remove('visible');
+    // For maintenance, also show the mockup if it was hidden
+    var mockup = document.getElementById('strip-mockup-' + id);
+    if (mockup) mockup.style.display = '';
+  }
+
+  /* ── Tab 3: toggle incident details panel ──────────────────── */
+  var incidentOpen = false;
+  function toggleIncidentPanel() {
+    incidentOpen = !incidentOpen;
+    var panel = document.getElementById('incident-panel');
+    var btn   = document.querySelector('.view-incident-btn');
+    if (incidentOpen) {
+      panel.classList.add('open');
+      btn.textContent = 'Hide incident ↑';
+    } else {
+      panel.classList.remove('open');
+      btn.textContent = 'View incident ↓';
+    }
+  }
+
+  /* ── Tab 4: dismiss maintenance strip ──────────────────────── */
+  function dismissMaintenance() {
+    var mockup = document.getElementById('strip-mockup-4');
+    var notice = document.getElementById('dismissed-notice-4');
+    if (mockup) mockup.style.display = 'none';
+    if (notice) notice.classList.add('visible');
+  }
+
+  /* ── Tab 4: calendar action ─────────────────────────────────── */
+  function handleCalendar(e) {
+    e.preventDefault();
+    // In production, this would trigger .ics download
+    // For prototype, show a brief tooltip-style feedback
+    var link = e.target.closest('a');
+    var orig = link.textContent;
+    link.textContent = '✓ Download triggered';
+    setTimeout(function() { link.textContent = orig; }, 2000);
+  }
+</script>
+
+</body>
+</html>

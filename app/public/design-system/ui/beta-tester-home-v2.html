@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Tester Home — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #e8edf3; min-height: 100vh; }
+  .tab-bar { display: flex; background: #161e28; border-bottom: 1px solid #1e2d3d; overflow-x: auto; }
+  .tab-btn { flex: 1; min-width: 120px; padding: 14px 10px; background: none; border: none; color: #6a8aa0; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+  .tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .tab-btn:hover:not(.active) { color: #a0c4d8; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Welcome Card */
+  .welcome-card { background: linear-gradient(135deg, #161e28 0%, #1a2535 100%); border: 1px solid #1e3a52; border-radius: 16px; padding: 32px; margin-bottom: 24px; position: relative; overflow: hidden; }
+  .welcome-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(88,200,240,0.12) 0%, transparent 70%); border-radius: 50%; }
+  .tester-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(88,200,240,0.12); border: 1px solid rgba(88,200,240,0.3); border-radius: 20px; padding: 6px 14px; font-size: 11px; font-weight: 600; color: #58c8f0; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 16px; }
+  .tester-badge .dot { width: 6px; height: 6px; background: #58c8f0; border-radius: 50%; animation: pulse-dot 1.5s infinite; }
+  @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .welcome-name { font-size: 28px; font-weight: 700; color: #e8edf3; margin-bottom: 6px; }
+  .welcome-sub { font-size: 14px; color: #6a8aa0; }
+  .phase-label { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.35); border-radius: 8px; padding: 8px 16px; margin-top: 20px; }
+  .phase-label span { font-size: 12px; font-weight: 600; color: #ffd166; }
+  .phase-label .phase-tag { font-size: 10px; font-weight: 700; color: #ffd166; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* Quick Links */
+  .section-title { font-size: 13px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+  .quick-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+  .ql-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 20px 16px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .ql-card:hover { border-color: #58c8f0; background: #1a2535; transform: translateY(-2px); }
+  .ql-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .ql-icon.feedback { background: rgba(88,200,240,0.15); }
+  .ql-icon.scenarios { background: rgba(255,209,102,0.15); }
+  .ql-icon.bug { background: rgba(255,100,100,0.15); }
+  .ql-label { font-size: 13px; font-weight: 600; color: #e8edf3; }
+  .ql-sub { font-size: 11px; color: #6a8aa0; }
+
+  /* Progress Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; }
+  .stat-value { font-size: 36px; font-weight: 700; color: #58c8f0; line-height: 1; }
+  .stat-label { font-size: 13px; color: #6a8aa0; margin-top: 6px; }
+  .stat-bar { height: 4px; background: #1e2d3d; border-radius: 2px; margin-top: 14px; }
+  .stat-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #58c8f0, #3aa0c8); }
+
+  /* Hint Box */
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+  .hint-box .hint-label { font-size: 11px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .hint-box p { font-size: 13px; color: #e8c84a; line-height: 1.6; }
+
+  /* This Week */
+  .week-focus { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; overflow: hidden; }
+  .week-focus-header { padding: 20px 24px 0; }
+  .focus-items { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .focus-item { display: flex; align-items: flex-start; gap: 14px; }
+  .focus-num { width: 28px; height: 28px; border-radius: 50%; background: rgba(88,200,240,0.15); border: 1px solid rgba(88,200,240,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #58c8f0; flex-shrink: 0; margin-top: 2px; }
+  .focus-text { font-size: 14px; color: #c8d8e8; line-height: 1.5; }
+  .focus-tag { display: inline-block; background: rgba(88,200,240,0.1); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; color: #58c8f0; margin-top: 4px; }
+
+  /* Submissions table */
+  .submissions-table { width: 100%; border-collapse: collapse; }
+  .submissions-table th { text-align: left; font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; padding: 12px 16px; border-bottom: 1px solid #1e2d3d; }
+  .submissions-table td { padding: 14px 16px; font-size: 13px; color: #c8d8e8; border-bottom: 1px solid #161e28; }
+  .submissions-table tr:last-child td { border-bottom: none; }
+  .status-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .status-chip.reviewed { background: rgba(88,200,240,0.12); color: #58c8f0; }
+  .status-chip.pending { background: rgba(255,209,102,0.12); color: #ffd166; }
+  .status-chip.actioned { background: rgba(100,200,100,0.12); color: #6cc96c; }
+  .severity-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .sev-low { background: #6cc96c; }
+  .sev-med { background: #ffd166; }
+  .sev-high { background: #ff8c42; }
+  .sev-blocker { background: #ff5e5e; }
+
+  /* Progress Phase */
+  .phase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .phase-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 20px; text-align: center; }
+  .phase-card.current { border-color: #58c8f0; background: rgba(88,200,240,0.05); }
+  .phase-card.done { opacity: 0.6; }
+  .phase-icon { font-size: 28px; margin-bottom: 8px; }
+  .phase-name { font-size: 13px; font-weight: 600; color: #e8edf3; margin-bottom: 4px; }
+  .phase-status { font-size: 11px; color: #6a8aa0; }
+  .phase-card.current .phase-status { color: #58c8f0; }
+
+  .overall-progress { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .op-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .op-label { font-size: 14px; color: #c8d8e8; }
+  .op-val { font-size: 14px; font-weight: 600; color: #58c8f0; }
+  .progress-bar { height: 8px; background: #1e2d3d; border-radius: 4px; margin-bottom: 20px; }
+  .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #58c8f0, #3aa0c8); }
+
+  /* Spec */
+  .spec-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .spec-block h3 { font-size: 14px; font-weight: 600; color: #58c8f0; margin-bottom: 12px; }
+  .spec-block p, .spec-block li { font-size: 13px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 18px; }
+  .spec-block li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('home')">Tester Home</button>
+  <button class="tab-btn" onclick="show('focus')">This Week's Focus</button>
+  <button class="tab-btn" onclick="show('submissions')">My Submissions</button>
+  <button class="tab-btn" onclick="show('progress')">Beta Progress</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TESTER HOME -->
+<div id="home" class="tab-panel active">
+  <div class="container">
+    <div class="welcome-card">
+      <div class="tester-badge"><span class="dot"></span> Beta Tester Active</div>
+      <div class="welcome-name">Welcome back, Jordan T.</div>
+      <div class="welcome-sub">Tester ID: WQ-BETA-0042 &nbsp;·&nbsp; Cohort: Family Group A</div>
+      <div class="phase-label">
+        <span class="phase-tag">Current Phase</span>
+        <span>Phase 2 — Play Flow &amp; Reward Loops</span>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">This Week's Priority</div>
+      <p>Focus on the badge unlock flow and streak saver overlay. Pay attention to transitions and whether the reward feel is satisfying for your child (age 6–8 range).</p>
+    </div>
+
+    <div class="section-title">Quick Actions</div>
+    <div class="quick-links">
+      <a class="ql-card" href="beta-feedback-entry-v2.html">
+        <div class="ql-icon feedback">💬</div>
+        <div class="ql-label">Submit Feedback</div>
+        <div class="ql-sub">Rate and describe your experience</div>
+      </a>
+      <a class="ql-card" href="family-test-scenario-cards-v2.html">
+        <div class="ql-icon scenarios">🗺️</div>
+        <div class="ql-label">View Scenarios</div>
+        <div class="ql-sub">This week's test scripts</div>
+      </a>
+      <a class="ql-card" href="issue-reproduction-helper-v2.html">
+        <div class="ql-icon bug">🐛</div>
+        <div class="ql-label">Report Bug</div>
+        <div class="ql-sub">Steps to reproduce a problem</div>
+      </a>
+    </div>
+
+    <div class="section-title">Session Progress</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">7</div>
+        <div class="stat-label">Sessions Completed</div>
+        <div class="stat-bar"><div class="stat-fill" style="width:70%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">12</div>
+        <div class="stat-label">Feedback Submitted</div>
+        <div class="stat-bar"><div class="stat-fill" style="width:60%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THIS WEEK'S FOCUS -->
+<div id="focus" class="tab-panel">
+  <div class="container">
+    <div class="section-title">Week of Mar 17–23, 2026</div>
+    <div class="hint-box">
+      <div class="hint-label">Moderator Note</div>
+      <p>Run each scenario at least twice. First time with no coaching — observe natural behavior. Second time note any confusion points. Estimated time: 25–35 min total.</p>
+    </div>
+    <div class="week-focus">
+      <div class="week-focus-header">
+        <div class="section-title">Focus Areas</div>
+      </div>
+      <div class="focus-items">
+        <div class="focus-item">
+          <div class="focus-num">1</div>
+          <div>
+            <div class="focus-text">Badge unlock celebration moment — does the animation feel earned? Does your child understand what they unlocked?</div>
+            <div class="focus-tag">Play Flow</div>
+          </div>
+        </div>
+        <div class="focus-item">
+          <div class="focus-num">2</div>
+          <div>
+            <div class="focus-text">Streak saver overlay — when a streak is about to break, is the offer clear? Does your child engage with it or dismiss it?</div>
+            <div class="focus-tag">Rewards</div>
+          </div>
+        </div>
+        <div class="focus-item">
+          <div class="focus-num">3</div>
+          <div>
+            <div class="focus-text">Parent review screen after each session — can you quickly scan what your child did? Is the data readable at a glance?</div>
+            <div class="focus-tag">Parent Tools</div>
+          </div>
+        </div>
+        <div class="focus-item">
+          <div class="focus-num">4</div>
+          <div>
+            <div class="focus-text">Navigation between Home → Play → Badge Room — count taps required. Note any moments of disorientation.</div>
+            <div class="focus-tag">Navigation</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MY SUBMISSIONS -->
+<div id="submissions" class="tab-panel">
+  <div class="container">
+    <div class="stats-grid" style="margin-bottom:24px">
+      <div class="stat-card">
+        <div class="stat-value" style="color:#ffd166">12</div>
+        <div class="stat-label">Total Submitted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:#6cc96c">8</div>
+        <div class="stat-label">Reviewed by Team</div>
+      </div>
+    </div>
+    <div class="spec-block" style="padding:0; overflow:hidden">
+      <table class="submissions-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Area</th>
+            <th>Severity</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Mar 22</td>
+            <td>Badge Unlock animation lag</td>
+            <td><span class="severity-dot sev-high"></span>High</td>
+            <td><span class="status-chip reviewed">Reviewed</span></td>
+          </tr>
+          <tr>
+            <td>Mar 21</td>
+            <td>Streak saver copy confusing</td>
+            <td><span class="severity-dot sev-med"></span>Medium</td>
+            <td><span class="status-chip actioned">Actioned</span></td>
+          </tr>
+          <tr>
+            <td>Mar 20</td>
+            <td>Parent review — no data state</td>
+            <td><span class="severity-dot sev-low"></span>Low</td>
+            <td><span class="status-chip reviewed">Reviewed</span></td>
+          </tr>
+          <tr>
+            <td>Mar 19</td>
+            <td>Navigation tap count 6 → Home</td>
+            <td><span class="severity-dot sev-med"></span>Medium</td>
+            <td><span class="status-chip pending">Pending</span></td>
+          </tr>
+          <tr>
+            <td>Mar 18</td>
+            <td>Voice guide volume too loud</td>
+            <td><span class="severity-dot sev-low"></span>Low</td>
+            <td><span class="status-chip actioned">Actioned</span></td>
+          </tr>
+          <tr>
+            <td>Mar 17</td>
+            <td>Offline placeholder unclear</td>
+            <td><span class="severity-dot sev-med"></span>Medium</td>
+            <td><span class="status-chip reviewed">Reviewed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BETA PROGRESS -->
+<div id="progress" class="tab-panel">
+  <div class="container">
+    <div class="section-title">Overall Program Progress</div>
+    <div class="overall-progress">
+      <div class="op-row"><span class="op-label">Sessions Target (10)</span><span class="op-val">7 / 10</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+      <div class="op-row"><span class="op-label">Feedback Target (20)</span><span class="op-val">12 / 20</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+      <div class="op-row"><span class="op-label">Bug Reports</span><span class="op-val">3 filed</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+    </div>
+
+    <div class="section-title">Phase Milestones</div>
+    <div class="phase-grid">
+      <div class="phase-card done">
+        <div class="phase-icon">✅</div>
+        <div class="phase-name">Phase 1</div>
+        <div class="phase-status">Onboarding — Complete</div>
+      </div>
+      <div class="phase-card current">
+        <div class="phase-icon">🔵</div>
+        <div class="phase-name">Phase 2</div>
+        <div class="phase-status">Play Flow — Active</div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-icon">⏳</div>
+        <div class="phase-name">Phase 3</div>
+        <div class="phase-status">Parent Tools — Upcoming</div>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Tester Milestone</div>
+      <p>Complete 3 more sessions this week to unlock Phase 3 early access. Your feedback has been flagged as high-quality by the research team — thank you!</p>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="container">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>beta-tester-home-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Beta tester landing dashboard. Shows tester identity, current phase, this week's testing focus, quick navigation to key tools, and running progress metrics.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora (Google Fonts)</li>
+        <li>Background: #10161e</li>
+        <li>Accent: #58c8f0 (cyan)</li>
+        <li>Gold: #ffd166</li>
+        <li>Viewport: Desktop 900px+</li>
+        <li>Hint box: bg #2a1f00, border #ffd166</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Tabs</h3>
+      <ul>
+        <li>Tester Home — welcome card, quick links, session stats</li>
+        <li>This Week's Focus — moderator notes and focus areas</li>
+        <li>My Submissions — table of submitted feedback items</li>
+        <li>Beta Progress — phase milestones and progress bars</li>
+        <li>Spec — this document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

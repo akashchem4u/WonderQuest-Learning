@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Teacher Assignment Creator v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f0f4f8;
+      --bg2:      #e4eaf1;
+      --navy:     #2a5080;
+      --navy-lt:  #3a6fa8;
+      --navy-bg:  rgba(42,80,128,.08);
+      --accent:   #4a90d9;
+      --ink:      #1c1c1e;
+      --mid:      #4b5563;
+      --faint:    #9ca3af;
+      --white:    #ffffff;
+      --p0:       #ffd166;
+      --p1:       #9b72ff;
+      --p2:       #58e8c1;
+      --p3:       #ff7b6b;
+      --amber:    #f59e0b;
+      --radius:   14px;
+      --shadow:   0 2px 12px rgba(0,0,0,.07);
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--ink);
+    }
+
+    /* ─── NAV ─── */
+    .nav {
+      background: var(--navy);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      gap: 0;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .nav-logo {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-right: 32px;
+      white-space: nowrap;
+    }
+    .nav-logo span { color: var(--p0); }
+    .nav-links { display: flex; gap: 0; flex: 1; }
+    .nav-link {
+      padding: 0 16px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,255,255,.65);
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .nav-link.active { color: #fff; border-bottom-color: var(--p0); }
+    .nav-link:hover:not(.active) { color: rgba(255,255,255,.9); }
+    .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-avatar {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .nav-name { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.85); }
+
+    /* ─── TAB BAR ─── */
+    .tab-bar {
+      background: var(--white);
+      border-bottom: 1.5px solid #d1dae4;
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 13px 22px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--faint);
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: var(--navy); }
+
+    /* ─── PANELS ─── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ─── CONTENT WRAPPER ─── */
+    .content {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ─── HINT BOX ─── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      font-size: 12px;
+      color: #7a5700;
+      line-height: 1.8;
+    }
+    .hint-box strong { font-size: 13px; color: #5a3f00; display: block; margin-bottom: 4px; }
+
+    /* ─── ASSIGN HEADER ─── */
+    .assign-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .breadcrumb {
+      font-size: 14px;
+      color: var(--mid);
+      font-weight: 500;
+    }
+    .breadcrumb .crumb-active {
+      color: var(--navy);
+      font-weight: 700;
+    }
+    .step-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      border: 2px solid #d1dae4;
+      color: var(--faint);
+      background: var(--white);
+      transition: all .2s;
+    }
+    .step-dot.done {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #fff;
+    }
+    .step-dot.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .step-connector {
+      width: 20px;
+      height: 2px;
+      background: #d1dae4;
+      border-radius: 2px;
+    }
+    .step-connector.done { background: var(--navy); }
+
+    /* ─── CARDS ─── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+
+    /* ─── BAND CHIPS ─── */
+    .band-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .3px;
+    }
+    .band-chip.p0 { background: var(--p0); color: #6b4a00; }
+    .band-chip.p1 { background: var(--p1); }
+    .band-chip.p2 { background: var(--p2); color: #155a43; }
+    .band-chip.p3 { background: var(--p3); }
+
+    /* ─── SEARCH ROW ─── */
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      height: 40px;
+      border: 1.5px solid #d1dae4;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--white);
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 2px solid #d1dae4;
+      background: var(--white);
+      color: var(--mid);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .filter-chip.active-all {
+      border-color: var(--navy);
+      background: var(--navy);
+      color: #fff;
+    }
+    .filter-chip.active-p0 { border-color: var(--p0); background: var(--p0); color: #6b4a00; }
+    .filter-chip.active-p1 { border-color: var(--p1); background: var(--p1); color: #fff; }
+    .filter-chip.active-p2 { border-color: var(--p2); background: var(--p2); color: #155a43; }
+    .filter-chip.active-p3 { border-color: var(--p3); background: var(--p3); color: #fff; }
+    .filter-chip:hover:not(.active-all):not(.active-p0):not(.active-p1):not(.active-p2):not(.active-p3) {
+      border-color: var(--navy);
+      color: var(--navy);
+    }
+
+    /* ─── SKILL GRID ─── */
+    .skill-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .skill-card {
+      border: 2px solid #e4eaf1;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all .15s;
+      background: var(--white);
+      position: relative;
+    }
+    .skill-card:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(74,144,217,.15); }
+    .skill-card.selected {
+      border-color: var(--navy);
+      background: rgba(42,80,128,.05);
+    }
+    .skill-card-check {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .skill-card.selected .skill-card-check { opacity: 1; }
+    .skill-card-band { margin-bottom: 8px; }
+    .skill-card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .skill-card-desc {
+      font-size: 11px;
+      color: var(--mid);
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .coverage-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      background: var(--bg2);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--mid);
+    }
+
+    /* ─── SELECTED SUMMARY BAR ─── */
+    .summary-bar {
+      background: var(--navy);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .summary-bar-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .summary-bar-text span { color: var(--p0); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: var(--navy-lt); }
+    .btn-primary.navy { background: var(--navy); }
+    .btn-primary.navy:hover { background: #1e3d63; }
+    .btn-primary.large { padding: 13px 30px; font-size: 14px; }
+    .btn-outline {
+      background: transparent;
+      color: var(--navy);
+      border: 2px solid var(--navy);
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .btn-outline:hover { background: var(--navy-bg); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--mid);
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-ghost:hover { background: var(--bg2); color: var(--ink); }
+
+    /* ─── FORM ELEMENTS ─── */
+    .form-group { margin-bottom: 20px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--mid);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+    }
+    .form-input {
+      width: 100%;
+      height: 42px;
+      border: 1.5px solid #d1dae4;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--white);
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-textarea {
+      width: 100%;
+      border: 1.5px solid #d1dae4;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--white);
+      outline: none;
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color .2s;
+    }
+    .form-textarea:focus { border-color: var(--accent); }
+    .char-count { font-size: 11px; color: var(--faint); text-align: right; margin-top: 4px; }
+
+    /* ─── STEPPER ─── */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stepper-btn {
+      width: 36px; height: 36px;
+      border: 2px solid #d1dae4;
+      border-radius: 9px;
+      background: var(--white);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--navy);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .stepper-btn:hover { border-color: var(--navy); background: var(--navy-bg); }
+    .stepper-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--navy);
+      min-width: 40px;
+      text-align: center;
+    }
+    .stepper-label { font-size: 12px; color: var(--faint); }
+
+    /* ─── DIFFICULTY CARDS ─── */
+    .difficulty-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .diff-card {
+      border: 2px solid #e4eaf1;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all .15s;
+      background: var(--white);
+      position: relative;
+    }
+    .diff-card:hover { border-color: var(--accent); }
+    .diff-card.selected { border-color: var(--navy); background: rgba(42,80,128,.05); }
+    .diff-card input[type="radio"] { position: absolute; opacity: 0; }
+    .diff-icon { font-size: 22px; margin-bottom: 8px; }
+    .diff-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .diff-desc { font-size: 11px; color: var(--mid); line-height: 1.5; }
+    .diff-check {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .diff-card.selected .diff-check { opacity: 1; }
+
+    /* ─── PREVIEW CARD ─── */
+    .preview-card {
+      background: linear-gradient(135deg, #f0f5fc 0%, #e8f0fa 100%);
+      border: 1.5px solid #c9d8eb;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .preview-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--mid);
+    }
+    .preview-row strong { color: var(--ink); }
+    .preview-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--faint);
+      min-width: 90px;
+    }
+
+    /* ─── NAV BUTTONS ROW ─── */
+    .nav-btn-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+    }
+
+    /* ─── STUDENT TABLE ─── */
+    .group-select-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .group-chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 2px solid #d1dae4;
+      background: var(--white);
+      color: var(--mid);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .group-chip:hover { border-color: var(--navy); color: var(--navy); }
+    .group-chip.active { border-color: var(--navy); background: var(--navy); color: #fff; }
+
+    .student-table-wrap {
+      overflow-x: auto;
+      border: 1.5px solid #e4eaf1;
+      border-radius: 12px;
+    }
+    .student-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .student-table thead th {
+      background: #f7f9fc;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--faint);
+      border-bottom: 1.5px solid #e4eaf1;
+      white-space: nowrap;
+    }
+    .student-table tbody tr {
+      border-bottom: 1px solid #f0f4f8;
+      transition: background .1s;
+      cursor: pointer;
+    }
+    .student-table tbody tr:hover { background: #f7fafd; }
+    .student-table tbody tr.selected-row { background: rgba(42,80,128,.06); }
+    .student-table tbody tr:last-child { border-bottom: none; }
+    .student-table td {
+      padding: 10px 14px;
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    .student-table td:first-child { width: 40px; }
+    .student-name { font-weight: 600; }
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .tier-badge.flag { background: #fef2f2; color: #dc2626; }
+    .tier-badge.watch { background: #fffbeb; color: #d97706; }
+    .tier-badge.strong { background: #f0fdf4; color: #16a34a; }
+    .last-active { font-size: 12px; color: var(--faint); }
+
+    .selection-summary {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .selection-summary-text { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .selection-breakdown { display: flex; gap: 12px; }
+    .breakdown-item { font-size: 11px; color: var(--mid); display: flex; align-items: center; gap: 4px; }
+    .bd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .include-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--mid);
+      background: #fffbea;
+      border-left: 3px solid var(--p0);
+      padding: 8px 12px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* ─── REVIEW CARD ─── */
+    .review-card {
+      background: linear-gradient(135deg, #f4f8ff 0%, #edf2fa 100%);
+      border: 1.5px solid #c8d6ea;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .review-field {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e4eaf1;
+    }
+    .review-field:last-child { border-bottom: none; }
+    .review-field-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--faint);
+      min-width: 100px;
+      padding-top: 1px;
+    }
+    .review-field-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      flex: 1;
+    }
+    .review-field-value .sub { font-size: 12px; font-weight: 400; color: var(--mid); margin-top: 2px; }
+
+    /* ─── SCHEDULE OPTIONS ─── */
+    .schedule-options {
+      background: var(--white);
+      border: 1.5px solid #e4eaf1;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .radio-opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .1s;
+      margin-bottom: 6px;
+    }
+    .radio-opt:hover { background: #f7f9fc; }
+    .radio-opt.selected { background: rgba(42,80,128,.05); }
+    .radio-circle {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid #d1dae4;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      transition: all .15s;
+    }
+    .radio-opt.selected .radio-circle {
+      border-color: var(--navy);
+      background: var(--navy);
+    }
+    .radio-inner {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .radio-opt.selected .radio-inner { opacity: 1; }
+    .radio-text-block {}
+    .radio-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .radio-sub { font-size: 12px; color: var(--mid); margin-top: 2px; }
+
+    .schedule-detail {
+      display: none;
+      margin-top: 12px;
+      padding: 14px;
+      background: #f7f9fc;
+      border-radius: 10px;
+      gap: 14px;
+      flex-direction: column;
+    }
+    .schedule-detail.visible { display: flex; }
+    .schedule-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .schedule-row .form-group { flex: 1; margin-bottom: 0; }
+    .schedule-preview-text {
+      font-size: 12px;
+      color: var(--navy);
+      font-weight: 600;
+      padding: 8px 12px;
+      background: var(--navy-bg);
+      border-radius: 8px;
+    }
+
+    .send-cta-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    /* ─── SUCCESS OVERLAY ─── */
+    .success-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(42,80,128,.45);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    .success-overlay.visible { display: flex; }
+    .success-card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 460px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      animation: successPop .3s ease;
+    }
+    @keyframes successPop {
+      from { transform: scale(.88); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .success-icon {
+      width: 72px; height: 72px;
+      background: #d1fae5;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+    .success-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+    .success-sub {
+      font-size: 14px;
+      color: var(--mid);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .success-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* ─── SPEC PANEL ─── */
+    .spec-section { margin-bottom: 24px; }
+    .spec-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--bg2);
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .spec-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f7f9fc;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      border-bottom: 1.5px solid #e4eaf1;
+    }
+    .spec-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f4f8;
+      color: var(--mid);
+      line-height: 1.5;
+    }
+    .spec-table td:first-child { font-weight: 600; color: var(--ink); }
+    .spec-table tr:last-child td { border-bottom: none; }
+    code {
+      background: #f0f4f8;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--navy);
+    }
+    .route-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .route-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #f7f9fc;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .route-method {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 5px;
+      min-width: 38px;
+      text-align: center;
+    }
+    .method-get  { background: #d1fae5; color: #065f46; }
+    .method-post { background: #dbeafe; color: #1e40af; }
+    .method-put  { background: #fef3c7; color: #92400e; }
+    .method-del  { background: #fee2e2; color: #991b1b; }
+
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .token-card {
+      padding: 12px;
+      border-radius: 10px;
+      background: #f7f9fc;
+      border: 1.5px solid #e4eaf1;
+    }
+    .token-swatch {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .token-name { font-size: 11px; font-weight: 700; color: var(--ink); }
+    .token-value { font-size: 10px; color: var(--faint); margin-top: 2px; }
+
+    /* ─── CHECKBOX ─── */
+    input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--navy);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">Wonder<span>Quest</span></div>
+  <div class="nav-links">
+    <div class="nav-link">Dashboard</div>
+    <div class="nav-link active">Assignments</div>
+    <div class="nav-link">Students</div>
+    <div class="nav-link">Reports</div>
+    <div class="nav-link">Interventions</div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-avatar">SR</div>
+    <div class="nav-name">Ms. Rivera</div>
+  </div>
+</nav>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1')">1 · Choose Skill</button>
+  <button class="tab-btn" onclick="show('tab2')">2 · Configure</button>
+  <button class="tab-btn" onclick="show('tab3')">3 · Select Learners</button>
+  <button class="tab-btn" onclick="show('tab4')">4 · Schedule &amp; Send</button>
+  <button class="tab-btn" onclick="show('tab5')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — CHOOSE SKILL
+══════════════════════════════════════════ -->
+<div id="tab1" class="panel active">
+  <div class="content">
+
+    <div class="hint-box">
+      <strong>Engineering Hint — Tab 1: Choose Skill</strong>
+      Fetch skill catalog from <code>GET /teacher/skills</code>. Each skill returns <code>id</code>, <code>name</code>, <code>band</code> (P0–P3), <code>description</code>, and <code>question_count</code>. Filter client-side by band chip. Pre-select the skill from URL param <code>?skill=</code> if present. Selected skill ID flows into Tab 2's assignment config payload.
+    </div>
+
+    <!-- Header -->
+    <div class="assign-header">
+      <div class="breadcrumb">
+        New Assignment &rsaquo; <span class="crumb-active">Choose Skill</span>
+      </div>
+      <div class="step-dots">
+        <div class="step-dot active">1</div>
+        <div class="step-connector"></div>
+        <div class="step-dot">2</div>
+        <div class="step-connector"></div>
+        <div class="step-dot">3</div>
+        <div class="step-connector"></div>
+        <div class="step-dot">4</div>
+      </div>
+    </div>
+
+    <!-- Search + Filters -->
+    <div class="search-row">
+      <input class="search-input" type="text" placeholder="Search skills..." oninput="filterSkills(this.value)" />
+      <div class="filter-chips">
+        <div class="filter-chip active-all" onclick="setBandFilter('all', this)">All</div>
+        <div class="filter-chip" onclick="setBandFilter('p0', this)" style="border-color:#ffd166;color:#6b4a00;">P0 Pre-K</div>
+        <div class="filter-chip" onclick="setBandFilter('p1', this)" style="border-color:#9b72ff;color:#9b72ff;">P1 K-1</div>
+        <div class="filter-chip" onclick="setBandFilter('p2', this)" style="border-color:#58e8c1;color:#155a43;">P2 G2-3</div>
+        <div class="filter-chip" onclick="setBandFilter('p3', this)" style="border-color:#ff7b6b;color:#ff7b6b;">P3 G4-5</div>
+      </div>
+    </div>
+
+    <!-- Skill Grid -->
+    <div class="skill-grid" id="skillGrid">
+
+      <div class="skill-card" data-band="p0" data-skill="Letter Sounds" data-qs="12" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p0">P0</span></div>
+        <div class="skill-card-name">Letter Sounds</div>
+        <div class="skill-card-desc">Match letters to phonetic sounds</div>
+        <div class="coverage-chip">12 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p0" data-skill="Rhyming" data-qs="9" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p0">P0</span></div>
+        <div class="skill-card-name">Rhyming</div>
+        <div class="skill-card-desc">Identify and produce rhyming word pairs</div>
+        <div class="coverage-chip">9 questions available</div>
+      </div>
+
+      <div class="skill-card selected" data-band="p1" data-skill="Sight Words" data-qs="14" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p1">P1</span></div>
+        <div class="skill-card-name">Sight Words</div>
+        <div class="skill-card-desc">Recognize high-frequency words by sight</div>
+        <div class="coverage-chip">14 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p1" data-skill="Short Vowels" data-qs="11" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p1">P1</span></div>
+        <div class="skill-card-name">Short Vowels</div>
+        <div class="skill-card-desc">Decode CVC words with short vowel sounds</div>
+        <div class="coverage-chip">11 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p2" data-skill="Place Value" data-qs="10" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p2">P2</span></div>
+        <div class="skill-card-name">Place Value</div>
+        <div class="skill-card-desc">Understand tens and ones in 2-digit numbers</div>
+        <div class="coverage-chip">10 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p2" data-skill="Addition &amp; Subtraction" data-qs="15" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p2">P2</span></div>
+        <div class="skill-card-name">Addition &amp; Subtraction</div>
+        <div class="skill-card-desc">Solve 2-digit add and subtract problems</div>
+        <div class="coverage-chip">15 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p3" data-skill="Fractions" data-qs="13" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p3">P3</span></div>
+        <div class="skill-card-name">Fractions</div>
+        <div class="skill-card-desc">Identify and compare basic fractions</div>
+        <div class="coverage-chip">13 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p3" data-skill="Multiplication" data-qs="18" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p3">P3</span></div>
+        <div class="skill-card-name">Multiplication</div>
+        <div class="skill-card-desc">Fluency with multiplication facts 1–10</div>
+        <div class="coverage-chip">18 questions available</div>
+      </div>
+
+      <div class="skill-card" data-band="p3" data-skill="Word Problems" data-qs="10" onclick="selectSkill(this)">
+        <div class="skill-card-check">✓</div>
+        <div class="skill-card-band"><span class="band-chip p3">P3</span></div>
+        <div class="skill-card-name">Word Problems</div>
+        <div class="skill-card-desc">Multi-step real-world math scenarios</div>
+        <div class="coverage-chip">10 questions available</div>
+      </div>
+
+    </div>
+
+    <!-- Summary Bar -->
+    <div class="summary-bar">
+      <div class="summary-bar-text">
+        Selected: <span id="selectedSkillName">Sight Words (P1)</span> — <span id="selectedSkillQs">14</span> questions available
+      </div>
+      <button class="btn-primary" onclick="show('tab2')">Next: Configure &rarr;</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — CONFIGURE
+══════════════════════════════════════════ -->
+<div id="tab2" class="panel">
+  <div class="content">
+
+    <div class="hint-box">
+      <strong>Engineering Hint — Tab 2: Configure Assignment</strong>
+      This form builds the <code>POST /assignments/create</code> payload: <code>skill_id</code>, <code>name</code>, <code>question_count</code> (3–10, default 5), <code>difficulty</code> (gentle|standard|challenge), <code>due_date</code>, and optional <code>teacher_note</code> (&le;100 chars). Live-preview card reflects state changes without API calls. Validate due_date &ge; today before proceeding to Tab 3.
+    </div>
+
+    <div class="assign-header">
+      <div class="breadcrumb">
+        New Assignment &rsaquo; <span class="crumb-active">Configure</span>
+      </div>
+      <div class="step-dots">
+        <div class="step-dot done">✓</div>
+        <div class="step-connector done"></div>
+        <div class="step-dot active">2</div>
+        <div class="step-connector"></div>
+        <div class="step-dot">3</div>
+        <div class="step-connector"></div>
+        <div class="step-dot">4</div>
+      </div>
+    </div>
+
+    <!-- Config Form -->
+    <div class="card">
+      <div class="card-title">Assignment Settings</div>
+
+      <div class="form-group">
+        <label class="form-label">Assignment Name</label>
+        <input class="form-input" type="text" id="assignName" value="Sight Words Practice" oninput="updatePreview()" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Number of Questions</label>
+        <div class="stepper">
+          <button class="stepper-btn" onclick="changeQCount(-1)">−</button>
+          <div class="stepper-value" id="qCountVal">5</div>
+          <button class="stepper-btn" onclick="changeQCount(1)">+</button>
+          <div class="stepper-label">questions (min 3, max 10)</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Difficulty</label>
+        <div class="difficulty-row">
+          <div class="diff-card" onclick="selectDiff(this, 'gentle')">
+            <div class="diff-check">✓</div>
+            <input type="radio" name="diff" value="gentle" />
+            <div class="diff-icon">🌱</div>
+            <div class="diff-name">Gentle Practice</div>
+            <div class="diff-desc">Familiar questions first — 2 hints auto-enabled</div>
+          </div>
+          <div class="diff-card selected" onclick="selectDiff(this, 'standard')">
+            <div class="diff-check">✓</div>
+            <input type="radio" name="diff" value="standard" checked />
+            <div class="diff-icon">⚡</div>
+            <div class="diff-name">Standard</div>
+            <div class="diff-desc">Mixed new + review — 1 hint per question</div>
+          </div>
+          <div class="diff-card" onclick="selectDiff(this, 'challenge')">
+            <div class="diff-check">✓</div>
+            <input type="radio" name="diff" value="challenge" />
+            <div class="diff-icon">🚀</div>
+            <div class="diff-name">Challenge Mode</div>
+            <div class="diff-desc">Push to next level — no auto-hints</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Due Date</label>
+        <input class="form-input" type="date" id="dueDate" style="max-width:240px;" oninput="updatePreview()" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Teacher Note (optional, child-facing)</label>
+        <textarea class="form-textarea" id="teacherNote" placeholder="Keep it friendly! e.g. You've got this — give it your best shot! 🌟" maxlength="100" oninput="updateNoteCount(this)"></textarea>
+        <div class="char-count"><span id="noteCharCount">0</span>/100</div>
+      </div>
+    </div>
+
+    <!-- Preview Card -->
+    <div class="preview-card">
+      <div class="preview-card-title">Assignment Preview</div>
+      <div class="preview-row">
+        <div class="preview-label">Skill</div>
+        <strong>Sight Words</strong> &nbsp;<span class="band-chip p1">P1</span>
+      </div>
+      <div class="preview-row">
+        <div class="preview-label">Name</div>
+        <strong id="prev-name">Sight Words Practice</strong>
+      </div>
+      <div class="preview-row">
+        <div class="preview-label">Questions</div>
+        <strong id="prev-qcount">5 questions</strong>
+      </div>
+      <div class="preview-row">
+        <div class="preview-label">Difficulty</div>
+        <strong id="prev-diff">Standard</strong>
+      </div>
+      <div class="preview-row">
+        <div class="preview-label">Due</div>
+        <strong id="prev-due">Not set</strong>
+      </div>
+    </div>
+
+    <div class="nav-btn-row">
+      <button class="btn-ghost" onclick="show('tab1')">&larr; Back</button>
+      <button class="btn-primary navy" onclick="show('tab3')">Next: Choose Students &rarr;</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — SELECT LEARNERS
+══════════════════════════════════════════ -->
+<div id="tab3" class="panel">
+  <div class="content">
+
+    <div class="hint-box">
+      <strong>Engineering Hint — Tab 3: Select Learners</strong>
+      Pull roster from <code>GET /teacher/classes/:class_id/students</code>. Each student has <code>sns_tier</code>: <code>flag</code> (Needs Support), <code>watch</code> (On Track), or <code>strong</code> (Advanced). Group chips pre-check matching rows client-side. Submit an array of <code>student_ids[]</code> in the final create payload. Students with <code>sns_tier: flag</code> receive +1 auto-hint server-side, regardless of assignment difficulty.
+    </div>
+
+    <div class="assign-header">
+      <div class="breadcrumb">
+        New Assignment &rsaquo; <span class="crumb-active">Select Learners</span>
+      </div>
+      <div class="step-dots">
+        <div class="step-dot done">✓</div>
+        <div class="step-connector done"></div>
+        <div class="step-dot done">✓</div>
+        <div class="step-connector done"></div>
+        <div class="step-dot active">3</div>
+        <div class="step-connector"></div>
+        <div class="step-dot">4</div>
+      </div>
+    </div>
+
+    <!-- Group Quick-Pick -->
+    <div class="card">
+      <div class="card-title">Quick-Select by Group</div>
+      <div class="group-select-row">
+        <div class="group-chip" onclick="selectGroup('all', this)">Whole Class (24)</div>
+        <div class="group-chip" onclick="selectGroup('flag', this)">Needs Support (8)</div>
+        <div class="group-chip" onclick="selectGroup('watch', this)">On Track (11)</div>
+        <div class="group-chip" onclick="selectGroup('strong', this)">Advanced (5)</div>
+      </div>
+    </div>
+
+    <!-- Student Table -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="student-table-wrap">
+        <table class="student-table" id="studentTable">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAllCb" onclick="toggleSelectAll(this)" /></th>
+              <th>Name</th>
+              <th>Band</th>
+              <th>SNS Tier</th>
+              <th>Last Active</th>
+            </tr>
+          </thead>
+          <tbody id="studentBody">
+            <!-- JS generated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Selection Summary -->
+    <div class="selection-summary">
+      <div class="selection-summary-text" id="selSummaryText">0 of 24 students selected</div>
+      <div class="selection-breakdown">
+        <div class="breakdown-item"><div class="bd-dot" style="background:#dc2626;"></div><span id="flagCount">0 support</span></div>
+        <div class="breakdown-item"><div class="bd-dot" style="background:#d97706;"></div><span id="watchCount">0 watch</span></div>
+        <div class="breakdown-item"><div class="bd-dot" style="background:#16a34a;"></div><span id="strongCount">0 advanced</span></div>
+      </div>
+    </div>
+
+    <div class="include-note">
+      Students in the support tier will receive additional hints automatically, regardless of difficulty setting.
+    </div>
+
+    <div class="nav-btn-row">
+      <button class="btn-ghost" onclick="show('tab2')">&larr; Back</button>
+      <button class="btn-primary navy" onclick="show('tab4')">Next: Review &amp; Send &rarr;</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4 — SCHEDULE & SEND
+══════════════════════════════════════════ -->
+<div id="tab4" class="panel">
+  <div class="content">
+
+    <div class="hint-box">
+      <strong>Engineering Hint — Tab 4: Schedule &amp; Send</strong>
+      "Send Now" triggers <code>POST /assignments/create</code> with <code>send_state: "active"</code>. "Schedule" sets <code>send_state: "scheduled"</code> + <code>scheduled_at</code> ISO timestamp. "Save as Draft" posts with <code>send_state: "draft"</code> (use <code>DELETE /assignments/:id/draft</code> to discard). After success, display the confirmation overlay — do not redirect automatically. "Create Another" resets all tabs to initial state.
+    </div>
+
+    <div class="assign-header">
+      <div class="breadcrumb">
+        New Assignment &rsaquo; <span class="crumb-active">Review &amp; Send</span>
+      </div>
+      <div class="step-dots">
+        <div class="step-dot done">✓</div>
+        <div class="step-connector done"></div>
+        <div class="step-dot done">✓</div>
+        <div class="step-connector done"></div>
+        <div class="step-dot done">✓</div>
+        <div class="step-connector done"></div>
+        <div class="step-dot active">4</div>
+      </div>
+    </div>
+
+    <!-- Review Card -->
+    <div class="review-card">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--navy);margin-bottom:16px;">Assignment Summary</div>
+      <div class="review-field">
+        <div class="review-field-label">Skill</div>
+        <div class="review-field-value">Sight Words &nbsp;<span class="band-chip p1">P1 K-1</span></div>
+      </div>
+      <div class="review-field">
+        <div class="review-field-label">Assignment</div>
+        <div class="review-field-value" id="rev-name">Sight Words Practice</div>
+      </div>
+      <div class="review-field">
+        <div class="review-field-label">Questions</div>
+        <div class="review-field-value"><span id="rev-qcount">5</span> questions &nbsp;·&nbsp; <span id="rev-diff">Standard</span></div>
+      </div>
+      <div class="review-field">
+        <div class="review-field-label">Due Date</div>
+        <div class="review-field-value" id="rev-due">Not set</div>
+      </div>
+      <div class="review-field">
+        <div class="review-field-label">Assigned To</div>
+        <div class="review-field-value"><span id="rev-students">0</span> students
+          <div class="sub" id="rev-students-sub"></div>
+        </div>
+      </div>
+      <div class="review-field" id="rev-note-row" style="display:none;">
+        <div class="review-field-label">Teacher Note</div>
+        <div class="review-field-value" id="rev-note"></div>
+      </div>
+    </div>
+
+    <!-- Schedule Options -->
+    <div class="schedule-options">
+      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;">When should students see this?</div>
+
+      <div class="radio-opt selected" onclick="selectSendOpt('now', this)">
+        <div class="radio-circle"><div class="radio-inner"></div></div>
+        <div class="radio-text-block">
+          <div class="radio-title">Send Now</div>
+          <div class="radio-sub">Immediately active in students' WonderQuest</div>
+        </div>
+      </div>
+
+      <div class="radio-opt" onclick="selectSendOpt('scheduled', this)">
+        <div class="radio-circle"><div class="radio-inner"></div></div>
+        <div class="radio-text-block">
+          <div class="radio-title">Schedule for Later</div>
+          <div class="radio-sub">Choose a date and time to release this assignment</div>
+        </div>
+      </div>
+
+      <div class="schedule-detail" id="scheduleDetail">
+        <div class="schedule-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="schedDate" oninput="updateSchedulePreview()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Time</label>
+            <input class="form-input" type="time" id="schedTime" value="08:00" oninput="updateSchedulePreview()" />
+          </div>
+        </div>
+        <div class="schedule-preview-text" id="schedPreviewText">
+          Students will see this on — at 08:00
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Row -->
+    <div class="send-cta-row">
+      <button class="btn-ghost" onclick="show('tab3')">&larr; Back</button>
+      <button class="btn-outline" onclick="saveDraft()">Save as Draft</button>
+      <button class="btn-primary navy large" onclick="sendAssignment()">Send Assignment &rarr;</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5 — SPEC
+══════════════════════════════════════════ -->
+<div id="tab5" class="panel">
+  <div class="content">
+
+    <div class="hint-box">
+      <strong>Engineering Spec — Teacher Assignment Creator v2</strong>
+      Full API surface, data model, business rules, and design tokens for the assignment creation workflow. This tab is for internal engineering reference only — not shown in production UI.
+    </div>
+
+    <!-- Routes -->
+    <div class="spec-section">
+      <div class="spec-section-title">API Routes</div>
+      <ul class="route-list">
+        <li class="route-item"><span class="route-method method-get">GET</span> <code>/teacher/skills</code> — List available skills with band, description, question_count</li>
+        <li class="route-item"><span class="route-method method-post">POST</span> <code>/assignments/create</code> — Create new assignment (draft | scheduled | active)</li>
+        <li class="route-item"><span class="route-method method-get">GET</span> <code>/assignments/:id</code> — Fetch single assignment with students and status</li>
+        <li class="route-item"><span class="route-method method-put">PUT</span> <code>/assignments/:id</code> — Update assignment settings or reschedule</li>
+        <li class="route-item"><span class="route-method method-del">DELETE</span> <code>/assignments/:id/draft</code> — Discard a draft assignment permanently</li>
+      </ul>
+    </div>
+
+    <!-- Workflow -->
+    <div class="spec-section">
+      <div class="spec-section-title">Assignment Workflow</div>
+      <div class="card" style="padding:16px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--mid);">
+          <span style="background:var(--navy);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;">Choose Skill</span>
+          <span style="color:var(--faint);">→</span>
+          <span style="background:var(--accent);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;">Configure</span>
+          <span style="color:var(--faint);">→</span>
+          <span style="background:var(--p2);color:#155a43;padding:6px 14px;border-radius:20px;font-size:12px;">Select Learners</span>
+          <span style="color:var(--faint);">→</span>
+          <span style="background:var(--p0);color:#6b4a00;padding:6px 14px;border-radius:20px;font-size:12px;">Schedule / Send</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question Count Rules -->
+    <div class="spec-section">
+      <div class="spec-section-title">Question Count Rules</div>
+      <table class="spec-table">
+        <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Minimum</td><td>3 questions</td></tr>
+          <tr><td>Maximum</td><td>10 questions</td></tr>
+          <tr><td>Default</td><td>5 questions</td></tr>
+          <tr><td>Enforcement</td><td>Client-side stepper + server-side validation on POST</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Difficulty Table -->
+    <div class="spec-section">
+      <div class="spec-section-title">Difficulty Levels</div>
+      <table class="spec-table">
+        <thead><tr><th>Mode</th><th>Question Strategy</th><th>Auto-Hints</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Gentle Practice</td>
+            <td>Known (mastered) questions weighted first</td>
+            <td>2 hints per question, auto-shown</td>
+          </tr>
+          <tr>
+            <td>Standard</td>
+            <td>Mixed review + newly introduced questions</td>
+            <td>1 hint per question, on demand</td>
+          </tr>
+          <tr>
+            <td>Challenge Mode</td>
+            <td>New / next-level questions weighted highest</td>
+            <td>No auto-hints (student must request)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Learner Group Logic -->
+    <div class="spec-section">
+      <div class="spec-section-title">Learner Group Logic</div>
+      <table class="spec-table">
+        <thead><tr><th>Group Label</th><th>SNS Tier</th><th>Badge Color</th></tr></thead>
+        <tbody>
+          <tr><td>Needs Support</td><td><code>flag</code></td><td>Red (#dc2626)</td></tr>
+          <tr><td>On Track</td><td><code>watch</code></td><td>Amber (#d97706)</td></tr>
+          <tr><td>Advanced</td><td><code>strong</code></td><td>Green (#16a34a)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Auto-Hint Rule -->
+    <div class="spec-section">
+      <div class="spec-section-title">Auto-Hint Override Rule</div>
+      <div class="card" style="padding:16px;">
+        <p style="font-size:13px;color:var(--mid);line-height:1.7;">
+          Students with <code>sns_tier: flag</code> (Needs Support) always receive <strong>+1 additional hint</strong> on every question, regardless of the assignment's difficulty setting. This override is applied server-side at question delivery time and is not configurable by the teacher.
+        </p>
+      </div>
+    </div>
+
+    <!-- Send States -->
+    <div class="spec-section">
+      <div class="spec-section-title">Assignment Send States</div>
+      <table class="spec-table">
+        <thead><tr><th>State</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>draft</code></td><td>Saved but not visible to students. Deletable via DELETE endpoint.</td></tr>
+          <tr><td><code>scheduled</code></td><td>Will become active at <code>scheduled_at</code> timestamp.</td></tr>
+          <tr><td><code>active</code></td><td>Visible to assigned students. Accepting responses.</td></tr>
+          <tr><td><code>closed</code></td><td>Past due date. No new responses accepted. Results available.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Design Tokens -->
+    <div class="spec-section">
+      <div class="spec-section-title">Design Tokens</div>
+      <div class="token-grid">
+        <div class="token-card">
+          <div class="token-swatch" style="background:#f0f4f8;"></div>
+          <div class="token-name">Background</div>
+          <div class="token-value">#f0f4f8</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#2a5080;"></div>
+          <div class="token-name">Navy (Nav / Active)</div>
+          <div class="token-value">#2a5080</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#4a90d9;"></div>
+          <div class="token-name">Accent</div>
+          <div class="token-value">#4a90d9</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#ffd166;"></div>
+          <div class="token-name">P0 Pre-K</div>
+          <div class="token-value">#ffd166</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#9b72ff;"></div>
+          <div class="token-name">P1 K-1</div>
+          <div class="token-value">#9b72ff</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#58e8c1;"></div>
+          <div class="token-name">P2 G2-3</div>
+          <div class="token-value">#58e8c1</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#ff7b6b;"></div>
+          <div class="token-name">P3 G4-5</div>
+          <div class="token-value">#ff7b6b</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#1c1c1e;"></div>
+          <div class="token-name">Ink</div>
+          <div class="token-value">#1c1c1e</div>
+        </div>
+        <div class="token-card">
+          <div class="token-swatch" style="background:#ffffff;border:1px solid #e4eaf1;"></div>
+          <div class="token-name">White (cards)</div>
+          <div class="token-value">#ffffff</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--mid);">Font: <strong>Sora</strong> (Google Fonts) — weights 400, 500, 600, 700</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SUCCESS OVERLAY
+══════════════════════════════════════════ -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Assignment sent!</div>
+    <div class="success-sub" id="successMsg">
+      12 students will see Sight Words Practice in their WonderQuest today.
+    </div>
+    <div class="success-actions">
+      <button class="btn-outline" onclick="closeSuccess()">View in Assignments &rarr;</button>
+      <button class="btn-primary navy" onclick="createAnother()">Create Another &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ─── TAB SWITCHER ─── */
+  function show(tabId) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    const idx = ['tab1','tab2','tab3','tab4','tab5'].indexOf(tabId);
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    // Sync review tab when opening tab4
+    if (tabId === 'tab4') syncReview();
+    window.scrollTo(0, 0);
+  }
+
+  /* ─── APP STATE ─── */
+  const state = {
+    selectedSkill: { name: 'Sight Words', band: 'p1', qs: 14 },
+    qCount: 5,
+    difficulty: 'standard',
+    dueDate: '',
+    teacherNote: '',
+    selectedStudents: new Set(),
+    sendMode: 'now',
+  };
+
+  /* ─── TAB 1: SKILL SELECTION ─── */
+  function selectSkill(card) {
+    document.querySelectorAll('.skill-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    state.selectedSkill = {
+      name: card.dataset.skill,
+      band: card.dataset.band,
+      qs: parseInt(card.dataset.qs),
+    };
+    document.getElementById('selectedSkillName').textContent =
+      state.selectedSkill.name + ' (' + state.selectedSkill.band.toUpperCase() + ')';
+    document.getElementById('selectedSkillQs').textContent = state.selectedSkill.qs;
+  }
+
+  let activeBandFilter = 'all';
+  function setBandFilter(band, el) {
+    activeBandFilter = band;
+    document.querySelectorAll('.filter-chip').forEach(c => {
+      c.classList.remove('active-all','active-p0','active-p1','active-p2','active-p3');
+    });
+    el.classList.add('active-' + band);
+    filterSkills(document.querySelector('.search-input').value);
+  }
+
+  function filterSkills(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('.skill-card').forEach(card => {
+      const matchBand = activeBandFilter === 'all' || card.dataset.band === activeBandFilter;
+      const matchText = card.querySelector('.skill-card-name').textContent.toLowerCase().includes(q) ||
+                        card.querySelector('.skill-card-desc').textContent.toLowerCase().includes(q);
+      card.style.display = (matchBand && matchText) ? '' : 'none';
+    });
+  }
+
+  /* ─── TAB 2: CONFIGURE ─── */
+  function changeQCount(delta) {
+    state.qCount = Math.min(10, Math.max(3, state.qCount + delta));
+    document.getElementById('qCountVal').textContent = state.qCount;
+    document.getElementById('prev-qcount').textContent = state.qCount + ' questions';
+  }
+
+  function selectDiff(card, diff) {
+    document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    state.difficulty = diff;
+    const labels = { gentle: 'Gentle Practice', standard: 'Standard', challenge: 'Challenge Mode' };
+    document.getElementById('prev-diff').textContent = labels[diff];
+  }
+
+  function updatePreview() {
+    const name = document.getElementById('assignName').value || 'Untitled';
+    state.dueDate = document.getElementById('dueDate').value;
+    document.getElementById('prev-name').textContent = name;
+    document.getElementById('prev-due').textContent = state.dueDate
+      ? formatDate(state.dueDate) : 'Not set';
+  }
+
+  function updateNoteCount(el) {
+    state.teacherNote = el.value;
+    document.getElementById('noteCharCount').textContent = el.value.length;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return 'Not set';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+  }
+
+  // Set today's date as min / default for due date
+  (function initDate() {
+    const today = new Date();
+    const iso = today.toISOString().split('T')[0];
+    const duePicker = document.getElementById('dueDate');
+    duePicker.min = iso;
+    // Default due: 1 week out
+    const next = new Date(today);
+    next.setDate(next.getDate() + 7);
+    const nextIso = next.toISOString().split('T')[0];
+    duePicker.value = nextIso;
+    state.dueDate = nextIso;
+    document.getElementById('prev-due').textContent = formatDate(nextIso);
+
+    const schedDate = document.getElementById('schedDate');
+    schedDate.min = iso;
+    schedDate.value = nextIso;
+    updateSchedulePreview();
+  })();
+
+  /* ─── TAB 3: STUDENTS ─── */
+  const STUDENTS = [
+    { id:1,  name:'Aiden Park',      band:'P1', tier:'flag',   last:'Today' },
+    { id:2,  name:'Bella Torres',    band:'P0', tier:'flag',   last:'Today' },
+    { id:3,  name:'Carlos Nguyen',   band:'P2', tier:'watch',  last:'Yesterday' },
+    { id:4,  name:'Diana Kim',       band:'P3', tier:'strong', last:'Today' },
+    { id:5,  name:'Elias Johnson',   band:'P1', tier:'flag',   last:'2 days ago' },
+    { id:6,  name:'Fatima Al-Hassan',band:'P2', tier:'watch',  last:'Today' },
+    { id:7,  name:'George Martinez', band:'P1', tier:'watch',  last:'3 days ago' },
+    { id:8,  name:'Hannah Lee',      band:'P3', tier:'strong', last:'Today' },
+    { id:9,  name:'Ivan Petrov',     band:'P2', tier:'watch',  last:'Yesterday' },
+    { id:10, name:'Jasmine Okafor',  band:'P0', tier:'flag',   last:'Today' },
+    { id:11, name:'Kevin Sharma',    band:'P1', tier:'watch',  last:'Yesterday' },
+    { id:12, name:'Luna Rivera',     band:'P2', tier:'strong', last:'Today' },
+    { id:13, name:'Marcus Webb',     band:'P1', tier:'flag',   last:'4 days ago' },
+    { id:14, name:'Nina Chakraborty',band:'P3', tier:'strong', last:'Today' },
+    { id:15, name:'Oliver Stone',    band:'P2', tier:'watch',  last:'Yesterday' },
+    { id:16, name:'Priya Nair',      band:'P1', tier:'flag',   last:'Today' },
+    { id:17, name:'Quinn Ortega',    band:'P2', tier:'watch',  last:'2 days ago' },
+    { id:18, name:'Rosa Delgado',    band:'P0', tier:'flag',   last:'Today' },
+    { id:19, name:'Sam Fitzgerald',  band:'P3', tier:'strong', last:'Yesterday' },
+    { id:20, name:'Tia Robinson',    band:'P1', tier:'watch',  last:'Today' },
+    { id:21, name:'Uma Patel',       band:'P2', tier:'watch',  last:'Today' },
+    { id:22, name:'Victor Chen',     band:'P1', tier:'flag',   last:'3 days ago' },
+    { id:23, name:'Wendy Liu',       band:'P2', tier:'watch',  last:'Yesterday' },
+    { id:24, name:'Xander Brown',    band:'P3', tier:'strong', last:'Today' },
+  ];
+
+  const bandChipClass = { P0:'p0', P1:'p1', P2:'p2', P3:'p3' };
+
+  function renderStudentTable() {
+    const tbody = document.getElementById('studentBody');
+    tbody.innerHTML = STUDENTS.map(s => {
+      const sel = state.selectedStudents.has(s.id);
+      return `<tr class="${sel ? 'selected-row' : ''}" onclick="toggleStudent(${s.id}, this)">
+        <td><input type="checkbox" ${sel ? 'checked' : ''} onclick="event.stopPropagation();toggleStudent(${s.id}, this.closest('tr'))" /></td>
+        <td class="student-name">${s.name}</td>
+        <td><span class="band-chip ${bandChipClass[s.band]}">${s.band}</span></td>
+        <td><span class="tier-badge ${s.tier}">${tierLabel(s.tier)}</span></td>
+        <td class="last-active">${s.last}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function tierLabel(t) {
+    return { flag:'Support', watch:'On Track', strong:'Advanced' }[t];
+  }
+
+  function toggleStudent(id, row) {
+    if (state.selectedStudents.has(id)) {
+      state.selectedStudents.delete(id);
+      row.classList.remove('selected-row');
+      row.querySelector('input[type=checkbox]').checked = false;
+    } else {
+      state.selectedStudents.add(id);
+      row.classList.add('selected-row');
+      row.querySelector('input[type=checkbox]').checked = true;
+    }
+    updateSelectionSummary();
+  }
+
+  function toggleSelectAll(cb) {
+    if (cb.checked) {
+      STUDENTS.forEach(s => state.selectedStudents.add(s.id));
+    } else {
+      state.selectedStudents.clear();
+    }
+    renderStudentTable();
+    updateSelectionSummary();
+  }
+
+  function selectGroup(group, chipEl) {
+    document.querySelectorAll('.group-chip').forEach(c => c.classList.remove('active'));
+    chipEl.classList.add('active');
+
+    if (group === 'all') {
+      STUDENTS.forEach(s => state.selectedStudents.add(s.id));
+    } else {
+      // Clear and select matching tier
+      state.selectedStudents.clear();
+      STUDENTS.filter(s => s.tier === group).forEach(s => state.selectedStudents.add(s.id));
+    }
+    renderStudentTable();
+    updateSelectionSummary();
+  }
+
+  function updateSelectionSummary() {
+    const total = state.selectedStudents.size;
+    let flags = 0, watches = 0, strongs = 0;
+    state.selectedStudents.forEach(id => {
+      const s = STUDENTS.find(x => x.id === id);
+      if (s.tier === 'flag') flags++;
+      else if (s.tier === 'watch') watches++;
+      else strongs++;
+    });
+    document.getElementById('selSummaryText').textContent = `${total} of ${STUDENTS.length} students selected`;
+    document.getElementById('flagCount').textContent = flags + ' support';
+    document.getElementById('watchCount').textContent = watches + ' watch';
+    document.getElementById('strongCount').textContent = strongs + ' advanced';
+  }
+
+  renderStudentTable();
+
+  /* ─── TAB 4: REVIEW & SEND ─── */
+  function syncReview() {
+    const name = document.getElementById('assignName').value || 'Untitled';
+    document.getElementById('rev-name').textContent = name;
+    document.getElementById('rev-qcount').textContent = state.qCount;
+    const diffLabels = { gentle:'Gentle Practice', standard:'Standard', challenge:'Challenge Mode' };
+    document.getElementById('rev-diff').textContent = diffLabels[state.difficulty];
+    document.getElementById('rev-due').textContent = state.dueDate ? formatDate(state.dueDate) : 'Not set';
+    document.getElementById('rev-students').textContent = state.selectedStudents.size;
+    let flags = 0, watches = 0, strongs = 0;
+    state.selectedStudents.forEach(id => {
+      const s = STUDENTS.find(x => x.id === id);
+      if (s.tier === 'flag') flags++;
+      else if (s.tier === 'watch') watches++;
+      else strongs++;
+    });
+    const breakdown = [
+      flags ? flags + ' support' : null,
+      watches ? watches + ' on track' : null,
+      strongs ? strongs + ' advanced' : null,
+    ].filter(Boolean).join(' · ');
+    document.getElementById('rev-students-sub').textContent = breakdown;
+    const noteRow = document.getElementById('rev-note-row');
+    const note = document.getElementById('teacherNote').value.trim();
+    if (note) {
+      noteRow.style.display = 'flex';
+      document.getElementById('rev-note').textContent = note;
+    } else {
+      noteRow.style.display = 'none';
+    }
+  }
+
+  function selectSendOpt(mode, el) {
+    state.sendMode = mode;
+    document.querySelectorAll('.radio-opt').forEach(r => r.classList.remove('selected'));
+    el.classList.add('selected');
+    const detail = document.getElementById('scheduleDetail');
+    if (mode === 'scheduled') {
+      detail.classList.add('visible');
+    } else {
+      detail.classList.remove('visible');
+    }
+  }
+
+  function updateSchedulePreview() {
+    const d = document.getElementById('schedDate').value;
+    const t = document.getElementById('schedTime').value;
+    const text = d ? `Students will see this on ${formatDate(d)} at ${t || '08:00'}` : `Students will see this on — at ${t || '08:00'}`;
+    document.getElementById('schedPreviewText').textContent = text;
+  }
+
+  function saveDraft() {
+    const name = document.getElementById('assignName').value || 'Untitled';
+    alert(`Draft saved: "${name}"\nYou can find it in Assignments > Drafts.`);
+  }
+
+  function sendAssignment() {
+    const name = document.getElementById('assignName').value || 'Untitled';
+    const total = state.selectedStudents.size;
+    document.getElementById('successMsg').textContent =
+      `${total} student${total !== 1 ? 's' : ''} will see "${name}" in their WonderQuest ${state.sendMode === 'now' ? 'today' : 'on the scheduled date'}.`;
+    document.getElementById('successOverlay').classList.add('visible');
+  }
+
+  function closeSuccess() {
+    document.getElementById('successOverlay').classList.remove('visible');
+  }
+
+  function createAnother() {
+    closeSuccess();
+    // Reset state
+    state.qCount = 5;
+    state.difficulty = 'standard';
+    state.selectedStudents.clear();
+    state.sendMode = 'now';
+
+    // Reset UI
+    document.getElementById('assignName').value = 'Sight Words Practice';
+    document.getElementById('qCountVal').textContent = '5';
+    document.getElementById('teacherNote').value = '';
+    document.getElementById('noteCharCount').textContent = '0';
+    document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.diff-card')[1].classList.add('selected'); // Standard default
+    document.querySelectorAll('.skill-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.skill-card')[2].classList.add('selected'); // Sight Words default
+
+    renderStudentTable();
+    updateSelectionSummary();
+    updatePreview();
+
+    // Reset send options
+    document.querySelectorAll('.radio-opt').forEach(r => r.classList.remove('selected'));
+    document.querySelectorAll('.radio-opt')[0].classList.add('selected');
+    document.getElementById('scheduleDetail').classList.remove('visible');
+
+    show('tab1');
+  }
+</script>
+</body>
+</html>

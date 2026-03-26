@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Play World Backdrop Rotation v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#1a1240;border-bottom:2px solid #2a1f5e;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 14px;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;color:#9b72ff;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#ffd166;border-bottom-color:#ffd166}
+.screen{display:none;padding:0;min-height:calc(100vh - 48px);position:relative}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5;position:relative;z-index:10}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Backdrop containers */
+.backdrop{width:100%;min-height:calc(100vh - 48px);position:relative;overflow:hidden;display:flex;flex-direction:column}
+
+/* Dream World */
+.dream-bg{background:radial-gradient(ellipse at 50% 30%, #3d1a6b 0%, #1a0a3e 40%, #100b2e 100%)}
+.star-particle{position:absolute;border-radius:50%;background:#fff;animation:twinkle 2s infinite alternate}
+@keyframes twinkle{0%{opacity:0.2;transform:scale(1)}100%{opacity:1;transform:scale(1.4)}}
+.nebula{position:absolute;border-radius:50%;filter:blur(40px);opacity:0.3}
+
+/* Ocean World */
+.ocean-bg{background:linear-gradient(180deg,#001a3a 0%,#002d5a 30%,#003d7a 60%,#004d8a 100%)}
+.wave{position:absolute;bottom:0;width:200%;height:120px;background:rgba(0,120,200,0.15);border-radius:50% 50% 0 0;animation:waveMove 4s ease-in-out infinite alternate}
+.wave:nth-child(2){bottom:20px;animation-delay:1s;opacity:0.2}
+.bubble{position:absolute;border-radius:50%;background:rgba(100,200,255,0.15);border:1px solid rgba(100,200,255,0.3);animation:rise 5s linear infinite}
+@keyframes rise{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-100vh);opacity:0}}
+@keyframes waveMove{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* Fire World */
+.fire-bg{background:radial-gradient(ellipse at 50% 80%, #5a1500 0%, #2d0800 40%, #100b2e 100%)}
+.ember{position:absolute;border-radius:50%;background:#ff7b2e;animation:float-ember 3s ease-in infinite}
+@keyframes float-ember{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-200px) scale(0.2)}}
+.fire-glow{position:absolute;bottom:0;width:100%;height:200px;background:radial-gradient(ellipse at 50% 100%,rgba(255,80,0,0.4) 0%,transparent 70%)}
+
+/* Star World */
+.starworld-bg{background:radial-gradient(ellipse at 30% 20%, #0d1b3e 0%, #060d20 60%, #020812 100%)}
+.shooting-star{position:absolute;height:2px;background:linear-gradient(90deg,#fff,transparent);animation:shoot 3s linear infinite}
+@keyframes shoot{0%{transform:translateX(-100px) translateY(0);opacity:1}100%{transform:translateX(300px) translateY(80px);opacity:0}}
+
+/* Content overlay */
+.world-content{position:relative;z-index:5;padding:16px;flex:1;display:flex;flex-direction:column}
+.world-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 14px;margin-bottom:16px;align-self:flex-start}
+.world-badge .badge-icon{font-size:20px}
+.world-badge .badge-name{font-size:13px;font-weight:900}
+.question-card{background:rgba(0,0,0,0.45);backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:20px;margin-bottom:16px;text-align:center}
+.question-card .q-label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1px;opacity:0.6;margin-bottom:8px}
+.question-card .q-text{font-size:20px;font-weight:900;line-height:1.4}
+.answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer-tile{background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);border:2px solid rgba(255,255,255,0.15);border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s}
+.answer-tile:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.1)}
+.answer-tile .ans-e{font-size:28px;margin-bottom:6px}
+.answer-tile .ans-t{font-size:13px;font-weight:900}
+.world-info{background:rgba(0,0,0,0.4);backdrop-filter:blur(8px);border-radius:14px;padding:14px;margin-top:auto}
+.world-info .info-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px;opacity:0.6;margin-bottom:6px}
+.world-info p{font-size:12px;line-height:1.5;opacity:0.9}
+
+/* Spec */
+.spec-pad{padding:16px}
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2a1f5e;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1a1240;font-size:12px}
+.spec-row .spec-key{color:#9b8ec4;font-weight:700;flex:0 0 120px}
+.spec-row .spec-val{color:#e0d8ff;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#1a1240;border-radius:10px;padding:12px;font-size:11px;color:#9b8ec4;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('dream')">Dream World</button>
+  <button class="tab" onclick="show('ocean')">Ocean World</button>
+  <button class="tab" onclick="show('fire')">Fire World</button>
+  <button class="tab" onclick="show('stars')">Star World</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Dream World -->
+<div id="dream" class="screen active">
+  <div class="backdrop dream-bg">
+    <!-- Particles -->
+    <div class="star-particle" style="top:8%;left:15%;width:3px;height:3px;animation-delay:0s"></div>
+    <div class="star-particle" style="top:15%;left:70%;width:2px;height:2px;animation-delay:0.5s"></div>
+    <div class="star-particle" style="top:25%;left:40%;width:4px;height:4px;animation-delay:1s"></div>
+    <div class="star-particle" style="top:5%;left:85%;width:2px;height:2px;animation-delay:1.5s"></div>
+    <div class="star-particle" style="top:35%;left:10%;width:3px;height:3px;animation-delay:0.3s"></div>
+    <div class="star-particle" style="top:45%;left:60%;width:2px;height:2px;animation-delay:0.8s"></div>
+    <div class="star-particle" style="top:60%;left:25%;width:3px;height:3px;animation-delay:0.2s"></div>
+    <div class="star-particle" style="top:70%;left:80%;width:4px;height:4px;animation-delay:1.2s"></div>
+    <div class="nebula" style="top:-20px;left:-30px;width:200px;height:200px;background:radial-gradient(circle,#7b3fe4,transparent)"></div>
+    <div class="nebula" style="top:40%;right:-40px;width:180px;height:180px;background:radial-gradient(circle,#3a1aaa,transparent)"></div>
+    <div class="world-content">
+      <div class="hint-box">Route: /play/session?world=dream — background displayed during Dream World quests. Purple stars theme.</div>
+      <div class="world-badge">
+        <span class="badge-icon">🌙</span>
+        <span class="badge-name" style="color:#c8aaff">Dream World</span>
+      </div>
+      <div class="question-card">
+        <div class="q-label" style="color:#c8aaff">Ollie asks…</div>
+        <div class="q-text">Which word rhymes with "moon"? 🌙</div>
+      </div>
+      <div class="answer-grid">
+        <div class="answer-tile"><div class="ans-e">🥄</div><div class="ans-t">Spoon</div></div>
+        <div class="answer-tile"><div class="ans-e">🌟</div><div class="ans-t">Star</div></div>
+        <div class="answer-tile"><div class="ans-e">🌺</div><div class="ans-t">Flower</div></div>
+        <div class="answer-tile"><div class="ans-e">🐸</div><div class="ans-t">Frog</div></div>
+      </div>
+      <div class="world-info" style="margin-top:16px">
+        <div class="info-label" style="color:#c8aaff">Dream World</div>
+        <p>Float through dreamy star-lit clouds where words come alive in the night sky!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Ocean World -->
+<div id="ocean" class="screen">
+  <div class="backdrop ocean-bg">
+    <div class="wave"></div>
+    <div class="wave" style="height:80px;bottom:40px"></div>
+    <div class="bubble" style="bottom:0;left:10%;width:12px;height:12px;animation-delay:0s"></div>
+    <div class="bubble" style="bottom:0;left:30%;width:8px;height:8px;animation-delay:1.5s"></div>
+    <div class="bubble" style="bottom:0;left:55%;width:14px;height:14px;animation-delay:3s"></div>
+    <div class="bubble" style="bottom:0;left:75%;width:10px;height:10px;animation-delay:2s"></div>
+    <div class="bubble" style="bottom:0;left:90%;width:6px;height:6px;animation-delay:0.8s"></div>
+    <!-- Fish and sparkle decorations -->
+    <div style="position:absolute;top:20%;left:5%;font-size:24px;opacity:0.3;animation:twinkle 3s infinite alternate">🐠</div>
+    <div style="position:absolute;top:35%;right:8%;font-size:20px;opacity:0.25;animation:twinkle 2.5s infinite alternate 1s">🐙</div>
+    <div style="position:absolute;top:55%;left:15%;font-size:18px;opacity:0.3;animation:twinkle 4s infinite alternate 0.5s">🦀</div>
+    <div class="world-content">
+      <div class="hint-box" style="background:#001a3a;border-color:#58e8c1">Route: /play/session?world=ocean — deep blue wave theme for Ocean World quests.</div>
+      <div class="world-badge">
+        <span class="badge-icon">🌊</span>
+        <span class="badge-name" style="color:#58e8c1">Ocean World</span>
+      </div>
+      <div class="question-card">
+        <div class="q-label" style="color:#58e8c1">Ollie asks…</div>
+        <div class="q-text">How many fish do you see? 🐠🐠🐠</div>
+      </div>
+      <div class="answer-grid">
+        <div class="answer-tile"><div class="ans-e">1️⃣</div><div class="ans-t">One</div></div>
+        <div class="answer-tile"><div class="ans-e">2️⃣</div><div class="ans-t">Two</div></div>
+        <div class="answer-tile"><div class="ans-e">3️⃣</div><div class="ans-t">Three</div></div>
+        <div class="answer-tile"><div class="ans-e">4️⃣</div><div class="ans-t">Four</div></div>
+      </div>
+      <div class="world-info" style="margin-top:16px">
+        <div class="info-label" style="color:#58e8c1">Ocean World</div>
+        <p>Dive into deep blue waters where numbers swim freely among colorful coral reefs!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Fire World -->
+<div id="fire" class="screen">
+  <div class="backdrop fire-bg">
+    <div class="fire-glow"></div>
+    <div class="ember" style="bottom:10%;left:20%;width:6px;height:6px;animation-delay:0s"></div>
+    <div class="ember" style="bottom:5%;left:40%;width:4px;height:4px;animation-delay:0.6s"></div>
+    <div class="ember" style="bottom:8%;left:60%;width:5px;height:5px;animation-delay:1.2s"></div>
+    <div class="ember" style="bottom:3%;left:80%;width:7px;height:7px;animation-delay:0.3s"></div>
+    <div class="ember" style="bottom:12%;left:10%;width:4px;height:4px;animation-delay:1.8s"></div>
+    <div class="ember" style="bottom:6%;left:70%;width:6px;height:6px;animation-delay:0.9s"></div>
+    <!-- Volcano / fire decoration -->
+    <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:80px;opacity:0.12">🌋</div>
+    <div class="world-content">
+      <div class="hint-box" style="background:#2d0800;border-color:#ff7b6b">Route: /play/session?world=fire — warm orange glow theme with rising embers.</div>
+      <div class="world-badge">
+        <span class="badge-icon">🔥</span>
+        <span class="badge-name" style="color:#ff9a6b">Fire World</span>
+      </div>
+      <div class="question-card">
+        <div class="q-label" style="color:#ff9a6b">Ollie asks…</div>
+        <div class="q-text">Which is the hottest? 🌡️</div>
+      </div>
+      <div class="answer-grid">
+        <div class="answer-tile"><div class="ans-e">🔥</div><div class="ans-t">Fire</div></div>
+        <div class="answer-tile"><div class="ans-e">🧊</div><div class="ans-t">Ice</div></div>
+        <div class="answer-tile"><div class="ans-e">☀️</div><div class="ans-t">Sun</div></div>
+        <div class="answer-tile"><div class="ans-e">🌬️</div><div class="ans-t">Wind</div></div>
+      </div>
+      <div class="world-info" style="margin-top:16px">
+        <div class="info-label" style="color:#ff9a6b">Fire World</div>
+        <p>Brave the volcanic peaks where brave explorers discover the power of opposites!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Star World -->
+<div id="stars" class="screen">
+  <div class="backdrop starworld-bg">
+    <!-- Stars -->
+    <div class="star-particle" style="top:5%;left:10%;width:2px;height:2px;animation-delay:0s;background:#ffd166"></div>
+    <div class="star-particle" style="top:12%;left:55%;width:3px;height:3px;animation-delay:0.4s"></div>
+    <div class="star-particle" style="top:18%;left:80%;width:2px;height:2px;animation-delay:0.8s;background:#ffd166"></div>
+    <div class="star-particle" style="top:28%;left:25%;width:4px;height:4px;animation-delay:1.2s"></div>
+    <div class="star-particle" style="top:38%;left:90%;width:2px;height:2px;animation-delay:0.2s"></div>
+    <div class="star-particle" style="top:48%;left:45%;width:3px;height:3px;animation-delay:1.6s;background:#c8aaff"></div>
+    <div class="star-particle" style="top:58%;left:5%;width:2px;height:2px;animation-delay:0.6s"></div>
+    <div class="star-particle" style="top:65%;left:70%;width:3px;height:3px;animation-delay:1s;background:#ffd166"></div>
+    <div class="shooting-star" style="top:15%;left:0;width:80px;animation-delay:0s"></div>
+    <div class="shooting-star" style="top:40%;left:0;width:60px;animation-delay:2s"></div>
+    <div class="shooting-star" style="top:65%;left:0;width:100px;animation-delay:4s"></div>
+    <!-- Big star decor -->
+    <div style="position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-size:100px;opacity:0.08">⭐</div>
+    <div class="world-content">
+      <div class="hint-box" style="background:#060d20;border-color:#ffd166">Route: /play/session?world=stars — night sky with shooting stars and gold accents.</div>
+      <div class="world-badge">
+        <span class="badge-icon">⭐</span>
+        <span class="badge-name" style="color:#ffd166">Star World</span>
+      </div>
+      <div class="question-card">
+        <div class="q-label" style="color:#ffd166">Ollie asks…</div>
+        <div class="q-text">What shape are most stars? ⭐</div>
+      </div>
+      <div class="answer-grid">
+        <div class="answer-tile"><div class="ans-e">⭐</div><div class="ans-t">Star</div></div>
+        <div class="answer-tile"><div class="ans-e">⭕</div><div class="ans-t">Circle</div></div>
+        <div class="answer-tile"><div class="ans-e">🔷</div><div class="ans-t">Diamond</div></div>
+        <div class="answer-tile"><div class="ans-e">🔺</div><div class="ans-t">Triangle</div></div>
+      </div>
+      <div class="world-info" style="margin-top:16px">
+        <div class="info-label" style="color:#ffd166">Star World</div>
+        <p>Journey through the infinite cosmos where every answer lights up another constellation!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="spec-pad">
+    <div class="hint-box">Design spec for play-world-backdrop-rotation-v2.</div>
+    <div class="spec-section">
+      <h3>Component Identity</h3>
+      <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">play-world-backdrop-rotation-v2.html</span></div>
+      <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">Child (ages 4–8)</span></div>
+      <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Worlds</h3>
+      <div class="spec-row"><span class="spec-key">Dream World</span><span class="spec-val">Purple star gradient + twinkling particles</span></div>
+      <div class="spec-row"><span class="spec-key">Ocean World</span><span class="spec-val">Deep blue + animated waves + bubbles</span></div>
+      <div class="spec-row"><span class="spec-key">Fire World</span><span class="spec-val">Warm orange radial + rising embers</span></div>
+      <div class="spec-row"><span class="spec-key">Star World</span><span class="spec-val">Night sky + shooting stars + gold accents</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Rules</h3>
+      <div class="spec-note">• All backgrounds use pure CSS — no image assets required.<br>• Question card uses backdrop-filter blur overlay for readability on any background.<br>• Particle/animation effects use CSS @keyframes only.<br>• World unlocked by child progression; not all worlds available from start.<br>• backdrop-filter may need -webkit- prefix for Safari.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['dream','ocean','fire','stars','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

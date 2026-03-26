@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Hint Overlay Tablet v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+
+  /* Tablet screen wrapper */
+  .tablet-screen{width:768px;min-height:1024px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);position:relative}
+
+  /* Top bar */
+  .top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08)}
+  .star-count{display:flex;align-items:center;gap:6px;font-weight:900;font-size:16px;color:#ffd166}
+  .progress-dots{display:flex;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .dot.earned{background:#ffd166}
+  .dot.current{background:#9b72ff;box-shadow:0 0 8px #9b72ff}
+  .dot.locked{background:rgba(255,255,255,.15)}
+
+  /* Question upper half */
+  .question-upper{padding:28px 32px 24px;border-bottom:2px solid rgba(155,114,255,.2);background:rgba(255,255,255,.02)}
+  .question-type-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:12px;padding:4px 12px;font-size:11px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+  .question-text{font-size:26px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:8px}
+  .question-stimulus{background:rgba(255,255,255,.06);border-radius:16px;padding:20px;text-align:center;margin-top:16px;font-size:42px;display:flex;align-items:center;justify-content:center;gap:16px}
+  .stim-word{font-size:30px;font-weight:900;letter-spacing:4px;color:#fff}
+
+  /* Lower half two-col layout */
+  .lower-half{display:grid;grid-template-columns:1fr 1fr;min-height:520px}
+
+  /* Coach left quadrant */
+  .coach-quad{padding:24px;background:linear-gradient(135deg,rgba(155,114,255,.08),rgba(88,232,193,.04));border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+  .coach-owl-large{font-size:100px;margin-bottom:12px;animation:owlBob 2s ease-in-out infinite}
+  @keyframes owlBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .speech-bubble{background:rgba(255,255,255,.08);border:2px solid rgba(155,114,255,.4);border-radius:20px;padding:16px 18px;position:relative;max-width:240px;margin-bottom:16px}
+  .speech-bubble::before{content:'';position:absolute;top:-12px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-bottom-color:rgba(155,114,255,.4)}
+  .speech-text{font-size:15px;font-weight:700;color:#fff;line-height:1.5;text-align:center}
+  .hint-step{background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:12px;padding:10px 14px;margin-bottom:8px;width:100%;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .hint-step-num{width:22px;height:22px;border-radius:50%;background:#9b72ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
+
+  /* Phoneme right quadrant */
+  .phoneme-quad{padding:24px;display:flex;flex-direction:column}
+  .phoneme-title{font-size:14px;font-weight:900;color:#58e8c1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .phoneme-split{display:flex;gap:8px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+  .phoneme-block{background:rgba(88,232,193,.12);border:2px solid rgba(88,232,193,.3);border-radius:14px;padding:12px 16px;text-align:center;min-width:52px}
+  .phoneme-block.active{background:rgba(88,232,193,.25);border-color:#58e8c1;box-shadow:0 0 12px rgba(88,232,193,.3)}
+  .phoneme-sound{font-size:22px;font-weight:900;color:#58e8c1}
+  .phoneme-label{font-size:10px;color:rgba(255,255,255,.5);font-weight:700;margin-top:3px}
+
+  /* Answer grid */
+  .answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .answer-card{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;text-align:center;font-size:18px;font-weight:900;cursor:pointer;transition:all .2s}
+  .answer-card.highlighted{background:rgba(88,232,193,.15);border-color:#58e8c1;box-shadow:0 0 16px rgba(88,232,193,.3);color:#58e8c1}
+  .answer-card.dimmed{opacity:.4}
+  .answer-card.wrong{background:rgba(255,123,107,.08);border-color:rgba(255,123,107,.3)}
+
+  /* Overlay hint banner */
+  .hint-overlay-banner{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,7,32,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .hint-modal{background:#1a1040;border:2px solid #9b72ff;border-radius:24px;padding:28px;max-width:480px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(155,114,255,.3)}
+  .hint-modal-owl{font-size:64px;margin-bottom:12px}
+  .hint-modal-title{font-size:22px;font-weight:900;color:#9b72ff;margin-bottom:8px}
+  .hint-modal-text{font-size:14px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:16px}
+
+  /* Spec */
+  .spec-body{padding:24px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('hint-overlay')">Hint Overlay (tablet)</button>
+  <button class="tab" onclick="show('coach-dominant')">Coach Dominant State</button>
+  <button class="tab" onclick="show('phoneme-breakdown')">Phoneme Breakdown</button>
+  <button class="tab" onclick="show('answer-highlighted')">Answer Highlighted</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-hint-overlay-tablet-v2.html</code> — 768×1024px tablet · hint overlay layout · question upper / coach+phoneme lower split
+</div>
+
+<!-- HINT OVERLAY TABLET LAYOUT -->
+<div id="hint-overlay" class="panel active">
+  <div class="tablet-screen">
+    <div class="top-bar">
+      <div class="star-count">⭐ 3</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div style="font-size:13px;color:#58e8c1;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-upper">
+      <div class="question-type-tag">🔤 Spelling</div>
+      <div class="question-text">Which spelling is correct?</div>
+      <div class="question-stimulus">
+        <span style="font-size:48px">🌊</span>
+        <span class="stim-word">w _ t e r</span>
+      </div>
+    </div>
+    <div class="lower-half">
+      <div class="coach-quad">
+        <div class="coach-owl-large">🦉</div>
+        <div class="speech-bubble">
+          <div class="speech-text">Let me help! Listen to the sounds in this word.</div>
+        </div>
+        <div class="hint-step"><div class="hint-step-num">1</div>The word starts with "wuh"</div>
+        <div class="hint-step"><div class="hint-step-num">2</div>Then "aaw" like in "saw"</div>
+        <div class="hint-step"><div class="hint-step-num">3</div>Ends with "ter"</div>
+      </div>
+      <div class="phoneme-quad">
+        <div class="phoneme-title">🔊 Sound it out</div>
+        <div class="phoneme-split">
+          <div class="phoneme-block active"><div class="phoneme-sound">w</div><div class="phoneme-label">wuh</div></div>
+          <div class="phoneme-block"><div class="phoneme-sound">a</div><div class="phoneme-label">aw</div></div>
+          <div class="phoneme-block"><div class="phoneme-sound">t</div><div class="phoneme-label">tuh</div></div>
+          <div class="phoneme-block"><div class="phoneme-sound">er</div><div class="phoneme-label">er</div></div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);font-weight:700;margin-bottom:10px">Pick the right spelling:</div>
+        <div class="answer-grid">
+          <div class="answer-card">wuter</div>
+          <div class="answer-card highlighted">water</div>
+          <div class="answer-card">waiter</div>
+          <div class="answer-card">woter</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COACH DOMINANT STATE -->
+<div id="coach-dominant" class="panel">
+  <div class="tablet-screen">
+    <div class="top-bar">
+      <div class="star-count">⭐ 3</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div style="font-size:13px;color:#58e8c1;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-upper">
+      <div class="question-type-tag">🔤 Spelling</div>
+      <div class="question-text">Which spelling is correct?</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;min-height:600px;background:linear-gradient(135deg,rgba(155,114,255,.1),rgba(88,232,193,.05))">
+      <div style="font-size:140px;animation:owlBig 2s ease-in-out infinite">🦉</div>
+      <div style="background:rgba(255,255,255,.08);border:2px solid #9b72ff;border-radius:24px;padding:24px;max-width:460px;text-align:center;margin-top:20px">
+        <div style="font-size:18px;font-weight:900;color:#9b72ff;margin-bottom:12px">Coach Pip says...</div>
+        <div style="font-size:16px;font-weight:700;line-height:1.6;color:#fff">Think about what you hear. Say the word out loud and listen to each part!</div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+          <div style="background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:12px;padding:10px 16px;font-size:14px;font-weight:900;cursor:pointer;color:#9b72ff">🔊 Hear it again</div>
+          <div style="background:rgba(88,232,193,.15);border:1px solid rgba(88,232,193,.3);border-radius:12px;padding:10px 16px;font-size:14px;font-weight:900;cursor:pointer;color:#58e8c1">See the sounds</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHONEME BREAKDOWN -->
+<div id="phoneme-breakdown" class="panel">
+  <div class="tablet-screen">
+    <div class="top-bar">
+      <div class="star-count">⭐ 3</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div style="font-size:13px;color:#58e8c1;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-upper">
+      <div class="question-type-tag">🔤 Spelling</div>
+      <div class="question-text">How do you spell what you see?</div>
+      <div class="question-stimulus"><span style="font-size:56px">🌊</span></div>
+    </div>
+    <div class="lower-half">
+      <div class="coach-quad">
+        <div style="font-size:80px;margin-bottom:12px">🦉</div>
+        <div class="speech-bubble"><div class="speech-text">Break it into sounds! Tap each one.</div></div>
+        <div style="width:100%;background:rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-top:8px">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:900;text-transform:uppercase;margin-bottom:8px">Progress</div>
+          <div style="display:flex;gap:6px">
+            <div style="flex:1;height:8px;border-radius:4px;background:#58e8c1"></div>
+            <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.15)"></div>
+            <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.15)"></div>
+            <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.15)"></div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:6px">Sound 1 of 4</div>
+        </div>
+      </div>
+      <div class="phoneme-quad">
+        <div class="phoneme-title">🔤 Tap each sound</div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
+          <div class="phoneme-block active" style="min-width:64px">
+            <div class="phoneme-sound" style="font-size:28px">w</div>
+            <div class="phoneme-label">wuh ✓</div>
+          </div>
+          <div class="phoneme-block" style="min-width:64px">
+            <div class="phoneme-sound" style="font-size:28px">a</div>
+            <div class="phoneme-label">aw</div>
+          </div>
+          <div class="phoneme-block" style="min-width:64px">
+            <div class="phoneme-sound" style="font-size:28px">t</div>
+            <div class="phoneme-label">tuh</div>
+          </div>
+          <div class="phoneme-block" style="min-width:64px">
+            <div class="phoneme-sound" style="font-size:28px">er</div>
+            <div class="phoneme-label">er</div>
+          </div>
+        </div>
+        <div style="background:rgba(88,232,193,.08);border:1px solid rgba(88,232,193,.2);border-radius:14px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;color:#58e8c1;font-weight:900;margin-bottom:6px">Put it together:</div>
+          <div style="font-size:24px;font-weight:900;letter-spacing:6px;color:#fff">w _ _ _ _</div>
+        </div>
+        <div class="answer-grid">
+          <div class="answer-card" style="font-size:15px">wuter</div>
+          <div class="answer-card" style="font-size:15px">water</div>
+          <div class="answer-card" style="font-size:15px">waiter</div>
+          <div class="answer-card" style="font-size:15px">woter</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANSWER HIGHLIGHTED -->
+<div id="answer-highlighted" class="panel">
+  <div class="tablet-screen">
+    <div class="top-bar">
+      <div class="star-count">⭐ 3</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div style="font-size:13px;color:#58e8c1;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="question-upper">
+      <div class="question-type-tag">🔤 Spelling</div>
+      <div class="question-text">Which spelling is correct?</div>
+      <div class="question-stimulus"><span style="font-size:48px">🌊</span><span class="stim-word">w _ t e r</span></div>
+    </div>
+    <div class="lower-half">
+      <div class="coach-quad">
+        <div style="font-size:80px;margin-bottom:12px;animation:owlBob 2s ease-in-out infinite">🦉</div>
+        <div class="speech-bubble" style="border-color:#58e8c1">
+          <div class="speech-text" style="color:#58e8c1">Look at the highlighted answer — that's the right one! Tap it!</div>
+        </div>
+        <div style="background:rgba(88,232,193,.1);border:1px solid rgba(88,232,193,.3);border-radius:12px;padding:12px;width:100%;margin-top:8px">
+          <div style="font-size:12px;color:#58e8c1;font-weight:900;margin-bottom:4px">🔊 Say it with me:</div>
+          <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:3px">W - A - T - E - R</div>
+        </div>
+      </div>
+      <div class="phoneme-quad">
+        <div class="phoneme-title" style="color:#ffd166">✨ Correct answer highlighted</div>
+        <div class="phoneme-split">
+          <div class="phoneme-block active"><div class="phoneme-sound">w</div><div class="phoneme-label">wuh</div></div>
+          <div class="phoneme-block active"><div class="phoneme-sound">a</div><div class="phoneme-label">aw</div></div>
+          <div class="phoneme-block active"><div class="phoneme-sound">t</div><div class="phoneme-label">tuh</div></div>
+          <div class="phoneme-block active"><div class="phoneme-sound">er</div><div class="phoneme-label">er</div></div>
+        </div>
+        <div class="answer-grid">
+          <div class="answer-card dimmed">wuter</div>
+          <div class="answer-card highlighted" style="animation:pulse2 1s ease-in-out infinite">water ✓</div>
+          <div class="answer-card dimmed">waiter</div>
+          <div class="answer-card dimmed">woter</div>
+        </div>
+        <div style="margin-top:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.5)">Tap the green card to continue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="tablet-screen">
+    <div class="spec-body">
+      <h3>File: play-hint-overlay-tablet-v2.html</h3>
+      <ul>
+        <li>768×1024px tablet · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>Two-zone layout: question upper half / lower half two-column (coach + phoneme)</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Hint Overlay:</strong> Question stays visible top; coach owl lower-left (large); phoneme split + answer grid lower-right</li>
+        <li><strong>Coach Dominant:</strong> Coach owl takes full lower area with expanded speech and action buttons</li>
+        <li><strong>Phoneme Breakdown:</strong> Step-by-step phoneme tap interaction with progress indicator</li>
+        <li><strong>Answer Highlighted:</strong> Correct answer visually highlighted in grid with coach pointing to it; no shame</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">768×1024 tablet</span>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes owlBig{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.03)}}
+@keyframes pulse2{0%,100%{box-shadow:0 0 10px rgba(88,232,193,.3)}50%{box-shadow:0 0 24px rgba(88,232,193,.6)}}
+</style>
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Skill Mastery Board v2 — WonderQuest</title>
+<style>
+/* ── Reset & base ───────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;min-height:100vh;padding:28px 24px;color:#f0f6ff}
+
+/* ── Engineering hint ───────────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;color:#5a4000;max-width:1100px}
+
+/* ── Tab bar ────────────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;max-width:1100px}
+.tab-btn{padding:9px 22px;border-radius:22px;border:1.5px solid rgba(255,255,255,.12);cursor:pointer;font-size:13px;font-weight:700;font-family:system-ui;background:transparent;color:rgba(240,246,255,.55);transition:all .18s}
+.tab-btn:hover{border-color:rgba(56,189,248,.4);color:#38bdf8}
+.tab-btn.active{background:#38bdf8;border-color:#38bdf8;color:#0d1117}
+
+/* ── Screen wrapper ─────────────────────────────────────────────────── */
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+
+/* ── Card base ──────────────────────────────────────────────────────── */
+.card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:22px 24px}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TAB 1 — SKILL MASTERY BOARD
+══════════════════════════════════════════════════════════════════════ */
+
+/* Board header */
+.board-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:22px}
+.board-title-col h1{font-size:20px;font-weight:900;color:#f0f6ff;margin-bottom:6px}
+.board-title-col p{font-size:13px;color:rgba(240,246,255,.45)}
+
+/* Filter chips */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
+.filter-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(240,246,255,.35);margin-right:4px}
+.chip{padding:6px 16px;border-radius:16px;border:1.5px solid rgba(255,255,255,.1);font-size:12px;font-weight:700;cursor:pointer;color:rgba(240,246,255,.55);background:transparent;transition:all .15s;font-family:system-ui}
+.chip:hover{border-color:rgba(56,189,248,.4);color:#38bdf8}
+.chip.active{background:#38bdf8;border-color:#38bdf8;color:#0d1117}
+.period-select{margin-left:auto;padding:7px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:#161b22;color:#f0f6ff;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+.period-select:focus{outline:none;border-color:#38bdf8}
+
+/* Board + summary layout */
+.board-layout{display:flex;gap:20px;align-items:flex-start}
+.board-main{flex:1;min-width:0;overflow-x:auto}
+.board-summary{width:280px;flex-shrink:0}
+
+/* Heatmap grid */
+.heatmap-wrap{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px 20px;overflow-x:auto}
+.heatmap-table{border-collapse:separate;border-spacing:0;min-width:680px;width:100%}
+
+/* Column headers (student names) */
+.hm-th-corner{width:160px;min-width:160px}
+.hm-th-name{font-size:11px;font-weight:700;color:rgba(240,246,255,.45);text-align:center;padding:0 4px 12px;white-space:nowrap;vertical-align:bottom}
+.hm-th-more{font-size:11px;font-weight:700;color:#38bdf8;text-align:center;padding:0 4px 12px;white-space:nowrap;vertical-align:bottom;cursor:pointer}
+
+/* Row labels (skill names) */
+.hm-skill-label{font-size:12px;font-weight:700;color:#f0f6ff;padding:10px 16px 10px 0;white-space:nowrap;vertical-align:middle;cursor:pointer;transition:color .15s}
+.hm-skill-label:hover{color:#38bdf8}
+.skill-band-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;flex-shrink:0}
+
+/* Data cells */
+.hm-td{text-align:center;padding:6px 4px;vertical-align:middle}
+.hm-row{border-bottom:1px solid rgba(255,255,255,.04)}
+.hm-row:last-child{border-bottom:none}
+.hm-row:hover .hm-skill-label{color:#38bdf8}
+.hm-row:hover .mastery-dot{transform:scale(1.2)}
+
+/* Mastery dot */
+.mastery-dot{display:inline-block;width:18px;height:18px;border-radius:50%;transition:transform .15s;cursor:default;vertical-align:middle}
+.dot-strong{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.45)}
+.dot-growing{background:#f0c040;box-shadow:0 0 5px rgba(240,192,64,.35)}
+.dot-exploring{background:rgba(240,246,255,.25);border:1.5px solid rgba(240,246,255,.2)}
+.dot-not-started{width:18px;height:18px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.12);display:inline-block;background:transparent;vertical-align:middle}
+
+/* Legend */
+.legend-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(240,246,255,.5)}
+.legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.l-strong{background:#22c55e}
+.l-growing{background:#f0c040}
+.l-exploring{background:rgba(240,246,255,.25);border:1.5px solid rgba(240,246,255,.2)}
+.l-not-started{border:1.5px dashed rgba(255,255,255,.2);background:transparent}
+
+/* Privacy note */
+.privacy-note{margin-top:14px;font-size:11px;color:rgba(240,246,255,.35);font-style:italic;padding:10px 14px;background:rgba(56,189,248,.05);border-left:3px solid rgba(56,189,248,.3);border-radius:4px}
+
+/* Summary panel */
+.summary-panel .card{margin-bottom:14px}
+.summary-panel .card:last-child{margin-bottom:0}
+.summary-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,246,255,.35);margin-bottom:14px}
+.summary-item{padding:12px 14px;border-radius:10px;margin-bottom:10px;font-size:12px;line-height:1.5}
+.summary-item:last-child{margin-bottom:0}
+.si-positive{background:rgba(80,232,144,.08);border:1px solid rgba(80,232,144,.18);color:#50e890}
+.si-caution{background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.2);color:#f0c040}
+.si-skill-name{font-size:13px;font-weight:800;margin-bottom:4px}
+.si-body{font-size:12px;line-height:1.5;color:rgba(240,246,255,.65)}
+.si-body .highlight{color:inherit;font-weight:700}
+
+/* Export bar */
+.export-bar{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.export-btn{padding:8px 18px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(240,246,255,.6);font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .15s}
+.export-btn:hover{border-color:#38bdf8;color:#38bdf8}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TAB 2 — SKILL DETAIL
+══════════════════════════════════════════════════════════════════════ */
+
+.detail-grid{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:flex-start}
+
+/* Skill header card */
+.skill-hdr{display:flex;align-items:flex-start;gap:18px;margin-bottom:20px}
+.skill-icon-wrap{width:52px;height:52px;border-radius:14px;background:rgba(255,209,102,.15);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.skill-meta{flex:1}
+.skill-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.skill-name{font-size:20px;font-weight:900;color:#f0f6ff}
+.skill-status-badge{padding:4px 12px;border-radius:16px;font-size:11px;font-weight:800;background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
+.skill-tags{display:flex;gap:8px;flex-wrap:wrap}
+.skill-tag{padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700}
+.st-p0{background:rgba(255,209,102,.12);color:#ffd166;border:1px solid rgba(255,209,102,.25)}
+.st-subject{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2)}
+
+/* Stats row */
+.stats-row{display:flex;gap:4px;margin-bottom:20px}
+.stat-box{flex:1;background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 10px;text-align:center}
+.stat-val{font-size:22px;font-weight:900;color:#f0f6ff;margin-bottom:4px}
+.stat-val.s-strong{color:#22c55e}
+.stat-val.s-growing{color:#f0c040}
+.stat-val.s-started{color:#38bdf8}
+.stat-val.s-not{color:rgba(240,246,255,.35)}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(240,246,255,.35)}
+
+/* Engagement bar chart */
+.chart-card{padding:20px 22px}
+.chart-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,246,255,.35);margin-bottom:6px}
+.chart-sub{font-size:11px;color:rgba(240,246,255,.3);margin-bottom:18px}
+.chart-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chart-row:last-child{margin-bottom:0}
+.chart-label{font-size:11px;font-weight:700;color:rgba(240,246,255,.5);width:56px;text-align:right;flex-shrink:0}
+.chart-bar-wrap{flex:1;background:rgba(255,255,255,.06);border-radius:6px;height:20px;overflow:hidden}
+.chart-bar{height:100%;border-radius:6px;transition:width .5s ease}
+.bar-strong{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.bar-growing{background:linear-gradient(90deg,#f0c040,#fde047)}
+.bar-exploring{background:rgba(240,246,255,.25)}
+.bar-not{background:rgba(255,255,255,.08)}
+.chart-mastery-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;flex-shrink:0;white-space:nowrap}
+.mt-strong{background:rgba(34,197,94,.15);color:#22c55e}
+.mt-growing{background:rgba(240,192,64,.12);color:#f0c040}
+.mt-exploring{background:rgba(240,246,255,.08);color:rgba(240,246,255,.45)}
+.mt-not{background:transparent;color:rgba(240,246,255,.2);border:1px dashed rgba(255,255,255,.1)}
+
+/* Recommended actions */
+.actions-card{padding:20px 22px}
+.action-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;margin-bottom:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.action-item:last-child{margin-bottom:0}
+.action-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.action-body{flex:1}
+.action-text{font-size:13px;color:rgba(240,246,255,.8);line-height:1.5}
+.action-text strong{color:#38bdf8}
+
+/* Suggested next skills */
+.next-skills-card{padding:20px 22px}
+.next-skill-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:border-color .15s;margin-bottom:10px}
+.next-skill-item:last-child{margin-bottom:0}
+.next-skill-item:hover{border-color:rgba(56,189,248,.4)}
+.nsi-icon{font-size:16px;flex-shrink:0}
+.nsi-name{flex:1;font-size:13px;font-weight:700;color:#f0f6ff}
+.nsi-arrow{font-size:14px;color:rgba(240,246,255,.25)}
+.nsi-tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2)}
+
+/* Right column info cards */
+.info-card{padding:18px 20px;margin-bottom:14px}
+.info-card:last-child{margin-bottom:0}
+.info-card-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,246,255,.35);margin-bottom:12px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-row-label{color:rgba(240,246,255,.45)}
+.info-row-val{color:#f0f6ff;font-weight:700}
+
+/* Mastery scale mini */
+.mastery-scale{display:flex;flex-direction:column;gap:8px}
+.ms-row{display:flex;align-items:center;gap:10px;font-size:12px}
+.ms-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.ms-label{font-weight:700;color:#f0f6ff;min-width:80px}
+.ms-desc{color:rgba(240,246,255,.4);font-size:11px}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TAB 3 — SPEC
+══════════════════════════════════════════════════════════════════════ */
+
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:800px){.spec-grid{grid-template-columns:1fr}}
+.spec-card{padding:20px 22px}
+.spec-card-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#38bdf8;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.spec-card-title span{font-size:16px}
+.spec-row{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;display:flex;gap:12px}
+.spec-row:last-child{border-bottom:none}
+.spec-key{font-weight:800;color:rgba(240,246,255,.55);min-width:130px;flex-shrink:0}
+.spec-val{color:rgba(240,246,255,.75);line-height:1.5}
+.spec-val code{font-family:monospace;font-size:11px;background:rgba(255,255,255,.07);padding:2px 7px;border-radius:5px;color:#58e8c1}
+.spec-full{grid-column:1/-1}
+.spec-db-block{background:rgba(88,232,193,.05);border:1px solid rgba(88,232,193,.2);border-radius:10px;padding:14px 16px;margin-top:4px}
+.spec-db-block code{font-family:monospace;font-size:12px;color:#58e8c1;line-height:1.8;display:block}
+.ferpa-banner{background:rgba(255,123,107,.06);border:1px solid rgba(255,123,107,.25);border-radius:10px;padding:14px 16px;margin-top:16px;font-size:12px;color:rgba(240,246,255,.65);line-height:1.6}
+.ferpa-banner strong{color:#ff7b6b}
+
+/* ── Responsive tweaks ──────────────────────────────────────────────── */
+@media(max-width:900px){
+  .board-layout{flex-direction:column}
+  .board-summary{width:100%}
+  .detail-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint">ITEM 247 · teacher-skill-mastery-board-v2.html · WonderQuest parallel-agent build</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Skill Mastery Board</button>
+  <button class="tab-btn" onclick="showTab(2)">Skill Detail</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     TAB 1 — SKILL MASTERY BOARD
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="tab1">
+
+  <div class="board-header">
+    <div class="board-title-col">
+      <h1>Skill Mastery Board — Class 4B</h1>
+      <p>Updated daily from analytics snapshot &nbsp;·&nbsp; Last updated: 23 Mar 2026</p>
+    </div>
+    <div class="export-bar">
+      <button class="export-btn">Export CSV</button>
+      <button class="export-btn">Export PDF</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-row">
+    <span class="filter-label">Subject</span>
+    <button class="chip active" onclick="setFilter(this)">All</button>
+    <button class="chip" onclick="setFilter(this)">Maths</button>
+    <button class="chip" onclick="setFilter(this)">Literacy</button>
+    <button class="chip" onclick="setFilter(this)">Science</button>
+    <button class="chip" onclick="setFilter(this)">Social Studies</button>
+    <select class="period-select">
+      <option>Term 1, 2026</option>
+      <option>Term 4, 2025</option>
+      <option>Term 3, 2025</option>
+    </select>
+  </div>
+
+  <!-- Board + summary side by side -->
+  <div class="board-layout">
+
+    <!-- Heatmap -->
+    <div class="board-main">
+      <div class="heatmap-wrap">
+        <table class="heatmap-table">
+          <thead>
+            <tr>
+              <th class="hm-th-corner"></th>
+              <th class="hm-th-name">Aiden</th>
+              <th class="hm-th-name">Bella</th>
+              <th class="hm-th-name">Carlos</th>
+              <th class="hm-th-name">Diya</th>
+              <th class="hm-th-name">Ethan</th>
+              <th class="hm-th-name">Fiona</th>
+              <th class="hm-th-name">George</th>
+              <th class="hm-th-name">Hana</th>
+              <th class="hm-th-name">Ivan</th>
+              <th class="hm-th-name">Jasmine</th>
+              <th class="hm-th-more">+8 more</th>
+            </tr>
+          </thead>
+          <tbody id="heatmapBody">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+
+        <!-- Legend -->
+        <div class="legend-row">
+          <div class="legend-item"><span class="legend-dot l-strong"></span>Strong (6+ sessions)</div>
+          <div class="legend-item"><span class="legend-dot l-growing"></span>Growing (3–5 sessions)</div>
+          <div class="legend-item"><span class="legend-dot l-exploring"></span>Exploring (1–2 sessions)</div>
+          <div class="legend-item"><span class="legend-dot l-not-started" style="width:14px;height:14px;border-radius:50%;display:inline-block;border:1.5px dashed rgba(255,255,255,.3)"></span>Not started</div>
+        </div>
+      </div>
+
+      <!-- Privacy note -->
+      <div class="privacy-note">Student names are first name only. This data is for classroom planning, not grading.</div>
+    </div>
+
+    <!-- Summary sidebar -->
+    <div class="board-summary">
+      <div class="summary-panel">
+        <div class="card">
+          <div class="summary-title">Class Highlights</div>
+
+          <div class="summary-item si-positive">
+            <div class="si-skill-name">Shapes</div>
+            <div class="si-body"><span class="highlight">8/10 students</span> at Growing or Strong &#127775;</div>
+          </div>
+
+          <div class="summary-item si-positive">
+            <div class="si-skill-name">Phonics B</div>
+            <div class="si-body"><span class="highlight">7/10 students</span> at Growing or Strong — strong momentum</div>
+          </div>
+
+          <div class="summary-item si-caution">
+            <div class="si-skill-name">Community Helpers</div>
+            <div class="si-body"><span class="highlight">2/10 students</span> started — consider introducing this skill to the class</div>
+          </div>
+
+          <div class="summary-item si-caution">
+            <div class="si-skill-name">My Neighbourhood</div>
+            <div class="si-body"><span class="highlight">3/10 students</span> started — may need a classroom introduction activity</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="summary-title">Class Overview</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:100px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:#22c55e">38</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(240,246,255,.35);margin-top:4px">Strong</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.2);border-radius:10px;padding:12px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:#f0c040">29</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(240,246,255,.35);margin-top:4px">Growing</div>
+            </div>
+            <div style="flex:1;min-width:100px;background:rgba(240,246,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:rgba(240,246,255,.5)">13</div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(240,246,255,.35);margin-top:4px">Exploring</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:rgba(240,246,255,.35)">Across 8 skills · 10 students shown</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab1 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     TAB 2 — SKILL DETAIL
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab2">
+
+  <!-- Skill header -->
+  <div class="card" style="margin-bottom:18px">
+    <div class="skill-hdr">
+      <div class="skill-icon-wrap">&#129518;</div>
+      <div class="skill-meta">
+        <div class="skill-name-row">
+          <span class="skill-name">Counting to 20</span>
+          <span class="skill-status-badge">Published ✓</span>
+        </div>
+        <div class="skill-tags">
+          <span class="skill-tag st-p0">P0 Priority</span>
+          <span class="skill-tag st-subject">Maths</span>
+          <span class="skill-tag" style="background:rgba(155,114,255,.1);color:#9b72ff;border:1px solid rgba(155,114,255,.2)">Early Numeracy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val s-started">9</div>
+        <div class="stat-lbl">Started</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val s-growing">7</div>
+        <div class="stat-lbl">Growing</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val s-strong">5</div>
+        <div class="stat-lbl">Strong</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val s-not">1</div>
+        <div class="stat-lbl">Not Started</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+
+    <!-- Left column -->
+    <div>
+
+      <!-- Engagement bar chart -->
+      <div class="card chart-card" style="margin-bottom:18px">
+        <div class="chart-title">Class Engagement Depth</div>
+        <div class="chart-sub">Relative session depth per student — for planning, not assessment</div>
+
+        <div id="engagementChart"></div>
+      </div>
+
+      <!-- Recommended actions -->
+      <div class="card actions-card" style="margin-bottom:18px">
+        <div class="chart-title">Recommended Actions</div>
+
+        <div class="action-item">
+          <span class="action-icon">&#128640;</span>
+          <div class="action-body">
+            <div class="action-text"><strong>5 students</strong> are ready for the next skill in sequence — see Suggested Next Skills below</div>
+          </div>
+        </div>
+
+        <div class="action-item">
+          <span class="action-icon">&#128203;</span>
+          <div class="action-body">
+            <div class="action-text"><strong>2 students</strong> are still exploring — a short in-class activity or paired practice could help consolidate understanding</div>
+          </div>
+        </div>
+
+        <div class="action-item">
+          <span class="action-icon">&#128075;</span>
+          <div class="action-body">
+            <div class="action-text"><strong>1 student</strong> hasn't started — consider a gentle nudge or a classroom introduction to build familiarity</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggested next skills -->
+      <div class="card next-skills-card">
+        <div class="chart-title">Suggested Next Skills</div>
+
+        <div class="next-skill-item">
+          <span class="nsi-icon">&#129518;</span>
+          <span class="nsi-name">Counting to 50</span>
+          <span class="nsi-tag">Maths</span>
+          <span class="nsi-arrow">›</span>
+        </div>
+
+        <div class="next-skill-item">
+          <span class="nsi-icon">&#10133;</span>
+          <span class="nsi-name">Adding to 10</span>
+          <span class="nsi-tag">Maths</span>
+          <span class="nsi-arrow">›</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column -->
+    <div>
+
+      <div class="card info-card">
+        <div class="info-card-title">Skill Info</div>
+        <div class="info-row">
+          <span class="info-row-label">Skill ID</span>
+          <span class="info-row-val" style="font-family:monospace;font-size:11px;color:#58e8c1">SKL-0041</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-label">Band</span>
+          <span class="info-row-val" style="color:#ffd166">P0 Foundation</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-label">Subject</span>
+          <span class="info-row-val">Maths</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-label">Avg sessions</span>
+          <span class="info-row-val">5.2 per student</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-label">Snapshot date</span>
+          <span class="info-row-val">23 Mar 2026</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-label">Board refresh</span>
+          <span class="info-row-val">Daily (not real-time)</span>
+        </div>
+      </div>
+
+      <div class="card info-card" style="margin-top:14px">
+        <div class="info-card-title">Mastery Scale</div>
+        <div class="mastery-scale">
+          <div class="ms-row">
+            <span class="ms-dot" style="background:#22c55e"></span>
+            <span class="ms-label">Strong</span>
+            <span class="ms-desc">6+ sessions with progression signals</span>
+          </div>
+          <div class="ms-row">
+            <span class="ms-dot" style="background:#f0c040"></span>
+            <span class="ms-label">Growing</span>
+            <span class="ms-desc">3–5 sessions</span>
+          </div>
+          <div class="ms-row">
+            <span class="ms-dot" style="background:rgba(240,246,255,.25);border:1.5px solid rgba(240,246,255,.2)"></span>
+            <span class="ms-label">Exploring</span>
+            <span class="ms-desc">1–2 sessions</span>
+          </div>
+          <div class="ms-row">
+            <span class="ms-dot" style="border:1.5px dashed rgba(255,255,255,.3);background:transparent"></span>
+            <span class="ms-label">Not started</span>
+            <span class="ms-desc">0 sessions recorded</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card info-card" style="margin-top:14px">
+        <div class="info-card-title">Privacy Reminder</div>
+        <div style="font-size:12px;color:rgba(240,246,255,.55);line-height:1.6">
+          This chart shows session depth only — not accuracy or correct/incorrect responses. First names are shown for your own class only. No per-student accuracy is displayed.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div><!-- /tab2 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     TAB 3 — SPEC
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab3">
+
+  <div style="margin-bottom:18px">
+    <h2 style="font-size:18px;font-weight:900;color:#f0f6ff;margin-bottom:6px">Item 247 — Spec Reference</h2>
+    <p style="font-size:13px;color:rgba(240,246,255,.4)">teacher-skill-mastery-board-v2 · WonderQuest Learning Platform</p>
+  </div>
+
+  <div class="spec-grid">
+
+    <!-- Mastery levels -->
+    <div class="card spec-card">
+      <div class="spec-card-title"><span>📊</span> Mastery Levels</div>
+      <div class="spec-row">
+        <span class="spec-key">Strong</span>
+        <span class="spec-val">6+ sessions with progression signals detected</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">Growing</span>
+        <span class="spec-val">3–5 sessions recorded</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">Exploring</span>
+        <span class="spec-val">1–2 sessions recorded</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">Not started</span>
+        <span class="spec-val">0 sessions — no engagement recorded</span>
+      </div>
+    </div>
+
+    <!-- Privacy -->
+    <div class="card spec-card">
+      <div class="spec-card-title"><span>🔒</span> Privacy</div>
+      <div class="spec-row">
+        <span class="spec-key">Names shown</span>
+        <span class="spec-val">First names only for teacher's own class; no surnames</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">Accuracy data</span>
+        <span class="spec-val">No per-question accuracy; no individual accuracy shown to other teachers</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">Chart data</span>
+        <span class="spec-val">Engagement depth only — not correctness or score</span>
+      </div>
+    </div>
+
+    <!-- Access scope -->
+    <div class="card spec-card">
+      <div class="spec-card-title"><span>🏫</span> Teacher Access Scope</div>
+      <div class="spec-row">
+        <span class="spec-key">Teacher</span>
+        <span class="spec-val">Own <code>class_id</code> only — full read access</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">School admin</span>
+        <span class="spec-val">Read-only across school; no cross-school data</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">Cross-school</span>
+        <span class="spec-val">Not permitted at any role level</span>
+      </div>
+    </div>
+
+    <!-- Board refresh & export -->
+    <div class="card spec-card">
+      <div class="spec-card-title"><span>🔄</span> Refresh &amp; Export</div>
+      <div class="spec-row">
+        <span class="spec-key">Board refresh</span>
+        <span class="spec-val">Updated daily (analytics snapshot); not real-time</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">CSV export</span>
+        <span class="spec-val"><code>student_first_name, skill_name, mastery_level</code> — no accuracy data</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-key">PDF export</span>
+        <span class="spec-val">Includes benchmark disclaimer on every page</span>
+      </div>
+    </div>
+
+    <!-- Database schema — full width -->
+    <div class="card spec-card spec-full">
+      <div class="spec-card-title"><span>🗄️</span> Database Schema</div>
+      <div class="spec-db-block">
+        <code>skill_mastery_snapshots (</code>
+        <code>&nbsp;&nbsp;class_id        UUID,</code>
+        <code>&nbsp;&nbsp;student_id      UUID,</code>
+        <code>&nbsp;&nbsp;skill_id        UUID,</code>
+        <code>&nbsp;&nbsp;mastery_level   ENUM('not_started','exploring','growing','strong'),</code>
+        <code>&nbsp;&nbsp;sessions_count  INT,</code>
+        <code>&nbsp;&nbsp;snapshot_date   DATE</code>
+        <code>)</code>
+      </div>
+    </div>
+
+    <!-- FERPA — full width -->
+    <div class="spec-full">
+      <div class="ferpa-banner">
+        <strong>FERPA Notice:</strong> Skill mastery data constitutes an education record under FERPA (20 U.S.C. § 1232g). Access is restricted to the teacher of record for the class. School administrators may view aggregate school-level data in read-only mode. Parents have the right to request their child's own data. No individual student data may be shared across schools or with unauthorised third parties.
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab3 -->
+
+
+<script>
+/* ── Tab switching ─────────────────────────────────────────────── */
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+}
+
+/* ── Subject filter chips ─────────────────────────────────────── */
+function setFilter(el) {
+  el.closest('.filter-row').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ── Heatmap data ─────────────────────────────────────────────── */
+const skills = [
+  { name: 'Counting to 20', subject: 'Maths',          band: 'P0', color: '#ffd166' },
+  { name: 'Shapes',          subject: 'Maths',          band: 'P0', color: '#ffd166' },
+  { name: 'Phonics B',       subject: 'Literacy',       band: 'P1', color: '#9b72ff' },
+  { name: 'Short Vowels',    subject: 'Literacy',       band: 'P1', color: '#9b72ff' },
+  { name: 'Animals',         subject: 'Science',        band: 'P2', color: '#58e8c1' },
+  { name: 'Plants',          subject: 'Science',        band: 'P2', color: '#58e8c1' },
+  { name: 'Community Helpers',subject:'Social Studies', band: 'P3', color: '#ff7b6b' },
+  { name: 'My Neighbourhood', subject:'Social Studies', band: 'P3', color: '#ff7b6b' },
+];
+
+// 10 columns × 8 rows — hand-crafted to tell an interesting story
+// Values: 3=strong, 2=growing, 1=exploring, 0=not-started
+const grid = [
+  [3,3,2,3,2,3,2,1,3,2],  // Counting to 20
+  [3,3,3,2,3,3,2,3,2,1],  // Shapes          (8/10 growing or strong)
+  [3,2,3,2,2,3,1,2,3,2],  // Phonics B
+  [2,3,2,2,1,2,3,2,2,3],  // Short Vowels
+  [2,2,1,3,2,2,1,2,3,2],  // Animals
+  [1,2,2,2,1,3,2,1,2,2],  // Plants
+  [0,1,0,0,2,0,0,1,0,0],  // Community Helpers (2/10 started)
+  [0,0,1,0,2,1,0,0,0,0],  // My Neighbourhood  (3/10 started)
+];
+
+function dotHtml(level) {
+  if (level === 3) return '<span class="mastery-dot dot-strong" title="Strong"></span>';
+  if (level === 2) return '<span class="mastery-dot dot-growing" title="Growing"></span>';
+  if (level === 1) return '<span class="mastery-dot dot-exploring" title="Exploring"></span>';
+  return '<span class="dot-not-started" title="Not started"></span>';
+}
+
+function buildHeatmap() {
+  const tbody = document.getElementById('heatmapBody');
+  tbody.innerHTML = skills.map((skill, ri) => {
+    const cells = grid[ri].map(v => `<td class="hm-td">${dotHtml(v)}</td>`).join('');
+    return `<tr class="hm-row">
+      <td class="hm-skill-label" onclick="showTab(2)">
+        <span class="skill-band-dot" style="background:${skill.color}"></span>${skill.name}
+        <span style="font-size:10px;color:rgba(240,246,255,.25);margin-left:6px;font-weight:600">${skill.subject}</span>
+      </td>
+      ${cells}
+      <td class="hm-td"></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Engagement chart data ────────────────────────────────────── */
+const students = [
+  { label: 'Student 1',  depth: 95, level: 3 },
+  { label: 'Student 2',  depth: 88, level: 3 },
+  { label: 'Student 3',  depth: 82, level: 3 },
+  { label: 'Student 4',  depth: 75, level: 3 },
+  { label: 'Student 5',  depth: 70, level: 3 },
+  { label: 'Student 6',  depth: 60, level: 2 },
+  { label: 'Student 7',  depth: 52, level: 2 },
+  { label: 'Student 8',  depth: 38, level: 1 },
+  { label: 'Student 9',  depth: 24, level: 1 },
+  { label: 'Student 10', depth: 0,  level: 0 },
+];
+
+const barClass = { 3: 'bar-strong', 2: 'bar-growing', 1: 'bar-exploring', 0: 'bar-not' };
+const tagClass = { 3: 'mt-strong', 2: 'mt-growing', 1: 'mt-exploring', 0: 'mt-not' };
+const tagLabel = { 3: 'Strong', 2: 'Growing', 1: 'Exploring', 0: 'Not started' };
+
+function buildChart() {
+  const wrap = document.getElementById('engagementChart');
+  wrap.innerHTML = students.map(s => `
+    <div class="chart-row">
+      <span class="chart-label">${s.label}</span>
+      <div class="chart-bar-wrap">
+        <div class="chart-bar ${barClass[s.level]}" style="width:${Math.max(s.depth,2)}%"></div>
+      </div>
+      <span class="chart-mastery-tag ${tagClass[s.level]}">${tagLabel[s.level]}</span>
+    </div>
+  `).join('');
+}
+
+/* ── Init ─────────────────────────────────────────────────────── */
+buildHeatmap();
+buildChart();
+</script>
+</body>
+</html>

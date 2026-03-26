@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Content Health Desktop — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-sub{font-size:11px;color:rgba(255,255,255,.3)}
+.sh-actions{display:flex;align-items:center;gap:12px}
+.sha-btn{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.sha-warn{font-size:11px;font-weight:700;color:#f59e0b;cursor:pointer}
+
+/* Top stats */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.stat-cell{background:#0d1117;padding:16px 20px}
+.sc-n{font-size:20px;font-weight:900;color:#f0f6ff}
+.sc-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-top:2px}
+.sc-d{font-size:11px;font-weight:700;margin-top:4px}
+.dg{color:#50e890}.da{color:#f59e0b}.dr{color:#f85149}
+
+/* Body */
+.body-layout{display:grid;grid-template-columns:1fr 340px;gap:0}
+.body-main{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06)}
+.body-side{padding:18px 20px}
+
+/* Section headers */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card{background:#161b22;border-radius:12px;padding:16px 18px;margin-bottom:14px;border:1px solid rgba(255,255,255,.05)}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:12px}
+
+/* Band health grid */
+.band-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.band-card{border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.06)}
+.bc-band{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.bc-skills{font-size:18px;font-weight:900;color:#f0f6ff}
+.bc-label{font-size:9px;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.bc-review{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.bcr-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.bc-pass{background:rgba(80,232,144,.12);color:#50e890}
+.bc-warn{background:rgba(245,158,11,.12);color:#f59e0b}
+.bc-fail{background:rgba(248,81,73,.12);color:#f85149}
+
+/* Skill table */
+.skill-table{width:100%;border-collapse:collapse}
+.skill-table th{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);padding:5px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+.skill-table td{font-size:11px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;color:rgba(255,255,255,.6)}
+.skill-table tr:last-child td{border-bottom:none}
+.skill-table tr.warn-row{background:rgba(245,158,11,.03)}
+.skill-table tr.fail-row{background:rgba(248,81,73,.04)}
+.sk-name{font-weight:700;color:#f0f6ff}
+.sk-status{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px}
+.ss-pass{background:rgba(80,232,144,.12);color:#50e890}
+.ss-review{background:rgba(245,158,11,.12);color:#f59e0b}
+.ss-blocked{background:rgba(248,81,73,.12);color:#f85149}
+.sk-sessions{color:rgba(255,255,255,.5)}
+.sk-error{color:#f59e0b;font-weight:700}
+
+/* Review queue */
+.review-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.review-item:last-child{border-bottom:none}
+.ri-prio{font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:1px}
+.rp-high{background:rgba(248,81,73,.15);color:#f85149}
+.rp-med{background:rgba(245,158,11,.12);color:#f59e0b}
+.ri-body{flex:1}
+.ri-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.7)}
+.ri-meta{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.ri-band-tag{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;display:inline-block;margin-top:2px}
+
+/* Side panels */
+.side-panel{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sp-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:10px}
+.sp-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sp-row:last-child{border-bottom:none}
+.spr-label{color:rgba(255,255,255,.4)}
+.spr-val{color:#f0f6ff;font-weight:600}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-content-health-desktop-v2.html</strong><br>
+  Content quality monitoring dashboard for the owner. Shows skill/question accuracy, curriculum review status, and content error reports.<br>
+  <strong>Data sources:</strong> content_skills table (skill metadata + review status), content_errors table (teacher/auto-reported errors), session_answers table (aggregate correctness rates per skill).<br>
+  <strong>Key statuses:</strong> Published (live) / Under Review (flagged, skill may still be live) / Blocked (locked from delivery until review passes).<br>
+  <strong>Privacy:</strong> Aggregate session data only — no individual student/teacher visible here. Content error reporter shown as "Teacher, [School]" (not name).<br>
+  <strong>Band accent colours:</strong> P0 Pre-K=#ffd166, P1 K–1=#9b72ff, P2 G2–3=#58e8c1, P3 G4–5=#ff7b6b.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')">Content Health</button>
+  <button class="tab-btn" onclick="showTab('skills')">Skills Table</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Content Health Overview ─────────────────────────────── -->
+<div id="tab-overview" class="screen active">
+  <p class="section-title">Owner content health — overview</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📚 Content Health</div>
+        <div class="sh-sub">Skills · Questions · Reviews</div>
+      </div>
+      <div class="sh-actions">
+        <span class="sha-warn">3 Under Review</span>
+        <span class="sha-btn">↓ Export</span>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-cell"><div class="sc-n">284</div><div class="sc-l">Total Skills</div><div class="sc-d dg">↑12 this month</div></div>
+      <div class="stat-cell"><div class="sc-n">278</div><div class="sc-l">Published Live</div><div class="sc-d dg">97.9%</div></div>
+      <div class="stat-cell"><div class="sc-n">3</div><div class="sc-l">Under Review</div><div class="sc-d da">↑2 vs last month</div></div>
+      <div class="stat-cell"><div class="sc-n">3</div><div class="sc-l">Blocked</div><div class="sc-d da">Locked from delivery</div></div>
+      <div class="stat-cell"><div class="sc-n">14</div><div class="sc-l">Error Reports</div><div class="sc-d da">7d rolling</div></div>
+    </div>
+    <div class="body-layout">
+      <div class="body-main">
+        <div class="sec-hdr">Content Health by Band</div>
+        <div class="band-grid">
+          <div class="band-card" style="background:#161b22">
+            <div class="bc-band" style="color:#ffd166">P0 Pre-K</div>
+            <div class="bc-skills">42</div>
+            <div class="bc-label">Skills</div>
+            <div class="bc-review">
+              <span class="bcr-chip bc-pass">41 Live</span>
+              <span class="bcr-chip bc-warn">1 Review</span>
+            </div>
+          </div>
+          <div class="band-card" style="background:#161b22">
+            <div class="bc-band" style="color:#9b72ff">P1 K–1</div>
+            <div class="bc-skills">68</div>
+            <div class="bc-label">Skills</div>
+            <div class="bc-review">
+              <span class="bcr-chip bc-pass">66 Live</span>
+              <span class="bcr-chip bc-warn">2 Review</span>
+            </div>
+          </div>
+          <div class="band-card" style="background:#161b22">
+            <div class="bc-band" style="color:#58e8c1">P2 G2–3</div>
+            <div class="bc-skills">96</div>
+            <div class="bc-label">Skills</div>
+            <div class="bc-review">
+              <span class="bcr-chip bc-pass">93 Live</span>
+              <span class="bcr-chip bc-fail">3 Blocked</span>
+            </div>
+          </div>
+          <div class="band-card" style="background:#161b22">
+            <div class="bc-band" style="color:#ff7b6b">P3 G4–5</div>
+            <div class="bc-skills">78</div>
+            <div class="bc-label">Skills</div>
+            <div class="bc-review">
+              <span class="bcr-chip bc-pass">78 Live</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">Content Review Queue</div>
+        <div class="card">
+          <div class="card-title">Items requiring review (curriculum team)</div>
+          <div class="review-item">
+            <span class="ri-prio rp-high">HIGH</span>
+            <div class="ri-body">
+              <div class="ri-title">Fractions: Mixed Numbers — wrong answer marked correct</div>
+              <div class="ri-meta">Reported by: Teacher, Maplewood School · 2d ago · 8 teacher reports + auto-flag</div>
+              <span class="ri-band-tag" style="background:rgba(88,232,193,.12);color:#58e8c1">P2 G2–3</span>
+            </div>
+            <span class="bcr-chip bc-fail">Blocked</span>
+          </div>
+          <div class="review-item">
+            <span class="ri-prio rp-high">HIGH</span>
+            <div class="ri-body">
+              <div class="ri-title">Division: Remainders — unclear question wording</div>
+              <div class="ri-meta">Reported by: 3 teachers, multiple schools · 5d ago</div>
+              <span class="ri-band-tag" style="background:rgba(88,232,193,.12);color:#58e8c1">P2 G2–3</span>
+            </div>
+            <span class="bcr-chip bc-fail">Blocked</span>
+          </div>
+          <div class="review-item">
+            <span class="ri-prio rp-med">MED</span>
+            <div class="ri-body">
+              <div class="ri-title">Phonics: Consonant Blends — image asset broken on iOS</div>
+              <div class="ri-meta">Auto-detected: asset 404 · CDN issue · 1d ago</div>
+              <span class="ri-band-tag" style="background:rgba(155,114,255,.12);color:#9b72ff">P1 K–1</span>
+            </div>
+            <span class="bcr-chip bc-warn">Review</span>
+          </div>
+          <div class="review-item">
+            <span class="ri-prio rp-med">MED</span>
+            <div class="ri-body">
+              <div class="ri-title">Subtraction: Borrowing — difficulty calibration off (skip rate 78%)</div>
+              <div class="ri-meta">Auto-flag: skip rate &gt;60% threshold triggered · 3d ago</div>
+              <span class="ri-band-tag" style="background:rgba(255,209,102,.15);color:#ffd166">P0 Pre-K</span>
+            </div>
+            <span class="bcr-chip bc-warn">Review</span>
+          </div>
+          <div class="review-item">
+            <span class="ri-prio rp-med">MED</span>
+            <div class="ri-body">
+              <div class="ri-title">Reading Comprehension: Main Idea — locked per release gate warning</div>
+              <div class="ri-meta">Release gate: v2.5 warning item. Locked at launch. Curriculum review pending.</div>
+              <span class="ri-band-tag" style="background:rgba(155,114,255,.12);color:#9b72ff">P1 K–1</span>
+            </div>
+            <span class="bcr-chip bc-fail">Blocked</span>
+          </div>
+        </div>
+
+        <div class="sec-hdr">Error Rate by Subject Area</div>
+        <div class="card">
+          <div class="card-title">Skip rate / error report density by subject (7d)</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);width:140px">Mathematics</div>
+              <div style="flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:6px"><div style="width:68%;height:6px;border-radius:3px;background:#f85149"></div></div>
+              <div style="font-size:10px;font-weight:700;color:#f85149">8 reports</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);width:140px">Reading</div>
+              <div style="flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:6px"><div style="width:25%;height:6px;border-radius:3px;background:#f59e0b"></div></div>
+              <div style="font-size:10px;font-weight:700;color:#f59e0b">3 reports</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);width:140px">Phonics</div>
+              <div style="flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:6px"><div style="width:20%;height:6px;border-radius:3px;background:#f59e0b"></div></div>
+              <div style="font-size:10px;font-weight:700;color:#f59e0b">2 reports</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);width:140px">Vocabulary</div>
+              <div style="flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:6px"><div style="width:8%;height:6px;border-radius:3px;background:#50e890"></div></div>
+              <div style="font-size:10px;font-weight:700;color:#50e890">1 report</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);width:140px">Spelling</div>
+              <div style="flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:6px"><div style="width:0%;height:6px;border-radius:3px;background:#50e890"></div></div>
+              <div style="font-size:10px;font-weight:700;color:#50e890">0 reports</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="body-side">
+        <div class="side-panel">
+          <div class="sp-title">Content Status Summary</div>
+          <div class="sp-row"><div class="spr-label">Published live</div><div class="spr-val" style="color:#50e890">278</div></div>
+          <div class="sp-row"><div class="spr-label">Under review (skill live)</div><div class="spr-val" style="color:#f59e0b">3</div></div>
+          <div class="sp-row"><div class="spr-label">Blocked (delivery locked)</div><div class="spr-val" style="color:#f85149">3</div></div>
+          <div class="sp-row"><div class="spr-label">Draft / unreleased</div><div class="spr-val">32</div></div>
+          <div class="sp-row"><div class="spr-label">Total in catalogue</div><div class="spr-val">316</div></div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Recent Content Actions</div>
+          <div class="review-item" style="padding:5px 0">
+            <div class="ri-body">
+              <div class="ri-title" style="font-size:10px">Fractions: Equivalent — Review resolved, published</div>
+              <div class="ri-meta">3d ago · Curriculum team</div>
+            </div>
+          </div>
+          <div class="review-item" style="padding:5px 0">
+            <div class="ri-body">
+              <div class="ri-title" style="font-size:10px">Addition: 3-digit — New skill published</div>
+              <div class="ri-meta">5d ago · v2.5 release</div>
+            </div>
+          </div>
+          <div class="review-item" style="padding:5px 0">
+            <div class="ri-body">
+              <div class="ri-title" style="font-size:10px">Phonics: Long Vowels — Asset update (image replaced)</div>
+              <div class="ri-meta">6d ago · Content team</div>
+            </div>
+          </div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Auto-Flag Thresholds</div>
+          <div class="sp-row"><div class="spr-label">Skip rate</div><div class="spr-val">&gt; 60%</div></div>
+          <div class="sp-row"><div class="spr-label">Wrong-as-correct</div><div class="spr-val">&gt; 2 reports</div></div>
+          <div class="sp-row"><div class="spr-label">Asset 404</div><div class="spr-val">Instant</div></div>
+          <div class="sp-row"><div class="spr-label">Avg session abort mid-skill</div><div class="spr-val">&gt; 40%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Skills Table ────────────────────────────────────────── -->
+<div id="tab-skills" class="screen">
+  <p class="section-title">Owner content health — full skills table (filtered to flagged)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📚 Skills — Flagged / Blocked</div>
+        <div class="sh-sub">Showing 6 of 284</div>
+      </div>
+      <div class="sh-actions">
+        <span class="sha-btn">Show All Skills</span>
+        <span class="sha-btn">↓ Export CSV</span>
+      </div>
+    </div>
+    <div style="padding:20px 24px">
+      <table class="skill-table">
+        <thead>
+          <tr>
+            <th>Skill</th>
+            <th>Band</th>
+            <th>Subject</th>
+            <th>Sessions (7d)</th>
+            <th>Skip rate</th>
+            <th>Error reports</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="fail-row">
+            <td><div class="sk-name">Fractions: Mixed Numbers</div></td>
+            <td><span style="font-size:9px;font-weight:700;color:#58e8c1">P2 G2–3</span></td>
+            <td>Maths</td>
+            <td class="sk-sessions">1,240</td>
+            <td class="sk-error">12%</td>
+            <td class="sk-error">8 reports</td>
+            <td><span class="sk-status ss-blocked">Blocked</span></td>
+          </tr>
+          <tr class="fail-row">
+            <td><div class="sk-name">Division: Remainders</div></td>
+            <td><span style="font-size:9px;font-weight:700;color:#58e8c1">P2 G2–3</span></td>
+            <td>Maths</td>
+            <td class="sk-sessions">880</td>
+            <td>18%</td>
+            <td class="sk-error">3 reports</td>
+            <td><span class="sk-status ss-blocked">Blocked</span></td>
+          </tr>
+          <tr class="fail-row">
+            <td><div class="sk-name">Reading: Main Idea</div></td>
+            <td><span style="font-size:9px;font-weight:700;color:#9b72ff">P1 K–1</span></td>
+            <td>Reading</td>
+            <td class="sk-sessions">—</td>
+            <td>—</td>
+            <td>0</td>
+            <td><span class="sk-status ss-blocked">Blocked</span></td>
+          </tr>
+          <tr class="warn-row">
+            <td><div class="sk-name">Phonics: Consonant Blends</div></td>
+            <td><span style="font-size:9px;font-weight:700;color:#9b72ff">P1 K–1</span></td>
+            <td>Phonics</td>
+            <td class="sk-sessions">460</td>
+            <td>9%</td>
+            <td class="sk-error">2 reports</td>
+            <td><span class="sk-status ss-review">Under Review</span></td>
+          </tr>
+          <tr class="warn-row">
+            <td><div class="sk-name">Subtraction: Borrowing</div></td>
+            <td><span style="font-size:9px;font-weight:700;color:#ffd166">P0 Pre-K</span></td>
+            <td>Maths</td>
+            <td class="sk-sessions">320</td>
+            <td class="sk-error">78%</td>
+            <td>1 report</td>
+            <td><span class="sk-status ss-review">Under Review</span></td>
+          </tr>
+          <tr class="warn-row">
+            <td><div class="sk-name">Vocabulary: Context Clues</div></td>
+            <td><span style="font-size:9px;font-weight:700;color:#ff7b6b">P3 G4–5</span></td>
+            <td>Vocabulary</td>
+            <td class="sk-sessions">580</td>
+            <td>35%</td>
+            <td>1 report</td>
+            <td><span class="sk-status ss-review">Under Review</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-content-health-desktop-v2.html<br>
+      <strong>Content quality monitoring dashboard.</strong> Shows skill/question health, curriculum review queue, error reports by subject, and band-level summaries.
+    </div>
+    <h2 class="spec-h2">Content Status Definitions</h2>
+    <p class="spec-p"><strong>Published:</strong> Live in production, served to students normally. <strong>Under Review:</strong> Flagged by teacher or auto-detect; skill remains live but is flagged for curriculum team review. <strong>Blocked:</strong> Locked from delivery; students will not receive this skill until review passes. Blocked can be set manually or automatically (if wrong-answer error confirmed).</p>
+    <h2 class="spec-h2">Auto-Flag Triggers</h2>
+    <p class="spec-p">Skip rate &gt; 60% → Under Review. Wrong-as-correct reports &gt; 2 → Blocked. Asset 404 detected → Blocked instantly. Session abort mid-skill &gt; 40% → Under Review. All triggers generate a content_errors entry and notify the curriculum lead.</p>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">All data is aggregate content metrics — no individual student or teacher data. Error reporter shown as "Teacher, [School]" only. Aggregate session counts shown but not linked to individual users.</p>
+    <h2 class="spec-h2">Blocked Skills in Release Gate</h2>
+    <p class="spec-p">Skills that are Blocked at launch time appear as warnings in the release gate Content category. If &gt; 5 skills are Blocked at launch, it becomes a release gate hard blocker.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

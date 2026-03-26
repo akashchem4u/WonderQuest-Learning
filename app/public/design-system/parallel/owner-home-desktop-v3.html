@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Home Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Owner design tokens: bg #0d1117, card #161b22, accent #50e890 green */
+.owner-shell{display:flex;gap:0;max-width:960px;background:#0d1117;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);height:620px}
+
+/* Owner sidebar */
+.owner-sb{width:220px;background:#010409;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06)}
+.sb-logo{padding:18px 16px 14px;font-size:14px;font-weight:900;color:#f0f6ff;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo span{color:#50e890}
+.sb-sect{padding:12px 12px 5px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.25)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;margin:1px 6px;font-size:12px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer}
+.sb-item.active{background:rgba(80,232,144,.1);color:#50e890}
+.sb-item:hover:not(.active){background:rgba(255,255,255,.04)}
+.sb-icon{font-size:13px;width:18px;text-align:center}
+.sb-badge{font-size:9px;font-weight:800;background:#ef4444;color:#fff;padding:1px 5px;border-radius:4px;margin-left:auto}
+.sb-badge-amber{background:#f59e0b}
+.sb-spacer{flex:1}
+.sb-footer{padding:10px 12px;border-top:1px solid rgba(255,255,255,.05)}
+.sb-status{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sb-status-dot{width:7px;height:7px;border-radius:50%}
+.sb-footer-text{font-size:11px;color:rgba(255,255,255,.4)}
+
+/* Main area */
+.owner-main{flex:1;background:#0d1117;padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+
+/* Page title */
+.owner-page-title{font-size:16px;font-weight:900;color:#f0f6ff}
+.owner-page-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+
+/* Stat row */
+.owner-stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.owner-stat{background:#161b22;border-radius:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.06)}
+.os-n{font-size:18px;font-weight:900;color:#f0f6ff}
+.os-l{font-size:9px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.os-delta{font-size:10px;font-weight:700;margin-top:2px}
+.delta-green{color:#50e890}
+.delta-amber{color:#f59e0b}
+.delta-red{color:#f85149}
+
+/* 2-col grid */
+.owner-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.owner-card{background:#161b22;border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.06)}
+.oc-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-bottom:10px}
+
+/* Route health rows */
+.route-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.route-row:last-child{border-bottom:none}
+.rr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rrd-healthy{background:#50e890}
+.rrd-degraded{background:#f59e0b}
+.rrd-down{background:#f85149}
+.rr-name{font-size:11px;color:rgba(255,255,255,.7);flex:1}
+.rr-uptime{font-size:10px;font-weight:700;color:rgba(255,255,255,.4)}
+.rr-p95{font-size:10px;color:rgba(255,255,255,.3)}
+
+/* Feedback queue */
+.fb-queue-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.fb-queue-row:last-child{border-bottom:none}
+.fb-priority{font-size:9px;font-weight:800;padding:1px 6px;border-radius:4px;flex-shrink:0;margin-top:1px}
+.fbp-p0{background:#f85149;color:#fff}
+.fbp-p1{background:#f59e0b;color:#1a1440}
+.fbp-p2{background:#2563eb;color:#fff}
+.fb-q-text{font-size:11px;color:rgba(255,255,255,.65);flex:1;line-height:1.4}
+.fb-q-time{font-size:10px;color:rgba(255,255,255,.25);flex-shrink:0}
+
+/* Release status */
+.release-card{background:#161b22;border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.06)}
+.rc-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-bottom:10px}
+.release-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.rel-dot{width:8px;height:8px;border-radius:50%}
+.reld-pass{background:#50e890}
+.reld-warn{background:#f59e0b}
+.reld-fail{background:#f85149}
+.rel-name{font-size:11px;color:rgba(255,255,255,.65);flex:1}
+.rel-score{font-size:10px;font-weight:700;color:rgba(255,255,255,.4)}
+
+/* Mini bar chart */
+.mini-bars{display:flex;gap:3px;align-items:flex-end;height:36px}
+.mb-bar{border-radius:2px 2px 0 0;background:#50e890;opacity:.7;width:10px}
+.mb-bar.today{opacity:1}
+
+/* MRR metric */
+.mrr-row{display:flex;align-items:baseline;gap:8px}
+.mrr-n{font-size:22px;font-weight:900;color:#50e890}
+.mrr-label{font-size:10px;color:rgba(255,255,255,.3);font-weight:700}
+.mrr-delta{font-size:11px;font-weight:700}
+
+/* Alert banner */
+.alert-banner{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.ab-icon{font-size:14px}
+.ab-text{font-size:11px;color:#f85149;flex:1;font-weight:700}
+.ab-action{font-size:10px;font-weight:700;color:#f85149;cursor:pointer;background:none;border:1px solid rgba(248,81,73,.4);border-radius:5px;padding:2px 8px;font-family:system-ui}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-home-desktop-v3.html</strong><br>
+  Owner/founder product ops console — home screen for the person running WonderQuest (not a teacher, not a parent).<br>
+  <strong>Design tokens:</strong> bg #0d1117 dark GitHub-inspired, card #161b22, accent #50e890 green, text #f0f6ff near-white.<br>
+  <strong>Sections:</strong> System health (route status, p95 latency) | Business metrics (MAU, MRR, active schools) | Feedback queue (P0/P1 bugs) | Release gate status | Active users bar chart.<br>
+  <strong>Access:</strong> Owner console is internal only — not accessible to teachers, parents, or students. Auth-gated with MFA required.<br>
+  <strong>Alert system:</strong> P0 bugs and route incidents show red alert banners at top. Non-critical items are amber.<br>
+  <strong>Refreshes:</strong> System health cards refresh every 60s. Business metrics are daily snapshots (not real-time). Feedback queue is real-time.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('home')">Owner Home</button>
+  <button class="tab-btn" onclick="showTab('incident')">With Active Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Owner Home ─────────────────────────────────────────────────── -->
+<div id="tab-home" class="screen active">
+  <p class="section-title">Owner home — product ops console (all clear)</p>
+  <div class="owner-shell">
+    <!-- Sidebar -->
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-sect">Ops</div>
+      <div class="sb-item active"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item"><span class="sb-icon">📡</span>Route Health</div>
+      <div class="sb-item"><span class="sb-icon">🚀</span>Release Gate</div>
+      <div class="sb-item"><span class="sb-icon">💬</span>Feedback <span class="sb-badge sb-badge-amber">3</span></div>
+      <div class="sb-sect">Analytics</div>
+      <div class="sb-item"><span class="sb-icon">📊</span>Command Center</div>
+      <div class="sb-item"><span class="sb-icon">👥</span>Users</div>
+      <div class="sb-item"><span class="sb-icon">🏫</span>Schools</div>
+      <div class="sb-sect">Product</div>
+      <div class="sb-item"><span class="sb-icon">🧪</span>Experiments</div>
+      <div class="sb-item"><span class="sb-icon">📋</span>Content</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">
+        <div class="sb-status">
+          <div class="sb-status-dot" style="background:#50e890"></div>
+          <div class="sb-footer-text">All systems healthy</div>
+        </div>
+        <div class="sb-footer-text">Avi M. · Owner</div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="owner-main">
+      <div>
+        <div class="owner-page-title">Good morning, Avi 👋</div>
+        <div class="owner-page-sub">Tuesday, March 24 · All systems healthy · Last updated 60s ago</div>
+      </div>
+
+      <!-- Stat row -->
+      <div class="owner-stat-row">
+        <div class="owner-stat">
+          <div class="os-n">4,820</div>
+          <div class="os-l">MAU (30d)</div>
+          <div class="os-delta delta-green">↑12% WoW</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">$18.4K</div>
+          <div class="os-l">MRR</div>
+          <div class="os-delta delta-green">↑$800</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">142</div>
+          <div class="os-l">Active schools</div>
+          <div class="os-delta delta-green">↑3 this week</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">99.97%</div>
+          <div class="os-l">Uptime (30d)</div>
+          <div class="os-delta delta-green">SLA met</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">3</div>
+          <div class="os-l">Feedback open</div>
+          <div class="os-delta delta-amber">↑1 new P1</div>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div class="owner-grid">
+        <!-- Route health -->
+        <div class="owner-card">
+          <div class="oc-title">📡 Route Health</div>
+          <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Play session</div><div class="rr-uptime">100%</div><div class="rr-p95" style="margin-left:6px">p95 140ms</div></div>
+          <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Adaptive engine</div><div class="rr-uptime">100%</div><div class="rr-p95" style="margin-left:6px">p95 88ms</div></div>
+          <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Teacher portal</div><div class="rr-uptime">100%</div><div class="rr-p95" style="margin-left:6px">p95 112ms</div></div>
+          <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Parent portal</div><div class="rr-uptime">99.9%</div><div class="rr-p95" style="margin-left:6px">p95 95ms</div></div>
+          <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Auth / onboarding</div><div class="rr-uptime">100%</div><div class="rr-p95" style="margin-left:6px">p95 62ms</div></div>
+          <div style="margin-top:8px"><a style="font-size:10px;color:#50e890;font-weight:700;cursor:pointer">Full route health →</a></div>
+        </div>
+
+        <!-- Feedback queue -->
+        <div class="owner-card">
+          <div class="oc-title">💬 Feedback Queue</div>
+          <div class="fb-queue-row">
+            <span class="fb-priority fbp-p1">P1</span>
+            <div class="fb-q-text">Mastery bar not updating after session ends (teacher portal)</div>
+            <div class="fb-q-time">2h ago</div>
+          </div>
+          <div class="fb-queue-row">
+            <span class="fb-priority fbp-p2">P2</span>
+            <div class="fb-q-text">Export PDF feature request — parent-teacher conference use</div>
+            <div class="fb-q-time">Mar 18</div>
+          </div>
+          <div class="fb-queue-row">
+            <span class="fb-priority fbp-p2">P2</span>
+            <div class="fb-q-text">Ambiguous fractions diagram in P2 question set</div>
+            <div class="fb-q-time">Mar 10</div>
+          </div>
+          <div style="margin-top:8px"><a style="font-size:10px;color:#50e890;font-weight:700;cursor:pointer">Open workbench →</a></div>
+        </div>
+
+        <!-- Release gate -->
+        <div class="owner-card">
+          <div class="oc-title">🚀 Release Gate — v2.5</div>
+          <div class="release-row"><div class="rel-dot reld-pass"></div><div class="rel-name">Test coverage ≥ 80%</div><div class="rel-score">✓ 84%</div></div>
+          <div class="release-row"><div class="rel-dot reld-pass"></div><div class="rel-name">P0 bugs resolved</div><div class="rel-score">✓ 0 open</div></div>
+          <div class="release-row"><div class="rel-dot reld-warn"></div><div class="rel-name">p95 latency ≤ 200ms</div><div class="rel-score">⚠ 210ms</div></div>
+          <div class="release-row"><div class="rel-dot reld-pass"></div><div class="rel-name">Stakeholder sign-off</div><div class="rel-score">✓ 3/3</div></div>
+          <div style="margin-top:8px;font-size:11px;color:#f59e0b;font-weight:700">1 blocker — latency threshold exceeded. Gate: blocked.</div>
+          <div style="margin-top:6px"><a style="font-size:10px;color:#50e890;font-weight:700;cursor:pointer">View release gate →</a></div>
+        </div>
+
+        <!-- MAU + sessions chart -->
+        <div class="owner-card">
+          <div class="oc-title">📈 Daily Active Sessions — Last 7 Days</div>
+          <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">3.2K</div>
+              <div style="width:20px;height:32px;background:#50e890;border-radius:3px 3px 0 0;opacity:.7"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">M</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">3.5K</div>
+              <div style="width:20px;height:36px;background:#50e890;border-radius:3px 3px 0 0;opacity:.7"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">T</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">4.1K</div>
+              <div style="width:20px;height:44px;background:#50e890;border-radius:3px 3px 0 0;opacity:.7"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">W</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">3.8K</div>
+              <div style="width:20px;height:40px;background:#50e890;border-radius:3px 3px 0 0;opacity:.7"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Th</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">2.9K</div>
+              <div style="width:20px;height:28px;background:#50e890;border-radius:3px 3px 0 0;opacity:.5"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">F</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">1.4K</div>
+              <div style="width:20px;height:14px;background:#50e890;border-radius:3px 3px 0 0;opacity:.4"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Sa</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700">4.8K</div>
+              <div style="width:20px;height:52px;background:#50e890;border-radius:3px 3px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700">Su</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25)">Today: 4,820 active users (MAU rolling 30d)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── With Active Incident ─────────────────────────────────────── -->
+<div id="tab-incident" class="screen">
+  <p class="section-title">Owner home — active P0 incident alert</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-sect">Ops</div>
+      <div class="sb-item active"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item"><span class="sb-icon">📡</span>Route Health <span class="sb-badge">⚠</span></div>
+      <div class="sb-item"><span class="sb-icon">🚀</span>Release Gate</div>
+      <div class="sb-item"><span class="sb-icon">💬</span>Feedback <span class="sb-badge">5</span></div>
+      <div class="sb-sect">Analytics</div>
+      <div class="sb-item"><span class="sb-icon">📊</span>Command Center</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">
+        <div class="sb-status">
+          <div class="sb-status-dot" style="background:#f85149"></div>
+          <div class="sb-footer-text" style="color:#f85149">Active incident — P0</div>
+        </div>
+      </div>
+    </div>
+    <div class="owner-main">
+      <div>
+        <div class="owner-page-title">Owner Console</div>
+        <div class="owner-page-sub">Tuesday, March 24 · 1 active incident</div>
+      </div>
+      <div class="alert-banner">
+        <div class="ab-icon">🔴</div>
+        <div class="ab-text">P0 INCIDENT — Adaptive engine degraded. p95 latency 820ms (threshold: 200ms). Affecting ~12% of active sessions. Opened 14 minutes ago.</div>
+        <button class="ab-action">View incident →</button>
+      </div>
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <div style="font-size:13px">⚠️</div>
+        <div style="font-size:11px;color:#f59e0b;flex:1">Release gate v2.5 still blocked — latency threshold check failing. Unrelated to current incident.</div>
+      </div>
+      <div class="owner-stat-row">
+        <div class="owner-stat" style="border-color:rgba(248,81,73,.3)">
+          <div class="os-n" style="color:#f85149">820ms</div>
+          <div class="os-l">Engine p95</div>
+          <div class="os-delta delta-red">↑6× normal</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">4,820</div>
+          <div class="os-l">MAU (30d)</div>
+          <div class="os-delta delta-green">↑12%</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">$18.4K</div>
+          <div class="os-l">MRR</div>
+          <div class="os-delta delta-green">↑$800</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">99.84%</div>
+          <div class="os-l">Uptime (30d)</div>
+          <div class="os-delta delta-amber">↓ Incident active</div>
+        </div>
+        <div class="owner-stat">
+          <div class="os-n">5</div>
+          <div class="os-l">Feedback open</div>
+          <div class="os-delta delta-amber">1 P0 bug</div>
+        </div>
+      </div>
+      <div class="owner-card" style="max-width:100%">
+        <div class="oc-title">📡 Route Health — Degraded View</div>
+        <div class="route-row"><div class="rr-dot" style="background:#f85149"></div><div class="rr-name" style="color:#f85149">Adaptive engine ⚠ DEGRADED</div><div class="rr-uptime" style="color:#f85149">p95 820ms</div></div>
+        <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Play session (degraded UX)</div><div class="rr-uptime">99.3%</div></div>
+        <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Teacher portal</div><div class="rr-uptime">100%</div></div>
+        <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Parent portal</div><div class="rr-uptime">100%</div></div>
+        <div class="route-row"><div class="rr-dot rrd-healthy"></div><div class="rr-name">Auth / onboarding</div><div class="rr-uptime">100%</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-home-desktop-v3.html<br>
+      <strong>Route:</strong> /console/home (internal only, MFA-gated)<br>
+      <strong>Design tokens:</strong> bg #0d1117, card #161b22, accent #50e890 green, near-white #f0f6ff, border rgba(255,255,255,.06)
+    </div>
+    <h2 class="spec-h2">Owner Console vs Teacher/Parent Portals</h2>
+    <table class="spec-table">
+      <tr><th>Portal</th><th>Persona</th><th>Accent</th><th>Background</th></tr>
+      <tr><td>Owner console</td><td>Founder / product ops</td><td>#50e890 green</td><td>#0d1117 dark</td></tr>
+      <tr><td>Teacher portal</td><td>Classroom teacher</td><td>#2563eb blue</td><td>#f0f4f8 blue-grey</td></tr>
+      <tr><td>Parent portal</td><td>Parent / guardian</td><td>#9b72ff violet</td><td>#f5f0e8 warm cream</td></tr>
+      <tr><td>Child app</td><td>Student (child)</td><td>Multi (band colours)</td><td>#100b2e dark purple</td></tr>
+    </table>
+    <h2 class="spec-h2">Data Refresh Rates</h2>
+    <table class="spec-table">
+      <tr><th>Section</th><th>Refresh</th><th>Source</th></tr>
+      <tr><td>Route health / uptime</td><td>60s polling</td><td>Health check service</td></tr>
+      <tr><td>Feedback queue</td><td>Real-time (WebSocket)</td><td>feedback table</td></tr>
+      <tr><td>MAU / MRR / school count</td><td>Daily snapshot</td><td>Analytics warehouse</td></tr>
+      <tr><td>Session chart</td><td>Daily</td><td>sessions_daily_agg</td></tr>
+      <tr><td>Release gate</td><td>On gate check trigger</td><td>CI/CD pipeline</td></tr>
+    </table>
+    <h2 class="spec-h2">Alert System</h2>
+    <p class="spec-p">P0 incidents (adaptive engine down, auth failures, data loss risk): red banner at top of all owner console pages + Slack alert to #on-call. P1 incidents (degraded performance): amber banner. Resolved incidents: banner dismissed automatically when health check passes for 5 consecutive minutes.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

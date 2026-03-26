@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Skill Detail — WonderQuest UI Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f5f0e8;
+  --surface:  #fffdf8;
+  --surface2: #f0ebe0;
+  --border:   rgba(0,0,0,0.07);
+  --border-em:rgba(0,0,0,0.12);
+  --text:     #1a1a2e;
+  --text-2:   #5a5a72;
+  --text-m:   #9a9aac;
+  --blue:     #4361ee;
+  --green:    #2d9b5a;
+  --orange:   #e76f51;
+  --yellow:   #f4a261;
+  --p0:#ffd166;--p1:#9b72ff;--p2:#58e8c1;--p3:#ff7b6b;
+  --font:'Sora',sans-serif;
+  --r:10px;--rlg:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#e8e3db;color:var(--text);padding:24px;}
+
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:24px;border-bottom:1px solid var(--border-em);padding-bottom:0;}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-family:var(--font);font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.panel{display:none;}.panel.active{display:block;}
+
+.eng-note{background:rgba(67,97,238,0.06);border:1px solid rgba(67,97,238,0.15);border-radius:var(--r);padding:10px 14px;font-size:12px;color:#3050cc;margin-bottom:20px;line-height:1.5;}
+.eng-note strong{color:var(--blue);}
+
+/* shell */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:620px;background:var(--surface);border:1px solid var(--border-em);border-radius:var(--rlg);overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.07);}
+.sidebar{background:var(--surface2);border-right:1px solid var(--border);padding:20px 0;}
+.sidebar-logo{font-size:15px;font-weight:700;color:var(--text);padding:0 18px 14px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.sidebar-logo span{color:var(--blue);}
+.s-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:var(--text-2);cursor:pointer;border-left:3px solid transparent;transition:all .12s;}
+.s-item:hover{color:var(--text);}
+.s-item.active{color:var(--blue);border-left-color:var(--blue);background:rgba(67,97,238,0.05);}
+.main{background:var(--bg);overflow-y:auto;}
+.topbar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);}
+.breadcrumb .sep{color:var(--text-m);}
+.breadcrumb .cur{color:var(--text);font-weight:600;}
+.topbar-actions{margin-left:auto;display:flex;gap:8px;}
+.content{padding:24px;max-width:720px;}
+
+/* buttons */
+.btn{font-family:var(--font);font-size:13px;font-weight:600;padding:9px 18px;border-radius:var(--r);border:none;cursor:pointer;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-ghost{background:rgba(0,0,0,0.04);border:1px solid var(--border-em);color:var(--text-2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* skill header */
+.skill-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:20px 24px;margin-bottom:20px;}
+.skill-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.skill-plain{font-size:14px;color:var(--text-2);line-height:1.65;margin-bottom:14px;}
+.skill-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;background:rgba(155,114,255,0.1);color:#6b44cc;border:1px solid rgba(155,114,255,0.2);}
+.skill-level-row{display:flex;align-items:center;gap:12px;margin-top:14px;}
+.level-bar-wrap{flex:1;height:10px;background:var(--surface2);border-radius:99px;overflow:hidden;}
+.level-fill{height:100%;border-radius:99px;transition:width .4s;}
+.level-pct{font-size:13px;font-weight:700;min-width:36px;text-align:right;}
+
+/* section cards */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);margin-bottom:14px;overflow:hidden;}
+.section-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.section-icon{font-size:18px;}
+.section-title{font-size:14px;font-weight:700;color:var(--text);}
+.section-body{padding:16px 20px;}
+
+/* bullet items */
+.plain-list{list-style:none;}
+.plain-list li{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2);line-height:1.55;}
+.plain-list li:last-child{border-bottom:none;}
+.li-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.li-dot-green{background:var(--green);}
+.li-dot-orange{background:var(--orange);}
+.li-dot-blue{background:var(--blue);}
+
+/* home tip */
+.home-tip{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.home-tip:last-child{border-bottom:none;}
+.tip-icon{font-size:22px;flex-shrink:0;}
+.tip-body .tip-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.tip-body .tip-desc{font-size:12px;color:var(--text-2);line-height:1.55;}
+
+/* movement row */
+.mv-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.mv-row:last-child{border-bottom:none;}
+.mv-week{color:var(--text-m);width:56px;flex-shrink:0;font-size:12px;}
+.mv-bar-wrap{flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden;}
+.mv-fill{height:100%;border-radius:99px;background:var(--blue);}
+.mv-pct{font-size:12px;font-weight:600;color:var(--text);min-width:32px;text-align:right;}
+.mv-change{font-size:11px;font-weight:700;padding:2px 6px;border-radius:99px;}
+.mv-up{background:rgba(45,155,90,0.1);color:var(--green);}
+.mv-down{background:rgba(231,111,81,0.1);color:var(--orange);}
+.mv-flat{background:rgba(0,0,0,0.05);color:var(--text-m);}
+
+/* chip */
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;}
+.chip-green{background:rgba(45,155,90,0.1);color:var(--green);}
+.chip-orange{background:rgba(231,111,81,0.1);color:var(--orange);}
+
+/* empty / low data */
+.low-data-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:28px 24px;text-align:center;}
+.low-icon{font-size:44px;margin-bottom:10px;}
+.low-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+.low-desc{font-size:13px;color:var(--text-2);line-height:1.6;max-width:340px;margin:0 auto 16px;}
+
+/* mobile */
+.mob-frame{width:375px;min-height:700px;background:var(--bg);border:2px solid var(--border-em);border-radius:28px;overflow:hidden;margin:0 auto;position:relative;box-shadow:0 16px 50px rgba(0,0,0,0.1);}
+.mob-tb{display:flex;align-items:center;padding:14px 16px 12px;gap:10px;background:var(--surface);border-bottom:1px solid var(--border);}
+.mob-back{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.04);border:1px solid var(--border-em);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.mob-body{padding:14px 16px;padding-bottom:80px;overflow:hidden;}
+.mob-bottom{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;box-shadow:0 -2px 12px rgba(0,0,0,0.05);}
+.mob-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.mob-ch{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.mob-cb{padding:12px 14px;}
+</style>
+</head>
+<body>
+
+<div class="eng-note">
+  <strong>parent-skill-detail.html</strong> — plain-language skill detail for parents. 4 states: Skill Detail (main), Recent Movement, Low-Data state, Mobile 375px. Route: <code>/parent/skills/:skill-id</code>. Calmer and simpler than teacher drilldown — no tables, no school-style performance language.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('detail',this)">1 · Skill Detail</button>
+  <button class="tab-btn" onclick="show('movement',this)">2 · Recent Movement</button>
+  <button class="tab-btn" onclick="show('lowdata',this)">3 · Low-Data / Empty</button>
+  <button class="tab-btn" onclick="show('mobile',this)">4 · Mobile (375px)</button>
+</div>
+
+<!-- ══════════════════════════
+     Panel 1 — Skill Detail
+══════════════════════════════ -->
+<div id="panel-detail" class="panel active">
+  <div class="eng-note"><strong>Engineering:</strong> reached by tapping a skill row in parent-hub-v2. URL: <code>/parent/skills/phonics-blending</code>. Language is parent-friendly — no "accuracy score" framing, no grade comparison. Focus: what is this, how is my child doing, what can I do at home.</div>
+
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-logo">WonderQuest <span>Parent</span></div>
+      <div class="s-item">📊 Hub</div>
+      <div class="s-item active">🧩 Skill Detail</div>
+      <div class="s-item">📈 Progress</div>
+      <div class="s-item">🔔 Notifications</div>
+    </nav>
+    <div class="main">
+      <div class="topbar">
+        <div class="breadcrumb">
+          <span>Mia's Hub</span><span class="sep">›</span>
+          <span>Skills</span><span class="sep">›</span>
+          <span class="cur">Phonics Blending</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm">← All skills</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- skill header -->
+        <div class="skill-header">
+          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;">
+            <div style="font-size:36px;line-height:1;">🔤</div>
+            <div style="flex:1;">
+              <div class="skill-title">Phonics Blending</div>
+              <span class="skill-badge">K–1 · Reading</span>
+              <span class="chip chip-orange" style="margin-left:8px;">Needs support</span>
+            </div>
+          </div>
+          <div class="skill-plain">
+            Phonics blending means putting letter sounds together to read a whole word — like hearing "c… a… t" and saying "cat". It's one of the most important early reading skills, and it takes practice to click.
+          </div>
+          <div class="skill-level-row">
+            <span style="font-size:12px;color:var(--text-m);width:72px;flex-shrink:0;">Mia today</span>
+            <div class="level-bar-wrap"><div class="level-fill" style="width:51%;background:var(--orange);"></div></div>
+            <span class="level-pct" style="color:var(--orange);">51%</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-m);margin-top:6px;padding-left:84px;">Getting there — most children reach comfort at around 75%</div>
+        </div>
+
+        <!-- going well -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-icon">✅</div>
+            <div class="section-title">What Mia is doing well</div>
+          </div>
+          <div class="section-body">
+            <ul class="plain-list">
+              <li><div class="li-dot li-dot-green"></div><span>Recognises most letter sounds on their own — strong foundation</span></li>
+              <li><div class="li-dot li-dot-green"></div><span>Gets short two-letter blends right most of the time (like "at", "in")</span></li>
+              <li><div class="li-dot li-dot-green"></div><span>Is trying — she replays the audio prompt often, which is exactly the right thing to do</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- still learning -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-icon">🌱</div>
+            <div class="section-title">What still needs a little practice</div>
+          </div>
+          <div class="section-body">
+            <ul class="plain-list">
+              <li><div class="li-dot li-dot-orange"></div><span>Three-letter blends are tricky — "str", "spl" type combinations</span></li>
+              <li><div class="li-dot li-dot-orange"></div><span>Sometimes rushes the answer before finishing the full sound</span></li>
+              <li><div class="li-dot li-dot-orange"></div><span>Silent-e words (like "cake", "bike") — a common sticking point at K–1</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- try at home -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-icon">🏠</div>
+            <div class="section-title">What to try at home</div>
+          </div>
+          <div class="section-body">
+            <div class="home-tip">
+              <div class="tip-icon">📖</div>
+              <div class="tip-body">
+                <div class="tip-title">Sound it out together</div>
+                <div class="tip-desc">When reading together, pause on a new word and tap each letter sound slowly before saying the whole word. No pressure — keep it playful.</div>
+              </div>
+            </div>
+            <div class="home-tip">
+              <div class="tip-icon">🎵</div>
+              <div class="tip-body">
+                <div class="tip-title">Sing blending songs</div>
+                <div class="tip-desc">Songs and rhymes that break words into sounds work really well at this age. "Down by the Bay" is a favourite for rhyming practice.</div>
+              </div>
+            </div>
+            <div class="home-tip">
+              <div class="tip-icon">⏱</div>
+              <div class="tip-body">
+                <div class="tip-title">5 minutes is plenty</div>
+                <div class="tip-desc">Short, calm sessions beat long ones at this age. Even just one story a day where you slow down on new words helps a lot.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     Panel 2 — Recent Movement
+══════════════════════════════ -->
+<div id="panel-movement" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> recent movement section shown below the skill detail. 4-week accuracy trend in a simple bar chart — no axis labels, no grid lines. Plain-language narrative above the chart. Movement callout below.</div>
+
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-logo">WonderQuest <span>Parent</span></div>
+      <div class="s-item">📊 Hub</div>
+      <div class="s-item active">🧩 Skill Detail</div>
+      <div class="s-item">📈 Progress</div>
+    </nav>
+    <div class="main">
+      <div class="topbar">
+        <div class="breadcrumb">
+          <span>Mia's Hub</span><span class="sep">›</span><span>Skills</span><span class="sep">›</span>
+          <span class="cur">Phonics Blending · Movement</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm">← Back to skill</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="section-card" style="margin-bottom:14px;">
+          <div class="section-header">
+            <div class="section-icon">📈</div>
+            <div class="section-title">How Mia has been doing recently</div>
+          </div>
+          <div class="section-body">
+            <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px;">
+              Mia started this skill 4 weeks ago and has been making steady progress. She dropped a little last week — that's completely normal and often happens as the material gets harder.
+            </div>
+
+            <!-- simple trend chart -->
+            <div style="display:flex;align-items:flex-end;gap:10px;height:80px;margin-bottom:8px;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="flex:1;width:100%;background:var(--blue);opacity:.4;border-radius:4px 4px 0 0;height:36px;"></div>
+                <div style="font-size:10px;color:var(--text-m);">4w ago</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="flex:1;width:100%;background:var(--blue);opacity:.6;border-radius:4px 4px 0 0;height:48px;"></div>
+                <div style="font-size:10px;color:var(--text-m);">3w ago</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="flex:1;width:100%;background:var(--blue);opacity:.8;border-radius:4px 4px 0 0;height:60px;"></div>
+                <div style="font-size:10px;color:var(--text-m);">2w ago</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="flex:1;width:100%;background:var(--orange);border-radius:4px 4px 0 0;height:48px;"></div>
+                <div style="font-size:10px;color:var(--text-m);">Last week</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="flex:1;width:100%;background:var(--blue);border-radius:4px 4px 0 0;height:52px;"></div>
+                <div style="font-size:10px;color:var(--text-m);">This week</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-m);padding:0 4px;">
+              <span>38%</span><span>48%</span><span>58%</span><span>51%</span><span>51%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- week-by-week rows -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-icon">📋</div>
+            <div class="section-title">Week by week</div>
+          </div>
+          <div class="section-body">
+            <div class="mv-row">
+              <span class="mv-week">4w ago</span>
+              <div class="mv-bar-wrap"><div class="mv-fill" style="width:38%;"></div></div>
+              <span class="mv-pct">38%</span>
+              <span class="mv-change mv-flat">Start</span>
+            </div>
+            <div class="mv-row">
+              <span class="mv-week">3w ago</span>
+              <div class="mv-bar-wrap"><div class="mv-fill" style="width:48%;"></div></div>
+              <span class="mv-pct">48%</span>
+              <span class="mv-change mv-up">↑ +10%</span>
+            </div>
+            <div class="mv-row">
+              <span class="mv-week">2w ago</span>
+              <div class="mv-bar-wrap"><div class="mv-fill" style="width:58%;"></div></div>
+              <span class="mv-pct">58%</span>
+              <span class="mv-change mv-up">↑ +10%</span>
+            </div>
+            <div class="mv-row">
+              <span class="mv-week">Last week</span>
+              <div class="mv-bar-wrap"><div class="mv-fill" style="width:51%;background:var(--orange);"></div></div>
+              <span class="mv-pct" style="color:var(--orange);">51%</span>
+              <span class="mv-change mv-down">↓ −7%</span>
+            </div>
+            <div class="mv-row">
+              <span class="mv-week">This week</span>
+              <div class="mv-bar-wrap"><div class="mv-fill" style="width:51%;"></div></div>
+              <span class="mv-pct">51%</span>
+              <span class="mv-change mv-flat">→ same</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- reassurance callout -->
+        <div style="background:rgba(45,155,90,0.06);border:1px solid rgba(45,155,90,0.15);border-radius:var(--rlg);padding:16px 20px;margin-top:4px;">
+          <div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:4px;">Overall, Mia is moving in the right direction</div>
+          <div style="font-size:13px;color:var(--text-2);line-height:1.6;">The dip last week is normal — harder question types were introduced. She's still 13 percentage points ahead of where she started 4 weeks ago.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     Panel 3 — Low-Data / Empty
+══════════════════════════════ -->
+<div id="panel-lowdata" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> two sub-states — (A) fewer than 3 sessions attempted, not enough data; (B) skill not yet started. Both show a calm, encouraging message. No accuracy numbers shown. CTA points parent toward encouraging the child to play.</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:10px;">A — Too early to tell (2 sessions)</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+          <div style="font-size:13px;font-weight:700;">Phonics Blending</div>
+          <span style="font-size:10px;font-weight:700;background:rgba(0,0,0,0.05);color:var(--text-m);padding:2px 8px;border-radius:99px;">Just started</span>
+        </div>
+        <div class="low-data-card" style="border-radius:0;border:none;box-shadow:none;">
+          <div class="low-icon">🌱</div>
+          <div class="low-title">Mia just started this skill</div>
+          <div class="low-desc">She's only had 2 sessions so far. We'll have a clearer picture once she's practiced a few more times — usually after 4 or 5 sessions.</div>
+          <div style="background:rgba(67,97,238,0.06);border:1px solid rgba(67,97,238,0.12);border-radius:var(--r);padding:12px 14px;text-align:left;margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:3px;">What you can do now</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.5;">Encourage Mia to play for a few minutes today. The more she practices, the clearer her progress will become.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm">← Back to all skills</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:10px;">B — Not yet started</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+          <div style="font-size:13px;font-weight:700;">Phonics Blending</div>
+          <span style="font-size:10px;font-weight:700;background:rgba(0,0,0,0.05);color:var(--text-m);padding:2px 8px;border-radius:99px;">Not started</span>
+        </div>
+        <div class="low-data-card" style="border-radius:0;border:none;box-shadow:none;">
+          <div class="low-icon">💤</div>
+          <div class="low-title">Mia hasn't tried this yet</div>
+          <div class="low-desc">This skill is part of Mia's K–1 path, but she hasn't practiced it yet. Once she starts, you'll see her progress here.</div>
+          <div style="background:rgba(244,162,97,0.08);border:1px solid rgba(244,162,97,0.2);border-radius:var(--r);padding:12px 14px;text-align:left;margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:600;color:var(--yellow);margin-bottom:3px;">What this skill is about</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.5;">Phonics blending means putting letter sounds together to read a whole word — a key step in early reading.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm">← Back to all skills</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     Panel 4 — Mobile
+══════════════════════════════ -->
+<div id="panel-mobile" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> 375px. Single scrollable column. Plain-language sections stack vertically. No sidebar. Skill level bar at top. "What to try at home" section most prominent — parents reach this page to know what to do. Bottom bar: back to all skills (ghost) + share with teacher (optional).</div>
+
+  <div class="mob-frame">
+    <div class="mob-tb">
+      <div class="mob-back">‹</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:700;color:var(--text);">Phonics Blending</div><div style="font-size:11px;color:var(--text-m);margin-top:1px;">Mia · K–1 · Reading</div></div>
+      <span class="chip chip-orange">Needs support</span>
+    </div>
+
+    <div class="mob-body" style="background:var(--bg);">
+
+      <!-- level bar -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-size:13px;color:var(--text-2);line-height:1.55;margin-bottom:10px;">Phonics blending means putting letter sounds together to read a word — like "c…a…t" → "cat". It's a key early reading skill.</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--text-m);width:60px;">Mia today</span>
+          <div style="flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+            <div style="width:51%;height:100%;background:var(--orange);border-radius:99px;"></div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:var(--orange);">51%</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-m);margin-top:4px;padding-left:70px;">Most comfortable at 75%+</div>
+      </div>
+
+      <!-- what's going well -->
+      <div class="mob-card">
+        <div class="mob-ch"><span>✅</span> What Mia is doing well</div>
+        <div class="mob-cb">
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);">
+            <div class="li-dot li-dot-green" style="margin-top:4px;"></div>Recognises most letter sounds on their own
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);">
+            <div class="li-dot li-dot-green" style="margin-top:4px;"></div>Gets short two-letter blends right most of the time
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:12px;color:var(--text-2);">
+            <div class="li-dot li-dot-green" style="margin-top:4px;"></div>Replays audio prompts — exactly the right thing to do
+          </div>
+        </div>
+      </div>
+
+      <!-- still learning -->
+      <div class="mob-card">
+        <div class="mob-ch"><span>🌱</span> Still learning</div>
+        <div class="mob-cb">
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-2);">
+            <div class="li-dot li-dot-orange" style="margin-top:4px;"></div>Three-letter blends like "str", "spl"
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:12px;color:var(--text-2);">
+            <div class="li-dot li-dot-orange" style="margin-top:4px;"></div>Silent-e words (cake, bike) — common at K–1
+          </div>
+        </div>
+      </div>
+
+      <!-- try at home -->
+      <div class="mob-card">
+        <div class="mob-ch"><span>🏠</span> What to try at home</div>
+        <div class="mob-cb">
+          <div class="home-tip" style="padding:8px 0;">
+            <div class="tip-icon" style="font-size:18px;">📖</div>
+            <div class="tip-body"><div class="tip-title" style="font-size:12px;">Sound it out together</div><div class="tip-desc" style="font-size:11px;">Pause on a new word and tap each sound — keep it playful.</div></div>
+          </div>
+          <div class="home-tip" style="padding:8px 0;">
+            <div class="tip-icon" style="font-size:18px;">⏱</div>
+            <div class="tip-body"><div class="tip-title" style="font-size:12px;">5 minutes is plenty</div><div class="tip-desc" style="font-size:11px;">Short calm sessions beat long ones at this age.</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mob-bottom">
+      <button class="btn btn-ghost btn-sm" style="flex:1;">← All skills</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1;">Share with teacher</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Item 223 · child-low-motion-mode-v2 · WonderQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ── */
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --green: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --p0: #ffd166;
+      --p1: #9b72ff;
+      --p2: #58e8c1;
+      --p3: #ff7b6b;
+      --radius: 16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* ── Hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 20px 20px 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      padding: 0 20px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .tab-btn {
+      padding: 12px 18px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: rgba(240,246,255,.45);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color .18s, border-color .18s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; padding: 28px 20px; }
+    .screen.active { display: block; }
+
+    /* ── Section headings ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,.4);
+      margin-bottom: 14px;
+    }
+
+    /* ── Generic card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    /* ═══════════════════════════════════════
+       TAB 1 — LOW MOTION SHOWCASE
+    ═══════════════════════════════════════ */
+
+    .frames-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    /* Phone frame */
+    .phone-frame {
+      width: 320px;
+      height: 580px;
+      border-radius: 40px;
+      border: 3px solid rgba(255,255,255,.18);
+      background: #0b0f16;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    }
+
+    /* Notch */
+    .phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 90px; height: 22px;
+      background: #0b0f16;
+      border-radius: 0 0 14px 14px;
+      z-index: 10;
+    }
+
+    .frame-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(240,246,255,.55);
+      text-align: center;
+    }
+
+    /* ── Shared phone interior ── */
+    .phone-inner {
+      width: 100%;
+      height: 100%;
+      padding: 30px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ─ Standard mode particles (canvas-like CSS) ─ */
+    .particle-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .particle {
+      position: absolute;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--p1);
+      opacity: .25;
+      animation: float-particle 3s ease-in-out infinite;
+    }
+    .particle:nth-child(2) { background: var(--p2); left: 70%; top: 20%; animation-delay: .8s; animation-duration: 3.5s; }
+    .particle:nth-child(3) { background: var(--p0); left: 20%; top: 60%; animation-delay: 1.5s; animation-duration: 2.8s; }
+    .particle:nth-child(4) { background: var(--p3); left: 85%; top: 55%; animation-delay: .3s; animation-duration: 3.2s; }
+    .particle:nth-child(5) { background: var(--green); left: 45%; top: 80%; animation-delay: 1.1s; animation-duration: 4s; }
+
+    @keyframes float-particle {
+      0%,100% { transform: translate(0,0); }
+      33%      { transform: translate(-8px, -14px); }
+      66%      { transform: translate(6px, -8px); }
+    }
+
+    /* Static dot pattern (low motion) */
+    .static-dots {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .static-dot {
+      position: absolute;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      opacity: .18;
+    }
+
+    /* ─ Question area ─ */
+    .q-zone {
+      background: rgba(155,114,255,.12);
+      border: 1px solid rgba(155,114,255,.3);
+      border-radius: 12px;
+      padding: 14px;
+      position: relative;
+      z-index: 2;
+    }
+    .q-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--p1);
+      margin-bottom: 6px;
+    }
+    .q-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    /* Star burst — standard */
+    .star-wrap {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .star {
+      font-size: 18px;
+      animation: star-pop .6s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+    .star:nth-child(2) { animation-delay: .12s; }
+    .star:nth-child(3) { animation-delay: .24s; }
+
+    @keyframes star-pop {
+      0%   { transform: scale(0); opacity: 0; }
+      60%  { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Star burst — low motion */
+    .star-low {
+      font-size: 18px;
+      opacity: 1;
+      transition: opacity 150ms ease;
+    }
+
+    /* ─ Answer buttons ─ */
+    .answers { display: flex; flex-direction: column; gap: 7px; position: relative; z-index: 2; }
+
+    .ans-btn {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+    }
+
+    .ans-btn.highlighted {
+      border-color: var(--green);
+      background: rgba(80,232,144,.08);
+    }
+
+    /* Bounce indicator — standard */
+    .bounce-indicator {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: bounce-dot .7s ease-in-out infinite;
+    }
+    @keyframes bounce-dot {
+      0%,100% { transform: translateY(-50%); }
+      50%      { transform: translateY(calc(-50% - 5px)); }
+    }
+
+    /* Static indicator — low motion */
+    .static-indicator {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* ─ XP bar ─ */
+    .xp-row { position: relative; z-index: 2; }
+    .xp-label { font-size: 9px; font-weight: 700; color: rgba(240,246,255,.4); margin-bottom: 4px; letter-spacing:.06em; }
+    .xp-track {
+      height: 8px;
+      background: rgba(255,255,255,.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    /* Standard: shimmer sweep */
+    .xp-fill {
+      height: 100%;
+      width: 62%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--p0) 0%, var(--p1) 50%, var(--p0) 100%);
+      background-size: 200% 100%;
+      animation: shimmer-sweep 1.8s linear infinite;
+    }
+    @keyframes shimmer-sweep {
+      0%   { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+    /* Low motion: solid fill */
+    .xp-fill-static {
+      height: 100%;
+      width: 62%;
+      border-radius: 99px;
+      background: var(--p0);
+    }
+
+    /* ─ Confetti ─ */
+    .confetti-zone {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .conf-dot {
+      position: absolute;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+    .conf-dot.animated {
+      animation: conf-fall 2s ease-in infinite;
+    }
+    @keyframes conf-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(200px) rotate(360deg); opacity: 0; }
+    }
+
+    /* static sparkle icons */
+    .sparkle-static {
+      position: absolute;
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    /* ─ Green badge ─ */
+    .badge-green {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 99px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    /* ─ Settings card ─ */
+    .settings-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 28px;
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .settings-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(240,246,255,.5);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 16px;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-label { font-size: 14px; font-weight: 600; }
+    .toggle-track {
+      width: 48px; height: 26px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.12);
+      position: relative;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-track.on { background: var(--green); border-color: var(--green); }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .2s;
+    }
+    .toggle-track.on .toggle-thumb { transform: translateX(22px); }
+    .toggle-on-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green);
+      margin-left: 8px;
+    }
+    .settings-note {
+      font-size: 12px;
+      color: rgba(240,246,255,.45);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+    .settings-note + .settings-note { margin-top: 6px; }
+    .db-pill {
+      display: inline-block;
+      background: rgba(88,232,193,.1);
+      border: 1px solid rgba(88,232,193,.25);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--p2);
+      margin-top: 10px;
+    }
+    .lock-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--p3);
+      background: rgba(255,123,107,.07);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    /* ═══════════════════════════════════════
+       TAB 2 — ANIMATION AUDIT TABLE
+    ═══════════════════════════════════════ */
+
+    .audit-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .audit-table th {
+      background: rgba(255,255,255,.04);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,.4);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .audit-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .audit-table tr:last-child td { border-bottom: none; }
+    .audit-table tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+    .td-anim { color: var(--text); font-weight: 600; }
+    .td-std  { color: rgba(240,246,255,.65); }
+    .td-low  { color: var(--green); }
+
+    .badge-std {
+      display: inline-block;
+      background: rgba(155,114,255,.12);
+      border: 1px solid rgba(155,114,255,.25);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 11px;
+      color: var(--p1);
+    }
+    .badge-low {
+      display: inline-block;
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.22);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    /* ═══════════════════════════════════════
+       TAB 3 — SPEC
+    ═══════════════════════════════════════ */
+
+    .spec-section { margin-bottom: 22px; }
+    .spec-section:last-child { margin-bottom: 0; }
+
+    .spec-heading {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--p1);
+      margin-bottom: 10px;
+    }
+
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .spec-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .spec-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .spec-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .code-block {
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--p2);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .spec-key { color: rgba(240,246,255,.45); font-weight: 600; min-width: 160px; flex-shrink: 0; }
+
+    .wcag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,209,102,.08);
+      border: 1px solid rgba(255,209,102,.22);
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--p0);
+      margin-top: 4px;
+    }
+
+    .schema-code {
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--p2);
+      overflow-x: auto;
+      white-space: pre;
+      margin-top: 8px;
+    }
+
+    /* ── Responsive helpers ── */
+    @media (max-width: 700px) {
+      .frames-row { flex-direction: column; align-items: center; }
+      .phone-frame { width: 300px; height: 540px; }
+      .tab-btn { font-size: 11px; padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 223 &middot; child-low-motion-mode-v2.html &middot; WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(1)">Low Motion Showcase</button>
+    <button class="tab-btn" onclick="showTab(2)">Animation Audit</button>
+    <button class="tab-btn" onclick="showTab(3)">Spec</button>
+  </div>
+
+  <!-- ════════════════════════════════════
+       TAB 1 — LOW MOTION SHOWCASE
+  ════════════════════════════════════ -->
+  <div id="tab1" class="screen active">
+
+    <div class="frames-row">
+
+      <!-- FRAME 1: Standard Mode -->
+      <div class="frame-wrap">
+        <div class="phone-frame">
+          <div class="phone-inner">
+
+            <!-- Animated particles -->
+            <div class="particle-bg">
+              <div class="particle" style="left:10%;top:30%"></div>
+              <div class="particle" style="left:70%;top:20%"></div>
+              <div class="particle" style="left:20%;top:60%"></div>
+              <div class="particle" style="left:85%;top:55%"></div>
+              <div class="particle" style="left:45%;top:80%"></div>
+            </div>
+
+            <!-- Confetti (animated) -->
+            <div class="confetti-zone">
+              <div class="conf-dot animated" style="left:15%;background:var(--p0);animation-delay:0s;"></div>
+              <div class="conf-dot animated" style="left:40%;background:var(--p1);animation-delay:.5s;"></div>
+              <div class="conf-dot animated" style="left:65%;background:var(--p3);animation-delay:1s;"></div>
+              <div class="conf-dot animated" style="left:82%;background:var(--p2);animation-delay:1.5s;"></div>
+              <div class="conf-dot animated" style="left:55%;background:var(--green);animation-delay:.8s;"></div>
+            </div>
+
+            <!-- Quest label -->
+            <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--p1);position:relative;z-index:2;">
+              ✦ Adventure Quest · Forest Realm
+            </div>
+
+            <!-- Question card -->
+            <div class="q-zone">
+              <div class="q-badge">Question 3 of 5</div>
+              <div class="q-text">Which animal stores food in its cheeks for winter?</div>
+              <!-- Animated stars -->
+              <div class="star-wrap">
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+                <span class="star">⭐</span>
+              </div>
+            </div>
+
+            <!-- Answer buttons -->
+            <div class="answers">
+              <button class="ans-btn highlighted">
+                Chipmunk
+                <span class="bounce-indicator"></span>
+              </button>
+              <button class="ans-btn">Rabbit</button>
+              <button class="ans-btn">Deer</button>
+              <button class="ans-btn">Owl</button>
+            </div>
+
+            <!-- XP bar (shimmer) -->
+            <div class="xp-row">
+              <div class="xp-label">XP · 620 / 1000</div>
+              <div class="xp-track">
+                <div class="xp-fill"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="frame-label">Standard Mode — animations ON</div>
+      </div>
+
+      <!-- FRAME 2: Low Motion Mode -->
+      <div class="frame-wrap">
+        <div class="phone-frame">
+          <div class="phone-inner">
+
+            <!-- Static dots (no movement) -->
+            <div class="static-dots">
+              <div class="static-dot" style="left:10%;top:30%;background:var(--p1);"></div>
+              <div class="static-dot" style="left:70%;top:20%;background:var(--p2);"></div>
+              <div class="static-dot" style="left:20%;top:60%;background:var(--p0);"></div>
+              <div class="static-dot" style="left:85%;top:55%;background:var(--p3);"></div>
+              <div class="static-dot" style="left:45%;top:80%;background:var(--green);"></div>
+            </div>
+
+            <!-- Static sparkle icons (no confetti fall) -->
+            <div class="confetti-zone">
+              <span class="sparkle-static" style="left:12%;top:12%;">✦</span>
+              <span class="sparkle-static" style="left:38%;top:8%;">✧</span>
+              <span class="sparkle-static" style="left:62%;top:14%;">✦</span>
+              <span class="sparkle-static" style="left:80%;top:10%;">✧</span>
+            </div>
+
+            <!-- Quest label -->
+            <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--p1);position:relative;z-index:2;">
+              ✦ Adventure Quest · Forest Realm
+            </div>
+
+            <!-- Question card (same content, no animation) -->
+            <div class="q-zone">
+              <div class="q-badge">Question 3 of 5</div>
+              <div class="q-text">Which animal stores food in its cheeks for winter?</div>
+              <!-- Stars appear instantly, no pop -->
+              <div class="star-wrap">
+                <span class="star-low">⭐</span>
+                <span class="star-low">⭐</span>
+                <span class="star-low">⭐</span>
+              </div>
+            </div>
+
+            <!-- Answer buttons — no bounce -->
+            <div class="answers">
+              <button class="ans-btn highlighted">
+                Chipmunk
+                <span class="static-indicator"></span>
+              </button>
+              <button class="ans-btn">Rabbit</button>
+              <button class="ans-btn">Deer</button>
+              <button class="ans-btn">Owl</button>
+            </div>
+
+            <!-- XP bar — solid, no shimmer -->
+            <div class="xp-row">
+              <div class="xp-label">XP · 620 / 1000</div>
+              <div class="xp-track">
+                <div class="xp-fill-static"></div>
+              </div>
+            </div>
+
+            <!-- Reduced motion badge -->
+            <div style="position:relative;z-index:2;">
+              <div class="badge-green">
+                <span>✓</span>
+                Respects prefers-reduced-motion
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="frame-label">Low Motion Mode — animations OFF</div>
+      </div>
+
+    </div><!-- /frames-row -->
+
+    <!-- Settings card -->
+    <div class="settings-card">
+      <div class="settings-title">Parent Settings · Child Accessibility</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Reduce Motion</span>
+        <div style="display:flex;align-items:center;">
+          <div class="toggle-track on" id="motionToggle" onclick="toggleMotion()">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-on-label" id="motionLabel">ON</span>
+        </div>
+      </div>
+
+      <p class="settings-note">
+        This setting is also applied automatically when your device has Reduce Motion enabled in system accessibility settings.
+      </p>
+      <div class="lock-note">
+        <span>🔒</span>
+        Child cannot change this setting — managed by parent only.
+      </div>
+      <div class="db-pill">child_accessibility_prefs.reduced_motion BOOLEAN</div>
+    </div>
+
+  </div><!-- /tab1 -->
+
+  <!-- ════════════════════════════════════
+       TAB 2 — ANIMATION AUDIT
+  ════════════════════════════════════ -->
+  <div id="tab2" class="screen">
+
+    <p class="section-title">Animation Audit · All child UI animations and their Low Motion equivalents</p>
+
+    <div class="audit-table-wrap">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th>Animation</th>
+            <th>Standard Mode</th>
+            <th>Low Motion Mode</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-anim">Star pop<br><span style="font-size:11px;color:rgba(240,246,255,.4);font-weight:400;">(question complete)</span></td>
+            <td class="td-std"><span class="badge-std">scale 0→1.3→1</span><br><span style="font-size:11px;">400ms ease cubic-bezier</span></td>
+            <td class="td-low"><span class="badge-low">opacity 0→1</span><br><span style="font-size:11px;">150ms ease</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Confetti fall<br><span style="font-size:11px;color:rgba(240,246,255,.4);font-weight:400;">(session end)</span></td>
+            <td class="td-std"><span class="badge-std">falling particles</span><br><span style="font-size:11px;">2s loop, translateY + rotate</span></td>
+            <td class="td-low"><span class="badge-low">static sparkle icons</span><br><span style="font-size:11px;">No motion, symbols only</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">XP bar fill</td>
+            <td class="td-std"><span class="badge-std">gradient shimmer sweep</span><br><span style="font-size:11px;">1.8s linear infinite</span></td>
+            <td class="td-low"><span class="badge-low">solid fill</span><br><span style="font-size:11px;">No animation, static color</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Bounce indicator<br><span style="font-size:11px;color:rgba(240,246,255,.4);font-weight:400;">(suggested answer)</span></td>
+            <td class="td-std"><span class="badge-std">translateY −8px loop</span><br><span style="font-size:11px;">0.7s ease-in-out infinite</span></td>
+            <td class="td-low"><span class="badge-low">none (static dot)</span><br><span style="font-size:11px;">Static circle, no movement</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Particle background</td>
+            <td class="td-std"><span class="badge-std">moving dots canvas</span><br><span style="font-size:11px;">3–4s float loop, translate</span></td>
+            <td class="td-low"><span class="badge-low">static dot pattern</span><br><span style="font-size:11px;">Fixed positions, opacity only</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Page transition</td>
+            <td class="td-std"><span class="badge-std">slide 300ms</span><br><span style="font-size:11px;">translateX ease-in-out</span></td>
+            <td class="td-low"><span class="badge-low">fade 150ms</span><br><span style="font-size:11px;">opacity 0→1 only</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Bottom sheet open</td>
+            <td class="td-std"><span class="badge-std">translateY 300ms</span><br><span style="font-size:11px;">cubic-bezier spring</span></td>
+            <td class="td-low"><span class="badge-low">opacity 0→1, 150ms</span><br><span style="font-size:11px;">No positional movement</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Pulse ring<br><span style="font-size:11px;color:rgba(240,246,255,.4);font-weight:400;">(active quest node)</span></td>
+            <td class="td-std"><span class="badge-std">scale + opacity loop</span><br><span style="font-size:11px;">1.5s ease-out infinite</span></td>
+            <td class="td-low"><span class="badge-low">static solid ring</span><br><span style="font-size:11px;">No pulse, solid border</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Streak fire icon</td>
+            <td class="td-std"><span class="badge-std">flicker animation</span><br><span style="font-size:11px;">scale + hue-rotate loop</span></td>
+            <td class="td-low"><span class="badge-low">static icon</span><br><span style="font-size:11px;">No flicker, fixed appearance</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Level-up burst</td>
+            <td class="td-std"><span class="badge-std">gold radial burst</span><br><span style="font-size:11px;">scale + opacity, 600ms</span></td>
+            <td class="td-low"><span class="badge-low">toast notification only</span><br><span style="font-size:11px;">Text confirmation, no burst</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Waveform<br><span style="font-size:11px;color:rgba(240,246,255,.4);font-weight:400;">(voice readout)</span></td>
+            <td class="td-std"><span class="badge-std">bar height animation</span><br><span style="font-size:11px;">scaleY loop per bar</span></td>
+            <td class="td-low"><span class="badge-low">static bars</span><br><span style="font-size:11px;">Fixed heights, no motion</span></td>
+          </tr>
+          <tr>
+            <td class="td-anim">Loading shimmer</td>
+            <td class="td-std"><span class="badge-std">shimmer sweep</span><br><span style="font-size:11px;">1.6s linear infinite</span></td>
+            <td class="td-low"><span class="badge-low">solid skeleton blocks</span><br><span style="font-size:11px;">animation-duration: 0.001ms</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab2 -->
+
+  <!-- ════════════════════════════════════
+       TAB 3 — SPEC
+  ════════════════════════════════════ -->
+  <div id="tab3" class="screen">
+
+    <!-- Trigger sources -->
+    <div class="spec-section">
+      <div class="spec-heading">Trigger Sources</div>
+      <div class="spec-card">
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <div><strong>Source 1:</strong> <code style="color:var(--p2);font-size:12px;">child_accessibility_prefs.reduced_motion = true</code> — stored in database, set by parent in child accessibility settings.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <div><strong>Source 2:</strong> <code style="color:var(--p2);font-size:12px;">prefers-reduced-motion: reduce</code> OS-level media query — detected automatically on app load.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <div><strong>Either source triggers Low Motion.</strong> DB preference takes precedence if explicitly set by parent.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSS implementation -->
+    <div class="spec-section">
+      <div class="spec-heading">CSS Implementation</div>
+      <div class="code-block">.mode-reduced-motion * {
+  animation-duration:       0.001ms !important;
+  animation-iteration-count: 1      !important;
+  transition-duration:      150ms   !important;
+}
+
+/* Exceptions */
+.mode-reduced-motion .xp-bar-fill {
+  transition-duration: 300ms !important; /* functional, not decorative */
+}
+
+/* Auto-detect via media query */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration:       0.001ms !important;
+    animation-iteration-count: 1      !important;
+    transition-duration:      150ms   !important;
+  }
+}</div>
+    </div>
+
+    <!-- Exceptions -->
+    <div class="spec-section">
+      <div class="spec-heading">Exceptions</div>
+      <div class="spec-card">
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p0);"></div>
+          <div>Loading skeleton shimmer is reduced to <code style="color:var(--p2);font-size:12px;">animation-duration: 0.001ms</code> (effectively disabled — not removed).</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p0);"></div>
+          <div>Progress bar fill transition kept at <strong>300ms</strong> — this is a functional state change, not decorative motion.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Child cannot toggle -->
+    <div class="spec-section">
+      <div class="spec-heading">Access Control</div>
+      <div class="spec-card">
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p3);"></div>
+          <div><strong>Child cannot toggle this setting.</strong> It is parent-managed only, accessible via Parent Settings &gt; Child Profile &gt; Accessibility.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p3);"></div>
+          <div>No UI control is shown to the child. Setting is silently applied on session start.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Automatic detection -->
+    <div class="spec-section">
+      <div class="spec-heading">Automatic Detection</div>
+      <div class="code-block">// On app load
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dbReduced = child.accessibility_prefs.reduced_motion; // from session
+
+if (dbReduced || prefersReduced) {
+  document.body.classList.add('mode-reduced-motion');
+}
+
+// Live OS preference change
+window.matchMedia('(prefers-reduced-motion: reduce)')
+  .addEventListener('change', (e) => {
+    if (e.matches) document.body.classList.add('mode-reduced-motion');
+    // DB preference is not overridden by live OS change
+  });</div>
+    </div>
+
+    <!-- DB schema -->
+    <div class="spec-section">
+      <div class="spec-heading">DB Schema</div>
+      <div class="schema-code">CREATE TABLE child_accessibility_prefs (
+  child_id          UUID        PRIMARY KEY REFERENCES children(id),
+  reduced_motion    BOOLEAN     NOT NULL DEFAULT false,
+  updated_by_parent_id UUID     REFERENCES users(id),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);</div>
+    </div>
+
+    <!-- Content and WCAG -->
+    <div class="spec-section">
+      <div class="spec-heading">Content Policy &amp; Accessibility</div>
+      <div class="spec-card">
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p2);"></div>
+          <div><strong>No content is removed.</strong> All UI elements remain visible in both modes — only decorative motion is disabled.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p2);"></div>
+          <div>
+            <strong>WCAG 2.3.3 (AAA):</strong> Animation from Interactions — meets AAA by allowing users to disable non-essential animation triggered by interaction.
+            <br/>
+            <span class="wcag-badge">WCAG 2.3.3 · AAA · Animation from Interactions</span>
+          </div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p2);"></div>
+          <div><strong>Touch targets:</strong> All interactive elements are ≥ 44 × 44 px in both Standard and Low Motion modes.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Child safety reminder -->
+    <div class="spec-section">
+      <div class="spec-heading">Child Safety Rules (enforced in all modes)</div>
+      <div class="spec-card">
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p3);"></div>
+          <div>No timer visible anywhere on screen.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p3);"></div>
+          <div>No accuracy percentage shown to the child.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p3);"></div>
+          <div>No "correct" or "incorrect" wording — positive and neutral framing only.</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot" style="background:var(--p3);"></div>
+          <div>Adventure language used throughout ("Quest", "Realm", "Explorer") — not academic framing.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab3 -->
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.screen').forEach((s, i) => {
+        s.classList.toggle('active', i + 1 === t);
+      });
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i + 1 === t);
+      });
+    }
+
+    function toggleMotion() {
+      const track = document.getElementById('motionToggle');
+      const label = document.getElementById('motionLabel');
+      const isOn  = track.classList.toggle('on');
+      label.textContent = isOn ? 'ON' : 'OFF';
+      label.style.color = isOn ? 'var(--green)' : 'rgba(240,246,255,.4)';
+    }
+  </script>
+
+</body>
+</html>

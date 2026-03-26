@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adult Mobile Patterns — WonderQuest UI Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens ── */
+:root {
+  /* Owner: dark pro */
+  --own-bg:         #0d1117;
+  --own-surface:    #161b22;
+  --own-surface2:   #1c2128;
+  --own-border:     rgba(255,255,255,0.08);
+  --own-border-em:  rgba(255,255,255,0.14);
+  --own-text:       #e6edf3;
+  --own-text-2:     #8b949e;
+  --own-text-m:     #6e7681;
+  --own-green:      #3fb950;
+  --own-blue:       #58a6ff;
+  --own-orange:     #f0883e;
+  --own-red:        #f85149;
+  --own-yellow:     #e3b341;
+
+  /* Parent: warm light */
+  --par-bg:         #f5f0e8;
+  --par-surface:    #fffdf8;
+  --par-surface2:   #f0ebe0;
+  --par-border:     rgba(0,0,0,0.07);
+  --par-border-em:  rgba(0,0,0,0.12);
+  --par-text:       #1a1a2e;
+  --par-text-2:     #5a5a72;
+  --par-text-m:     #9a9aac;
+  --par-blue:       #4361ee;
+  --par-green:      #2d9b5a;
+  --par-orange:     #e76f51;
+  --par-yellow:     #f4a261;
+
+  /* Teacher: warm light (same base, blue accent) */
+  --tea-bg:         #f5f0e8;
+  --tea-surface:    #fffdf8;
+  --tea-border:     rgba(0,0,0,0.07);
+  --tea-text:       #1e3a5f;
+  --tea-text-2:     #5a6e88;
+  --tea-blue:       #1e40af;
+  --tea-indigo:     #4361ee;
+
+  /* Bands (sacred) */
+  --p0: #ffd166;
+  --p1: #9b72ff;
+  --p2: #58e8c1;
+  --p3: #ff7b6b;
+
+  --font: 'Sora', sans-serif;
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: #111318;
+  color: #e0e0e8;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+/* ── Tab nav ── */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 0;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8b8b9e;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: #e0e0e8; }
+.tab-btn.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Eng note ── */
+.eng-note {
+  background: rgba(88,166,255,0.07);
+  border: 1px solid rgba(88,166,255,0.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #8dcbff;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+.eng-note strong { color: #58a6ff; }
+
+/* ── Phone row ── */
+.phone-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.phone-col { flex: 0 0 auto; }
+.phone-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #6e7681;
+  margin-bottom: 10px;
+}
+
+/* ── Phone frames ── */
+.phone {
+  width: 375px;
+  border-radius: 28px;
+  border: 2px solid;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  font-family: var(--font);
+}
+.phone-dark {
+  border-color: #30363d;
+  background: var(--own-bg);
+  color: var(--own-text);
+}
+.phone-light {
+  border-color: #ccc5b5;
+  background: var(--par-bg);
+  color: var(--par-text);
+}
+
+/* ── Generic phone components ── */
+.mob-topbar {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px 12px;
+  gap: 10px;
+}
+.mob-topbar-dark { background: var(--own-surface); border-bottom: 1px solid var(--own-border); }
+.mob-topbar-light { background: var(--par-surface); border-bottom: 1px solid var(--par-border); }
+.mob-topbar-teacher { background: var(--tea-surface); border-bottom: 1px solid var(--tea-border); }
+
+.mob-back {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0; cursor: pointer;
+}
+.mob-back-dark { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: var(--own-text-2); }
+.mob-back-light { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); color: var(--par-text-2); }
+
+.mob-title { font-size: 14px; font-weight: 700; }
+.mob-sub { font-size: 11px; margin-top: 1px; }
+.mob-sub-dark { color: var(--own-text-m); }
+.mob-sub-light { color: var(--par-text-m); }
+
+/* scroll body */
+.mob-body { padding: 14px 16px; overflow: hidden; padding-bottom: 80px; }
+
+/* sticky bottom bar */
+.mob-bottom {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 10px 14px;
+  display: flex; gap: 8px;
+}
+.mob-bottom-dark { background: var(--own-surface); border-top: 1px solid var(--own-border); }
+.mob-bottom-light { background: var(--par-surface); border-top: 1px solid var(--par-border); box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+.mob-bottom-teacher { background: var(--tea-surface); border-top: 1px solid var(--tea-border); box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+
+/* buttons */
+.btn {
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  padding: 9px 16px; border-radius: 8px; border: none; cursor: pointer;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-blue { background: #4361ee; color: #fff; }
+.btn-dark-blue { background: #58a6ff; color: #0d1117; }
+.btn-red { background: #f85149; color: #fff; }
+.btn-ghost-dark { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: var(--own-text-2); }
+.btn-ghost-light { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.1); color: var(--par-text-2); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* ── Cards ── */
+.m-card {
+  border-radius: 12px; overflow: hidden; margin-bottom: 10px;
+}
+.m-card-dark { background: var(--own-surface); border: 1px solid var(--own-border); }
+.m-card-light { background: var(--par-surface); border: 1px solid var(--par-border); }
+.m-card-teacher { background: var(--tea-surface); border: 1px solid var(--tea-border); }
+.m-card-h {
+  padding: 10px 14px;
+  font-size: 12px; font-weight: 700;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.m-card-h-dark { border-bottom: 1px solid var(--own-border); color: var(--own-text); }
+.m-card-h-light { border-bottom: 1px solid var(--par-border); color: var(--par-text); }
+.m-card-h-teacher { border-bottom: 1px solid var(--tea-border); color: var(--tea-text); }
+.m-card-b { padding: 12px 14px; }
+
+/* ── KPI grid ── */
+.kpi-2x2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+}
+.kpi {
+  border-radius: 10px; padding: 12px 14px;
+}
+.kpi-dark { background: var(--own-surface2); border: 1px solid var(--own-border); }
+.kpi-light { background: var(--par-surface2); border: 1px solid var(--par-border); }
+.kpi-teacher { background: rgba(30,64,175,0.06); border: 1px solid rgba(30,64,175,0.12); }
+.kpi .val { font-size: 20px; font-weight: 700; }
+.kpi .lbl { font-size: 10px; margin-top: 2px; }
+.kpi-dark .lbl { color: var(--own-text-2); }
+.kpi-light .lbl { color: var(--par-text-2); }
+.kpi-teacher .lbl { color: var(--tea-text-2); }
+
+/* ── Row items ── */
+.m-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid;
+  font-size: 12px;
+}
+.m-row:last-child { border-bottom: none; }
+.m-row-dark { border-color: var(--own-border); color: var(--own-text-2); }
+.m-row-light { border-color: var(--par-border); color: var(--par-text-2); }
+.m-row-teacher { border-color: var(--tea-border); color: var(--tea-text-2); }
+.m-row .label { flex: 1; }
+.m-row .val { font-weight: 600; }
+.m-row-dark .val { color: var(--own-text); }
+.m-row-light .val { color: var(--par-text); }
+.m-row-teacher .val { color: var(--tea-text); }
+
+/* ── Progress bar ── */
+.prog-bar {
+  height: 6px; border-radius: 99px; overflow: hidden; margin: 4px 0;
+}
+.prog-bar-dark { background: var(--own-border); }
+.prog-bar-light { background: var(--par-border); }
+.prog-bar-teacher { background: rgba(30,64,175,0.1); }
+.prog-fill { height: 100%; border-radius: 99px; }
+
+/* ── Skill row ── */
+.skill-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--tea-border);
+  font-size: 12px; color: var(--tea-text-2);
+}
+.skill-row:last-child { border-bottom: none; }
+.skill-name { flex: 1; color: var(--tea-text); font-weight: 500; }
+.skill-pct { font-size: 11px; font-weight: 700; }
+
+/* ── Chip ── */
+.chip {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 99px;
+}
+.chip-red { background: rgba(248,81,73,0.12); color: #f85149; }
+.chip-yellow { background: rgba(227,179,65,0.12); color: #e3b341; }
+.chip-green { background: rgba(63,185,80,0.12); color: #3fb950; }
+.chip-blue { background: rgba(67,97,238,0.1); color: #4361ee; }
+.chip-amber { background: rgba(244,162,97,0.12); color: var(--par-orange); }
+
+/* dot */
+.dot8 {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── Bottom sheet ── */
+.sheet-demo {
+  position: relative; overflow: hidden;
+}
+.sheet-bg {
+  padding: 0;
+}
+.sheet-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  border-radius: 20px 20px 0 0;
+  padding: 0;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.3);
+}
+.sheet-overlay-dark { background: var(--own-surface); border: 1px solid var(--own-border); border-bottom: none; }
+.sheet-overlay-light { background: var(--par-surface); border: 1px solid var(--par-border); border-bottom: none; }
+.sheet-handle {
+  width: 36px; height: 4px; border-radius: 99px;
+  margin: 10px auto 0;
+}
+.sheet-handle-dark { background: rgba(255,255,255,0.15); }
+.sheet-handle-light { background: rgba(0,0,0,0.15); }
+.sheet-title {
+  font-size: 14px; font-weight: 700; padding: 14px 16px 10px;
+}
+.sheet-title-dark { color: var(--own-text); border-bottom: 1px solid var(--own-border); }
+.sheet-title-light { color: var(--par-text); border-bottom: 1px solid var(--par-border); }
+.sheet-body { padding: 12px 16px; }
+.sheet-action {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid;
+  cursor: pointer;
+}
+.sheet-action:last-child { border-bottom: none; }
+.sheet-action-dark { border-color: var(--own-border); color: var(--own-text); }
+.sheet-action-light { border-color: var(--par-border); color: var(--par-text); }
+.sheet-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.sheet-icon-dark { background: rgba(255,255,255,0.06); }
+.sheet-icon-light { background: rgba(0,0,0,0.05); }
+.sheet-action-text .title { font-size: 13px; font-weight: 600; }
+.sheet-action-text .sub { font-size: 11px; margin-top: 1px; }
+.sheet-action-dark .sub { color: var(--own-text-2); }
+.sheet-action-light .sub { color: var(--par-text-2); }
+
+/* ── Pattern spec notes ── */
+.spec-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px; margin-bottom: 10px;
+}
+.spec-table th {
+  text-align: left; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: #6e7681; padding: 0 0 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.spec-table td {
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #8b949e; vertical-align: top; line-height: 1.5;
+}
+.spec-table td.key { color: #e6edf3; font-weight: 500; width: 36%; }
+.spec-table tr:last-child td { border-bottom: none; }
+
+.section-title {
+  font-size: 13px; font-weight: 700; color: #e6edf3;
+  margin-bottom: 6px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+</style>
+</head>
+<body>
+
+<div class="eng-note">
+  <strong>adult-mobile-patterns.html</strong> — implementation guidance for responsive adult routes. 4 tabs: Parent Hub mobile, Teacher Analytics mobile, Owner Console mobile, Bottom-sheet / sticky patterns. These are direct mobile translations of the desktop reference files, not new audience shells. All three audiences share the same Sora font. Phone frame: 375px. Use this file as the responsive spec companion to parent-hub-v2, teacher-analytics-v2, and owner-console-v2.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('parent',this)">1 · Parent Hub Mobile</button>
+  <button class="tab-btn" onclick="show('teacher',this)">2 · Teacher Analytics Mobile</button>
+  <button class="tab-btn" onclick="show('owner',this)">3 · Owner Console Mobile</button>
+  <button class="tab-btn" onclick="show('sheets',this)">4 · Sticky &amp; Bottom Sheets</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Panel 1 — Parent Hub Mobile
+════════════════════════════════════════════ -->
+<div id="panel-parent" class="panel active">
+  <div class="eng-note">
+    <strong>Engineering:</strong> parent-hub-v2.html mobile stack. Route: <code>/parent</code>. Warm light theme. Priority order: child summary first, then time metrics, then skills, then quick actions. Bottom bar: primary CTA = "See full report"; secondary = "Settings". No sidebar — use top nav or hamburger on mobile.
+  </div>
+
+  <div class="phone-row">
+
+    <!-- State A: Parent Hub main scroll -->
+    <div class="phone-col">
+      <div class="phone-label">A · Hub — main scroll</div>
+      <div class="phone phone-light" style="min-height:760px;position:relative;">
+
+        <!-- topbar -->
+        <div class="mob-topbar mob-topbar-light" style="justify-content:space-between;">
+          <div>
+            <div class="mob-title" style="color:var(--par-text);">Good morning</div>
+            <div class="mob-sub mob-sub-light">Mia's progress — week 12</div>
+          </div>
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(67,97,238,0.1);border:2px solid rgba(67,97,238,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;">👩</div>
+        </div>
+
+        <div class="mob-body" style="background:var(--par-bg);">
+
+          <!-- Child summary chip -->
+          <div style="background:var(--par-surface);border:1px solid var(--par-border);border-radius:14px;padding:14px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:48px;height:48px;border-radius:50%;background:rgba(155,114,255,0.15);border:2px solid rgba(155,114,255,0.3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🦊</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:700;color:var(--par-text);">Mia · K–1</div>
+                <div style="font-size:12px;color:var(--par-text-2);margin-top:2px;">Last played 2 days ago · 14 min avg</div>
+              </div>
+              <span class="chip chip-green">On track</span>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:10px;">
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:var(--par-text);">78%</div>
+                <div style="font-size:10px;color:var(--par-text-2);">Accuracy</div>
+              </div>
+              <div style="width:1px;background:var(--par-border);"></div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:var(--par-text);">4</div>
+                <div style="font-size:10px;color:var(--par-text-2);">Day streak</div>
+              </div>
+              <div style="width:1px;background:var(--par-border);"></div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:var(--par-text);">62 min</div>
+                <div style="font-size:10px;color:var(--par-text-2);">This week</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Time KPIs 2x2 -->
+          <div class="kpi-2x2">
+            <div class="kpi kpi-light">
+              <div class="val" style="color:var(--par-blue);">62 min</div>
+              <div class="lbl">Time this week</div>
+            </div>
+            <div class="kpi kpi-light">
+              <div class="val" style="color:var(--par-green);">48 min</div>
+              <div class="lbl">Effective time</div>
+            </div>
+            <div class="kpi kpi-light">
+              <div class="val" style="color:var(--par-text);">78%</div>
+              <div class="lbl">Accuracy (7d)</div>
+            </div>
+            <div class="kpi kpi-light">
+              <div class="val" style="color:var(--par-orange);">3</div>
+              <div class="lbl">Support areas</div>
+            </div>
+          </div>
+
+          <!-- Strengths -->
+          <div class="m-card m-card-light">
+            <div class="m-card-h m-card-h-light">Strengths <span class="chip chip-green">3 skills</span></div>
+            <div class="m-card-b">
+              <div class="m-row m-row-light"><span class="label">Counting to 20</span><span class="val" style="color:var(--par-green);">94%</span></div>
+              <div class="m-row m-row-light"><span class="label">Letter recognition</span><span class="val" style="color:var(--par-green);">89%</span></div>
+              <div class="m-row m-row-light"><span class="label">Shape matching</span><span class="val" style="color:var(--par-green);">85%</span></div>
+            </div>
+          </div>
+
+          <!-- Support areas -->
+          <div class="m-card m-card-light">
+            <div class="m-card-h m-card-h-light" style="color:var(--par-orange);">Needs support <span class="chip chip-amber">3 skills</span></div>
+            <div class="m-card-b">
+              <div class="m-row m-row-light"><span class="label">Phonics blending</span><span class="val" style="color:var(--par-orange);">51%</span></div>
+              <div class="m-row m-row-light"><span class="label">Number writing</span><span class="val" style="color:var(--par-orange);">58%</span></div>
+              <div class="m-row m-row-light"><span class="label">Rhyming</span><span class="val" style="color:var(--par-orange);">62%</span></div>
+            </div>
+          </div>
+
+          <!-- Recommended action -->
+          <div style="background:rgba(67,97,238,0.07);border:1px solid rgba(67,97,238,0.15);border-radius:12px;padding:14px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--par-blue);margin-bottom:6px;">Next action</div>
+            <div style="font-size:13px;font-weight:600;color:var(--par-text);margin-bottom:4px;">Practice phonics blending for 5 min</div>
+            <div style="font-size:12px;color:var(--par-text-2);line-height:1.5;">Mia's weakest area. Try the "Blending Buddy" activity — works best right after school.</div>
+          </div>
+
+        </div>
+
+        <div class="mob-bottom mob-bottom-light">
+          <button class="btn btn-ghost-light btn-sm" style="flex:1;">Settings</button>
+          <button class="btn btn-blue" style="flex:2;">See full report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State B: Child switcher sheet -->
+    <div class="phone-col">
+      <div class="phone-label">B · Child switcher sheet</div>
+      <div class="phone phone-light sheet-demo" style="min-height:760px;position:relative;">
+
+        <!-- dimmed bg -->
+        <div class="mob-topbar mob-topbar-light" style="justify-content:space-between;opacity:.4;">
+          <div><div class="mob-title" style="color:var(--par-text);">Good morning</div></div>
+        </div>
+        <div class="mob-body" style="background:var(--par-bg);opacity:.3;height:560px;"></div>
+
+        <!-- overlay -->
+        <div class="sheet-overlay sheet-overlay-light" style="top:auto;">
+          <div class="sheet-handle sheet-handle-light"></div>
+          <div class="sheet-title sheet-title-light">Switch child</div>
+          <div class="sheet-body">
+            <!-- child rows -->
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--par-border);">
+              <div style="width:40px;height:40px;border-radius:50%;background:rgba(155,114,255,0.15);border:2px solid var(--p1);display:flex;align-items:center;justify-content:center;font-size:20px;">🦊</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:var(--par-text);">Mia</div>
+                <div style="font-size:11px;color:var(--par-text-2);">K–1 · Last active 2d ago</div>
+              </div>
+              <span class="chip chip-blue">Active</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--par-border);">
+              <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,209,102,0.15);border:2px solid var(--p0);display:flex;align-items:center;justify-content:center;font-size:20px;">🐯</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;color:var(--par-text);">Leo</div>
+                <div style="font-size:11px;color:var(--par-text-2);">Pre-K · Last active 1d ago</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+              <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.04);border:2px dashed rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--par-text-m);">＋</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;color:var(--par-text-2);">Add another child</div>
+              </div>
+            </div>
+            <button class="btn btn-ghost-light" style="width:100%;margin-top:4px;">Cancel</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /phone-row -->
+</div>
+
+<!-- ══════════════════════════════════════════
+     Panel 2 — Teacher Analytics Mobile
+════════════════════════════════════════════ -->
+<div id="panel-teacher" class="panel">
+  <div class="eng-note">
+    <strong>Engineering:</strong> teacher-analytics-v2.html mobile stack. Route: <code>/teacher/analytics</code>. Warm light + blue accent. Sidebar → bottom tab bar. 4 tabs: Overview / Skills / Students / Support. Bottom bar: primary CTA = "Intervention panel"; ghost = "Export". Dot rows collapse to a mini heatmap chip at mobile breakpoint — do not try to render 30 dots in a 375px column.
+  </div>
+
+  <div class="phone-row">
+
+    <!-- State A: Class overview mobile -->
+    <div class="phone-col">
+      <div class="phone-label">A · Class overview</div>
+      <div class="phone phone-light" style="min-height:780px;position:relative;background:var(--tea-bg);">
+
+        <div class="mob-topbar mob-topbar-teacher" style="justify-content:space-between;">
+          <div>
+            <div class="mob-title" style="color:var(--tea-text);">Class Analytics</div>
+            <div class="mob-sub" style="color:var(--tea-text-2);">Room 4B · 28 students · Week 12</div>
+          </div>
+          <button class="btn btn-ghost-light btn-sm" style="font-size:11px;">Export</button>
+        </div>
+
+        <!-- tab strip -->
+        <div style="display:flex;background:var(--tea-surface);border-bottom:1px solid var(--tea-border);overflow-x:auto;scrollbar-width:none;">
+          <div style="flex:0 0 auto;padding:9px 14px;font-size:12px;font-weight:700;color:var(--tea-blue);border-bottom:2px solid var(--tea-blue);">Overview</div>
+          <div style="flex:0 0 auto;padding:9px 14px;font-size:12px;color:var(--tea-text-2);">Skills</div>
+          <div style="flex:0 0 auto;padding:9px 14px;font-size:12px;color:var(--tea-text-2);">Students</div>
+          <div style="flex:0 0 auto;padding:9px 14px;font-size:12px;color:var(--tea-text-2);">Support</div>
+        </div>
+
+        <div class="mob-body" style="background:var(--tea-bg);">
+
+          <!-- KPIs -->
+          <div class="kpi-2x2">
+            <div class="kpi kpi-teacher">
+              <div class="val" style="color:var(--tea-blue);">74%</div>
+              <div class="lbl">Class accuracy</div>
+            </div>
+            <div class="kpi kpi-teacher">
+              <div class="val" style="color:var(--tea-blue);">28</div>
+              <div class="lbl">Active students</div>
+            </div>
+            <div class="kpi kpi-teacher">
+              <div class="val" style="color:#2d9b5a;">18</div>
+              <div class="lbl">On track</div>
+            </div>
+            <div class="kpi kpi-teacher">
+              <div class="val" style="color:var(--par-orange);">5</div>
+              <div class="lbl">Need support</div>
+            </div>
+          </div>
+
+          <!-- Skills summary -->
+          <div class="m-card m-card-teacher">
+            <div class="m-card-h m-card-h-teacher">Top skills <span style="font-size:10px;color:var(--tea-text-2);">tap to drilldown →</span></div>
+            <div class="m-card-b">
+              <div class="skill-row">
+                <span class="skill-name">Counting to 20</span>
+                <div style="width:60px;">
+                  <div class="prog-bar prog-bar-teacher"><div class="prog-fill" style="width:89%;background:var(--tea-blue);"></div></div>
+                </div>
+                <span class="skill-pct" style="color:var(--tea-blue);">89%</span>
+              </div>
+              <div class="skill-row">
+                <span class="skill-name">Letter recognition</span>
+                <div style="width:60px;">
+                  <div class="prog-bar prog-bar-teacher"><div class="prog-fill" style="width:82%;background:var(--tea-blue);"></div></div>
+                </div>
+                <span class="skill-pct" style="color:var(--tea-blue);">82%</span>
+              </div>
+              <div class="skill-row">
+                <span class="skill-name">Phonics blending</span>
+                <div style="width:60px;">
+                  <div class="prog-bar prog-bar-teacher"><div class="prog-fill" style="width:53%;background:var(--par-orange);"></div></div>
+                </div>
+                <span class="skill-pct" style="color:var(--par-orange);">53%</span>
+              </div>
+              <div class="skill-row">
+                <span class="skill-name">Subtraction</span>
+                <div style="width:60px;">
+                  <div class="prog-bar prog-bar-teacher"><div class="prog-fill" style="width:48%;background:var(--par-orange);"></div></div>
+                </div>
+                <span class="skill-pct" style="color:var(--par-orange);">48%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dot row note -->
+          <div style="background:rgba(30,64,175,0.05);border:1px solid rgba(30,64,175,0.12);border-radius:10px;padding:12px;font-size:12px;color:var(--tea-text-2);line-height:1.5;">
+            <strong style="color:var(--tea-blue);">Mobile dot rows:</strong> collapsed to accuracy band chips. Tap "Skills" tab for full per-student dots (rendered in a horizontal scroll container, not a full grid).
+          </div>
+
+        </div>
+
+        <div class="mob-bottom mob-bottom-teacher">
+          <button class="btn btn-ghost-light btn-sm" style="flex:1;">Share</button>
+          <button class="btn btn-blue" style="flex:2;">Intervention panel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State B: Support queue mobile -->
+    <div class="phone-col">
+      <div class="phone-label">B · Support queue</div>
+      <div class="phone phone-light" style="min-height:780px;position:relative;background:var(--tea-bg);">
+
+        <div class="mob-topbar mob-topbar-teacher" style="justify-content:space-between;">
+          <div>
+            <div class="mob-title" style="color:var(--tea-text);">Support Queue</div>
+            <div class="mob-sub" style="color:var(--tea-text-2);">5 students · updated today</div>
+          </div>
+          <span class="chip chip-amber">5 flagged</span>
+        </div>
+
+        <div class="mob-body" style="background:var(--tea-bg);">
+
+          <!-- Urgent -->
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--par-orange);margin-bottom:8px;">Urgent</div>
+          <div class="m-card m-card-teacher" style="border-left:3px solid var(--par-orange);margin-bottom:8px;">
+            <div class="m-card-b" style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(231,111,81,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🐸</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:700;color:var(--tea-text);">Student A</div>
+                <div style="font-size:11px;color:var(--tea-text-2);margin-top:2px;">Phonics · 3 sessions · 38% accuracy</div>
+              </div>
+              <button class="btn btn-ghost-light btn-sm" style="font-size:11px;">Note</button>
+            </div>
+          </div>
+          <div class="m-card m-card-teacher" style="border-left:3px solid var(--par-orange);margin-bottom:12px;">
+            <div class="m-card-b" style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(231,111,81,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🦁</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:700;color:var(--tea-text);">Student B</div>
+                <div style="font-size:11px;color:var(--tea-text-2);margin-top:2px;">Subtraction · 4 sessions · 41% accuracy</div>
+              </div>
+              <button class="btn btn-ghost-light btn-sm" style="font-size:11px;">Note</button>
+            </div>
+          </div>
+
+          <!-- Watch -->
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tea-text-2);margin-bottom:8px;">Watch</div>
+          <div class="m-card m-card-teacher" style="border-left:3px solid rgba(30,64,175,0.3);margin-bottom:8px;">
+            <div class="m-card-b" style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(30,64,175,0.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🐧</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;color:var(--tea-text);">Student C</div>
+                <div style="font-size:11px;color:var(--tea-text-2);margin-top:2px;">Rhyming · dropped 12% this week</div>
+              </div>
+              <button class="btn btn-ghost-light btn-sm" style="font-size:11px;">Note</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mob-bottom mob-bottom-teacher">
+          <button class="btn btn-ghost-light btn-sm" style="flex:1;">View all</button>
+          <button class="btn btn-blue" style="flex:2;">Add intervention</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Panel 3 — Owner Console Mobile
+════════════════════════════════════════════ -->
+<div id="panel-owner" class="panel">
+  <div class="eng-note">
+    <strong>Engineering:</strong> owner-console-v2.html mobile stack. Route: <code>/owner</code>. Dark pro theme. Sidebar → hamburger icon (no persistent sidebar on mobile). Bottom nav: Triage / Routes / Content / Adoption. Triage badge always visible on bottom nav. Alert states use full-width banners, not sidepanels.
+  </div>
+
+  <div class="phone-row">
+
+    <!-- State A: Owner console overview -->
+    <div class="phone-col">
+      <div class="phone-label">A · Console — KPI overview</div>
+      <div class="phone phone-dark" style="min-height:780px;position:relative;">
+
+        <div class="mob-topbar mob-topbar-dark" style="justify-content:space-between;">
+          <div>
+            <div class="mob-title">⬡ WQ Owner</div>
+            <div class="mob-sub mob-sub-dark">Console · 2026-03-21</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="chip chip-red">3 critical</span>
+            <div style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;">☰</div>
+          </div>
+        </div>
+
+        <!-- Alert banner -->
+        <div style="background:rgba(248,81,73,0.1);border-bottom:1px solid rgba(248,81,73,0.2);padding:10px 16px;display:flex;align-items:center;gap:8px;font-size:12px;">
+          <span style="color:var(--own-red);font-size:14px;">🚨</span>
+          <span style="color:var(--own-red);font-weight:600;">Audio dropout · K–1 · 14 reports</span>
+          <a href="#" style="color:var(--own-blue);font-size:11px;text-decoration:none;margin-left:auto;">Review →</a>
+        </div>
+
+        <div class="mob-body" style="background:var(--own-bg);">
+
+          <!-- KPI 2x2 -->
+          <div class="kpi-2x2">
+            <div class="kpi kpi-dark">
+              <div class="val" style="color:var(--own-green);">1,204</div>
+              <div class="lbl">Active children</div>
+            </div>
+            <div class="kpi kpi-dark">
+              <div class="val" style="color:var(--own-blue);">89%</div>
+              <div class="lbl">Route health</div>
+            </div>
+            <div class="kpi kpi-dark">
+              <div class="val" style="color:var(--own-red);">3</div>
+              <div class="lbl">Critical items</div>
+            </div>
+            <div class="kpi kpi-dark">
+              <div class="val" style="color:var(--own-yellow);">5</div>
+              <div class="lbl">Watch items</div>
+            </div>
+          </div>
+
+          <!-- Triage queue preview -->
+          <div class="m-card m-card-dark">
+            <div class="m-card-h m-card-h-dark">Triage Queue <span class="chip chip-red">3 open</span></div>
+            <div class="m-card-b">
+              <div class="m-row m-row-dark">
+                <div class="dot8" style="background:var(--own-red);"></div>
+                <span class="label">Audio dropout · K–1</span>
+                <span class="val" style="color:var(--own-red);font-size:11px;">Critical</span>
+              </div>
+              <div class="m-row m-row-dark">
+                <div class="dot8" style="background:var(--own-orange);"></div>
+                <span class="label">Slow load · /parent</span>
+                <span class="val" style="color:var(--own-orange);font-size:11px;">High</span>
+              </div>
+              <div class="m-row m-row-dark">
+                <div class="dot8" style="background:var(--own-yellow);"></div>
+                <span class="label">Content flag · G2–3 math</span>
+                <span class="val" style="color:var(--own-yellow);font-size:11px;">Medium</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Route health -->
+          <div class="m-card m-card-dark">
+            <div class="m-card-h m-card-h-dark">Route Health</div>
+            <div class="m-card-b">
+              <div class="m-row m-row-dark">
+                <div class="dot8" style="background:var(--own-red);"></div>
+                <span class="label">/play — K–1 phonics</span>
+                <span class="val" style="color:var(--own-red);font-size:11px;">Degraded</span>
+              </div>
+              <div class="m-row m-row-dark">
+                <div class="dot8" style="background:var(--own-green);"></div>
+                <span class="label">/parent</span>
+                <span class="val" style="color:var(--own-green);font-size:11px;">Healthy</span>
+              </div>
+              <div class="m-row m-row-dark">
+                <div class="dot8" style="background:var(--own-green);"></div>
+                <span class="label">/teacher</span>
+                <span class="val" style="color:var(--own-green);font-size:11px;">Healthy</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom nav bar -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:var(--own-surface);border-top:1px solid var(--own-border);display:flex;">
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-text-2);cursor:pointer;position:relative;">
+            🚨<br>Triage
+            <span style="position:absolute;top:4px;right:calc(50% - 16px);background:var(--own-red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;">3</span>
+          </div>
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-blue);cursor:pointer;border-top:2px solid var(--own-blue);">🗺<br>Routes</div>
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-text-2);cursor:pointer;">📚<br>Content</div>
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-text-2);cursor:pointer;">📈<br>Adoption</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- State B: Feedback triage list mobile -->
+    <div class="phone-col">
+      <div class="phone-label">B · Triage list → detail entry</div>
+      <div class="phone phone-dark" style="min-height:780px;position:relative;">
+
+        <div class="mob-topbar mob-topbar-dark" style="justify-content:space-between;">
+          <div><div class="mob-title">Feedback Triage</div><div class="mob-sub mob-sub-dark">3 open items</div></div>
+          <button class="btn btn-ghost-dark btn-sm" style="font-size:11px;">Filter</button>
+        </div>
+
+        <div class="mob-body" style="background:var(--own-bg);">
+
+          <div class="m-card m-card-dark" style="border-left:3px solid var(--own-red);cursor:pointer;">
+            <div class="m-card-b">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🔇</span>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:700;color:var(--own-text);">Audio dropout · K–1</div>
+                  <div style="font-size:11px;color:var(--own-text-2);margin-top:2px;">14 reports · 3 days open</div>
+                </div>
+                <span class="chip chip-red" style="font-size:10px;">Critical</span>
+              </div>
+              <div style="font-size:12px;color:var(--own-text-2);margin-top:8px;line-height:1.5;">iOS 17.4 AudioContext suspend issue on /play K–1 band.</div>
+              <div style="display:flex;gap:6px;margin-top:10px;">
+                <button class="btn btn-dark-blue btn-sm" style="flex:1;">View detail →</button>
+                <button class="btn btn-ghost-dark btn-sm">Assign</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="m-card m-card-dark" style="border-left:3px solid var(--own-orange);cursor:pointer;margin-top:8px;">
+            <div class="m-card-b">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">⏳</span>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:700;color:var(--own-text);">Slow load · /parent</div>
+                  <div style="font-size:11px;color:var(--own-text-2);margin-top:2px;">6 reports · 1 day open</div>
+                </div>
+                <span class="chip chip-yellow" style="font-size:10px;">High</span>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:10px;">
+                <button class="btn btn-ghost-dark btn-sm" style="flex:1;">View detail →</button>
+                <button class="btn btn-ghost-dark btn-sm">Assign</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="m-card m-card-dark" style="border-left:3px solid var(--own-yellow);cursor:pointer;margin-top:8px;">
+            <div class="m-card-b">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">📋</span>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:700;color:var(--own-text);">Content flag · G2–3 math</div>
+                  <div style="font-size:11px;color:var(--own-text-2);margin-top:2px;">2 reports · Today</div>
+                </div>
+                <span class="chip chip-yellow" style="font-size:10px;">Medium</span>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:10px;">
+                <button class="btn btn-ghost-dark btn-sm" style="flex:1;">View detail →</button>
+                <button class="btn btn-ghost-dark btn-sm">Assign</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="position:absolute;bottom:0;left:0;right:0;background:var(--own-surface);border-top:1px solid var(--own-border);display:flex;">
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-blue);cursor:pointer;border-top:2px solid var(--own-blue);position:relative;">🚨<br>Triage<span style="position:absolute;top:4px;right:calc(50% - 16px);background:var(--own-red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:99px;">3</span></div>
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-text-2);cursor:pointer;">🗺<br>Routes</div>
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-text-2);cursor:pointer;">📚<br>Content</div>
+          <div style="flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--own-text-2);cursor:pointer;">📈<br>Adoption</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Panel 4 — Sticky & Bottom Sheet patterns
+════════════════════════════════════════════ -->
+<div id="panel-sheets" class="panel">
+  <div class="eng-note">
+    <strong>Engineering:</strong> reusable patterns for all three adult routes. (A) sticky action bar spec — when to use bottom bar vs inline buttons. (B) dark bottom sheet — owner/teacher triage actions. (C) light bottom sheet — parent child switcher / settings. (D) spec table for engineers.
+  </div>
+
+  <div class="phone-row">
+
+    <!-- A: Dark bottom sheet -->
+    <div class="phone-col">
+      <div class="phone-label">A · Dark bottom sheet (Owner / Teacher)</div>
+      <div class="phone phone-dark sheet-demo" style="min-height:640px;position:relative;">
+
+        <!-- dimmed bg -->
+        <div style="height:360px;background:var(--own-bg);opacity:.25;"></div>
+        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);"></div>
+
+        <!-- sheet -->
+        <div class="sheet-overlay sheet-overlay-dark">
+          <div class="sheet-handle sheet-handle-dark"></div>
+          <div class="sheet-title sheet-title-dark">Triage Actions</div>
+          <div class="sheet-body">
+            <div class="sheet-action sheet-action-dark">
+              <div class="sheet-icon sheet-icon-dark">👤</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--own-text);">Assign to me</div>
+                <div class="sub">Take ownership of this item</div>
+              </div>
+            </div>
+            <div class="sheet-action sheet-action-dark">
+              <div class="sheet-icon sheet-icon-dark">🔗</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--own-text);">Link engineering ticket</div>
+                <div class="sub">Attach a WQ or external ticket ID</div>
+              </div>
+            </div>
+            <div class="sheet-action sheet-action-dark">
+              <div class="sheet-icon sheet-icon-dark">⬆️</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--own-text);">Escalate severity</div>
+                <div class="sub">Bump from High → Critical</div>
+              </div>
+            </div>
+            <div class="sheet-action sheet-action-dark">
+              <div class="sheet-icon sheet-icon-dark" style="background:rgba(248,81,73,0.1);">✅</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--own-red);">Mark resolved</div>
+                <div class="sub">Close this item</div>
+              </div>
+            </div>
+            <button class="btn btn-ghost-dark" style="width:100%;margin-top:8px;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Light bottom sheet -->
+    <div class="phone-col">
+      <div class="phone-label">B · Light bottom sheet (Parent / Teacher)</div>
+      <div class="phone phone-light sheet-demo" style="min-height:640px;position:relative;background:var(--par-bg);">
+
+        <!-- dimmed bg -->
+        <div style="height:360px;background:var(--par-bg);opacity:.25;"></div>
+        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);"></div>
+
+        <!-- sheet -->
+        <div class="sheet-overlay sheet-overlay-light">
+          <div class="sheet-handle sheet-handle-light"></div>
+          <div class="sheet-title sheet-title-light">Report options</div>
+          <div class="sheet-body">
+            <div class="sheet-action sheet-action-light">
+              <div class="sheet-icon sheet-icon-light">📤</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--par-text);">Share with teacher</div>
+                <div class="sub" style="color:var(--par-text-2);">Send this week's summary</div>
+              </div>
+            </div>
+            <div class="sheet-action sheet-action-light">
+              <div class="sheet-icon sheet-icon-light">📅</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--par-text);">Set play reminder</div>
+                <div class="sub" style="color:var(--par-text-2);">Daily nudge for Mia's practice time</div>
+              </div>
+            </div>
+            <div class="sheet-action sheet-action-light">
+              <div class="sheet-icon sheet-icon-light">🔔</div>
+              <div class="sheet-action-text">
+                <div class="title" style="color:var(--par-text);">Notification settings</div>
+                <div class="sub" style="color:var(--par-text-2);">Manage what you get notified about</div>
+              </div>
+            </div>
+            <button class="btn btn-ghost-light" style="width:100%;margin-top:8px;font-size:13px;padding:10px;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Spec reference -->
+    <div class="phone-col" style="max-width:460px;">
+      <div class="phone-label">C · Spec: sticky bar + sheet rules</div>
+      <div style="background:var(--own-surface);border:1px solid var(--own-border);border-radius:16px;padding:20px;font-family:var(--font);">
+
+        <div class="section-title">Sticky bottom bar rules</div>
+        <table class="spec-table" style="margin-bottom:20px;">
+          <thead><tr><th>Situation</th><th>Pattern</th></tr></thead>
+          <tbody>
+            <tr><td class="key">Primary + secondary action</td><td>2-button row: ghost left, filled right</td></tr>
+            <tr><td class="key">Single primary action</td><td>Full-width filled button</td></tr>
+            <tr><td class="key">Destructive action</td><td>Ghost left, filled danger right — require confirm sheet</td></tr>
+            <tr><td class="key">Read-only view</td><td>No sticky bar — use inline actions</td></tr>
+            <tr><td class="key">Height</td><td>56px bar + safe-area-inset-bottom (iOS)</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">Bottom sheet rules</div>
+        <table class="spec-table" style="margin-bottom:20px;">
+          <thead><tr><th>Property</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td class="key">Border radius (top)</td><td>20px</td></tr>
+            <tr><td class="key">Handle</td><td>36×4px, centered, 10px from top</td></tr>
+            <tr><td class="key">Backdrop</td><td>rgba(0,0,0,0.4) — dark; rgba(0,0,0,0.3) — light</td></tr>
+            <tr><td class="key">Dismiss</td><td>Tap backdrop or drag down ≥100px</td></tr>
+            <tr><td class="key">Max height</td><td>80vh — scrollable inside if overflow</td></tr>
+            <tr><td class="key">Animation</td><td>translateY(100%) → 0, 280ms ease-out</td></tr>
+            <tr><td class="key">Destructive item</td><td>Last row, red label, separated by extra padding</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">Bottom nav bar rules (Owner only)</div>
+        <table class="spec-table">
+          <thead><tr><th>Property</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td class="key">Tabs</td><td>Triage · Routes · Content · Adoption</td></tr>
+            <tr><td class="key">Alert badge</td><td>Red pill on Triage tab — always show count</td></tr>
+            <tr><td class="key">Active indicator</td><td>2px blue top border on active tab</td></tr>
+            <tr><td class="key">Parent / Teacher</td><td>No bottom nav — use tab strip within route + top nav</td></tr>
+            <tr><td class="key">Sidebar</td><td>Hidden on mobile for all adult routes (hamburger only)</td></tr>
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

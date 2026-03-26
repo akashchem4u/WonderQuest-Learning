@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Content Question Browser v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #c8d4e0; min-height: 100vh; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #1a2230; color: #58c8f0; transition: background .2s; }
+  .tab.active { background: #58c8f0; color: #0a141c; }
+  .tab:hover:not(.active) { background: #1e2a3a; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Content browser frame ── */
+  .browser-frame { background: #141c26; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,.4); border: 1px solid #1e2a3a; min-height: 540px; }
+
+  /* ── Top bar ── */
+  .top-bar { background: #0d1520; padding: 0 24px; height: 52px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #1e2a3a; }
+  .tb-logo { font-size: 14px; font-weight: 700; color: #58c8f0; }
+  .tb-breadcrumb { font-size: 12px; color: #5a6a7e; display: flex; align-items: center; gap: 6px; }
+  .tb-breadcrumb span { color: #c8d4e0; font-weight: 600; }
+  .tb-search { flex: 1; max-width: 320px; display: flex; align-items: center; gap: 8px; background: #1a2230; border: 1.5px solid #2a3a50; border-radius: 10px; padding: 7px 12px; margin-left: auto; }
+  .tb-search input { background: transparent; border: none; font-family: 'Sora', sans-serif; font-size: 13px; color: #e8f0f8; outline: none; flex: 1; }
+  .tb-right { display: flex; gap: 8px; align-items: center; }
+  .tb-btn { padding: 6px 12px; border-radius: 8px; border: 1.5px solid #2a3a50; background: transparent; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; color: #58c8f0; cursor: pointer; }
+  .tb-btn-primary { background: #58c8f0; color: #0a141c; border-color: #58c8f0; }
+
+  /* ── 3-col browser layout ── */
+  .browser-grid { display: grid; grid-template-columns: 220px 1fr 320px; min-height: 488px; }
+
+  /* ── Left tree panel ── */
+  .tree-panel { background: #0d1520; border-right: 1px solid #1e2a3a; padding: 12px 0; overflow-y: auto; }
+  .tree-section { padding: 6px 16px 4px; font-size: 10px; font-weight: 700; color: #3a5068; text-transform: uppercase; letter-spacing: .08em; }
+  .tree-item { padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; transition: background .1s; }
+  .tree-item:hover { background: rgba(88,200,240,.05); }
+  .tree-item.active { background: rgba(88,200,240,.1); border-left: 3px solid #58c8f0; }
+  .tree-item-icon { font-size: 14px; flex-shrink: 0; }
+  .tree-item-text { color: #c8d4e0; font-weight: 600; }
+  .tree-item.active .tree-item-text { color: #58c8f0; }
+  .tree-item-count { margin-left: auto; font-size: 11px; color: #3a5068; font-weight: 700; }
+  .tree-item-count.warn { color: #f0c030; }
+  .tree-item-count.alert { color: #e07070; }
+  .tree-sub { padding-left: 28px; }
+
+  /* ── Center question list ── */
+  .q-list-panel { background: #141c26; border-right: 1px solid #1e2a3a; overflow-y: auto; }
+  .ql-header { padding: 12px 16px; border-bottom: 1px solid #1e2a3a; display: flex; align-items: center; gap: 8px; background: #121a22; }
+  .ql-title { font-size: 14px; font-weight: 700; color: #e8f0f8; flex: 1; }
+  .ql-count { font-size: 12px; color: #5a6a7e; }
+  .filter-row { padding: 8px 12px; display: flex; gap: 6px; overflow-x: auto; background: #0f1720; border-bottom: 1px solid #1e2a3a; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .fc { flex-shrink: 0; padding: 4px 10px; border-radius: 12px; font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700; border: none; cursor: pointer; }
+  .fc-a { background: #58c8f0; color: #0a141c; }
+  .fc-i { background: rgba(88,200,240,.1); color: #58c8f0; border: 1.5px solid rgba(88,200,240,.2); }
+  .fc-warn { background: rgba(224,64,64,.12); color: #e07070; border: 1.5px solid rgba(224,64,64,.25); }
+
+  /* ── Question row ── */
+  .q-row { padding: 12px 16px; border-bottom: 1px solid #1e2a3a; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; transition: background .1s; }
+  .q-row:hover { background: rgba(88,200,240,.04); }
+  .q-row.selected { background: rgba(88,200,240,.08); border-left: 3px solid #58c8f0; }
+  .q-row.flagged { border-left: 3px solid #e04040; }
+  .qr-num { font-size: 11px; color: #3a5068; font-weight: 700; width: 28px; flex-shrink: 0; padding-top: 2px; }
+  .qr-body { flex: 1; min-width: 0; }
+  .qr-text { font-size: 13px; color: #e8f0f8; font-weight: 600; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qr-meta { font-size: 11px; color: #5a6a7e; margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .qr-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
+  .qrb-ok { background: rgba(80,184,128,.12); color: #50b880; }
+  .qrb-flag { background: rgba(224,64,64,.15); color: #e07070; }
+  .qrb-draft { background: rgba(240,192,48,.1); color: #f0c030; }
+
+  /* ── Right detail panel ── */
+  .q-detail-panel { background: #0d1520; overflow-y: auto; }
+  .qdp-header { padding: 14px 16px; border-bottom: 1px solid #1e2a3a; }
+  .qdp-id { font-size: 11px; color: #3a5068; font-weight: 700; margin-bottom: 4px; font-family: 'Courier New', monospace; }
+  .qdp-title { font-size: 15px; font-weight: 700; color: #e8f0f8; line-height: 1.4; }
+  .qdp-section { padding: 12px 16px; border-bottom: 1px solid #1e2a3a; }
+  .qdp-lbl { font-size: 10px; font-weight: 700; color: #3a5068; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+  .answer-option { padding: 8px 10px; border-radius: 8px; margin-bottom: 5px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .ao-correct { background: rgba(80,184,128,.12); border: 1.5px solid rgba(80,184,128,.3); color: #50b880; }
+  .ao-wrong { background: rgba(255,255,255,.04); color: #9aaabe; border: 1px solid #1e2a3a; }
+  .qa-check-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #1a2230; }
+  .qa-check-row:last-child { border-bottom: none; }
+  .qa-ok { color: #50b880; }
+  .qa-fail { color: #e07070; }
+  .qdp-actions { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .da-btn { padding: 10px 16px; border-radius: 10px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .da-approve { background: #50b880; color: #fff; }
+  .da-edit { background: #1a2230; color: #58c8f0; border: 1.5px solid rgba(88,200,240,.3); }
+  .da-archive { background: transparent; color: #7a8a9e; border: 1.5px solid #1e2a3a; }
+  .da-flag-clear { background: rgba(80,184,128,.1); color: #50b880; border: 1.5px solid rgba(80,184,128,.3); }
+
+  /* ── Meta chips ── */
+  .meta-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mc { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9aaabe; }
+
+  /* ── Spec ── */
+  .spec-section { background: #141c26; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #1e2a3a; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #58c8f0; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #5a6a7e; font-size: 11px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #1e2a3a; letter-spacing: .06em; }
+  td { padding: 8px; border-bottom: 1px solid #1a2230; color: #9aaabe; }
+  td:first-child { color: #e8f0f8; font-weight: 600; }
+  code { background: #1a2230; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #58c8f0; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('browser')">Question Browser</button>
+  <button class="tab" onclick="show('create-edit')">Create / Edit</button>
+  <button class="tab" onclick="show('bulk-import')">Bulk Import</button>
+  <button class="tab" onclick="show('qa-checks')">QA Checks</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BROWSER -->
+<div id="browser" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Content Question Browser</strong><br>
+    Internal content admin tool. Not part of child/parent/teacher surfaces. Accessible to content team + owner.
+    Route: <code>/content/question-browser</code>. Auth role: <code>content_admin</code> or <code>owner</code>.
+    Left tree: skill → world → node hierarchy. Center list: questions with status. Right panel: full question detail + QA + actions.
+    Fix-in-editor deeplink from feedback: <code>/content/editor?node=:nodeId&amp;highlight=answer_key&amp;source=feedback&amp;feedbackId=:id</code>.
+  </div>
+
+  <div class="browser-frame">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="tb-logo">⭐ Content Browser</div>
+      <div class="tb-breadcrumb">
+        Skills › <span>Phonics</span> › <span>Node 2</span>
+      </div>
+      <div class="tb-search">
+        <span style="font-size:14px;color:#5a6a7e;">🔍</span>
+        <input placeholder="Search questions…" value="">
+      </div>
+      <div class="tb-right">
+        <button class="tb-btn">Import</button>
+        <button class="tb-btn tb-btn-primary">+ New question</button>
+      </div>
+    </div>
+
+    <!-- 3-col grid -->
+    <div class="browser-grid">
+
+      <!-- Left: Tree -->
+      <div class="tree-panel">
+        <div class="tree-section">Skills</div>
+
+        <div class="tree-item">
+          <span class="tree-item-icon">📖</span>
+          <span class="tree-item-text">Reading fluency</span>
+          <span class="tree-item-count">31</span>
+        </div>
+
+        <!-- Phonics expanded -->
+        <div class="tree-item">
+          <span class="tree-item-icon">🔤</span>
+          <span class="tree-item-text">Phonics patterns</span>
+          <span class="tree-item-count alert">28 ⚠</span>
+        </div>
+        <div class="tree-sub">
+          <div class="tree-item" style="padding-left:8px;">
+            <span class="tree-item-icon" style="font-size:10px;">›</span>
+            <span class="tree-item-text" style="font-size:12px;">Node 1</span>
+            <span class="tree-item-count">8</span>
+          </div>
+          <div class="tree-item active" style="padding-left:8px;">
+            <span class="tree-item-icon" style="font-size:10px;">›</span>
+            <span class="tree-item-text" style="font-size:12px;">Node 2</span>
+            <span class="tree-item-count alert">7 🚩</span>
+          </div>
+          <div class="tree-item" style="padding-left:8px;">
+            <span class="tree-item-icon" style="font-size:10px;">›</span>
+            <span class="tree-item-text" style="font-size:12px;">Node 3</span>
+            <span class="tree-item-count">6</span>
+          </div>
+          <div class="tree-item" style="padding-left:8px;">
+            <span class="tree-item-icon" style="font-size:10px;">›</span>
+            <span class="tree-item-text" style="font-size:12px;">Node 4</span>
+            <span class="tree-item-count warn">4 ⚠</span>
+          </div>
+        </div>
+
+        <div class="tree-item">
+          <span class="tree-item-icon">✏️</span>
+          <span class="tree-item-text">Writing sentences</span>
+          <span class="tree-item-count warn">22 ⚠</span>
+        </div>
+        <div class="tree-item">
+          <span class="tree-item-icon">💭</span>
+          <span class="tree-item-text">Comprehension</span>
+          <span class="tree-item-count">26</span>
+        </div>
+        <div class="tree-item">
+          <span class="tree-item-icon">🔢</span>
+          <span class="tree-item-text">Vocabulary</span>
+          <span class="tree-item-count">40</span>
+        </div>
+
+        <div class="tree-section" style="margin-top:12px;">Views</div>
+        <div class="tree-item">
+          <span class="tree-item-icon">🚩</span>
+          <span class="tree-item-text">Flagged</span>
+          <span class="tree-item-count alert">3</span>
+        </div>
+        <div class="tree-item">
+          <span class="tree-item-icon">📋</span>
+          <span class="tree-item-text">In review</span>
+          <span class="tree-item-count warn">8</span>
+        </div>
+        <div class="tree-item">
+          <span class="tree-item-icon">📝</span>
+          <span class="tree-item-text">Drafts</span>
+          <span class="tree-item-count">5</span>
+        </div>
+        <div class="tree-item">
+          <span class="tree-item-icon">📦</span>
+          <span class="tree-item-text">Archived</span>
+          <span class="tree-item-count">14</span>
+        </div>
+      </div>
+
+      <!-- Center: Question list -->
+      <div class="q-list-panel">
+        <div class="ql-header">
+          <span class="ql-title">Phonics · Node 2</span>
+          <span class="ql-count">7 questions</span>
+        </div>
+        <div class="filter-row">
+          <button class="fc fc-a">All</button>
+          <button class="fc fc-i">Published</button>
+          <button class="fc fc-i">Drafts</button>
+          <button class="fc fc-warn">🚩 Flagged (1)</button>
+        </div>
+
+        <!-- Questions list -->
+        <div class="q-row flagged selected">
+          <div class="qr-num">Q14</div>
+          <div class="qr-body">
+            <div class="qr-text">Which letters make the "sh" sound?</div>
+            <div class="qr-meta"><span>MC · 4 options</span><span>·</span><span>3 child reports</span></div>
+          </div>
+          <span class="qr-badge qrb-flag">🚩 Flagged</span>
+        </div>
+        <div class="q-row">
+          <div class="qr-num">Q15</div>
+          <div class="qr-body">
+            <div class="qr-text">Which word starts with the "ch" sound?</div>
+            <div class="qr-meta"><span>MC · 4 options</span><span>·</span><span>0 reports</span></div>
+          </div>
+          <span class="qr-badge qrb-ok">✓ Active</span>
+        </div>
+        <div class="q-row">
+          <div class="qr-num">Q16</div>
+          <div class="qr-body">
+            <div class="qr-text">What sound does "wh" make in "whale"?</div>
+            <div class="qr-meta"><span>MC · 4 options</span><span>·</span><span>0 reports</span></div>
+          </div>
+          <span class="qr-badge qrb-ok">✓ Active</span>
+        </div>
+        <div class="q-row">
+          <div class="qr-num">Q17</div>
+          <div class="qr-body">
+            <div class="qr-text">Which of these has a "th" blend?</div>
+            <div class="qr-meta"><span>MC · 4 options</span><span>·</span><span>0 reports</span></div>
+          </div>
+          <span class="qr-badge qrb-ok">✓ Active</span>
+        </div>
+        <div class="q-row">
+          <div class="qr-num">Q18</div>
+          <div class="qr-body">
+            <div class="qr-text">New phonics blend exercise — digraph review</div>
+            <div class="qr-meta"><span>MC · 4 options</span><span>·</span><span>Draft</span></div>
+          </div>
+          <span class="qr-badge qrb-draft">Draft</span>
+        </div>
+      </div>
+
+      <!-- Right: Question detail -->
+      <div class="q-detail-panel">
+        <div class="qdp-header">
+          <div class="qdp-id">Q14 · Phonics · Node 2 · Multiple choice</div>
+          <div class="qdp-title">Which letters make the "sh" sound?</div>
+        </div>
+
+        <!-- Answer options -->
+        <div class="qdp-section">
+          <div class="qdp-lbl">Answer options</div>
+          <div class="answer-option ao-wrong">
+            <span style="width:20px;font-weight:700;color:#5a6a7e;flex-shrink:0;">A</span>
+            ph
+          </div>
+          <div class="answer-option ao-correct">
+            <span style="width:20px;font-weight:700;flex-shrink:0;">B</span>
+            sh ✓ (correct)
+          </div>
+          <div class="answer-option ao-wrong">
+            <span style="width:20px;font-weight:700;color:#5a6a7e;flex-shrink:0;">C</span>
+            ch
+          </div>
+          <div class="answer-option ao-wrong" style="border:2px solid rgba(224,64,64,.4);color:#ff8080;">
+            <span style="width:20px;font-weight:700;flex-shrink:0;">D</span>
+            sh ⚠️ (DUPLICATE of B!)
+          </div>
+        </div>
+
+        <!-- QA checks -->
+        <div class="qdp-section">
+          <div class="qdp-lbl">QA checks</div>
+          <div class="qa-check-row">
+            <span>Correct answer marked</span>
+            <span class="qa-ok">✓ Pass</span>
+          </div>
+          <div class="qa-check-row">
+            <span>All options distinct</span>
+            <span class="qa-fail">✗ FAIL — B=D</span>
+          </div>
+          <div class="qa-check-row">
+            <span>Reading level appropriate</span>
+            <span class="qa-ok">✓ Pass</span>
+          </div>
+          <div class="qa-check-row" style="border:none;">
+            <span>User flag rate</span>
+            <span class="qa-fail">⚠ 3 reports</span>
+          </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="qdp-section">
+          <div class="qdp-lbl">Metadata</div>
+          <div class="meta-chip-row">
+            <span class="mc">🔤 Phonics</span>
+            <span class="mc">Node 2</span>
+            <span class="mc">🌊 Ocean World</span>
+            <span class="mc">P1 Band</span>
+            <span class="mc">Published</span>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#5a6a7e;">Created 14 days ago · Last edited 3 days ago · 142 child answers</div>
+        </div>
+
+        <!-- Flagged reports -->
+        <div class="qdp-section">
+          <div class="qdp-lbl">User reports (3)</div>
+          <div style="font-size:12px;color:#e07070;background:rgba(224,64,64,.08);border-radius:8px;padding:8px 10px;margin-bottom:5px;">"Both B and D are the same — 'sh'!"</div>
+          <div style="font-size:12px;color:#e07070;background:rgba(224,64,64,.08);border-radius:8px;padding:8px 10px;margin-bottom:5px;">"Two of the answers look the same to me"</div>
+          <div style="font-size:12px;color:#e07070;background:rgba(224,64,64,.08);border-radius:8px;padding:8px 10px;">"Confusing — picked wrong because B and D same"</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="qdp-actions">
+          <div style="background:rgba(224,64,64,.1);border:1.5px solid rgba(224,64,64,.3);border-radius:10px;padding:10px 12px;font-size:12px;color:#ff8080;margin-bottom:2px;">
+            ⛔ <strong>Hard block:</strong> Approve blocked — duplicate answer options must be fixed first.
+          </div>
+          <button class="da-btn da-edit">
+            <span>✏️</span> Fix in editor →
+          </button>
+          <button class="da-btn da-flag-clear" style="opacity:.4;cursor:not-allowed;" disabled>
+            <span>✅</span> Approve (blocked until fixed)
+          </button>
+          <button class="da-btn da-archive">
+            <span>📦</span> Archive question
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CREATE / EDIT -->
+<div id="create-edit" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Create / Edit Question</strong><br>
+    Route: <code>/content/editor?node=:nodeId</code> or <code>/content/editor?questionId=:id</code>.
+    Multiple choice only in v1 alpha. Fields: question body, 4 options, correct answer index, skill, node, band.
+    Auto-saves draft every 30s. Publish = runs hard-block QA checks before saving as active.
+    Fix-in-editor from feedback: <code>/content/editor?questionId=:id&amp;highlight=answer_key&amp;source=feedback&amp;feedbackId=:fid</code>.
+  </div>
+
+  <div class="browser-frame" style="max-width:680px;">
+    <div class="top-bar">
+      <div class="tb-logo">← Q14 · Phonics / Node 2</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:#f0c030;font-weight:700;">⚠ Source: feedback FBK-00412 · Fix duplicate answer</div>
+    </div>
+
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 320px;gap:20px;">
+      <!-- Editor left -->
+      <div>
+        <div style="font-size:11px;color:#5a6a7e;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Question body</div>
+        <textarea style="width:100%;background:#1a2230;border:1.5px solid #2a3a50;border-radius:10px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;color:#e8f0f8;resize:vertical;height:80px;outline:none;">Which letters make the "sh" sound?</textarea>
+
+        <div style="font-size:11px;color:#5a6a7e;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin:14px 0 6px;">Answer options</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:700;color:#5a6a7e;width:20px;">A</span>
+            <input style="flex:1;background:#1a2230;border:1.5px solid #2a3a50;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:14px;color:#e8f0f8;outline:none;" value="ph">
+            <input type="radio" name="correct" style="width:16px;height:16px;">
+            <span style="font-size:11px;color:#5a6a7e;">Correct</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:700;color:#5a6a7e;width:20px;">B</span>
+            <input style="flex:1;background:#1a2230;border:1.5px solid #50b880;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:14px;color:#e8f0f8;outline:none;" value="sh">
+            <input type="radio" name="correct" checked style="width:16px;height:16px;">
+            <span style="font-size:11px;color:#50b880;font-weight:700;">✓ Correct</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:700;color:#5a6a7e;width:20px;">C</span>
+            <input style="flex:1;background:#1a2230;border:1.5px solid #2a3a50;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:14px;color:#e8f0f8;outline:none;" value="ch">
+            <input type="radio" name="correct" style="width:16px;height:16px;">
+            <span style="font-size:11px;color:#5a6a7e;">Correct</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:700;color:#e07070;width:20px;">D</span>
+            <input style="flex:1;background:#1a0808;border:2px solid #e04040;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:14px;color:#ff8080;outline:none;" value="sh">
+            <input type="radio" name="correct" style="width:16px;height:16px;">
+            <span style="font-size:11px;color:#5a6a7e;">Correct</span>
+          </div>
+          <div style="background:rgba(224,64,64,.1);border-radius:8px;padding:8px 10px;font-size:12px;color:#ff8080;margin-top:-4px;">
+            ⚠ Option D duplicates option B — change or remove before publishing.
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor right: metadata + QA -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="background:#121a22;border-radius:12px;padding:14px;border:1px solid #1e2a3a;">
+          <div style="font-size:11px;color:#5a6a7e;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Question settings</div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:12px;color:#9aaabe;margin-bottom:4px;">Skill</div>
+            <select style="width:100%;background:#1a2230;border:1.5px solid #2a3a50;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;color:#e8f0f8;font-size:13px;">
+              <option>🔤 Phonics patterns</option>
+              <option>📖 Reading fluency</option>
+              <option>✏️ Writing sentences</option>
+            </select>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:12px;color:#9aaabe;margin-bottom:4px;">Node</div>
+            <select style="width:100%;background:#1a2230;border:1.5px solid #2a3a50;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;color:#e8f0f8;font-size:13px;">
+              <option>Node 2</option>
+              <option>Node 3</option>
+              <option>Node 4</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background:#121a22;border-radius:12px;padding:14px;border:1px solid #1e2a3a;">
+          <div style="font-size:11px;color:#5a6a7e;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">QA checks</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;"><span>Correct answer marked</span><span style="color:#50b880;font-weight:700;">✓</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>All options distinct</span><span style="color:#e07070;font-weight:700;">✗ Fix D</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Reading level</span><span style="color:#50b880;font-weight:700;">✓</span></div>
+          </div>
+        </div>
+
+        <button style="padding:12px;border-radius:10px;border:none;background:#1a2230;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#58c8f0;cursor:pointer;border:1.5px solid rgba(88,200,240,.3);">Save draft</button>
+        <button style="padding:12px;border-radius:10px;border:none;background:rgba(80,184,128,.2);font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#50b880;cursor:not-allowed;opacity:.4;border:1.5px solid rgba(80,184,128,.3);">Publish (blocked)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BULK IMPORT -->
+<div id="bulk-import" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Bulk Import</strong><br>
+    CSV import format: <code>question_body, option_a, option_b, option_c, option_d, correct_option (A/B/C/D), skill_id, node_id</code>.
+    Max 50 rows per import. QA runs on every row before saving. Failed rows shown inline with fix hints.
+    Route: <code>POST /content/import</code>. Dry-run mode available (simulate only).
+  </div>
+
+  <div class="browser-frame" style="max-width:700px;padding:28px;">
+    <div style="font-size:18px;font-weight:700;color:#e8f0f8;margin-bottom:6px;">Bulk Question Import</div>
+    <div style="font-size:13px;color:#7a8a9e;margin-bottom:20px;">Upload a CSV file to import multiple questions at once.</div>
+
+    <!-- Upload area -->
+    <div style="background:#121a22;border:2px dashed #2a3a50;border-radius:14px;padding:32px;text-align:center;margin-bottom:20px;cursor:pointer;">
+      <div style="font-size:40px;margin-bottom:10px;">📄</div>
+      <div style="font-size:14px;font-weight:700;color:#58c8f0;">Drop CSV file here</div>
+      <div style="font-size:12px;color:#5a6a7e;margin-top:4px;">or click to browse · Max 50 rows · .csv only</div>
+      <button style="margin-top:14px;padding:8px 20px;border-radius:8px;border:1.5px solid rgba(88,200,240,.3);background:transparent;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#58c8f0;cursor:pointer;">Browse file</button>
+    </div>
+
+    <!-- CSV format reference -->
+    <div style="background:#0d1520;border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:11px;color:#5a6a7e;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">CSV Column Format</div>
+      <div style="font-family:'Courier New',monospace;font-size:11px;color:#58c8f0;overflow-x:auto;white-space:nowrap;">
+        question_body, option_a, option_b, option_c, option_d, correct_option, skill_id, node_id
+      </div>
+      <div style="font-size:12px;color:#7a8a9e;margin-top:8px;">correct_option: A / B / C / D · skill_id: from skills reference table</div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button style="flex:1;padding:12px;border-radius:10px;border:1.5px solid rgba(88,200,240,.3);background:transparent;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#58c8f0;cursor:pointer;">Dry run (preview only)</button>
+      <button style="flex:1;padding:12px;border-radius:10px;border:none;background:#58c8f0;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;color:#0a141c;cursor:pointer;">Import questions</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ QA CHECKS -->
+<div id="qa-checks" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · QA Check System</strong><br>
+    Hard blocks prevent publish. Warnings allow publish with reviewer note.
+    Hard blocks: correct answer must be marked, all options must be distinct.
+    Warnings: reading level, option length disparity, similar wrong options.
+  </div>
+
+  <div class="spec-section" style="max-width:700px;">
+    <h3>// QA CHECK MATRIX</h3>
+    <table>
+      <tr><th>Check</th><th>Type</th><th>Condition</th><th>On fail</th></tr>
+      <tr><td>Correct answer marked</td><td style="color:#e07070;">Hard block</td><td>One of A/B/C/D marked correct</td><td>Approve blocked</td></tr>
+      <tr><td>All options distinct</td><td style="color:#e07070;">Hard block</td><td>No two options identical</td><td>Approve blocked</td></tr>
+      <tr><td>Question body not empty</td><td style="color:#e07070;">Hard block</td><td>Body length ≥ 5 chars</td><td>Save blocked</td></tr>
+      <tr><td>All 4 options filled</td><td style="color:#e07070;">Hard block</td><td>No empty option slots</td><td>Save blocked</td></tr>
+      <tr><td>Reading level appropriate</td><td style="color:#f0c030;">Warning</td><td>Flesch-Kincaid within band range</td><td>Reviewer note required</td></tr>
+      <tr><td>Options not too similar</td><td style="color:#f0c030;">Warning</td><td>Levenshtein distance ≥ 3 between options</td><td>Warning shown</td></tr>
+      <tr><td>Question length</td><td style="color:#f0c030;">Warning</td><td>Body ≤ 120 chars for child surfaces</td><td>Warning shown</td></tr>
+      <tr><td>User flag rate</td><td style="color:#f0c030;">Warning</td><td>≤ 3 reports from children</td><td>Flagged for review</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section" style="max-width:700px;">
+    <h3>// QUESTION STATUS FLOW</h3>
+    <table>
+      <tr><th>Status</th><th>Color</th><th>Description</th><th>Transitions to</th></tr>
+      <tr><td>Draft</td><td><code>#f0c030</code></td><td>Not yet reviewed or published</td><td>Active, Archived</td></tr>
+      <tr><td>Active</td><td><code>#50b880</code></td><td>Live, served to children</td><td>Flagged, Archived</td></tr>
+      <tr><td>Flagged</td><td><code>#e04040</code></td><td>≥1 child report, in review</td><td>Active (after fix), Archived</td></tr>
+      <tr><td>In review</td><td><code>#f0c030</code></td><td>Awaiting reviewer action</td><td>Active, Archived</td></tr>
+      <tr><td>Archived</td><td><code>#5a6a7e</code></td><td>Removed from active pool</td><td>Active (reactivate)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>// ROUTES & ENDPOINTS</h3>
+    <table>
+      <tr><th>Route/Endpoint</th><th>Method</th><th>Purpose</th></tr>
+      <tr><td><code>/content/question-browser</code></td><td>GET (screen)</td><td>Main question browser</td></tr>
+      <tr><td><code>/content/editor?questionId=:id</code></td><td>GET (screen)</td><td>Edit existing question</td></tr>
+      <tr><td><code>/content/editor?node=:nodeId</code></td><td>GET (screen)</td><td>Create new in node</td></tr>
+      <tr><td><code>GET /content/questions</code></td><td>GET</td><td>List with filters: skill, node, status</td></tr>
+      <tr><td><code>GET /content/questions/:id</code></td><td>GET</td><td>Full question detail + QA results</td></tr>
+      <tr><td><code>POST /content/questions</code></td><td>POST</td><td>Create new question</td></tr>
+      <tr><td><code>PATCH /content/questions/:id</code></td><td>PATCH</td><td>Update question + auto-QA</td></tr>
+      <tr><td><code>POST /content/questions/:id/publish</code></td><td>POST</td><td>Publish (hard-block check first)</td></tr>
+      <tr><td><code>POST /content/import</code></td><td>POST</td><td>Bulk CSV import (max 50 rows)</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS (CONTENT ADMIN SURFACE)</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>content-bg</td><td><code>#10161e</code></td><td>Page background</td></tr>
+      <tr><td>content-panel</td><td><code>#141c26</code></td><td>Main panel background</td></tr>
+      <tr><td>content-sidebar</td><td><code>#0d1520</code></td><td>Tree panel, detail panel</td></tr>
+      <tr><td>content-accent</td><td><code>#58c8f0</code></td><td>Primary accent (content-admin blue)</td></tr>
+      <tr><td>status-active</td><td><code>#50b880</code></td><td>Active question border/badge</td></tr>
+      <tr><td>status-flagged</td><td><code>#e04040</code></td><td>Flagged question border/badge</td></tr>
+      <tr><td>status-draft</td><td><code>#f0c030</code></td><td>Draft badge</td></tr>
+      <tr><td>correct-answer</td><td><code>rgba(80,184,128,.12)</code></td><td>Correct option highlight</td></tr>
+      <tr><td>font</td><td>Sora</td><td>All admin surfaces use Sora</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// ACCESS CONTROL</h3>
+    <table>
+      <tr><th>Action</th><th>Required role</th></tr>
+      <tr><td>View question browser</td><td><code>content_admin</code> OR <code>owner</code></td></tr>
+      <tr><td>Create / edit questions</td><td><code>content_admin</code></td></tr>
+      <tr><td>Publish / approve</td><td><code>content_admin</code></td></tr>
+      <tr><td>Archive questions</td><td><code>content_admin</code> OR <code>owner</code></td></tr>
+      <tr><td>Bulk import</td><td><code>content_admin</code></td></tr>
+      <tr><td>Fix-in-editor from feedback</td><td><code>content_admin</code></td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

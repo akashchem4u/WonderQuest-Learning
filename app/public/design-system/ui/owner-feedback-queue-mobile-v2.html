@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Queue Mobile v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; min-height: 820px; background: #0d1117; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.5); overflow: hidden; flex-shrink: 0; font-family: 'Sora', 'Segoe UI', sans-serif; }
+  .phone-inner { height: 100%; overflow-y: auto; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #a0a8b8; background: #0d1117; }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #0d1117; border-bottom: 1px solid #2a3040; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: #e0e6f0; }
+  .topbar-subtitle { font-size: 12px; color: #445566; margin-top: 1px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+  .topbar-btn { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+  /* KPI mini strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #2a3040; margin: 0 16px 16px; border-radius: 10px; overflow: hidden; }
+  .kpi-cell { background: #141a26; padding: 10px; text-align: center; }
+  .kpi-val { font-size: 20px; font-weight: 800; }
+  .kpi-lbl { font-size: 10px; color: #445566; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  /* Filter chips */
+  .filter-strip { display: flex; gap: 6px; padding: 0 16px; overflow-x: auto; margin-bottom: 12px; }
+  .filter-strip::-webkit-scrollbar { display: none; }
+  .chip { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1.5px solid #2a3040; background: #141a26; color: #667; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
+  .chip.active { background: #ffd166; color: #1a1400; border-color: #ffd166; }
+  .chip.bug { background: #ff6b6b22; color: #ff9999; border-color: #ff6b6b44; }
+  .chip.content { background: #9b72ff22; color: #c8a8ff; border-color: #9b72ff44; }
+  .chip.ux { background: #5599ee22; color: #88bbff; border-color: #5599ee44; }
+
+  /* Section label */
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #445566; padding: 0 16px; margin: 12px 0 8px; }
+
+  /* Feedback row */
+  .fb-row { margin: 0 16px 8px; background: #141a26; border-radius: 12px; padding: 14px; border-left: 4px solid transparent; cursor: pointer; }
+  .fb-row.critical { border-left-color: #ff6b6b; background: #1a0e0e; }
+  .fb-row.bug { border-left-color: #ff9944; }
+  .fb-row.content { border-left-color: #9b72ff; }
+  .fb-row.ux { border-left-color: #5599ee; }
+  .fb-row.praise { border-left-color: #58e8c1; }
+  .fb-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .fb-type-badge { padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  .badge-bug { background: #ff994422; color: #ffaa66; }
+  .badge-critical { background: #ff6b6b22; color: #ff9999; }
+  .badge-content { background: #9b72ff22; color: #c8a8ff; }
+  .badge-ux { background: #5599ee22; color: #88bbff; }
+  .badge-praise { background: #58e8c122; color: #58e8c1; }
+  .fb-title { font-size: 13px; font-weight: 700; color: #e0e6f0; flex: 1; line-height: 1.4; }
+  .fb-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .fb-audience { font-size: 11px; color: #556677; }
+  .fb-date { font-size: 11px; color: #445566; margin-left: auto; }
+  .fb-body { font-size: 12px; color: #778899; line-height: 1.6; margin-top: 6px; }
+  .fb-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .fb-action-btn { padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .btn-triage { background: #ffd166; color: #1a1400; }
+  .btn-dismiss { background: #1e2a3a; color: #667; }
+  .btn-escalate { background: #ff6b6b22; color: #ff9999; border: 1px solid #ff6b6b44; }
+  .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffd166; flex-shrink: 0; margin-top: 4px; }
+
+  /* Detail drawer (bottom sheet) */
+  .detail-sheet { position: sticky; bottom: 0; background: #141a26; border-top: 2px solid #2a3040; border-radius: 20px 20px 0 0; padding: 20px 16px 32px; box-shadow: 0 -8px 32px rgba(0,0,0,0.4); }
+  .sheet-handle { width: 40px; height: 4px; background: #2a3040; border-radius: 2px; margin: 0 auto 16px; }
+
+  /* Action footer */
+  .action-footer { position: sticky; bottom: 0; background: #0d1117; border-top: 1px solid #2a3040; padding: 12px 16px 28px; display: flex; gap: 10px; }
+  .btn-primary { flex: 1; background: #ffd166; color: #1a1400; border: none; border-radius: 12px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; }
+  .btn-secondary { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; border-radius: 12px; padding: 13px 16px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  /* Bottom nav */
+  .bottom-nav { display: flex; background: #141a26; border-top: 1px solid #2a3040; padding: 8px 0 18px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #445566; }
+  .nav-item.active { color: #ffd166; }
+  .nav-icon { font-size: 20px; }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .spec-table th { background: #141a26; padding: 8px 12px; text-align: left; font-weight: 700; font-size: 12px; color: #a0b0c0; border-bottom: 2px solid #2a3040; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #1e2433; vertical-align: top; line-height: 1.5; color: #c0ccd8; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-red { background: #2a0a0a; color: #ff9999; }
+  .pill-amber { background: #2a1e00; color: #ffd166; }
+  .pill-blue { background: #0a1a2a; color: #88bbff; }
+  .pill-purple { background: #1e1040; color: #c8a8ff; }
+  .pill-green { background: #0a2a1e; color: #58e8c1; }
+
+  h2 { font-size: 18px; font-weight: 800; color: #e0e6f0; margin-bottom: 6px; }
+  h3 { font-size: 14px; font-weight: 700; color: #a0b0c0; margin: 20px 0 8px; }
+  p { font-size: 13px; color: #667788; line-height: 1.6; margin-bottom: 12px; }
+  ul { font-size: 13px; color: #667788; line-height: 1.7; padding-left: 18px; margin-bottom: 12px; }
+  code { background: #1e2433; color: #a8c4e8; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('queue-list')">Queue List</button>
+  <button class="tab" onclick="show('feedback-detail')">Feedback Detail</button>
+  <button class="tab" onclick="show('triage-flow')">Triage / Resolve Flow</button>
+  <button class="tab" onclick="show('empty-states')">Empty + Filter States</button>
+  <button class="tab" onclick="show('spec')">Spec Notes</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 1 -->
+<div id="queue-list" class="panel active">
+  <div class="hint"><strong>Panel 1 — Feedback Queue List:</strong> Owner mobile view of incoming feedback from all audiences. Sorted by severity (critical first), then recency. Filter chips by type: All / Bug / Content / UX / Praise. Each row shows: type badge, title, audience source, date, unread dot (if new). Swipe right → triage; swipe left → dismiss. Owner dark ops theme, 390px frame.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Queue — mixed feedback, sorted</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+
+          <div class="topbar">
+            <div style="flex:1;">
+              <div class="topbar-title">Feedback Queue</div>
+              <div class="topbar-subtitle">12 items · 3 unread · Last sync 1m ago</div>
+            </div>
+            <div class="topbar-actions">
+              <div class="topbar-btn">Filter</div>
+              <div class="topbar-btn">Sort</div>
+            </div>
+          </div>
+
+          <!-- KPI mini strip -->
+          <div class="kpi-strip">
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#ff6b6b;">2</div>
+              <div class="kpi-lbl">Critical</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#ffd166;">7</div>
+              <div class="kpi-lbl">Open</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-val" style="color:#58e8c1;">3</div>
+              <div class="kpi-lbl">Resolved today</div>
+            </div>
+          </div>
+
+          <!-- Filter chips -->
+          <div class="filter-strip">
+            <div class="chip active">All (12)</div>
+            <div class="chip bug">🐛 Bug (4)</div>
+            <div class="chip content">📦 Content (3)</div>
+            <div class="chip ux">🖼 UX (3)</div>
+            <div class="chip" style="background:#58e8c122; color:#58e8c1; border-color:#58e8c144;">✨ Praise (2)</div>
+          </div>
+
+          <!-- CRITICAL section -->
+          <div class="section-label">Critical</div>
+
+          <div class="fb-row critical">
+            <div class="fb-header">
+              <div class="fb-type-badge badge-critical">🔴 Critical Bug</div>
+              <div class="unread-dot"></div>
+            </div>
+            <div class="fb-title">Play session freezes after 3rd question on iOS 17</div>
+            <div class="fb-meta">
+              <span class="fb-audience">👦 Child · K–1</span>
+              <span class="fb-date">Today, 8:14 AM</span>
+            </div>
+            <div class="fb-body">"My daughter's game freezes every time she gets to the 3rd question. She has to restart and loses her progress."</div>
+            <div class="fb-actions">
+              <div class="fb-action-btn btn-triage">Triage →</div>
+              <div class="fb-action-btn btn-escalate">Escalate</div>
+              <div class="fb-action-btn btn-dismiss">Dismiss</div>
+            </div>
+          </div>
+
+          <div class="fb-row critical">
+            <div class="fb-header">
+              <div class="fb-type-badge badge-critical">🔴 Critical Bug</div>
+              <div class="unread-dot"></div>
+            </div>
+            <div class="fb-title">Teacher queue not loading — blank screen on /teacher</div>
+            <div class="fb-meta">
+              <span class="fb-audience">👩‍🏫 Teacher</span>
+              <span class="fb-date">Today, 7:52 AM</span>
+            </div>
+            <div class="fb-body">"Support queue shows blank every morning until I refresh 3–4 times. Started happening this week."</div>
+            <div class="fb-actions">
+              <div class="fb-action-btn btn-triage">Triage →</div>
+              <div class="fb-action-btn btn-escalate">Escalate</div>
+              <div class="fb-action-btn btn-dismiss">Dismiss</div>
+            </div>
+          </div>
+
+          <!-- OPEN section -->
+          <div class="section-label">Open</div>
+
+          <div class="fb-row bug">
+            <div class="fb-header">
+              <div class="fb-type-badge badge-bug">🐛 Bug</div>
+              <div class="unread-dot"></div>
+            </div>
+            <div class="fb-title">Progress map doesn't scroll past node 8 on Android</div>
+            <div class="fb-meta">
+              <span class="fb-audience">👦 Child</span>
+              <span class="fb-date">Yesterday</span>
+            </div>
+            <div class="fb-actions">
+              <div class="fb-action-btn btn-triage">Triage →</div>
+              <div class="fb-action-btn btn-dismiss">Dismiss</div>
+            </div>
+          </div>
+
+          <div class="fb-row content">
+            <div class="fb-header">
+              <div class="fb-type-badge badge-content">📦 Content Issue</div>
+            </div>
+            <div class="fb-title">Q#47 answer key incorrect — "5" marked wrong, should be correct</div>
+            <div class="fb-meta">
+              <span class="fb-audience">👩‍🏫 Teacher</span>
+              <span class="fb-date">Mar 21</span>
+            </div>
+            <div class="fb-body">"Students keep getting marked wrong on question 47 in Skip Counting. The answer '5' is definitely right — I checked the curriculum."</div>
+            <div class="fb-actions">
+              <div class="fb-action-btn btn-triage">View content →</div>
+              <div class="fb-action-btn btn-dismiss">Dismiss</div>
+            </div>
+          </div>
+
+          <div class="fb-row ux">
+            <div class="fb-header">
+              <div class="fb-type-badge badge-ux">🖼 UX Feedback</div>
+            </div>
+            <div class="fb-title">Parent summary page loads slowly — 4+ seconds on mobile</div>
+            <div class="fb-meta">
+              <span class="fb-audience">👨‍👩‍👧 Parent</span>
+              <span class="fb-date">Mar 21</span>
+            </div>
+            <div class="fb-actions">
+              <div class="fb-action-btn btn-triage">Triage →</div>
+              <div class="fb-action-btn btn-dismiss">Dismiss</div>
+            </div>
+          </div>
+
+          <div class="fb-row praise">
+            <div class="fb-header">
+              <div class="fb-type-badge badge-praise">✨ Praise</div>
+            </div>
+            <div class="fb-title">"My son asked to play WonderQuest before dinner every night this week!"</div>
+            <div class="fb-meta">
+              <span class="fb-audience">👨‍👩‍👧 Parent</span>
+              <span class="fb-date">Mar 20</span>
+            </div>
+            <div class="fb-actions">
+              <div class="fb-action-btn" style="background:#58e8c122; color:#58e8c1; padding:5px 12px; border-radius:8px; font-size:11px; font-weight:700;">Archive ✓</div>
+            </div>
+          </div>
+
+          <div style="height:80px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><span class="nav-icon">📊</span>Dashboard</div>
+            <div class="nav-item"><span class="nav-icon">🛣️</span>Routes</div>
+            <div class="nav-item active"><span class="nav-icon">💬</span>Feedback</div>
+            <div class="nav-item"><span class="nav-icon">📦</span>Content</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bug-filtered view -->
+    <div>
+      <div class="phone-label">Queue — Bug filter active</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Feedback Queue</div><div class="topbar-subtitle">Showing: Bugs (4 items)</div></div>
+            <div class="topbar-actions"><div class="topbar-btn" style="background:#ff994422; color:#ffaa66; border-color:#ff994444;">🐛 Bug ×</div></div>
+          </div>
+
+          <div class="kpi-strip">
+            <div class="kpi-cell"><div class="kpi-val" style="color:#ff6b6b;">2</div><div class="kpi-lbl">Critical</div></div>
+            <div class="kpi-cell"><div class="kpi-val" style="color:#ffd166;">2</div><div class="kpi-lbl">Normal</div></div>
+            <div class="kpi-cell"><div class="kpi-val" style="color:#58e8c1;">0</div><div class="kpi-lbl">Resolved</div></div>
+          </div>
+
+          <div class="filter-strip">
+            <div class="chip">All</div>
+            <div class="chip bug active" style="background:#ff994499; border-color:#ff9944; color:#fff;">🐛 Bug (4)</div>
+          </div>
+
+          <div class="section-label">Critical bugs</div>
+          <div class="fb-row critical">
+            <div class="fb-header"><div class="fb-type-badge badge-critical">🔴 Critical</div><div class="unread-dot"></div></div>
+            <div class="fb-title">Play session freezes after 3rd question on iOS 17</div>
+            <div class="fb-meta"><span class="fb-audience">👦 Child</span><span class="fb-date">Today</span></div>
+            <div class="fb-actions"><div class="fb-action-btn btn-triage">Triage →</div><div class="fb-action-btn btn-escalate">Escalate</div></div>
+          </div>
+          <div class="fb-row critical">
+            <div class="fb-header"><div class="fb-type-badge badge-critical">🔴 Critical</div></div>
+            <div class="fb-title">Teacher queue not loading — blank screen on /teacher</div>
+            <div class="fb-meta"><span class="fb-audience">👩‍🏫 Teacher</span><span class="fb-date">Today</span></div>
+            <div class="fb-actions"><div class="fb-action-btn btn-triage">Triage →</div><div class="fb-action-btn btn-escalate">Escalate</div></div>
+          </div>
+
+          <div class="section-label">Normal bugs</div>
+          <div class="fb-row bug">
+            <div class="fb-header"><div class="fb-type-badge badge-bug">🐛 Bug</div></div>
+            <div class="fb-title">Progress map doesn't scroll past node 8 on Android</div>
+            <div class="fb-meta"><span class="fb-audience">👦 Child</span><span class="fb-date">Yesterday</span></div>
+            <div class="fb-actions"><div class="fb-action-btn btn-triage">Triage →</div><div class="fb-action-btn btn-dismiss">Dismiss</div></div>
+          </div>
+          <div class="fb-row bug">
+            <div class="fb-header"><div class="fb-type-badge badge-bug">🐛 Bug</div></div>
+            <div class="fb-title">Badge image broken on trophy shelf — shows placeholder</div>
+            <div class="fb-meta"><span class="fb-audience">👦 Child</span><span class="fb-date">Mar 20</span></div>
+            <div class="fb-actions"><div class="fb-action-btn btn-triage">Triage →</div><div class="fb-action-btn btn-dismiss">Dismiss</div></div>
+          </div>
+
+          <div style="height:80px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><span class="nav-icon">📊</span>Dashboard</div>
+            <div class="nav-item"><span class="nav-icon">🛣️</span>Routes</div>
+            <div class="nav-item active"><span class="nav-icon">💬</span>Feedback</div>
+            <div class="nav-item"><span class="nav-icon">📦</span>Content</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 2 -->
+<div id="feedback-detail" class="panel">
+  <div class="hint"><strong>Panel 2 — Feedback Detail:</strong> Push screen for a single feedback item. Shows full text, submitter info (anonymous unless teacher/owner), device/platform metadata, related items (other reports of same issue), and action row. Two phone states: bug detail + content issue detail.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Bug detail — critical</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="font-size:14px; color:#445566; cursor:pointer; margin-right:8px;">←</div>
+            <div style="flex:1;"><div class="topbar-title">Feedback Detail</div><div class="topbar-subtitle">Critical Bug · iOS 17</div></div>
+            <div class="topbar-actions"><div class="topbar-btn">Share</div></div>
+          </div>
+
+          <!-- Header card -->
+          <div style="margin:12px 16px; background:#1a0e0e; border-radius:14px; padding:16px; border:1.5px solid #ff6b6b44;">
+            <div style="display:flex; align-items:flex-start; gap:10px; margin-bottom:10px;">
+              <div class="fb-type-badge badge-critical" style="font-size:11px; padding:4px 10px;">🔴 Critical Bug</div>
+              <div style="margin-left:auto; font-size:11px; color:#445566;">Today, 8:14 AM</div>
+            </div>
+            <div style="font-size:15px; font-weight:700; color:#e0e6f0; margin-bottom:8px; line-height:1.4;">Play session freezes after 3rd question on iOS 17</div>
+            <div style="font-size:13px; color:#889; line-height:1.7;">"My daughter's game freezes every time she gets to the 3rd question. She has to restart every single time and she gets so frustrated. We've tried restarting the app but it still happens."</div>
+          </div>
+
+          <!-- Metadata -->
+          <div style="margin:0 16px 12px; background:#141a26; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#445566; letter-spacing:0.07em; margin-bottom:10px;">Metadata</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Audience</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">Parent (on behalf of child)</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Band</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">K–1 Violet</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Platform</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">iOS 17.2, iPhone 14</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Route</div><div style="font-size:13px; color:#a8c4e8; font-weight:600; font-family:monospace; margin-top:2px;">/play</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Session ID</div><div style="font-size:12px; color:#445566; font-family:monospace; margin-top:2px;">ses_4f2a91</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Submitter</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">Anonymous (parent)</div></div>
+            </div>
+          </div>
+
+          <!-- Related reports -->
+          <div style="margin:0 16px 12px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#445566; letter-spacing:0.07em; margin-bottom:8px;">Related reports (3 similar)</div>
+            <div style="background:#141a26; border-radius:10px; padding:10px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:12px; color:#889;">iOS 17.1 — same freeze, question 3</div>
+              <div style="font-size:11px; color:#445566;">Mar 21</div>
+            </div>
+            <div style="background:#141a26; border-radius:10px; padding:10px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:12px; color:#889;">iOS 17.0 — app crash on /play q3</div>
+              <div style="font-size:11px; color:#445566;">Mar 20</div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">Triage this issue</div>
+            <div class="btn-secondary">Escalate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Content issue detail</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="font-size:14px; color:#445566; cursor:pointer; margin-right:8px;">←</div>
+            <div style="flex:1;"><div class="topbar-title">Feedback Detail</div><div class="topbar-subtitle">Content Issue</div></div>
+          </div>
+
+          <div style="margin:12px 16px; background:#1a1040; border-radius:14px; padding:16px; border:1.5px solid #9b72ff44;">
+            <div style="display:flex; align-items:flex-start; gap:10px; margin-bottom:10px;">
+              <div class="fb-type-badge badge-content">📦 Content Issue</div>
+              <div style="margin-left:auto; font-size:11px; color:#445566;">Mar 21</div>
+            </div>
+            <div style="font-size:15px; font-weight:700; color:#e0e6f0; margin-bottom:8px; line-height:1.4;">Q#47 answer key incorrect — "5" marked wrong</div>
+            <div style="font-size:13px; color:#889; line-height:1.7;">"Students keep getting marked wrong on question 47 in the Skip Counting skill. The answer '5' is definitely correct per the K–1 curriculum standard. I've checked twice. This is causing confusion in my class."</div>
+          </div>
+
+          <div style="margin:0 16px 12px; background:#141a26; border-radius:12px; padding:12px 14px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#445566; letter-spacing:0.07em; margin-bottom:10px;">Metadata</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Audience</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">Teacher</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Skill</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">Skip Counting</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Question ID</div><div style="font-size:13px; color:#a8c4e8; font-family:monospace; font-weight:600; margin-top:2px;">q_sk_047</div></div>
+              <div><div style="font-size:10px; color:#445566; text-transform:uppercase;">Band</div><div style="font-size:13px; color:#e0e6f0; font-weight:600; margin-top:2px;">K–1 Violet</div></div>
+            </div>
+          </div>
+
+          <div style="margin:0 16px 16px; background:#ffd16612; border:1px solid #ffd16633; border-radius:10px; padding:10px 12px; font-size:12px; color:#aa8844;">
+            💡 This issue affects a content item — it can be fixed directly in the content editor. Tap "Fix in editor" to jump to Q#47.
+          </div>
+
+          <div class="action-footer">
+            <div class="btn-primary">Fix in editor →</div>
+            <div class="btn-secondary">Dismiss</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 3 -->
+<div id="triage-flow" class="panel">
+  <div class="hint"><strong>Panel 3 — Triage / Resolve Flow:</strong> Owner taps "Triage" → bottom sheet with action choices: Create ticket / Mark in progress / Resolve / Escalate to engineering. After resolve → row marked resolved with green indicator, moves to bottom of queue. Two phones: triage sheet open + resolved state.</div>
+
+  <div class="phone-wrap">
+    <!-- Triage sheet -->
+    <div>
+      <div class="phone-label">Triage bottom sheet</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Feedback Queue</div></div>
+          </div>
+
+          <!-- Dimmed queue behind -->
+          <div style="opacity:0.25; padding:16px;">
+            <div class="fb-row critical"><div class="fb-header"><div class="fb-type-badge badge-critical">🔴 Critical</div></div><div class="fb-title">Play session freezes after 3rd question…</div></div>
+          </div>
+
+          <!-- Triage bottom sheet -->
+          <div class="detail-sheet">
+            <div class="sheet-handle"></div>
+            <div style="font-size:15px; font-weight:800; color:#e0e6f0; margin-bottom:4px;">Triage: Play session freeze</div>
+            <div style="font-size:12px; color:#445566; margin-bottom:16px;">🔴 Critical Bug · iOS 17 · /play</div>
+
+            <!-- Action options -->
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div style="background:#ffd166; color:#1a1400; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <span style="font-size:20px;">🎫</span>
+                <div>
+                  <div style="font-size:14px; font-weight:700;">Create engineering ticket</div>
+                  <div style="font-size:11px; opacity:0.7; margin-top:1px;">Send to Jira / Linear with full context</div>
+                </div>
+              </div>
+              <div style="background:#1e2a3a; border:1px solid #2a3a50; color:#a8c4e8; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <span style="font-size:20px;">🔧</span>
+                <div>
+                  <div style="font-size:14px; font-weight:700;">Mark as in progress</div>
+                  <div style="font-size:11px; opacity:0.7; margin-top:1px;">Move to in-progress, assign to yourself</div>
+                </div>
+              </div>
+              <div style="background:#0a2a1e; border:1px solid #58e8c144; color:#58e8c1; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <span style="font-size:20px;">✅</span>
+                <div>
+                  <div style="font-size:14px; font-weight:700;">Mark resolved</div>
+                  <div style="font-size:11px; opacity:0.7; margin-top:1px;">Archive this feedback item</div>
+                </div>
+              </div>
+              <div style="background:#2a0a0a; border:1px solid #ff6b6b44; color:#ff9999; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:12px; cursor:pointer;">
+                <span style="font-size:20px;">🚨</span>
+                <div>
+                  <div style="font-size:14px; font-weight:700;">Escalate to engineering</div>
+                  <div style="font-size:11px; opacity:0.7; margin-top:1px;">Page on-call — production issue</div>
+                </div>
+              </div>
+              <div style="color:#445566; border-radius:12px; padding:13px 16px; text-align:center; font-size:14px; font-weight:700; cursor:pointer;">Cancel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resolved state -->
+    <div>
+      <div class="phone-label">After resolve — row archived</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Feedback Queue</div><div class="topbar-subtitle">11 items · 2 unread</div></div>
+          </div>
+
+          <!-- Success toast -->
+          <div style="margin:8px 16px; background:#0a2a1e; border:1px solid #58e8c144; border-radius:10px; padding:10px 14px; display:flex; gap:10px; align-items:center;">
+            <span style="color:#58e8c1;">✅</span>
+            <span style="font-size:13px; color:#58e8c1; font-weight:700;">Ticket created — WQENG-412</span>
+          </div>
+
+          <div class="kpi-strip">
+            <div class="kpi-cell"><div class="kpi-val" style="color:#ff6b6b;">1</div><div class="kpi-lbl">Critical</div></div>
+            <div class="kpi-cell"><div class="kpi-val" style="color:#ffd166;">6</div><div class="kpi-lbl">Open</div></div>
+            <div class="kpi-cell"><div class="kpi-val" style="color:#58e8c1;">4</div><div class="kpi-lbl">Resolved today</div></div>
+          </div>
+
+          <div class="filter-strip">
+            <div class="chip active">All (11)</div>
+            <div class="chip bug">🐛 Bug (3)</div>
+          </div>
+
+          <div class="section-label">Critical</div>
+          <div class="fb-row critical">
+            <div class="fb-header"><div class="fb-type-badge badge-critical">🔴 Critical</div></div>
+            <div class="fb-title">Teacher queue not loading — blank screen on /teacher</div>
+            <div class="fb-meta"><span class="fb-audience">👩‍🏫 Teacher</span><span class="fb-date">Today</span></div>
+            <div class="fb-actions"><div class="fb-action-btn btn-triage">Triage →</div><div class="fb-action-btn btn-escalate">Escalate</div></div>
+          </div>
+
+          <div class="section-label">Open</div>
+          <div class="fb-row bug">
+            <div class="fb-header"><div class="fb-type-badge badge-bug">🐛 Bug</div></div>
+            <div class="fb-title">Progress map doesn't scroll past node 8</div>
+            <div class="fb-meta"><span class="fb-audience">👦 Child</span><span class="fb-date">Yesterday</span></div>
+            <div class="fb-actions"><div class="fb-action-btn btn-triage">Triage →</div></div>
+          </div>
+
+          <div class="section-label">Resolved today</div>
+          <!-- Resolved row — greyed, tick -->
+          <div style="margin:0 16px 8px; background:#0e1a12; border-radius:12px; padding:12px 14px; border-left:4px solid #58e8c1; opacity:0.7;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="color:#58e8c1; font-size:14px;">✓</span>
+              <div style="font-size:13px; color:#668; flex:1; text-decoration:line-through;">Play session freezes after 3rd question on iOS 17</div>
+              <div style="font-size:10px; background:#0a2a1e; color:#58e8c1; border-radius:20px; padding:2px 8px; font-weight:700;">WQENG-412</div>
+            </div>
+          </div>
+
+          <div style="height:80px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><span class="nav-icon">📊</span>Dashboard</div>
+            <div class="nav-item"><span class="nav-icon">🛣️</span>Routes</div>
+            <div class="nav-item active"><span class="nav-icon">💬</span>Feedback</div>
+            <div class="nav-item"><span class="nav-icon">📦</span>Content</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 4 -->
+<div id="empty-states" class="panel">
+  <div class="hint"><strong>Panel 4 — Empty + Filter States:</strong> All-clear empty state (queue empty), filter returns no results, and praise-only filtered view. All-clear is a positive owner moment.</div>
+
+  <div class="phone-wrap">
+    <!-- Empty queue -->
+    <div>
+      <div class="phone-label">All-clear — queue empty</div>
+      <div class="phone" style="min-height:500px;">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar"><div style="flex:1;"><div class="topbar-title">Feedback Queue</div><div class="topbar-subtitle">0 items · All resolved</div></div></div>
+          <div style="margin:40px 24px; text-align:center;">
+            <div style="font-size:48px; margin-bottom:12px;">✅</div>
+            <div style="font-size:17px; font-weight:800; color:#e0e6f0; margin-bottom:6px;">Queue is clear!</div>
+            <div style="font-size:13px; color:#445566; line-height:1.6;">No open feedback. All items triaged or resolved. Nice work.</div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item"><span class="nav-icon">📊</span>Dashboard</div>
+            <div class="nav-item"><span class="nav-icon">🛣️</span>Routes</div>
+            <div class="nav-item active"><span class="nav-icon">💬</span>Feedback</div>
+            <div class="nav-item"><span class="nav-icon">📦</span>Content</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Praise only -->
+    <div>
+      <div class="phone-label">Praise filter — encouragement</div>
+      <div class="phone" style="min-height:600px;">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar"><div style="flex:1;"><div class="topbar-title">Feedback Queue</div><div class="topbar-subtitle">Showing: Praise (2)</div></div></div>
+
+          <div class="filter-strip">
+            <div class="chip">All</div>
+            <div class="chip active" style="background:#58e8c1; color:#0a2a1a; border-color:#58e8c1;">✨ Praise (2) ×</div>
+          </div>
+
+          <div style="margin:8px 16px 16px; background:#0a2a1e; border:1px solid #58e8c144; border-radius:12px; padding:12px 14px; font-size:12px; color:#58e8c1; line-height:1.6;">
+            💚 These are your fans. Praise items auto-archive after 30 days — no action needed.
+          </div>
+
+          <div class="fb-row praise">
+            <div class="fb-header"><div class="fb-type-badge badge-praise">✨ Praise</div></div>
+            <div class="fb-title">"My son asked to play WonderQuest before dinner every night this week!"</div>
+            <div class="fb-meta"><span class="fb-audience">👨‍👩‍👧 Parent</span><span class="fb-date">Mar 20</span></div>
+            <div class="fb-actions"><div class="fb-action-btn" style="background:#58e8c122; color:#58e8c1; padding:5px 12px; border-radius:8px; font-size:11px; font-weight:700;">Archive</div></div>
+          </div>
+          <div class="fb-row praise">
+            <div class="fb-header"><div class="fb-type-badge badge-praise">✨ Praise</div></div>
+            <div class="fb-title">"Finally an app that actually helped my student — she moved up a tier in 2 weeks!"</div>
+            <div class="fb-meta"><span class="fb-audience">👩‍🏫 Teacher</span><span class="fb-date">Mar 18</span></div>
+            <div class="fb-actions"><div class="fb-action-btn" style="background:#58e8c122; color:#58e8c1; padding:5px 12px; border-radius:8px; font-size:11px; font-weight:700;">Archive</div></div>
+          </div>
+
+          <div style="height:80px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><span class="nav-icon">📊</span>Dashboard</div>
+            <div class="nav-item"><span class="nav-icon">🛣️</span>Routes</div>
+            <div class="nav-item active"><span class="nav-icon">💬</span>Feedback</div>
+            <div class="nav-item"><span class="nav-icon">📦</span>Content</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 5 -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Panel 5 — Spec Notes:</strong> Canonical spec for /owner/feedback (mobile feedback queue). Owner-only route. Aggregates feedback from all audiences.</div>
+
+  <h2>Owner Feedback Queue Mobile — Spec</h2>
+
+  <h3>Feedback types</h3>
+  <table class="spec-table">
+    <tr><th>Type</th><th>Left border</th><th>Badge color</th><th>Sources</th><th>Action</th></tr>
+    <tr><td><span class="pill pill-red">Critical Bug</span></td><td>#ff6b6b</td><td>Red</td><td>Auto-detected OR user-reported</td><td>Triage / Escalate — non-dismissible without triage</td></tr>
+    <tr><td><span class="pill pill-amber">Bug</span></td><td>#ff9944</td><td>Amber</td><td>User-reported</td><td>Triage / Dismiss</td></tr>
+    <tr><td><span class="pill pill-purple">Content Issue</span></td><td>#9b72ff</td><td>Purple</td><td>Teacher-reported</td><td>Fix in editor / Dismiss</td></tr>
+    <tr><td><span class="pill pill-blue">UX Feedback</span></td><td>#5599ee</td><td>Blue</td><td>Any audience</td><td>Triage / Dismiss</td></tr>
+    <tr><td><span class="pill pill-green">Praise</span></td><td>#58e8c1</td><td>Green</td><td>Any audience</td><td>Archive (auto after 30 days)</td></tr>
+  </table>
+
+  <h3>Sort order</h3>
+  <table class="spec-table">
+    <tr><th>Priority</th><th>Sort</th></tr>
+    <tr><td>1st</td><td>Critical bugs (unread first)</td></tr>
+    <tr><td>2nd</td><td>Normal bugs (newest first)</td></tr>
+    <tr><td>3rd</td><td>Content issues</td></tr>
+    <tr><td>4th</td><td>UX feedback</td></tr>
+    <tr><td>5th</td><td>Praise</td></tr>
+    <tr><td>Bottom</td><td>Resolved (collapsed section, greyed)</td></tr>
+  </table>
+
+  <h3>Triage actions</h3>
+  <table class="spec-table">
+    <tr><th>Action</th><th>Result</th><th>Available for</th></tr>
+    <tr><td>Create engineering ticket</td><td>Opens ticket in Jira/Linear with prefilled context; row shows ticket ID badge</td><td>Bug, Critical Bug</td></tr>
+    <tr><td>Mark in progress</td><td>Moves to in-progress section; shows assignee pill</td><td>All types</td></tr>
+    <tr><td>Mark resolved</td><td>Moves to resolved section (greyed, strikethrough)</td><td>All types</td></tr>
+    <tr><td>Escalate to engineering</td><td>Pages on-call via same mechanism as route health alerts</td><td>Critical Bug only</td></tr>
+    <tr><td>Fix in editor</td><td>Deep-links to content editor for that question ID</td><td>Content Issue</td></tr>
+    <tr><td>Archive</td><td>Removes from queue, stored in history</td><td>Praise only</td></tr>
+    <tr><td>Dismiss</td><td>Removes from active queue (not an error)</td><td>Bug, UX, Content</td></tr>
+  </table>
+
+  <h3>Dismissal rules</h3>
+  <ul>
+    <li>Critical bugs: cannot be dismissed without first triaging (must choose an action)</li>
+    <li>Normal bugs: can be dismissed with 1 tap (no confirmation required)</li>
+    <li>Praise: no dismiss — only Archive action available</li>
+  </ul>
+
+  <h3>Design tokens</h3>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>bg</td><td>#0d1117 — owner dark ops</td></tr>
+    <tr><td>surface</td><td>#141a26</td></tr>
+    <tr><td>accent</td><td>#ffd166 — gold primary action</td></tr>
+    <tr><td>critical</td><td>#ff6b6b</td></tr>
+    <tr><td>bug</td><td>#ff9944</td></tr>
+    <tr><td>content</td><td>#9b72ff</td></tr>
+    <tr><td>ux</td><td>#5599ee</td></tr>
+    <tr><td>praise</td><td>#58e8c1</td></tr>
+    <tr><td>font</td><td>Sora</td></tr>
+    <tr><td>frame-width</td><td>390px</td></tr>
+  </table>
+
+  <div class="hint"><strong>Single source of truth:</strong> This file is canonical for /owner/feedback (mobile feedback queue). Supersedes all prior feedback/report queue mocks.</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

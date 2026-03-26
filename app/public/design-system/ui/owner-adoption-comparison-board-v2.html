@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest Owner — Adoption Comparison Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #0d1117; color: #e0e6f0; min-height: 100vh; }
+  nav { background: #161b24; border-bottom: 1px solid #2a3040; color: #e0e6f0; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-size: 20px; font-weight: 700; color: #ffd166; }
+  nav .sub { font-size: 12px; color: #778899; margin-top: 2px; }
+  nav .right { font-size: 12px; color: #556677; }
+  .tabs { display: flex; background: #161b24; border-bottom: 1px solid #2a3040; padding: 0 28px; }
+  .tab { padding: 13px 18px; font-size: 13px; font-weight: 600; color: #556677; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.2s; }
+  .tab.active { color: #ffd166; border-bottom-color: #ffd166; }
+  .panel { display: none; padding: 24px 28px; max-width: 1100px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; font-size: 12.5px; color: #ffd166; line-height: 1.5; }
+  h2 { font-size: 20px; font-weight: 700; color: #ffd166; margin-bottom: 6px; }
+  h3 { font-size: 15px; font-weight: 600; color: #c8d8e8; margin-bottom: 10px; }
+  p { font-size: 13px; line-height: 1.6; color: #8899aa; margin-bottom: 14px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi { background: #161b24; border-radius: 12px; padding: 16px; border: 1px solid #2a3040; }
+  .kpi .val { font-size: 24px; font-weight: 700; color: #ffd166; }
+  .kpi .lbl { font-size: 11px; color: #556677; margin-top: 4px; }
+  .kpi .delta { font-size: 11px; font-weight: 700; margin-top: 6px; }
+  .delta-pos { color: #3dba82; }
+  .delta-neg { color: #e05555; }
+  .delta-neu { color: #778899; }
+  .band-card { background: #161b24; border-radius: 14px; padding: 20px; border: 1px solid #2a3040; margin-bottom: 16px; }
+  .band-card h3 { margin-bottom: 14px; }
+  .band-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .band-name { font-size: 12px; font-weight: 600; color: #ffd166; width: 70px; flex-shrink: 0; }
+  .band-bar-wrap { flex: 1; background: #0d1117; border-radius: 20px; height: 14px; overflow: hidden; }
+  .band-bar { height: 14px; border-radius: 20px; background: linear-gradient(90deg, #ffd166, #ffb800); }
+  .band-pct { font-size: 12px; font-weight: 700; color: #ffd166; width: 42px; text-align: right; }
+  .band-chip { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: rgba(255,209,102,0.12); color: #ffd166; font-weight: 700; }
+  .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .theme-card { background: #161b24; border-radius: 12px; padding: 16px; border: 1px solid #2a3040; }
+  .theme-card h4 { font-size: 13px; font-weight: 700; color: #c8d8e8; margin-bottom: 10px; }
+  .theme-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .theme-lbl { font-size: 11px; color: #778899; width: 60px; flex-shrink: 0; }
+  .theme-bar-w { flex: 1; background: #0d1117; border-radius: 20px; height: 8px; }
+  .theme-bar-f { height: 8px; border-radius: 20px; }
+  .theme-pct { font-size: 11px; color: #ffd166; font-weight: 600; width: 34px; text-align: right; }
+  .cohort-table { background: #161b24; border-radius: 14px; overflow: hidden; border: 1px solid #2a3040; margin-bottom: 16px; }
+  .cohort-table table { width: 100%; border-collapse: collapse; }
+  .cohort-table th { padding: 11px 16px; font-size: 11.5px; font-weight: 700; color: #778899; text-align: left; border-bottom: 1px solid #2a3040; text-transform: uppercase; letter-spacing: 0.7px; }
+  .cohort-table td { padding: 11px 16px; font-size: 12.5px; color: #c8d8e8; border-bottom: 1px solid #1a2030; }
+  .cohort-table tr:last-child td { border-bottom: none; }
+  .school-chip { display: inline-block; background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.3); border-radius: 6px; padding: 3px 8px; font-size: 11px; color: #ffd166; }
+  .wow-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .wow-card { background: #161b24; border-radius: 12px; padding: 14px; border: 1px solid #2a3040; }
+  .wow-card .metric { font-size: 11px; color: #556677; margin-bottom: 6px; }
+  .wow-card .curr { font-size: 18px; font-weight: 700; color: #ffd166; }
+  .wow-card .prev { font-size: 11px; color: #445566; margin-top: 3px; }
+  .wow-chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; margin-top: 6px; }
+  .wow-pos { background: rgba(61,186,130,0.15); color: #3dba82; }
+  .wow-neg { background: rgba(224,85,85,0.15); color: #e05555; }
+  .wow-neu { background: rgba(119,136,153,0.15); color: #778899; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec-table td { padding: 9px 12px; border-bottom: 1px solid #2a3040; vertical-align: top; color: #c8d8e8; }
+  .spec-table td:first-child { font-weight: 600; color: #ffd166; width: 35%; }
+</style>
+</head>
+<body>
+<nav>
+  <div>
+    <div class="logo">WonderQuest</div>
+    <div class="sub">Adoption Comparison Board</div>
+  </div>
+  <div class="right">Week 12 · Spring 2026 · Owner Console</div>
+</nav>
+<div class="tabs">
+  <div class="tab active" onclick="show('bands')">Band Comparison</div>
+  <div class="tab" onclick="show('themes')">Theme Adoption</div>
+  <div class="tab" onclick="show('cohort')">School Cohort</div>
+  <div class="tab" onclick="show('wow')">Week-over-Week</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<div id="bands" class="panel active">
+  <div class="hint">Band adoption shows completion rates per priority band (P0 = highest priority). Target: ≥80% completion across all bands before public launch.</div>
+  <h2>Band-by-Band Adoption</h2>
+  <p>Completion rates across the four priority bands as of March 23, 2026 — beta cohort of 142 active children.</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="val">P0</div><div class="lbl">Core band</div><div class="delta delta-pos">94% complete ↑2%</div></div>
+    <div class="kpi"><div class="val">P1</div><div class="lbl">Expansion band</div><div class="delta delta-pos">81% complete ↑5%</div></div>
+    <div class="kpi"><div class="val">P2</div><div class="lbl">Depth band</div><div class="delta delta-neu">67% complete →</div></div>
+    <div class="kpi"><div class="val">P3</div><div class="lbl">Stretch band</div><div class="delta delta-neg">38% complete ↓3%</div></div>
+  </div>
+
+  <div class="band-card">
+    <h3>Completion by Band</h3>
+    <div class="band-row">
+      <div class="band-name">P0 Core</div>
+      <div class="band-bar-wrap"><div class="band-bar" style="width:94%"></div></div>
+      <div class="band-pct">94%</div>
+      <div class="band-chip">↑2%</div>
+    </div>
+    <div class="band-row">
+      <div class="band-name">P1 Expand</div>
+      <div class="band-bar-wrap"><div class="band-bar" style="width:81%"></div></div>
+      <div class="band-pct">81%</div>
+      <div class="band-chip">↑5%</div>
+    </div>
+    <div class="band-row">
+      <div class="band-name">P2 Depth</div>
+      <div class="band-bar-wrap"><div class="band-bar" style="width:67%"></div></div>
+      <div class="band-pct">67%</div>
+      <div class="band-chip">→</div>
+    </div>
+    <div class="band-row">
+      <div class="band-name">P3 Stretch</div>
+      <div class="band-bar-wrap"><div class="band-bar" style="width:38%;background:linear-gradient(90deg,#aa7700,#ff9500);"></div></div>
+      <div class="band-pct">38%</div>
+      <div class="band-chip" style="color:#e05555;background:rgba(224,85,85,0.1);">↓3%</div>
+    </div>
+  </div>
+
+  <div class="band-card">
+    <h3>Band Completion by Skill Category</h3>
+    <div class="band-row"><div class="band-name">Reading</div><div class="band-bar-wrap"><div class="band-bar" style="width:88%"></div></div><div class="band-pct">88%</div></div>
+    <div class="band-row"><div class="band-name">Math</div><div class="band-bar-wrap"><div class="band-bar" style="width:76%"></div></div><div class="band-pct">76%</div></div>
+    <div class="band-row"><div class="band-name">Science</div><div class="band-bar-wrap"><div class="band-bar" style="width:64%"></div></div><div class="band-pct">64%</div></div>
+    <div class="band-row"><div class="band-name">Vocabulary</div><div class="band-bar-wrap"><div class="band-bar" style="width:82%"></div></div><div class="band-pct">82%</div></div>
+  </div>
+</div>
+
+<div id="themes" class="panel">
+  <div class="hint">Theme adoption shows which content themes are being played vs skipped. Low adoption themes may need content revision or better discovery surfacing.</div>
+  <h2>Theme Adoption</h2>
+  <p>Side-by-side comparison of theme engagement — beta week 11 vs week 12.</p>
+
+  <div class="theme-grid">
+    <div class="theme-card">
+      <h4>Reading Themes</h4>
+      <div class="theme-bar-row"><div class="theme-lbl">Adventure</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:92%;background:#ffd166;"></div></div><div class="theme-pct">92%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Animals</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:88%;background:#ffd166;"></div></div><div class="theme-pct">88%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Space</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:81%;background:#ffd166;"></div></div><div class="theme-pct">81%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">History</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:54%;background:#aa7700;"></div></div><div class="theme-pct">54%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Science</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:73%;background:#ffd166;"></div></div><div class="theme-pct">73%</div></div>
+    </div>
+    <div class="theme-card">
+      <h4>Math Themes</h4>
+      <div class="theme-bar-row"><div class="theme-lbl">Sports</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:85%;background:#ffd166;"></div></div><div class="theme-pct">85%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Food</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:78%;background:#ffd166;"></div></div><div class="theme-pct">78%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Building</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:62%;background:#aa7700;"></div></div><div class="theme-pct">62%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Money</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:44%;background:#882200;"></div></div><div class="theme-pct">44%</div></div>
+      <div class="theme-bar-row"><div class="theme-lbl">Travel</div><div class="theme-bar-w"><div class="theme-bar-f" style="width:59%;background:#aa7700;"></div></div><div class="theme-pct">59%</div></div>
+    </div>
+  </div>
+
+  <div class="band-card">
+    <h3>Low-adoption themes — action needed</h3>
+    <p style="font-size:12.5px;margin-bottom:8px;">Themes below 60% adoption may need content review or improved in-app discoverability.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span style="background:rgba(224,85,85,0.15);color:#e05555;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;">History (54%)</span>
+      <span style="background:rgba(224,85,85,0.15);color:#e05555;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;">Money Math (44%)</span>
+      <span style="background:rgba(255,209,102,0.15);color:#ffd166;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;">Building (62%)</span>
+      <span style="background:rgba(255,209,102,0.15);color:#ffd166;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;">Travel Math (59%)</span>
+    </div>
+  </div>
+</div>
+
+<div id="cohort" class="panel">
+  <div class="hint">School cohort comparison shows adoption rates by school/classroom cluster. Helps identify where onboarding or engagement support is needed.</div>
+  <h2>School Cohort Comparison</h2>
+  <p>Beta cohort — 6 participating schools, week ending March 23, 2026.</p>
+
+  <div class="cohort-table">
+    <table>
+      <thead>
+        <tr>
+          <th>School</th>
+          <th>Students</th>
+          <th>P0 Adoption</th>
+          <th>Avg Sessions</th>
+          <th>Top Band</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="school-chip">Lincoln Elem</span></td>
+          <td>28</td>
+          <td>97%</td>
+          <td>10.4</td>
+          <td>P2</td>
+          <td><span style="color:#3dba82;font-weight:700;">Strong</span></td>
+        </tr>
+        <tr>
+          <td><span class="school-chip">Oak Park</span></td>
+          <td>34</td>
+          <td>91%</td>
+          <td>9.1</td>
+          <td>P1</td>
+          <td><span style="color:#3dba82;font-weight:700;">Strong</span></td>
+        </tr>
+        <tr>
+          <td><span class="school-chip">Riverside</span></td>
+          <td>22</td>
+          <td>88%</td>
+          <td>8.6</td>
+          <td>P1</td>
+          <td><span style="color:#ffd166;font-weight:700;">On Track</span></td>
+        </tr>
+        <tr>
+          <td><span class="school-chip">Maple Grove</span></td>
+          <td>18</td>
+          <td>79%</td>
+          <td>6.8</td>
+          <td>P1</td>
+          <td><span style="color:#ffd166;font-weight:700;">Needs Attn</span></td>
+        </tr>
+        <tr>
+          <td><span class="school-chip">Cedar Ridge</span></td>
+          <td>25</td>
+          <td>72%</td>
+          <td>5.9</td>
+          <td>P0</td>
+          <td><span style="color:#e05555;font-weight:700;">At Risk</span></td>
+        </tr>
+        <tr>
+          <td><span class="school-chip">Summit K-8</span></td>
+          <td>15</td>
+          <td>68%</td>
+          <td>5.2</td>
+          <td>P0</td>
+          <td><span style="color:#e05555;font-weight:700;">At Risk</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:12px;color:#556677;">Cedar Ridge and Summit K-8 have low adoption and session frequency — suggest teacher check-in and onboarding support this week.</p>
+</div>
+
+<div id="wow" class="panel">
+  <div class="hint">Week-over-week deltas let you spot momentum shifts instantly. Green = improving, red = declining, grey = stable.</div>
+  <h2>Week-over-Week Deltas</h2>
+  <p>W11 (Mar 9–15) → W12 (Mar 16–22, 2026) across all beta cohorts.</p>
+
+  <div class="wow-grid">
+    <div class="wow-card">
+      <div class="metric">Active children</div>
+      <div class="curr">142</div>
+      <div class="prev">prev: 136</div>
+      <div class="wow-chip wow-pos">+6 ↑4.4%</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">Total sessions</div>
+      <div class="curr">1,284</div>
+      <div class="prev">prev: 1,198</div>
+      <div class="wow-chip wow-pos">+86 ↑7.2%</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">P0 completion</div>
+      <div class="curr">94%</div>
+      <div class="prev">prev: 92%</div>
+      <div class="wow-chip wow-pos">+2pp</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">P1 completion</div>
+      <div class="curr">81%</div>
+      <div class="prev">prev: 76%</div>
+      <div class="wow-chip wow-pos">+5pp</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">P2 completion</div>
+      <div class="curr">67%</div>
+      <div class="prev">prev: 67%</div>
+      <div class="wow-chip wow-neu">stable</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">P3 completion</div>
+      <div class="curr">38%</div>
+      <div class="prev">prev: 41%</div>
+      <div class="wow-chip wow-neg">−3pp</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">Avg streak</div>
+      <div class="curr">8.4d</div>
+      <div class="prev">prev: 7.9d</div>
+      <div class="wow-chip wow-pos">+0.5d</div>
+    </div>
+    <div class="wow-card">
+      <div class="metric">Badges/child</div>
+      <div class="curr">3.2</div>
+      <div class="prev">prev: 2.8</div>
+      <div class="wow-chip wow-pos">+0.4</div>
+    </div>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <h2>Spec Reference</h2>
+  <table class="spec-table">
+    <tr><td>File</td><td>owner-adoption-comparison-board-v2.html</td></tr>
+    <tr><td>Audience</td><td>Owner</td></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#0d1117</td></tr>
+    <tr><td>Accent</td><td>#ffd166 (gold)</td></tr>
+    <tr><td>Nav</td><td>#161b24</td></tr>
+    <tr><td>Tabs</td><td>Band Comparison / Theme Adoption / School Cohort / Week-over-Week / Spec</td></tr>
+    <tr><td>Key features</td><td>P0/P1/P2/P3 band bars, theme adoption side-by-side, school cohort table, WoW delta chips</td></tr>
+    <tr><td>Version</td><td>v2 — 2026-03-23</td></tr>
+  </table>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['bands','themes','cohort','wow','spec'].indexOf(id);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Theme Switcher v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Theme Picker */
+.picker-title{font-size:24px;font-weight:900;color:#ffd166;text-align:center;margin-bottom:4px}
+.picker-sub{font-size:13px;color:#9b8fe0;text-align:center;margin-bottom:20px}
+
+.world-card{border-radius:20px;padding:18px;margin-bottom:14px;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.15s,box-shadow 0.2s;border:3px solid transparent}
+.world-card:active{transform:scale(0.97)}
+.world-card.dream{background:linear-gradient(135deg,#1a1240,#2a1060);border-color:#2d2570}
+.world-card.ocean{background:linear-gradient(135deg,#0a1a2e,#0a2040);border-color:#1a3050}
+.world-card.fire{background:linear-gradient(135deg,#2e0a0a,#3e1a0a);border-color:#3e1a0a}
+.world-card.star{background:linear-gradient(135deg,#1a1a0a,#2e2a0a);border-color:#2e2a0a}
+
+.world-card.selected.dream{border-color:#9b72ff;box-shadow:0 0 24px #9b72ff44}
+.world-card.selected.ocean{border-color:#58e8c1;box-shadow:0 0 24px #58e8c144}
+.world-card.selected.fire{border-color:#ff7b6b;box-shadow:0 0 24px #ff7b6b44}
+.world-card.selected.star{border-color:#ffd166;box-shadow:0 0 24px #ffd16644}
+
+.wc-top{display:flex;align-items:center;gap:14px}
+.wc-emoji{font-size:48px;line-height:1}
+.wc-info{flex:1}
+.wc-name{font-size:20px;font-weight:900}
+.world-card.dream .wc-name{color:#9b72ff}
+.world-card.ocean .wc-name{color:#58e8c1}
+.world-card.fire .wc-name{color:#ff7b6b}
+.world-card.star .wc-name{color:#ffd166}
+.wc-desc{font-size:12px;color:#9b8fe0;margin-top:3px}
+.wc-selected-badge{background:#ffd166;color:#100b2e;border-radius:10px;padding:3px 10px;font-size:10px;font-weight:900;margin-left:auto;flex-shrink:0}
+.wc-selected-badge.dream{background:#9b72ff;color:#fff}
+.wc-selected-badge.ocean{background:#58e8c1;color:#100b2e}
+.wc-selected-badge.fire{background:#ff7b6b;color:#fff}
+.wc-selected-badge.star{background:#ffd166;color:#100b2e}
+
+.color-preview-strip{display:flex;gap:4px;margin-top:12px;height:8px;border-radius:4px;overflow:hidden}
+.cp-seg{flex:1;border-radius:2px}
+
+/* Selected Confirmation */
+.confirm-wrap{text-align:center;padding:16px 0}
+.confirm-emoji{font-size:72px;animation:bounce-in 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes bounce-in{0%{transform:scale(0)}100%{transform:scale(1)}}
+.confirm-title{font-size:24px;font-weight:900;margin-top:12px}
+.confirm-sub{font-size:14px;color:#9b8fe0;margin-top:6px;line-height:1.5}
+.home-preview{background:#1e1550;border:3px solid #9b72ff;border-radius:20px;padding:16px;margin-top:20px;position:relative}
+.home-preview-label{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#9b72ff;color:#fff;border-radius:10px;padding:2px 12px;font-size:11px;font-weight:900;white-space:nowrap}
+.hp-greeting{font-size:16px;font-weight:900;margin-bottom:6px}
+.hp-world-row{display:flex;gap:8px}
+.hp-world{background:#100b2e;border-radius:12px;padding:10px;flex:1;text-align:center;font-size:11px;font-weight:700}
+.hp-accent-bar{height:4px;border-radius:2px;margin-top:10px;background:linear-gradient(90deg,#9b72ff,#7b52df)}
+
+/* Color Preview */
+.color-preview-wrap{margin-bottom:16px}
+.cp-title{font-size:20px;font-weight:900;color:#ffd166;margin-bottom:16px}
+.cp-card{border-radius:16px;padding:16px;margin-bottom:12px;border:2px solid transparent}
+.cp-card.dream{background:#1a1240;border-color:#9b72ff}
+.cp-card.ocean{background:#0a1a2e;border-color:#58e8c1}
+.cp-card.fire{background:#2e0a0a;border-color:#ff7b6b}
+.cp-card.star{background:#1a1a0a;border-color:#ffd166}
+.cp-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cp-card-emoji{font-size:28px}
+.cp-card-name{font-size:16px;font-weight:900}
+.cp-card.dream .cp-card-name{color:#9b72ff}
+.cp-card.ocean .cp-card-name{color:#58e8c1}
+.cp-card.fire .cp-card-name{color:#ff7b6b}
+.cp-card.star .cp-card-name{color:#ffd166}
+.cp-swatch-row{display:flex;gap:8px}
+.cp-swatch{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#100b2e}
+
+/* Locked Themes */
+.locked-header{font-size:20px;font-weight:900;color:#9b72ff;margin-bottom:4px}
+.locked-sub{font-size:13px;color:#9b8fe0;margin-bottom:16px}
+.locked-card{background:#1e1550;border:2px dashed #2d2570;border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;opacity:0.7}
+.locked-card-emoji{font-size:36px;filter:grayscale(1);opacity:0.5}
+.locked-card-info .lc-name{font-size:15px;font-weight:900;color:#6b5fa0}
+.locked-card-info .lc-req{font-size:12px;color:#4a3f70;margin-top:3px}
+.locked-card .lock-icon{font-size:20px;margin-left:auto}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+
+.btn-primary{background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/child/themes</code> → returns 4 world themes with <code>unlocked, accentColor, emoji, bgGradient</code>. Save selection: <code>PATCH /api/child/profile</code> with <code>{favoriteTheme: worldId}</code>. Theme propagates to home hub via CSS custom properties (<code>--accent-primary</code>). Locked themes require world play count from <code>worldProgress.sessionsPlayed ≥ 1</code>.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('picker')">Theme Picker</div>
+  <div class="tab" onclick="show('confirm')">Selected Confirmation</div>
+  <div class="tab" onclick="show('colorpreview')">Color Preview</div>
+  <div class="tab" onclick="show('locked')">Locked Themes</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Theme Picker -->
+<div id="picker" class="panel active">
+  <div class="picker-title">Make it yours! 🎨</div>
+  <div class="picker-sub">Pick your favorite world — it changes your home colors!</div>
+
+  <div class="world-card dream selected">
+    <div class="wc-top">
+      <div class="wc-emoji">🌙</div>
+      <div class="wc-info">
+        <div class="wc-name">Dream World</div>
+        <div class="wc-desc">Soft purples and midnight magic</div>
+      </div>
+      <div class="wc-selected-badge dream">✓ YOUR PICK</div>
+    </div>
+    <div class="color-preview-strip">
+      <div class="cp-seg" style="background:#9b72ff"></div>
+      <div class="cp-seg" style="background:#7b52df"></div>
+      <div class="cp-seg" style="background:#c8b8ff"></div>
+      <div class="cp-seg" style="background:#2a1a5e"></div>
+    </div>
+  </div>
+
+  <div class="world-card ocean">
+    <div class="wc-top">
+      <div class="wc-emoji">🌊</div>
+      <div class="wc-info">
+        <div class="wc-name">Ocean World</div>
+        <div class="wc-desc">Refreshing teal and deep sea blues</div>
+      </div>
+    </div>
+    <div class="color-preview-strip">
+      <div class="cp-seg" style="background:#58e8c1"></div>
+      <div class="cp-seg" style="background:#00c9a0"></div>
+      <div class="cp-seg" style="background:#a8fff0"></div>
+      <div class="cp-seg" style="background:#0a2040"></div>
+    </div>
+  </div>
+
+  <div class="world-card fire">
+    <div class="wc-top">
+      <div class="wc-emoji">🔥</div>
+      <div class="wc-info">
+        <div class="wc-name">Fire World</div>
+        <div class="wc-desc">Bold coral and warm sunset glows</div>
+      </div>
+    </div>
+    <div class="color-preview-strip">
+      <div class="cp-seg" style="background:#ff7b6b"></div>
+      <div class="cp-seg" style="background:#ff5540"></div>
+      <div class="cp-seg" style="background:#ffa590"></div>
+      <div class="cp-seg" style="background:#3e0a0a"></div>
+    </div>
+  </div>
+
+  <div class="world-card star">
+    <div class="wc-top">
+      <div class="wc-emoji">⭐</div>
+      <div class="wc-info">
+        <div class="wc-name">Star World</div>
+        <div class="wc-desc">Bright gold and cosmic shimmer</div>
+      </div>
+    </div>
+    <div class="color-preview-strip">
+      <div class="cp-seg" style="background:#ffd166"></div>
+      <div class="cp-seg" style="background:#ffba00"></div>
+      <div class="cp-seg" style="background:#ffe9a0"></div>
+      <div class="cp-seg" style="background:#2e2a0a"></div>
+    </div>
+  </div>
+
+  <button class="btn-primary">🎨 Save Dream World theme!</button>
+</div>
+
+<!-- TAB 2: Selected Confirmation -->
+<div id="confirm" class="panel">
+  <div class="confirm-wrap">
+    <div class="confirm-emoji">🌙</div>
+    <div class="confirm-title" style="color:#9b72ff">Dream World is your world!</div>
+    <div class="confirm-sub">Your home hub will glow with Dream World colors. So cool!</div>
+
+    <div class="home-preview">
+      <div class="home-preview-label">Your home hub preview</div>
+      <div class="hp-greeting">Hi Maya! 👋</div>
+      <div style="font-size:12px;color:#9b8fe0;margin-bottom:10px">Ready for an adventure?</div>
+      <div class="hp-world-row">
+        <div class="hp-world" style="border:2px solid #9b72ff;color:#9b72ff"><div style="font-size:22px">🌙</div>Dream World</div>
+        <div class="hp-world" style="border:2px solid #2d2570;color:#9b8fe0"><div style="font-size:22px">🌊</div>Ocean World</div>
+        <div class="hp-world" style="border:2px solid #2d2570;color:#9b8fe0"><div style="font-size:22px">⭐</div>Star World</div>
+      </div>
+      <div class="hp-accent-bar"></div>
+    </div>
+
+    <button class="btn-primary" style="margin-top:20px">✨ Looks amazing! Keep it!</button>
+    <button style="background:transparent;border:2px solid #2d2570;border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%;margin-top:8px">Try a different one</button>
+  </div>
+</div>
+
+<!-- TAB 3: Color Preview -->
+<div id="colorpreview" class="panel">
+  <div class="cp-title">🎨 See all world colors</div>
+  <div class="cp-card dream">
+    <div class="cp-card-top">
+      <div class="cp-card-emoji">🌙</div>
+      <div class="cp-card-name">Dream World</div>
+    </div>
+    <div class="cp-swatch-row">
+      <div class="cp-swatch" style="background:#9b72ff;color:#fff">💜</div>
+      <div class="cp-swatch" style="background:#7b52df;color:#fff">💜</div>
+      <div class="cp-swatch" style="background:#c8b8ff;color:#100b2e">✦</div>
+      <div class="cp-swatch" style="background:#2a1a5e;color:#c8b8ff">✦</div>
+      <div class="cp-swatch" style="background:#1a1240;color:#9b72ff">✦</div>
+    </div>
+  </div>
+  <div class="cp-card ocean">
+    <div class="cp-card-top">
+      <div class="cp-card-emoji">🌊</div>
+      <div class="cp-card-name">Ocean World</div>
+    </div>
+    <div class="cp-swatch-row">
+      <div class="cp-swatch" style="background:#58e8c1;color:#100b2e">🌊</div>
+      <div class="cp-swatch" style="background:#00c9a0;color:#100b2e">🌊</div>
+      <div class="cp-swatch" style="background:#a8fff0;color:#100b2e">✦</div>
+      <div class="cp-swatch" style="background:#0a2040;color:#58e8c1">✦</div>
+      <div class="cp-swatch" style="background:#0a1a2e;color:#58e8c1">✦</div>
+    </div>
+  </div>
+  <div class="cp-card fire">
+    <div class="cp-card-top">
+      <div class="cp-card-emoji">🔥</div>
+      <div class="cp-card-name">Fire World</div>
+    </div>
+    <div class="cp-swatch-row">
+      <div class="cp-swatch" style="background:#ff7b6b;color:#fff">🔥</div>
+      <div class="cp-swatch" style="background:#ff5540;color:#fff">🔥</div>
+      <div class="cp-swatch" style="background:#ffa590;color:#100b2e">✦</div>
+      <div class="cp-swatch" style="background:#3e0a0a;color:#ff7b6b">✦</div>
+      <div class="cp-swatch" style="background:#2e0a0a;color:#ff7b6b">✦</div>
+    </div>
+  </div>
+  <div class="cp-card star">
+    <div class="cp-card-top">
+      <div class="cp-card-emoji">⭐</div>
+      <div class="cp-card-name">Star World</div>
+    </div>
+    <div class="cp-swatch-row">
+      <div class="cp-swatch" style="background:#ffd166">⭐</div>
+      <div class="cp-swatch" style="background:#ffba00">⭐</div>
+      <div class="cp-swatch" style="background:#ffe9a0">✦</div>
+      <div class="cp-swatch" style="background:#2e2a0a;color:#ffd166">✦</div>
+      <div class="cp-swatch" style="background:#1a1a0a;color:#ffd166">✦</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Locked Themes -->
+<div id="locked" class="panel">
+  <div class="locked-header">🔒 Locked themes</div>
+  <div class="locked-sub">Play in these worlds to unlock their look!</div>
+
+  <div class="locked-card">
+    <div class="locked-card-emoji">🌊</div>
+    <div class="locked-card-info">
+      <div class="lc-name">Ocean World theme</div>
+      <div class="lc-req">Play 1 Ocean World adventure first</div>
+    </div>
+    <div class="lock-icon">🔒</div>
+  </div>
+
+  <div class="locked-card">
+    <div class="locked-card-emoji">🔥</div>
+    <div class="locked-card-info">
+      <div class="lc-name">Fire World theme</div>
+      <div class="lc-req">Unlock Fire World (Level 6)</div>
+    </div>
+    <div class="lock-icon">🔒</div>
+  </div>
+
+  <div class="locked-card">
+    <div class="locked-card-emoji">⭐</div>
+    <div class="locked-card-info">
+      <div class="lc-name">Star World theme</div>
+      <div class="lc-req">Unlock Star World (Level 8)</div>
+    </div>
+    <div class="lock-icon">🔒</div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #9b72ff;border-radius:14px;padding:14px 16px;margin-top:8px;font-size:13px;color:#9b8fe0;line-height:1.6">
+    <div style="font-weight:900;color:#9b72ff;margin-bottom:4px">💡 How to unlock</div>
+    Play adventures in each world! Every time you explore, you get one step closer to their theme. No pressure — just have fun!
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-theme-switcher-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">4 world themes</span><span class="sv">Dream, Ocean, Fire, Star</span></div>
+    <div class="spec-row"><span class="sk">Selected state</span><span class="sv">Glow border + box-shadow</span></div>
+    <div class="spec-row"><span class="sk">Theme application</span><span class="sv">CSS custom props on root</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Get themes</span><span class="sv">GET /api/child/themes</span></div>
+    <div class="spec-row"><span class="sk">Save theme</span><span class="sv">PATCH /api/child/profile</span></div>
+    <div class="spec-row"><span class="sk">World progress</span><span class="sv">GET /api/child/worlds/progress</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">Unlock condition</span><span class="sv">sessionsPlayed ≥ 1 per world</span></div>
+    <div class="spec-row"><span class="sk">No shame on locked</span><span class="sv">✓ — positive language only</span></div>
+    <div class="spec-row"><span class="sk">Default theme</span><span class="sv">Dream World (always unlocked)</span></div>
+    <div class="spec-row"><span class="sk">Preview before save</span><span class="sv">✓ — home hub preview shown</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

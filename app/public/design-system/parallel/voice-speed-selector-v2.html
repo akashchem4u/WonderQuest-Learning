@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Speed Selector v2 · WonderQuest Item 263</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* Engineering hint box */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #50e890;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .page-subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(240,246,255,0.45);
+      margin-bottom: 28px;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      max-width: 900px;
+      margin: 0 auto 28px;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(240,246,255,0.5);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      letter-spacing: 0.1px;
+    }
+
+    .tab-btn:hover {
+      background: rgba(80,232,144,0.08);
+      color: rgba(240,246,255,0.8);
+    }
+
+    .tab-btn.active {
+      background: #50e890;
+      color: #0d1117;
+    }
+
+    /* Tab panels */
+    .tab-panel { display: none; max-width: 900px; margin: 0 auto; }
+    .tab-panel.active { display: block; }
+
+    /* ============================
+       TAB 1 — Speed Selector
+       ============================ */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 720px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .settings-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .card-header {
+      margin-bottom: 20px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(240,246,255,0.4);
+      margin-bottom: 6px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+
+    /* Radio cards */
+    .radio-card {
+      border: 2px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      margin-bottom: 12px;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .radio-card:hover {
+      border-color: rgba(80,232,144,0.35);
+      background: rgba(80,232,144,0.04);
+    }
+
+    .radio-card.selected {
+      border-color: #50e890;
+      background: rgba(80,232,144,0.07);
+    }
+
+    .radio-card-icon {
+      font-size: 28px;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .radio-card-body { flex: 1; }
+
+    .radio-card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 4px;
+    }
+
+    .radio-card-desc {
+      font-size: 13px;
+      color: rgba(240,246,255,0.55);
+      line-height: 1.45;
+      margin-bottom: 6px;
+    }
+
+    .radio-card-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.07);
+      color: rgba(240,246,255,0.5);
+    }
+
+    .radio-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25);
+      flex-shrink: 0;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s ease;
+    }
+
+    .radio-card.selected .radio-dot {
+      border-color: #50e890;
+      background: #50e890;
+    }
+
+    .radio-card.selected .radio-dot::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0d1117;
+    }
+
+    /* Lock toggle */
+    .lock-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    .lock-toggle-label {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(240,246,255,0.75);
+    }
+
+    .toggle-switch {
+      width: 40px;
+      height: 22px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 11px;
+      position: relative;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch.on {
+      background: #50e890;
+    }
+
+    .toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: left 0.2s ease;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    .toggle-switch.on .toggle-knob { left: 21px; }
+
+    /* Preview buttons */
+    .preview-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .btn-preview {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      background: transparent;
+      color: #f0f6ff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .btn-preview:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,.22);
+    }
+
+    .btn-preview:active {
+      transform: scale(0.97);
+    }
+
+    .session-note {
+      font-size: 12px;
+      color: rgba(240,246,255,0.35);
+      text-align: center;
+    }
+
+    /* Phone frame */
+    .phone-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .phone-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(240,246,255,0.4);
+    }
+
+    .phone-frame {
+      width: 240px;
+      height: 420px;
+      background: #0a0d12;
+      border: 3px solid rgba(255,255,255,0.14);
+      border-radius: 36px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+    }
+
+    .phone-screen {
+      position: absolute;
+      inset: 0;
+      padding: 30px 14px 14px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-play-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .phone-play-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+
+    /* Speed chip */
+    .speed-chip {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f0f6ff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .speed-chip:hover {
+      background: rgba(80,232,144,0.15);
+      border-color: rgba(80,232,144,0.4);
+    }
+
+    /* Mini speed picker overlay */
+    .speed-picker-overlay {
+      position: absolute;
+      top: 54px;
+      right: 14px;
+      background: #1c2330;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 10;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      min-width: 130px;
+    }
+
+    .speed-picker-overlay.open { display: flex; }
+
+    .speed-picker-opt {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(240,246,255,0.75);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .speed-picker-opt:hover {
+      background: rgba(255,255,255,0.07);
+      color: #f0f6ff;
+    }
+
+    .speed-picker-opt.active {
+      background: rgba(80,232,144,0.15);
+      color: #50e890;
+    }
+
+    .speed-picker-opt .opt-icon { font-size: 14px; }
+
+    /* Phone play content */
+    .phone-question-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .phone-q-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #9b72ff;
+      margin-bottom: 8px;
+    }
+
+    .phone-q-text {
+      font-size: 13px;
+      color: #f0f6ff;
+      line-height: 1.5;
+    }
+
+    .phone-audio-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(80,232,144,0.08);
+      border: 1px solid rgba(80,232,144,0.15);
+      border-radius: 10px;
+    }
+
+    .audio-play-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #50e890;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #0d1117;
+      flex-shrink: 0;
+    }
+
+    .audio-waveform {
+      flex: 1;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .wave-bar {
+      flex: 1;
+      border-radius: 2px;
+      background: rgba(80,232,144,0.3);
+    }
+
+    .locked-msg {
+      font-size: 11px;
+      color: rgba(240,246,255,0.35);
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1c2330;
+      border: 1px solid rgba(80,232,144,0.35);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #50e890;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ============================
+       TAB 2 — Band Recommendations
+       ============================ */
+    .band-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 620px) {
+      .band-grid { grid-template-columns: 1fr; }
+    }
+
+    .band-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 20px;
+      border-top: 3px solid transparent;
+    }
+
+    .band-card.p0 { border-top-color: #ffd166; }
+    .band-card.p1 { border-top-color: #9b72ff; }
+    .band-card.p2 { border-top-color: #58e8c1; }
+    .band-card.p3 { border-top-color: #ff7b6b; }
+
+    .band-name {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .band-card.p0 .band-name { color: #ffd166; }
+    .band-card.p1 .band-name { color: #9b72ff; }
+    .band-card.p2 .band-name { color: #58e8c1; }
+    .band-card.p3 .band-name { color: #ff7b6b; }
+
+    .band-ages {
+      font-size: 12px;
+      color: rgba(240,246,255,0.45);
+      margin-bottom: 16px;
+    }
+
+    .band-rec-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .band-rec-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: rgba(240,246,255,0.4);
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .speed-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .speed-pill.slow {
+      background: rgba(255,209,102,0.15);
+      color: #ffd166;
+      border: 1px solid rgba(255,209,102,0.25);
+    }
+
+    .speed-pill.normal {
+      background: rgba(80,232,144,0.12);
+      color: #50e890;
+      border: 1px solid rgba(80,232,144,0.22);
+    }
+
+    .band-why {
+      font-size: 13px;
+      color: rgba(240,246,255,0.6);
+      line-height: 1.5;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid rgba(255,255,255,0.07);
+      border-radius: 0 6px 6px 0;
+    }
+
+    .band-default-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(240,246,255,0.5);
+    }
+
+    .default-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .band-card.p0 .default-dot { background: #ffd166; }
+    .band-card.p1 .default-dot { background: #9b72ff; }
+    .band-card.p2 .default-dot { background: #58e8c1; }
+    .band-card.p3 .default-dot { background: #ff7b6b; }
+
+    /* ============================
+       TAB 3 — Spec
+       ============================ */
+    .spec-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .spec-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #50e890;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(80,232,144,0.15);
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .spec-table tr {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .spec-table tr:last-child { border-bottom: none; }
+
+    .spec-table td {
+      padding: 10px 12px;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .spec-table td:first-child {
+      color: rgba(240,246,255,0.45);
+      width: 36%;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .spec-table td:last-child { color: #f0f6ff; }
+
+    .spec-code {
+      font-family: 'SFMono-Regular', 'Consolas', monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 10px 14px;
+      line-height: 1.6;
+      color: #58e8c1;
+      display: block;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .inline-code {
+      font-family: 'SFMono-Regular', 'Consolas', monospace;
+      font-size: 11.5px;
+      background: rgba(255,255,255,0.08);
+      color: #58e8c1;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .wcag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(80,232,144,0.1);
+      border: 1px solid rgba(80,232,144,0.25);
+      color: #50e890;
+      font-size: 12px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hint-box">ITEM 263 &middot; voice-speed-selector-v2.html &middot; WonderQuest parallel-agent build</div>
+
+  <div class="page-title">Voice Speed Selector</div>
+  <div class="page-subtitle">Item 263 &mdash; Parent settings + in-play context + band recommendations + technical spec</div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Speed Selector</button>
+    <button class="tab-btn" onclick="showTab(1)">Band Recommendations</button>
+    <button class="tab-btn" onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ============================
+       TAB 1 — Speed Selector
+       ============================ -->
+  <div class="tab-panel active" id="tab-0">
+    <div class="two-col">
+
+      <!-- Left: Parent Settings Context -->
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-label">Parent Settings</div>
+          <div class="card-title">Reading Speed for Emma</div>
+        </div>
+
+        <div class="radio-card selected" id="card-normal" onclick="selectSpeed('normal')">
+          <div class="radio-dot" id="dot-normal"></div>
+          <div class="radio-card-icon">&#x1F407;</div>
+          <div class="radio-card-body">
+            <div class="radio-card-name">Normal Speed (1&times;)</div>
+            <div class="radio-card-desc">Questions read at a comfortable, natural pace</div>
+            <div class="radio-card-badge">Recommended for P2 / P3</div>
+          </div>
+        </div>
+
+        <div class="radio-card" id="card-slow" onclick="selectSpeed('slow')">
+          <div class="radio-dot" id="dot-slow"></div>
+          <div class="radio-card-icon">&#x1F422;</div>
+          <div class="radio-card-body">
+            <div class="radio-card-name">Slow Speed (0.75&times;)</div>
+            <div class="radio-card-desc">Questions read more slowly &mdash; great for early readers</div>
+            <div class="radio-card-badge">Recommended for P0 / P1</div>
+          </div>
+        </div>
+
+        <div class="lock-toggle-row" onclick="toggleLock()">
+          <span class="lock-toggle-label">&#x1F512; Lock to Slow &mdash; Emma can&rsquo;t change this</span>
+          <div class="toggle-switch" id="lock-toggle">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+
+        <div class="preview-row">
+          <button class="btn-preview" onclick="previewSpeed('normal')">&#9654; Preview Normal</button>
+          <button class="btn-preview" onclick="previewSpeed('slow')">&#x1F422; Preview Slow</button>
+        </div>
+
+        <div class="session-note">Changes apply next session</div>
+      </div>
+
+      <!-- Right: In-Play Context (phone frame) -->
+      <div class="phone-col">
+        <div class="phone-label">In-Play Context</div>
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-play-header">
+              <div class="phone-play-title">WonderQuest</div>
+              <div class="speed-chip" id="speed-chip" onclick="toggleSpeedPicker()">
+                &#9654; <span id="chip-label">1&times;</span>
+              </div>
+            </div>
+
+            <!-- Mini speed picker overlay -->
+            <div class="speed-picker-overlay" id="speed-picker">
+              <div class="speed-picker-opt active" id="opt-normal" onclick="pickSpeed('normal')">
+                <span class="opt-icon">&#9654;</span> Normal
+              </div>
+              <div class="speed-picker-opt" id="opt-slow" onclick="pickSpeed('slow')">
+                <span class="opt-icon">&#x1F422;</span> Slow
+              </div>
+            </div>
+
+            <div class="phone-question-card">
+              <div class="phone-q-label">Question 3 of 10</div>
+              <div class="phone-q-text">Which animal is the largest mammal on Earth?</div>
+            </div>
+
+            <div class="phone-audio-bar">
+              <div class="audio-play-btn">&#9654;</div>
+              <div class="audio-waveform">
+                <div class="wave-bar" style="height:8px;"></div>
+                <div class="wave-bar" style="height:14px;"></div>
+                <div class="wave-bar" style="height:18px;"></div>
+                <div class="wave-bar" style="height:10px;"></div>
+                <div class="wave-bar" style="height:16px;"></div>
+                <div class="wave-bar" style="height:12px;"></div>
+                <div class="wave-bar" style="height:20px;"></div>
+                <div class="wave-bar" style="height:9px;"></div>
+                <div class="wave-bar" style="height:15px;"></div>
+                <div class="wave-bar" style="height:11px;"></div>
+              </div>
+            </div>
+
+            <div class="locked-msg" id="locked-msg" style="display:none;">
+              &#x1F512; Speed locked by parent
+            </div>
+
+          </div>
+        </div>
+        <div style="font-size:12px; color:rgba(240,246,255,0.4); text-align:center; max-width:240px; line-height:1.5;">
+          Speed chip shown if <strong style="color:rgba(240,246,255,0.65);">not locked</strong> by parent &middot; tap to expand
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================
+       TAB 2 — Band Recommendations
+       ============================ -->
+  <div class="tab-panel" id="tab-1">
+    <div class="band-grid">
+
+      <!-- P0 -->
+      <div class="band-card p0">
+        <div class="band-name">P0 &mdash; Pre-K Starters</div>
+        <div class="band-ages">Ages 4&ndash;5</div>
+        <div class="band-rec-row">
+          <span class="band-rec-label">Recommended</span>
+          <span class="speed-pill slow">&#x1F422; Slow (0.75&times;)</span>
+        </div>
+        <div class="band-why">&ldquo;Short words benefit from extra pause time; builds phonemic awareness&rdquo;</div>
+        <div class="band-default-row">
+          <span class="default-dot"></span>
+          Default: Slow (locked) for new P0 accounts
+        </div>
+      </div>
+
+      <!-- P1 -->
+      <div class="band-card p1">
+        <div class="band-name">P1 &mdash; Adventurers</div>
+        <div class="band-ages">Ages 5&ndash;7</div>
+        <div class="band-rec-row">
+          <span class="band-rec-label">Recommended</span>
+          <span class="speed-pill slow">&#x1F422; Slow (0.75&times;)</span>
+        </div>
+        <div class="band-why">&ldquo;Emerging readers benefit from slower, deliberate pacing&rdquo;</div>
+        <div class="band-default-row">
+          <span class="default-dot"></span>
+          Default: Slow (unlocked &mdash; child can switch to Normal)
+        </div>
+      </div>
+
+      <!-- P2 -->
+      <div class="band-card p2">
+        <div class="band-name">P2 &mdash; Explorers</div>
+        <div class="band-ages">Ages 7&ndash;9</div>
+        <div class="band-rec-row">
+          <span class="band-rec-label">Recommended</span>
+          <span class="speed-pill normal">&#9654; Normal (0.9&times;)</span>
+        </div>
+        <div class="band-why">&ldquo;Children at this stage typically read fluently; normal pace feels natural&rdquo;</div>
+        <div class="band-default-row">
+          <span class="default-dot"></span>
+          Default: Normal (child can toggle)
+        </div>
+      </div>
+
+      <!-- P3 -->
+      <div class="band-card p3">
+        <div class="band-name">P3 &mdash; Trailblazers</div>
+        <div class="band-ages">Ages 9&ndash;11</div>
+        <div class="band-rec-row">
+          <span class="band-rec-label">Recommended</span>
+          <span class="speed-pill normal">&#9654; Normal (0.9&times;)</span>
+        </div>
+        <div class="band-why">&ldquo;Complex vocabulary benefits from clear natural pronunciation at standard pace&rdquo;</div>
+        <div class="band-default-row">
+          <span class="default-dot"></span>
+          Default: Normal (child can toggle)
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================
+       TAB 3 — Spec
+       ============================ -->
+  <div class="tab-panel" id="tab-2">
+
+    <div class="spec-card">
+      <div class="spec-section-title">Speed Values</div>
+      <table class="spec-table">
+        <tr>
+          <td>Normal speed</td>
+          <td><span class="inline-code">SpeechSynthesisUtterance.rate = 0.9</span></td>
+        </tr>
+        <tr>
+          <td>Slow speed</td>
+          <td><span class="inline-code">SpeechSynthesisUtterance.rate = 0.75</span></td>
+        </tr>
+        <tr>
+          <td>Pre-recorded assets</td>
+          <td>Available at Normal speed only; Slow = always TTS fallback</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="spec-card">
+      <div class="spec-section-title">Lock Behaviour</div>
+      <table class="spec-table">
+        <tr>
+          <td>Locked state</td>
+          <td><span class="inline-code">voice_speed_locked = true</span> &rarr; child speed chip hidden; always plays at <span class="inline-code">voice_speed</span> value</td>
+        </tr>
+        <tr>
+          <td>Unlocked state</td>
+          <td>Speed chip shown in top-right of play screen; tap &rarr; 2-option picker; selection stored to <span class="inline-code">child_audio_prefs</span> immediately</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="spec-card">
+      <div class="spec-section-title">Database Schema</div>
+      <code class="spec-code">child_audio_prefs.voice_speed  ENUM('normal', 'slow')
+child_audio_prefs.voice_speed_locked  BOOLEAN</code>
+    </div>
+
+    <div class="spec-card">
+      <div class="spec-section-title">Default by Band &mdash; assignBandDefaults(band_id)</div>
+      <code class="spec-code">function assignBandDefaults(band_id) {
+  // P0 &mdash; Pre-K Starters
+  if (band_id === 'P0') return { voice_speed: 'slow', voice_speed_locked: true };
+
+  // P1 &mdash; Adventurers
+  if (band_id === 'P1') return { voice_speed: 'slow', voice_speed_locked: false };
+
+  // P2 &mdash; Explorers
+  if (band_id === 'P2') return { voice_speed: 'normal', voice_speed_locked: false };
+
+  // P3 &mdash; Trailblazers
+  if (band_id === 'P3') return { voice_speed: 'normal', voice_speed_locked: false };
+
+  // Fallback
+  return { voice_speed: 'normal', voice_speed_locked: false };
+}</code>
+    </div>
+
+    <div class="spec-card">
+      <div class="spec-section-title">In-Play Toggle Flow</div>
+      <table class="spec-table">
+        <tr>
+          <td>Condition</td>
+          <td>If <span class="inline-code">voice_speed_locked === false</span> &rarr; speed chip rendered in play screen top-right</td>
+        </tr>
+        <tr>
+          <td>Interaction</td>
+          <td>Tap chip &rarr; 2-option picker (Normal / Slow); selection persisted to <span class="inline-code">child_audio_prefs</span> immediately; audio restarts at new speed</td>
+        </tr>
+        <tr>
+          <td>Locked</td>
+          <td>Chip hidden; playback always uses <span class="inline-code">voice_speed</span> parent value; child has no control</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="spec-card">
+      <div class="spec-section-title">Accessibility</div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="wcag-badge">&#10003; WCAG 1.4.2</div>
+        <span style="font-size:13px; color:rgba(240,246,255,0.65);">User can control speech rate &mdash; WCAG 1.4.2 satisfied. Parent override (lock) is a deliberate accessibility accommodation for developmental age, not a WCAG violation.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Tab switching
+    function showTab(t) {
+      document.querySelectorAll('.tab-panel').forEach(function(p, i) {
+        p.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+        b.classList.toggle('active', i === t);
+      });
+    }
+
+    // State
+    var currentSpeed = 'normal';
+    var isLocked = false;
+    var pickerOpen = false;
+
+    // Select speed from parent settings panel
+    function selectSpeed(speed) {
+      currentSpeed = speed;
+      document.getElementById('card-normal').classList.toggle('selected', speed === 'normal');
+      document.getElementById('card-slow').classList.toggle('selected', speed === 'slow');
+      updateChip();
+      showToast('Speed set to ' + (speed === 'normal' ? 'Normal (1x)' : 'Slow (0.75x)'));
+    }
+
+    // Toggle lock
+    function toggleLock() {
+      isLocked = !isLocked;
+      document.getElementById('lock-toggle').classList.toggle('on', isLocked);
+      document.getElementById('speed-chip').style.display = isLocked ? 'none' : 'flex';
+      document.getElementById('locked-msg').style.display = isLocked ? 'block' : 'none';
+      if (isLocked && pickerOpen) closePicker();
+      showToast(isLocked ? 'Speed locked — Emma can\'t change' : 'Speed unlocked');
+    }
+
+    // Preview speed using Web Speech API
+    function previewSpeed(speed) {
+      var rate = speed === 'normal' ? 0.9 : 0.75;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance('Which animal is the largest mammal on Earth?');
+        u.rate = rate;
+        window.speechSynthesis.speak(u);
+        showToast('Previewing ' + (speed === 'normal' ? 'Normal (rate 0.9)' : 'Slow (rate 0.75)'));
+      } else {
+        showToast('Speech synthesis not supported in this browser');
+      }
+    }
+
+    // In-play speed chip toggle
+    function toggleSpeedPicker() {
+      if (isLocked) return;
+      pickerOpen = !pickerOpen;
+      document.getElementById('speed-picker').classList.toggle('open', pickerOpen);
+    }
+
+    function closePicker() {
+      pickerOpen = false;
+      document.getElementById('speed-picker').classList.remove('open');
+    }
+
+    // Pick speed from in-play picker
+    function pickSpeed(speed) {
+      currentSpeed = speed;
+      updateChip();
+      document.getElementById('card-normal').classList.toggle('selected', speed === 'normal');
+      document.getElementById('card-slow').classList.toggle('selected', speed === 'slow');
+      closePicker();
+      showToast('Speed changed — audio restarts at ' + (speed === 'normal' ? '0.9x' : '0.75x'));
+    }
+
+    // Sync chip label and active option
+    function updateChip() {
+      document.getElementById('chip-label').textContent = currentSpeed === 'normal' ? '1x' : '0.75x';
+      document.getElementById('opt-normal').classList.toggle('active', currentSpeed === 'normal');
+      document.getElementById('opt-slow').classList.toggle('active', currentSpeed === 'slow');
+    }
+
+    // Toast helper
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(function() {
+        t.classList.remove('show');
+      }, 2400);
+    }
+
+    // Close picker when clicking outside
+    document.addEventListener('click', function(e) {
+      if (pickerOpen && !e.target.closest('#speed-chip') && !e.target.closest('#speed-picker')) {
+        closePicker();
+      }
+    });
+  </script>
+</body>
+</html>

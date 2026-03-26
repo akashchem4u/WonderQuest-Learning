@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Watchlist Panel — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Panel */
+.panel{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:460px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440}
+.panel-count{font-size:11px;font-weight:700;background:#f5f5f5;color:#555;padding:2px 8px;border-radius:8px;margin-left:8px}
+.panel-link{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer}
+.panel-hint{font-size:11px;color:#888;margin-bottom:12px;line-height:1.4}
+
+/* Watchlist student row */
+.ws-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f5f7fa}
+.ws-row:last-child{border-bottom:none;padding-bottom:0}
+.ws-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0;margin-top:2px}
+.ws-body{flex:1}
+.ws-name{font-size:13px;font-weight:800;color:#1a1440}
+.ws-reason{font-size:11px;color:#666;margin-top:2px;line-height:1.4}
+.ws-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.wsc{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px}
+.wsc-manual{background:#f0f7ff;color:#2563eb}
+.wsc-band{background:#58e8c122;color:#0d9065}
+.wsc-p3{background:#ff7b6b22;color:#c0392b}
+.ws-actions{display:flex;gap:6px;flex-shrink:0;margin-top:2px}
+.ws-btn{padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui;border:1.5px solid #dbe7ff;color:#2563eb;background:#fff}
+.ws-remove{color:#aaa;border-color:#eee}
+
+/* Add to watchlist inline */
+.add-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #f5f7fa}
+.add-input{flex:1;padding:7px 12px;border:1.5px solid #dbe7ff;border-radius:10px;font-size:12px;font-family:system-ui;outline:none;color:#1a1440}
+.add-btn{padding:7px 14px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;white-space:nowrap}
+
+/* Empty state */
+.empty-wl{text-align:center;padding:28px 16px}
+.ewl-icon{font-size:34px;margin-bottom:10px}
+.ewl-title{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:5px}
+.ewl-sub{font-size:11px;color:#888;line-height:1.5}
+
+/* Note badge on row */
+.note-badge{font-size:10px;font-weight:700;background:#fef9c3;color:#92400e;padding:1px 6px;border-radius:5px;margin-left:4px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-blue{background:#eff6ff;color:#2563eb}
+.tag-red{background:#fff0f0;color:#dc2626}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-watchlist-panel-v2.html</strong><br>
+  Teacher watchlist — manual list of students the teacher wants to keep an eye on (separate from system support queue).<br>
+  <strong>Key distinction:</strong> Support queue = system-triggered flags. Watchlist = teacher-curated manual list.<br>
+  <strong>Use cases:</strong> "Keep an eye on this student for personal reasons" | "Just advanced bands, monitor closely" | "Informal check-in needed" | "Student returning from absence".<br>
+  <strong>Max size:</strong> 10 students per watchlist (if > 10, prompt to review/remove).<br>
+  <strong>Privacy:</strong> First names only. Watchlist and teacher notes private to teacher only. Not shared with parents or other teachers.<br>
+  <strong>Not alarming:</strong> Watchlist is neutral — not a deficit signal. "You're monitoring these students."
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('main')">Watchlist</button>
+  <button class="tab-btn" onclick="showTab('empty')">Empty State</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Watchlist ───────────────────────────────────────────────────── -->
+<div id="tab-main" class="screen active">
+  <p class="section-title">Teacher watchlist panel — 3 students monitored</p>
+  <div class="panel">
+    <div class="panel-header">
+      <div style="display:flex;align-items:center">
+        <div class="panel-title">👁 Watchlist</div>
+        <span class="panel-count">3</span>
+      </div>
+      <div class="panel-link">Manage</div>
+    </div>
+    <div class="panel-hint">Students you're keeping a close eye on. Private to you — not visible to students or parents.</div>
+
+    <div class="ws-row">
+      <div class="ws-av" style="background:#475569">J</div>
+      <div class="ws-body">
+        <div class="ws-name">Jordan <span class="note-badge">📝 Note</span></div>
+        <div class="ws-reason">Confidence floor flag + personal check-in planned. Visual model suggested.</div>
+        <div class="ws-chips">
+          <span class="wsc wsc-manual">Manually added</span>
+          <span class="wsc wsc-band">P2 G2–3</span>
+        </div>
+      </div>
+      <div class="ws-actions">
+        <button class="ws-btn">View</button>
+        <button class="ws-btn ws-remove">✕</button>
+      </div>
+    </div>
+
+    <div class="ws-row">
+      <div class="ws-av" style="background:#ec4899">P</div>
+      <div class="ws-body">
+        <div class="ws-name">Priya</div>
+        <div class="ws-reason">Returned from 5-day absence. Monitor re-engagement over next week.</div>
+        <div class="ws-chips">
+          <span class="wsc wsc-manual">Manually added</span>
+          <span class="wsc" style="background:#9b72ff22;color:#6d3fcf">P1 K–1</span>
+        </div>
+      </div>
+      <div class="ws-actions">
+        <button class="ws-btn">View</button>
+        <button class="ws-btn ws-remove">✕</button>
+      </div>
+    </div>
+
+    <div class="ws-row">
+      <div class="ws-av" style="background:#0ea5e9">M</div>
+      <div class="ws-body">
+        <div class="ws-name">Marcus</div>
+        <div class="ws-reason">Band ceiling — reviewing P3 advancement. Watching to confirm consistency.</div>
+        <div class="ws-chips">
+          <span class="wsc wsc-manual">Manually added</span>
+          <span class="wsc wsc-band">P2 → P3?</span>
+        </div>
+      </div>
+      <div class="ws-actions">
+        <button class="ws-btn">View</button>
+        <button class="ws-btn ws-remove">✕</button>
+      </div>
+    </div>
+
+    <div class="add-row">
+      <input class="add-input" placeholder="Add student to watchlist…" readonly>
+      <button class="add-btn">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Empty State ─────────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">Empty watchlist</p>
+  <div class="panel">
+    <div class="panel-header">
+      <div style="display:flex;align-items:center">
+        <div class="panel-title">👁 Watchlist</div>
+        <span class="panel-count">0</span>
+      </div>
+    </div>
+    <div class="empty-wl">
+      <div class="ewl-icon">👁</div>
+      <div class="ewl-title">No students on your watchlist</div>
+      <div class="ewl-sub">Add students you want to monitor closely. Your watchlist is private — not visible to students or parents.</div>
+    </div>
+    <div class="add-row">
+      <input class="add-input" placeholder="Add a student…" readonly>
+      <button class="add-btn">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-watchlist-panel-v2.html<br>
+      <strong>Data model:</strong> teacher_watchlist table — teacher_id, student_id, reason (text), added_at. Private to teacher.<br>
+      <strong>Max 10 students.</strong> If teacher tries to add #11, show "Review your watchlist — remove students you no longer need to monitor."
+    </div>
+    <h2 class="spec-h2">Watchlist vs Support Queue</h2>
+    <table class="spec-table">
+      <tr><th>Aspect</th><th>Support Queue</th><th>Watchlist</th></tr>
+      <tr><td>Source</td><td>System-triggered (algorithm)</td><td>Teacher-curated (manual)</td></tr>
+      <tr><td>Triggers</td><td>confidence_floor / absence / hint pattern / band ceiling</td><td>Any reason teacher chooses</td></tr>
+      <tr><td>Auto-resolve</td><td>Yes (when trigger clears)</td><td>Never — teacher removes manually</td></tr>
+      <tr><td>Visibility</td><td>Visible to teacher only</td><td>Visible to teacher only</td></tr>
+      <tr><td>Required action</td><td>Prompted on home screen</td><td>Passive — just a monitoring list</td></tr>
+    </table>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">Watchlist entries are stored against teacher_id + student_id. NOT shared with: parents, students, other teachers, school admin. Teacher's reason/note field is private. Watchlist is deleted if teacher account is deleted. Retention follows teacher account retention rules.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

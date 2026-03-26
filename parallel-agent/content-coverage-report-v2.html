@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Coverage Report v2 — WonderQuest</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;color:#f0f6ff;min-height:100vh;padding:24px}
+
+/* Engineering hint */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;color:#7a5c00;max-width:1200px}
+
+/* Tab bar */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);transition:all .18s}
+.tab-btn.active{background:#f59e0b;color:#0d1117}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,.12);color:#f0f6ff}
+
+/* Screens */
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+
+/* Card */
+.card{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:24px;overflow:hidden}
+.card-hdr{background:#0d1117;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.card-sub{font-size:11px;color:rgba(255,255,255,.35)}
+.card-body{padding:20px}
+
+/* Page header */
+.page-hdr{margin-bottom:24px;max-width:1200px}
+.page-title{font-size:22px;font-weight:900;color:#f0f6ff;letter-spacing:-.01em;line-height:1.2}
+.page-subtitle{font-size:13px;color:rgba(255,255,255,.4);margin-top:4px}
+
+/* ─── COVERAGE STATS ROW ─── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.04)}
+.stat-cell{background:#161b22;padding:16px 20px}
+.stat-icon{font-size:20px;line-height:1;margin-bottom:6px}
+.stat-val{font-size:22px;font-weight:900;color:#f0f6ff;line-height:1}
+.stat-val span{font-size:13px;font-weight:600;color:rgba(255,255,255,.35);margin-left:4px}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.stat-cell.accent-green .stat-val{color:#50e890}
+.stat-cell.accent-amber .stat-val{color:#f59e0b}
+.stat-cell.accent-red .stat-val{color:#f85149}
+
+/* ─── HEATMAP ─── */
+.heatmap-wrap{padding:20px}
+.hm-subject-hdr{display:grid;grid-template-columns:80px repeat(5,1fr);gap:8px;margin-bottom:8px}
+.hm-subj-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35);text-align:center}
+.hm-subj-label:first-child{text-align:left}
+.hm-row{display:grid;grid-template-columns:80px repeat(5,1fr);gap:8px;margin-bottom:8px}
+.hm-band-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#f0f6ff}
+.hm-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.hm-cell{border-radius:8px;padding:10px 12px;text-align:center;border:1px solid transparent;transition:transform .12s,border-color .12s;cursor:default}
+.hm-cell:hover{transform:scale(1.02);border-color:rgba(255,255,255,.15)}
+.hm-cell-level{font-size:11px;font-weight:700;margin-bottom:2px}
+.hm-cell-count{font-size:18px;font-weight:900;line-height:1}
+.hm-cell-bar{height:3px;border-radius:2px;margin-top:6px}
+
+/* Coverage level styles */
+.cc-full{background:rgba(80,232,144,.12);}
+.cc-full .hm-cell-level{color:#50e890}
+.cc-full .hm-cell-count{color:#50e890}
+.cc-full .hm-cell-bar{background:#50e890;width:100%}
+.cc-good{background:rgba(80,232,144,.07);}
+.cc-good .hm-cell-level{color:#a7f3d0}
+.cc-good .hm-cell-count{color:#a7f3d0}
+.cc-good .hm-cell-bar{background:#a7f3d0;width:70%}
+.cc-partial{background:rgba(245,158,11,.08);}
+.cc-partial .hm-cell-level{color:#f59e0b}
+.cc-partial .hm-cell-count{color:#f59e0b}
+.cc-partial .hm-cell-bar{background:#f59e0b;width:40%}
+.cc-thin{background:rgba(248,81,73,.07);border:1px dashed rgba(248,81,73,.2)}
+.cc-thin .hm-cell-level{color:#f85149}
+.cc-thin .hm-cell-count{color:#f85149}
+.cc-thin .hm-cell-bar{background:#f85149;width:18%}
+.cc-gap{background:rgba(248,81,73,.04);border:1px dashed rgba(248,81,73,.3)}
+.cc-gap .hm-cell-level{color:#f85149}
+.cc-gap .hm-cell-count{color:rgba(255,255,255,.3)}
+
+/* Legend */
+.hm-legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid rgba(255,255,255,.06);background:#0d1117}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.4)}
+.leg-sq{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* ─── PROGRESS BARS ─── */
+.progress-section{padding:20px}
+.progress-row{margin-bottom:16px}
+.prog-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.prog-band{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#f0f6ff}
+.prog-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.prog-meta{font-size:11px;color:rgba(255,255,255,.4)}
+.prog-status{font-size:11px;font-weight:700;margin-left:6px}
+.prog-track{height:10px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:6px;transition:width .5s ease}
+
+/* ─── QUESTIONS COVERAGE ─── */
+.q-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px}
+.q-cell{background:#0d1117;border-radius:8px;padding:14px 16px;border:1px solid rgba(255,255,255,.06)}
+.q-val{font-size:24px;font-weight:900;color:#f0f6ff;line-height:1}
+.q-lbl{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.q-note{font-size:11px;margin-top:6px;font-weight:600}
+.q-note.ok{color:#50e890}
+.q-note.warn{color:#f59e0b}
+.q-note.bad{color:#f85149}
+
+/* ─── GAP TABLE ─── */
+.gaps-table{width:100%;border-collapse:collapse}
+.gaps-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);padding:10px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);background:#0d1117}
+.gaps-table td{font-size:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:#f0f6ff;vertical-align:middle}
+.gaps-table tr:hover td{background:rgba(255,255,255,.02)}
+.gap-sev{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px}
+.sev-critical{background:rgba(248,81,73,.15);color:#f85149}
+.sev-high{background:rgba(245,158,11,.12);color:#f59e0b}
+.sev-medium{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.band-chip{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px}
+.bc-p0{background:rgba(255,209,102,.12);color:#ffd166}
+.bc-p1{background:rgba(155,114,255,.12);color:#9b72ff}
+.bc-p2{background:rgba(88,232,193,.12);color:#58e8c1}
+.bc-p3{background:rgba(255,123,107,.12);color:#ff7b6b}
+.action-btn{font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui;background:rgba(245,158,11,.12);color:#f59e0b;transition:background .15s}
+.action-btn:hover{background:rgba(245,158,11,.25)}
+.gap-diff{font-size:12px;font-weight:700;color:#f85149}
+.commission-all-bar{padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;background:#0d1117}
+.commission-all-btn{font-size:13px;font-weight:700;padding:9px 22px;border-radius:8px;border:none;cursor:pointer;font-family:system-ui;background:#f59e0b;color:#0d1117;transition:background .15s}
+.commission-all-btn:hover{background:#fbbf24}
+.commission-note{font-size:11px;color:rgba(255,255,255,.3)}
+.toast{display:none;position:fixed;bottom:28px;right:28px;background:#161b22;border:1px solid rgba(80,232,144,.3);border-radius:10px;padding:12px 18px;font-size:13px;color:#50e890;font-weight:700;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.toast.show{display:block;animation:fadein .2s}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── SPEC ─── */
+.spec-body{background:#fff;color:#1a1440;border-radius:12px;padding:28px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.7;color:#3d3360;margin-bottom:8px}
+.spec-code{font-family:monospace;font-size:12px;background:#f3f1fb;padding:10px 14px;border-radius:6px;border-left:3px solid #9b72ff;margin:8px 0 12px;line-height:1.6;color:#3d3360;white-space:pre-wrap}
+.spec-table{width:100%;border-collapse:collapse;margin:10px 0 14px}
+.spec-table th{font-size:11px;font-weight:700;padding:8px 12px;text-align:left;border-bottom:2px solid #e8e2f8;color:#7a5c00;background:#fdf9ee}
+.spec-table td{font-size:12px;padding:8px 12px;border-bottom:1px solid #eee;color:#3d3360}
+.spec-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-right:4px;background:#e8e2f8;color:#6d4fc0}
+
+/* Section label */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);margin-bottom:14px;padding:0 20px;padding-top:20px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">ITEM 252 · content-coverage-report-v2.html · WonderQuest parallel-agent build</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(0)">Coverage Report</button>
+  <button class="tab-btn" onclick="showTab(1)">Gap Analysis</button>
+  <button class="tab-btn" onclick="showTab(2)">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — COVERAGE REPORT
+══════════════════════════════════════════ -->
+<div class="screen active" id="tab0">
+
+  <div class="page-hdr">
+    <div class="page-title">Content Coverage Report — v2.6 Snapshot</div>
+    <div class="page-subtitle">24 March 2026 · 284 skills total</div>
+  </div>
+
+  <!-- Section 1: Coverage Stats -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-hdr">
+      <span class="card-title">Skill Coverage Overview</span>
+      <span class="card-sub">v2.6 Target: 300 skills</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat-cell accent-green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-val">241<span>skills</span></div>
+        <div class="stat-lbl">Published · 85%</div>
+      </div>
+      <div class="stat-cell accent-amber">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-val">18</div>
+        <div class="stat-lbl">In Review</div>
+      </div>
+      <div class="stat-cell accent-red">
+        <div class="stat-icon">🚫</div>
+        <div class="stat-val">6</div>
+        <div class="stat-lbl">Blocked</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-icon">📝</div>
+        <div class="stat-val">19</div>
+        <div class="stat-lbl">Draft</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-val">300</div>
+        <div class="stat-lbl">v2.6 Target</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Coverage Heatmap -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Coverage Heatmap — Band × Subject</span>
+      <span class="card-sub">Full ≥8 / Good 5–7 / Partial 3–4 / Thin 1–2 / Gap 0</span>
+    </div>
+    <div class="heatmap-wrap">
+      <div class="hm-subject-hdr">
+        <div class="hm-subj-label">Band</div>
+        <div class="hm-subj-label">Maths</div>
+        <div class="hm-subj-label">Literacy</div>
+        <div class="hm-subj-label">Science</div>
+        <div class="hm-subj-label">Social Studies</div>
+        <div class="hm-subj-label">Arts</div>
+      </div>
+
+      <!-- P0 -->
+      <div class="hm-row">
+        <div class="hm-band-label">
+          <div class="hm-dot" style="background:#ffd166"></div>P0
+        </div>
+        <div class="hm-cell cc-full">
+          <div class="hm-cell-level">Full</div>
+          <div class="hm-cell-count">9</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-full">
+          <div class="hm-cell-level">Full</div>
+          <div class="hm-cell-count">10</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-full">
+          <div class="hm-cell-level">Full</div>
+          <div class="hm-cell-count">8</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">7</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">6</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+      </div>
+
+      <!-- P1 -->
+      <div class="hm-row">
+        <div class="hm-band-label">
+          <div class="hm-dot" style="background:#9b72ff"></div>P1
+        </div>
+        <div class="hm-cell cc-full">
+          <div class="hm-cell-level">Full</div>
+          <div class="hm-cell-count">10</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-full">
+          <div class="hm-cell-level">Full</div>
+          <div class="hm-cell-count">9</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">7</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">6</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">5</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+      </div>
+
+      <!-- P2 -->
+      <div class="hm-row">
+        <div class="hm-band-label">
+          <div class="hm-dot" style="background:#58e8c1"></div>P2
+        </div>
+        <div class="hm-cell cc-full">
+          <div class="hm-cell-level">Full</div>
+          <div class="hm-cell-count">8</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">7</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">6</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">5</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-partial">
+          <div class="hm-cell-level">Partial</div>
+          <div class="hm-cell-count">3</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+      </div>
+
+      <!-- P3 -->
+      <div class="hm-row">
+        <div class="hm-band-label">
+          <div class="hm-dot" style="background:#ff7b6b"></div>P3
+        </div>
+        <div class="hm-cell cc-partial">
+          <div class="hm-cell-level">Partial</div>
+          <div class="hm-cell-count">4</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-good">
+          <div class="hm-cell-level">Good</div>
+          <div class="hm-cell-count">5</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-partial">
+          <div class="hm-cell-level">Partial</div>
+          <div class="hm-cell-count">3</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+        <div class="hm-cell cc-gap">
+          <div class="hm-cell-level">Gap</div>
+          <div class="hm-cell-count">0</div>
+          <div class="hm-cell-bar" style="background:rgba(248,81,73,.3);width:0%"></div>
+        </div>
+        <div class="hm-cell cc-thin">
+          <div class="hm-cell-level">Thin</div>
+          <div class="hm-cell-count">2</div>
+          <div class="hm-cell-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hm-legend">
+      <div class="leg-item"><div class="leg-sq" style="background:rgba(80,232,144,.3)"></div>Full (≥8 skills)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:rgba(80,232,144,.15)"></div>Good (5–7)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:rgba(245,158,11,.2)"></div>Partial (3–4)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:rgba(248,81,73,.2)"></div>Thin (1–2)</div>
+      <div class="leg-item"><div class="leg-sq" style="border:1px dashed rgba(248,81,73,.5);background:transparent"></div>Gap (0)</div>
+    </div>
+  </div>
+
+  <!-- Section 3: Progress vs Targets -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Coverage Progress vs v2.6 Targets</span>
+      <span class="card-sub">By band</span>
+    </div>
+    <div class="progress-section">
+
+      <div class="progress-row">
+        <div class="prog-hdr">
+          <div class="prog-band"><div class="prog-dot" style="background:#ffd166"></div>P0 — Pre-K / Foundation</div>
+          <div class="prog-meta">68 / 70 target <span class="prog-status" style="color:#50e890">✅ 97%</span></div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:97%;background:#ffd166"></div></div>
+      </div>
+
+      <div class="progress-row">
+        <div class="prog-hdr">
+          <div class="prog-band"><div class="prog-dot" style="background:#9b72ff"></div>P1 — Early Primary</div>
+          <div class="prog-meta">72 / 75 target <span class="prog-status" style="color:#50e890">✅ 96%</span></div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:96%;background:#9b72ff"></div></div>
+      </div>
+
+      <div class="progress-row">
+        <div class="prog-hdr">
+          <div class="prog-band"><div class="prog-dot" style="background:#58e8c1"></div>P2 — Mid Primary</div>
+          <div class="prog-meta">62 / 80 target <span class="prog-status" style="color:#f59e0b">⚠ 78%</span></div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:78%;background:#58e8c1"></div></div>
+      </div>
+
+      <div class="progress-row">
+        <div class="prog-hdr">
+          <div class="prog-band"><div class="prog-dot" style="background:#ff7b6b"></div>P3 — Upper Primary</div>
+          <div class="prog-meta">38 / 75 target <span class="prog-status" style="color:#f85149">🔴 51% — Major gap</span></div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:51%;background:#ff7b6b"></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Section 4: Questions Coverage -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Questions Coverage</span>
+      <span class="card-sub">v2.6 Target: 2,000 questions</span>
+    </div>
+    <div class="q-grid">
+      <div class="q-cell">
+        <div class="q-val">1,847</div>
+        <div class="q-lbl">Total Questions</div>
+        <div class="q-note warn">153 short of target</div>
+      </div>
+      <div class="q-cell">
+        <div class="q-val">2,000</div>
+        <div class="q-lbl">v2.6 Target</div>
+        <div class="q-note" style="color:rgba(255,255,255,.3)">End-state goal</div>
+      </div>
+      <div class="q-cell">
+        <div class="q-val" style="color:#f85149">−247</div>
+        <div class="q-lbl">P3 Question Deficit</div>
+        <div class="q-note bad">P3 most under-served</div>
+      </div>
+      <div class="q-cell">
+        <div class="q-val">7.4</div>
+        <div class="q-lbl">Avg Questions / Skill</div>
+        <div class="q-note ok">✓ Target ≥6 met</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab0 -->
+
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — GAP ANALYSIS
+══════════════════════════════════════════ -->
+<div class="screen" id="tab1">
+
+  <div class="page-hdr">
+    <div class="page-title">Gap Analysis</div>
+    <div class="page-subtitle">16 identified content gaps — sorted by priority</div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Content Gaps</span>
+      <span class="card-sub">Severity: Critical = gap &gt;5 · High = 3–5 · Medium = 1–2</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="gaps-table">
+        <thead>
+          <tr>
+            <th>Band</th>
+            <th>Subject</th>
+            <th>Topic</th>
+            <th>Severity</th>
+            <th>Current</th>
+            <th>Target</th>
+            <th>Gap</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Social Studies</td>
+            <td>Government &amp; Civics</td>
+            <td><span class="gap-sev sev-critical">Critical</span></td>
+            <td>0</td>
+            <td>8</td>
+            <td class="gap-diff">−8</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Government &amp; Civics')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Arts</td>
+            <td>Visual Arts</td>
+            <td><span class="gap-sev sev-critical">Critical</span></td>
+            <td>2</td>
+            <td>8</td>
+            <td class="gap-diff">−6</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Visual Arts')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Maths</td>
+            <td>Fractions</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>3</td>
+            <td>8</td>
+            <td class="gap-diff">−5</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Fractions')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p2">P2</span></td>
+            <td>Arts</td>
+            <td>Music Appreciation</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>3</td>
+            <td>6</td>
+            <td class="gap-diff">−3</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P2 Music Appreciation')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Science</td>
+            <td>Earth &amp; Space</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>3</td>
+            <td>7</td>
+            <td class="gap-diff">−4</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Earth & Space')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Maths</td>
+            <td>Geometry</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>4</td>
+            <td>8</td>
+            <td class="gap-diff">−4</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Geometry')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p2">P2</span></td>
+            <td>Social Studies</td>
+            <td>Economics Basics</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>2</td>
+            <td>5</td>
+            <td class="gap-diff">−3</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P2 Economics Basics')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Literacy</td>
+            <td>Persuasive Writing</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>3</td>
+            <td>7</td>
+            <td class="gap-diff">−4</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Persuasive Writing')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p2">P2</span></td>
+            <td>Science</td>
+            <td>Human Body Systems</td>
+            <td><span class="gap-sev sev-high">High</span></td>
+            <td>2</td>
+            <td>5</td>
+            <td class="gap-diff">−3</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P2 Human Body Systems')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p3">P3</span></td>
+            <td>Arts</td>
+            <td>Drama &amp; Performance</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>1</td>
+            <td>5</td>
+            <td class="gap-diff">−4</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P3 Drama & Performance')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p2">P2</span></td>
+            <td>Literacy</td>
+            <td>Poetry &amp; Verse</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>2</td>
+            <td>4</td>
+            <td class="gap-diff">−2</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P2 Poetry & Verse')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p1">P1</span></td>
+            <td>Science</td>
+            <td>Weather Patterns</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>4</td>
+            <td>6</td>
+            <td class="gap-diff">−2</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P1 Weather Patterns')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p2">P2</span></td>
+            <td>Maths</td>
+            <td>Data &amp; Graphs</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>3</td>
+            <td>5</td>
+            <td class="gap-diff">−2</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P2 Data & Graphs')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p1">P1</span></td>
+            <td>Arts</td>
+            <td>Movement &amp; Dance</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>3</td>
+            <td>5</td>
+            <td class="gap-diff">−2</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P1 Movement & Dance')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p0">P0</span></td>
+            <td>Science</td>
+            <td>Plants &amp; Nature</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>5</td>
+            <td>7</td>
+            <td class="gap-diff">−2</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P0 Plants & Nature')">Commission</button></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip bc-p2">P2</span></td>
+            <td>Social Studies</td>
+            <td>World Cultures</td>
+            <td><span class="gap-sev sev-medium">Medium</span></td>
+            <td>3</td>
+            <td>5</td>
+            <td class="gap-diff">−2</td>
+            <td><button class="action-btn" onclick="commissionGap(this,'P2 World Cultures')">Commission</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="commission-all-bar">
+      <span class="commission-note">16 gaps · Creates batch in <code style="font-family:monospace;font-size:11px;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px">content_commissions</code> → syncs to Notion/Linear</span>
+      <button class="commission-all-btn" onclick="commissionAll()">Commission All Gaps</button>
+    </div>
+  </div>
+
+</div><!-- /tab1 -->
+
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — SPEC
+══════════════════════════════════════════ -->
+<div class="screen" id="tab2">
+  <div class="spec-body">
+
+    <div class="spec-h2">Coverage Calculation</div>
+    <p class="spec-p">Skills are counted as "covered" if their <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">review_status</code> is <span class="spec-tag">Published</span> or <span class="spec-tag">Under Review</span>. Coverage is computed per band + subject cell.</p>
+    <div class="spec-code">SELECT band_id, subject_id, COUNT(*) AS covered_skills
+FROM content_skills
+WHERE review_status IN ('Published', 'Under Review')
+GROUP BY band_id, subject_id;</div>
+
+    <div class="spec-h2">v2.6 Target Store</div>
+    <p class="spec-p">Per-cell targets are stored in a versioned targets table, enabling comparison across releases.</p>
+    <div class="spec-code">content_targets(
+  band_id        TEXT,
+  subject_id     TEXT,
+  target_skills  INTEGER,
+  target_questions INTEGER,
+  version        TEXT   -- e.g. 'v2.6'
+)</div>
+
+    <div class="spec-h2">Gap Detection</div>
+    <p class="spec-p">Gap = <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">target_skills - current_skills</code> for each cell. Severity thresholds:</p>
+    <table class="spec-table">
+      <thead><tr><th>Severity</th><th>Condition</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>Critical</td><td>gap &gt; 5</td><td>Immediate commission, sprint assignment</td></tr>
+        <tr><td>High</td><td>gap 3–5</td><td>Commission within current sprint</td></tr>
+        <tr><td>Medium</td><td>gap 1–2</td><td>Backlog, next sprint planning</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spec-h2">Commission Flow</div>
+    <p class="spec-p">Commissioning a gap creates a record in <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">content_commissions</code> and fires a webhook to sync with Notion and Linear.</p>
+    <div class="spec-code">content_commissions(
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  band_id          TEXT NOT NULL,
+  subject_id       TEXT NOT NULL,
+  topic_name       TEXT NOT NULL,
+  priority         TEXT CHECK (priority IN ('Critical','High','Medium')),
+  target_count     INTEGER NOT NULL,
+  commissioned_at  TIMESTAMPTZ DEFAULT now(),
+  sprint_id        TEXT,                -- linked sprint/cycle
+  notion_page_id   TEXT,               -- synced on webhook
+  linear_issue_id  TEXT                -- synced on webhook
+);</div>
+    <p class="spec-p">Webhook payload includes <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">band_id</code>, <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">subject_id</code>, <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">topic_name</code>, <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">priority</code>, <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">target_count</code>, and <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">commissioned_at</code>.</p>
+
+    <div class="spec-h2">Access Control</div>
+    <table class="spec-table">
+      <thead><tr><th>Role</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>Content team</td><td>Full read + commission actions</td></tr>
+        <tr><td>Curriculum team</td><td>Full read + commission actions</td></tr>
+        <tr><td>Owner</td><td>Summary view only (stat cards)</td></tr>
+        <tr><td>Teacher</td><td>No access</td></tr>
+        <tr><td>Parent</td><td>No access</td></tr>
+        <tr><td>Child</td><td>No access</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spec-h2">Data Refresh</div>
+    <p class="spec-p">Coverage snapshots are generated daily via a scheduled job. Real-time counts are available by querying <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">SELECT COUNT(*)</code> directly on <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">content_skills</code>. The snapshot date is stored in <code style="font-family:monospace;background:#f3f1fb;padding:1px 5px;border-radius:3px">coverage_snapshots(snapshot_date, band_id, subject_id, covered_skills, total_questions)</code> for historical trending.</p>
+
+  </div>
+</div><!-- /tab2 -->
+
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach((s,i) => s.classList.toggle('active', i === t));
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i === t));
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function commissionGap(btn, label) {
+  btn.textContent = 'Commissioned';
+  btn.style.background = 'rgba(80,232,144,.12)';
+  btn.style.color = '#50e890';
+  btn.disabled = true;
+  showToast('Commission created: ' + label);
+}
+
+function commissionAll() {
+  let count = 0;
+  document.querySelectorAll('.action-btn:not([disabled])').forEach(btn => {
+    const row = btn.closest('tr');
+    const topic = row ? row.cells[2].textContent.trim() : '';
+    const band = row ? row.cells[0].textContent.trim() : '';
+    btn.textContent = 'Commissioned';
+    btn.style.background = 'rgba(80,232,144,.12)';
+    btn.style.color = '#50e890';
+    btn.disabled = true;
+    count++;
+  });
+  showToast('Batch commissioned: ' + count + ' gaps → content_commissions');
+}
+</script>
+
+</body>
+</html>

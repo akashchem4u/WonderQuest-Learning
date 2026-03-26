@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Streak Panel v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #100b2e; min-height: 100vh; font-family: 'Nunito', sans-serif; color: #fff; }
+.eng-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 16px 20px; }
+.tab-btn { padding: 8px 14px; background: #1e1a40; border: 2px solid #2e2a50; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.screen { display: none; }
+.screen.active { display: block; }
+.page-wrap { max-width: 800px; margin: 0 auto; padding: 28px 32px 60px; }
+
+/* ── Hero streak display ── */
+.streak-hero {
+  background: linear-gradient(135deg, #2a1808, #1a1060);
+  border: 2px solid #ff9d3b;
+  border-radius: 24px;
+  padding: 28px;
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.streak-hero::before {
+  content: '🔥';
+  position: absolute;
+  top: -10px; right: -10px;
+  font-size: 120px;
+  opacity: 0.06;
+}
+.sh-label { font-size: 12px; font-weight: 900; color: #ff9d3b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.sh-count { font-size: 72px; font-weight: 900; color: #ffd166; line-height: 1; margin-bottom: 8px; text-shadow: 0 4px 20px rgba(255,209,102,0.4); }
+.sh-unit { font-size: 24px; font-weight: 900; color: #ff9d3b; margin-bottom: 16px; }
+.sh-sub { font-size: 14px; font-weight: 700; color: #b8a0a0; }
+
+/* ── Weekly dots ── */
+.weekly-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+.wd {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.wd-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  border: 2px solid #2a2060;
+  background: #1a1060;
+  transition: all 0.2s;
+}
+.wd-dot.done { background: #2a1808; border-color: #ff9d3b; }
+.wd-dot.today { background: #ff9d3b; border-color: #ffd166; box-shadow: 0 0 12px rgba(255,157,59,0.5); animation: today-glow 1.5s ease-in-out infinite; }
+.wd-dot.empty { opacity: 0.3; }
+@keyframes today-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,157,59,0.5); } 50% { box-shadow: 0 0 0 8px rgba(255,157,59,0); } }
+.wd-label { font-size: 10px; font-weight: 700; color: #5a4080; }
+.wd-dot.done ~ .wd-label, .wd-label.done { color: #ff9d3b; }
+.wd-label.today { color: #ffd166; }
+
+/* ── Streak milestones ── */
+.milestone-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.ms-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 14px;
+  font-size: 14px; font-weight: 900;
+  flex: 1; min-width: 140px;
+}
+.ms-chip.done { background: #2a1808; border: 2px solid #ff9d3b; color: #ffd166; }
+.ms-chip.current { background: #1a1060; border: 2px solid #9b72ff; color: #c4a0ff; animation: ms-pulse 1.5s ease-in-out infinite; }
+@keyframes ms-pulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(155,114,255,0.2); } }
+.ms-chip.locked { background: #1a1060; border: 2px solid #2a2060; color: #5a4080; opacity: 0.5; }
+.ms-chip .mc-label { flex: 1; }
+.ms-chip .mc-reward { font-size: 11px; opacity: 0.75; }
+
+/* ── Streak freeze section ── */
+.freeze-card { background: #1a1060; border: 2px solid #2a2060; border-radius: 16px; padding: 18px; margin-bottom: 20px; }
+.fc-title { font-size: 13px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.fc-row { display: flex; align-items: center; gap: 14px; }
+.fc-icon { font-size: 36px; }
+.fc-body { flex: 1; }
+.fc-msg { font-size: 14px; font-weight: 700; color: #c4a0ff; line-height: 1.4; }
+.fc-meta { font-size: 12px; color: #7a6090; margin-top: 4px; font-weight: 700; }
+
+/* Streak broken state */
+.broken-hero {
+  background: linear-gradient(135deg, #1a1060, #0d0924);
+  border: 2px solid #2a2060;
+  border-radius: 24px;
+  padding: 28px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.bh-emoji { font-size: 56px; display: block; margin-bottom: 12px; }
+.bh-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+.bh-sub { font-size: 14px; color: #b8a0e8; font-weight: 700; margin-bottom: 20px; line-height: 1.4; }
+.bh-start { width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(135deg, #9b72ff, #7c4ddb); color: #fff; font-family: 'Nunito', sans-serif; font-size: 17px; font-weight: 900; cursor: pointer; box-shadow: 0 6px 20px rgba(155,114,255,0.4); }
+
+/* Spec */
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+.spec-note { font-size: 11px; color: #7a6090; margin-top: 8px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-streak-panel-v2.html</strong><br>
+  Desktop 800px centered • 5 tabs: Active (5-day) / Long streak (21-day) / Broken streak / Restored / Spec<br>
+  Hero streak: large number + unit + animated flame bg · Weekly dots: 7 circles (Mon–Sun)<br>
+  Milestone chips: 3/5/10/21/30-day targets · Streak freeze card (optional parent feature)<br>
+  Broken state: forward-looking "start fresh" CTA, no shame language<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code> • Streak amber <code>#ff9d3b</code>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active (5-day)</button>
+  <button class="tab-btn" onclick="showTab('long')">Long (21-day)</button>
+  <button class="tab-btn" onclick="showTab('broken')">Broken</button>
+  <button class="tab-btn" onclick="showTab('restored')">Restored</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ACTIVE 5-DAY -->
+<div id="screen-active" class="screen active">
+  <div class="page-wrap">
+    <div class="streak-hero">
+      <div class="sh-label">🔥 Quest Streak</div>
+      <div class="sh-count">5</div>
+      <div class="sh-unit">days in a row!</div>
+      <div class="sh-sub">Keep going — you're on a roll! Quest today to keep the streak alive.</div>
+    </div>
+
+    <div style="text-align:center;font-size:12px;font-weight:900;color:#ff9d3b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">This Week</div>
+    <div class="weekly-dots">
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Mon</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Tue</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Wed</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Thu</div></div>
+      <div class="wd"><div class="wd-dot today">🔥</div><div class="wd-label today">Fri ✓</div></div>
+      <div class="wd"><div class="wd-dot empty">○</div><div class="wd-label">Sat</div></div>
+      <div class="wd"><div class="wd-dot empty">○</div><div class="wd-label">Sun</div></div>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:#ff9d3b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Streak Goals</div>
+    <div class="milestone-row">
+      <div class="ms-chip done"><span>🔥</span><div class="mc-label">3-Day Streak<div class="mc-reward">✓ Earned +5 XP</div></div></div>
+      <div class="ms-chip current"><span>⚡</span><div class="mc-label">7-Day Streak<div class="mc-reward">Unlocks: Hot badge</div></div></div>
+    </div>
+    <div class="milestone-row">
+      <div class="ms-chip locked"><span>🌟</span><div class="mc-label">14-Day Streak<div class="mc-reward">Unlocks: Super streak trophy</div></div></div>
+      <div class="ms-chip locked"><span>💎</span><div class="mc-label">30-Day Streak<div class="mc-reward">Unlocks: Legendary status</div></div></div>
+    </div>
+
+    <div class="freeze-card">
+      <div class="fc-title">Streak Shield 🛡️</div>
+      <div class="fc-row">
+        <span class="fc-icon">🛡️</span>
+        <div class="fc-body">
+          <div class="fc-msg">Miss a day? Your streak is protected for 1 day per shield.</div>
+          <div class="fc-meta">0 shields active · Ask a parent to enable shields</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LONG 21-DAY -->
+<div id="screen-long" class="screen">
+  <div class="page-wrap">
+    <div class="streak-hero" style="border-color:#ffd166;background:linear-gradient(135deg,#2a2010,#1a1060)">
+      <div class="sh-label" style="color:#ffd166">🔥 LEGENDARY STREAK!</div>
+      <div class="sh-count" style="font-size:80px">21</div>
+      <div class="sh-unit" style="color:#ffd166">DAYS IN A ROW!</div>
+      <div class="sh-sub" style="color:#c8a060">You are absolutely on fire — 21 days without missing a quest!</div>
+    </div>
+
+    <div style="text-align:center;font-size:12px;font-weight:900;color:#ffd166;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">This Week (Week 3!)</div>
+    <div class="weekly-dots">
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Mon</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Tue</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Wed</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Thu</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Fri</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Sat</div></div>
+      <div class="wd"><div class="wd-dot today" style="background:#ffd166;border-color:#ffd166">🌟</div><div class="wd-label today">Sun ✓</div></div>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:#ffd166;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Streak Milestones</div>
+    <div class="milestone-row">
+      <div class="ms-chip done"><span>🔥</span><div class="mc-label">3-Day ✓<div class="mc-reward">+5 XP earned</div></div></div>
+      <div class="ms-chip done"><span>⚡</span><div class="mc-label">7-Day ✓<div class="mc-reward">Hot badge earned</div></div></div>
+    </div>
+    <div class="milestone-row">
+      <div class="ms-chip done"><span>🌟</span><div class="mc-label">14-Day ✓<div class="mc-reward">Super streak trophy</div></div></div>
+      <div class="ms-chip current" style="border-color:#ffd166;color:#ffd166"><span>💎</span><div class="mc-label">30-Day Streak<div class="mc-reward">Legendary status · 9 days to go!</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BROKEN -->
+<div id="screen-broken" class="screen">
+  <div class="page-wrap">
+    <div class="broken-hero">
+      <span class="bh-emoji">😮</span>
+      <div class="bh-title">Your streak paused for a bit!</div>
+      <div class="bh-sub">That's totally okay — everyone takes a break sometimes! You can start a brand new streak today and all your stars are safe!</div>
+      <button class="bh-start">Start a New Streak Today! 🔥</button>
+    </div>
+
+    <div style="background:#1a2a15;border:2px solid #50e890;border-radius:14px;padding:14px;display:flex;gap:10px;align-items:center;margin-bottom:16px">
+      <span style="font-size:22px">⭐</span>
+      <span style="font-size:13px;font-weight:700;color:#50e890">All 42 stars are safe — nothing was lost!</span>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Previous Best</div>
+    <div style="background:#1a1060;border:1px solid #2a2060;border-radius:14px;padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <span style="font-size:36px">🏆</span>
+      <div>
+        <div style="font-size:20px;font-weight:900;color:#fff">5-day best streak</div>
+        <div style="font-size:12px;font-weight:700;color:#7a6090">Beat it by starting today!</div>
+      </div>
+    </div>
+
+    <div class="weekly-dots">
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Mon</div></div>
+      <div class="wd"><div class="wd-dot done">🔥</div><div class="wd-label done">Tue</div></div>
+      <div class="wd"><div class="wd-dot empty">—</div><div class="wd-label">Wed</div></div>
+      <div class="wd"><div class="wd-dot empty">—</div><div class="wd-label">Thu</div></div>
+      <div class="wd"><div class="wd-dot today" style="background:#9b72ff;border-color:#9b72ff">✦</div><div class="wd-label today">Fri ← today!</div></div>
+      <div class="wd"><div class="wd-dot empty">○</div><div class="wd-label">Sat</div></div>
+      <div class="wd"><div class="wd-dot empty">○</div><div class="wd-label">Sun</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- RESTORED -->
+<div id="screen-restored" class="screen">
+  <div class="page-wrap">
+    <div class="streak-hero" style="border-color:#50e890;background:linear-gradient(135deg,#0a2a15,#1a1060)">
+      <div class="sh-label" style="color:#50e890">🔥 Streak Restored!</div>
+      <div class="sh-count" style="color:#50e890;font-size:60px">Day 1</div>
+      <div class="sh-unit" style="color:#50e890">fresh start!</div>
+      <div class="sh-sub" style="color:#80c8a0">You're back — and you earned a bonus for returning! Your stars were safe the whole time.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:18px;background:#2a2010;border:2px solid #ffd166;color:#ffd166;font-size:14px;font-weight:900;animation:chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both">⭐ +1 return bonus</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:18px;background:#0a2a15;border:2px solid #50e890;color:#50e890;font-size:14px;font-weight:900;animation:chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both">✨ +30 XP</div>
+    </div>
+
+    <div class="weekly-dots">
+      <div class="wd"><div class="wd-dot empty">—</div><div class="wd-label">Mon</div></div>
+      <div class="wd"><div class="wd-dot empty">—</div><div class="wd-label">Tue</div></div>
+      <div class="wd"><div class="wd-dot empty">—</div><div class="wd-label">Wed</div></div>
+      <div class="wd"><div class="wd-dot empty">—</div><div class="wd-label">Thu</div></div>
+      <div class="wd"><div class="wd-dot today" style="background:#50e890;border-color:#50e890">🔥</div><div class="wd-label today">Fri Day 1!</div></div>
+      <div class="wd"><div class="wd-dot empty">○</div><div class="wd-label">Sat</div></div>
+      <div class="wd"><div class="wd-dot empty">○</div><div class="wd-label">Sun</div></div>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:#50e890;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Streak Goals (Start Here!)</div>
+    <div class="milestone-row">
+      <div class="ms-chip current" style="border-color:#50e890;color:#50e890"><span>🔥</span><div class="mc-label">3-Day Streak<div class="mc-reward">Unlocks: +5 XP bonus</div></div></div>
+      <div class="ms-chip locked"><span>⚡</span><div class="mc-label">7-Day Streak<div class="mc-reward">Unlocks: Hot badge</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="screen-spec" class="screen">
+  <div class="page-wrap">
+    <div class="spec-section">
+      <div class="spec-title">Streak States</div>
+      <div class="spec-row"><span class="spec-key">Active</span><span class="spec-val">Amber/orange theme, current count hero, weekly dots</span></div>
+      <div class="spec-row"><span class="spec-key">Long (14+)</span><span class="spec-val">Gold theme, bigger count, more milestone chips done</span></div>
+      <div class="spec-row"><span class="spec-key">Broken</span><span class="spec-val">Neutral theme, "paused" language, star-safe badge, fresh start CTA</span></div>
+      <div class="spec-row"><span class="spec-key">Restored</span><span class="spec-val">Green theme, Day 1 display, return bonus chips</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Weekly dots</div>
+      <div class="spec-row"><span class="spec-key">Done day</span><span class="spec-val">Orange ring + 🔥 emoji</span></div>
+      <div class="spec-row"><span class="spec-key">Today</span><span class="spec-val">Filled orange + glow pulse animation</span></div>
+      <div class="spec-row"><span class="spec-key">Upcoming</span><span class="spec-val">30% opacity empty circle</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Broken language</span><span class="spec-val">"paused" not "broken/failed" to child</span></div>
+      <div class="spec-row"><span class="spec-key">Stars safe</span><span class="spec-val">Always shown when streak breaks</span></div>
+      <div class="spec-row"><span class="spec-key">Best streak</span><span class="spec-val">Shown on broken state as aspirational</span></div>
+      <div class="spec-row"><span class="spec-key">Shame</span><span class="spec-val">None — no "you failed", no missed-day counter</span></div>
+    </div>
+    <div class="spec-note">
+      Streak shield is a parent-controlled feature — child sees it as informational only.
+      Milestone chips show what's coming next (aspirational) even on broken/restored states.
+      "Day 1" on restored is celebrated, not downplayed.
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes chip-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Error State System v2</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #f0f6ff;
+  padding: 24px 20px 60px;
+}
+
+/* Engineering hint */
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #333;
+  line-height: 1.6;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.eng-hint strong { color: #b45309; }
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tab-btn {
+  padding: 9px 18px;
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px;
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  white-space: nowrap;
+}
+.tab-btn:hover { background: #1c2230; color: #f0f6ff; }
+.tab-btn.active { background: #50e890; border-color: #50e890; color: #0d1117; }
+
+/* Panels */
+.tab-panel { display: none; max-width: 960px; margin: 0 auto; }
+.tab-panel.active { display: block; }
+
+/* Section title */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #50e890;
+  margin-bottom: 12px;
+  margin-top: 32px;
+}
+.section-label:first-of-type { margin-top: 0; }
+
+/* ===== ERROR CARD ===== */
+.error-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 16px;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto 28px;
+}
+
+/* Icon circles */
+.err-icon-wrap {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+.err-icon-wrap.amber { background: rgba(245,158,11,.15); border: 2px solid rgba(245,158,11,.3); }
+.err-icon-wrap.red   { background: rgba(239,68,68,.15);  border: 2px solid rgba(239,68,68,.3); }
+.err-icon-wrap.muted { background: rgba(139,148,158,.12); border: 2px solid rgba(139,148,158,.2); }
+
+/* Titles & body */
+.err-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f0f6ff;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.err-body {
+  font-size: 15px;
+  color: #8b949e;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-width: 420px;
+}
+
+/* Error ID / details */
+.err-details {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 20px;
+  width: 100%;
+  text-align: left;
+  word-break: break-all;
+}
+
+/* Progress saved badge */
+.progress-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(80,232,144,.08);
+  border: 1px solid rgba(80,232,144,.2);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #50e890;
+  margin-bottom: 20px;
+}
+
+/* Helpful links */
+.err-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+.err-link {
+  font-size: 13px;
+  color: #38bdf8;
+  text-decoration: none;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.err-link:hover { opacity: .75; }
+.err-link-sep {
+  font-size: 13px;
+  color: rgba(255,255,255,.15);
+  padding: 4px 0;
+}
+
+/* CTA buttons */
+.cta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+}
+.btn-primary {
+  padding: 11px 24px;
+  background: #50e890;
+  border: none;
+  border-radius: 8px;
+  color: #0d1117;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-secondary {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  color: #8b949e;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-secondary:hover { border-color: rgba(255,255,255,.3); color: #f0f6ff; }
+.btn-red {
+  padding: 11px 24px;
+  background: rgba(239,68,68,.15);
+  border: 1px solid rgba(239,68,68,.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-red:hover { background: rgba(239,68,68,.25); }
+
+/* ===== TAB 2 — INLINE ERRORS ===== */
+.inline-section {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.inline-section h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #50e890;
+  margin-bottom: 16px;
+}
+
+/* Form field error */
+.form-group { display: flex; flex-direction: column; gap: 4px; max-width: 340px; }
+.form-label { font-size: 13px; font-weight: 600; color: #8b949e; }
+.form-input-error {
+  background: rgba(255,255,255,.04);
+  border: none;
+  border-bottom: 2px solid #ef4444;
+  border-radius: 4px 4px 0 0;
+  padding: 10px 12px;
+  color: #f0f6ff;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+}
+.field-error-msg {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Toasts */
+.toast-container { display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  max-width: 440px;
+  position: relative;
+}
+.toast.error { border-left: 4px solid #ef4444; }
+.toast.warning { border-left: 4px solid #f59e0b; }
+.toast.info { border-left: 4px solid #38bdf8; }
+.toast-icon { font-size: 15px; flex-shrink: 0; }
+.toast-text { font-size: 13px; color: #f0f6ff; flex: 1; }
+.toast-action {
+  font-size: 12px;
+  font-weight: 700;
+  color: #50e890;
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.toast-timer {
+  font-size: 11px;
+  color: #8b949e;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* Inline card error */
+.inline-card-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.grid-card {
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 120px;
+}
+.grid-card.error-card-inline { border-color: rgba(239,68,68,.3); }
+.card-error-bar {
+  background: rgba(239,68,68,.08);
+  padding: 7px 12px;
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(239,68,68,.15);
+}
+.card-inner { padding: 14px 12px; }
+.card-title-text { font-size: 13px; font-weight: 600; color: #f0f6ff; margin-bottom: 4px; }
+.card-sub-text { font-size: 11px; color: #8b949e; }
+
+/* Table error row */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #8b949e;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr.err-row { background: rgba(239,68,68,.04); }
+tbody td { padding: 10px 12px; color: #f0f6ff; vertical-align: middle; }
+.td-error { color: #ef4444; font-size: 12px; font-weight: 600; }
+.td-retry { color: #38bdf8; font-size: 12px; cursor: pointer; white-space: nowrap; }
+td.muted { color: #8b949e; }
+
+/* API banner */
+.api-banner {
+  background: rgba(245,158,11,.08);
+  border: 1px solid rgba(245,158,11,.25);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.api-banner-text { font-size: 13px; color: #f59e0b; font-weight: 600; flex: 1; }
+.api-banner-meta { margin-top: 6px; font-size: 11px; font-weight: 400; color: #8b949e; font-family: monospace; }
+
+/* ===== TAB 3 — CHILD ERRORS ===== */
+.phone-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+.phone-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.phone-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8b949e;
+}
+.phone-frame {
+  width: 320px;
+  min-height: 560px;
+  background: #0f0a24;
+  border-radius: 36px;
+  overflow: hidden;
+  box-shadow: 0 20px 56px rgba(0,0,0,.6), inset 0 0 0 2px #2a1c60;
+  display: flex;
+  flex-direction: column;
+}
+.phone-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7b5ea7;
+}
+.phone-status .time { font-size: 13px; color: #e0d4ff; font-weight: 900; }
+.phone-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 24px 32px;
+  text-align: center;
+}
+.child-emoji { font-size: 72px; margin-bottom: 20px; line-height: 1; }
+.child-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f0f6ff;
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+.child-sub {
+  font-size: 14px;
+  color: #b8a8d8;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+.child-safe-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(80,232,144,.1);
+  border: 1px solid rgba(80,232,144,.25);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #50e890;
+  margin-bottom: 18px;
+}
+.btn-child-primary {
+  width: 100%;
+  padding: 14px;
+  background: #50e890;
+  border: none;
+  border-radius: 16px;
+  color: #0d1117;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-child-secondary {
+  width: 100%;
+  padding: 11px;
+  background: transparent;
+  border: 2px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  color: #9b8aaa;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  font-family: inherit;
+}
+.stars-safe {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #50e890;
+  font-weight: 700;
+  margin-bottom: 16px;
+  background: rgba(80,232,144,.08);
+  border-radius: 8px;
+  padding: 7px 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* ===== TAB 4 — SPEC ===== */
+.spec-block {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.spec-block h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #50e890;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+pre {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #f0f6ff;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  line-height: 1.7;
+  white-space: pre;
+}
+.kw { color: #f59e0b; }
+.ty { color: #38bdf8; }
+.cm { color: #8b949e; font-style: italic; }
+.str { color: #50e890; }
+
+.spec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.spec-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #50e890;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.spec-table td {
+  padding: 10px 12px;
+  color: #f0f6ff;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  vertical-align: top;
+}
+.spec-table td:first-child { font-family: monospace; color: #38bdf8; font-size: 12px; }
+.spec-table td:last-child { color: #8b949e; font-size: 12px; }
+.spec-table tr:last-child td { border-bottom: none; }
+
+.rule-list { display: flex; flex-direction: column; gap: 10px; }
+.rule-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: rgba(255,255,255,.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.04);
+}
+.rule-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.rule-text { font-size: 13px; color: #f0f6ff; line-height: 1.5; }
+.rule-text strong { color: #50e890; }
+.rule-text .no { color: #ef4444; text-decoration: line-through; margin-right: 6px; }
+.rule-text .yes { color: #50e890; }
+
+.category-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  margin-right: 4px;
+}
+.chip-network { background: rgba(245,158,11,.15); color: #f59e0b; }
+.chip-server  { background: rgba(239,68,68,.15);  color: #ef4444; }
+.chip-notfound{ background: rgba(139,148,158,.15);color: #8b949e; }
+.chip-permission{ background: rgba(245,158,11,.15); color: #f59e0b; }
+.chip-data    { background: rgba(245,158,11,.15); color: #f59e0b; }
+
+/* divider */
+.divider { height: 1px; background: rgba(255,255,255,.06); margin: 28px 0; }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint">
+  <strong>error-state-system-v2.html</strong> — Error state components.
+  5 error categories: <strong>(1)</strong> Network Error (no connection / timeout),
+  <strong>(2)</strong> Server Error (500/503 — our fault),
+  <strong>(3)</strong> Not Found (404 — resource doesn't exist),
+  <strong>(4)</strong> Permission Error (403 — user can't access),
+  <strong>(5)</strong> Data Error (loaded but malformed/unexpected).
+  Each has adult and child-safe variant.
+  Child errors: never show technical details; always use friendly language + emoji.
+  Adult errors: show error code + retry option + escalation path.
+  <strong>Never blame the user.</strong>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Error Gallery</button>
+  <button class="tab-btn" onclick="showTab(2)">Inline Errors</button>
+  <button class="tab-btn" onclick="showTab(3)">Child-Safe Errors</button>
+  <button class="tab-btn" onclick="showTab(4)">Spec</button>
+</div>
+
+<!-- ===================================
+     TAB 1 — ERROR GALLERY
+=================================== -->
+<div id="tab1" class="tab-panel active">
+
+  <div class="section-label">1 · Network Error</div>
+  <div class="error-card">
+    <div class="err-icon-wrap amber">📡</div>
+    <div class="err-title">Connection trouble</div>
+    <div class="err-body">We couldn't reach WonderQuest. Check your internet connection and try again.</div>
+    <div class="progress-badge">✓ Your progress is saved</div>
+    <div class="err-details">Error: Network timeout · Status: Offline</div>
+    <div class="cta-row">
+      <button class="btn-primary">Try Again</button>
+      <button class="btn-secondary">I'm offline — save my work</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-label">2 · Server Error (500)</div>
+  <div class="error-card">
+    <div class="err-icon-wrap red">🔧</div>
+    <div class="err-title">Something went wrong on our end</div>
+    <div class="err-body">WonderQuest ran into an unexpected problem. Our team has been notified automatically.</div>
+    <div class="err-details">Error ID: ERR-20260324-08291</div>
+    <div class="cta-row">
+      <button class="btn-primary">Reload Page</button>
+      <button class="btn-secondary">Contact Support</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-label">3 · Not Found (404)</div>
+  <div class="error-card">
+    <div class="err-icon-wrap muted">🔍</div>
+    <div class="err-title">This page doesn't exist</div>
+    <div class="err-body">The link you followed may have expired or the content has moved.</div>
+    <div class="err-links">
+      <a class="err-link">Go to Home</a>
+      <span class="err-link-sep">/</span>
+      <a class="err-link">Browse Content</a>
+      <span class="err-link-sep">/</span>
+      <a class="err-link">Contact Support</a>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-label">4 · Permission Error (403)</div>
+  <div class="error-card">
+    <div class="err-icon-wrap amber">🔒</div>
+    <div class="err-title">You don't have access to this</div>
+    <div class="err-body">This section requires different permissions. Contact your administrator if you need access.</div>
+    <div class="cta-row">
+      <button class="btn-primary">Go Back</button>
+      <button class="btn-secondary">Request Access</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-label">5 · Data Error (unexpected / malformed data)</div>
+  <div class="error-card">
+    <div class="err-icon-wrap amber">⚠️</div>
+    <div class="err-title">We couldn't load this content</div>
+    <div class="err-body">The data we received was unexpected. Try refreshing — if this keeps happening, contact support.</div>
+    <div class="err-details">Error ID: ERR-20260324-14503 · Data validation failed</div>
+    <div class="cta-row">
+      <button class="btn-primary">Refresh</button>
+      <button class="btn-secondary">Report Problem</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================================
+     TAB 2 — INLINE ERRORS
+=================================== -->
+<div id="tab2" class="tab-panel">
+
+  <!-- Form field validation -->
+  <div class="inline-section">
+    <h3>Form Field Validation Error</h3>
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input
+        class="form-input-error"
+        type="text"
+        value=""
+        placeholder="teacher@school.edu"
+        aria-describedby="email-err"
+      >
+      <span class="field-error-msg" id="email-err">⚠ This field is required</span>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="form-group">
+        <label class="form-label">Class name</label>
+        <input
+          class="form-input-error"
+          type="text"
+          value="Room 2"
+          style="border-bottom-color:#ef4444;"
+          aria-describedby="classname-err"
+        >
+        <span class="field-error-msg" id="classname-err">⚠ Must be at least 5 characters</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast / snackbar errors -->
+  <div class="inline-section">
+    <h3>Toast / Snackbar Errors</h3>
+    <div class="toast-container">
+      <div class="toast error">
+        <span class="toast-icon">❌</span>
+        <span class="toast-text">Failed to save changes</span>
+        <span class="toast-action">Retry</span>
+        <span class="toast-timer">5 · 4 · 3 · 2 · 1</span>
+      </div>
+      <div class="toast warning">
+        <span class="toast-icon">⚠️</span>
+        <span class="toast-text">Your session will expire in 5 minutes</span>
+        <span class="toast-action">Stay signed in</span>
+        <span class="toast-timer">10 · 9 · 8</span>
+      </div>
+      <div class="toast info">
+        <span class="toast-icon">ℹ️</span>
+        <span class="toast-text">Import is running in the background</span>
+        <span class="toast-action">View progress</span>
+        <span class="toast-timer">auto</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline card error in grid -->
+  <div class="inline-section">
+    <h3>Inline Card Error (one card fails to load in a grid)</h3>
+    <div class="inline-card-grid">
+      <div class="grid-card">
+        <div class="card-inner">
+          <div class="card-title-text">Module 3</div>
+          <div class="card-sub-text">Fractions & Decimals</div>
+        </div>
+      </div>
+      <div class="grid-card error-card-inline">
+        <div class="card-error-bar">⚠ Failed to load</div>
+        <div class="card-inner">
+          <div class="card-title-text" style="color:#8b949e;">Module 4</div>
+          <div class="card-sub-text">Could not retrieve content</div>
+        </div>
+      </div>
+      <div class="grid-card">
+        <div class="card-inner">
+          <div class="card-title-text">Module 5</div>
+          <div class="card-sub-text">Geometry Basics</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table row error -->
+  <div class="inline-section">
+    <h3>Table Row Error</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Last Activity</th>
+          <th>Progress</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Amara K.</td>
+          <td class="muted">Today, 9:14 AM</td>
+          <td>78%</td>
+          <td style="color:#50e890; font-size:12px; font-weight:600;">On track</td>
+          <td></td>
+        </tr>
+        <tr class="err-row">
+          <td>Ben T.</td>
+          <td class="muted">—</td>
+          <td class="td-error">⚠ Failed to load</td>
+          <td class="td-error">—</td>
+          <td><span class="td-retry">Retry row</span></td>
+        </tr>
+        <tr>
+          <td>Cleo M.</td>
+          <td class="muted">Yesterday</td>
+          <td>55%</td>
+          <td style="color:#f59e0b; font-size:12px; font-weight:600;">Needs attention</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- API error banner (owner/admin) -->
+  <div class="inline-section">
+    <h3>API Degraded Banner (Owner / Admin only)</h3>
+    <div class="api-banner">
+      <span style="font-size:18px; flex-shrink:0;">⚠️</span>
+      <div>
+        <div class="api-banner-text">
+          API degraded — Some features may not work correctly · Last checked 2 min ago
+        </div>
+        <div class="api-banner-meta">
+          Endpoint: /api/v2/sessions · HTTP 503 · Response time: 8,241 ms · Incident started 14:32 UTC
+        </div>
+      </div>
+    </div>
+    <p style="font-size:11px; color:#8b949e; margin-top:8px;">
+      Technical details (endpoint, HTTP status, response time) are shown only to <strong style="color:#50e890;">owner</strong> persona. Teachers and parents see the plain message only.
+    </p>
+  </div>
+
+</div>
+
+<!-- ===================================
+     TAB 3 — CHILD-SAFE ERRORS
+=================================== -->
+<div id="tab3" class="tab-panel">
+
+  <div class="section-label" style="margin-bottom:20px;">Child persona error variants — no technical details, friendly language, always a way out</div>
+
+  <div class="phone-grid">
+
+    <!-- Network error (child) -->
+    <div class="phone-wrap">
+      <div class="phone-label">Network Error</div>
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span>WonderQuest</span>
+          <span class="time">10:22</span>
+        </div>
+        <div class="phone-body">
+          <div class="child-emoji">📡</div>
+          <div class="child-title">Uh oh! Something's not working right now</div>
+          <div class="child-sub">Ask a grown-up to check the internet connection</div>
+          <div class="child-safe-badge">✓ Your stars are safe</div>
+          <button class="btn-child-primary">Try Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Server error (child) -->
+    <div class="phone-wrap">
+      <div class="phone-label">Server Error</div>
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span>WonderQuest</span>
+          <span class="time">10:22</span>
+        </div>
+        <div class="phone-body">
+          <div class="child-emoji">🔧</div>
+          <div class="child-title">WonderQuest is taking a little nap!</div>
+          <div class="child-sub">We'll be back really soon. Don't worry — your stars are safe! ⭐</div>
+          <div class="stars-safe">⭐ Your progress is saved ✓</div>
+          <button class="btn-child-primary">Try Again Later</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Not found (child) -->
+    <div class="phone-wrap">
+      <div class="phone-label">Not Found</div>
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span>WonderQuest</span>
+          <span class="time">10:22</span>
+        </div>
+        <div class="phone-body">
+          <div class="child-emoji">🗺️</div>
+          <div class="child-title">Oops! We got a bit lost!</div>
+          <div class="child-sub">This page went on an adventure. Let's go somewhere else!</div>
+          <button class="btn-child-primary">Go Home</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permission error (child) -->
+    <div class="phone-wrap">
+      <div class="phone-label">Permission Error</div>
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span>WonderQuest</span>
+          <span class="time">10:22</span>
+        </div>
+        <div class="phone-body">
+          <div class="child-emoji">🔒</div>
+          <div class="child-title">This part isn't ready for you yet!</div>
+          <div class="child-sub">Ask your teacher to help you find the right place</div>
+          <p style="font-size:11px; color:#7b5ea7; font-style:italic; margin-bottom:16px; line-height:1.5;">
+            Note: This error should almost never appear for children — routes are gated server-side.
+          </p>
+          <button class="btn-child-primary">Go Home</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:28px; background:#161b22; border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:16px;">
+    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#ef4444; margin-bottom:10px;">Child errors — what to NEVER show</div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      <span style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:6px; padding:4px 10px; font-size:12px; color:#ef4444; font-family:monospace;">error codes</span>
+      <span style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:6px; padding:4px 10px; font-size:12px; color:#ef4444; font-family:monospace;">HTTP status</span>
+      <span style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:6px; padding:4px 10px; font-size:12px; color:#ef4444; font-family:monospace;">"timeout"</span>
+      <span style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:6px; padding:4px 10px; font-size:12px; color:#ef4444; font-family:monospace;">"connection refused"</span>
+      <span style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:6px; padding:4px 10px; font-size:12px; color:#ef4444; font-family:monospace;">stack traces</span>
+      <span style="background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:6px; padding:4px 10px; font-size:12px; color:#ef4444; font-family:monospace;">"You are not allowed"</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================================
+     TAB 4 — SPEC
+=================================== -->
+<div id="tab4" class="tab-panel">
+
+  <!-- Component props -->
+  <div class="spec-block">
+    <h3>ErrorStateProps — Component Interface</h3>
+    <pre><span class="kw">interface</span> <span class="ty">ErrorStateProps</span> {
+  <span class="cm">/** One of 5 error categories */</span>
+  category:  <span class="str">'network'</span> | <span class="str">'server'</span> | <span class="str">'not_found'</span> | <span class="str">'permission'</span> | <span class="str">'data'</span>;
+
+  <span class="cm">/** Persona determines copy depth: child hides codes; owner sees all */</span>
+  persona:   <span class="str">'child'</span> | <span class="str">'teacher'</span> | <span class="str">'parent'</span> | <span class="str">'owner'</span> | <span class="str">'content'</span>;
+
+  <span class="cm">/** UUID-style — shown to teacher / owner only, for support reference */</span>
+  errorId?:  <span class="ty">string</span>;
+
+  <span class="cm">/** 404, 403, 500, 503, etc — rendered only to teacher / owner */</span>
+  httpStatus?: <span class="ty">number</span>;
+
+  <span class="cm">/** Shows [Try Again] CTA if true */</span>
+  retryable: <span class="ty">boolean</span>;
+
+  onRetry?:  () =&gt; <span class="ty">void</span>;
+  onBack?:   () =&gt; <span class="ty">void</span>;
+
+  <span class="cm">/** Controls layout/sizing */</span>
+  size:      <span class="str">'full_page'</span> | <span class="str">'full_card'</span> | <span class="str">'inline'</span> | <span class="str">'toast'</span>;
+}</pre>
+  </div>
+
+  <!-- Error taxonomy -->
+  <div class="spec-block">
+    <h3>Error Taxonomy</h3>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>HTTP codes</th>
+          <th>Retryable</th>
+          <th>Show Error ID</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="category-chip chip-network">network</span></td>
+          <td>—</td>
+          <td>Yes</td>
+          <td>No</td>
+          <td>Offline / timeout. Show progress-saved badge. Offer offline save if applicable.</td>
+        </tr>
+        <tr>
+          <td><span class="category-chip chip-server">server</span></td>
+          <td>500, 502, 503, 504</td>
+          <td>Yes</td>
+          <td>Yes (adult)</td>
+          <td>Always say team notified. Never blame user. Reload + Contact Support.</td>
+        </tr>
+        <tr>
+          <td><span class="category-chip chip-notfound">not_found</span></td>
+          <td>404</td>
+          <td>No</td>
+          <td>No</td>
+          <td>No error code in UI. Offer go-home / browse / support links.</td>
+        </tr>
+        <tr>
+          <td><span class="category-chip chip-permission">permission</span></td>
+          <td>401, 403</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Use "don't have access to this" — never "not allowed". Go Back + Request Access.</td>
+        </tr>
+        <tr>
+          <td><span class="category-chip chip-data">data</span></td>
+          <td>200 (bad payload)</td>
+          <td>Yes</td>
+          <td>Yes (adult)</td>
+          <td>Data loaded but malformed. Refresh + Report Problem. Team should be alerted.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Persona visibility matrix -->
+  <div class="spec-block">
+    <h3>Persona Visibility Matrix</h3>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Child</th>
+          <th>Parent</th>
+          <th>Teacher</th>
+          <th>Owner / Admin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Friendly copy</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+        </tr>
+        <tr>
+          <td>Error ID</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+        </tr>
+        <tr>
+          <td>HTTP status code</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+        </tr>
+        <tr>
+          <td>Technical details (endpoint, response)</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#50e890;">✓</td>
+        </tr>
+        <tr>
+          <td>Stack trace / raw error</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗ (server logs only)</td>
+        </tr>
+        <tr>
+          <td>Progress-saved badge</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+          <td style="color:#50e890;">✓</td>
+        </tr>
+        <tr>
+          <td>API degraded banner</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#ef4444;">✗</td>
+          <td style="color:#f59e0b;">Simplified</td>
+          <td style="color:#50e890;">Full detail</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Copy rules -->
+  <div class="spec-block">
+    <h3>Error Message Copy Rules</h3>
+    <div class="rule-list">
+      <div class="rule-row">
+        <span class="rule-icon">🚫</span>
+        <div class="rule-text">
+          <strong>Never blame the user.</strong>
+          <span class="no">"You did something wrong"</span>
+          <span class="yes">"Something went wrong on our end"</span>
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">🚫</span>
+        <div class="rule-text">
+          <strong>Never say "not allowed"</strong> for permission errors.
+          <span class="no">"You're not allowed here"</span>
+          <span class="yes">"You don't have access to this"</span>
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">🚫</span>
+        <div class="rule-text">
+          <strong>Never expose raw technical info to child or parent personas.</strong>
+          No stack traces, no HTTP codes, no endpoint paths.
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">✅</span>
+        <div class="rule-text">
+          <strong>Always include a way out.</strong> Every error state must offer go back, go home, retry, or contact support.
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">✅</span>
+        <div class="rule-text">
+          <strong>Server errors: always say the team has been notified</strong>, even if the alert is async / background.
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">✅</span>
+        <div class="rule-text">
+          <strong>Error IDs</strong> are UUID-style, shown only to teacher and owner personas, used for support reference.
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">✅</span>
+        <div class="rule-text">
+          <strong>Child errors:</strong> use warm, playful language. Include stars-are-safe reassurance whenever data or progress may be at risk.
+        </div>
+      </div>
+      <div class="rule-row">
+        <span class="rule-icon">✅</span>
+        <div class="rule-text">
+          <strong>No animations on error states</strong> — errors should be calm and still, not blinking or pulsing, to avoid anxiety.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Size variants -->
+  <div class="spec-block">
+    <h3>Size / Layout Variants</h3>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>size value</th>
+          <th>Use case</th>
+          <th>Container</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>full_page</td>
+          <td>Route-level error, entire page failed to load</td>
+          <td>Centered, max-width 560px, full viewport height</td>
+        </tr>
+        <tr>
+          <td>full_card</td>
+          <td>Dashboard card or section failed</td>
+          <td>Fills the card container, min-height 200px</td>
+        </tr>
+        <tr>
+          <td>inline</td>
+          <td>Form field, table row, grid item</td>
+          <td>Inline with surrounding content, no height change</td>
+        </tr>
+        <tr>
+          <td>toast</td>
+          <td>Non-blocking notification, auto-dismissible</td>
+          <td>Fixed bottom-center, z-index above all content</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.tab-panel').forEach((p, i) => {
+    p.classList.toggle('active', i + 1 === t);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i + 1 === t);
+  });
+}
+</script>
+
+</body>
+</html>

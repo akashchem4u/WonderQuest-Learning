@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Route Health Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-refresh{font-size:10px;color:rgba(255,255,255,.3)}
+.sh-actions{display:flex;align-items:center;gap:12px}
+.sha-btn{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.sha-incident{font-size:11px;font-weight:700;color:#f85149;cursor:pointer}
+
+/* Incident banner */
+.incident-banner{background:rgba(248,81,73,.1);border-bottom:2px solid rgba(248,81,73,.4);padding:10px 24px;display:flex;align-items:center;gap:12px}
+.ib-icon{font-size:16px}
+.ib-text{flex:1;font-size:12px;color:#f85149;font-weight:700}
+.ib-link{font-size:11px;font-weight:700;color:#f85149;cursor:pointer;text-decoration:underline}
+
+/* Status header bar */
+.status-hdr{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-cell{background:#0d1117;padding:14px 20px;display:flex;align-items:center;gap:10px}
+.shc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-green{background:#50e890}
+.dot-amber{background:#f59e0b}
+.dot-red{background:#f85149}
+.shc-body{}
+.shc-n{font-size:18px;font-weight:900;color:#f0f6ff}
+.shc-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.3)}
+
+/* Body layout */
+.rh-body{display:grid;grid-template-columns:1fr 340px;gap:0;min-height:560px}
+.rh-main{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06)}
+.rh-side{padding:18px 20px}
+
+/* Route table */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.route-table{width:100%;border-collapse:collapse}
+.rt-head th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);padding:6px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+.route-row td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;vertical-align:middle}
+.route-row:last-child td{border-bottom:none}
+.route-row.degraded{background:rgba(248,81,73,.04)}
+.route-row.warn{background:rgba(245,158,11,.03)}
+.rr-status{width:10px;height:10px;border-radius:50%}
+.rr-name{font-size:12px;font-weight:700;color:#f0f6ff}
+.rr-path{font-size:10px;color:rgba(255,255,255,.3)}
+.rr-metric{color:rgba(255,255,255,.6)}
+.rr-metric.over{color:#f85149;font-weight:700}
+.rr-metric.warn{color:#f59e0b;font-weight:700}
+.rr-uptime{font-weight:700}
+.up-good{color:#50e890}
+.up-warn{color:#f59e0b}
+.rr-expand{font-size:11px;color:rgba(255,255,255,.2);cursor:pointer}
+
+/* Expanded detail */
+.route-detail{background:rgba(255,255,255,.02);border-radius:0 0 8px 8px;padding:10px 12px;margin-top:-4px;margin-bottom:6px;font-size:10px;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.06);border-top:none}
+.rd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.rd-cell{background:#0d1117;border-radius:6px;padding:8px 10px}
+.rdc-n{font-size:14px;font-weight:900;color:#f0f6ff}
+.rdc-l{font-size:9px;color:rgba(255,255,255,.25);font-weight:700;text-transform:uppercase}
+.rd-steps{display:flex;flex-direction:column;gap:3px}
+.rd-step{display:flex;gap:6px;align-items:flex-start}
+.rds-dot{width:5px;height:5px;border-radius:50%;margin-top:3px;flex-shrink:0;background:rgba(248,81,73,.7)}
+.rds-text{color:rgba(255,255,255,.5)}
+
+/* Latency small multiples */
+.latency-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px}
+.lg-cell{background:#161b22;border-radius:8px;padding:10px}
+.lgc-name{font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:6px}
+.lgc-spark{display:flex;gap:2px;align-items:flex-end;height:28px}
+.lgs-bar{width:6px;border-radius:1px 1px 0 0;min-height:2px}
+.lgc-p95{font-size:10px;font-weight:700;margin-top:4px}
+.p95-ok{color:#50e890}
+.p95-warn{color:#f59e0b}
+.p95-over{color:#f85149}
+
+/* Side panels */
+.side-panel{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sp-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:10px}
+.incident-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.incident-item:last-child{border-bottom:none}
+.ii-header{display:flex;gap:8px;align-items:center;margin-bottom:2px}
+.ii-sev{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px}
+.is-p0{background:rgba(248,81,73,.2);color:#f85149}
+.is-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.ii-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);flex:1}
+.ii-meta{font-size:10px;color:rgba(255,255,255,.3)}
+.uptime-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.uptime-row:last-child{border-bottom:none}
+.ur-label{font-size:11px;color:rgba(255,255,255,.5);flex:1}
+.ur-val{font-size:11px;font-weight:700;color:#50e890}
+.ur-val.warn{color:#f59e0b}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-route-health-desktop-v3.html</strong><br>
+  Full-page route health monitoring dashboard for the owner. Distinct from the compact route strip on the home screen.<br>
+  <strong>Layout:</strong> Status header (healthy/degraded/down counts + overall uptime) → route table (all routes with p95/p99/uptime) → latency small multiples → sidebar (incident log + 30-day uptime).<br>
+  <strong>Refresh:</strong> Route health auto-refreshes every 60 seconds. "Refreshed N min ago" shown in header.<br>
+  <strong>Data:</strong> Metrics from infrastructure monitoring (Datadog/Grafana equivalent). p95/p99 thresholds: 200ms/500ms. Uptime threshold: 99.5%.<br>
+  <strong>Route count:</strong> 10 routes covered. Collapsed by default; expand to see resolution steps + 6-point sparkline.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('healthy')">All Healthy</button>
+  <button class="tab-btn" onclick="showTab('incident')">With P0 Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── All Healthy ─────────────────────────────────────────── -->
+<div id="tab-healthy" class="screen active">
+  <p class="section-title">Route health — all healthy state</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📡 Route Health</div>
+        <div class="sh-refresh">Refreshed 45s ago · Auto 60s</div>
+      </div>
+      <div class="sh-actions">
+        <span class="sha-btn">Re-check now</span>
+        <span class="sha-btn">↓ Export</span>
+        <span class="sha-incident">+ Declare Incident</span>
+      </div>
+    </div>
+    <div class="status-hdr">
+      <div class="sh-cell"><div class="shc-dot dot-green"></div><div class="shc-body"><div class="shc-n">10</div><div class="shc-l">Healthy</div></div></div>
+      <div class="sh-cell"><div class="shc-dot dot-amber"></div><div class="shc-body"><div class="shc-n" style="color:rgba(255,255,255,.3)">0</div><div class="shc-l">Degraded</div></div></div>
+      <div class="sh-cell"><div class="shc-dot dot-red"></div><div class="shc-body"><div class="shc-n" style="color:rgba(255,255,255,.3)">0</div><div class="shc-l">Down</div></div></div>
+      <div class="sh-cell"><div class="shc-dot dot-green"></div><div class="shc-body"><div class="shc-n" style="color:#50e890">99.8%</div><div class="shc-l">30d Uptime</div></div></div>
+    </div>
+    <div class="rh-body">
+      <div class="rh-main">
+        <div class="sec-hdr">All Routes — 10 monitored</div>
+        <table class="route-table">
+          <thead class="rt-head">
+            <tr>
+              <th style="width:12px"></th>
+              <th>Route</th>
+              <th>p95</th>
+              <th>p99</th>
+              <th>Error rate</th>
+              <th>30d uptime</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Play Session</div><div class="rr-path">/play/session</div></td>
+              <td class="rr-metric">142ms</td><td class="rr-metric">188ms</td>
+              <td class="rr-metric">0.02%</td>
+              <td class="rr-uptime up-good">99.9%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Adaptive Engine</div><div class="rr-path">/api/adaptive/next</div></td>
+              <td class="rr-metric">178ms</td><td class="rr-metric">230ms</td>
+              <td class="rr-metric">0.01%</td>
+              <td class="rr-uptime up-good">99.8%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Assignment Engine</div><div class="rr-path">/api/assignments</div></td>
+              <td class="rr-metric">165ms</td><td class="rr-metric">210ms</td>
+              <td class="rr-metric">0.03%</td>
+              <td class="rr-uptime up-good">99.9%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Teacher Dashboard</div><div class="rr-path">/teacher/dashboard</div></td>
+              <td class="rr-metric">98ms</td><td class="rr-metric">145ms</td>
+              <td class="rr-metric">0.00%</td>
+              <td class="rr-uptime up-good">100%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Parent Dashboard</div><div class="rr-path">/parent/dashboard</div></td>
+              <td class="rr-metric">88ms</td><td class="rr-metric">120ms</td>
+              <td class="rr-metric">0.00%</td>
+              <td class="rr-uptime up-good">100%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Auth / SSO</div><div class="rr-path">/auth/sso</div></td>
+              <td class="rr-metric">110ms</td><td class="rr-metric">160ms</td>
+              <td class="rr-metric">0.01%</td>
+              <td class="rr-uptime up-good">99.7%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Content Delivery</div><div class="rr-path">/api/content</div></td>
+              <td class="rr-metric">55ms</td><td class="rr-metric">82ms</td>
+              <td class="rr-metric">0.00%</td>
+              <td class="rr-uptime up-good">100%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Mastery Score</div><div class="rr-path">/api/mastery</div></td>
+              <td class="rr-metric">130ms</td><td class="rr-metric">175ms</td>
+              <td class="rr-metric">0.02%</td>
+              <td class="rr-uptime up-good">99.9%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Notification Delivery</div><div class="rr-path">/api/notifications</div></td>
+              <td class="rr-metric">75ms</td><td class="rr-metric">110ms</td>
+              <td class="rr-metric">0.00%</td>
+              <td class="rr-uptime up-good">100%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+            <tr class="route-row">
+              <td><div class="rr-status" style="background:#50e890"></div></td>
+              <td><div class="rr-name">Reports / Export</div><div class="rr-path">/api/reports</div></td>
+              <td class="rr-metric">310ms</td><td class="rr-metric">420ms</td>
+              <td class="rr-metric">0.01%</td>
+              <td class="rr-uptime up-good">99.8%</td>
+              <td class="rr-expand">▸</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="sec-hdr" style="margin-top:20px">Latency Trend — p95 · Last 6 checks</div>
+        <div class="latency-grid">
+          <div class="lg-cell">
+            <div class="lgc-name">Play Session</div>
+            <div class="lgc-spark">
+              <div class="lgs-bar" style="height:14px;background:#50e890;opacity:.5"></div>
+              <div class="lgs-bar" style="height:18px;background:#50e890;opacity:.6"></div>
+              <div class="lgs-bar" style="height:12px;background:#50e890;opacity:.5"></div>
+              <div class="lgs-bar" style="height:16px;background:#50e890;opacity:.6"></div>
+              <div class="lgs-bar" style="height:20px;background:#50e890;opacity:.65"></div>
+              <div class="lgs-bar" style="height:14px;background:#50e890;opacity:.6"></div>
+            </div>
+            <div class="lgc-p95 p95-ok">142ms ✓</div>
+          </div>
+          <div class="lg-cell">
+            <div class="lgc-name">Adaptive Engine</div>
+            <div class="lgc-spark">
+              <div class="lgs-bar" style="height:16px;background:#50e890;opacity:.55"></div>
+              <div class="lgs-bar" style="height:22px;background:#50e890;opacity:.65"></div>
+              <div class="lgs-bar" style="height:18px;background:#50e890;opacity:.6"></div>
+              <div class="lgs-bar" style="height:20px;background:#50e890;opacity:.6"></div>
+              <div class="lgs-bar" style="height:24px;background:#50e890;opacity:.65"></div>
+              <div class="lgs-bar" style="height:18px;background:#50e890;opacity:.6"></div>
+            </div>
+            <div class="lgc-p95 p95-ok">178ms ✓</div>
+          </div>
+          <div class="lg-cell">
+            <div class="lgc-name">Assignment</div>
+            <div class="lgc-spark">
+              <div class="lgs-bar" style="height:15px;background:#50e890;opacity:.55"></div>
+              <div class="lgs-bar" style="height:17px;background:#50e890;opacity:.6"></div>
+              <div class="lgs-bar" style="height:14px;background:#50e890;opacity:.5"></div>
+              <div class="lgs-bar" style="height:16px;background:#50e890;opacity:.55"></div>
+              <div class="lgs-bar" style="height:19px;background:#50e890;opacity:.6"></div>
+              <div class="lgs-bar" style="height:15px;background:#50e890;opacity:.55"></div>
+            </div>
+            <div class="lgc-p95 p95-ok">165ms ✓</div>
+          </div>
+          <div class="lg-cell">
+            <div class="lgc-name">Auth / SSO</div>
+            <div class="lgc-spark">
+              <div class="lgs-bar" style="height:10px;background:#50e890;opacity:.5"></div>
+              <div class="lgs-bar" style="height:12px;background:#50e890;opacity:.55"></div>
+              <div class="lgs-bar" style="height:11px;background:#50e890;opacity:.5"></div>
+              <div class="lgs-bar" style="height:13px;background:#50e890;opacity:.55"></div>
+              <div class="lgs-bar" style="height:12px;background:#50e890;opacity:.5"></div>
+              <div class="lgs-bar" style="height:11px;background:#50e890;opacity:.5"></div>
+            </div>
+            <div class="lgc-p95 p95-ok">110ms ✓</div>
+          </div>
+          <div class="lg-cell">
+            <div class="lgc-name">Reports</div>
+            <div class="lgc-spark">
+              <div class="lgs-bar" style="height:22px;background:#f59e0b;opacity:.6"></div>
+              <div class="lgs-bar" style="height:25px;background:#f59e0b;opacity:.65"></div>
+              <div class="lgs-bar" style="height:20px;background:#f59e0b;opacity:.55"></div>
+              <div class="lgs-bar" style="height:28px;background:#f59e0b;opacity:.7"></div>
+              <div class="lgs-bar" style="height:24px;background:#f59e0b;opacity:.65"></div>
+              <div class="lgs-bar" style="height:26px;background:#f59e0b;opacity:.65"></div>
+            </div>
+            <div class="lgc-p95 p95-warn">310ms ⚠</div>
+          </div>
+        </div>
+      </div>
+      <div class="rh-side">
+        <div class="side-panel">
+          <div class="sp-title">Incident Log — Last 30 days</div>
+          <div class="incident-item">
+            <div class="ii-header"><span class="ii-sev is-p0">P0</span><div class="ii-title">SSO token expiry</div></div>
+            <div class="ii-meta">Auth · 3h 18m · Resolved · Mar 24</div>
+          </div>
+          <div class="incident-item">
+            <div class="ii-header"><span class="ii-sev is-p0">P0</span><div class="ii-title">Assignment queue failure</div></div>
+            <div class="ii-meta">Assignment · 5h 45m · Resolved · Mar 17</div>
+          </div>
+          <div class="incident-item">
+            <div class="ii-header"><span class="ii-sev is-p1">P1</span><div class="ii-title">Mastery score lag spike</div></div>
+            <div class="ii-meta">Mastery · 22h · Resolved · Mar 10</div>
+          </div>
+          <div class="incident-item">
+            <div class="ii-header"><span class="ii-sev is-p1">P1</span><div class="ii-title">Content CDN cache miss spike</div></div>
+            <div class="ii-meta">Content · 4h · Resolved · Feb 28</div>
+          </div>
+        </div>
+
+        <div class="side-panel">
+          <div class="sp-title">30-Day Uptime</div>
+          <div class="uptime-row"><div class="ur-label">Play Session</div><div class="ur-val">99.9%</div></div>
+          <div class="uptime-row"><div class="ur-label">Adaptive Engine</div><div class="ur-val">99.8%</div></div>
+          <div class="uptime-row"><div class="ur-label">Assignment</div><div class="ur-val">99.9%</div></div>
+          <div class="uptime-row"><div class="ur-label">Auth / SSO</div><div class="ur-val warn">99.7%</div></div>
+          <div class="uptime-row"><div class="ur-label">Content Delivery</div><div class="ur-val">100%</div></div>
+          <div class="uptime-row"><div class="ur-label">Notifications</div><div class="ur-val">100%</div></div>
+          <div class="uptime-row"><div class="ur-label">Reports</div><div class="ur-val warn">99.8%</div></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px">SLA threshold: 99.5%. Auth/SSO and Reports are lowest — monitor closely.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── With P0 Incident ────────────────────────────────────── -->
+<div id="tab-incident" class="screen">
+  <p class="section-title">Route health — P0 incident active</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📡 Route Health</div>
+        <div class="sh-refresh" style="color:#f85149">P0 INCIDENT ACTIVE · Refreshing every 10s</div>
+      </div>
+      <div class="sh-actions">
+        <span class="sha-btn">Re-check now</span>
+        <span style="font-size:11px;font-weight:700;color:#f85149">PD-4412 Open</span>
+      </div>
+    </div>
+    <div class="incident-banner">
+      <div class="ib-icon">🚨</div>
+      <div class="ib-text">P0 INCIDENT: Assignment Engine — queue processing failure · Est. 8–12 schools affected · Engineering on-call active since 6:22 AM</div>
+      <div class="ib-link">View Incident →</div>
+    </div>
+    <div class="status-hdr">
+      <div class="sh-cell"><div class="shc-dot dot-green"></div><div class="shc-body"><div class="shc-n">9</div><div class="shc-l">Healthy</div></div></div>
+      <div class="sh-cell"><div class="shc-dot dot-amber"></div><div class="shc-body"><div class="shc-n" style="color:#f59e0b">0</div><div class="shc-l">Degraded</div></div></div>
+      <div class="sh-cell"><div class="shc-dot dot-red"></div><div class="shc-body"><div class="shc-n" style="color:#f85149">1</div><div class="shc-l">Down</div></div></div>
+      <div class="sh-cell"><div class="shc-dot dot-amber"></div><div class="shc-body"><div class="shc-n" style="color:#f59e0b">98.9%</div><div class="shc-l">Current Uptime</div></div></div>
+    </div>
+    <div class="rh-body">
+      <div class="rh-main">
+        <div class="sec-hdr">All Routes — 1 incident</div>
+        <table class="route-table">
+          <thead class="rt-head">
+            <tr><th style="width:12px"></th><th>Route</th><th>p95</th><th>p99</th><th>Error rate</th><th>30d uptime</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr class="route-row degraded">
+              <td><div class="rr-status" style="background:#f85149"></div></td>
+              <td><div class="rr-name">Assignment Engine</div><div class="rr-path">/api/assignments</div></td>
+              <td class="rr-metric over">—</td><td class="rr-metric over">—</td>
+              <td class="rr-metric over">12.4%</td>
+              <td class="rr-uptime up-warn">98.1%</td>
+              <td class="rr-expand" style="color:#f85149">▾</td>
+            </tr>
+            <tr>
+              <td colspan="7">
+                <div class="route-detail">
+                  <div class="rd-grid">
+                    <div class="rd-cell"><div class="rdc-n" style="color:#f85149">12.4%</div><div class="rdc-l">Error rate</div></div>
+                    <div class="rd-cell"><div class="rdc-n" style="color:#f85149">—</div><div class="rdc-l">p95 (down)</div></div>
+                    <div class="rd-cell"><div class="rdc-n" style="color:#f59e0b">98.1%</div><div class="rdc-l">30d uptime</div></div>
+                  </div>
+                  <div class="rd-steps">
+                    <div class="rd-step"><div class="rds-dot"></div><div class="rds-text">Queue processor failing silently — tasks enqueued but not delivered to students</div></div>
+                    <div class="rd-step"><div class="rds-dot"></div><div class="rds-text">Engineering investigating: Redis queue backlog growing (currently 2,400 unprocessed)</div></div>
+                    <div class="rd-step"><div class="rds-dot"></div><div class="rds-text">Workaround: manually clear queue via admin CLI (drops assignments — requires teacher re-submission)</div></div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr class="route-row"><td><div class="rr-status" style="background:#50e890"></div></td><td><div class="rr-name">Play Session</div><div class="rr-path">/play/session</div></td><td class="rr-metric">142ms</td><td class="rr-metric">188ms</td><td class="rr-metric">0.02%</td><td class="rr-uptime up-good">99.9%</td><td class="rr-expand">▸</td></tr>
+            <tr class="route-row"><td><div class="rr-status" style="background:#50e890"></div></td><td><div class="rr-name">Adaptive Engine</div><div class="rr-path">/api/adaptive/next</div></td><td class="rr-metric">178ms</td><td class="rr-metric">230ms</td><td class="rr-metric">0.01%</td><td class="rr-uptime up-good">99.8%</td><td class="rr-expand">▸</td></tr>
+            <tr class="route-row"><td><div class="rr-status" style="background:#50e890"></div></td><td><div class="rr-name">Auth / SSO</div><div class="rr-path">/auth/sso</div></td><td class="rr-metric">110ms</td><td class="rr-metric">160ms</td><td class="rr-metric">0.01%</td><td class="rr-uptime up-good">99.7%</td><td class="rr-expand">▸</td></tr>
+            <tr class="route-row"><td><div class="rr-status" style="background:#50e890"></div></td><td><div class="rr-name">Teacher Dashboard</div><div class="rr-path">/teacher/dashboard</div></td><td class="rr-metric">98ms</td><td class="rr-metric">145ms</td><td class="rr-metric">0.00%</td><td class="rr-uptime up-good">100%</td><td class="rr-expand">▸</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rh-side">
+        <div class="side-panel" style="border-color:rgba(248,81,73,.2)">
+          <div class="sp-title" style="color:#f85149">Active Incident</div>
+          <div class="incident-item">
+            <div class="ii-header"><span class="ii-sev is-p0">P0</span><div class="ii-title">Assignment queue failure</div></div>
+            <div class="ii-meta">PD-4412 · Started 6:10 AM · 5h+ open</div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px">Engineering acknowledged 6:22 AM. Est. resolution: unknown. Escalation: on-call team.</div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Route Status Quick View</div>
+          <div class="uptime-row"><div class="ur-label">Assignment Engine</div><div class="ur-val" style="color:#f85149">DOWN</div></div>
+          <div class="uptime-row"><div class="ur-label">Play Session</div><div class="ur-val">Healthy</div></div>
+          <div class="uptime-row"><div class="ur-label">Adaptive Engine</div><div class="ur-val">Healthy</div></div>
+          <div class="uptime-row"><div class="ur-label">Auth / SSO</div><div class="ur-val">Healthy</div></div>
+          <div class="uptime-row"><div class="ur-label">All other routes</div><div class="ur-val">Healthy</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-route-health-desktop-v3.html<br>
+      <strong>Full route health monitoring page.</strong> Distinct from compact home strip. 10 routes. p95/p99/uptime/error rate. Incident banner. Latency small multiples.
+    </div>
+    <h2 class="spec-h2">Routes Monitored</h2>
+    <p class="spec-p">10 routes: Play Session / Adaptive Engine / Assignment Engine / Teacher Dashboard / Parent Dashboard / Auth SSO / Content Delivery / Mastery Score / Notification Delivery / Reports Export.</p>
+    <h2 class="spec-h2">Refresh Cadence</h2>
+    <p class="spec-p">Normal: 60s auto-refresh. During active P0 incident: 10s refresh. Manual "Re-check now" forces immediate fetch. Timestamp shown as "Refreshed N ago".</p>
+    <h2 class="spec-h2">Thresholds</h2>
+    <p class="spec-p">p95 &gt; 200ms = amber warning. p95 &gt; 300ms = degraded. Error rate &gt; 0.5% = amber. Error rate &gt; 2% = red/down. Uptime &lt; 99.5% = amber. Uptime &lt; 99.0% = red.</p>
+    <h2 class="spec-h2">Latency Sparklines</h2>
+    <p class="spec-p">Mini bar charts show last 6 check intervals (each interval = refresh cadence). Bars coloured by threshold (green/amber/red). p95 displayed below each. Reports route shown as amber even when "healthy" — intentional as it always runs slower than others (generates heavy reports).</p>
+    <h2 class="spec-h2">Incident Declaration</h2>
+    <p class="spec-p">"+ Declare Incident" button opens an incident form: severity (P0/P1), affected route(s), description. Auto-creates PagerDuty alert + #on-call Slack message + incident log entry. P0 declarations also show non-dismissible banner on owner home screen.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

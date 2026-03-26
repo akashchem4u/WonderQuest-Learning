@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=900px, initial-scale=1.0">
+<title>Owner Feedback Triage — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+.hint-box { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 14px 18px; margin: 16px; font-size: 12px; color: #ffd166; line-height: 1.6; }
+.hint-box strong { font-size: 13px; }
+nav { background: #161b22; border-bottom: 1px solid #30363d; padding: 0 20px; display: flex; align-items: center; height: 52px; gap: 16px; }
+nav .logo { color: #ffd166; font-weight: 700; font-size: 16px; }
+nav .sub { color: #8b949e; font-size: 13px; }
+.tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 1px solid #30363d; background: #0d1117; }
+.tab { padding: 9px 16px; font-size: 13px; font-weight: 600; color: #8b949e; cursor: pointer; border-radius: 6px 6px 0 0; background: #161b22; border: 1px solid #30363d; border-bottom: none; font-family: 'Sora', sans-serif; }
+.tab.active { background: #21262d; color: #ffd166; border-color: #ffd166; }
+.tab:hover:not(.active) { background: #1c2128; color: #c9d1d9; }
+.panel { display: none; padding: 20px 16px; }
+.panel.active { display: block; }
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.search-input { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #c9d1d9; font-family: 'Sora', sans-serif; font-size: 13px; width: 220px; }
+.search-input:focus { outline: none; border-color: #ffd166; }
+.filter-chip { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; border: 1.5px solid #30363d; cursor: pointer; background: #161b22; color: #8b949e; font-family: 'Sora', sans-serif; }
+.filter-chip.active { color: #0d1117; }
+.chip-p0 { border-color: #e84040; }
+.chip-p0.active { background: #e84040; color: #fff; }
+.chip-p1 { border-color: #e89030; }
+.chip-p1.active { background: #e89030; color: #fff; }
+.chip-p2 { border-color: #4a9070; }
+.chip-p2.active { background: #4a9070; color: #fff; }
+.chip-p3 { border-color: #4a7090; }
+.chip-p3.active { background: #4a7090; color: #fff; }
+.bulk-bar { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.bulk-bar span { font-size: 13px; color: #ffd166; font-weight: 600; }
+.btn-sm { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-family: 'Sora', sans-serif; }
+.btn-gold { background: #ffd166; color: #0d1117; }
+.btn-ghost { background: transparent; border: 1px solid #30363d; color: #c9d1d9; }
+.btn-red { background: #4a1515; color: #e84040; border: 1px solid #e84040; }
+table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 10px; overflow: hidden; }
+thead tr { border-bottom: 1px solid #30363d; }
+th { padding: 10px 12px; font-size: 11px; font-weight: 700; color: #8b949e; text-align: left; text-transform: uppercase; letter-spacing: .5px; }
+td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #21262d; color: #c9d1d9; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #1c2128; }
+.sev-chip { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+.sev-p0 { background: #4a0a0a; color: #ff6b6b; border: 1px solid #e84040; }
+.sev-p1 { background: #3a2000; color: #ffb347; border: 1px solid #e89030; }
+.sev-p2 { background: #0a2a1a; color: #58e8c1; border: 1px solid #4a9070; }
+.sev-p3 { background: #0a1a2a; color: #58c8f0; border: 1px solid #4a7090; }
+.state-chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; display: inline-block; }
+.state-open { background: #21262d; color: #ff6b6b; }
+.state-progress { background: #21262d; color: #ffb347; }
+.state-resolved { background: #21262d; color: #58e8c1; }
+.sla-ok { color: #58e8c1; font-size: 12px; }
+.sla-risk { color: #ffb347; font-size: 12px; font-weight: 600; }
+.sla-over { color: #ff6b6b; font-size: 12px; font-weight: 700; }
+.action-cell { display: flex; gap: 5px; }
+.chart-card { background: #161b22; border-radius: 10px; padding: 20px; margin-bottom: 16px; border: 1px solid #30363d; }
+.chart-card h3 { font-size: 14px; color: #ffd166; margin-bottom: 16px; }
+.sev-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.sev-bar-label { width: 28px; font-size: 12px; font-weight: 700; }
+.sev-bar-outer { flex: 1; background: #21262d; border-radius: 20px; height: 24px; overflow: hidden; }
+.sev-bar-inner { height: 100%; border-radius: 20px; display: flex; align-items: center; padding-left: 12px; font-size: 11px; font-weight: 700; color: #0d1117; }
+.sev-bar-count { width: 30px; font-size: 13px; font-weight: 700; text-align: right; }
+.team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.team-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; }
+.team-card .assignee { font-weight: 700; font-size: 14px; color: #c9d1d9; margin-bottom: 8px; }
+.queue-counts { display: flex; gap: 8px; flex-wrap: wrap; }
+.qc { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; }
+.sla-table { width: 100%; }
+.sla-section { margin-bottom: 16px; }
+.sla-section h4 { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+.sla-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #161b22; border-radius: 8px; margin-bottom: 6px; border: 1px solid #21262d; }
+.sla-id { font-size: 12px; color: #8b949e; width: 60px; }
+.sla-summary { flex: 1; font-size: 13px; color: #c9d1d9; }
+.sla-time { font-size: 12px; font-weight: 700; }
+.spec-block { background: #161b22; border-radius: 10px; padding: 20px; border: 1px solid #30363d; line-height: 1.7; }
+.spec-block h3 { color: #ffd166; margin-bottom: 10px; font-size: 15px; }
+.spec-block p { font-size: 13px; color: #8b949e; margin-bottom: 10px; }
+.spec-block ul { margin-left: 18px; font-size: 13px; color: #8b949e; }
+input[type=checkbox] { accent-color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>Engineering Routes — owner-feedback-triage-desktop-v2</strong><br>
+  GET /owner/feedback?state=open returns queue sorted by severity (P0 first) · Auth: owner JWT<br>
+  PATCH /owner/feedback/{id} { state, assignee } · POST /owner/feedback/{id}/link-pr { pr_url }<br>
+  Severity chips: P0=critical/red · P1=high/amber · P2=medium/teal · P3=low/blue. SLA: P0=4h · P1=24h · P2=72h · P3=7d
+</div>
+
+<nav>
+  <span class="logo">WonderQuest</span>
+  <span class="sub">Owner · Feedback Triage</span>
+  <span style="margin-left:auto;font-size:12px;color:#ffd166;background:#2a1f00;padding:4px 10px;border-radius:20px">12 Open · 2 P0</span>
+</nav>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('triage',this)">Triage Queue</button>
+  <button class="tab" onclick="show('severitymix',this)">Severity Mix</button>
+  <button class="tab" onclick="show('assignee',this)">Assignee Board</button>
+  <button class="tab" onclick="show('sla',this)">SLA Tracker</button>
+  <button class="tab" onclick="show('spec',this)">Spec</button>
+</div>
+
+<div id="triage" class="panel active">
+  <div class="toolbar">
+    <input class="search-input" type="text" placeholder="Search feedback...">
+    <button class="filter-chip chip-p0 active" onclick="toggleChip(this)">P0</button>
+    <button class="filter-chip chip-p1 active" onclick="toggleChip(this)">P1</button>
+    <button class="filter-chip chip-p2 active" onclick="toggleChip(this)">P2</button>
+    <button class="filter-chip chip-p3 active" onclick="toggleChip(this)">P3</button>
+    <span style="margin-left:auto;font-size:12px;color:#8b949e">Showing 12 items</span>
+  </div>
+  <div class="bulk-bar">
+    <input type="checkbox" id="selectAll"> <label for="selectAll" style="font-size:13px;color:#8b949e;cursor:pointer">Select all</label>
+    <span>0 selected</span>
+    <button class="btn-sm btn-gold">Bulk Assign</button>
+    <button class="btn-sm btn-ghost">Bulk Resolve</button>
+    <button class="btn-sm btn-ghost">Export</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:32px"></th>
+        <th>ID</th>
+        <th>Summary</th>
+        <th>Severity</th>
+        <th>State</th>
+        <th>Assignee</th>
+        <th>SLA</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1041</td>
+        <td>Child session crashes on iOS 17.4 after third question</td>
+        <td><span class="sev-chip sev-p0">P0</span></td>
+        <td><span class="state-chip state-progress">in-progress</span></td>
+        <td>@kai</td>
+        <td class="sla-over">2h left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Assign</button>
+          <button class="btn-sm btn-ghost">Link PR</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1038</td>
+        <td>Star reward animation not playing after session complete</td>
+        <td><span class="sev-chip sev-p0">P0</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>—</td>
+        <td class="sla-over">Overdue</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-gold">Assign</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1035</td>
+        <td>Parent dashboard shows wrong child name after switching profiles</td>
+        <td><span class="sev-chip sev-p1">P1</span></td>
+        <td><span class="state-chip state-progress">in-progress</span></td>
+        <td>@priya</td>
+        <td class="sla-risk">8h left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Link PR</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1032</td>
+        <td>Streak counter shows -1 after timezone edge case at midnight</td>
+        <td><span class="sev-chip sev-p1">P1</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>—</td>
+        <td class="sla-risk">14h left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-gold">Assign</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1028</td>
+        <td>Teacher assignment creator: due date picker not saving on Safari</td>
+        <td><span class="sev-chip sev-p1">P1</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>@sam</td>
+        <td class="sla-ok">18h left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Link PR</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1025</td>
+        <td>Badge earned notification shows but badge not appearing in collection</td>
+        <td><span class="sev-chip sev-p2">P2</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>—</td>
+        <td class="sla-ok">2d left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-gold">Assign</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1022</td>
+        <td>World map background flicker on low-end Android devices</td>
+        <td><span class="sev-chip sev-p2">P2</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>@kai</td>
+        <td class="sla-ok">3d left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Link PR</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1018</td>
+        <td>Content admin explainer preview audio plays twice on mobile</td>
+        <td><span class="sev-chip sev-p2">P2</span></td>
+        <td><span class="state-chip state-progress">in-progress</span></td>
+        <td>@priya</td>
+        <td class="sla-ok">4d left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Link PR</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1014</td>
+        <td>Font weight inconsistency on tablet in child home hub</td>
+        <td><span class="sev-chip sev-p3">P3</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>—</td>
+        <td class="sla-ok">5d left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Assign</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+      <tr>
+        <td><input type="checkbox"></td>
+        <td style="color:#8b949e;font-size:12px">#1010</td>
+        <td>Owner analytics export CSV has wrong column headers</td>
+        <td><span class="sev-chip sev-p3">P3</span></td>
+        <td><span class="state-chip state-open">open</span></td>
+        <td>@sam</td>
+        <td class="sla-ok">6d left</td>
+        <td class="action-cell">
+          <button class="btn-sm btn-ghost">Link PR</button>
+          <button class="btn-sm btn-ghost">Resolve</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="severitymix" class="panel">
+  <div class="chart-card">
+    <h3>Severity Mix — Open Issues</h3>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#ff6b6b">P0</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:16%;background:#e84040">2</div></div>
+      <div class="sev-bar-count" style="color:#ff6b6b">2</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#ffb347">P1</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:25%;background:#e89030">3</div></div>
+      <div class="sev-bar-count" style="color:#ffb347">3</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#58e8c1">P2</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:41%;background:#4a9070">5</div></div>
+      <div class="sev-bar-count" style="color:#58e8c1">5</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#58c8f0">P3</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:16%;background:#4a7090">2</div></div>
+      <div class="sev-bar-count" style="color:#58c8f0">2</div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3>State Mix — All Issues</h3>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#ff6b6b;width:100px">Open</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:58%;background:#4a1515;color:#ff6b6b">7 open</div></div>
+      <div class="sev-bar-count" style="color:#ff6b6b">7</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#ffb347;width:100px">In Progress</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:33%;background:#3a2000;color:#ffb347">4 in progress</div></div>
+      <div class="sev-bar-count" style="color:#ffb347">4</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-bar-label" style="color:#58e8c1;width:100px">Resolved</div>
+      <div class="sev-bar-outer"><div class="sev-bar-inner" style="width:66%;background:#0a2a1a;color:#58e8c1">8 resolved this week</div></div>
+      <div class="sev-bar-count" style="color:#58e8c1">8</div>
+    </div>
+  </div>
+</div>
+
+<div id="assignee" class="panel">
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="assignee">@kai</div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:8px">Engineering Lead</div>
+      <div class="queue-counts">
+        <span class="qc sev-p0">1x P0</span>
+        <span class="qc sev-p2">1x P2</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#8b949e">2 open · 1 in-progress</div>
+    </div>
+    <div class="team-card">
+      <div class="assignee">@priya</div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:8px">Product Engineer</div>
+      <div class="queue-counts">
+        <span class="qc sev-p1">1x P1</span>
+        <span class="qc sev-p2">1x P2</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#8b949e">2 open · 2 in-progress</div>
+    </div>
+    <div class="team-card">
+      <div class="assignee">@sam</div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:8px">Frontend Dev</div>
+      <div class="queue-counts">
+        <span class="qc sev-p1">1x P1</span>
+        <span class="qc sev-p3">1x P3</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#8b949e">2 open · 0 in-progress</div>
+    </div>
+    <div class="team-card" style="border-color:#ffd16640">
+      <div class="assignee" style="color:#ffd166">Unassigned</div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:8px">Needs assignment</div>
+      <div class="queue-counts">
+        <span class="qc sev-p0">1x P0</span>
+        <span class="qc sev-p2">2x P2</span>
+        <span class="qc sev-p3">1x P3</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#ff6b6b;font-weight:700">4 unassigned!</div>
+    </div>
+  </div>
+</div>
+
+<div id="sla" class="panel">
+  <div class="sla-section">
+    <h4 style="color:#ff6b6b">Overdue — Act Now</h4>
+    <div class="sla-row">
+      <div class="sla-id">#1038</div>
+      <div class="sla-summary">Star reward animation not playing after session complete</div>
+      <span class="sev-chip sev-p0">P0</span>
+      <div class="sla-time sla-over">Overdue by 3h</div>
+      <button class="btn-sm btn-gold">Assign Now</button>
+    </div>
+  </div>
+  <div class="sla-section">
+    <h4 style="color:#ffb347">At Risk — Act Soon</h4>
+    <div class="sla-row">
+      <div class="sla-id">#1041</div>
+      <div class="sla-summary">Child session crashes on iOS 17.4 after third question</div>
+      <span class="sev-chip sev-p0">P0</span>
+      <div class="sla-time sla-over">2h left</div>
+      <button class="btn-sm btn-ghost">View</button>
+    </div>
+    <div class="sla-row">
+      <div class="sla-id">#1035</div>
+      <div class="sla-summary">Parent dashboard shows wrong child name after switching profiles</div>
+      <span class="sev-chip sev-p1">P1</span>
+      <div class="sla-time sla-risk">8h left</div>
+      <button class="btn-sm btn-ghost">View</button>
+    </div>
+    <div class="sla-row">
+      <div class="sla-id">#1032</div>
+      <div class="sla-summary">Streak counter shows -1 after timezone edge case at midnight</div>
+      <span class="sev-chip sev-p1">P1</span>
+      <div class="sla-time sla-risk">14h left</div>
+      <button class="btn-sm btn-ghost">View</button>
+    </div>
+  </div>
+  <div class="sla-section">
+    <h4 style="color:#58e8c1">On Track</h4>
+    <div class="sla-row">
+      <div class="sla-id">#1028</div>
+      <div class="sla-summary">Teacher assignment creator: due date picker not saving on Safari</div>
+      <span class="sev-chip sev-p1">P1</span>
+      <div class="sla-time sla-ok">18h left</div>
+      <button class="btn-sm btn-ghost">View</button>
+    </div>
+    <div class="sla-row">
+      <div class="sla-id">#1025</div>
+      <div class="sla-summary">Badge earned notification shows but badge not appearing in collection</div>
+      <span class="sev-chip sev-p2">P2</span>
+      <div class="sla-time sla-ok">2d left</div>
+      <button class="btn-sm btn-ghost">View</button>
+    </div>
+    <div class="sla-row">
+      <div class="sla-id">#1014</div>
+      <div class="sla-summary">Font weight inconsistency on tablet in child home hub</div>
+      <span class="sev-chip sev-p3">P3</span>
+      <div class="sla-time sla-ok">5d left</div>
+      <button class="btn-sm btn-ghost">View</button>
+    </div>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <div class="spec-block">
+    <h3>owner-feedback-triage-desktop-v2 — Specification</h3>
+    <p><strong>Persona:</strong> Owner · Desktop 900px+ · Sora font · #0d1117 bg · #ffd166 accent</p>
+    <p><strong>API:</strong> GET /owner/feedback?state=open returns queue sorted by severity (P0 first)</p>
+    <p><strong>API:</strong> PATCH /owner/feedback/{id} { state, assignee } · POST /owner/feedback/{id}/link-pr { pr_url }</p>
+    <ul>
+      <li>P0 chip: red bg #4a0a0a / text #ff6b6b · P1: amber · P2: teal · P3: blue</li>
+      <li>Severity filter chips: toggle-able, active state fills chip with severity color</li>
+      <li>Bulk action bar: select-all, bulk-assign, bulk-resolve, export</li>
+      <li>SLA rules: P0=4h · P1=24h · P2=72h · P3=7d — show overdue/at-risk/on-track in SLA Tracker tab</li>
+      <li>Assignee board: 4-col team grid with queue count chips per severity</li>
+      <li>Severity mix tab: SVG bar chart by P0/P1/P2/P3 counts</li>
+      <li>Actions per row: Assign / Resolve / Link PR</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+function toggleChip(el) { el.classList.toggle('active'); }
+</script>
+</body>
+</html>

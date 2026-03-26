@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Practice Planner — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Planner card ─────────────────────────────────────────────────── */
+.planner{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:540px;display:inline-block;vertical-align:top}
+.planner-h{font-size:17px;font-weight:800;color:#1a1440;margin-bottom:4px}
+.planner-sub{font-size:13px;color:#888;margin-bottom:18px}
+
+/* ── Weekly schedule grid ────────────────────────────────────────── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:18px}
+.day-cell{text-align:center}
+.day-name{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;margin-bottom:4px}
+.day-bubble{width:36px;height:36px;border-radius:50%;border:2px solid #ede9f8;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .15s;margin:0 auto;background:#fff}
+.day-bubble:hover{border-color:#9b72ff}
+.day-bubble.active{background:#9b72ff;border-color:#9b72ff;color:#fff}
+.day-bubble.today{border-color:#58e8c1}
+.day-bubble.done{background:#ebfff3;border-color:#22c55e;color:#15803d}
+.day-session-count{font-size:9px;color:#aaa;margin-top:3px}
+
+/* ── Session limit row ─────────────────────────────────────────────── */
+.limit-row{display:flex;align-items:center;gap:12px;padding:14px;background:#f8f6ff;border-radius:12px;margin-bottom:14px}
+.limit-label{font-size:13px;font-weight:700;color:#1a1440;flex:1}
+.limit-stepper{display:flex;align-items:center;gap:10px}
+.stepper-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid #ede9f8;background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;color:#9b72ff}
+.stepper-val{font-size:16px;font-weight:800;color:#1a1440;min-width:24px;text-align:center}
+
+/* ── Time-of-day selector ─────────────────────────────────────────── */
+.time-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.time-chip{padding:8px 14px;border-radius:20px;border:1.5px solid #ede9f8;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:#555;transition:all .15s}
+.time-chip.active{background:#9b72ff;border-color:#9b72ff;color:#fff}
+
+/* ── Reminder toggle ─────────────────────────────────────────────── */
+.toggle-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f5f0ff}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1;font-size:13px;font-weight:600;color:#1a1440}
+.toggle-sub{font-size:11px;color:#aaa;display:block;margin-top:1px}
+.toggle{width:40px;height:22px;border-radius:11px;background:#e0d8f0;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+.toggle.on{background:#9b72ff}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{left:20px}
+
+/* ── Streak goal ──────────────────────────────────────────────────── */
+.streak-row{display:flex;align-items:center;gap:12px;padding:14px;background:#fff8f0;border-radius:12px;margin-bottom:14px}
+.streak-icon{font-size:24px}
+.streak-text{flex:1}
+.streak-title{font-size:13px;font-weight:700;color:#1a1440}
+.streak-sub{font-size:11px;color:#92400e;margin-top:2px}
+
+/* ── Save button ──────────────────────────────────────────────────── */
+.save-btn{width:100%;padding:14px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-top:16px;transition:background .15s}
+.save-btn:hover{background:#8560e8}
+.saved-state{text-align:center;padding:10px;font-size:13px;color:#22c55e;font-weight:700;margin-top:8px}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-practice-planner-v2.html</strong><br>
+  In-app practice schedule planner for the parent. Sets: practice days per week, session count per day, time-of-day preference, reminder on/off.<br>
+  <strong>These settings feed the WonderQuest algorithm</strong> — the child's session scheduling suggestions on the play home screen are based on parent's plan.<br>
+  <strong>No timer</strong> — session duration is NOT set here. Sessions end naturally when child stops or hits the session limit count.<br>
+  <strong>COPPA note:</strong> Reminder pushes can only be sent to parent's device — never to child's device directly.<br>
+  Settings persist per child_id. Shown in: parent-family-dashboard Settings tab and parent-link-child-flow Step 3 (goals).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('planner')">Practice Planner</button>
+  <button class="tab-btn" onclick="showTab('saved')">Saved Confirmation</button>
+  <button class="tab-btn" onclick="showTab('defaults')">Default State</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Planner ─────────────────────────────────────────────────────── -->
+<div id="tab-planner" class="screen active">
+  <p class="section-title">Practice planner — full form</p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div class="planner">
+      <div class="planner-h">Practice schedule</div>
+      <div class="planner-sub">For Maya · Mint Band</div>
+
+      <!-- Weekly day picker -->
+      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:10px">Practice days</div>
+      <div class="week-grid">
+        <div class="day-cell">
+          <div class="day-name">M</div>
+          <div class="day-bubble active">M</div>
+          <div class="day-session-count">set</div>
+        </div>
+        <div class="day-cell">
+          <div class="day-name">T</div>
+          <div class="day-bubble active">T</div>
+          <div class="day-session-count">set</div>
+        </div>
+        <div class="day-cell">
+          <div class="day-name">W</div>
+          <div class="day-bubble active">W</div>
+          <div class="day-session-count">set</div>
+        </div>
+        <div class="day-cell">
+          <div class="day-name">T</div>
+          <div class="day-bubble active">T</div>
+          <div class="day-session-count">set</div>
+        </div>
+        <div class="day-cell">
+          <div class="day-name">F</div>
+          <div class="day-bubble active">F</div>
+          <div class="day-session-count">set</div>
+        </div>
+        <div class="day-cell">
+          <div class="day-name">S</div>
+          <div class="day-bubble">S</div>
+          <div class="day-session-count">off</div>
+        </div>
+        <div class="day-cell">
+          <div class="day-name">S</div>
+          <div class="day-bubble">S</div>
+          <div class="day-session-count">off</div>
+        </div>
+      </div>
+
+      <!-- Session limit -->
+      <div class="limit-row">
+        <span class="limit-label">Sessions per day</span>
+        <div class="limit-stepper">
+          <button class="stepper-btn">−</button>
+          <span class="stepper-val">3</span>
+          <button class="stepper-btn">+</button>
+        </div>
+      </div>
+
+      <!-- Time of day -->
+      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:10px">Best time to play</div>
+      <div class="time-chips">
+        <span class="time-chip">🌅 Morning (7–9am)</span>
+        <span class="time-chip active">🌤️ Afternoon (3–6pm)</span>
+        <span class="time-chip">🌙 Evening (6–8pm)</span>
+        <span class="time-chip">⏰ Any time</span>
+      </div>
+
+      <!-- Streak goal -->
+      <div class="streak-row">
+        <div class="streak-icon">🔥</div>
+        <div class="streak-text">
+          <div class="streak-title">Streak goal</div>
+          <div class="streak-sub">Playing 5 days/week builds a weekly streak</div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#d97706">5×</div>
+      </div>
+
+      <!-- Reminders -->
+      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:10px">Reminders</div>
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-label">Daily reminder (to you)</span>
+          <span class="toggle-sub">Sent to your device at 4pm on practice days</span>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-label">Streak at risk alert</span>
+          <span class="toggle-sub">If Maya hasn't played by 6pm on a practice day</span>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-label">Weekend reminder</span>
+          <span class="toggle-sub">Remind on Sat/Sun even if not in schedule</span>
+        </div>
+        <div class="toggle"></div>
+      </div>
+
+      <button class="save-btn">Save practice plan</button>
+    </div>
+
+    <!-- Compact summary (preview) -->
+    <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:0 4px 12px rgba(0,0,0,.07);max-width:240px;align-self:flex-start">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#9b72ff;margin-bottom:12px">📅 Current plan</div>
+      <div style="font-size:13px;color:#444;line-height:1.8">
+        <div>📆 <strong>Mon–Fri</strong></div>
+        <div>🔁 <strong>3 sessions/day</strong></div>
+        <div>🌤️ <strong>Afternoon</strong></div>
+        <div>🔔 <strong>4pm reminder ON</strong></div>
+        <div>🔥 <strong>Goal: 5-day streak</strong></div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:12px">Last updated today</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Saved Confirmation ──────────────────────────────────────────── -->
+<div id="tab-saved" class="screen">
+  <p class="section-title">Saved confirmation state</p>
+  <div class="planner" style="max-width:400px">
+    <div style="text-align:center;padding:24px 16px">
+      <div style="font-size:48px;margin-bottom:12px">📅</div>
+      <div style="font-size:18px;font-weight:800;color:#1a1440;margin-bottom:6px">Practice plan saved!</div>
+      <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:20px">Maya's schedule is set for Mon–Fri, 3 sessions/day. You'll get a reminder at 4pm on practice days.</div>
+      <button style="width:100%;padding:13px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-bottom:10px">Back to dashboard</button>
+      <button style="width:100%;padding:12px;background:#f5f0ff;color:#9b72ff;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer">Edit plan again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Default State ───────────────────────────────────────────────── -->
+<div id="tab-defaults" class="screen">
+  <p class="section-title">Default state — newly linked child (pre-set defaults applied)</p>
+  <div class="planner" style="max-width:420px">
+    <div class="planner-h">Practice schedule</div>
+    <div class="planner-sub">For Maya — defaults applied (customise anytime)</div>
+    <div style="background:#f5f0ff;border-radius:10px;padding:12px 14px;font-size:12px;color:#6d28d9;margin-bottom:16px;line-height:1.5">
+      📋 We've set sensible defaults based on Maya's grade. You can adjust these anytime in Settings.
+    </div>
+    <div style="font-size:13px;color:#444;line-height:1.9">
+      <div>📆 <strong>Mon–Fri</strong> (weekdays by default)</div>
+      <div>🔁 <strong>3 sessions/day</strong> (recommended for Mint Band)</div>
+      <div>⏰ <strong>Any time</strong> (no time preference set)</div>
+      <div>🔔 <strong>Daily reminder OFF</strong> (turn on in Settings)</div>
+    </div>
+    <button style="width:100%;padding:14px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-top:16px">Customise schedule</button>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-practice-planner-v2.html<br>
+      Persists to: child_settings table — columns: practice_days (array), sessions_per_day, preferred_time_of_day, reminders_daily, reminders_streak_at_risk, reminders_weekend.
+    </div>
+    <h2 class="spec-h2">Fields and Defaults</h2>
+    <table class="spec-table">
+      <tr><th>Field</th><th>Default</th><th>Range / Options</th></tr>
+      <tr><td>practice_days</td><td>Mon–Fri (5 days)</td><td>Any subset of Mon–Sun</td></tr>
+      <tr><td>sessions_per_day</td><td>3</td><td>1–unlimited (free plan: max 3)</td></tr>
+      <tr><td>preferred_time_of_day</td><td>Any time</td><td>Morning / Afternoon / Evening / Any time</td></tr>
+      <tr><td>reminders_daily</td><td>OFF</td><td>ON/OFF — sent to parent device only</td></tr>
+      <tr><td>reminders_streak_at_risk</td><td>ON</td><td>ON/OFF — triggers at 6pm if no session that day</td></tr>
+      <tr><td>reminders_weekend</td><td>OFF</td><td>ON/OFF</td></tr>
+    </table>
+    <h2 class="spec-h2">Plan Rules</h2>
+    <table class="spec-table">
+      <tr><th>Rule</th><th>Detail</th></tr>
+      <tr><td>Free plan: sessions cap</td><td>sessions_per_day max = 3. Stepper shows "3 (max)" on free plan.</td></tr>
+      <tr><td>Family plan: no cap</td><td>Stepper can go to Unlimited (shown as ∞)</td></tr>
+      <tr><td>Reminders sent to parent only</td><td>Never to child's device. COPPA compliance.</td></tr>
+      <tr><td>No timer</td><td>Session duration is not configured here. Sessions end naturally.</td></tr>
+    </table>
+    <h2 class="spec-h2">Algorithm Integration</h2>
+    <p class="spec-p">preferred_time_of_day feeds the play home screen's "Good time to play!" nudge for the child. The child's home screen can show a gentle "Afternoon is your best time ⭐" message if the parent has set an afternoon preference and it's currently afternoon.</p>
+    <p class="spec-p">practice_days feeds the streak calculation — a day where no session was expected (e.g. Saturday when weekends are off) does not break the streak.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

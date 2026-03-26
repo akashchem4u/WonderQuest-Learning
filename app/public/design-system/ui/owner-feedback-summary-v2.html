@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Feedback Summary v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #060a0f; color: #c8d4e0; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #1a2230; color: #ffd166; transition: background .2s; }
+  .tab.active { background: #ffd166; color: #0d1117; }
+  .tab:hover:not(.active) { background: #1e2a3a; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Dashboard frames ── */
+  .dash-frame { background: #0d1117; border-radius: 16px; padding: 24px; margin-bottom: 16px; border: 1px solid #1e2a3a; }
+  .frame-label { font-size: 11px; color: #ffd166; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+  .frame-title { font-size: 18px; font-weight: 700; color: #e8f0f8; margin-bottom: 16px; }
+
+  /* ── KPI grid ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi-card { background: #121820; border: 1px solid #1e2a3a; border-radius: 12px; padding: 14px 10px; text-align: center; }
+  .kpi-val { font-size: 26px; font-weight: 700; }
+  .kpi-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-top: 4px; color: #7a8a9e; }
+  .kpi-delta { font-size: 11px; margin-top: 3px; font-weight: 600; }
+  .kpi-up { color: #e07070; }
+  .kpi-down { color: #50b880; }
+  .kpi-flat { color: #7a8a9e; }
+
+  /* ── Severity bar chart ── */
+  .sev-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sev-label { font-size: 12px; font-weight: 700; width: 80px; flex-shrink: 0; }
+  .sev-bar-track { flex: 1; height: 16px; background: #121820; border-radius: 4px; overflow: hidden; }
+  .sev-bar-fill { height: 100%; border-radius: 4px; }
+  .sev-count { font-size: 12px; font-weight: 700; width: 28px; text-align: right; flex-shrink: 0; }
+  .sev-pct { font-size: 11px; color: #7a8a9e; width: 32px; text-align: right; flex-shrink: 0; }
+
+  /* ── Trend sparkline area ── */
+  .sparkline-area { background: #121820; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .sparkline-label { font-size: 11px; color: #7a8a9e; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+  .spark-bars { display: flex; gap: 4px; align-items: flex-end; height: 48px; }
+  .spark-bar { flex: 1; border-radius: 3px 3px 0 0; min-width: 0; }
+  .spark-labels { display: flex; gap: 4px; margin-top: 4px; }
+  .spark-lbl { flex: 1; text-align: center; font-size: 9px; color: #5a6a7e; }
+
+  /* ── Routing donut proxy ── */
+  .routing-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .routing-item { flex: 1; min-width: 100px; background: #121820; border-radius: 12px; padding: 12px; text-align: center; }
+  .ri-icon { font-size: 22px; margin-bottom: 6px; }
+  .ri-pct { font-size: 22px; font-weight: 700; color: #e8f0f8; }
+  .ri-label { font-size: 11px; color: #7a8a9e; margin-top: 3px; font-weight: 600; }
+  .ri-count { font-size: 11px; color: #5a6a7e; margin-top: 2px; }
+
+  /* ── Alert strip ── */
+  .alert-strip { border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px; }
+  .alert-crit { background: #1a0a0a; border: 1.5px solid rgba(220,50,50,.4); }
+  .alert-warn { background: #1a1400; border: 1.5px solid rgba(220,160,0,.3); }
+  .alert-ok { background: #081a0e; border: 1.5px solid rgba(50,160,80,.3); }
+  .alert-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-text h4 { font-size: 13px; font-weight: 700; }
+  .alert-crit .alert-text h4 { color: #ff7070; }
+  .alert-warn .alert-text h4 { color: #f0c030; }
+  .alert-ok .alert-text h4 { color: #50c878; }
+  .alert-text p { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+
+  /* ── Trend health indicator ── */
+  .trend-health { display: flex; align-items: center; gap: 12px; background: #121820; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .th-icon { font-size: 28px; flex-shrink: 0; }
+  .th-text { flex: 1; }
+  .th-text h4 { font-size: 14px; font-weight: 700; color: #e8f0f8; }
+  .th-text p { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+  .th-score { font-size: 22px; font-weight: 700; }
+
+  /* ── Queue preview ── */
+  .queue-row { background: #121820; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-left: 4px solid transparent; }
+  .q-open { border-left-color: #ffd166; }
+  .q-inprog { border-left-color: #60a8e8; }
+  .q-crit { border-left-color: #e04040; background: #1a0808; }
+  .q-resolved { border-left-color: #50b880; background: #081a0e; }
+  .q-title { font-size: 13px; font-weight: 700; color: #e8f0f8; }
+  .q-meta { font-size: 11px; color: #7a8a9e; margin-top: 2px; }
+  .q-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
+  .qb-open { background: rgba(255,209,102,.15); color: #ffd166; }
+  .qb-crit { background: rgba(220,50,50,.2); color: #ff7070; }
+  .qb-inprog { background: rgba(96,168,232,.15); color: #60a8e8; }
+  .qb-resolved { background: rgba(80,184,128,.15); color: #50b880; }
+
+  /* ── Spec ── */
+  .spec-section { background: #0d1117; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #1e2a3a; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #ffd166; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #7a8a9e; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #1e2a3a; }
+  td { padding: 8px 8px; border-bottom: 1px solid #121820; color: #9aaabe; vertical-align: top; }
+  td:first-child { color: #e8f0f8; font-weight: 600; }
+  code { background: #1a2230; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('summary-kpi')">Summary KPIs</button>
+  <button class="tab" onclick="show('severity')">Severity</button>
+  <button class="tab" onclick="show('volume-trends')">Volume Trends</button>
+  <button class="tab" onclick="show('routing-mix')">Routing Mix</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SUMMARY KPIs -->
+<div id="summary-kpi" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Owner Feedback Summary</strong><br>
+    Above the per-item queue and detail panes. Loaded from <code>GET /owner/feedback/summary</code>.
+    KPIs refresh every 60s via polling; trend data daily snapshot at midnight UTC.
+    Critical count drives the red non-dismissible banner on the owner home screen.
+  </div>
+
+  <!-- Alert strip — critical present -->
+  <div class="alert-strip alert-crit">
+    <div class="alert-icon">🚨</div>
+    <div class="alert-text">
+      <h4>2 Critical issues unacknowledged</h4>
+      <p>Auto-escalate in 8 min · Requires triage before dismissal</p>
+    </div>
+  </div>
+
+  <div class="alert-strip alert-warn">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-text">
+      <h4>Feedback volume up 34% this week</h4>
+      <p>Bug reports driving the spike — check route health</p>
+    </div>
+  </div>
+
+  <!-- KPI grid -->
+  <div class="dash-frame">
+    <div class="frame-label">Feedback overview</div>
+    <div class="frame-title">Last 7 days</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#ffd166;">47</div>
+        <div class="kpi-lbl">Total open</div>
+        <div class="kpi-delta kpi-up">↑ 34%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#ff7070;">2</div>
+        <div class="kpi-lbl">Critical</div>
+        <div class="kpi-delta kpi-up">↑ new</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#50b880;">31</div>
+        <div class="kpi-lbl">Resolved</div>
+        <div class="kpi-delta kpi-down">↑ 12%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#60a8e8;">4.2h</div>
+        <div class="kpi-lbl">Avg. resolve</div>
+        <div class="kpi-delta kpi-up">↑ 0.8h</div>
+      </div>
+    </div>
+
+    <!-- Secondary KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <div class="kpi-card">
+        <div class="kpi-val" style="font-size:20px;color:#e8f0f8;">18</div>
+        <div class="kpi-lbl">Bug reports</div>
+        <div class="kpi-delta kpi-up">↑ 28%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="font-size:20px;color:#e8f0f8;">9</div>
+        <div class="kpi-lbl">UX feedback</div>
+        <div class="kpi-delta kpi-flat">→ flat</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="font-size:20px;color:#ffd166;">14</div>
+        <div class="kpi-lbl">Praise ⭐</div>
+        <div class="kpi-delta kpi-down">↑ good</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend health -->
+  <div class="dash-frame">
+    <div class="frame-label">Health signal</div>
+    <div class="trend-health">
+      <div class="th-icon">⚠️</div>
+      <div class="th-text">
+        <h4>Feedback health: Elevated</h4>
+        <p>Bug volume and resolve time both increasing. Monitor closely.</p>
+      </div>
+      <div class="th-score" style="color:#f0c030;">72</div>
+    </div>
+    <div style="font-size:11px;color:#5a6a7e;text-align:right;">Health score: 100 = all-clear · <70 = critical</div>
+  </div>
+
+  <!-- Queue preview -->
+  <div class="dash-frame">
+    <div class="frame-label">Queue preview — top items</div>
+    <div class="queue-row q-crit">
+      <div style="flex:1;">
+        <div class="q-title">🚨 App crash on session start (iOS 17)</div>
+        <div class="q-meta">Bug · P0 · Reported 8 min ago · 14 affected sessions</div>
+      </div>
+      <span class="q-badge qb-crit">Critical</span>
+    </div>
+    <div class="queue-row q-crit">
+      <div style="flex:1;">
+        <div class="q-title">🚨 Login loop on parent app</div>
+        <div class="q-meta">Bug · P0 · Reported 22 min ago · 7 affected users</div>
+      </div>
+      <span class="q-badge qb-crit">Critical</span>
+    </div>
+    <div class="queue-row q-open">
+      <div style="flex:1;">
+        <div class="q-title">Progress chart not loading</div>
+        <div class="q-meta">UX · P1 · 2 hrs ago · @uxteam</div>
+      </div>
+      <span class="q-badge qb-open">Open</span>
+    </div>
+    <div class="queue-row q-inprog">
+      <div style="flex:1;">
+        <div class="q-title">Wrong answer marked correct — Node 14</div>
+        <div class="q-meta">Content · P1 · Assigned @content · In review</div>
+      </div>
+      <span class="q-badge qb-inprog">In Progress</span>
+    </div>
+    <div style="text-align:center;padding:10px 0 0;">
+      <button style="background:none;border:none;font-family:'Sora',sans-serif;font-size:13px;color:#ffd166;font-weight:700;cursor:pointer;">View full queue (47) →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SEVERITY -->
+<div id="severity" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Severity Breakdown</strong><br>
+    Severity levels: P0 Critical / P1 High / P2 Medium / P3 Low. Promotion/demotion requires note.
+    P0 auto-pages on-call within 5 min of first report. Critical count in badge on owner nav.
+  </div>
+
+  <!-- Severity breakdown bars -->
+  <div class="dash-frame">
+    <div class="frame-label">Current open issues</div>
+    <div class="frame-title">Severity distribution</div>
+
+    <div class="sev-bar-row">
+      <div class="sev-label" style="color:#ff5050;">P0 Critical</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:4.3%;background:#e04040;"></div></div>
+      <div class="sev-count" style="color:#ff5050;">2</div>
+      <div class="sev-pct">4%</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-label" style="color:#f0c030;">P1 High</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:38%;background:#c07800;"></div></div>
+      <div class="sev-count" style="color:#f0c030;">18</div>
+      <div class="sev-pct">38%</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-label" style="color:#60a8e8;">P2 Medium</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:44%;background:#2a6090;"></div></div>
+      <div class="sev-count" style="color:#60a8e8;">21</div>
+      <div class="sev-pct">45%</div>
+    </div>
+    <div class="sev-bar-row">
+      <div class="sev-label" style="color:#7a8a9e;">P3 Low</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:13%;background:#3a4a5e;"></div></div>
+      <div class="sev-count" style="color:#7a8a9e;">6</div>
+      <div class="sev-pct">13%</div>
+    </div>
+  </div>
+
+  <!-- Severity escalation timeline -->
+  <div class="dash-frame">
+    <div class="frame-label">Escalation rules</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#121820;border-radius:10px;">
+        <div style="font-size:18px;">🚨</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#ff7070;">P0 Critical</div>
+          <div style="font-size:12px;color:#7a8a9e;margin-top:2px;">Auto-pages on-call at 5 min · Non-dismissible until triaged · Escalate if unresolved 1 hr</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#121820;border-radius:10px;">
+        <div style="font-size:18px;">⚠️</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#f0c030;">P1 High</div>
+          <div style="font-size:12px;color:#7a8a9e;margin-top:2px;">Must be assigned within 30 min · Target resolve: 4 hrs · Auto-promote to P0 if stuck 2 hrs</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#121820;border-radius:10px;">
+        <div style="font-size:18px;">📋</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#60a8e8;">P2 Medium</div>
+          <div style="font-size:12px;color:#7a8a9e;margin-top:2px;">Assign within 24 hrs · Target resolve: next sprint · Queue triage daily</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#121820;border-radius:10px;">
+        <div style="font-size:18px;">📌</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#7a8a9e;">P3 Low</div>
+          <div style="font-size:12px;color:#7a8a9e;margin-top:2px;">Backlog candidate · Review weekly · Archive after 30 days if no votes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Severity week-over-week comparison -->
+  <div class="dash-frame">
+    <div class="frame-label">Week over week shift</div>
+    <table>
+      <tr><th>Severity</th><th>This week</th><th>Last week</th><th>Trend</th></tr>
+      <tr><td style="color:#ff7070;">P0 Critical</td><td>2</td><td>0</td><td style="color:#e07070;">↑ new</td></tr>
+      <tr><td style="color:#f0c030;">P1 High</td><td>18</td><td>13</td><td style="color:#e07070;">↑ +38%</td></tr>
+      <tr><td style="color:#60a8e8;">P2 Medium</td><td>21</td><td>22</td><td style="color:#50b880;">↓ -5%</td></tr>
+      <tr><td style="color:#7a8a9e;">P3 Low</td><td>6</td><td>9</td><td style="color:#50b880;">↓ -33%</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ VOLUME TRENDS -->
+<div id="volume-trends" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Volume Trends</strong><br>
+    Daily snapshot data from <code>GET /owner/feedback/trends?window=14d</code>. Bar chart by day.
+    Separate series for bugs, UX, content, praise. Resolve rate = resolved / (resolved + new) per day.
+    Alerts fire if 7-day rolling average exceeds 2× the prior 7-day average.
+  </div>
+
+  <!-- 14-day volume bars -->
+  <div class="dash-frame">
+    <div class="frame-label">14-day volume</div>
+    <div class="frame-title">Feedback received per day</div>
+    <div class="sparkline-area">
+      <div class="sparkline-label">All feedback types</div>
+      <div class="spark-bars">
+        <div class="spark-bar" style="background:#3a5080;height:22px;"></div>
+        <div class="spark-bar" style="background:#3a5080;height:18px;"></div>
+        <div class="spark-bar" style="background:#3a5080;height:25px;"></div>
+        <div class="spark-bar" style="background:#3a5080;height:14px;"></div>
+        <div class="spark-bar" style="background:#3a5080;height:20px;"></div>
+        <div class="spark-bar" style="background:#3a5080;height:22px;"></div>
+        <div class="spark-bar" style="background:#3a5080;height:18px;"></div>
+        <div class="spark-bar" style="background:#4a6090;height:28px;"></div>
+        <div class="spark-bar" style="background:#4a6090;height:34px;"></div>
+        <div class="spark-bar" style="background:#5a7098;height:38px;"></div>
+        <div class="spark-bar" style="background:#e07070;height:44px;"></div>
+        <div class="spark-bar" style="background:#e07070;height:46px;"></div>
+        <div class="spark-bar" style="background:#e04040;height:48px;"></div>
+        <div class="spark-bar" style="background:#e04040;height:48px;border:2px solid #ffd166;"></div>
+      </div>
+      <div class="spark-labels">
+        <div class="spark-lbl">D-13</div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl">D-7</div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl"></div>
+        <div class="spark-lbl">D-1</div>
+        <div class="spark-lbl" style="color:#ffd166;font-weight:700;">Today</div>
+      </div>
+    </div>
+
+    <!-- By type -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="sparkline-area" style="margin:0;">
+        <div class="sparkline-label" style="color:#e07070;">Bug reports</div>
+        <div class="spark-bars" style="height:32px;">
+          <div class="spark-bar" style="background:#8a3030;height:10px;"></div>
+          <div class="spark-bar" style="background:#8a3030;height:8px;"></div>
+          <div class="spark-bar" style="background:#9a3030;height:14px;"></div>
+          <div class="spark-bar" style="background:#aa3535;height:18px;"></div>
+          <div class="spark-bar" style="background:#c04040;height:24px;"></div>
+          <div class="spark-bar" style="background:#e04040;height:30px;"></div>
+          <div class="spark-bar" style="background:#e04040;height:32px;"></div>
+        </div>
+        <div style="font-size:11px;color:#e07070;margin-top:4px;font-weight:700;">18 open · ↑ 28%</div>
+      </div>
+      <div class="sparkline-area" style="margin:0;">
+        <div class="sparkline-label" style="color:#ffd166;">Praise ⭐</div>
+        <div class="spark-bars" style="height:32px;">
+          <div class="spark-bar" style="background:#5a4000;height:20px;"></div>
+          <div class="spark-bar" style="background:#6a5000;height:22px;"></div>
+          <div class="spark-bar" style="background:#6a5000;height:18px;"></div>
+          <div class="spark-bar" style="background:#7a6000;height:24px;"></div>
+          <div class="spark-bar" style="background:#8a7000;height:26px;"></div>
+          <div class="spark-bar" style="background:#9a8000;height:28px;"></div>
+          <div class="spark-bar" style="background:#b09000;height:32px;"></div>
+        </div>
+        <div style="font-size:11px;color:#ffd166;margin-top:4px;font-weight:700;">14 this week · ↑ good</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resolve rate -->
+  <div class="dash-frame">
+    <div class="frame-label">Resolve rate</div>
+    <div class="frame-title">Resolved vs New (7d)</div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;">
+      <div class="kpi-card" style="flex:1;">
+        <div class="kpi-val" style="color:#50b880;">31</div>
+        <div class="kpi-lbl">Resolved</div>
+      </div>
+      <div class="kpi-card" style="flex:1;">
+        <div class="kpi-val" style="color:#e07070;">47</div>
+        <div class="kpi-lbl">New open</div>
+      </div>
+      <div class="kpi-card" style="flex:1;">
+        <div class="kpi-val" style="color:#f0c030;">66%</div>
+        <div class="kpi-lbl">Resolve rate</div>
+      </div>
+    </div>
+    <div class="alert-strip alert-warn" style="margin:0;">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-text">
+        <h4>Resolve rate below target (80%)</h4>
+        <p>New reports outpacing resolutions. Review P1 backlog.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ROUTING MIX -->
+<div id="routing-mix" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Routing Mix</strong><br>
+    Routing = which team owns an open issue. <code>GET /owner/feedback/routing</code>.
+    Unrouted issues auto-alert after 15 min. Routing mix shown as percentage of open issues per team.
+    Content-flagged issues also appear in content-review-workbench. Bug/UX route to dev/ux queues.
+  </div>
+
+  <div class="dash-frame">
+    <div class="frame-label">Open issues by owner</div>
+    <div class="frame-title">Routing mix · 47 open</div>
+    <div class="routing-row">
+      <div class="routing-item">
+        <div class="ri-icon">💻</div>
+        <div class="ri-pct" style="color:#60a8e8;">38%</div>
+        <div class="ri-label">Dev Team</div>
+        <div class="ri-count">18 issues</div>
+      </div>
+      <div class="routing-item">
+        <div class="ri-icon">🎨</div>
+        <div class="ri-pct" style="color:#9b72ff;">19%</div>
+        <div class="ri-label">UX Team</div>
+        <div class="ri-count">9 issues</div>
+      </div>
+      <div class="routing-item">
+        <div class="ri-icon">📚</div>
+        <div class="ri-pct" style="color:#58e8c1;">29%</div>
+        <div class="ri-label">Content</div>
+        <div class="ri-count">14 issues</div>
+      </div>
+    </div>
+    <div class="routing-row" style="margin-top:8px;">
+      <div class="routing-item">
+        <div class="ri-icon">🏠</div>
+        <div class="ri-pct" style="color:#ffd166;">8%</div>
+        <div class="ri-label">Owner</div>
+        <div class="ri-count">4 issues</div>
+      </div>
+      <div class="routing-item">
+        <div class="ri-icon">❓</div>
+        <div class="ri-pct" style="color:#e07070;">6%</div>
+        <div class="ri-label">Unrouted</div>
+        <div class="ri-count">2 issues</div>
+      </div>
+      <div class="routing-item" style="background:transparent;"></div>
+    </div>
+  </div>
+
+  <!-- Unrouted alert -->
+  <div class="alert-strip alert-crit">
+    <div class="alert-icon">🚨</div>
+    <div class="alert-text">
+      <h4>2 issues unrouted (>15 min)</h4>
+      <p>Auto-escalating to owner queue. Assign now to prevent SLA breach.</p>
+    </div>
+  </div>
+
+  <!-- Routing by type table -->
+  <div class="dash-frame">
+    <div class="frame-label">Routing rules</div>
+    <table>
+      <tr><th>Feedback type</th><th>Auto-route to</th><th>Override?</th></tr>
+      <tr><td>Bug report</td><td>@devteam</td><td>Yes — any team</td></tr>
+      <tr><td>UX feedback</td><td>@uxteam</td><td>Yes</td></tr>
+      <tr><td>Content issue</td><td>@content</td><td>Yes</td></tr>
+      <tr><td>Praise</td><td>Owner (highlight queue)</td><td>Yes</td></tr>
+      <tr><td>P0 Critical (any)</td><td>@devteam + owner notify</td><td>No — fixed</td></tr>
+      <tr><td>Unrecognised type</td><td>Owner triage queue</td><td>Required</td></tr>
+    </table>
+  </div>
+
+  <!-- SLA by severity -->
+  <div class="dash-frame">
+    <div class="frame-label">SLA targets</div>
+    <table>
+      <tr><th>Severity</th><th>First response</th><th>Resolution target</th><th>Current avg.</th></tr>
+      <tr><td style="color:#ff7070;">P0</td><td>5 min</td><td>1 hr</td><td style="color:#e07070;">22 min ✓</td></tr>
+      <tr><td style="color:#f0c030;">P1</td><td>30 min</td><td>4 hrs</td><td style="color:#e07070;">4.2 hrs ⚠️</td></tr>
+      <tr><td style="color:#60a8e8;">P2</td><td>24 hrs</td><td>Next sprint</td><td style="color:#50b880;">18 hrs ✓</td></tr>
+      <tr><td style="color:#7a8a9e;">P3</td><td>72 hrs</td><td>Backlog</td><td style="color:#50b880;">48 hrs ✓</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Spec Reference — owner-feedback-summary-v2</strong><br>
+    Above-queue summary, not the item-level detail. Feeds the feedback resolution center and feedback detail panes.
+  </div>
+
+  <div class="spec-section">
+    <h3>// API ENDPOINTS</h3>
+    <table>
+      <tr><th>Endpoint</th><th>Method</th><th>Returns</th></tr>
+      <tr><td><code>/owner/feedback/summary</code></td><td>GET</td><td>KPIs, health score, alert flags</td></tr>
+      <tr><td><code>/owner/feedback/trends?window=14d</code></td><td>GET</td><td>Daily bar data per type</td></tr>
+      <tr><td><code>/owner/feedback/routing</code></td><td>GET</td><td>Open count per team</td></tr>
+      <tr><td><code>/owner/feedback/queue</code></td><td>GET</td><td>Paginated open items list</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// HEALTH SCORE FORMULA</h3>
+    <table>
+      <tr><th>Signal</th><th>Weight</th><th>Healthy value</th></tr>
+      <tr><td>P0 open count</td><td>-30 per P0</td><td>0</td></tr>
+      <tr><td>Resolve rate (7d)</td><td>up to +40</td><td>≥ 80%</td></tr>
+      <tr><td>Volume vs prior week</td><td>up to -20</td><td>≤ +20% change</td></tr>
+      <tr><td>Avg resolve time vs SLA</td><td>up to -10</td><td>Within SLA</td></tr>
+      <tr><td>Unrouted count</td><td>-5 per unrouted</td><td>0</td></tr>
+      <tr><td colspan="3" style="color:#7a8a9e;font-style:italic;">Score 90–100: Green · 70–89: Yellow · &lt;70: Red</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>owner-bg</td><td><code>#0d1117</code></td><td>Screen background</td></tr>
+      <tr><td>owner-gold</td><td><code>#ffd166</code></td><td>Primary accent, KPI highlight</td></tr>
+      <tr><td>owner-font</td><td>Sora</td><td>All owner-surface text</td></tr>
+      <tr><td>critical-bg</td><td><code>#1a0a0a</code></td><td>P0 critical row/card</td></tr>
+      <tr><td>critical-border</td><td><code>rgba(220,50,50,.4)</code></td><td>P0 alert border</td></tr>
+      <tr><td>resolved-bg</td><td><code>#081a0e</code></td><td>Resolved item row</td></tr>
+      <tr><td>card-bg</td><td><code>#121820</code></td><td>Metric cards, sparkline areas</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// REFRESH CADENCE</h3>
+    <table>
+      <tr><th>Data</th><th>Refresh</th></tr>
+      <tr><td>KPI counts (open, critical, resolved)</td><td>Every 60 seconds</td></tr>
+      <tr><td>Health score</td><td>Every 5 minutes</td></tr>
+      <tr><td>Volume trend bars</td><td>Daily snapshot at midnight UTC</td></tr>
+      <tr><td>Routing mix</td><td>Every 2 minutes</td></tr>
+      <tr><td>Critical alert banner</td><td>Realtime (WebSocket push)</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

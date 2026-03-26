@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Detail v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; background: #0d1117; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.5); overflow: hidden; flex-shrink: 0; font-family: 'Sora', 'Segoe UI', sans-serif; }
+  .phone-inner { overflow-y: auto; max-height: 820px; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #a0a8b8; background: #0d1117; }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #0d1117; border-bottom: 1px solid #2a3040; position: sticky; top: 0; z-index: 10; }
+  .topbar-back { font-size: 18px; color: #a0a8b8; cursor: pointer; padding: 2px 4px; }
+  .topbar-title { font-size: 15px; font-weight: 700; color: #e0e6f0; }
+  .topbar-subtitle { font-size: 11px; color: #445566; margin-top: 1px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+  .topbar-btn { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+  /* Type badge large */
+  .type-hero { display: flex; align-items: center; gap: 10px; padding: 14px 16px; margin-bottom: 2px; }
+  .type-dot-lg { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .type-label-lg { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+  .fb-title-lg { font-size: 16px; font-weight: 800; color: #e0e6f0; line-height: 1.4; padding: 0 16px 10px; }
+  .fb-quote { font-size: 13px; color: #a0aec0; line-height: 1.7; padding: 0 16px 14px; font-style: italic; }
+
+  /* Metadata grid */
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3040; margin: 0 16px 14px; border-radius: 10px; overflow: hidden; }
+  .meta-cell { background: #141a26; padding: 10px 12px; }
+  .meta-cell.full { grid-column: 1 / -1; }
+  .meta-key { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #445566; margin-bottom: 3px; }
+  .meta-val { font-size: 12px; font-weight: 600; color: #c8d4e4; }
+  .meta-val.mono { font-family: 'Courier New', monospace; font-size: 11px; color: #8899aa; }
+  .meta-val.highlight { color: #ffd166; }
+  .meta-val.critical { color: #ff6b6b; }
+  .meta-val.ok { color: #58e8c1; }
+
+  /* Section header */
+  .section-hdr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #445566; padding: 14px 16px 8px; display: flex; align-items: center; justify-content: space-between; }
+  .section-hdr-action { font-size: 11px; font-weight: 700; color: #5599ee; text-transform: none; letter-spacing: 0; cursor: pointer; }
+
+  /* Stack trace */
+  .stack-block { background: #0a0e16; border: 1px solid #2a3040; border-radius: 8px; margin: 0 16px 14px; padding: 12px 14px; overflow-x: auto; }
+  .stack-line { font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.8; color: #667; white-space: pre; }
+  .stack-line.error { color: #ff6b6b; font-weight: 700; }
+  .stack-line.at-app { color: #a8c4e8; }
+
+  /* Related reports */
+  .related-row { margin: 0 16px 8px; background: #141a26; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .related-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .related-info { flex: 1; }
+  .related-title { font-size: 12px; font-weight: 700; color: #c8d4e4; }
+  .related-meta { font-size: 11px; color: #445566; margin-top: 2px; }
+  .related-count { font-size: 12px; font-weight: 800; color: #ff9944; }
+  .chevron { font-size: 16px; color: #445566; }
+
+  /* Impact strip */
+  .impact-strip { margin: 0 16px 14px; background: #1a0e0e; border: 1px solid #ff6b6b44; border-radius: 10px; padding: 12px 14px; }
+  .impact-row { display: flex; align-items: center; justify-content: space-between; }
+  .impact-label { font-size: 12px; color: #ff9999; font-weight: 600; }
+  .impact-val { font-size: 14px; font-weight: 800; color: #ff6b6b; }
+
+  /* Content preview */
+  .content-preview { margin: 0 16px 14px; background: #141a26; border-radius: 10px; overflow: hidden; border: 1px solid #2a3040; }
+  .content-preview-hdr { background: #1e2a3a; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .content-preview-title { font-size: 12px; font-weight: 700; color: #a8c4e8; }
+  .content-preview-body { padding: 14px; }
+  .content-problem-highlight { background: #9b72ff22; border: 1.5px solid #9b72ff66; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
+  .content-problem-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9b72ff; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .content-text { font-size: 12px; color: #c8d4e4; line-height: 1.6; }
+  .content-correct { font-size: 12px; color: #445566; line-height: 1.6; text-decoration: line-through; }
+  .content-fix { font-size: 12px; color: #58e8c1; line-height: 1.6; margin-top: 4px; }
+
+  /* UX screenshot placeholder */
+  .screenshot-box { margin: 0 16px 14px; background: #141a26; border-radius: 10px; border: 1px solid #2a3040; overflow: hidden; }
+  .screenshot-img { width: 100%; height: 180px; background: linear-gradient(135deg, #1e2a3a 0%, #141a26 50%, #0d1117 100%); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+  .screenshot-icon { font-size: 36px; opacity: 0.4; }
+  .screenshot-lbl { font-size: 11px; color: #445566; }
+  .screenshot-footer { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .screenshot-name { font-size: 11px; color: #556677; }
+  .screenshot-view { font-size: 11px; font-weight: 700; color: #5599ee; cursor: pointer; }
+
+  /* Device/session info */
+  .device-tag { display: inline-flex; align-items: center; gap: 6px; background: #1e2a3a; border: 1px solid #2a3a50; border-radius: 20px; padding: 4px 10px; font-size: 11px; color: #a8c4e8; margin: 0 4px 6px 0; }
+
+  /* Praise card */
+  .praise-card { margin: 0 16px 14px; background: #0d1a17; border: 1.5px solid #58e8c144; border-radius: 12px; padding: 16px; }
+  .praise-user { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .praise-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #58e8c1, #2c7a6e); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #0d1117; flex-shrink: 0; }
+  .praise-name { font-size: 13px; font-weight: 700; color: #e0e6f0; }
+  .praise-role { font-size: 11px; color: #445566; }
+  .praise-quote-box { background: #1a2e28; border-left: 3px solid #58e8c1; border-radius: 0 8px 8px 0; padding: 12px 14px; }
+  .praise-quote-text { font-size: 13px; color: #c8d4e4; line-height: 1.7; font-style: italic; }
+  .praise-stars { font-size: 18px; letter-spacing: 2px; margin-top: 10px; }
+
+  /* Action bar */
+  .action-bar { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .action-btn-primary { width: 100%; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 800; border: none; cursor: pointer; font-family: inherit; }
+  .action-btn-secondary { width: 100%; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 700; border: 1px solid; cursor: pointer; font-family: inherit; background: transparent; }
+  .btn-create-ticket { background: #ffd166; color: #1a1400; }
+  .btn-fix-editor { background: #9b72ff; color: #fff; }
+  .btn-resolve { background: #58e8c133; color: #58e8c1; border-color: #58e8c144; }
+  .btn-escalate { background: #ff6b6b22; color: #ff9999; border-color: #ff6b6b44; }
+  .btn-archive { background: #1e2a3a; color: #667; border-color: #2a3040; }
+  .btn-highlight { background: #58e8c1; color: #0d1117; }
+  .btn-share { background: #1e2a3a; color: #a8c4e8; border-color: #2a3a50; }
+
+  /* Deep-link row */
+  .deeplink-row { margin: 0 16px 14px; background: #141a26; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: 1px solid #9b72ff44; cursor: pointer; }
+  .deeplink-icon { font-size: 20px; }
+  .deeplink-info { flex: 1; }
+  .deeplink-title { font-size: 12px; font-weight: 700; color: #c8a8ff; }
+  .deeplink-path { font-size: 11px; color: #556677; font-family: 'Courier New', monospace; margin-top: 2px; }
+  .deeplink-arrow { font-size: 16px; color: #9b72ff; }
+
+  /* Ticket badge (post-triage) */
+  .ticket-badge { display: inline-flex; align-items: center; gap: 6px; background: #1e2a3a; border: 1px solid #5599ee44; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #88bbff; font-weight: 600; }
+
+  /* Related patterns */
+  .pattern-row { margin: 0 16px 8px; background: #141a26; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+  .pattern-icon { width: 32px; height: 32px; border-radius: 8px; background: #1e2a3a; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .pattern-info { flex: 1; }
+  .pattern-title { font-size: 12px; font-weight: 700; color: #c8d4e4; }
+  .pattern-route { font-size: 11px; color: #445566; margin-top: 2px; font-family: 'Courier New', monospace; }
+  .pattern-count { font-size: 11px; font-weight: 700; color: #5599ee; }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+
+  /* Timeline event (for audit log) */
+  .audit-row { display: flex; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
+  .audit-line-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .audit-dot { width: 8px; height: 8px; border-radius: 50%; background: #445566; flex-shrink: 0; margin-top: 4px; }
+  .audit-dot.first { background: #ffd166; }
+  .audit-line { width: 1px; flex: 1; background: #2a3040; min-height: 24px; }
+  .audit-body { flex: 1; padding-bottom: 14px; }
+  .audit-event { font-size: 12px; color: #a0a8b8; line-height: 1.5; }
+  .audit-time { font-size: 10px; color: #445566; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('bug')">Bug Detail</button>
+  <button class="tab" onclick="show('content')">Content Issue</button>
+  <button class="tab" onclick="show('ux')">UX Feedback</button>
+  <button class="tab" onclick="show('praise')">Praise</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══ TAB 1: BUG DETAIL ═══ -->
+<div id="bug" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — Bug / Critical Detail</strong><br>
+    Full push screen for a critical bug report. Includes: type hero header → user quote → metadata grid (route, session, device, version, affected users) → stack trace (collapsible, truncated by default) → impact strip → related reports list → audit trail → action bar (create ticket / escalate / resolve). Critical type — non-dismissible until triaged.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Critical Bug Detail</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+
+          <!-- Topbar -->
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Feedback Detail</div>
+              <div class="topbar-subtitle">Feedback Queue</div>
+            </div>
+            <div class="topbar-actions">
+              <div class="topbar-btn">⋯</div>
+            </div>
+          </div>
+
+          <!-- Type hero -->
+          <div class="type-hero">
+            <div class="type-dot-lg" style="background:#ff6b6b;"></div>
+            <div class="type-label-lg" style="color:#ff9999;">Critical Bug</div>
+            <div style="margin-left:auto; font-size:11px; color:#445566;">2 hrs ago</div>
+          </div>
+          <div class="fb-title-lg">/play route crashes on band-complete celebration trigger</div>
+          <div class="fb-quote">"My daughter finished a band and the screen just froze — she cried because she thought she lost all her progress."</div>
+
+          <!-- Impact strip -->
+          <div class="impact-strip">
+            <div class="impact-row">
+              <div class="impact-label">Affected sessions</div>
+              <div class="impact-val">127</div>
+            </div>
+            <div style="width:100%; height:1px; background:#ff6b6b22; margin: 8px 0;"></div>
+            <div class="impact-row">
+              <div class="impact-label">Error rate (30 min)</div>
+              <div class="impact-val">8.4%</div>
+            </div>
+          </div>
+
+          <!-- Metadata grid -->
+          <div class="section-hdr">Report Metadata</div>
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="meta-key">Route</div>
+              <div class="meta-val mono">/play</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Trigger</div>
+              <div class="meta-val">band-complete</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">App Version</div>
+              <div class="meta-val highlight">2.14.1</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">OS</div>
+              <div class="meta-val">iOS 17.4</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">User ID</div>
+              <div class="meta-val mono">u_3k9x82p</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Session ID</div>
+              <div class="meta-val mono">s_4f2m7tq</div>
+            </div>
+            <div class="meta-cell full">
+              <div class="meta-key">Child Band at Crash</div>
+              <div class="meta-val">P2 (G2–3 Mint) · Band 4 complete</div>
+            </div>
+          </div>
+
+          <!-- Stack trace -->
+          <div class="section-hdr">
+            Stack Trace
+            <div class="section-hdr-action">Copy</div>
+          </div>
+          <div class="stack-block">
+            <div class="stack-line error">TypeError: Cannot read property 'animationRef' of undefined</div>
+            <div class="stack-line at-app">  at BandCelebration.triggerBurst (BandCelebration.jsx:84)</div>
+            <div class="stack-line at-app">  at MapOverlay.onSkillComplete (MapOverlay.jsx:211)</div>
+            <div class="stack-line">  at PlaySession.handleNodeResult (PlaySession.jsx:442)</div>
+            <div class="stack-line">  at EventEmitter.emit (events.js:315)</div>
+            <div class="stack-line" style="color:#445566; font-style:italic;">  ... 12 more frames</div>
+          </div>
+
+          <!-- Related reports -->
+          <div class="section-hdr">
+            Related Reports
+            <div class="section-hdr-action">View all 23</div>
+          </div>
+          <div class="related-row">
+            <div class="related-icon" style="background:#ff6b6b22;">🐛</div>
+            <div class="related-info">
+              <div class="related-title">Same crash, iOS 16.x</div>
+              <div class="related-meta">11 reports · /play · band-complete</div>
+            </div>
+            <div class="related-count">11</div>
+            <div class="chevron">›</div>
+          </div>
+          <div class="related-row">
+            <div class="related-icon" style="background:#ff994422;">⚠️</div>
+            <div class="related-info">
+              <div class="related-title">MapOverlay freeze (no crash)</div>
+              <div class="related-meta">9 reports · /play · skill-mastered</div>
+            </div>
+            <div class="related-count">9</div>
+            <div class="chevron">›</div>
+          </div>
+
+          <!-- Audit trail -->
+          <div class="section-hdr">Activity</div>
+          <div class="audit-row">
+            <div class="audit-line-wrap">
+              <div class="audit-dot first"></div>
+              <div class="audit-line"></div>
+            </div>
+            <div class="audit-body">
+              <div class="audit-event">Escalated to on-call by system (unacknowledged 15 min)</div>
+              <div class="audit-time">Today 9:26 AM</div>
+            </div>
+          </div>
+          <div class="audit-row">
+            <div class="audit-line-wrap">
+              <div class="audit-dot"></div>
+              <div class="audit-line"></div>
+            </div>
+            <div class="audit-body">
+              <div class="audit-event">Report created via in-app feedback (parent)</div>
+              <div class="audit-time">Today 9:11 AM</div>
+            </div>
+          </div>
+          <div class="audit-row">
+            <div class="audit-line-wrap">
+              <div class="audit-dot"></div>
+            </div>
+            <div class="audit-body">
+              <div class="audit-event">23 duplicate reports auto-grouped by error signature</div>
+              <div class="audit-time">Today 9:12 AM – 9:39 AM</div>
+            </div>
+          </div>
+
+          <!-- Action bar -->
+          <div class="action-bar">
+            <button class="action-btn-primary btn-create-ticket">Create Ticket</button>
+            <button class="action-btn-secondary btn-escalate">Escalate to Engineering</button>
+            <button class="action-btn-secondary btn-resolve">Mark Resolved</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Post-Triage State (ticket created)</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Feedback Detail</div>
+              <div class="topbar-subtitle">Feedback Queue</div>
+            </div>
+          </div>
+          <div class="type-hero">
+            <div class="type-dot-lg" style="background:#ff6b6b;"></div>
+            <div class="type-label-lg" style="color:#ff9999;">Critical Bug</div>
+            <div class="ticket-badge" style="margin-left:auto;">🎫 ENG-4821</div>
+          </div>
+          <div class="fb-title-lg">/play route crashes on band-complete celebration trigger</div>
+
+          <div style="margin: 0 16px 14px; background: #0d1a12; border: 1px solid #58e8c144; border-radius: 10px; padding: 12px 14px;">
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #58e8c1; letter-spacing: 0.08em; margin-bottom: 6px;">Ticket Created</div>
+            <div style="font-size: 13px; color: #e0e6f0; font-weight: 700; margin-bottom: 4px;">ENG-4821 · In Progress</div>
+            <div style="font-size: 12px; color: #778899; line-height: 1.5;">Assigned to @devteam · Created 9:44 AM today</div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="meta-key">Status</div>
+              <div class="meta-val" style="color:#ffd166;">In Progress</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Assignee</div>
+              <div class="meta-val">@devteam</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Priority</div>
+              <div class="meta-val critical">P0 — Critical</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Affected</div>
+              <div class="meta-val critical">127 sessions</div>
+            </div>
+          </div>
+
+          <div class="audit-row" style="padding-top:8px;">
+            <div class="audit-line-wrap">
+              <div class="audit-dot first"></div>
+              <div class="audit-line"></div>
+            </div>
+            <div class="audit-body">
+              <div class="audit-event"><strong style="color:#ffd166;">You</strong> created ticket ENG-4821</div>
+              <div class="audit-time">Today 9:44 AM</div>
+            </div>
+          </div>
+          <div class="audit-row">
+            <div class="audit-line-wrap">
+              <div class="audit-dot"></div>
+            </div>
+            <div class="audit-body">
+              <div class="audit-event">Escalated to on-call (unacknowledged 15 min)</div>
+              <div class="audit-time">Today 9:26 AM</div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="action-btn-secondary btn-resolve">Mark Resolved</button>
+            <button class="action-btn-secondary btn-archive">Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: CONTENT ISSUE DETAIL ═══ -->
+<div id="content" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Content Issue Detail</strong><br>
+    Full push screen for a content error report. Includes: content preview with problematic section highlighted → suggested fix text → fix-in-editor deep-link (routes to content CMS with the node pre-selected) → related flagged content → action bar (fix in editor / create content ticket / resolve).
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Content Issue Detail</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Feedback Detail</div>
+              <div class="topbar-subtitle">Feedback Queue</div>
+            </div>
+          </div>
+
+          <div class="type-hero">
+            <div class="type-dot-lg" style="background:#9b72ff;"></div>
+            <div class="type-label-lg" style="color:#c8a8ff;">Content Issue</div>
+            <div style="margin-left:auto; font-size:11px; color:#445566;">Yesterday</div>
+          </div>
+          <div class="fb-title-lg">Wrong answer marked correct in P1 fractions node</div>
+          <div class="fb-quote">"The app said 1/2 + 1/4 = 2/4 is correct. My kid got it right but the right answer was wrong."</div>
+
+          <!-- Content location -->
+          <div class="section-hdr">Content Location</div>
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="meta-key">Band</div>
+              <div class="meta-val">P1 · K–1 Violet</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Skill</div>
+              <div class="meta-val">Fractions Intro</div>
+            </div>
+            <div class="meta-cell full">
+              <div class="meta-key">Node ID</div>
+              <div class="meta-val mono">node_frac_add_01</div>
+            </div>
+            <div class="meta-cell full">
+              <div class="meta-key">Question</div>
+              <div class="meta-val" style="color:#c8d4e4;">What is 1/2 + 1/4?</div>
+            </div>
+          </div>
+
+          <!-- Content preview -->
+          <div class="section-hdr">Content Preview</div>
+          <div class="content-preview">
+            <div class="content-preview-hdr">
+              <div class="content-preview-title">node_frac_add_01 · Answer Key</div>
+              <div style="font-size:11px; color:#9b72ff; cursor:pointer;">v1.3.2</div>
+            </div>
+            <div class="content-preview-body">
+              <div class="content-problem-highlight">
+                <div class="content-problem-label">⚠ Flagged Answer</div>
+                <div class="content-text">Correct answer set to: <strong style="color:#ff6b6b;">2/4</strong></div>
+                <div style="height:6px;"></div>
+                <div class="content-correct">2/4 (marked correct — this is equivalent but not simplified)</div>
+                <div class="content-fix">✓ Should be: 3/4 (the actual correct sum)</div>
+              </div>
+              <div class="content-text" style="color:#556677; font-size:11px;">Reporter notes: "The answer key says 2/4 is correct. 1/2+1/4 = 3/4, not 2/4. This is a math error."</div>
+            </div>
+          </div>
+
+          <!-- Fix in editor deep-link -->
+          <div class="section-hdr">Fix This Content</div>
+          <div class="deeplink-row">
+            <div class="deeplink-icon">✏️</div>
+            <div class="deeplink-info">
+              <div class="deeplink-title">Open in Content Editor</div>
+              <div class="deeplink-path">/content/editor?node=node_frac_add_01</div>
+            </div>
+            <div class="deeplink-arrow">→</div>
+          </div>
+
+          <!-- Related content flags -->
+          <div class="section-hdr">
+            Other Flagged in This Skill
+            <div class="section-hdr-action">View 4 more</div>
+          </div>
+          <div class="related-row">
+            <div class="related-icon" style="background:#9b72ff22;">📝</div>
+            <div class="related-info">
+              <div class="related-title">Fraction visual mislabeled</div>
+              <div class="related-meta">node_frac_vis_03 · 3 reports</div>
+            </div>
+            <div class="chevron">›</div>
+          </div>
+          <div class="related-row">
+            <div class="related-icon" style="background:#9b72ff22;">📝</div>
+            <div class="related-info">
+              <div class="related-title">Denominator hint text confusing</div>
+              <div class="related-meta">node_frac_hint_02 · 1 report</div>
+            </div>
+            <div class="chevron">›</div>
+          </div>
+
+          <div class="action-bar">
+            <button class="action-btn-primary btn-fix-editor">Fix in Content Editor</button>
+            <button class="action-btn-secondary btn-resolve">Mark Resolved</button>
+            <button class="action-btn-secondary btn-archive">Archive (not a bug)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: UX FEEDBACK DETAIL ═══ -->
+<div id="ux" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — UX Feedback Detail</strong><br>
+    Full push screen for a UX issue report. Includes: screenshot/recording attachment preview → device info tags → route + component path → related UX patterns flagged on same route → reporter's session context → action bar (create UX ticket / add to design backlog / resolve / archive).
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">UX Feedback Detail</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Feedback Detail</div>
+              <div class="topbar-subtitle">Feedback Queue</div>
+            </div>
+          </div>
+
+          <div class="type-hero">
+            <div class="type-dot-lg" style="background:#5599ee;"></div>
+            <div class="type-label-lg" style="color:#88bbff;">UX Feedback</div>
+            <div style="margin-left:auto; font-size:11px; color:#445566;">3 days ago</div>
+          </div>
+          <div class="fb-title-lg">Skill map node labels overlap on small screens</div>
+          <div class="fb-quote">"The skill names cover each other when there are lots of nodes. I can't read them and don't know which one to tap."</div>
+
+          <!-- Screenshot attachment -->
+          <div class="section-hdr">Attached Screenshot</div>
+          <div class="screenshot-box">
+            <div class="screenshot-img">
+              <div class="screenshot-icon">🖼</div>
+              <div class="screenshot-lbl">Screenshot · 390×844px · iPhone SE</div>
+            </div>
+            <div class="screenshot-footer">
+              <div class="screenshot-name">feedback_screenshot_1.png</div>
+              <div class="screenshot-view">View full →</div>
+            </div>
+          </div>
+
+          <!-- Device tags -->
+          <div class="section-hdr">Device & Session</div>
+          <div style="padding: 0 16px 14px; display:flex; flex-wrap:wrap;">
+            <div class="device-tag">📱 iPhone SE (375px)</div>
+            <div class="device-tag">iOS 17.2</div>
+            <div class="device-tag">App 2.14.0</div>
+            <div class="device-tag">P2 Band</div>
+            <div class="device-tag">11 nodes visible</div>
+          </div>
+
+          <!-- Route & component -->
+          <div class="meta-grid" style="margin-bottom: 14px;">
+            <div class="meta-cell full">
+              <div class="meta-key">Route</div>
+              <div class="meta-val mono">/play · MapOverlay component</div>
+            </div>
+            <div class="meta-cell full">
+              <div class="meta-key">Component Path</div>
+              <div class="meta-val mono">MapOverlay → SkillNode → NodeLabel</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Viewport</div>
+              <div class="meta-val highlight">375 × 667px</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Nodes shown</div>
+              <div class="meta-val">11 of 14</div>
+            </div>
+          </div>
+
+          <!-- Related UX patterns -->
+          <div class="section-hdr">
+            Related UX Reports
+            <div class="section-hdr-action">View 7 total</div>
+          </div>
+          <div class="pattern-row">
+            <div class="pattern-icon">📐</div>
+            <div class="pattern-info">
+              <div class="pattern-title">NodeLabel truncation at 320px</div>
+              <div class="pattern-route">/play · NodeLabel · 3 reports</div>
+            </div>
+            <div class="pattern-count">3</div>
+          </div>
+          <div class="pattern-row">
+            <div class="pattern-icon">📐</div>
+            <div class="pattern-info">
+              <div class="pattern-title">Tap target too small on SE</div>
+              <div class="pattern-route">/play · SkillNode · 2 reports</div>
+            </div>
+            <div class="pattern-count">2</div>
+          </div>
+
+          <div class="action-bar">
+            <button class="action-btn-primary btn-create-ticket">Create UX Ticket</button>
+            <button class="action-btn-secondary" style="color:#5599ee; border-color:#5599ee44; background:#5599ee11;">Add to Design Backlog</button>
+            <button class="action-btn-secondary btn-resolve">Mark Resolved</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: PRAISE DETAIL ═══ -->
+<div id="praise" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — Praise Detail</strong><br>
+    Full push screen for a praise/positive feedback item. Includes: user profile card (role, account age) → highlighted quote with stars → usage context (route, band, how long they've been a user) → action bar (highlight for marketing / share to team / thank-you note / archive). No triage required — praise is dismissible at any point.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Praise Detail</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Feedback Detail</div>
+              <div class="topbar-subtitle">Feedback Queue</div>
+            </div>
+          </div>
+
+          <div class="type-hero">
+            <div class="type-dot-lg" style="background:#58e8c1;"></div>
+            <div class="type-label-lg" style="color:#58e8c1;">Praise</div>
+            <div style="margin-left:auto; font-size:11px; color:#445566;">1 day ago</div>
+          </div>
+          <div class="fb-title-lg">WonderQuest helped my son love learning for the first time</div>
+
+          <!-- Praise card -->
+          <div class="praise-card">
+            <div class="praise-user">
+              <div class="praise-avatar">SM</div>
+              <div>
+                <div class="praise-name">Sarah M.</div>
+                <div class="praise-role">Parent · Member 7 months</div>
+              </div>
+            </div>
+            <div class="praise-quote-box">
+              <div class="praise-quote-text">"We tried 4 different apps. WonderQuest is the first one where he asks to do it instead of me having to push. He's been on a 23-day streak and doesn't even realize he's learning fractions."</div>
+            </div>
+            <div class="praise-stars">⭐⭐⭐⭐⭐</div>
+          </div>
+
+          <!-- Context metadata -->
+          <div class="section-hdr">Usage Context</div>
+          <div class="meta-grid">
+            <div class="meta-cell">
+              <div class="meta-key">Child Band</div>
+              <div class="meta-val">P2 · G2–3 Mint</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Current Streak</div>
+              <div class="meta-val" style="color:#58e8c1;">23 days 🔥</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Sessions</div>
+              <div class="meta-val">47 total</div>
+            </div>
+            <div class="meta-cell">
+              <div class="meta-key">Avg / week</div>
+              <div class="meta-val">6.7</div>
+            </div>
+            <div class="meta-cell full">
+              <div class="meta-key">Submitted from</div>
+              <div class="meta-val mono">/parent · Family Summary</div>
+            </div>
+          </div>
+
+          <!-- Highlight suggestion -->
+          <div style="margin: 0 16px 14px; background: #0d1a12; border: 1.5px solid #58e8c144; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #58e8c1; letter-spacing: 0.08em; margin-bottom: 8px;">✨ Highlight-worthy</div>
+            <div style="font-size: 12px; color: #a0b8a8; line-height: 1.6;">This quote scores high on authenticity and specificity. Good candidate for social proof or onboarding testimonials.</div>
+          </div>
+
+          <div class="action-bar">
+            <button class="action-btn-primary btn-highlight">Highlight for Marketing</button>
+            <button class="action-btn-secondary btn-share">Share with Team</button>
+            <button class="action-btn-secondary btn-archive">Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Highlighted State</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div><div class="topbar-title">Feedback Detail</div></div>
+          </div>
+
+          <div class="type-hero">
+            <div class="type-dot-lg" style="background:#58e8c1;"></div>
+            <div class="type-label-lg" style="color:#58e8c1;">Praise</div>
+            <div style="margin-left:auto;">
+              <div class="ticket-badge" style="border-color:#58e8c144; color:#58e8c1;">✨ Highlighted</div>
+            </div>
+          </div>
+          <div class="fb-title-lg">WonderQuest helped my son love learning for the first time</div>
+
+          <div style="margin: 0 16px 14px; background: #0d1a12; border: 1.5px solid #58e8c1; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #58e8c1; margin-bottom: 8px;">Highlight Added</div>
+            <div style="font-size: 12px; color: #a0b8a8; line-height: 1.5;">Added to Marketing highlights bank · Tag: <code>parent-retention</code></div>
+          </div>
+
+          <div class="praise-card">
+            <div class="praise-user">
+              <div class="praise-avatar">SM</div>
+              <div>
+                <div class="praise-name">Sarah M.</div>
+                <div class="praise-role">Parent · Member 7 months</div>
+              </div>
+            </div>
+            <div class="praise-quote-box">
+              <div class="praise-quote-text">"WonderQuest is the first one where he asks to do it instead of me having to push. He's been on a 23-day streak and doesn't even realize he's learning fractions."</div>
+            </div>
+            <div class="praise-stars">⭐⭐⭐⭐⭐</div>
+          </div>
+
+          <div style="margin: 0 16px; display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+            <div class="device-tag" style="background:#58e8c122; border-color:#58e8c144; color:#58e8c1;">parent-retention</div>
+            <div class="device-tag" style="background:#58e8c122; border-color:#58e8c144; color:#58e8c1;">streak-story</div>
+            <div class="device-tag" style="background:#58e8c122; border-color:#58e8c144; color:#58e8c1;">p2-band</div>
+          </div>
+
+          <div class="action-bar">
+            <button class="action-btn-secondary btn-archive">Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC ═══ -->
+<div id="spec" class="panel">
+  <div class="hint">
+    <strong>Tab 5 — Spec Notes</strong><br>
+    Engineering spec for the owner feedback detail push screen. All design tokens, interaction rules, type-specific fields, and action bar logic.
+  </div>
+
+  <div class="spec-h2">Route & Navigation</div>
+  <div class="spec-note">Push screen from Feedback Queue (<code>/owner/feedback</code>). Route: <code>/owner/feedback/:feedbackId</code>. Back chevron returns to queue. Deep-link from route health alert banner navigates directly here bypassing queue list.</div>
+
+  <div class="spec-h2">Type-Specific Fields</div>
+  <table class="spec-table">
+    <tr>
+      <th>Type</th>
+      <th>Unique fields</th>
+      <th>CTA primary</th>
+    </tr>
+    <tr>
+      <td><span style="color:#ff6b6b;">Critical Bug</span></td>
+      <td>Stack trace · Impact strip (affected sessions + error rate) · Related reports · Auto-escalate audit entry after 15 min</td>
+      <td>Create Ticket</td>
+    </tr>
+    <tr>
+      <td><span style="color:#ff9944;">Bug</span></td>
+      <td>Stack trace (if available) · Affected user count · Repro steps (if provided)</td>
+      <td>Create Ticket</td>
+    </tr>
+    <tr>
+      <td><span style="color:#9b72ff;">Content</span></td>
+      <td>Content preview with highlighted error · Suggested fix · Fix-in-editor deep-link · Related flagged nodes in same skill</td>
+      <td>Fix in Content Editor</td>
+    </tr>
+    <tr>
+      <td><span style="color:#5599ee;">UX</span></td>
+      <td>Screenshot/recording attachment · Device tags · Route + component path · Related UX patterns on same route</td>
+      <td>Create UX Ticket</td>
+    </tr>
+    <tr>
+      <td><span style="color:#58e8c1;">Praise</span></td>
+      <td>User profile card (role, tenure, streak) · Quote highlight · Usage context (band, sessions, avg/week) · Highlight-worthy score</td>
+      <td>Highlight for Marketing</td>
+    </tr>
+  </table>
+
+  <div class="spec-h2">Triage Rules</div>
+  <table class="spec-table">
+    <tr>
+      <th>Rule</th>
+      <th>Detail</th>
+    </tr>
+    <tr>
+      <td>Critical non-dismissible</td>
+      <td>Archive and dismiss buttons hidden until ticket created OR resolved. Back-nav allowed but queue row maintains unread state.</td>
+    </tr>
+    <tr>
+      <td>Auto-escalate</td>
+      <td>Critical reports unacknowledged for 15 min trigger system audit entry and page on-call. Surfaced in audit trail on detail screen.</td>
+    </tr>
+    <tr>
+      <td>Ticket badge</td>
+      <td>After ticket creation, ticket ID badge appears in topbar area. Badge links to ticket system external URL.</td>
+    </tr>
+    <tr>
+      <td>Post-resolve</td>
+      <td>Row in queue becomes greyed with "Resolved" badge. Detail screen shows audit trail with resolve entry. Archive available after resolve.</td>
+    </tr>
+  </table>
+
+  <div class="spec-h2">Content Fix-in-Editor Deep-link</div>
+  <div class="spec-note">Deep-link format: <code>/content/editor?node=:nodeId&highlight=answer_key&source=feedback&feedbackId=:id</code>. Opens content CMS with the specific node pre-loaded and answer key section highlighted. Available only on Content-type feedback. If node is archived/deleted, show "Content no longer available" inline state with Archive as only action.</div>
+
+  <div class="spec-h2">Praise Highlight Flow</div>
+  <div class="spec-note">Highlighted quotes are added to a "Marketing highlights bank" accessible at <code>/owner/marketing/highlights</code>. Auto-tags applied based on: user role (parent/teacher) + child band + feedback content keywords. Owner can edit tags before confirming. Highlighted quotes cannot be used externally without a separate export approval step.</div>
+
+  <div class="spec-h2">Audit Trail</div>
+  <div class="spec-note">Every state change appended to audit trail chronologically newest-first. Entries: created · viewed · escalated (system/manual) · ticket created · ticket linked · status changed · highlighted · resolved · archived. System-generated entries shown in muted color; owner-generated entries show display name.</div>
+
+  <div class="spec-h2">Related Reports Grouping</div>
+  <div class="spec-note">Related reports grouped by: same error signature (stack trace hash match) OR same route + same type + within 24 hours. Grouped reports share a single detail screen. "View all N" link navigates to a filtered queue view pre-set to matching criteria.</div>
+
+  <div class="spec-h2">Design Tokens</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>Owner background</td><td><code>#0d1117</code></td></tr>
+    <tr><td>Surface card</td><td><code>#141a26</code></td></tr>
+    <tr><td>Border default</td><td><code>#2a3040</code></td></tr>
+    <tr><td>Text primary</td><td><code>#e0e6f0</code></td></tr>
+    <tr><td>Text muted</td><td><code>#445566</code></td></tr>
+    <tr><td>Gold accent (CTA)</td><td><code>#ffd166</code></td></tr>
+    <tr><td>Critical</td><td><code>#ff6b6b</code></td></tr>
+    <tr><td>Bug</td><td><code>#ff9944</code></td></tr>
+    <tr><td>Content</td><td><code>#9b72ff</code></td></tr>
+    <tr><td>UX</td><td><code>#5599ee</code></td></tr>
+    <tr><td>Praise / mint</td><td><code>#58e8c1</code></td></tr>
+    <tr><td>Font</td><td>Sora · owner + all adult dashboards</td></tr>
+    <tr><td>Phone frame</td><td>390px · border <code>#2a3040</code></td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

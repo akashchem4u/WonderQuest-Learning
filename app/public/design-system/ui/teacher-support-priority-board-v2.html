@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Support Priority Board v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#f0f4f8;color:#1a2533;min-height:100vh}
+  nav{background:#2a5080;color:#fff;display:flex;align-items:center;padding:0 24px;height:56px;gap:16px}
+  nav .logo{font-weight:700;font-size:17px;letter-spacing:.3px}
+  nav .subtitle{font-size:13px;opacity:.7;margin-left:4px}
+  nav .spacer{flex:1}
+  nav .avatar{width:34px;height:34px;border-radius:50%;background:#ffd166;color:#2a5080;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .tabs{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;overflow-x:auto}
+  .tab{padding:14px 20px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s}
+  .tab.active{color:#2a5080;border-bottom-color:#2a5080}
+  .tab:hover:not(.active){color:#2a5080;background:#f8fafc}
+  .panel{display:none;padding:24px;max-width:1200px;margin:0 auto}
+  .panel.active{display:block}
+  .hint{background:#e8f0fb;border:1.5px solid #2a5080;border-radius:10px;padding:12px 16px;font-size:12px;color:#1a3a5c;margin-bottom:20px}
+  .hint strong{font-weight:700}
+  /* Kanban */
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:4px}
+  @media(max-width:900px){.board{grid-template-columns:1fr}}
+  .column{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .col-header{padding:14px 18px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .col-header.flag{background:#9a2a2a;color:#fff}
+  .col-header.watch{background:#c07800;color:#fff}
+  .col-header.clear{background:#1a8050;color:#fff}
+  .col-header .count{background:rgba(255,255,255,.25);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600}
+  .cards{padding:14px;display:flex;flex-direction:column;gap:12px;min-height:200px}
+  .learner-card{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px}
+  .lc-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .lc-avatar{width:36px;height:36px;border-radius:50%;background:#2a5080;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .lc-avatar.flag{background:#9a2a2a}
+  .lc-avatar.watch{background:#c07800}
+  .lc-avatar.clear{background:#1a8050}
+  .lc-name{font-weight:600;font-size:14px}
+  .lc-meta{font-size:11px;color:#64748b;margin-top:1px}
+  .tier-chip{font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;margin-left:auto;white-space:nowrap}
+  .tier-chip.flag{background:#fde8e8;color:#9a2a2a}
+  .tier-chip.watch{background:#fef3cd;color:#c07800}
+  .tier-chip.clear{background:#e8f5ef;color:#1a8050}
+  .skill-list{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+  .skill-tag{background:#e8f0fb;color:#2a5080;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500}
+  .lc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+  .stat-item{font-size:11px;color:#64748b}
+  .stat-item span{font-weight:600;color:#1a2533}
+  .action-row{display:flex;gap:6px}
+  .btn-sm{padding:6px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Sora',sans-serif}
+  .btn-primary{background:#2a5080;color:#fff}
+  .btn-outline{background:#fff;color:#2a5080;border:1.5px solid #2a5080}
+  .btn-danger{background:#9a2a2a;color:#fff}
+  .btn-warn{background:#c07800;color:#fff}
+  /* Detail panels */
+  .detail-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .detail-header h2{font-size:20px;font-weight:700}
+  .col-badge{padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;color:#fff}
+  .col-badge.flag{background:#9a2a2a}
+  .col-badge.watch{background:#c07800}
+  .col-badge.clear{background:#1a8050}
+  .section-title{font-size:14px;font-weight:700;color:#2a5080;margin:20px 0 12px}
+  .full-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+  .fc-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .fc-avatar{width:48px;height:48px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0}
+  .fc-avatar.flag{background:#9a2a2a}
+  .fc-avatar.watch{background:#c07800}
+  .fc-name{font-size:17px;font-weight:700}
+  .fc-grade{font-size:12px;color:#64748b}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .info-box{background:#f8fafc;border-radius:8px;padding:10px 14px}
+  .info-label{font-size:11px;color:#64748b;margin-bottom:2px}
+  .info-value{font-size:14px;font-weight:600}
+  .intervention-timeline{border-left:3px solid #e2e8f0;padding-left:16px;margin-top:8px}
+  .it-item{position:relative;margin-bottom:14px}
+  .it-item::before{content:'';position:absolute;left:-20px;top:6px;width:8px;height:8px;border-radius:50%;background:#2a5080}
+  .it-date{font-size:11px;color:#64748b}
+  .it-text{font-size:13px;font-weight:500;margin-top:2px}
+  .action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .btn-md{padding:10px 20px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Sora',sans-serif}
+  /* Resolved */
+  .resolved-list{display:flex;flex-direction:column;gap:12px}
+  .resolved-item{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);display:flex;align-items:center;gap:14px}
+  .ri-icon{width:36px;height:36px;border-radius:50%;background:#e8f5ef;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .ri-info{flex:1}
+  .ri-name{font-weight:600;font-size:14px}
+  .ri-meta{font-size:11px;color:#64748b;margin-top:2px}
+  .ri-date{font-size:11px;color:#1a8050;font-weight:600}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .filter-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#64748b}
+  .filter-chip.active{background:#2a5080;color:#fff;border-color:#2a5080}
+  /* Spec */
+  .spec-table{width:100%;border-collapse:collapse;font-size:13px}
+  .spec-table th{background:#2a5080;color:#fff;text-align:left;padding:10px 14px;font-weight:600}
+  .spec-table td{padding:10px 14px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  .spec-table tr:last-child td{border-bottom:none}
+  .spec-table tr:nth-child(even) td{background:#f8fafc}
+  .code{font-family:monospace;font-size:12px;background:#e8f0fb;padding:2px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">WonderQuest</div>
+  <div class="subtitle">Teacher Portal</div>
+  <div class="spacer"></div>
+  <div style="font-size:13px;opacity:.8;margin-right:12px">Ms. Chen · Grade 3</div>
+  <div class="avatar">MC</div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('board')">Priority Board</div>
+  <div class="tab" onclick="show('flag-detail')">Flag Column Detail</div>
+  <div class="tab" onclick="show('watch-detail')">Watch Column Detail</div>
+  <div class="tab" onclick="show('resolved')">Clear / Resolved</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Priority Board -->
+<div id="board" class="panel active">
+  <div class="hint"><strong>Routes:</strong> Flag column → teacher-intervention-detail-mobile-v2 · Watch → teacher-intervention-plan-editor-v2 · Clear → teacher-student-detail-desktop-v2 · Quick note → teacher-note-capture-mobile-v2</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div>
+      <h1 style="font-size:22px;font-weight:700">Support Priority Board</h1>
+      <div style="font-size:13px;color:#64748b;margin-top:3px">Class 3B · 28 students · Updated 2 min ago</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-outline">Filter</button>
+      <button class="btn-sm btn-primary">Export</button>
+    </div>
+  </div>
+  <div class="board">
+    <!-- FLAG -->
+    <div class="column">
+      <div class="col-header flag">🚩 Flag — 2+ Weeks <span class="count">4</span></div>
+      <div class="cards">
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar flag">AR</div>
+            <div><div class="lc-name">Amir R.</div><div class="lc-meta">Grade 3 · 18 days in Flag</div></div>
+            <div class="tier-chip flag">Flag</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Place Value</div><div class="skill-tag">Subtraction</div><div class="skill-tag">Reading Comp</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>18</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 19</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-danger">Intervene</button>
+            <button class="btn-sm btn-outline">Note</button>
+            <button class="btn-sm btn-outline">Msg Parent</button>
+          </div>
+        </div>
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar flag">PL</div>
+            <div><div class="lc-name">Priya L.</div><div class="lc-meta">Grade 3 · 21 days in Flag</div></div>
+            <div class="tier-chip flag">Flag</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Fractions</div><div class="skill-tag">Phonics</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>21</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 15</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-danger">Intervene</button>
+            <button class="btn-sm btn-outline">Note</button>
+            <button class="btn-sm btn-outline">Msg Parent</button>
+          </div>
+        </div>
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar flag">TK</div>
+            <div><div class="lc-name">Tom K.</div><div class="lc-meta">Grade 3 · 15 days in Flag</div></div>
+            <div class="tier-chip flag">Flag</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Number Sense</div><div class="skill-tag">Word Problems</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>15</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 20</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-danger">Intervene</button>
+            <button class="btn-sm btn-outline">Note</button>
+            <button class="btn-sm btn-outline">Msg Parent</button>
+          </div>
+        </div>
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar flag">SN</div>
+            <div><div class="lc-name">Sofia N.</div><div class="lc-meta">Grade 3 · 14 days in Flag</div></div>
+            <div class="tier-chip flag">Flag</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Multiplication</div><div class="skill-tag">Spelling</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>14</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 18</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-danger">Intervene</button>
+            <button class="btn-sm btn-outline">Note</button>
+            <button class="btn-sm btn-outline">Msg Parent</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- WATCH -->
+    <div class="column">
+      <div class="col-header watch">👁 Watch — 1 Week <span class="count">6</span></div>
+      <div class="cards">
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar watch">JM</div>
+            <div><div class="lc-name">Jamie M.</div><div class="lc-meta">Grade 3 · 7 days in Watch</div></div>
+            <div class="tier-chip watch">Watch</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Division</div><div class="skill-tag">Fluency</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>7</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 21</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-warn">Check In</button>
+            <button class="btn-sm btn-outline">Assign</button>
+          </div>
+        </div>
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar watch">RD</div>
+            <div><div class="lc-name">Rosa D.</div><div class="lc-meta">Grade 3 · 5 days in Watch</div></div>
+            <div class="tier-chip watch">Watch</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Place Value</div><div class="skill-tag">Comprehension</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>5</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 22</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-warn">Check In</button>
+            <button class="btn-sm btn-outline">Assign</button>
+          </div>
+        </div>
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar watch">BW</div>
+            <div><div class="lc-name">Ben W.</div><div class="lc-meta">Grade 3 · 6 days in Watch</div></div>
+            <div class="tier-chip watch">Watch</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Fractions</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Days in tier: <span>6</span></div>
+            <div class="stat-item">Last intervention: <span>Mar 21</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-warn">Check In</button>
+            <button class="btn-sm btn-outline">Assign</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- CLEAR -->
+    <div class="column">
+      <div class="col-header clear">✅ Clear / Strong <span class="count">18</span></div>
+      <div class="cards">
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar clear">EH</div>
+            <div><div class="lc-name">Emma H.</div><div class="lc-meta">Grade 3 · Strong</div></div>
+            <div class="tier-chip clear">Strong</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">All P0 Skills</div><div class="skill-tag">+Extension</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Streak: <span>14 days</span></div>
+            <div class="stat-item">Last session: <span>Today</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-primary">View Profile</button>
+            <button class="btn-sm btn-outline">Assign+</button>
+          </div>
+        </div>
+        <div class="learner-card">
+          <div class="lc-top">
+            <div class="lc-avatar clear">LC</div>
+            <div><div class="lc-name">Leo C.</div><div class="lc-meta">Grade 3 · Strong</div></div>
+            <div class="tier-chip clear">Strong</div>
+          </div>
+          <div class="skill-list">
+            <div class="skill-tag">Math P0</div><div class="skill-tag">ELA P0</div>
+          </div>
+          <div class="lc-stats">
+            <div class="stat-item">Streak: <span>9 days</span></div>
+            <div class="stat-item">Last session: <span>Today</span></div>
+          </div>
+          <div class="action-row">
+            <button class="btn-sm btn-primary">View Profile</button>
+            <button class="btn-sm btn-outline">Assign+</button>
+          </div>
+        </div>
+        <div style="text-align:center;padding:14px;font-size:12px;color:#64748b">+ 16 more strong learners</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Flag Column Detail -->
+<div id="flag-detail" class="panel">
+  <div class="hint"><strong>Routes:</strong> Intervene → teacher-intervention-detail-mobile-v2 · Message Parent → teacher-parent-message-center-v2 · Move to Watch → updates SNS tier · Note → teacher-note-capture-mobile-v2</div>
+  <div class="detail-header">
+    <h2>Flag Column</h2>
+    <div class="col-badge flag">2+ Weeks · 4 Students</div>
+  </div>
+  <div style="background:#fde8e8;border:1.5px solid #9a2a2a;border-radius:10px;padding:12px 16px;font-size:13px;color:#6a1a1a;margin-bottom:20px">
+    ⚠️ These learners have been in the Flag tier for 2+ weeks. Immediate intervention is recommended. Parent notification may be required per school policy.
+  </div>
+  <div class="full-card">
+    <div class="fc-top">
+      <div class="fc-avatar flag">AR</div>
+      <div>
+        <div class="fc-name">Amir R.</div>
+        <div class="fc-grade">Grade 3 · Band P0 · 18 days in Flag</div>
+      </div>
+      <div class="tier-chip flag" style="margin-left:auto;font-size:12px;padding:4px 12px">Flag</div>
+    </div>
+    <div class="grid-2">
+      <div class="info-box"><div class="info-label">At-Risk Skills</div><div class="info-value">Place Value, Subtraction, Reading Comp</div></div>
+      <div class="info-box"><div class="info-label">Last Intervention</div><div class="info-value">Mar 19, 2026</div></div>
+      <div class="info-box"><div class="info-label">Sessions This Week</div><div class="info-value">2 of 5 completed</div></div>
+      <div class="info-box"><div class="info-label">Avg Score (7 days)</div><div class="info-value">42% correct</div></div>
+    </div>
+    <div class="section-title">Intervention History</div>
+    <div class="intervention-timeline">
+      <div class="it-item"><div class="it-date">Mar 19</div><div class="it-text">One-on-one place value session — partial improvement noted</div></div>
+      <div class="it-item"><div class="it-date">Mar 14</div><div class="it-text">Small group: subtraction strategies — no measurable gain yet</div></div>
+      <div class="it-item"><div class="it-date">Mar 5</div><div class="it-text">Parent notified via WonderQuest message — acknowledged</div></div>
+    </div>
+    <div class="action-bar">
+      <button class="btn-md btn-danger">Start Intervention</button>
+      <button class="btn-md btn-outline">Message Parent</button>
+      <button class="btn-md btn-outline">Add Note</button>
+      <button class="btn-md" style="background:#e8f5ef;color:#1a8050;border:none;font-family:'Sora',sans-serif;font-weight:600;cursor:pointer">Move to Watch</button>
+    </div>
+  </div>
+  <div class="full-card">
+    <div class="fc-top">
+      <div class="fc-avatar flag">PL</div>
+      <div><div class="fc-name">Priya L.</div><div class="fc-grade">Grade 3 · Band P0 · 21 days in Flag</div></div>
+      <div class="tier-chip flag" style="margin-left:auto;font-size:12px;padding:4px 12px">Flag</div>
+    </div>
+    <div class="grid-2">
+      <div class="info-box"><div class="info-label">At-Risk Skills</div><div class="info-value">Fractions, Phonics</div></div>
+      <div class="info-box"><div class="info-label">Last Intervention</div><div class="info-value">Mar 15, 2026</div></div>
+      <div class="info-box"><div class="info-label">Sessions This Week</div><div class="info-value">1 of 5 completed</div></div>
+      <div class="info-box"><div class="info-label">Avg Score (7 days)</div><div class="info-value">38% correct</div></div>
+    </div>
+    <div class="action-bar">
+      <button class="btn-md btn-danger">Start Intervention</button>
+      <button class="btn-md btn-outline">Message Parent</button>
+      <button class="btn-md btn-outline">Add Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Watch Column Detail -->
+<div id="watch-detail" class="panel">
+  <div class="hint"><strong>Routes:</strong> Check In → teacher-intervention-plan-editor-v2 · Assign Activity → teacher-assignment-creator-mobile-v2 · Move to Flag → updates tier · Move to Clear → updates tier</div>
+  <div class="detail-header">
+    <h2>Watch Column</h2>
+    <div class="col-badge watch">1 Week · 6 Students</div>
+  </div>
+  <div style="background:#fef3cd;border:1.5px solid #c07800;border-radius:10px;padding:12px 16px;font-size:13px;color:#7a4f00;margin-bottom:20px">
+    👁 These learners showed a skill gap in the past week. Monitor closely — early check-in can prevent escalation to Flag.
+  </div>
+  <div class="section-title">Watch List (6 students)</div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="full-card" style="padding:16px">
+      <div class="fc-top" style="margin-bottom:10px">
+        <div class="fc-avatar watch" style="width:40px;height:40px;font-size:15px">JM</div>
+        <div><div class="fc-name">Jamie M.</div><div class="fc-grade">7 days · Division, Fluency</div></div>
+        <div class="tier-chip watch" style="margin-left:auto;font-size:12px;padding:4px 12px">Watch</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm btn-warn">Check In</button>
+        <button class="btn-sm btn-outline">Assign Activity</button>
+        <button class="btn-sm" style="background:#fde8e8;color:#9a2a2a;border:none;font-family:'Sora',sans-serif;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:7px;font-size:11px">Move to Flag</button>
+      </div>
+    </div>
+    <div class="full-card" style="padding:16px">
+      <div class="fc-top" style="margin-bottom:10px">
+        <div class="fc-avatar watch" style="width:40px;height:40px;font-size:15px">RD</div>
+        <div><div class="fc-name">Rosa D.</div><div class="fc-grade">5 days · Place Value, Comprehension</div></div>
+        <div class="tier-chip watch" style="margin-left:auto;font-size:12px;padding:4px 12px">Watch</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm btn-warn">Check In</button>
+        <button class="btn-sm btn-outline">Assign Activity</button>
+        <button class="btn-sm" style="background:#e8f5ef;color:#1a8050;border:none;font-family:'Sora',sans-serif;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:7px;font-size:11px">Move to Clear</button>
+      </div>
+    </div>
+    <div class="full-card" style="padding:16px">
+      <div class="fc-top" style="margin-bottom:10px">
+        <div class="fc-avatar watch" style="width:40px;height:40px;font-size:15px">BW</div>
+        <div><div class="fc-name">Ben W.</div><div class="fc-grade">6 days · Fractions</div></div>
+        <div class="tier-chip watch" style="margin-left:auto;font-size:12px;padding:4px 12px">Watch</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm btn-warn">Check In</button>
+        <button class="btn-sm btn-outline">Assign Activity</button>
+        <button class="btn-sm" style="background:#e8f5ef;color:#1a8050;border:none;font-family:'Sora',sans-serif;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:7px;font-size:11px">Move to Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Resolved -->
+<div id="resolved" class="panel">
+  <div class="hint"><strong>Routes:</strong> View history → teacher-student-history-desktop-v2 · Reopen → moves back to Watch/Flag · Export → downloads resolved log CSV</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div>
+      <h2 style="font-size:20px;font-weight:700">Clear / Resolved</h2>
+      <div style="font-size:13px;color:#64748b;margin-top:3px">Students moved out of Flag or Watch in last 30 days</div>
+    </div>
+    <button class="btn-sm btn-outline">Export Log</button>
+  </div>
+  <div class="filters">
+    <div class="filter-chip active">All Time</div>
+    <div class="filter-chip">This Week</div>
+    <div class="filter-chip">This Month</div>
+    <div class="filter-chip">Flag → Clear</div>
+    <div class="filter-chip">Watch → Clear</div>
+  </div>
+  <div class="resolved-list">
+    <div class="resolved-item">
+      <div class="ri-icon">✅</div>
+      <div class="ri-info">
+        <div class="ri-name">Marcus T.</div>
+        <div class="ri-meta">Was in Flag (Place Value) · Resolved after 12-day intervention</div>
+      </div>
+      <div><div class="ri-date">Mar 20</div><button class="btn-sm btn-outline" style="margin-top:4px">View</button></div>
+    </div>
+    <div class="resolved-item">
+      <div class="ri-icon">✅</div>
+      <div class="ri-info">
+        <div class="ri-name">Lily O.</div>
+        <div class="ri-meta">Was in Watch (Phonics) · Moved to Strong</div>
+      </div>
+      <div><div class="ri-date">Mar 18</div><button class="btn-sm btn-outline" style="margin-top:4px">View</button></div>
+    </div>
+    <div class="resolved-item">
+      <div class="ri-icon">✅</div>
+      <div class="ri-info">
+        <div class="ri-name">Daniel P.</div>
+        <div class="ri-meta">Was in Flag (Subtraction, Fractions) · Resolved after 18-day plan</div>
+      </div>
+      <div><div class="ri-date">Mar 14</div><button class="btn-sm btn-outline" style="margin-top:4px">View</button></div>
+    </div>
+    <div class="resolved-item">
+      <div class="ri-icon">✅</div>
+      <div class="ri-info">
+        <div class="ri-name">Nadia R.</div>
+        <div class="ri-meta">Was in Watch (Number Sense) · Moved to Clear</div>
+      </div>
+      <div><div class="ri-date">Mar 10</div><button class="btn-sm btn-outline" style="margin-top:4px">View</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>File:</strong> teacher-support-priority-board-v2.html · Desktop 900px+ · Kanban 3-column layout</div>
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px">Spec — Priority Board v2</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Layout</td><td>Desktop 900px+, Kanban 3-column grid</td></tr>
+    <tr><td>Viewport</td><td>min-width 900px (responsive fallback to 1-col)</td></tr>
+    <tr><td>Tier Colors</td><td>Flag <span class="code">#9a2a2a</span> · Watch <span class="code">#c07800</span> · Clear <span class="code">#1a8050</span></td></tr>
+    <tr><td>Flag threshold</td><td>≥ 14 days in Watch/Flag tier</td></tr>
+    <tr><td>Watch threshold</td><td>≥ 5 days with skill gap signal</td></tr>
+    <tr><td>Card data</td><td>Name, grade, skills list, days-in-tier, last-intervention date, quick actions</td></tr>
+    <tr><td>Actions (Flag)</td><td>Intervene, Message Parent, Add Note, Move to Watch</td></tr>
+    <tr><td>Actions (Watch)</td><td>Check In, Assign Activity, Move to Flag, Move to Clear</td></tr>
+    <tr><td>Resolved log</td><td>Append-only, 30-day window visible, exportable CSV</td></tr>
+    <tr><td>Contact-safe</td><td>No PII displayed; all messages routed via WonderQuest</td></tr>
+    <tr><td>GO Score target</td><td>≥ 90/100</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['board','flag-detail','watch-detail','resolved','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

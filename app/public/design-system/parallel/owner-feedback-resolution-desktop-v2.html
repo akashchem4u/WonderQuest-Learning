@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Resolution Desktop — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-back{font-size:12px;font-weight:700;color:#50e890;cursor:pointer}
+.sh-breadcrumb{font-size:12px;color:rgba(255,255,255,.3)}
+.sh-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.sh-id{font-size:11px;color:rgba(255,255,255,.25);margin-left:auto}
+
+/* Two-column layout */
+.res-layout{display:grid;grid-template-columns:1fr 340px;gap:0;min-height:640px}
+.res-main{padding:24px;border-right:1px solid rgba(255,255,255,.06)}
+.res-side{padding:20px}
+
+/* Status banner */
+.status-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:10px;margin-bottom:20px}
+.sb-resolved{background:rgba(80,232,144,.08);border:1px solid rgba(80,232,144,.2)}
+.sb-wontfix{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1)}
+.sb-escalated{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2)}
+.sb-icon{font-size:20px}
+.sb-body{flex:1}
+.sb-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.sb-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.sb-timestamp{font-size:11px;color:rgba(255,255,255,.25)}
+
+/* Section headers */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* Original feedback */
+.orig-box{background:#161b22;border-radius:10px;padding:16px 18px;margin-bottom:18px;border:1px solid rgba(255,255,255,.05)}
+.ob-meta{display:flex;gap:12px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.ob-prio{font-size:10px;font-weight:800;padding:2px 8px;border-radius:5px}
+.op-p0{background:rgba(248,81,73,.2);color:#f85149}
+.op-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.ob-type{font-size:11px;font-weight:700;color:rgba(255,255,255,.4)}
+.ob-school{font-size:11px;color:rgba(255,255,255,.35)}
+.ob-date{font-size:11px;color:rgba(255,255,255,.25);margin-left:auto}
+.ob-title{font-size:14px;font-weight:800;color:#f0f6ff;margin-bottom:6px}
+.ob-body{font-size:12px;color:rgba(255,255,255,.6);line-height:1.6}
+
+/* Resolution note */
+.resolution-box{background:#161b22;border-radius:10px;padding:16px 18px;margin-bottom:18px;border:1px solid rgba(80,232,144,.15)}
+.rb-label{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(80,232,144,.6);letter-spacing:.06em;margin-bottom:8px}
+.rb-text{font-size:12px;color:rgba(255,255,255,.65);line-height:1.6}
+.rb-author{font-size:10px;color:rgba(255,255,255,.25);margin-top:6px}
+
+/* Owner reply */
+.reply-box{background:#161b22;border-radius:10px;padding:16px 18px;margin-bottom:18px;border:1px solid rgba(255,255,255,.05)}
+.reply-sent{background:rgba(80,232,144,.06);border-color:rgba(80,232,144,.12)}
+.rbox-label{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:8px}
+.reply-text{font-size:12px;color:rgba(255,255,255,.65);line-height:1.6}
+.reply-note{font-size:10px;color:rgba(80,232,144,.5);margin-top:6px}
+
+/* Activity log */
+.log-entry{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.log-entry:last-child{border-bottom:none}
+.le-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.ld-resolve{background:#50e890}
+.ld-reply{background:#9b72ff}
+.ld-escalate{background:#f85149}
+.ld-triage{background:#f59e0b}
+.ld-submit{background:rgba(255,255,255,.2)}
+.le-body{flex:1}
+.le-text{font-size:11px;color:rgba(255,255,255,.55)}
+.le-time{font-size:10px;color:rgba(255,255,255,.2);margin-top:1px}
+
+/* Sidebar panels */
+.side-panel{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sp-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:8px}
+.sp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sp-row:last-child{border-bottom:none}
+.sp-label{color:rgba(255,255,255,.35)}
+.sp-val{color:#f0f6ff;font-weight:600}
+.sp-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(80,232,144,.12);color:#50e890}
+
+/* Reopen button */
+.reopen-btn{width:100%;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.45);font-family:system-ui;cursor:pointer;text-align:center;margin-top:4px}
+.reopen-btn:hover{background:rgba(255,255,255,.07)}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-feedback-resolution-desktop-v2.html</strong><br>
+  Post-resolution view for a feedback item in the owner workbench. Shown after a ticket is resolved, marked won't-fix, or escalated.<br>
+  <strong>Layout:</strong> 2-col (main: original feedback + resolution note + owner reply + activity log) + sidebar (meta + related + reopen).<br>
+  <strong>3 resolution states:</strong> Resolved (green), Won't Fix (neutral), Escalated (red). Each has distinct status banner + resolution note framing.<br>
+  <strong>Reopen:</strong> Any resolved/won't-fix item can be reopened. Reopen sends item back to queue with previous priority. Activity log entry added on reopen.<br>
+  <strong>Teacher notification:</strong> Teacher receives platform notification when owner replies AND when item is resolved (if reply was sent). Teacher sees status only (not internal resolution notes).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('resolved')">Resolved</button>
+  <button class="tab-btn" onclick="showTab('wontfix')">Won't Fix</button>
+  <button class="tab-btn" onclick="showTab('escalated')">Escalated</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Resolved ────────────────────────────────────────────── -->
+<div id="tab-resolved" class="screen active">
+  <p class="section-title">Feedback resolution — resolved state</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-back">← Feedback Queue</div>
+      <div class="sh-breadcrumb">/</div>
+      <div class="sh-title">Bug #FB-2041</div>
+      <div class="sh-id">Resolved · 2h ago</div>
+    </div>
+    <div class="res-layout">
+      <div class="res-main">
+        <div class="status-banner sb-resolved">
+          <div class="sb-icon">✅</div>
+          <div class="sb-body">
+            <div class="sb-title">Resolved</div>
+            <div class="sb-sub">SSO token expiry bug fixed in hotfix v2.4.8 · Deployed to production</div>
+          </div>
+          <div class="sb-timestamp">Today, 11:32 AM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Original Feedback</div>
+        <div class="orig-box">
+          <div class="ob-meta">
+            <span class="ob-prio op-p0">P0</span>
+            <span class="ob-type">Bug</span>
+            <span class="ob-school">🏫 Riverside Elementary · Teacher role</span>
+            <span class="ob-date">Today, 8:14 AM</span>
+          </div>
+          <div class="ob-title">Students can't log in — SSO token expired</div>
+          <div class="ob-body">Entire class locked out since 8am. SSO keeps saying "session expired" immediately after login. We have a live class right now and can't access the platform at all. This is a critical blocker for our lesson today.</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Resolution Note (Internal)</div>
+        <div class="resolution-box">
+          <div class="rb-label">Resolution note · Internal only</div>
+          <div class="rb-text">Root cause: JWT refresh token TTL was inadvertently set to 1h in env vars during last deploy (should be 24h). Fixed in hotfix v2.4.8. Deployed at 11:30 AM. All active sessions invalidated and re-issued. No data loss. Post-mortem scheduled for Thursday.</div>
+          <div class="rb-author">Added by: Owner · Today 11:32 AM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Owner Reply (Sent to Teacher)</div>
+        <div class="reply-box reply-sent">
+          <div class="rbox-label">Reply sent via platform notification</div>
+          <div class="reply-text">Hi, thank you for reporting this immediately. We identified the issue — a configuration error in our last deploy caused SSO sessions to expire too quickly. We've deployed a fix and your students should be able to log in now. We're sorry for the disruption to your lesson. Please let us know if you see any further issues.</div>
+          <div class="reply-note">✓ Delivered to teacher's notification panel · Today 11:33 AM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:10px">Activity Log</div>
+        <div style="background:#161b22;border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.05)">
+          <div class="log-entry">
+            <div class="le-dot ld-resolve"></div>
+            <div class="le-body"><div class="le-text">Item resolved — hotfix v2.4.8 deployed to production</div><div class="le-time">Today 11:32 AM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-reply"></div>
+            <div class="le-body"><div class="le-text">Owner reply sent to teacher notification panel</div><div class="le-time">Today 11:31 AM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-escalate"></div>
+            <div class="le-body"><div class="le-text">Escalated to on-call engineering via PagerDuty</div><div class="le-time">Today 8:20 AM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-triage"></div>
+            <div class="le-body"><div class="le-text">Auto-triaged → P0 Critical → #on-call Slack channel</div><div class="le-time">Today 8:15 AM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-submit"></div>
+            <div class="le-body"><div class="le-text">Feedback submitted by teacher at Riverside Elementary</div><div class="le-time">Today 8:14 AM</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="res-side">
+        <div class="side-panel">
+          <div class="sp-title">Item Details</div>
+          <div class="sp-row"><div class="sp-label">ID</div><div class="sp-val">FB-2041</div></div>
+          <div class="sp-row"><div class="sp-label">Type</div><div class="sp-val">Bug</div></div>
+          <div class="sp-row"><div class="sp-label">Priority</div><div class="sp-val" style="color:#f85149">P0 Critical</div></div>
+          <div class="sp-row"><div class="sp-label">School</div><div class="sp-val">Riverside Elementary</div></div>
+          <div class="sp-row"><div class="sp-label">Role</div><div class="sp-val">Teacher</div></div>
+          <div class="sp-row"><div class="sp-label">Status</div><span class="sp-tag">✅ Resolved</span></div>
+          <div class="sp-row"><div class="sp-label">Time to resolve</div><div class="sp-val" style="color:#50e890">3h 18m</div></div>
+          <div class="sp-row"><div class="sp-label">SLA target</div><div class="sp-val">4h (met)</div></div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Linked Items</div>
+          <div class="sp-row"><div class="sp-label">Hotfix</div><div class="sp-val" style="color:#9b72ff">v2.4.8</div></div>
+          <div class="sp-row"><div class="sp-label">Post-mortem</div><div class="sp-val">Scheduled Thu</div></div>
+          <div class="sp-row"><div class="sp-label">Duplicate reports</div><div class="sp-val">3</div></div>
+        </div>
+        <button class="reopen-btn">↩ Reopen This Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Won't Fix ───────────────────────────────────────────── -->
+<div id="tab-wontfix" class="screen">
+  <p class="section-title">Feedback resolution — won't fix state</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-back">← Feedback Queue</div>
+      <div class="sh-breadcrumb">/</div>
+      <div class="sh-title">Feature #FB-2038</div>
+      <div class="sh-id">Won't Fix · 1d ago</div>
+    </div>
+    <div class="res-layout">
+      <div class="res-main">
+        <div class="status-banner sb-wontfix">
+          <div class="sb-icon">🚫</div>
+          <div class="sb-body">
+            <div class="sb-title">Won't Fix</div>
+            <div class="sb-sub">Out of scope for current roadmap. Explained to teacher.</div>
+          </div>
+          <div class="sb-timestamp">Yesterday, 3:44 PM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Original Feedback</div>
+        <div class="orig-box">
+          <div class="ob-meta">
+            <span class="ob-prio" style="background:rgba(155,114,255,.15);color:#9b72ff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:5px">Feature</span>
+            <span class="ob-type">Feature Request</span>
+            <span class="ob-school">🏫 Lincoln Academy · Teacher role</span>
+            <span class="ob-date">Yesterday, 10:22 AM</span>
+          </div>
+          <div class="ob-title">Add parent-teacher video call built into the platform</div>
+          <div class="ob-body">It would be great if parents could book a 15-minute video call with teachers directly inside WonderQuest instead of using a separate tool. Would save so much time managing Zoom links.</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Won't Fix Reason (Internal)</div>
+        <div class="resolution-box" style="border-color:rgba(255,255,255,.1)">
+          <div class="rb-label" style="color:rgba(255,255,255,.3)">Won't fix reason · Internal only</div>
+          <div class="rb-text">Video conferencing is out of scope for WonderQuest's core mission (adaptive learning). Integration with third-party tools (Zoom/Meet) is on the roadmap (Q4) but building our own video infra creates COPPA/FERPA complexity we want to avoid. Pointing teacher to the upcoming calendar integration instead.</div>
+          <div class="rb-author">Added by: Owner · Yesterday 3:44 PM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Owner Reply (Sent to Teacher)</div>
+        <div class="reply-box reply-sent">
+          <div class="rbox-label">Reply sent via platform notification</div>
+          <div class="reply-text">Thank you for the suggestion! We completely understand the need to streamline parent communication. Built-in video conferencing is outside our current scope, but we're planning calendar and scheduling integrations in Q4 that should help connect you with parents more easily. We've noted this request and will keep it in mind as we grow the platform.</div>
+          <div class="reply-note">✓ Delivered to teacher's notification panel · Yesterday 3:45 PM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:10px">Activity Log</div>
+        <div style="background:#161b22;border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.05)">
+          <div class="log-entry">
+            <div class="le-dot" style="background:rgba(255,255,255,.3)"></div>
+            <div class="le-body"><div class="le-text">Marked as Won't Fix — out of scope</div><div class="le-time">Yesterday 3:44 PM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-reply"></div>
+            <div class="le-body"><div class="le-text">Owner reply sent to teacher notification panel</div><div class="le-time">Yesterday 3:45 PM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-triage"></div>
+            <div class="le-body"><div class="le-text">Auto-triaged → Feature request queue</div><div class="le-time">Yesterday 10:23 AM</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="res-side">
+        <div class="side-panel">
+          <div class="sp-title">Item Details</div>
+          <div class="sp-row"><div class="sp-label">ID</div><div class="sp-val">FB-2038</div></div>
+          <div class="sp-row"><div class="sp-label">Type</div><div class="sp-val">Feature</div></div>
+          <div class="sp-row"><div class="sp-label">Priority</div><div class="sp-val" style="color:#9b72ff">Feature</div></div>
+          <div class="sp-row"><div class="sp-label">School</div><div class="sp-val">Lincoln Academy</div></div>
+          <div class="sp-row"><div class="sp-label">Status</div><span class="sp-tag" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.4)">🚫 Won't Fix</span></div>
+        </div>
+        <button class="reopen-btn">↩ Reopen This Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Escalated ──────────────────────────────────────────── -->
+<div id="tab-escalated" class="screen">
+  <p class="section-title">Feedback resolution — escalated state (still open)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-back">← Feedback Queue</div>
+      <div class="sh-breadcrumb">/</div>
+      <div class="sh-title">Bug #FB-2039</div>
+      <div class="sh-id" style="color:#f85149">Escalated · P0 · On-Call Active</div>
+    </div>
+    <div class="res-layout">
+      <div class="res-main">
+        <div class="status-banner sb-escalated">
+          <div class="sb-icon">🚨</div>
+          <div class="sb-body">
+            <div class="sb-title" style="color:#f85149">Escalated — On-Call Active</div>
+            <div class="sb-sub">PagerDuty incident #PD-4412 open · Engineering on-call acknowledged</div>
+          </div>
+          <div class="sb-timestamp">Today, 5h ago</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Original Feedback</div>
+        <div class="orig-box" style="border-color:rgba(248,81,73,.2)">
+          <div class="ob-meta">
+            <span class="ob-prio op-p0">P0</span>
+            <span class="ob-type">Bug</span>
+            <span class="ob-school">🏫 Lincoln Academy · Teacher role</span>
+            <span class="ob-date">Today, 6:10 AM</span>
+          </div>
+          <div class="ob-title">Assignment engine silent-failing — no tasks delivered</div>
+          <div class="ob-body">Assigned skills yesterday, students see empty session today. No error shown to students — just blank session. Checked assignments dashboard — shows as delivered but students confirm nothing appeared. Happening across all students in my class (24 students).</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Escalation Details</div>
+        <div class="resolution-box" style="border-color:rgba(248,81,73,.2)">
+          <div class="rb-label" style="color:rgba(248,81,73,.6)">Escalation note · Internal</div>
+          <div class="rb-text">Escalated to #on-call at 6:15 AM. PagerDuty incident #PD-4412 created. Engineering lead (Sam) acknowledged at 6:22 AM. Root cause under investigation — suspected queue processing failure in assignment delivery service. Multiple schools affected (investigating scope).</div>
+          <div class="rb-author">Escalated by: Auto-triage + Owner confirm · Today 6:15 AM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:12px">Owner Reply (Sent to Teacher)</div>
+        <div class="reply-box reply-sent">
+          <div class="rbox-label">Reply sent via platform notification</div>
+          <div class="reply-text">We're aware of an issue affecting assignment delivery and our engineering team is actively investigating. We're sorry your students are experiencing this. We'll send you an update as soon as we have a resolution timeline. Thank you for reporting this so quickly.</div>
+          <div class="reply-note">✓ Delivered to teacher's notification panel · Today 6:20 AM</div>
+        </div>
+
+        <div class="sec-hdr" style="margin-bottom:10px">Activity Log</div>
+        <div style="background:#161b22;border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.05)">
+          <div class="log-entry">
+            <div class="le-dot ld-reply"></div>
+            <div class="le-body"><div class="le-text">Owner reply sent to teacher notification panel</div><div class="le-time">Today 6:20 AM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-escalate"></div>
+            <div class="le-body"><div class="le-text">Escalated → PagerDuty #PD-4412 · Engineering on-call acknowledged</div><div class="le-time">Today 6:15 AM</div></div>
+          </div>
+          <div class="log-entry">
+            <div class="le-dot ld-triage"></div>
+            <div class="le-body"><div class="le-text">Auto-triaged → P0 Critical → #on-call Slack channel</div><div class="le-time">Today 6:11 AM</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="res-side">
+        <div class="side-panel">
+          <div class="sp-title">Item Details</div>
+          <div class="sp-row"><div class="sp-label">ID</div><div class="sp-val">FB-2039</div></div>
+          <div class="sp-row"><div class="sp-label">Type</div><div class="sp-val">Bug</div></div>
+          <div class="sp-row"><div class="sp-label">Priority</div><div class="sp-val" style="color:#f85149">P0 Critical</div></div>
+          <div class="sp-row"><div class="sp-label">School</div><div class="sp-val">Lincoln Academy</div></div>
+          <div class="sp-row"><div class="sp-label">Status</div><span class="sp-tag" style="background:rgba(248,81,73,.15);color:#f85149">🚨 Escalated</span></div>
+          <div class="sp-row"><div class="sp-label">PagerDuty</div><div class="sp-val" style="color:#f59e0b">PD-4412</div></div>
+          <div class="sp-row"><div class="sp-label">SLA deadline</div><div class="sp-val" style="color:#f59e0b">1h remaining</div></div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Scope Check</div>
+          <div class="sp-row"><div class="sp-label">Schools affected</div><div class="sp-val">Est. 8–12</div></div>
+          <div class="sp-row"><div class="sp-label">Duplicate reports</div><div class="sp-val">6</div></div>
+          <div class="sp-row"><div class="sp-label">Incident level</div><div class="sp-val" style="color:#f85149">P0 Incident</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ──────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-feedback-resolution-desktop-v2.html<br>
+      <strong>Post-action view for a resolved/won't-fix/escalated feedback item.</strong> 3 resolution states covered. 2-col layout with activity log and sidebar meta.
+    </div>
+    <h2 class="spec-h2">Resolution States</h2>
+    <p class="spec-p"><strong>Resolved:</strong> Green banner. Internal resolution note (not visible to teacher). Owner reply shown with delivery confirmation. Activity log shows full event trail. Reopen available.</p>
+    <p class="spec-p"><strong>Won't Fix:</strong> Neutral banner. Internal won't-fix reason. Owner reply (explaining to teacher in product-forward tone). Reopen available.</p>
+    <p class="spec-p"><strong>Escalated:</strong> Red banner — note this is still open (not resolved). PagerDuty incident number shown. Escalated items remain visible in queue until resolved.</p>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">Internal resolution notes are visible to owner only — never to teachers. Teacher sees only the owner reply (delivered via platform notification). Individual teacher name never shown — school name + role only.</p>
+    <h2 class="spec-h2">Reopen Behaviour</h2>
+    <p class="spec-p">Any resolved or won't-fix item can be reopened. On reopen: item returns to queue with previous priority. New log entry added. If teacher had received a resolution notification, a correction notification is sent ("We're looking into this again").</p>
+    <h2 class="spec-h2">SLA Tracking</h2>
+    <p class="spec-p">P0: 4h target. P1: 24h. P2: 72h. P3: 7 days. Feature: best effort. SLA timers start at submission time, not at triage. Time-to-resolve shown in sidebar for resolved items (green if within SLA).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

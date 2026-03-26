@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Pre-Reader Counting Scene — v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 900px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 900px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #ffd166; color: #e8e0ff; }
+  .tab-btn.active { background: #ffd166; border-color: #ffd166; color: #1a1000; }
+
+  .screen { display: none; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* Scene card wrapper */
+  .scene-card {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  /* Top bar - Pre-K Gold theme */
+  .scene-topbar {
+    background: linear-gradient(135deg, #2a1800, #1a0c00);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #3a2400;
+  }
+  .sct-back {
+    background: rgba(255,209,102,0.15);
+    border: 1.5px solid #ffd166;
+    border-radius: 8px;
+    color: #ffd166;
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .sct-name { font-size: 13px; font-weight: 900; color: #fff8e0; }
+  .sct-sub { font-size: 10px; color: #c4a840; margin-top: 1px; }
+  .sct-stars { font-size: 13px; font-weight: 900; color: #ffd166; margin-left: auto; }
+
+  /* Progress row */
+  .prog-row {
+    display: flex;
+    gap: 3px;
+    padding: 8px 20px;
+    background: #1a0c00;
+    border-bottom: 1px solid #2a1800;
+  }
+  .pr-seg { flex: 1; height: 6px; border-radius: 3px; background: #2a1800; }
+  .pr-seg.done { background: #ffd166; }
+  .pr-seg.active { background: #f0a000; animation: seg-pulse 1.5s ease-in-out infinite; }
+  @keyframes seg-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* Scene area */
+  .scene-area {
+    padding: 32px 40px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, #100b2e 0%, #12103a 100%);
+  }
+
+  .scene-q-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #c4a840;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+  }
+
+  /* Large counting display */
+  .count-display {
+    font-size: 80px;
+    font-weight: 900;
+    color: #ffd166;
+    margin-bottom: 8px;
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(255,209,102,0.4);
+  }
+
+  /* Object grid for visual counting */
+  .object-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .count-obj {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #2a2010, #3a2a00);
+    border: 3px solid #ffd166;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    animation: obj-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .count-obj.highlight { background: linear-gradient(135deg, #ffd166, #f0a000); }
+  @keyframes obj-pop {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .count-obj:nth-child(1) { animation-delay: 0.05s; }
+  .count-obj:nth-child(2) { animation-delay: 0.10s; }
+  .count-obj:nth-child(3) { animation-delay: 0.15s; }
+  .count-obj:nth-child(4) { animation-delay: 0.20s; }
+  .count-obj:nth-child(5) { animation-delay: 0.25s; }
+
+  .scene-prompt {
+    font-size: 22px;
+    font-weight: 900;
+    color: #e8e0ff;
+    margin-bottom: 6px;
+  }
+  .scene-sub {
+    font-size: 14px;
+    color: #9b8ec4;
+    margin-bottom: 24px;
+  }
+
+  /* Number answer row */
+  .number-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .num-btn {
+    width: 70px;
+    height: 70px;
+    background: #1a1540;
+    border: 3px solid #2a2060;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 900;
+    color: #e8e0ff;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s, background 0.15s;
+  }
+  .num-btn:hover { border-color: #ffd166; transform: scale(1.08); background: #2a1800; }
+  .num-btn.selected-correct { border-color: #50e890; background: #1a3a20; color: #50e890; }
+  .num-btn.selected-wrong { border-color: #ff7b6b; background: #2a1010; color: #ff7b6b; animation: shake 0.4s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  /* Coach */
+  .coach-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1a1540;
+    border-radius: 12px;
+    padding: 10px 14px;
+    max-width: 460px;
+    margin: 0 auto 8px;
+  }
+  .cr-avatar { font-size: 28px; }
+  .cr-speech { font-size: 13px; font-weight: 700; color: #c4b0ff; }
+
+  /* Star safe */
+  .star-safe-scene {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a2a15;
+    border: 1.5px solid #50e890;
+    border-radius: 14px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #50e890;
+    margin-bottom: 16px;
+  }
+
+  /* Bottom bar */
+  .scene-bottom {
+    padding: 12px 20px;
+    background: #12103a;
+    border-top: 1px solid #1a1540;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sb-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  .sb-btn.audio { border-color: #ffd166; color: #ffd166; }
+  .sb-btn.idk { border-color: #ff7b6b44; color: #ff7b6b; background: transparent; }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #ffd166; margin: 16px 0 8px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — play-prereader-counting-scene-v3.html</strong><br>
+  States: <strong>Active (count 5 objects)</strong> / <strong>Correct</strong> / <strong>Wrong (gentle)</strong> / <strong>Spec</strong><br>
+  Pre-K band (gold #ffd166 theme). Number answer row (4 large buttons). Visual object grid (5 emoji tiles, staggered pop-in).<br>
+  Large count display on correct state. No timer. No accuracy %. Stars never decrease. Coach gives counting encouragement.<br>
+  Scene type: count objects → pick number from 4 choices. Objects animate in one at a time with obj-pop keyframe.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active (Count 5)</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct!</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong (Gentle)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: ACTIVE ── -->
+<div class="screen active" id="tab-active">
+  <div class="scene-card">
+    <div class="scene-topbar">
+      <button class="sct-back">← Home</button>
+      <div>
+        <div class="sct-name">Count the Stars!</div>
+        <div class="sct-sub">Forest Glen · Node 3 · Q5</div>
+      </div>
+      <div class="sct-stars">🌟 9</div>
+    </div>
+    <div class="prog-row">
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg active"></div>
+      <div class="pr-seg"></div>
+      <div class="pr-seg"></div>
+    </div>
+
+    <div class="scene-area">
+      <div class="scene-q-label">How many do you see?</div>
+
+      <div class="object-grid">
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+      </div>
+
+      <div class="scene-prompt">Count the stars!</div>
+      <div class="scene-sub">How many stars are there? Pick the number.</div>
+
+      <div class="number-row">
+        <div class="num-btn">3</div>
+        <div class="num-btn">4</div>
+        <div class="num-btn">5</div>
+        <div class="num-btn">6</div>
+      </div>
+
+      <div class="coach-row">
+        <div class="cr-avatar">🦁</div>
+        <div class="cr-speech">Count them one by one! Touch each star as you go! ✨</div>
+      </div>
+      <div class="star-safe-scene">⭐ Your stars are safe!</div>
+    </div>
+
+    <div class="scene-bottom">
+      <button class="sb-btn audio">🔊 Hear again</button>
+      <button class="sb-btn">💡 Hint</button>
+      <button class="sb-btn idk">🤷 I don't know yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: CORRECT ── -->
+<div class="screen" id="tab-correct">
+  <div class="scene-card">
+    <div class="scene-topbar">
+      <button class="sct-back">← Home</button>
+      <div>
+        <div class="sct-name">Count the Stars!</div>
+        <div class="sct-sub" style="color:#50e890">Q5 ✓ You got it!</div>
+      </div>
+      <div class="sct-stars" style="color:#50e890">🌟 10 +1!</div>
+    </div>
+    <div class="prog-row">
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done" style="background:#ffd166"></div>
+      <div class="pr-seg"></div>
+      <div class="pr-seg"></div>
+    </div>
+
+    <div class="scene-area" style="background:radial-gradient(ellipse at 50% 30%,rgba(80,232,144,0.08) 0%,transparent 70%)">
+      <div class="scene-q-label" style="color:#50e890">✓ That's right!</div>
+
+      <div class="count-display">5</div>
+      <div style="margin-bottom:16px;font-size:18px;color:#50e890;font-weight:900">There are 5 stars! 🎉</div>
+
+      <div class="object-grid">
+        <div class="count-obj highlight">⭐</div>
+        <div class="count-obj highlight">⭐</div>
+        <div class="count-obj highlight">⭐</div>
+        <div class="count-obj highlight">⭐</div>
+        <div class="count-obj highlight">⭐</div>
+      </div>
+
+      <div class="number-row" style="margin-top:8px">
+        <div class="num-btn" style="opacity:0.4">3</div>
+        <div class="num-btn" style="opacity:0.4">4</div>
+        <div class="num-btn selected-correct">5</div>
+        <div class="num-btn" style="opacity:0.4">6</div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">
+        <div style="background:#1a3a20;border:2px solid #50e890;border-radius:12px;padding:8px 18px;font-size:15px;font-weight:900;color:#50e890">+1 ⭐</div>
+      </div>
+
+      <div class="coach-row" style="background:#1a3a20;border-radius:12px;border:1px solid #50e890">
+        <div class="cr-avatar">🦁</div>
+        <div class="cr-speech" style="color:#50e890">One-two-three-four-FIVE! You're a counting champion! 🏆</div>
+      </div>
+
+      <button style="margin-top:12px;background:linear-gradient(135deg,#ffd166,#f0a000);border:none;border-radius:12px;color:#1a1000;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;padding:12px 28px;cursor:pointer">Next Question →</button>
+    </div>
+
+    <div class="scene-bottom">
+      <div style="font-size:12px;color:#50e890;font-weight:700">✓ Saved!</div>
+      <div></div><div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: WRONG ── -->
+<div class="screen" id="tab-wrong">
+  <div class="scene-card">
+    <div class="scene-topbar">
+      <button class="sct-back">← Home</button>
+      <div>
+        <div class="sct-name">Count the Stars!</div>
+        <div class="sct-sub" style="color:#ff7b6b">Try again!</div>
+      </div>
+      <div class="sct-stars">🌟 9</div>
+    </div>
+    <div class="prog-row">
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg active" style="background:#ff7b6b44;animation:none"></div>
+      <div class="pr-seg"></div>
+      <div class="pr-seg"></div>
+    </div>
+
+    <div class="scene-area">
+      <div class="scene-q-label" style="color:#ff7b6b">Not quite — give it another try!</div>
+
+      <div class="object-grid">
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+        <div class="count-obj">⭐</div>
+      </div>
+
+      <div class="scene-prompt">Count the stars!</div>
+      <div class="scene-sub">Touch each star and count out loud — 1, 2, 3...</div>
+
+      <div class="number-row">
+        <div class="num-btn" style="opacity:0.4">3</div>
+        <div class="num-btn selected-wrong">4</div>
+        <div class="num-btn">5</div>
+        <div class="num-btn">6</div>
+      </div>
+
+      <div style="background:#2a1010;border:1.5px solid #ff7b6b44;border-radius:12px;padding:10px 14px;font-size:13px;color:#ff7b6b;font-weight:700;text-align:center;margin-bottom:10px">
+        That wasn't it! Touch each star and count — you can do it! 🌟
+      </div>
+
+      <div class="coach-row">
+        <div class="cr-avatar">🦁</div>
+        <div class="cr-speech">Let's count together: point to each one! One... two... three... four... five! 🖐️</div>
+      </div>
+      <div class="star-safe-scene">⭐ Stars safe — keep counting!</div>
+    </div>
+
+    <div class="scene-bottom">
+      <button class="sb-btn audio">🔊 Hear again</button>
+      <button class="sb-btn" style="border-color:#ffd166;color:#ffd166">💡 Count with me</button>
+      <button class="sb-btn idk">🤷 I don't know yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">play-prereader-counting-scene-v3.html</div></div>
+    <div class="spec-row"><div class="spec-k">Band</div><div class="spec-v">Pre-K · Gold theme (#ffd166, bg #2a1800 gradients)</div></div>
+    <div class="spec-row"><div class="spec-k">Scene type</div><div class="spec-v">Count objects → pick number from 4 choices</div></div>
+    <div class="spec-row"><div class="spec-k">Count range</div><div class="spec-v">1–10 objects displayed</div></div>
+
+    <h3>Object Grid</h3>
+    <div class="spec-row"><div class="spec-k">Tiles</div><div class="spec-v">60px × 60px · gold border · emoji object · wrapping flexbox</div></div>
+    <div class="spec-row"><div class="spec-k">Animation</div><div class="spec-v">obj-pop: scale 0.5→1, staggered 0.05s per object</div></div>
+    <div class="spec-row"><div class="spec-k">On correct</div><div class="spec-v">Tiles turn gold bg (highlight class)</div></div>
+    <div class="spec-row"><div class="spec-k">Object types</div><div class="spec-v">Themed to world/quest: ⭐ stars / 🐾 paws / 🍎 apples / etc</div></div>
+
+    <h3>Number Buttons</h3>
+    <div class="spec-row"><div class="spec-k">Size</div><div class="spec-v">70×70px · 18px border-radius · 28px font</div></div>
+    <div class="spec-row"><div class="spec-k">Correct</div><div class="spec-v">Green border + bg. Other options dim to 40% opacity.</div></div>
+    <div class="spec-row"><div class="spec-k">Wrong</div><div class="spec-v">Red border + shake animation. Other buttons remain active.</div></div>
+
+    <h3>Correct State</h3>
+    <div class="spec-row"><div class="spec-k">Count display</div><div class="spec-v">80px numeral in gold with glow text-shadow</div></div>
+    <div class="spec-row"><div class="spec-k">Coach message</div><div class="spec-v">Spells out count: "One-two-three-four-FIVE!" — modeling counting</div></div>
+    <div class="spec-row"><div class="spec-k">CTA button</div><div class="spec-v">Gold gradient (#ffd166→#f0a000) · dark text · "Next Question →"</div></div>
+
+    <h3>Rules</h3>
+    <div class="spec-row"><div class="spec-k">No timer</div><div class="spec-v">Never. Counting takes as long as the child needs.</div></div>
+    <div class="spec-row"><div class="spec-k">No accuracy %</div><div class="spec-v">Stars only. Correct = star earned.</div></div>
+    <div class="spec-row"><div class="spec-k">Star safety</div><div class="spec-v">Never decreases. Badge always shown.</div></div>
+    <div class="spec-row"><div class="spec-k">Wrong language</div><div class="spec-v">"That wasn't it! Touch each one and count" — actionable, not shaming</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

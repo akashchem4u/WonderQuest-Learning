@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Roadmap Priority Board v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#0d1117;color:#e2e8f0;min-height:100vh}
+  nav{background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;padding:0 24px;height:56px;gap:16px}
+  nav .logo{font-weight:700;font-size:17px;color:#ffd166}
+  nav .subtitle{font-size:13px;color:#8b949e}
+  nav .spacer{flex:1}
+  .nav-actions{display:flex;gap:10px;align-items:center}
+  .nav-btn{background:#21262d;border:1px solid #30363d;color:#e2e8f0;padding:6px 14px;border-radius:6px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;font-weight:500}
+  .nav-btn.primary{background:#ffd166;color:#0d1117;border-color:#ffd166;font-weight:700}
+  .tabs{display:flex;background:#161b22;border-bottom:1px solid #21262d;overflow-x:auto;padding:0 24px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:14px 18px;font-size:13px;font-weight:600;color:#8b949e;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;font-family:'Sora',sans-serif}
+  .tab.active{color:#ffd166;border-bottom-color:#ffd166}
+  .tab:hover:not(.active){color:#e2e8f0}
+  .panel{display:none;padding:28px;max-width:1200px;margin:0 auto}
+  .panel.active{display:block}
+  .hint{background:#1a1400;border:1.5px solid #ffd166;border-radius:10px;padding:10px 16px;font-size:11px;color:#ffd166;margin-bottom:24px;line-height:1.6}
+  .hint strong{font-weight:700}
+  .hint span{opacity:.7;font-weight:400}
+
+  /* Board layout */
+  .board-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .board-title{font-size:20px;font-weight:700;color:#e2e8f0}
+  .board-meta{font-size:13px;color:#8b949e}
+  .spacer{flex:1}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .filter-chip{background:#161b22;border:1px solid #30363d;color:#8b949e;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:500;transition:all .15s}
+  .filter-chip.active{background:#ffd166;color:#0d1117;border-color:#ffd166;font-weight:700}
+  .filter-chip:hover:not(.active){border-color:#8b949e;color:#e2e8f0}
+
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start}
+  .col{background:#161b22;border:1px solid #21262d;border-radius:12px;overflow:hidden}
+  .col-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #21262d}
+  .col-label{font-size:13px;font-weight:700}
+  .col-count{background:#21262d;color:#8b949e;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+  .col.now .col-header{background:rgba(255,209,102,.08)}
+  .col.now .col-label{color:#ffd166}
+  .col.next .col-header{background:rgba(155,114,255,.08)}
+  .col.next .col-label{color:#9b72ff}
+  .col.later .col-header{background:rgba(88,232,193,.08)}
+  .col.later .col-label{color:#58e8c1}
+  .col.archived .col-header{background:rgba(139,148,158,.08)}
+  .col.archived .col-label{color:#8b949e}
+  .col-body{padding:12px;display:flex;flex-direction:column;gap:10px;min-height:200px}
+
+  .card{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px;cursor:pointer;transition:border-color .15s;position:relative}
+  .card:hover{border-color:#30363d}
+  .card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+  .card-title{font-size:13px;font-weight:600;color:#e2e8f0;flex:1;line-height:1.4}
+  .sev-chip{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0}
+  .sev-critical{background:rgba(154,42,42,.25);color:#f87171;border:1px solid rgba(154,42,42,.4)}
+  .sev-high{background:rgba(192,120,0,.25);color:#fbbf24;border:1px solid rgba(192,120,0,.4)}
+  .sev-medium{background:rgba(37,99,235,.25);color:#60a5fa;border:1px solid rgba(37,99,235,.4)}
+  .sev-low{background:rgba(26,128,80,.25);color:#4ade80;border:1px solid rgba(26,128,80,.4)}
+  .card-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .meta-item{font-size:11px;color:#8b949e;display:flex;align-items:center;gap:4px}
+  .meta-item .icon{font-size:12px}
+  .assignee-dot{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0d1117;flex-shrink:0}
+  .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #21262d}
+  .blocking-badge{background:rgba(248,113,113,.15);color:#f87171;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+  .effort-bar{display:flex;gap:3px}
+  .effort-dot{width:8px;height:8px;border-radius:50%;background:#21262d}
+  .effort-dot.filled{background:#ffd166}
+  .card.archived-card{opacity:.55}
+
+  /* Single col view */
+  .single-col-wrap{max-width:520px}
+  .section-title{font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .section-title .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  /* Severity filter view */
+  .filter-section{margin-bottom:28px}
+  .sev-row{display:flex;align-items:center;gap:16px;padding:14px 16px;background:#161b22;border:1px solid #21262d;border-radius:10px;margin-bottom:8px}
+  .sev-row-label{font-size:14px;font-weight:700;min-width:80px}
+  .sev-bar-track{flex:1;height:8px;background:#21262d;border-radius:4px;overflow:hidden}
+  .sev-bar-fill{height:100%;border-radius:4px;transition:width .3s}
+  .sev-count{font-size:13px;font-weight:700;min-width:30px;text-align:right}
+
+  /* Item detail view */
+  .detail-header{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:20px}
+  .detail-title{font-size:18px;font-weight:700;color:#e2e8f0;margin-bottom:10px}
+  .detail-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .detail-meta-item{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 14px}
+  .detail-meta-label{font-size:10px;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .detail-meta-value{font-size:14px;font-weight:600;color:#e2e8f0}
+  .detail-section{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:18px;margin-bottom:16px}
+  .detail-section-title{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+  .desc-text{font-size:14px;color:#c9d1d9;line-height:1.6}
+  .link-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #21262d;font-size:13px;color:#58a6ff}
+  .link-item:last-child{border-bottom:none}
+  .timeline-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #21262d}
+  .timeline-item:last-child{border-bottom:none}
+  .timeline-dot{width:8px;height:8px;border-radius:50%;background:#ffd166;margin-top:5px;flex-shrink:0}
+  .timeline-content{flex:1}
+  .timeline-date{font-size:11px;color:#8b949e}
+  .timeline-text{font-size:13px;color:#c9d1d9}
+  .action-row{display:flex;gap:10px;margin-top:16px}
+  .action-btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;border:none;transition:opacity .15s}
+  .action-btn:hover{opacity:.85}
+  .action-btn.primary{background:#ffd166;color:#0d1117}
+  .action-btn.secondary{background:#21262d;color:#e2e8f0}
+  .action-btn.danger{background:rgba(154,42,42,.3);color:#f87171;border:1px solid rgba(154,42,42,.4)}
+
+  /* Spec */
+  .spec-table{width:100%;border-collapse:collapse;font-size:13px}
+  .spec-table th{text-align:left;padding:10px 14px;background:#161b22;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #21262d}
+  .spec-table td{padding:10px 14px;border-bottom:1px solid #21262d;color:#c9d1d9;vertical-align:top}
+  .spec-table tr:last-child td{border-bottom:none}
+  .spec-table td:first-child{color:#ffd166;font-weight:600;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">WonderQuest</div>
+  <div class="subtitle">Owner · Roadmap</div>
+  <div class="spacer"></div>
+  <div class="nav-actions">
+    <button class="nav-btn">Sort: Severity</button>
+    <button class="nav-btn primary">+ Add Item</button>
+  </div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('board')">Priority Board</div>
+  <div class="tab" onclick="show('now-col')">Now Column</div>
+  <div class="tab" onclick="show('sev-filter')">Severity Filter</div>
+  <div class="tab" onclick="show('item-detail')">Item Detail</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Priority Board -->
+<div class="panel active" id="board">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/roadmap/items?col={now|next|later|archived}&sort={severity|effort} · POST /owner/roadmap/items · PATCH /owner/roadmap/items/:id · POST /owner/roadmap/items/:id/move</span>
+  </div>
+  <div class="board-header">
+    <div class="board-title">Roadmap Priority Board</div>
+    <div class="board-meta">Q2 2026 · 24 items</div>
+    <div class="spacer"></div>
+    <div class="filter-bar" style="margin:0">
+      <div class="filter-chip active">All Severity</div>
+      <div class="filter-chip">Critical</div>
+      <div class="filter-chip">High</div>
+      <div class="filter-chip">Medium</div>
+      <div class="filter-chip">Low</div>
+    </div>
+  </div>
+
+  <div class="board">
+    <!-- NOW -->
+    <div class="col now">
+      <div class="col-header">
+        <div class="col-label">Now</div>
+        <div class="col-count">7</div>
+      </div>
+      <div class="col-body">
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Voice coach audio latency fix</div>
+            <div class="sev-chip sev-critical">Critical</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> M. Okafor</div>
+            <div class="meta-item"><span class="icon">📅</span> Mar 25</div>
+          </div>
+          <div class="card-footer">
+            <div class="blocking-badge">⚠ Blocks 3</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Parent link flow recovery edge cases</div>
+            <div class="sev-chip sev-high">High</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> T. Reyes</div>
+            <div class="meta-item"><span class="icon">📅</span> Mar 28</div>
+          </div>
+          <div class="card-footer">
+            <div class="blocking-badge">⚠ Blocks 1</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Offline session sync retry logic</div>
+            <div class="sev-chip sev-high">High</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> A. Patel</div>
+            <div class="meta-item"><span class="icon">📅</span> Apr 2</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Teacher SNS tier recalculation speed</div>
+            <div class="sev-chip sev-medium">Medium</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> R. Nguyen</div>
+            <div class="meta-item"><span class="icon">📅</span> Apr 5</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEXT -->
+    <div class="col next">
+      <div class="col-header">
+        <div class="col-label">Next</div>
+        <div class="col-count">8</div>
+      </div>
+      <div class="col-body">
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Adaptive difficulty curve v2</div>
+            <div class="sev-chip sev-high">High</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> J. Kim</div>
+            <div class="meta-item"><span class="icon">📅</span> Apr 15</div>
+          </div>
+          <div class="card-footer">
+            <div class="blocking-badge">⚠ Blocks 2</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Class Kanban real-time refresh</div>
+            <div class="sev-chip sev-medium">Medium</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> M. Okafor</div>
+            <div class="meta-item"><span class="icon">📅</span> Apr 20</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Streak restoration extended grace period</div>
+            <div class="sev-chip sev-medium">Medium</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> L. Santos</div>
+            <div class="meta-item"><span class="icon">📅</span> Apr 28</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Content gap auto-detection for P2 band</div>
+            <div class="sev-chip sev-medium">Medium</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> T. Reyes</div>
+            <div class="meta-item"><span class="icon">📅</span> May 5</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LATER -->
+    <div class="col later">
+      <div class="col-header">
+        <div class="col-label">Later</div>
+        <div class="col-count">6</div>
+      </div>
+      <div class="col-body">
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Multi-language support: Spanish UI</div>
+            <div class="sev-chip sev-medium">Medium</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> Unassigned</div>
+            <div class="meta-item"><span class="icon">📅</span> Q3</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Parent weekly PDF export</div>
+            <div class="sev-chip sev-low">Low</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> Unassigned</div>
+            <div class="meta-item"><span class="icon">📅</span> Q3</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-top">
+            <div class="card-title">Dark mode for parent app shell</div>
+            <div class="sev-chip sev-low">Low</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">👤</span> Unassigned</div>
+            <div class="meta-item"><span class="icon">📅</span> Q4</div>
+          </div>
+          <div class="card-footer">
+            <div style="font-size:10px;color:#8b949e">No blockers</div>
+            <div class="effort-bar">
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot filled"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+              <div class="effort-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARCHIVED -->
+    <div class="col archived">
+      <div class="col-header">
+        <div class="col-label">Archived</div>
+        <div class="col-count">3</div>
+      </div>
+      <div class="col-body">
+        <div class="card archived-card">
+          <div class="card-top">
+            <div class="card-title">Initial streak system MVP</div>
+            <div class="sev-chip sev-high" style="opacity:.6">High</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">✅</span> Shipped Mar 10</div>
+          </div>
+        </div>
+        <div class="card archived-card">
+          <div class="card-top">
+            <div class="card-title">Beta tester invite flow</div>
+            <div class="sev-chip sev-medium" style="opacity:.6">Medium</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">✅</span> Shipped Feb 28</div>
+          </div>
+        </div>
+        <div class="card archived-card">
+          <div class="card-top">
+            <div class="card-title">Owner governance log v1</div>
+            <div class="sev-chip sev-low" style="opacity:.6">Low</div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item"><span class="icon">🗄</span> Archived Feb 15</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Now Column -->
+<div class="panel" id="now-col">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/roadmap/items?col=now&sort={severity|effort|due} · PATCH /owner/roadmap/items/:id/move · GET /owner/roadmap/items/:id/blocking</span>
+  </div>
+  <div class="section-title">
+    <span class="dot" style="background:#ffd166"></span>
+    Now Column — Active Items (7)
+  </div>
+  <div class="single-col-wrap" style="max-width:600px">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="filter-chip active">All (7)</div>
+      <div class="filter-chip">Critical (1)</div>
+      <div class="filter-chip">High (2)</div>
+      <div class="filter-chip">Medium (4)</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card" style="border-left:3px solid #f87171">
+        <div class="card-top">
+          <div class="card-title">Voice coach audio latency fix</div>
+          <div class="sev-chip sev-critical">Critical</div>
+        </div>
+        <div style="font-size:12px;color:#c9d1d9;margin-bottom:8px;line-height:1.5">Audio response delay > 800ms affecting ~34% of play sessions on iOS 17+. P0 user experience issue.</div>
+        <div class="card-meta" style="margin-bottom:8px">
+          <div class="meta-item"><span class="icon">👤</span> M. Okafor</div>
+          <div class="meta-item"><span class="icon">📅</span> Due Mar 25</div>
+          <div class="meta-item"><span class="icon">⚡</span> Effort: 3/5</div>
+        </div>
+        <div class="card-footer">
+          <div class="blocking-badge">⚠ Blocks 3 items</div>
+          <div style="display:flex;gap:8px">
+            <button class="action-btn secondary" style="padding:5px 12px;font-size:12px">Move to Next</button>
+            <button class="action-btn primary" style="padding:5px 12px;font-size:12px">View Detail</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:3px solid #fbbf24">
+        <div class="card-top">
+          <div class="card-title">Parent link flow recovery edge cases</div>
+          <div class="sev-chip sev-high">High</div>
+        </div>
+        <div style="font-size:12px;color:#c9d1d9;margin-bottom:8px;line-height:1.5">4 edge cases in parent linking where session drops silently without user feedback or retry prompt.</div>
+        <div class="card-meta" style="margin-bottom:8px">
+          <div class="meta-item"><span class="icon">👤</span> T. Reyes</div>
+          <div class="meta-item"><span class="icon">📅</span> Due Mar 28</div>
+          <div class="meta-item"><span class="icon">⚡</span> Effort: 2/5</div>
+        </div>
+        <div class="card-footer">
+          <div class="blocking-badge">⚠ Blocks 1 item</div>
+          <div style="display:flex;gap:8px">
+            <button class="action-btn secondary" style="padding:5px 12px;font-size:12px">Move to Next</button>
+            <button class="action-btn primary" style="padding:5px 12px;font-size:12px">View Detail</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:3px solid #fbbf24">
+        <div class="card-top">
+          <div class="card-title">Offline session sync retry logic</div>
+          <div class="sev-chip sev-high">High</div>
+        </div>
+        <div style="font-size:12px;color:#c9d1d9;margin-bottom:8px;line-height:1.5">Sessions completed offline sometimes fail to sync on reconnect, causing lost progress for learners.</div>
+        <div class="card-meta" style="margin-bottom:8px">
+          <div class="meta-item"><span class="icon">👤</span> A. Patel</div>
+          <div class="meta-item"><span class="icon">📅</span> Due Apr 2</div>
+          <div class="meta-item"><span class="icon">⚡</span> Effort: 4/5</div>
+        </div>
+        <div class="card-footer">
+          <div style="font-size:11px;color:#8b949e">No blockers</div>
+          <div style="display:flex;gap:8px">
+            <button class="action-btn secondary" style="padding:5px 12px;font-size:12px">Move to Next</button>
+            <button class="action-btn primary" style="padding:5px 12px;font-size:12px">View Detail</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <div class="card-title">Teacher SNS tier recalculation speed</div>
+          <div class="sev-chip sev-medium">Medium</div>
+        </div>
+        <div style="font-size:12px;color:#c9d1d9;margin-bottom:8px;line-height:1.5">Tier updates take up to 45s on classes with 30+ students. Target: under 5s.</div>
+        <div class="card-meta" style="margin-bottom:8px">
+          <div class="meta-item"><span class="icon">👤</span> R. Nguyen</div>
+          <div class="meta-item"><span class="icon">📅</span> Due Apr 5</div>
+          <div class="meta-item"><span class="icon">⚡</span> Effort: 2/5</div>
+        </div>
+        <div class="card-footer">
+          <div style="font-size:11px;color:#8b949e">No blockers</div>
+          <div style="display:flex;gap:8px">
+            <button class="action-btn secondary" style="padding:5px 12px;font-size:12px">Move to Next</button>
+            <button class="action-btn primary" style="padding:5px 12px;font-size:12px">View Detail</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Severity Filter -->
+<div class="panel" id="sev-filter">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/roadmap/items?severity={critical|high|medium|low} · GET /owner/roadmap/stats/by-severity · GET /owner/roadmap/stats/by-col</span>
+  </div>
+  <div class="section-title">Severity Breakdown</div>
+
+  <div class="filter-section">
+    <div style="font-size:13px;font-weight:600;color:#8b949e;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">By Severity Level</div>
+    <div class="sev-row">
+      <div class="sev-row-label" style="color:#f87171">Critical</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:8%;background:#f87171"></div></div>
+      <div class="sev-count" style="color:#f87171">2</div>
+    </div>
+    <div class="sev-row">
+      <div class="sev-row-label" style="color:#fbbf24">High</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:25%;background:#fbbf24"></div></div>
+      <div class="sev-count" style="color:#fbbf24">6</div>
+    </div>
+    <div class="sev-row">
+      <div class="sev-row-label" style="color:#60a5fa">Medium</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:58%;background:#60a5fa"></div></div>
+      <div class="sev-count" style="color:#60a5fa">14</div>
+    </div>
+    <div class="sev-row">
+      <div class="sev-row-label" style="color:#4ade80">Low</div>
+      <div class="sev-bar-track"><div class="sev-bar-fill" style="width:8%;background:#4ade80"></div></div>
+      <div class="sev-count" style="color:#4ade80">2</div>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div style="font-size:13px;font-weight:600;color:#8b949e;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">Critical Items (2)</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:600px">
+      <div class="card" style="border-left:3px solid #f87171">
+        <div class="card-top">
+          <div class="card-title">Voice coach audio latency fix</div>
+          <div class="sev-chip sev-critical">Critical · Now</div>
+        </div>
+        <div class="card-meta">
+          <div class="meta-item"><span class="icon">👤</span> M. Okafor</div>
+          <div class="meta-item"><span class="icon">📅</span> Due Mar 25</div>
+          <div class="blocking-badge" style="margin-left:auto">⚠ Blocks 3</div>
+        </div>
+      </div>
+      <div class="card" style="border-left:3px solid #f87171">
+        <div class="card-top">
+          <div class="card-title">Auth token expiry crash on cold launch</div>
+          <div class="sev-chip sev-critical">Critical · Now</div>
+        </div>
+        <div class="card-meta">
+          <div class="meta-item"><span class="icon">👤</span> A. Patel</div>
+          <div class="meta-item"><span class="icon">📅</span> Due Mar 22</div>
+          <div class="blocking-badge" style="margin-left:auto">⚠ Blocks 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div style="font-size:13px;font-weight:600;color:#8b949e;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">Effort Distribution</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:400px">
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700;color:#ffd166">5</div>
+        <div style="font-size:11px;color:#8b949e">Effort 1</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700;color:#ffd166">8</div>
+        <div style="font-size:11px;color:#8b949e">Effort 2</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700;color:#ffd166">6</div>
+        <div style="font-size:11px;color:#8b949e">Effort 3</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700;color:#ffd166">3</div>
+        <div style="font-size:11px;color:#8b949e">Effort 4</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:18px;font-weight:700;color:#ffd166">2</div>
+        <div style="font-size:11px;color:#8b949e">Effort 5</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Item Detail -->
+<div class="panel" id="item-detail">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/roadmap/items/:id · PATCH /owner/roadmap/items/:id · POST /owner/roadmap/items/:id/move · GET /owner/roadmap/items/:id/blocking</span>
+  </div>
+
+  <div style="max-width:700px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div style="font-size:12px;color:#8b949e;cursor:pointer">← Roadmap Board</div>
+      <div style="color:#30363d">/</div>
+      <div style="font-size:12px;color:#ffd166">WQ-041</div>
+    </div>
+
+    <div class="detail-header">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">
+        <div class="sev-chip sev-critical" style="margin-top:4px">Critical</div>
+        <div class="detail-title">Voice coach audio latency fix</div>
+      </div>
+      <div style="font-size:13px;color:#8b949e">WQ-041 · Now Column · Created Mar 15, 2026 by R. Chen</div>
+      <div class="detail-meta-grid">
+        <div class="detail-meta-item">
+          <div class="detail-meta-label">Assignee</div>
+          <div class="detail-meta-value">M. Okafor</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-label">Due Date</div>
+          <div class="detail-meta-value">Mar 25, 2026</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-label">Effort Score</div>
+          <div class="detail-meta-value">3 / 5</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-label">Blocking</div>
+          <div class="detail-meta-value" style="color:#f87171">3 items</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Description</div>
+      <div class="desc-text">Audio response delay exceeding 800ms affecting ~34% of play sessions on iOS 17+. Root cause traced to AVAudioSession initialization order in voice coach bridge. Fix involves lazy-loading audio context after session warm-up. Regression test coverage needed for Android WebView path.</div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Blocking Items</div>
+      <div class="link-item">🔗 WQ-047 — Adaptive hint audio timing</div>
+      <div class="link-item">🔗 WQ-052 — Voice coach personality A/B test</div>
+      <div class="link-item">🔗 WQ-055 — Audio-based accessibility mode</div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Activity Log</div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-date">Mar 20, 2026 · 2:14 PM</div>
+          <div class="timeline-text">M. Okafor: Reproduced on iOS 17.4 and 17.5. AVAudioSession conflict confirmed.</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-date">Mar 18, 2026 · 10:30 AM</div>
+          <div class="timeline-text">R. Chen: Severity upgraded to Critical after beta user reports.</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-date">Mar 15, 2026 · 9:00 AM</div>
+          <div class="timeline-text">Item created from owner alert WQ-A-038.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn primary">Move to Next</button>
+      <button class="action-btn secondary">Edit Item</button>
+      <button class="action-btn danger">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="panel" id="spec">
+  <div class="hint">
+    <strong>File:</strong> <span>owner-roadmap-priority-board-v2.html · Desktop 900px+ · Owner audience · #0d1117 bg · #ffd166 gold · Sora font</span>
+  </div>
+  <div style="max-width:800px">
+    <div class="section-title" style="margin-bottom:20px">Spec — Owner Roadmap Priority Board v2</div>
+    <table class="spec-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Audience</td><td>Owner / Operator</td></tr>
+        <tr><td>Layout</td><td>Desktop 900px+ · 4-column Kanban</td></tr>
+        <tr><td>Font</td><td>Sora (Google Fonts CDN)</td></tr>
+        <tr><td>Background</td><td>#0d1117</td></tr>
+        <tr><td>Accent</td><td>#ffd166 (gold)</td></tr>
+        <tr><td>Nav</td><td>#161b22 · 56px height</td></tr>
+        <tr><td>Columns</td><td>Now / Next / Later / Archived</td></tr>
+        <tr><td>Card fields</td><td>Title, severity chip, assignee, due date, effort dots (1-5), blocking count</td></tr>
+        <tr><td>Severity chips</td><td>Critical (red), High (amber), Medium (blue), Low (green)</td></tr>
+        <tr><td>Sort options</td><td>Severity · Effort (via nav button)</td></tr>
+        <tr><td>Move action</td><td>PATCH /owner/roadmap/items/:id/move</td></tr>
+        <tr><td>Tabs</td><td>Priority Board · Now Column · Severity Filter · Item Detail · Spec</td></tr>
+        <tr><td>Hint box</td><td>bg #1a1400, border #ffd166, lists API routes</td></tr>
+        <tr><td>Rules</td><td>Append-only governance; no PII in cards; blocking shown as count only</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

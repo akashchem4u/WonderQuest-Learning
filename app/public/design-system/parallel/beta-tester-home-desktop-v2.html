@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Tester Home — Desktop v2 — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0d1117;
+    color: #f0f6ff;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1200;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .hint-box strong { font-weight: 700; }
+
+  /* ── Tab navigation ── */
+  .tabs-wrapper {
+    background: #0d1117;
+    padding: 16px 20px 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    position: sticky;
+    top: 0;
+    z-index: 300;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px 10px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 2px solid transparent;
+    transition: color 120ms, border-color 120ms, background 120ms;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: #f0f6ff; background: rgba(255,255,255,.04); }
+  .tab-btn.active { color: #f0f6ff; border-bottom-color: #f59e0b; }
+
+  /* ── Screen panels ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ════════════════════════════════════════════
+     TOPBAR
+  ════════════════════════════════════════════ */
+  .topbar {
+    height: 52px;
+    background: #161b22;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    position: sticky;
+    top: 42px;
+    z-index: 200;
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #f0f6ff;
+    text-decoration: none;
+    margin-right: 12px;
+  }
+  .brand-dot {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #50e890, #1fc870);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .topbar-spacer { flex: 1; }
+  .topbar-user {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: #8b949e;
+  }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .beta-badge-top {
+    background: rgba(245,158,11,.15);
+    border: 1px solid rgba(245,158,11,.35);
+    color: #f59e0b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  /* ════════════════════════════════════════════
+     BETA BANNER
+  ════════════════════════════════════════════ */
+  .beta-banner {
+    background: rgba(245,158,11,.12);
+    border-bottom: 1px solid rgba(245,158,11,.25);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 94px;
+    z-index: 190;
+  }
+  .beta-banner-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fcd34d;
+    flex: 1;
+  }
+  .beta-banner-text span { color: #f59e0b; font-weight: 700; }
+  .btn-feedback-banner {
+    background: #f59e0b;
+    color: #1a0a00;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 150ms;
+  }
+  .btn-feedback-banner:hover { background: #fbbf24; }
+  .banner-no-dismiss { font-size: 11px; color: rgba(245,158,11,.55); margin-left: 8px; }
+
+  /* ════════════════════════════════════════════
+     APP SHELL (sidebar + content)
+  ════════════════════════════════════════════ */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 94px - 41px); /* topbar + beta banner + tab row */
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: #0d1117;
+    border-right: 1px solid rgba(255,255,255,.06);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 135px;
+    height: calc(100vh - 135px);
+    overflow-y: auto;
+  }
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 0 20px;
+    margin: 14px 0 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #8b949e;
+    border-left: 2px solid transparent;
+    transition: background 120ms, color 120ms;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.04); color: #f0f6ff; }
+  .nav-item.active {
+    background: rgba(245,158,11,.08);
+    color: #f59e0b;
+    border-left-color: #f59e0b;
+    font-weight: 600;
+  }
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+  .nav-badge {
+    margin-left: auto;
+    background: #f59e0b;
+    color: #1a0a00;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+  .sidebar-footer-text { font-size: 11px; color: #8b949e; }
+
+  /* ── Main content area ── */
+  .main-content {
+    padding: 28px 32px 60px;
+    overflow-y: auto;
+  }
+
+  /* ── 3-column grid ── */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* ════════════════════════════════════════════
+     CARDS
+  ════════════════════════════════════════════ */
+  .card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card:last-child { margin-bottom: 0; }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f6ff;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: #8b949e;
+    margin-top: 2px;
+  }
+  .card-link {
+    font-size: 12px;
+    color: #50e890;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .card-link:hover { text-decoration: underline; }
+
+  /* ── Progress bar ── */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .progress-label { font-size: 12px; color: #8b949e; flex: 1; }
+  .progress-val { font-size: 12px; font-weight: 700; color: #f0f6ff; min-width: 36px; text-align: right; }
+  .progress-bar-track {
+    height: 6px;
+    background: rgba(255,255,255,.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    transition: width 400ms ease;
+  }
+  .progress-bar-fill.green { background: linear-gradient(90deg, #50e890, #30d870); }
+
+  /* ── Stat row in progress card ── */
+  .beta-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .beta-stat {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .beta-stat-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f59e0b;
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .beta-stat-label { font-size: 11px; color: #8b949e; }
+
+  /* ── Task checklist ── */
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(255,255,255,.02);
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 8px;
+    padding: 12px 14px;
+    transition: background 120ms;
+  }
+  .task-item:hover { background: rgba(255,255,255,.04); }
+  .task-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .task-body { flex: 1; }
+  .task-title { font-size: 13px; font-weight: 600; color: #f0f6ff; margin-bottom: 2px; }
+  .task-item.completed .task-title { color: #8b949e; text-decoration: line-through; }
+  .task-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .status-done { background: rgba(80,232,144,.12); color: #50e890; }
+  .status-inprogress { background: rgba(245,158,11,.12); color: #f59e0b; }
+  .status-notstarted { background: rgba(139,148,158,.1); color: #8b949e; }
+  .status-locked { background: rgba(139,148,158,.08); color: #8b949e; }
+
+  /* ── Session log table ── */
+  .session-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .session-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 0 0 8px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .session-table td {
+    padding: 10px 0;
+    color: #f0f6ff;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .session-table tr:last-child td { border-bottom: none; }
+  .session-table td:last-child { text-align: right; }
+  .tbl-action {
+    background: none;
+    border: 1px solid rgba(255,255,255,.1);
+    color: #8b949e;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 120ms;
+  }
+  .tbl-action:hover { color: #f0f6ff; border-color: rgba(255,255,255,.2); }
+  .feedback-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #50e890;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* ── Feedback launcher (right rail) ── */
+  .feedback-btns { display: flex; flex-direction: column; gap: 8px; }
+  .feedback-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 120ms;
+    color: #f0f6ff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .feedback-btn:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.12); }
+  .feedback-btn.bug { border-left: 3px solid #f87171; }
+  .feedback-btn.suggestion { border-left: 3px solid #60a5fa; }
+  .feedback-btn.rating { border-left: 3px solid #f59e0b; }
+  .feedback-btn-icon { font-size: 18px; }
+  .feedback-btn-sub { font-size: 11px; font-weight: 400; color: #8b949e; margin-top: 2px; }
+
+  /* ── Known issues ── */
+  .known-issue-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .known-issue-item:last-child { border-bottom: none; }
+  .issue-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .issue-dot.acknowledged { background: #8b949e; }
+  .issue-dot.inprogress { background: #f59e0b; }
+  .issue-dot.investigating { background: #60a5fa; }
+  .issue-title { font-size: 12px; font-weight: 600; color: #f0f6ff; margin-bottom: 2px; }
+  .issue-status { font-size: 11px; color: #8b949e; }
+
+  /* ── Beta timeline ── */
+  .timeline-card {
+    background: rgba(245,158,11,.06);
+    border: 1px solid rgba(245,158,11,.2);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .timeline-title { font-size: 13px; font-weight: 700; color: #fcd34d; }
+  .timeline-launch { font-size: 11px; color: #8b949e; }
+  .timeline-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .week-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(245,158,11,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #8b949e;
+    flex-shrink: 0;
+    transition: all 150ms;
+  }
+  .week-dot.done { background: rgba(245,158,11,.2); border-color: #f59e0b; color: #f59e0b; }
+  .week-dot.current {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #1a0a00;
+    box-shadow: 0 0 0 3px rgba(245,158,11,.25);
+  }
+  .week-connector {
+    flex: 1;
+    height: 2px;
+    background: rgba(245,158,11,.15);
+    border-radius: 1px;
+  }
+  .week-connector.done { background: rgba(245,158,11,.4); }
+  .timeline-sub { font-size: 11px; color: #8b949e; margin-top: 10px; text-align: center; }
+
+  /* ═══════════════════════════════════════════
+     TAB 2 — FAMILY BETA
+  ═══════════════════════════════════════════ */
+  .family-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+    padding: 28px 32px 60px;
+  }
+
+  /* Children summary */
+  .child-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,.02);
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: background 120ms;
+  }
+  .child-row:hover { background: rgba(255,255,255,.04); }
+  .child-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .child-avatar.emma { background: linear-gradient(135deg, #fde68a, #fca5a5); }
+  .child-avatar.noah { background: linear-gradient(135deg, #a5f3fc, #93c5fd); }
+  .child-info { flex: 1; }
+  .child-name { font-size: 14px; font-weight: 700; color: #f0f6ff; margin-bottom: 2px; }
+  .child-status-text { font-size: 12px; color: #8b949e; }
+  .child-status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 8px;
+  }
+  .child-status-badge.active { background: rgba(80,232,144,.12); color: #50e890; }
+  .child-status-badge.recent { background: rgba(139,148,158,.1); color: #8b949e; }
+
+  /* Beta journal */
+  .journal-entry {
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #c9d1d9;
+    line-height: 1.6;
+    font-style: italic;
+  }
+  .journal-meta { font-size: 11px; color: #8b949e; margin-top: 6px; font-style: normal; }
+  .btn-add-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px dashed rgba(255,255,255,.15);
+    color: #8b949e;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    transition: all 120ms;
+  }
+  .btn-add-note:hover { border-color: rgba(245,158,11,.4); color: #f59e0b; }
+
+  /* Family info card */
+  .family-info-card {
+    background: rgba(245,158,11,.06);
+    border: 1px solid rgba(245,158,11,.2);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .family-info-title { font-size: 13px; font-weight: 700; color: #fcd34d; margin-bottom: 8px; }
+  .family-info-body { font-size: 12px; color: #c9d1d9; line-height: 1.6; margin-bottom: 10px; }
+  .cohort-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(245,158,11,.12);
+    border: 1px solid rgba(245,158,11,.3);
+    color: #f59e0b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 10px;
+    letter-spacing: .04em;
+  }
+
+  /* Support contact */
+  .support-card {
+    background: rgba(96,165,250,.06);
+    border: 1px solid rgba(96,165,250,.15);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .support-title { font-size: 12px; font-weight: 700; color: #93c5fd; margin-bottom: 6px; }
+  .support-email { font-size: 13px; font-weight: 600; color: #f0f6ff; }
+  .support-sub { font-size: 11px; color: #8b949e; margin-top: 4px; }
+
+  /* ═══════════════════════════════════════════
+     TAB 3 — SPEC
+  ═══════════════════════════════════════════ */
+  .spec-content {
+    padding: 28px 32px 60px;
+    max-width: 860px;
+  }
+  .spec-section { margin-bottom: 32px; }
+  .spec-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0f6ff;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .spec-tag {
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(245,158,11,.15);
+    color: #f59e0b;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  pre.spec-code {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #e6edf3;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .spec-keyword { color: #ff7b72; }
+  .spec-type { color: #79c0ff; }
+  .spec-comment { color: #8b949e; font-style: italic; }
+  .spec-string { color: #a5d6ff; }
+
+  .routing-rule {
+    background: rgba(255,255,255,.025);
+    border-left: 3px solid #f59e0b;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #c9d1d9;
+    line-height: 1.6;
+  }
+  .routing-rule code {
+    background: rgba(255,255,255,.08);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', Consolas, monospace;
+    font-size: 11px;
+    color: #79c0ff;
+  }
+  .routing-rule.green { border-left-color: #50e890; }
+  .routing-rule.blue { border-left-color: #60a5fa; }
+  .routing-rule.gray { border-left-color: #8b949e; }
+
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .spec-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .spec-table td {
+    padding: 9px 12px;
+    color: #c9d1d9;
+    border: 1px solid rgba(255,255,255,.04);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .spec-table tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+  .spec-table code {
+    background: rgba(255,255,255,.07);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'SF Mono', Consolas, monospace;
+    font-size: 11px;
+    color: #79c0ff;
+  }
+
+  /* ── Misc utilities ── */
+  .page-title { font-size: 18px; font-weight: 800; color: #f0f6ff; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #8b949e; margin-bottom: 20px; }
+  .divider { height: 1px; background: rgba(255,255,255,.06); margin: 20px 0; }
+  .pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .pill-amber { background: rgba(245,158,11,.15); color: #f59e0b; }
+  .pill-green { background: rgba(80,232,144,.12); color: #50e890; }
+  .pill-blue { background: rgba(96,165,250,.12); color: #60a5fa; }
+  .pill-gray { background: rgba(139,148,158,.12); color: #8b949e; }
+
+  /* ── Action buttons ── */
+  .btn-primary {
+    background: #50e890;
+    color: #0d1117;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: background 150ms;
+  }
+  .btn-primary:hover { background: #6ef5a2; }
+  .btn-secondary {
+    background: rgba(255,255,255,.06);
+    color: #f0f6ff;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,.09); }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div style="padding:16px 20px 0; background:#0d1117;">
+  <div class="hint-box">
+    <strong>beta-tester-home-desktop-v2.html</strong> — Beta tester home screen (desktop). Shown during private beta phase (before public launch). Beta testers are: school staff (teachers/principals) OR families (parents + children) invited to test. Beta home includes: beta status banner, testing tasks/missions, feedback launcher shortcut, known issues list, beta timeline. Beta flag: <strong>user.is_beta=true AND beta_cohort IN ('teacher_pilot', 'family_pilot')</strong>. NOT shown in production after GA.
+  </div>
+</div>
+
+<!-- Tab navigation -->
+<div class="tabs-wrapper">
+  <ul class="tab-bar" role="tablist">
+    <li><button class="tab-btn active" onclick="showTab(1)" role="tab">1 · Beta Home (Teacher/Staff)</button></li>
+    <li><button class="tab-btn" onclick="showTab(2)" role="tab">2 · Beta Home (Family)</button></li>
+    <li><button class="tab-btn" onclick="showTab(3)" role="tab">3 · Spec</button></li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 1 — TEACHER/STAFF BETA HOME
+══════════════════════════════════════════════════════════ -->
+<div id="tab1" class="screen active">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a class="topbar-brand" href="#">
+      <div class="brand-dot">🌟</div>
+      WonderQuest
+    </a>
+    <span class="beta-badge-top">🧪 Beta</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-user">
+      <span>Ms. Rivera — Jefferson Elementary</span>
+      <div class="user-avatar">SR</div>
+    </div>
+  </div>
+
+  <!-- Beta status banner (non-dismissible for teacher_pilot) -->
+  <div class="beta-banner">
+    <span style="font-size:16px;">🧪</span>
+    <div class="beta-banner-text">
+      You're in Beta &mdash; <span>Week 3 of 6</span> &mdash; Your feedback is shaping the final product
+    </div>
+    <button class="btn-feedback-banner">Give Feedback</button>
+    <span class="banner-no-dismiss">Non-dismissible during beta</span>
+  </div>
+
+  <!-- Shell -->
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" aria-label="Teacher beta navigation">
+      <div class="sidebar-section-label">Menu</div>
+      <a class="nav-item active" href="#"><span class="nav-icon">🏠</span> Home</a>
+      <a class="nav-item" href="#"><span class="nav-icon">🧪</span> Beta Tasks <span class="nav-badge">5</span></a>
+      <a class="nav-item" href="#"><span class="nav-icon">👥</span> Students</a>
+      <a class="nav-item" href="#"><span class="nav-icon">💬</span> Feedback <span class="nav-badge">4</span></a>
+      <a class="nav-item" href="#"><span class="nav-icon">📊</span> My Reports</a>
+      <a class="nav-item" href="#"><span class="nav-icon">⚙️</span> Settings</a>
+
+      <div class="sidebar-section-label" style="margin-top:20px;">Beta Resources</div>
+      <a class="nav-item" href="#"><span class="nav-icon">📋</span> Known Issues</a>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-text">
+          <div style="color:#fcd34d; font-weight:700; margin-bottom:4px;">Teacher Pilot · Cohort A</div>
+          <div>beta_week = 3 · is_beta = true</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main-content">
+      <div class="page-title">Welcome back, Ms. Rivera 👋</div>
+      <div class="page-sub">Teacher/Staff Beta · Jefferson Elementary · Class 4B</div>
+
+      <div class="content-grid">
+
+        <!-- LEFT COLUMN -->
+        <div>
+
+          <!-- Beta progress card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Your Beta Progress</div>
+                <div class="card-sub">Week 3 of 6 · Teacher Pilot Cohort A</div>
+              </div>
+              <a class="card-link" href="#">View all tasks →</a>
+            </div>
+
+            <div class="beta-stats-grid">
+              <div class="beta-stat">
+                <span class="beta-stat-val">7<span style="font-size:14px;color:#8b949e;">/12</span></span>
+                <div class="beta-stat-label">Tasks completed</div>
+              </div>
+              <div class="beta-stat">
+                <span class="beta-stat-val" style="color:#50e890;">4</span>
+                <div class="beta-stat-label">Feedback submitted</div>
+              </div>
+              <div class="beta-stat">
+                <span class="beta-stat-val" style="color:#60a5fa;">3</span>
+                <div class="beta-stat-label">Sessions observed</div>
+              </div>
+            </div>
+
+            <div class="progress-row">
+              <span class="progress-label">Overall task completion</span>
+              <span class="progress-val">58%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" style="width:58%;"></div>
+            </div>
+          </div>
+
+          <!-- This week's testing tasks -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">This Week's Testing Tasks</div>
+                <div class="card-sub">Week 3 · 2 of 5 complete</div>
+              </div>
+              <span class="pill pill-amber">Week 3</span>
+            </div>
+
+            <div class="task-list">
+              <div class="task-item completed">
+                <span class="task-icon">✅</span>
+                <div class="task-body">
+                  <div class="task-title">Run a 20-minute play session with 3+ students</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;">Completed · Mon Mar 18</div>
+                </div>
+                <span class="task-status status-done">Done</span>
+              </div>
+
+              <div class="task-item completed">
+                <span class="task-icon">✅</span>
+                <div class="task-body">
+                  <div class="task-title">Test the student detail screen</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;">Completed · Tue Mar 19</div>
+                </div>
+                <span class="task-status status-done">Done</span>
+              </div>
+
+              <div class="task-item">
+                <span class="task-icon">📋</span>
+                <div class="task-body">
+                  <div class="task-title">Try assigning a skill to students</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;">Started · 2 of 3 steps complete</div>
+                </div>
+                <span class="task-status status-inprogress">In Progress</span>
+              </div>
+
+              <div class="task-item">
+                <span class="task-icon">📋</span>
+                <div class="task-body">
+                  <div class="task-title">Submit feedback on the review queue</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;">Not started yet</div>
+                </div>
+                <span class="task-status status-notstarted">Not Started</span>
+              </div>
+
+              <div class="task-item" style="opacity:.55;">
+                <span class="task-icon">🔒</span>
+                <div class="task-body">
+                  <div class="task-title">Run end-of-week class summary</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;">Unlocks Friday, Mar 22</div>
+                </div>
+                <span class="task-status status-locked">Locked</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Session log -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Session Log</div>
+                <div class="card-sub">Last 3 observed sessions</div>
+              </div>
+              <button class="btn-secondary" style="font-size:12px;padding:6px 12px;">+ Log Session</button>
+            </div>
+
+            <table class="session-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Students</th>
+                  <th>Duration</th>
+                  <th>Feedback Filed</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Mon Mar 18</td>
+                  <td>6 students</td>
+                  <td>22 min</td>
+                  <td><span class="feedback-dot"></span>1 item</td>
+                  <td><button class="tbl-action">View</button></td>
+                </tr>
+                <tr>
+                  <td>Wed Mar 13</td>
+                  <td>8 students</td>
+                  <td>18 min</td>
+                  <td><span class="feedback-dot"></span>2 items</td>
+                  <td><button class="tbl-action">View</button></td>
+                </tr>
+                <tr>
+                  <td>Fri Mar 8</td>
+                  <td>5 students</td>
+                  <td>25 min</td>
+                  <td style="color:#8b949e;">—</td>
+                  <td><button class="tbl-action">View</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div><!-- /left column -->
+
+        <!-- RIGHT RAIL -->
+        <div>
+
+          <!-- Quick feedback launcher -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Quick Feedback</div>
+            </div>
+            <div class="feedback-btns">
+              <button class="feedback-btn bug">
+                <span class="feedback-btn-icon">🐛</span>
+                <div>
+                  <div>Report a Bug</div>
+                  <div class="feedback-btn-sub">Something broke or misbehaved</div>
+                </div>
+              </button>
+              <button class="feedback-btn suggestion">
+                <span class="feedback-btn-icon">💡</span>
+                <div>
+                  <div>Suggest Improvement</div>
+                  <div class="feedback-btn-sub">An idea to make it better</div>
+                </div>
+              </button>
+              <button class="feedback-btn rating">
+                <span class="feedback-btn-icon">⭐</span>
+                <div>
+                  <div>Rate This Feature</div>
+                  <div class="feedback-btn-sub">Quick 1–5 star rating</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Known issues -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Known Issues</div>
+              <a class="card-link" href="#">See all</a>
+            </div>
+
+            <div class="known-issue-item">
+              <div class="issue-dot acknowledged"></div>
+              <div>
+                <div class="issue-title">Audio delay on P0 questions</div>
+                <div class="issue-status">Acknowledged · Tracked #KI-041</div>
+              </div>
+            </div>
+            <div class="known-issue-item">
+              <div class="issue-dot inprogress"></div>
+              <div>
+                <div class="issue-title">Student list sorting</div>
+                <div class="issue-status">In progress · Fix in next build</div>
+              </div>
+            </div>
+            <div class="known-issue-item">
+              <div class="issue-dot investigating"></div>
+              <div>
+                <div class="issue-title">Intervention auto-flag sensitivity</div>
+                <div class="issue-status">Investigating · #KI-039</div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;font-size:11px;color:#8b949e;line-height:1.5;">
+              Issues are sourced from <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:10px;">beta_known_issues</code> — not from the feedback queue.
+            </div>
+          </div>
+
+          <!-- Beta timeline -->
+          <div class="timeline-card">
+            <div class="timeline-header">
+              <div class="timeline-title">Beta Timeline</div>
+              <div class="timeline-launch">Launch: May 2026</div>
+            </div>
+            <div class="timeline-dots">
+              <div class="week-dot done">W1</div>
+              <div class="week-connector done"></div>
+              <div class="week-dot done">W2</div>
+              <div class="week-connector done"></div>
+              <div class="week-dot current">W3</div>
+              <div class="week-connector"></div>
+              <div class="week-dot">W4</div>
+              <div class="week-connector"></div>
+              <div class="week-dot">W5</div>
+              <div class="week-connector"></div>
+              <div class="week-dot">W6</div>
+            </div>
+            <div class="timeline-sub">Week 3 of 6 &nbsp;·&nbsp; 3 weeks remaining</div>
+          </div>
+
+        </div><!-- /right rail -->
+
+      </div><!-- /content-grid -->
+    </main>
+
+  </div><!-- /app-shell -->
+</div><!-- /tab1 -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 2 — FAMILY BETA HOME
+══════════════════════════════════════════════════════════ -->
+<div id="tab2" class="screen">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <a class="topbar-brand" href="#">
+      <div class="brand-dot">🌟</div>
+      WonderQuest
+    </a>
+    <span class="beta-badge-top">🧪 Beta Family</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-user">
+      <span>The Williams Family</span>
+      <div class="user-avatar" style="background:linear-gradient(135deg,#f59e0b,#ec4899);">W</div>
+    </div>
+  </div>
+
+  <!-- Beta banner (dismissible once/week for family_pilot) -->
+  <div class="beta-banner" id="familyBanner">
+    <span style="font-size:16px;">🧪</span>
+    <div class="beta-banner-text">
+      Beta Family &mdash; <span>Week 3</span> &mdash; Thanks for testing! Your input helps real families.
+    </div>
+    <button class="btn-feedback-banner">Give Feedback</button>
+    <button onclick="document.getElementById('familyBanner').style.display='none'" style="background:none;border:1px solid rgba(245,158,11,.3);color:#f59e0b;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;margin-left:8px;">Dismiss until next week</button>
+  </div>
+
+  <!-- Family main layout -->
+  <div class="family-content-grid">
+
+    <!-- LEFT COLUMN -->
+    <div>
+
+      <!-- Children summary -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Your Children</div>
+            <div class="card-sub">2 children in beta family account</div>
+          </div>
+          <a class="card-link" href="#">Manage →</a>
+        </div>
+
+        <div class="child-row">
+          <div class="child-avatar emma">🦊</div>
+          <div class="child-info">
+            <div class="child-name">Emma, age 6</div>
+            <div class="child-status-text">Kindergarten · Playing now · Quest: Animal Sounds</div>
+          </div>
+          <span class="child-status-badge active">Active now</span>
+        </div>
+
+        <div class="child-row">
+          <div class="child-avatar noah">🐳</div>
+          <div class="child-info">
+            <div class="child-name">Noah, age 4</div>
+            <div class="child-status-text">Pre-K · Last active 2 days ago · Quest: Shape World</div>
+          </div>
+          <span class="child-status-badge recent">2 days ago</span>
+        </div>
+      </div>
+
+      <!-- This week's family tasks -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">This Week's Family Tasks</div>
+            <div class="card-sub">Week 3 · 1 of 4 complete</div>
+          </div>
+          <span class="pill pill-amber">Week 3</span>
+        </div>
+
+        <div class="task-list">
+          <div class="task-item completed">
+            <span class="task-icon">✅</span>
+            <div class="task-body">
+              <div class="task-title">Have Emma play 3 sessions this week</div>
+              <div style="font-size:11px;color:#8b949e;margin-top:3px;">3/3 sessions done · Completed!</div>
+            </div>
+            <span class="task-status status-done">3/3 Done</span>
+          </div>
+
+          <div class="task-item">
+            <span class="task-icon">📋</span>
+            <div class="task-body">
+              <div class="task-title">Try the parent progress screen</div>
+              <div style="font-size:11px;color:#8b949e;margin-top:3px;">Started — viewed overview, not detail yet</div>
+            </div>
+            <span class="task-status status-inprogress">In Progress</span>
+          </div>
+
+          <div class="task-item">
+            <span class="task-icon">📋</span>
+            <div class="task-body">
+              <div class="task-title">Fill in the family feedback survey</div>
+              <div style="font-size:11px;color:#8b949e;margin-top:3px;">Takes ~5 min · Link sent to your email</div>
+            </div>
+            <span class="task-status status-notstarted">Not Started</span>
+          </div>
+
+          <div class="task-item">
+            <span class="task-icon">📋</span>
+            <div class="task-body">
+              <div class="task-title">Check Emma's weekly digest</div>
+              <div style="font-size:11px;color:#8b949e;margin-top:3px;">Available in Reports tab</div>
+            </div>
+            <span class="task-status status-notstarted">Not Started</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Beta Journal -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Beta Journal</div>
+            <div class="card-sub">Jot notes during testing — your observations matter</div>
+          </div>
+          <span class="pill pill-blue">2 entries</span>
+        </div>
+
+        <div class="journal-entry">
+          "Emma loved the animal theme! Noah found the questions too hard for P1 — he kept guessing. Maybe needs easier warmup?"
+          <div class="journal-meta">Saved · Mon Mar 18, 8:42 PM &nbsp;·&nbsp; Linked to: session on Mar 18</div>
+        </div>
+
+        <div class="journal-entry">
+          "The voice coach is really helpful for Emma. She repeated the words out loud. Noah didn't seem to notice it though."
+          <div class="journal-meta">Saved · Thu Mar 14, 7:15 PM</div>
+        </div>
+
+        <button class="btn-add-note">
+          <span style="font-size:16px;">+</span> Add a note
+        </button>
+      </div>
+
+    </div><!-- /left column -->
+
+    <!-- RIGHT RAIL -->
+    <div>
+
+      <!-- Feedback shortcuts -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Quick Feedback</div>
+        </div>
+        <div class="feedback-btns">
+          <button class="feedback-btn bug">
+            <span class="feedback-btn-icon">🐛</span>
+            <div>
+              <div>Bug Report</div>
+              <div class="feedback-btn-sub">Something broke or looked wrong</div>
+            </div>
+          </button>
+          <button class="feedback-btn suggestion">
+            <span class="feedback-btn-icon">💡</span>
+            <div>
+              <div>Suggestion</div>
+              <div class="feedback-btn-sub">A thought or idea for us</div>
+            </div>
+          </button>
+          <button class="feedback-btn rating">
+            <span class="feedback-btn-icon">⭐</span>
+            <div>
+              <div>Star Rating</div>
+              <div class="feedback-btn-sub">Rate a feature you just tried</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Family beta info card -->
+      <div class="family-info-card">
+        <div class="family-info-title">🙏 Your Feedback Shapes WonderQuest</div>
+        <div class="family-info-body">
+          Every note you jot, every bug you report, and every session your children play helps us build a better product for real families. You're part of a small group making this possible.
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="cohort-chip">🧪 Family Pilot · Cohort B</span>
+          <span style="font-size:11px;color:#8b949e;">beta_cohort = family_pilot</span>
+        </div>
+      </div>
+
+      <!-- Beta timeline -->
+      <div class="timeline-card" style="margin-bottom:16px;">
+        <div class="timeline-header">
+          <div class="timeline-title">Beta Timeline</div>
+          <div class="timeline-launch">Launch: May 2026</div>
+        </div>
+        <div class="timeline-dots">
+          <div class="week-dot done">W1</div>
+          <div class="week-connector done"></div>
+          <div class="week-dot done">W2</div>
+          <div class="week-connector done"></div>
+          <div class="week-dot current">W3</div>
+          <div class="week-connector"></div>
+          <div class="week-dot">W4</div>
+          <div class="week-connector"></div>
+          <div class="week-dot">W5</div>
+          <div class="week-connector"></div>
+          <div class="week-dot">W6</div>
+        </div>
+        <div class="timeline-sub">Week 3 of 6 &nbsp;·&nbsp; 3 weeks remaining</div>
+      </div>
+
+      <!-- Support contact -->
+      <div class="support-card">
+        <div class="support-title">Beta Support</div>
+        <div class="support-email">beta@wonderquest.com</div>
+        <div class="support-sub">Response within 4 hours during beta · Mon–Sun</div>
+        <div style="margin-top:10px;">
+          <button class="btn-secondary" style="font-size:12px;padding:7px 14px;width:100%;">Email Beta Support</button>
+        </div>
+      </div>
+
+    </div><!-- /right rail -->
+
+  </div><!-- /family-content-grid -->
+</div><!-- /tab2 -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     TAB 3 — SPEC
+══════════════════════════════════════════════════════════ -->
+<div id="tab3" class="screen">
+  <div class="spec-content">
+
+    <div class="page-title" style="margin-bottom:6px;">Spec — Beta Cohort Data Model & Feature Flags</div>
+    <div class="page-sub" style="margin-bottom:24px;">Engineering reference for <code style="background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12px;">beta-tester-home-desktop-v2.html</code></div>
+
+    <!-- Schema -->
+    <div class="spec-section">
+      <div class="spec-section-title">
+        Database Schema
+        <span class="spec-tag">SQL</span>
+      </div>
+
+<pre class="spec-code"><span class="spec-comment">-- ── users table (beta flag columns) ──────────────────────────</span>
+<span class="spec-keyword">CREATE TABLE</span> users (
+  id               <span class="spec-type">UUID</span>          <span class="spec-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  email            <span class="spec-type">TEXT</span>          <span class="spec-keyword">NOT NULL UNIQUE</span>,
+  role             <span class="spec-type">TEXT</span>,         <span class="spec-comment">-- 'teacher' | 'parent' | 'owner_internal'</span>
+
+  <span class="spec-comment">-- Beta flags</span>
+  is_beta          <span class="spec-type">BOOLEAN</span>       <span class="spec-keyword">DEFAULT</span> <span class="spec-keyword">false</span>,
+  beta_cohort      <span class="spec-type">TEXT</span>,         <span class="spec-comment">-- ENUM: 'teacher_pilot' | 'family_pilot' | 'owner_internal' | NULL</span>
+  beta_week        <span class="spec-type">INT</span>,          <span class="spec-comment">-- current week number (1–6), set server-side</span>
+  beta_cohort_id   <span class="spec-type">UUID</span>          <span class="spec-keyword">REFERENCES</span> beta_cohorts(id)
+);
+
+<span class="spec-comment">-- ── beta_tasks ────────────────────────────────────────────────</span>
+<span class="spec-keyword">CREATE TABLE</span> beta_tasks (
+  id                   <span class="spec-type">UUID</span>  <span class="spec-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  cohort_type          <span class="spec-type">TEXT</span>,          <span class="spec-comment">-- 'teacher_pilot' | 'family_pilot' | 'all'</span>
+  week_number          <span class="spec-type">INT</span>,           <span class="spec-comment">-- 1–6</span>
+  title                <span class="spec-type">TEXT</span> <span class="spec-keyword">NOT NULL</span>,
+  description          <span class="spec-type">TEXT</span>,
+  completion_trigger   <span class="spec-type">TEXT</span>,          <span class="spec-comment">-- e.g. 'session_count>=3' | 'manual' | 'screen_visit:student_detail'</span>
+  unlock_condition     <span class="spec-type">TEXT</span>           <span class="spec-comment">-- e.g. 'day_of_week=Friday' | NULL (immediately available)</span>
+);
+
+<span class="spec-comment">-- ── beta_task_completions ─────────────────────────────────────</span>
+<span class="spec-keyword">CREATE TABLE</span> beta_task_completions (
+  user_id       <span class="spec-type">UUID</span>          <span class="spec-keyword">REFERENCES</span> users(id)       <span class="spec-keyword">ON DELETE CASCADE</span>,
+  task_id       <span class="spec-type">UUID</span>          <span class="spec-keyword">REFERENCES</span> beta_tasks(id)  <span class="spec-keyword">ON DELETE CASCADE</span>,
+  completed_at  <span class="spec-type">TIMESTAMPTZ</span>   <span class="spec-keyword">DEFAULT</span> now(),
+  <span class="spec-keyword">PRIMARY KEY</span> (user_id, task_id)
+);
+
+<span class="spec-comment">-- ── beta_journal_entries ──────────────────────────────────────</span>
+<span class="spec-keyword">CREATE TABLE</span> beta_journal_entries (
+  id          <span class="spec-type">UUID</span>          <span class="spec-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  user_id     <span class="spec-type">UUID</span>          <span class="spec-keyword">REFERENCES</span> users(id) <span class="spec-keyword">ON DELETE CASCADE</span>,
+  body        <span class="spec-type">TEXT</span>          <span class="spec-keyword">NOT NULL</span>,
+  created_at  <span class="spec-type">TIMESTAMPTZ</span>   <span class="spec-keyword">DEFAULT</span> now()
+);
+
+<span class="spec-comment">-- ── beta_known_issues ─────────────────────────────────────────</span>
+<span class="spec-keyword">CREATE TABLE</span> beta_known_issues (
+  id          <span class="spec-type">UUID</span>  <span class="spec-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  title       <span class="spec-type">TEXT</span>  <span class="spec-keyword">NOT NULL</span>,
+  status      <span class="spec-type">TEXT</span>,  <span class="spec-comment">-- 'acknowledged' | 'in_progress' | 'investigating' | 'resolved'</span>
+  tracking_id <span class="spec-type">TEXT</span>,  <span class="spec-comment">-- e.g. '#KI-041'</span>
+  created_at  <span class="spec-type">TIMESTAMPTZ</span>  <span class="spec-keyword">DEFAULT</span> now(),
+  resolved_at <span class="spec-type">TIMESTAMPTZ</span>
+);
+
+<span class="spec-comment">-- ── beta_cohorts ──────────────────────────────────────────────</span>
+<span class="spec-keyword">CREATE TABLE</span> beta_cohorts (
+  id            <span class="spec-type">UUID</span>  <span class="spec-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  name          <span class="spec-type">TEXT</span>,  <span class="spec-comment">-- e.g. 'Cohort A' | 'Cohort B'</span>
+  cohort_type   <span class="spec-type">TEXT</span>,  <span class="spec-comment">-- 'teacher_pilot' | 'family_pilot'</span>
+  start_date    <span class="spec-type">DATE</span>,
+  end_date      <span class="spec-type">DATE</span>
+);</pre>
+    </div>
+
+    <!-- Routing rules -->
+    <div class="spec-section">
+      <div class="spec-section-title">
+        Beta Routing Rules
+        <span class="spec-tag">Logic</span>
+      </div>
+
+      <div class="routing-rule">
+        <strong>Show beta home:</strong> <code>user.is_beta = true</code> AND current date is within beta active period (between <code>beta_cohorts.start_date</code> and <code>beta_cohorts.end_date</code>) → render <code>beta-tester-home-desktop-v2</code> instead of standard home
+      </div>
+      <div class="routing-rule green">
+        <strong>After GA launch:</strong> <code>is_beta</code> flag is retained for analytics attribution. Beta home is hidden; user sees the standard production home regardless of flag.
+      </div>
+      <div class="routing-rule blue">
+        <strong>Beta banner behavior:</strong> Non-dismissible for <code>beta_cohort = 'teacher_pilot'</code>. Dismissible once per week for <code>beta_cohort = 'family_pilot'</code> (dismiss stored per user, reset on <code>beta_week</code> increment).
+      </div>
+      <div class="routing-rule gray">
+        <strong>Known issues source:</strong> Displayed issues are sourced from <code>beta_known_issues</code> table — NOT pulled from the user feedback queue.
+      </div>
+      <div class="routing-rule gray">
+        <strong>Task unlock:</strong> Tasks with <code>unlock_condition</code> are hidden until condition resolves. <code>beta_week</code> is set server-side; never derived client-side.
+      </div>
+    </div>
+
+    <!-- Cohort types -->
+    <div class="spec-section">
+      <div class="spec-section-title">
+        Cohort Types &amp; Display Rules
+        <span class="spec-tag">Reference</span>
+      </div>
+
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>beta_cohort value</th>
+            <th>Home shown</th>
+            <th>Banner dismissible</th>
+            <th>Known Issues shown</th>
+            <th>Journal shown</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>teacher_pilot</code></td>
+            <td>Teacher/Staff Beta Home (Tab 1)</td>
+            <td>No — non-dismissible</td>
+            <td>Yes (top 3, compact)</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td><code>family_pilot</code></td>
+            <td>Family Beta Home (Tab 2)</td>
+            <td>Yes — once per beta_week</td>
+            <td>No (not shown to families)</td>
+            <td>Yes — <code>beta_journal_entries</code></td>
+          </tr>
+          <tr>
+            <td><code>owner_internal</code></td>
+            <td>Teacher/Staff Beta Home (Tab 1) + internal debug overlay</td>
+            <td>Yes — always dismissible</td>
+            <td>All issues (no limit)</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td><code>NULL</code></td>
+            <td>Standard production home (no beta home)</td>
+            <td>—</td>
+            <td>No</td>
+            <td>No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Feature flags -->
+    <div class="spec-section">
+      <div class="spec-section-title">
+        Frontend Feature Flags
+        <span class="spec-tag">Flags</span>
+      </div>
+
+<pre class="spec-code"><span class="spec-comment">// Pseudo-code: client-side routing guard</span>
+<span class="spec-keyword">if</span> (user.is_beta === <span class="spec-keyword">true</span> && isBetaActive(user.beta_cohort_id)) {
+  <span class="spec-keyword">const</span> view = user.beta_cohort === <span class="spec-string">'family_pilot'</span>
+    ? <span class="spec-string">'beta-home-family'</span>
+    : <span class="spec-string">'beta-home-teacher'</span>;
+  renderView(view);
+} <span class="spec-keyword">else</span> {
+  renderView(<span class="spec-string">'standard-home'</span>);
+}
+
+<span class="spec-comment">// Beta active check uses server-provided context — NOT client clock</span>
+<span class="spec-keyword">function</span> isBetaActive(cohortId) {
+  <span class="spec-keyword">return</span> serverContext.beta_active === <span class="spec-keyword">true</span>;
+}
+
+<span class="spec-comment">// beta_week is always server-authoritative</span>
+<span class="spec-comment">// Never compute from client Date()</span></pre>
+    </div>
+
+    <!-- Post-GA notes -->
+    <div class="spec-section">
+      <div class="spec-section-title">
+        Post-GA Behavior
+        <span class="spec-tag">GA</span>
+      </div>
+      <div class="routing-rule green">
+        After GA: <code>is_beta</code> remains <code>true</code> in the database for cohort analytics. The beta home is suppressed by the routing guard. Beta testers see the standard home with no visual difference from non-beta users.
+      </div>
+      <div class="routing-rule green">
+        Beta journal entries and task completions are retained for product research. They are not exposed in the standard production UI.
+      </div>
+      <div class="routing-rule gray">
+        <code>beta_cohort</code> value is preserved for segmentation in analytics dashboards (cohort performance, retention, NPS by cohort).
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab3 -->
+
+
+<script>
+  function showTab(t) {
+    // Update screens
+    document.querySelectorAll('.screen').forEach((s, i) => {
+      s.classList.toggle('active', i + 1 === t);
+    });
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i + 1 === t);
+    });
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>

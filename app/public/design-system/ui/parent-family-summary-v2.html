@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Family Summary v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #e8e4dc; color: #1a1a1a; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #d4cfc7; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #c8c3bb; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #555; }
+  .tab.active { background: #fff; color: #1a1a1a; }
+  .panel { display: none; padding: 20px 16px 40px; background: #fff; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #fffbe6; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #7a5c00; line-height: 1.6; }
+  .hint strong { color: #5a3e00; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 800px; background: #f5f0e8; border-radius: 40px; border: 8px solid #1a1a1a; box-shadow: 0 12px 40px rgba(0,0,0,0.22); overflow: hidden; flex-shrink: 0; font-family: 'Sora', 'Segoe UI', sans-serif; }
+  .phone-inner { height: 100%; overflow-y: auto; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #2c3e50; background: #f5f0e8; }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #f5f0e8; border-bottom: 1px solid #e0d8cc; }
+  .topbar-title { font-size: 17px; font-weight: 800; color: #1a1a1a; }
+  .topbar-subtitle { font-size: 12px; color: #888; margin-top: 1px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+  .topbar-btn { background: #fff; border: 1px solid #e0d8cc; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; color: #2c7a6e; cursor: pointer; }
+
+  /* Section label */
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #888; padding: 0 16px; margin: 16px 0 8px; }
+
+  /* Week summary hero */
+  .week-hero { margin: 14px 16px; background: linear-gradient(135deg, #2c7a6e 0%, #1a5c52 100%); border-radius: 18px; padding: 20px; color: #fff; }
+  .week-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; margin-bottom: 6px; }
+  .week-headline { font-size: 20px; font-weight: 800; margin-bottom: 8px; line-height: 1.3; }
+  .week-sub { font-size: 13px; opacity: 0.85; line-height: 1.6; }
+  .week-chips { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .week-chip { background: rgba(255,255,255,0.18); border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 700; }
+
+  /* Child summary cards */
+  .child-card { margin: 0 16px 12px; background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+  .child-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .child-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .child-name { font-size: 15px; font-weight: 800; color: #1a1a1a; }
+  .child-meta { font-size: 12px; color: #888; margin-top: 2px; }
+  .child-band-pill { margin-left: auto; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+  .band-p0 { background: #fff7dc; color: #9a6e00; }
+  .band-p1 { background: #ede7ff; color: #6b48c8; }
+  .band-p2 { background: #dcfaf3; color: #0d7a5f; }
+  .band-p3 { background: #ffe9e7; color: #b84037; }
+
+  /* SNS trio */
+  .sns-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .sns-cell { background: #f8f6f2; border-radius: 10px; padding: 10px; text-align: center; }
+  .sns-val { font-size: 18px; font-weight: 800; }
+  .sns-lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+  .sns-support { color: #c0392b; }
+  .sns-strength { color: #0d7a5f; }
+  .sns-next { color: #2255aa; }
+
+  /* Skill highlights */
+  .skill-highlights { display: flex; flex-direction: column; gap: 6px; }
+  .skill-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #f8f6f2; border-radius: 10px; }
+  .skill-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-strength { background: #58e8c1; }
+  .dot-support { background: #ff7b6b; }
+  .dot-next { background: #5586e0; }
+  .skill-name { font-size: 12px; color: #1a1a1a; flex: 1; font-weight: 600; }
+  .skill-tier-label { font-size: 11px; font-weight: 700; }
+  .lbl-strength { color: #0d7a5f; }
+  .lbl-support { color: #c0392b; }
+  .lbl-next { color: #2255aa; }
+
+  /* Teacher message strip */
+  .teacher-strip { margin: 0 16px 12px; background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .teacher-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .teacher-avatar { width: 34px; height: 34px; border-radius: 50%; background: #2c7a6e; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; font-weight: 700; flex-shrink: 0; }
+  .teacher-name { font-size: 13px; font-weight: 700; color: #1a1a1a; }
+  .teacher-role { font-size: 11px; color: #888; }
+  .teacher-note { font-size: 12px; color: #444; line-height: 1.6; font-style: italic; border-left: 3px solid #2c7a6e; padding-left: 10px; }
+  .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff7b6b; margin-left: auto; flex-shrink: 0; }
+
+  /* Upcoming */
+  .upcoming-card { margin: 0 16px 12px; background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .upcoming-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f0ebe3; }
+  .upcoming-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .upcoming-date { width: 36px; text-align: center; flex-shrink: 0; }
+  .upcoming-day { font-size: 18px; font-weight: 800; color: #2c7a6e; }
+  .upcoming-mon { font-size: 10px; color: #aaa; text-transform: uppercase; }
+  .upcoming-text { font-size: 13px; color: #1a1a1a; font-weight: 600; }
+  .upcoming-sub { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* Activity suggestions */
+  .activity-card { margin: 0 16px 12px; background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .activity-row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f0ebe3; }
+  .activity-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .activity-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .icon-purple { background: #f0eaff; }
+  .icon-green { background: #e2faf4; }
+  .icon-gold { background: #fff6dc; }
+  .activity-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+  .activity-body { font-size: 12px; color: #666; line-height: 1.5; }
+  .activity-child { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+  /* Action footer */
+  .action-footer { position: sticky; bottom: 0; background: #f5f0e8; border-top: 1px solid #e0d8cc; padding: 12px 16px 28px; display: flex; gap: 10px; }
+  .btn-primary { flex: 1; background: #2c7a6e; color: #fff; border: none; border-radius: 12px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; }
+  .btn-secondary { background: #fff; color: #2c7a6e; border: 2px solid #2c7a6e; border-radius: 12px; padding: 13px 16px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  /* Bottom nav */
+  .bottom-nav { display: flex; background: #fff; border-top: 1px solid #e8e2d6; padding: 8px 0 18px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #aaa; }
+  .nav-item.active { color: #2c7a6e; }
+  .nav-icon { font-size: 20px; }
+
+  /* Desktop */
+  .desktop-frame { background: #f5f0e8; border-radius: 12px; border: 1px solid #e0d8cc; overflow: hidden; }
+  .desktop-topbar { background: #fff; border-bottom: 1px solid #e0d8cc; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .desktop-body { display: flex; gap: 0; }
+  .desktop-left { width: 300px; border-right: 1px solid #e0d8cc; padding: 20px; background: #fff; }
+  .desktop-main { flex: 1; padding: 20px; }
+  .desktop-right { width: 300px; border-left: 1px solid #e0d8cc; padding: 20px; background: #fff; }
+
+  /* Spec */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .spec-table th { background: #f0f4f8; padding: 8px 12px; text-align: left; font-weight: 700; font-size: 12px; color: #555; border-bottom: 2px solid #dde; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: top; line-height: 1.5; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-teal { background: #dcfaf3; color: #0d7a5f; }
+  .pill-amber { background: #fff3cd; color: #8a5c00; }
+  .pill-red { background: #ffe0de; color: #a83225; }
+  .pill-blue { background: #e8efff; color: #1a4faa; }
+
+  h2 { font-size: 18px; font-weight: 800; color: #1a1a1a; margin-bottom: 6px; }
+  h3 { font-size: 14px; font-weight: 700; color: #333; margin: 20px 0 8px; }
+  p { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 12px; }
+  ul { font-size: 13px; color: #555; line-height: 1.7; padding-left: 18px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('mobile-one')">Mobile — 1 Child</button>
+  <button class="tab" onclick="show('mobile-two')">Mobile — 2 Children</button>
+  <button class="tab" onclick="show('desktop')">Desktop — Family Summary</button>
+  <button class="tab" onclick="show('empty-new')">New Family / No Data</button>
+  <button class="tab" onclick="show('spec')">Spec Notes</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 1 -->
+<div id="mobile-one" class="panel active">
+  <div class="hint"><strong>Panel 1 — Mobile, 1 Child:</strong> Parent family summary for a single-child household. Weekly hero summary at top (plain-language, forward-looking). Child card with SNS trio (strengths / needs / next). Top skill highlight rows. Teacher message strip. Weekend activity suggestions. Parent theme: warm light #f5f0e8, Sora, teal #2c7a6e. No accuracy %, no missed-day framing.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Single child — active week</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+
+          <div class="topbar">
+            <div style="flex:1;">
+              <div class="topbar-title">Family Summary</div>
+              <div class="topbar-subtitle">Week of Mar 17–22</div>
+            </div>
+            <div class="topbar-actions">
+              <div class="topbar-btn">⚙️</div>
+            </div>
+          </div>
+
+          <!-- Week hero -->
+          <div class="week-hero">
+            <div class="week-label">This week</div>
+            <div class="week-headline">Maya had a great week — she's making real progress! 🎉</div>
+            <div class="week-sub">She built on her counting skills and is close to unlocking the next adventure. One skill needs a little extra love this week.</div>
+            <div class="week-chips">
+              <div class="week-chip">3 strengths</div>
+              <div class="week-chip">1 building</div>
+              <div class="week-chip">2 almost there</div>
+            </div>
+          </div>
+
+          <!-- Child card -->
+          <div class="section-label">Maya's progress</div>
+          <div class="child-card">
+            <div class="child-header">
+              <div class="child-avatar" style="background:#ede7ff;">🦄</div>
+              <div>
+                <div class="child-name">Maya</div>
+                <div class="child-meta">Grade K–1</div>
+              </div>
+              <div class="child-band-pill band-p1">K–1 Violet</div>
+            </div>
+
+            <!-- SNS trio -->
+            <div class="sns-row">
+              <div class="sns-cell">
+                <div class="sns-val sns-strength">3</div>
+                <div class="sns-lbl">Strengths</div>
+              </div>
+              <div class="sns-cell">
+                <div class="sns-val sns-support">1</div>
+                <div class="sns-lbl">Building</div>
+              </div>
+              <div class="sns-cell">
+                <div class="sns-val sns-next">2</div>
+                <div class="sns-lbl">Almost there</div>
+              </div>
+            </div>
+
+            <!-- Skill highlights -->
+            <div class="skill-highlights">
+              <div class="skill-row">
+                <div class="skill-dot dot-strength"></div>
+                <div class="skill-name">Counting to 20</div>
+                <div class="skill-tier-label lbl-strength">Strength 💪</div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-dot dot-support"></div>
+                <div class="skill-name">Comparing Numbers</div>
+                <div class="skill-tier-label lbl-support">Building 🌱</div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-dot dot-next"></div>
+                <div class="skill-name">Skip Counting</div>
+                <div class="skill-tier-label lbl-next">Almost there 🚀</div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px; text-align:center;">
+              <div style="font-size:12px; color:#2c7a6e; font-weight:700; cursor:pointer;">See full progress map →</div>
+            </div>
+          </div>
+
+          <!-- Teacher message -->
+          <div class="section-label">From school</div>
+          <div class="teacher-strip">
+            <div class="teacher-row">
+              <div class="teacher-avatar">JL</div>
+              <div>
+                <div class="teacher-name">Ms. Jenna Lin</div>
+                <div class="teacher-role">K–1 Homeroom · Room 4</div>
+              </div>
+              <div class="unread-dot"></div>
+            </div>
+            <div class="teacher-note">"Maya is doing beautifully with counting! I've added a small extra practice set for comparing — just a few minutes at home will make a big difference."</div>
+            <div style="margin-top:10px; font-size:12px; color:#2c7a6e; font-weight:700; cursor:pointer;">Reply →</div>
+          </div>
+
+          <!-- Weekend activities -->
+          <div class="section-label">Try this weekend</div>
+          <div class="activity-card">
+            <div class="activity-row">
+              <div class="activity-icon icon-gold">🃏</div>
+              <div>
+                <div class="activity-title">Card compare game</div>
+                <div class="activity-body">Flip two cards — who has the bigger number? Practice comparing in a fun way.</div>
+                <div class="activity-child">For Maya · Comparing Numbers</div>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-icon icon-green">🪜</div>
+              <div>
+                <div class="activity-title">Skip counting on stairs</div>
+                <div class="activity-body">Count every 2 steps as you go up. "2, 4, 6…" How high can she get?</div>
+                <div class="activity-child">For Maya · Skip Counting</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">Message Ms. Lin</div>
+            <div class="btn-secondary">📅</div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 2 -->
+<div id="mobile-two" class="panel">
+  <div class="hint"><strong>Panel 2 — Mobile, 2 Children:</strong> Family with two children. Week hero summarizes the whole family. Each child gets their own card (collapsible by default — expand to see skill rows). Family-level activity suggestions pick the best activity per child, interleaved. Scroll is the primary nav.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Two children — active week</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+
+          <div class="topbar">
+            <div style="flex:1;">
+              <div class="topbar-title">Family Summary</div>
+              <div class="topbar-subtitle">Week of Mar 17–22 · 2 kids</div>
+            </div>
+            <div class="topbar-actions"><div class="topbar-btn">⚙️</div></div>
+          </div>
+
+          <!-- Week hero (family) -->
+          <div class="week-hero" style="background:linear-gradient(135deg, #5a3e90 0%, #3d2870 100%);">
+            <div class="week-label">Family this week</div>
+            <div class="week-headline">Great week for your family — lots of progress across the board! ✨</div>
+            <div class="week-sub">Maya and Leo are both building strong foundations. One skill between them could use a little family practice.</div>
+            <div class="week-chips">
+              <div class="week-chip">5 strengths total</div>
+              <div class="week-chip">1 needs practice</div>
+            </div>
+          </div>
+
+          <!-- Maya card -->
+          <div class="section-label">Maya</div>
+          <div class="child-card">
+            <div class="child-header">
+              <div class="child-avatar" style="background:#ede7ff;">🦄</div>
+              <div>
+                <div class="child-name">Maya</div>
+                <div class="child-meta">Grade K–1</div>
+              </div>
+              <div class="child-band-pill band-p1">K–1</div>
+            </div>
+            <div class="sns-row">
+              <div class="sns-cell"><div class="sns-val sns-strength">3</div><div class="sns-lbl">Strengths</div></div>
+              <div class="sns-cell"><div class="sns-val sns-support">1</div><div class="sns-lbl">Building</div></div>
+              <div class="sns-cell"><div class="sns-val sns-next">2</div><div class="sns-lbl">Almost</div></div>
+            </div>
+            <div class="skill-highlights">
+              <div class="skill-row">
+                <div class="skill-dot dot-support"></div>
+                <div class="skill-name">Comparing Numbers</div>
+                <div class="skill-tier-label lbl-support">Building 🌱</div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-dot dot-strength"></div>
+                <div class="skill-name">Counting to 20</div>
+                <div class="skill-tier-label lbl-strength">Strength 💪</div>
+              </div>
+            </div>
+            <div style="margin-top:10px; text-align:center; font-size:12px; color:#2c7a6e; font-weight:700; cursor:pointer;">Full map →</div>
+          </div>
+
+          <!-- Leo card -->
+          <div class="section-label">Leo</div>
+          <div class="child-card">
+            <div class="child-header">
+              <div class="child-avatar" style="background:#dcfaf3;">🐉</div>
+              <div>
+                <div class="child-name">Leo</div>
+                <div class="child-meta">Grade 2–3</div>
+              </div>
+              <div class="child-band-pill band-p2">G2–3</div>
+            </div>
+            <div class="sns-row">
+              <div class="sns-cell"><div class="sns-val sns-strength">4</div><div class="sns-lbl">Strengths</div></div>
+              <div class="sns-cell"><div class="sns-val sns-support">0</div><div class="sns-lbl">Building</div></div>
+              <div class="sns-cell"><div class="sns-val sns-next">1</div><div class="sns-lbl">Almost</div></div>
+            </div>
+            <div class="skill-highlights">
+              <div class="skill-row">
+                <div class="skill-dot dot-strength"></div>
+                <div class="skill-name">Multiplication × 2, 5, 10</div>
+                <div class="skill-tier-label lbl-strength">Strength 💪</div>
+              </div>
+              <div class="skill-row">
+                <div class="skill-dot dot-next"></div>
+                <div class="skill-name">Word Problems</div>
+                <div class="skill-tier-label lbl-next">Almost there 🚀</div>
+              </div>
+            </div>
+            <div style="margin-top:10px; text-align:center; font-size:12px; color:#2c7a6e; font-weight:700; cursor:pointer;">Full map →</div>
+          </div>
+
+          <!-- Family activities -->
+          <div class="section-label">Try this weekend</div>
+          <div class="activity-card">
+            <div class="activity-row">
+              <div class="activity-icon icon-gold">🃏</div>
+              <div>
+                <div class="activity-title">Card compare game</div>
+                <div class="activity-body">Play together — can Leo help Maya spot the bigger card?</div>
+                <div class="activity-child">For Maya · siblings can join!</div>
+              </div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-icon icon-purple">🛒</div>
+              <div>
+                <div class="activity-title">Grocery math</div>
+                <div class="activity-body">Ask Leo to estimate the total while you shop. Good word problem practice!</div>
+                <div class="activity-child">For Leo · Word Problems</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">View school messages</div>
+            <div class="btn-secondary">📅</div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed children view -->
+    <div>
+      <div class="phone-label">Two children — collapsed cards</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Family Summary</div><div class="topbar-subtitle">Week of Mar 17–22</div></div>
+          </div>
+
+          <div class="week-hero" style="background:linear-gradient(135deg, #5a3e90 0%, #3d2870 100%);">
+            <div class="week-label">Family this week</div>
+            <div class="week-headline">Great week for your family! ✨</div>
+            <div class="week-chips">
+              <div class="week-chip">5 strengths</div>
+              <div class="week-chip">1 building</div>
+            </div>
+          </div>
+
+          <div class="section-label">Children</div>
+
+          <!-- Collapsed Maya -->
+          <div style="margin:0 16px 10px; background:#fff; border-radius:14px; padding:14px 16px; box-shadow:0 1px 6px rgba(0,0,0,0.06); display:flex; align-items:center; gap:12px; cursor:pointer;">
+            <div class="child-avatar" style="background:#ede7ff; width:40px; height:40px; font-size:18px;">🦄</div>
+            <div style="flex:1;">
+              <div style="font-size:14px; font-weight:700; color:#1a1a1a;">Maya</div>
+              <div style="font-size:12px; color:#888; margin-top:2px;">3 strengths · 1 building</div>
+            </div>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <div style="width:8px; height:8px; border-radius:50%; background:#58e8c1;"></div>
+              <div style="width:8px; height:8px; border-radius:50%; background:#ff7b6b;"></div>
+              <div style="width:8px; height:8px; border-radius:50%; background:#5586e0;"></div>
+            </div>
+            <div style="color:#2c7a6e; font-size:16px;">›</div>
+          </div>
+
+          <!-- Collapsed Leo -->
+          <div style="margin:0 16px 10px; background:#fff; border-radius:14px; padding:14px 16px; box-shadow:0 1px 6px rgba(0,0,0,0.06); display:flex; align-items:center; gap:12px; cursor:pointer;">
+            <div class="child-avatar" style="background:#dcfaf3; width:40px; height:40px; font-size:18px;">🐉</div>
+            <div style="flex:1;">
+              <div style="font-size:14px; font-weight:700; color:#1a1a1a;">Leo</div>
+              <div style="font-size:12px; color:#888; margin-top:2px;">4 strengths · 0 building</div>
+            </div>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <div style="width:8px; height:8px; border-radius:50%; background:#58e8c1;"></div>
+              <div style="width:8px; height:8px; border-radius:50%; background:#58e8c1;"></div>
+              <div style="width:8px; height:8px; border-radius:50%; background:#5586e0;"></div>
+            </div>
+            <div style="color:#2c7a6e; font-size:16px;">›</div>
+          </div>
+
+          <div style="margin:6px 16px; font-size:11px; color:#aaa; text-align:center;">Tap a child to expand their skills</div>
+
+          <div class="section-label">Try this weekend</div>
+          <div class="activity-card">
+            <div class="activity-row">
+              <div class="activity-icon icon-gold">🃏</div>
+              <div>
+                <div class="activity-title">Card compare game</div>
+                <div class="activity-body">For Maya — or make it a sibling challenge!</div>
+                <div class="activity-child">5 min · Any time</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">View messages</div>
+            <div class="btn-secondary">📅</div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 3 -->
+<div id="desktop" class="panel">
+  <div class="hint"><strong>Panel 3 — Desktop Family Summary:</strong> 3-column layout. Left: child list + week stats. Center: selected child detail (SNS + skill list + activities). Right: school messages + upcoming events. Same warm light parent theme.</div>
+
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div>
+        <div style="font-size:20px; font-weight:800; color:#1a1a1a;">Family Summary</div>
+        <div style="font-size:13px; color:#888; margin-top:2px;">Week of Mar 17–22 · 2 children</div>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:10px;">
+        <div style="background:#f5f0e8; border:1px solid #e0d8cc; border-radius:8px; padding:7px 14px; font-size:13px; font-weight:700; color:#2c7a6e; cursor:pointer;">Settings</div>
+        <div style="background:#2c7a6e; color:#fff; border-radius:8px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">Message teacher</div>
+      </div>
+    </div>
+
+    <div class="desktop-body">
+      <!-- Left: children + week stats -->
+      <div class="desktop-left">
+        <div style="background:linear-gradient(135deg, #2c7a6e,#1a5c52); border-radius:12px; padding:16px; color:#fff; margin-bottom:16px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; opacity:0.75; margin-bottom:6px;">This week</div>
+          <div style="font-size:16px; font-weight:800; line-height:1.4; margin-bottom:8px;">Great week — family is on track! 🎉</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div style="background:rgba(255,255,255,0.18); border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;">5 strengths</div>
+            <div style="background:rgba(255,255,255,0.18); border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;">1 building</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.07em; margin-bottom:10px;">Children</div>
+
+        <!-- Maya — selected -->
+        <div style="background:#2c7a6e; color:#fff; border-radius:12px; padding:14px; margin-bottom:8px; cursor:pointer;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:18px;">🦄</div>
+            <div>
+              <div style="font-size:14px; font-weight:700;">Maya</div>
+              <div style="font-size:11px; opacity:0.75;">K–1 Violet Band</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; background:rgba(255,255,255,0.15); border-radius:8px; padding:8px; text-align:center;">
+              <div style="font-size:18px; font-weight:800;">3</div>
+              <div style="font-size:10px; opacity:0.75; text-transform:uppercase;">Strengths</div>
+            </div>
+            <div style="flex:1; background:rgba(255,255,255,0.15); border-radius:8px; padding:8px; text-align:center;">
+              <div style="font-size:18px; font-weight:800;">1</div>
+              <div style="font-size:10px; opacity:0.75; text-transform:uppercase;">Building</div>
+            </div>
+            <div style="flex:1; background:rgba(255,255,255,0.15); border-radius:8px; padding:8px; text-align:center;">
+              <div style="font-size:18px; font-weight:800;">2</div>
+              <div style="font-size:10px; opacity:0.75; text-transform:uppercase;">Almost</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leo -->
+        <div style="background:#fff; border:1px solid #e0d8cc; border-radius:12px; padding:14px; cursor:pointer;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:38px; height:38px; border-radius:50%; background:#dcfaf3; display:flex; align-items:center; justify-content:center; font-size:18px;">🐉</div>
+            <div style="flex:1;">
+              <div style="font-size:14px; font-weight:700; color:#1a1a1a;">Leo</div>
+              <div style="font-size:11px; color:#888;">G2–3 Mint Band</div>
+            </div>
+            <div style="font-size:12px; color:#4ecca3; font-weight:700;">4 strengths ✓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Maya detail -->
+      <div class="desktop-main">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="width:44px; height:44px; border-radius:50%; background:#ede7ff; display:flex; align-items:center; justify-content:center; font-size:22px;">🦄</div>
+          <div>
+            <div style="font-size:18px; font-weight:800; color:#1a1a1a;">Maya</div>
+            <div style="font-size:13px; color:#888;">K–1 Violet Band · Grade K–1</div>
+          </div>
+          <div style="margin-left:auto; background:#f5f0e8; border:1px solid #e0d8cc; border-radius:8px; padding:7px 14px; font-size:13px; font-weight:700; color:#2c7a6e; cursor:pointer;">See full map →</div>
+        </div>
+
+        <!-- Skills section -->
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.07em; margin-bottom:10px;">Skills this week</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+          <div style="display:flex; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+            <div class="skill-dot dot-strength" style="width:10px; height:10px;"></div>
+            <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Counting to 20</div>
+            <div style="font-size:12px; font-weight:700; color:#0d7a5f;">Strength 💪</div>
+            <div style="font-size:12px; color:#2c7a6e; cursor:pointer;">Detail →</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 1px 4px rgba(0,0,0,0.05); border-left:3px solid #ff7b6b;">
+            <div class="skill-dot dot-support" style="width:10px; height:10px;"></div>
+            <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Comparing Numbers</div>
+            <div style="font-size:12px; font-weight:700; color:#c0392b;">Building 🌱</div>
+            <div style="font-size:12px; color:#2c7a6e; cursor:pointer;">Detail →</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+            <div class="skill-dot dot-next" style="width:10px; height:10px;"></div>
+            <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Skip Counting</div>
+            <div style="font-size:12px; font-weight:700; color:#2255aa;">Almost there 🚀</div>
+            <div style="font-size:12px; color:#2c7a6e; cursor:pointer;">Detail →</div>
+          </div>
+        </div>
+
+        <!-- Activities -->
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.07em; margin-bottom:10px;">Try at home this weekend</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.06);">
+            <div style="font-size:22px; margin-bottom:8px;">🃏</div>
+            <div style="font-size:13px; font-weight:700; color:#1a1a1a; margin-bottom:4px;">Card compare game</div>
+            <div style="font-size:12px; color:#666; line-height:1.5;">Flip two cards — who has the bigger number?</div>
+            <div style="font-size:11px; color:#aaa; margin-top:6px;">5 min · For Comparing Numbers</div>
+          </div>
+          <div style="background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.06);">
+            <div style="font-size:22px; margin-bottom:8px;">🪜</div>
+            <div style="font-size:13px; font-weight:700; color:#1a1a1a; margin-bottom:4px;">Stair skip counting</div>
+            <div style="font-size:12px; color:#666; line-height:1.5;">Count every 2 stairs — how high can she get?</div>
+            <div style="font-size:11px; color:#aaa; margin-top:6px;">2 min · For Skip Counting</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: messages + upcoming -->
+      <div class="desktop-right">
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.07em; margin-bottom:10px;">School messages</div>
+
+        <!-- Message from teacher -->
+        <div style="background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,0.05); margin-bottom:16px; border-left:3px solid #2c7a6e;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <div style="width:30px; height:30px; border-radius:50%; background:#2c7a6e; display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; font-weight:700;">JL</div>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:#1a1a1a;">Ms. Jenna Lin</div>
+              <div style="font-size:11px; color:#aaa;">Today, 8:15 AM · Unread</div>
+            </div>
+            <div style="margin-left:auto; width:8px; height:8px; border-radius:50%; background:#ff7b6b;"></div>
+          </div>
+          <div style="font-size:12px; color:#444; line-height:1.6; font-style:italic;">"Maya is doing beautifully with counting! I've added a small extra practice set for comparing — just a few minutes at home will make a big difference."</div>
+          <div style="margin-top:10px; font-size:12px; color:#2c7a6e; font-weight:700; cursor:pointer;">Reply →</div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.07em; margin-bottom:10px;">Upcoming</div>
+        <div style="background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+          <div class="upcoming-row">
+            <div class="upcoming-date"><div class="upcoming-day">25</div><div class="upcoming-mon">Mar</div></div>
+            <div><div class="upcoming-text">Parent-teacher conference</div><div class="upcoming-sub">Ms. Lin · 4:30 PM</div></div>
+          </div>
+          <div class="upcoming-row">
+            <div class="upcoming-date"><div class="upcoming-day">28</div><div class="upcoming-mon">Mar</div></div>
+            <div><div class="upcoming-text">Spring break begins</div><div class="upcoming-sub">No school · Apr 4 return</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 4 -->
+<div id="empty-new" class="panel">
+  <div class="hint"><strong>Panel 4 — New Family / No Data States:</strong> Two edge states: (A) Brand new family — no children set up yet. (B) Child added but no play sessions yet — week hero is empty, prompt to start first session.</div>
+
+  <div class="phone-wrap">
+    <!-- No children -->
+    <div>
+      <div class="phone-label">A — No children set up</div>
+      <div class="phone" style="min-height:500px;">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Family Summary</div></div>
+          </div>
+          <div style="margin:40px 24px; text-align:center;">
+            <div style="font-size:48px; margin-bottom:16px;">🏡</div>
+            <div style="font-size:18px; font-weight:800; color:#1a1a1a; margin-bottom:8px;">Welcome to WonderQuest!</div>
+            <div style="font-size:14px; color:#666; line-height:1.6; margin-bottom:24px;">Add your first child to get started. It only takes a minute!</div>
+            <div class="btn-primary" style="display:block; border-radius:14px;">+ Add your first child</div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Child added, no sessions -->
+    <div>
+      <div class="phone-label">B — Child added, no sessions yet</div>
+      <div class="phone" style="min-height:560px;">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Family Summary</div><div class="topbar-subtitle">Welcome, Maya's family!</div></div>
+          </div>
+          <!-- Gentle empty hero -->
+          <div class="week-hero" style="background:linear-gradient(135deg, #9b72ff, #6b48c8);">
+            <div class="week-label">Getting started</div>
+            <div class="week-headline">Maya is all set up! 🎉</div>
+            <div class="week-sub">Once she plays her first session, you'll see her progress here each week.</div>
+          </div>
+
+          <div style="margin:16px; background:#fff; border-radius:16px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.07); text-align:center;">
+            <div style="font-size:36px; margin-bottom:10px;">🚀</div>
+            <div style="font-size:15px; font-weight:800; color:#1a1a1a; margin-bottom:6px;">Ready to start her first quest?</div>
+            <div style="font-size:13px; color:#666; line-height:1.6; margin-bottom:16px;">Let Maya know her first adventure is waiting — it takes about 5 minutes and she'll love it.</div>
+            <div class="btn-primary" style="display:block; border-radius:12px;">Share her play link</div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 5 -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Panel 5 — Spec Notes:</strong> Canonical spec for /parent (family summary view). This is the parent dashboard home — the first thing a parent sees on login. Route: /parent.</div>
+
+  <h2>Parent Family Summary — Spec</h2>
+  <p>Route: <code>/parent</code> — parent dashboard home. Shown on every login. Summarizes the current week across all children in the family.</p>
+
+  <h3>Week hero card rules</h3>
+  <table class="spec-table">
+    <tr><th>Condition</th><th>Headline tone</th><th>Chips shown</th></tr>
+    <tr><td>All children — 0 building skills</td><td>Celebratory — "Great week! Everything is looking strong."</td><td>Strengths count only</td></tr>
+    <tr><td>1+ children with building skills</td><td>Encouraging — "Great week — one skill to practice together."</td><td>Strengths + building count</td></tr>
+    <tr><td>No sessions this week</td><td>Gentle nudge — "No activity this week — pick up where you left off!"</td><td>None</td></tr>
+    <tr><td>First week (new family)</td><td>Welcome — "Maya is all set up! First adventure is waiting."</td><td>None</td></tr>
+  </table>
+
+  <h3>Child card SNS trio</h3>
+  <table class="spec-table">
+    <tr><th>Label</th><th>Color</th><th>Definition</th></tr>
+    <tr><td>Strengths</td><td>#58e8c1 / #0d7a5f</td><td>Skills in Strength tier this week</td></tr>
+    <tr><td>Building</td><td>#ff7b6b / #c0392b</td><td>Skills in Support tier (needs practice)</td></tr>
+    <tr><td>Almost there</td><td>#5586e0 / #2255aa</td><td>Skills approaching next milestone</td></tr>
+  </table>
+
+  <h3>Activity suggestions rules</h3>
+  <table class="spec-table">
+    <tr><th>Rule</th><th>Notes</th></tr>
+    <tr><td>Show 2–3 activities max</td><td>Too many is overwhelming — prioritize Support-tier skills first</td></tr>
+    <tr><td>Rotate suggestions weekly</td><td>Same activity should not appear 2 weeks in a row</td></tr>
+    <tr><td>Multi-child: interleave</td><td>Alternate child per activity row; flag sibling join opportunities</td></tr>
+    <tr><td>Duration + context required</td><td>Every activity shows "X min · [occasion]" — parents need to quickly assess feasibility</td></tr>
+  </table>
+
+  <h3>School messages rules</h3>
+  <table class="spec-table">
+    <tr><th>Condition</th><th>Display</th></tr>
+    <tr><td>Unread message &lt;7 days</td><td>Show with red unread dot, border-left teal accent</td></tr>
+    <tr><td>Read message &lt;14 days</td><td>Show without unread dot</td></tr>
+    <tr><td>No messages</td><td>Show "No messages from teachers yet" empty state</td></tr>
+  </table>
+
+  <h3>Multi-child layout rules</h3>
+  <ul>
+    <li>1 child: full-expanded card (SNS + skill rows always visible)</li>
+    <li>2 children: both expanded by default on mobile; desktop left rail shows both</li>
+    <li>3+ children: collapsed by default on mobile (tap to expand); desktop left rail scrolls</li>
+    <li>Desktop: selected child drives center panel content</li>
+  </ul>
+
+  <h3>Language rules (same as all parent screens)</h3>
+  <table class="spec-table">
+    <tr><th>NEVER say</th><th>Instead say</th></tr>
+    <tr><td>Accuracy %, correct/wrong counts</td><td>Tier labels (strength/building/almost there)</td></tr>
+    <tr><td>"Missed X days" / attendance</td><td>Never surface attendance framing</td></tr>
+    <tr><td>"Behind" / "struggling" / "failing"</td><td>"Building this skill" / "could use practice"</td></tr>
+    <tr><td>Week comparison ("worse than last week")</td><td>Always forward-looking framing only</td></tr>
+  </table>
+
+  <h3>Design tokens</h3>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+    <tr><td>bg</td><td>#f5f0e8</td><td>Warm light parent background</td></tr>
+    <tr><td>surface</td><td>#ffffff</td><td>Cards, topbar, activity cards</td></tr>
+    <tr><td>accent</td><td>#2c7a6e</td><td>Teal — buttons, nav active, teacher accent</td></tr>
+    <tr><td>hero-1child</td><td>#2c7a6e → #1a5c52</td><td>Single child gradient</td></tr>
+    <tr><td>hero-family</td><td>#5a3e90 → #3d2870</td><td>Multi-child family gradient</td></tr>
+    <tr><td>font</td><td>Sora</td><td>All parent-facing text</td></tr>
+    <tr><td>frame-width</td><td>375px</td><td>Canonical mobile phone frame</td></tr>
+  </table>
+
+  <h3>Source merge list</h3>
+  <ul>
+    <li>parent-route-canonical-v2.html → SNS framing, parent theme tokens, no accuracy rule</li>
+    <li>parent-skill-detail-mobile-canonical-v2.html → skill tier language, activity card pattern</li>
+    <li>family-onboarding-manager-v2.html → warm light theme, onboarding empty state pattern</li>
+    <li>teacher-intervention-detail-mobile-v2.html → teacher message strip pattern</li>
+  </ul>
+
+  <div class="hint"><strong>Single source of truth:</strong> This file is canonical for /parent (family summary home). All prior parent home/dashboard mocks are superseded by this file.</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

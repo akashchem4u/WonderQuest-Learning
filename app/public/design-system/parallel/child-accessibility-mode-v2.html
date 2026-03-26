@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Accessibility Mode — WonderQuest v2</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0d1117;
+  color: #f0f6ff;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Engineering hint ───────────────────────────────────────────── */
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 960px;
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #333;
+  line-height: 1.65;
+}
+.eng-hint strong { color: #7a5c00; }
+
+/* ── Tab bar ────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 960px;
+}
+.tab-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,.12);
+  background: #161b22;
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .15s;
+}
+.tab-btn:hover { border-color: #a78bfa; color: #f0f6ff; }
+.tab-btn.active { background: #a78bfa; border-color: #a78bfa; color: #fff; }
+
+.screen { display: none; width: 100%; max-width: 960px; }
+.screen.active { display: block; }
+
+/* ── Section label ──────────────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #8b949e;
+  margin-bottom: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB 1 — Settings Panel
+═══════════════════════════════════════════════════════════════════ */
+.settings-wrap {
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+/* Header */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.settings-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #f0f6ff;
+}
+.child-switcher {
+  display: flex;
+  gap: 8px;
+}
+.child-chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,.1);
+  background: #161b22;
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .15s;
+}
+.child-chip.active {
+  background: #58e8c1;
+  border-color: #58e8c1;
+  color: #0d1117;
+}
+.child-chip:hover:not(.active) { border-color: #58e8c1; color: #58e8c1; }
+
+/* Child header row */
+.child-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.child-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #58e8c1, #50e890);
+  display: flex;
+  align-items: center;
+  justify-content: font-weight;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0d1117;
+  flex-shrink: 0;
+}
+.child-info { flex: 1; }
+.child-name { font-size: 16px; font-weight: 800; color: #f0f6ff; }
+.child-meta { font-size: 12px; color: #8b949e; margin-top: 2px; }
+.band-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #58e8c133;
+  color: #58e8c1;
+  border: 1px solid #58e8c144;
+}
+
+/* Mode selector */
+.mode-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #161b22;
+  border: 1.5px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.mode-card:hover { border-color: #a78bfa44; }
+.mode-card.selected {
+  border-color: #a78bfa;
+  background: #1e1a33;
+}
+.mode-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #8b949e;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .15s;
+}
+.mode-card.selected .mode-radio {
+  border-color: #a78bfa;
+}
+.mode-radio-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a78bfa;
+  display: none;
+}
+.mode-card.selected .mode-radio-dot { display: block; }
+.mode-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+.mode-text { flex: 1; }
+.mode-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f0f6ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mode-check {
+  font-size: 12px;
+  color: #50e890;
+  font-weight: 700;
+}
+.wcag-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #ffd16633;
+  color: #ffd166;
+  border: 1px solid #ffd16644;
+}
+.mode-desc {
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* Additional settings */
+.additional-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.additional-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 14px;
+}
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  cursor: pointer;
+}
+.checkbox-row:last-child { border-bottom: none; padding-bottom: 0; }
+.checkbox-row:first-of-type { padding-top: 0; }
+.cb-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 2px solid #8b949e44;
+  background: transparent;
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  cursor: pointer;
+}
+.cb-box.checked {
+  background: #a78bfa;
+  border-color: #a78bfa;
+}
+.cb-check {
+  font-size: 12px;
+  color: #fff;
+  display: none;
+  font-weight: 900;
+}
+.cb-box.checked .cb-check { display: block; }
+.cb-text { flex: 1; }
+.cb-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f0f6ff;
+  line-height: 1.3;
+}
+.cb-sub {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.cb-note {
+  font-size: 10px;
+  color: #50e890;
+  margin-top: 3px;
+  font-style: italic;
+}
+
+/* Save button */
+.save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.save-btn {
+  padding: 14px 32px;
+  background: #a78bfa;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.save-btn:hover { background: #9575f5; transform: translateY(-1px); }
+.save-note {
+  font-size: 12px;
+  color: #8b949e;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB 2 — Mode Previews
+═══════════════════════════════════════════════════════════════════ */
+.previews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.preview-block { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.preview-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f6ff;
+  text-align: center;
+}
+
+/* Phone frame */
+.phone {
+  width: 260px;
+  background: #0d1117;
+  border-radius: 28px;
+  border: 6px solid #21262d;
+  box-shadow: 0 16px 40px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.04);
+  overflow: hidden;
+  position: relative;
+}
+.phone-notch {
+  width: 80px;
+  height: 18px;
+  background: #21262d;
+  border-radius: 0 0 14px 14px;
+  margin: 0 auto 0;
+  position: relative;
+  z-index: 2;
+}
+.phone-screen {
+  padding: 10px 10px 14px;
+  min-height: 420px;
+  position: relative;
+}
+
+/* Standard mode phone */
+.phone-std { background: linear-gradient(170deg, #0d1117 0%, #111827 100%); }
+.stars-bar {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.star {
+  font-size: 14px;
+  animation: twinkle 1.5s ease-in-out infinite;
+}
+.star:nth-child(2) { animation-delay: .3s; }
+.star:nth-child(3) { animation-delay: .6s; }
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.8); }
+}
+.q-card {
+  background: linear-gradient(135deg, #1e2a4a, #1a1f35);
+  border-radius: 14px;
+  padding: 14px 12px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.q-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #58e8c1;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+.q-text {
+  font-size: 18px;
+  font-weight: 900;
+  color: #f0f6ff;
+  text-align: center;
+  line-height: 1.3;
+}
+.ans-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.ans-btn {
+  background: linear-gradient(135deg, #1e2a4a, #1a2236);
+  border: 1.5px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #f0f6ff;
+  text-align: center;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.ans-btn:hover { transform: scale(1.03); }
+.ans-btn.c1 { border-color: #ffd16666; color: #ffd166; }
+.ans-btn.c2 { border-color: #9b72ff66; color: #9b72ff; }
+.ans-btn.c3 { border-color: #58e8c166; color: #58e8c1; }
+.ans-btn.c4 { border-color: #ff7b6b66; color: #ff7b6b; }
+.progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 10px;
+}
+.pdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.15);
+  transition: background .3s;
+}
+.pdot.done { background: #50e890; animation: pulse-dot 1s ease-in-out infinite; }
+.pdot.active { background: #a78bfa; }
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+/* High contrast phone */
+.phone-hc { background: #000000; }
+.phone-hc .q-card {
+  background: #000;
+  border: 2px solid #ffffff;
+  border-radius: 10px;
+}
+.phone-hc .q-label { color: #ffff00; }
+.phone-hc .q-text { color: #ffffff; font-size: 16px; }
+.phone-hc .ans-btn {
+  background: #000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-size: 13px;
+}
+.phone-hc .ans-btn.c1,
+.phone-hc .ans-btn.c2,
+.phone-hc .ans-btn.c3,
+.phone-hc .ans-btn.c4 { border-color: #ffffff; color: #ffffff; }
+.phone-hc .stars-bar { display: none; }
+.hc-text-badge {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #00ffff;
+  border: 1px solid #00ffff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+.phone-hc .pdot { background: #333; }
+.phone-hc .pdot.done { background: #ffff00; animation: none; }
+.phone-hc .pdot.active { background: #ffffff; }
+
+/* Large text phone */
+.phone-lt { background: linear-gradient(170deg, #0d1117, #111827); }
+.phone-lt .q-text { font-size: 22px; }
+.phone-lt .ans-btn { padding: 13px 8px; font-size: 16px; min-height: 56px; }
+.phone-lt .q-card { padding: 18px 12px; }
+.phone-lt .q-label { font-size: 11px; }
+
+/* Reduced motion phone */
+.phone-rm { background: linear-gradient(170deg, #0d1117, #111827); }
+.phone-rm .star { animation: none; opacity: .7; }
+.phone-rm .pdot.done { animation: none; background: #50e890; }
+.phone-rm .ans-btn { transition: none; }
+
+/* Audio-only phone */
+.phone-ao { background: #080a0f; }
+.ao-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 10px;
+  gap: 12px;
+}
+.ao-speaker {
+  font-size: 48px;
+  opacity: .85;
+}
+.ao-listening {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8f0ff;
+  letter-spacing: .05em;
+}
+.ao-question {
+  font-size: 18px;
+  font-weight: 900;
+  color: #e8f0ff;
+  text-align: center;
+  line-height: 1.35;
+  padding: 0 4px;
+}
+.ao-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  width: 100%;
+}
+.ao-btn {
+  background: #161b22;
+  border: 1.5px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  padding: 14px 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #e8f0ff;
+  text-align: center;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ao-progress {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b949e;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB 3 — Per-Mode Spec
+═══════════════════════════════════════════════════════════════════ */
+.spec-table-wrap {
+  overflow-x: auto;
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  padding: 4px;
+}
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  min-width: 680px;
+}
+.spec-table th {
+  background: #1e262f;
+  padding: 11px 14px;
+  text-align: left;
+  font-weight: 700;
+  color: #a78bfa;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  white-space: nowrap;
+}
+.spec-table th:first-child { border-radius: 10px 0 0 0; color: #8b949e; }
+.spec-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  color: #c9d1d9;
+  vertical-align: top;
+  line-height: 1.45;
+}
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-table td:first-child {
+  font-weight: 700;
+  color: #f0f6ff;
+  white-space: nowrap;
+}
+.spec-table tr:hover td { background: rgba(255,255,255,.02); }
+.spec-yes { color: #50e890; font-weight: 700; }
+.spec-no { color: #ff7b6b; font-weight: 700; }
+.spec-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.badge-aa { background: #58e8c122; color: #58e8c1; border: 1px solid #58e8c133; }
+.badge-aaa { background: #ffd16622; color: #ffd166; border: 1px solid #ffd16633; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB 4 — Spec
+═══════════════════════════════════════════════════════════════════ */
+.spec-body {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  padding: 28px;
+}
+.spec-h2 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #a78bfa;
+  margin: 24px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.spec-h2:first-child { margin-top: 0; }
+.spec-p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #c9d1d9;
+  margin-bottom: 10px;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  color: #50e890;
+  overflow-x: auto;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  white-space: pre;
+}
+.endpoint-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.endpoint-row:last-child { border-bottom: none; }
+.method-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+.get { background: #58e8c122; color: #58e8c1; border: 1px solid #58e8c133; }
+.endpoint-path {
+  font-family: monospace;
+  font-size: 12px;
+  color: #f0f6ff;
+  flex: 1;
+}
+.endpoint-desc { font-size: 12px; color: #8b949e; }
+.css-classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 16px;
+}
+.css-tag {
+  background: #1e262f;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #9b72ff;
+}
+.wcag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.wcag-card {
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.wcag-mode { font-size: 12px; font-weight: 700; color: #f0f6ff; margin-bottom: 4px; }
+.wcag-level { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+.wcag-ratio {
+  font-size: 18px;
+  font-weight: 900;
+  color: #50e890;
+}
+.wcag-ratio.aaa { color: #ffd166; }
+.wcag-ratio-label { font-size: 10px; color: #8b949e; margin-top: 2px; }
+.media-query-box {
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.mq-title { font-size: 12px; font-weight: 700; color: #58e8c1; margin-bottom: 6px; font-family: monospace; }
+.mq-desc { font-size: 12px; color: #8b949e; line-height: 1.5; }
+
+/* ── Toast ──────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #50e890;
+  color: #0d1117;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: 30px;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  z-index: 999;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(80,232,144,.35);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — child-accessibility-mode-v2.html</strong><br>
+  Child accessibility settings. Managed by parent in parent settings (not directly by child).
+  5 accessibility modes: (1) Standard, (2) High Contrast, (3) Large Text, (4) Reduced Motion, (5) Audio-Only mode (no visuals required).
+  Settings stored per child in <strong>child_accessibility_prefs</strong>(child_id, mode, font_scale, motion_reduced, audio_only, high_contrast).
+  Applied on child's device on next session start.
+  <strong>WCAG 2.1 AA minimum</strong> across all modes; <strong>AAA in High Contrast mode</strong>.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Settings Panel</button>
+  <button class="tab-btn" onclick="showTab(2)">Mode Previews</button>
+  <button class="tab-btn" onclick="showTab(3)">Per-Mode Spec</button>
+  <button class="tab-btn" onclick="showTab(4)">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 1 — Settings Panel
+══════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="tab1">
+  <div class="settings-wrap">
+
+    <!-- Header -->
+    <div class="settings-header">
+      <h1 class="settings-title">Accessibility Settings</h1>
+      <div class="child-switcher">
+        <button class="child-chip active" onclick="switchChild(this,'Emma')">Emma</button>
+        <button class="child-chip" onclick="switchChild(this,'Noah')">Noah</button>
+      </div>
+    </div>
+
+    <!-- Current child row -->
+    <div class="child-row">
+      <div class="child-avatar">E</div>
+      <div class="child-info">
+        <div class="child-name" id="childName">Emma Chen</div>
+        <div class="child-meta">Age 7 · Grade 2 · <span id="childBand">P2 — Early Explorer</span></div>
+      </div>
+      <span class="band-pill" id="bandPill">P2</span>
+    </div>
+
+    <!-- Mode selector -->
+    <div class="section-label">Accessibility Mode</div>
+    <div class="mode-grid" id="modeGrid">
+
+      <div class="mode-card selected" data-mode="standard" onclick="selectMode(this)">
+        <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+        <div class="mode-icon">🎨</div>
+        <div class="mode-text">
+          <div class="mode-name">Standard <span class="mode-check">✓</span></div>
+          <div class="mode-desc">Default experience with all visual effects</div>
+        </div>
+      </div>
+
+      <div class="mode-card" data-mode="high_contrast" onclick="selectMode(this)">
+        <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+        <div class="mode-icon">◑</div>
+        <div class="mode-text">
+          <div class="mode-name">High Contrast <span class="wcag-badge">AAA</span></div>
+          <div class="mode-desc">Maximum contrast for children with visual impairments. WCAG AAA.</div>
+        </div>
+      </div>
+
+      <div class="mode-card" data-mode="large_text" onclick="selectMode(this)">
+        <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+        <div class="mode-icon">🔡</div>
+        <div class="mode-text">
+          <div class="mode-name">Large Text</div>
+          <div class="mode-desc">Larger fonts and touch targets for easier reading</div>
+        </div>
+      </div>
+
+      <div class="mode-card" data-mode="reduced_motion" onclick="selectMode(this)">
+        <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+        <div class="mode-icon">🔇</div>
+        <div class="mode-text">
+          <div class="mode-name">Reduced Motion</div>
+          <div class="mode-desc">Removes animations and transitions for children sensitive to motion</div>
+        </div>
+      </div>
+
+      <div class="mode-card" data-mode="audio_only" onclick="selectMode(this)">
+        <div class="mode-radio"><div class="mode-radio-dot"></div></div>
+        <div class="mode-icon">🔊</div>
+        <div class="mode-text">
+          <div class="mode-name">Audio-Only Mode</div>
+          <div class="mode-desc">Focuses on audio — minimal visual distraction. Great for auditory learners.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Additional settings -->
+    <div class="additional-card">
+      <div class="additional-title">Additional Settings</div>
+
+      <label class="checkbox-row" onclick="toggleCb(this)">
+        <div class="cb-box"><span class="cb-check">✓</span></div>
+        <div class="cb-text">
+          <div class="cb-label">Screen reader optimised</div>
+          <div class="cb-sub">Add extra labels for screen reader software (VoiceOver/TalkBack)</div>
+        </div>
+      </label>
+
+      <label class="checkbox-row" onclick="toggleCb(this)">
+        <div class="cb-box"><span class="cb-check">✓</span></div>
+        <div class="cb-text">
+          <div class="cb-label">Slow voice mode</div>
+          <div class="cb-sub">Questions and hints read at 0.7× speed</div>
+        </div>
+      </label>
+
+      <label class="checkbox-row" onclick="toggleCb(this)">
+        <div class="cb-box"><span class="cb-check">✓</span></div>
+        <div class="cb-text">
+          <div class="cb-label">Extended answer time</div>
+          <div class="cb-sub">Remove any time pressure on interactions</div>
+          <div class="cb-note">Note: There are no timers in WonderQuest — this is already the case.</div>
+        </div>
+      </label>
+
+      <label class="checkbox-row" onclick="toggleCb(this)">
+        <div class="cb-box checked"><span class="cb-check">✓</span></div>
+        <div class="cb-text">
+          <div class="cb-label">Always show text with audio</div>
+          <div class="cb-sub">Text is always displayed, even if audio is playing</div>
+        </div>
+      </label>
+
+    </div>
+
+    <!-- Save -->
+    <div class="save-row">
+      <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+      <span class="save-note" id="saveNote">Settings apply from Emma's next session</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 2 — Mode Previews
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab2">
+  <div class="section-label" style="margin-bottom:18px">Same question shown across all 5 accessibility modes</div>
+  <div class="previews-grid">
+
+    <!-- Standard -->
+    <div class="preview-block">
+      <div class="preview-label">1 · Standard</div>
+      <div class="phone phone-std">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="stars-bar">
+            <span class="star">⭐</span>
+            <span class="star">✨</span>
+            <span class="star">⭐</span>
+          </div>
+          <div class="q-card">
+            <div class="q-label">Question 4 of 8</div>
+            <div class="q-text">What is<br>3 + 4?</div>
+          </div>
+          <div class="ans-grid">
+            <div class="ans-btn c1">5</div>
+            <div class="ans-btn c2">6</div>
+            <div class="ans-btn c3">7</div>
+            <div class="ans-btn c4">8</div>
+          </div>
+          <div class="progress-dots">
+            <div class="pdot done"></div>
+            <div class="pdot done"></div>
+            <div class="pdot done"></div>
+            <div class="pdot active"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#8b949e;text-align:center">Full palette · animations<br>WCAG AA</div>
+    </div>
+
+    <!-- High Contrast -->
+    <div class="preview-block">
+      <div class="preview-label">2 · High Contrast</div>
+      <div class="phone phone-hc">
+        <div class="phone-notch" style="background:#111"></div>
+        <div class="phone-screen" style="background:#000">
+          <div style="text-align:center;margin-bottom:8px">
+            <span class="hc-text-badge">QUESTION 4 OF 8</span>
+          </div>
+          <div class="q-card">
+            <div class="q-label">Math</div>
+            <div class="q-text">What is<br>3 + 4?</div>
+          </div>
+          <div class="ans-grid">
+            <div class="ans-btn c1">5</div>
+            <div class="ans-btn c2">6</div>
+            <div class="ans-btn c3">7</div>
+            <div class="ans-btn c4">8</div>
+          </div>
+          <div class="progress-dots" style="margin-top:10px">
+            <div class="pdot done"></div>
+            <div class="pdot done"></div>
+            <div class="pdot done"></div>
+            <div class="pdot active"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#8b949e;text-align:center">Black/white/yellow · no gradients<br>WCAG AAA (7:1+)</div>
+    </div>
+
+    <!-- Large Text -->
+    <div class="preview-block">
+      <div class="preview-label">3 · Large Text</div>
+      <div class="phone phone-lt">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="stars-bar">
+            <span class="star">⭐</span>
+            <span class="star">✨</span>
+            <span class="star">⭐</span>
+          </div>
+          <div class="q-card">
+            <div class="q-label" style="font-size:11px">Question 4 of 8</div>
+            <div class="q-text">What is<br>3 + 4?</div>
+          </div>
+          <div class="ans-grid">
+            <div class="ans-btn c1">5</div>
+            <div class="ans-btn c2">6</div>
+            <div class="ans-btn c3">7</div>
+            <div class="ans-btn c4">8</div>
+          </div>
+          <div class="progress-dots">
+            <div class="pdot done"></div>
+            <div class="pdot done"></div>
+            <div class="pdot done"></div>
+            <div class="pdot active"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#8b949e;text-align:center">130% font size · 56px+ touch targets<br>WCAG AA</div>
+    </div>
+
+    <!-- Reduced Motion -->
+    <div class="preview-block">
+      <div class="preview-label">4 · Reduced Motion</div>
+      <div class="phone phone-rm">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="stars-bar">
+            <span class="star" style="animation:none;opacity:.7">⭐</span>
+            <span class="star" style="animation:none;opacity:.7">✨</span>
+            <span class="star" style="animation:none;opacity:.7">⭐</span>
+          </div>
+          <div class="q-card">
+            <div class="q-label">Question 4 of 8</div>
+            <div class="q-text">What is<br>3 + 4?</div>
+          </div>
+          <div class="ans-grid">
+            <div class="ans-btn c1" style="transition:none">5</div>
+            <div class="ans-btn c2" style="transition:none">6</div>
+            <div class="ans-btn c3" style="transition:none">7</div>
+            <div class="ans-btn c4" style="transition:none">8</div>
+          </div>
+          <div class="progress-dots">
+            <div class="pdot done" style="animation:none"></div>
+            <div class="pdot done" style="animation:none"></div>
+            <div class="pdot done" style="animation:none"></div>
+            <div class="pdot active"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+            <div class="pdot"></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#8b949e;text-align:center">Static only · no confetti/transitions<br>WCAG AA</div>
+    </div>
+
+    <!-- Audio-Only -->
+    <div class="preview-block">
+      <div class="preview-label">5 · Audio-Only</div>
+      <div class="phone phone-ao">
+        <div class="phone-notch" style="background:#0d111a"></div>
+        <div class="phone-screen" style="background:#080a0f;padding:0">
+          <div class="ao-screen">
+            <div class="ao-progress">Question 4 of 8</div>
+            <div class="ao-speaker">🔊</div>
+            <div class="ao-listening">Listening…</div>
+            <div class="ao-question">What is 3 + 4?</div>
+            <div class="ao-btns">
+              <div class="ao-btn">5</div>
+              <div class="ao-btn">6</div>
+              <div class="ao-btn">7</div>
+              <div class="ao-btn">8</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#8b949e;text-align:center">Minimal visuals · 64px targets<br>WCAG AA</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 3 — Per-Mode Spec
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab3">
+  <div class="section-label" style="margin-bottom:16px">Feature matrix across all 5 modes</div>
+  <div class="spec-table-wrap">
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Standard</th>
+          <th>High Contrast</th>
+          <th>Large Text</th>
+          <th>Reduced Motion</th>
+          <th>Audio-Only</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Background</td>
+          <td>Dark gradient</td>
+          <td>Pure black (#000000)</td>
+          <td>Dark gradient</td>
+          <td>Dark gradient</td>
+          <td>Near-black (#080a0f)</td>
+        </tr>
+        <tr>
+          <td>Text colour</td>
+          <td>#f0f6ff</td>
+          <td>#ffffff</td>
+          <td>#f0f6ff</td>
+          <td>#f0f6ff</td>
+          <td>#e8f0ff</td>
+        </tr>
+        <tr>
+          <td>Font size</td>
+          <td>Base (16px)</td>
+          <td>Base (16px)</td>
+          <td>130% (20px)</td>
+          <td>Base (16px)</td>
+          <td>Base (16px)</td>
+        </tr>
+        <tr>
+          <td>Touch target</td>
+          <td>44×44px</td>
+          <td>52×52px</td>
+          <td>56×56px</td>
+          <td>44×44px</td>
+          <td>64×64px</td>
+        </tr>
+        <tr>
+          <td>Animations</td>
+          <td><span class="spec-yes">Yes</span></td>
+          <td><span class="spec-no">No</span></td>
+          <td>Reduced</td>
+          <td><span class="spec-no">No</span></td>
+          <td><span class="spec-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Colour palette</td>
+          <td>Full palette</td>
+          <td>Black / white / yellow</td>
+          <td>Full palette</td>
+          <td>Full palette</td>
+          <td>Simplified</td>
+        </tr>
+        <tr>
+          <td>Stars / confetti</td>
+          <td><span class="spec-yes">Yes</span></td>
+          <td>No — replaced with text</td>
+          <td><span class="spec-yes">Yes</span></td>
+          <td><span class="spec-no">No</span></td>
+          <td><span class="spec-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Progress indicator</td>
+          <td>Animated dots</td>
+          <td>Static dots (no colour fill)</td>
+          <td>Animated dots (larger)</td>
+          <td>Static dots</td>
+          <td>Text: "Q 4 of 8"</td>
+        </tr>
+        <tr>
+          <td>Answer buttons</td>
+          <td>Colour-coded, hover scale</td>
+          <td>White border, no colour, no hover anim</td>
+          <td>Colour-coded, 56px+ height</td>
+          <td>Colour-coded, no transition</td>
+          <td>Plain text, 64px height</td>
+        </tr>
+        <tr>
+          <td>Speaker / audio cue</td>
+          <td>Standard icon</td>
+          <td>Standard icon (white)</td>
+          <td>Standard icon (larger)</td>
+          <td>Standard icon</td>
+          <td>Large centred icon, prominent</td>
+        </tr>
+        <tr>
+          <td>CSS class on &lt;html&gt;</td>
+          <td style="font-family:monospace">mode-standard</td>
+          <td style="font-family:monospace">mode-high-contrast</td>
+          <td style="font-family:monospace">mode-large-text</td>
+          <td style="font-family:monospace">mode-reduced-motion</td>
+          <td style="font-family:monospace">mode-audio-only</td>
+        </tr>
+        <tr>
+          <td>WCAG level</td>
+          <td><span class="spec-badge badge-aa">AA</span></td>
+          <td><span class="spec-badge badge-aaa">AAA</span></td>
+          <td><span class="spec-badge badge-aa">AA</span></td>
+          <td><span class="spec-badge badge-aa">AA</span></td>
+          <td><span class="spec-badge badge-aa">AA</span></td>
+        </tr>
+        <tr>
+          <td>Contrast ratio</td>
+          <td>≥ 4.5:1 normal text</td>
+          <td>≥ 7:1 all text</td>
+          <td>≥ 3:1 large text</td>
+          <td>≥ 4.5:1 normal text</td>
+          <td>≥ 4.5:1 normal text</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 4 — Spec
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab4">
+  <div class="spec-body">
+
+    <div class="spec-h2">Data Model</div>
+<pre>child_accessibility_prefs (
+  child_id              UUID PRIMARY KEY REFERENCES children(id),
+  mode                  ENUM('standard','high_contrast',
+                             'large_text','reduced_motion','audio_only'),
+  font_scale            FLOAT DEFAULT 1.0,
+  motion_reduced        BOOLEAN DEFAULT false,
+  audio_only            BOOLEAN DEFAULT false,
+  high_contrast         BOOLEAN DEFAULT false,
+  screen_reader_optimised BOOLEAN DEFAULT false,
+  slow_voice            BOOLEAN DEFAULT false,
+  always_show_text      BOOLEAN DEFAULT true,
+  updated_at            TIMESTAMPTZ DEFAULT NOW()
+)</pre>
+
+    <div class="spec-h2">API</div>
+    <div class="endpoint-row">
+      <span class="method-badge get">GET</span>
+      <span class="endpoint-path">/api/child/:id/accessibility</span>
+      <span class="endpoint-desc">Returns child_accessibility_prefs for the given child</span>
+    </div>
+    <p class="spec-p" style="margin-top:12px">Response applied to child session immediately on load. Prefs fetched at session start; cached locally for offline resilience.</p>
+
+    <div class="spec-h2">CSS Application</div>
+    <p class="spec-p">Prefs are applied via a CSS class on the <code style="background:#0d1117;padding:1px 5px;border-radius:4px;font-size:11px">&lt;html&gt;</code> or <code style="background:#0d1117;padding:1px 5px;border-radius:4px;font-size:11px">&lt;body&gt;</code> element on the child's device at session start.</p>
+    <div class="css-classes">
+      <span class="css-tag">mode-standard</span>
+      <span class="css-tag">mode-high-contrast</span>
+      <span class="css-tag">mode-large-text</span>
+      <span class="css-tag">mode-reduced-motion</span>
+      <span class="css-tag">mode-audio-only</span>
+    </div>
+
+    <div class="spec-h2">System Media Query Overrides</div>
+    <div class="media-query-box">
+      <div class="mq-title">prefers-reduced-motion</div>
+      <div class="mq-desc">Always respected regardless of mode setting. If the OS reports reduced-motion preference, animations are suppressed even in Standard mode.</div>
+    </div>
+    <div class="media-query-box">
+      <div class="mq-title">prefers-contrast: more</div>
+      <div class="mq-desc">Respected in addition to the mode setting. Applied on top of the current mode — bumps contrast ratios and removes grey-on-grey elements.</div>
+    </div>
+
+    <div class="spec-h2">WCAG 2.1 Requirements</div>
+    <div class="wcag-grid">
+      <div class="wcag-card">
+        <div class="wcag-mode">Standard</div>
+        <div class="wcag-level">WCAG 2.1 AA</div>
+        <div class="wcag-ratio">4.5:1</div>
+        <div class="wcag-ratio-label">normal text minimum</div>
+      </div>
+      <div class="wcag-card">
+        <div class="wcag-mode">High Contrast</div>
+        <div class="wcag-level">WCAG 2.1 AAA</div>
+        <div class="wcag-ratio aaa">7:1</div>
+        <div class="wcag-ratio-label">all text minimum</div>
+      </div>
+      <div class="wcag-card">
+        <div class="wcag-mode">Large Text</div>
+        <div class="wcag-level">WCAG 2.1 AA</div>
+        <div class="wcag-ratio">3:1</div>
+        <div class="wcag-ratio-label">large text minimum</div>
+      </div>
+      <div class="wcag-card">
+        <div class="wcag-mode">Reduced Motion</div>
+        <div class="wcag-level">WCAG 2.1 AA</div>
+        <div class="wcag-ratio">4.5:1</div>
+        <div class="wcag-ratio-label">normal text minimum</div>
+      </div>
+      <div class="wcag-card">
+        <div class="wcag-mode">Audio-Only</div>
+        <div class="wcag-level">WCAG 2.1 AA</div>
+        <div class="wcag-ratio">4.5:1</div>
+        <div class="wcag-ratio-label">normal text minimum</div>
+      </div>
+    </div>
+
+    <div class="spec-h2">Touch Target Requirements (WCAG 2.5.5)</div>
+    <div class="spec-table-wrap" style="margin-bottom:0">
+      <table class="spec-table" style="min-width:0">
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Minimum touch target</th>
+            <th>Answer button height</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Standard</td><td>44×44px</td><td>44px</td></tr>
+          <tr><td>High Contrast</td><td>52×52px</td><td>52px</td></tr>
+          <tr><td>Large Text</td><td>56×56px</td><td>56px</td></tr>
+          <tr><td>Reduced Motion</td><td>44×44px</td><td>44px</td></tr>
+          <tr><td>Audio-Only</td><td>64×64px</td><td>64px</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-h2">Managed By</div>
+    <p class="spec-p">Accessibility settings are <strong>parent-managed only</strong>. Children cannot change their own accessibility settings. Settings surface in the parent's Settings &gt; Child &gt; Accessibility panel. Applied from the child's next session start — not mid-session.</p>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Settings saved — applies from Emma's next session</div>
+
+<script>
+function showTab(n) {
+  document.querySelectorAll('.screen').forEach((s, i) => {
+    s.classList.toggle('active', i + 1 === n);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i + 1 === n);
+  });
+}
+
+function selectMode(card) {
+  document.querySelectorAll('#modeGrid .mode-card').forEach(c => {
+    c.classList.remove('selected');
+    const chk = c.querySelector('.mode-check');
+    if (chk) chk.style.display = 'none';
+  });
+  card.classList.add('selected');
+  const chk = card.querySelector('.mode-check');
+  if (chk) chk.style.display = '';
+}
+
+function toggleCb(row) {
+  const box = row.querySelector('.cb-box');
+  box.classList.toggle('checked');
+}
+
+function switchChild(btn, name) {
+  document.querySelectorAll('.child-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const isEmma = name === 'Emma';
+  document.getElementById('childName').textContent = isEmma ? 'Emma Chen' : 'Noah Chen';
+  document.getElementById('childBand').textContent = isEmma ? 'P2 — Early Explorer' : 'P1 — Rising Star';
+  document.getElementById('bandPill').textContent = isEmma ? 'P2' : 'P1';
+  document.getElementById('bandPill').style.background = isEmma ? '#58e8c133' : '#9b72ff33';
+  document.getElementById('bandPill').style.color = isEmma ? '#58e8c1' : '#9b72ff';
+  document.getElementById('bandPill').style.borderColor = isEmma ? '#58e8c144' : '#9b72ff44';
+  document.querySelector('.child-avatar').textContent = isEmma ? 'E' : 'N';
+  document.querySelector('.child-avatar').style.background = isEmma
+    ? 'linear-gradient(135deg,#58e8c1,#50e890)'
+    : 'linear-gradient(135deg,#9b72ff,#a78bfa)';
+  document.getElementById('saveNote').textContent = `Settings apply from ${name}'s next session`;
+  document.getElementById('toast').textContent = `Settings saved — applies from ${name}'s next session`;
+}
+
+function saveSettings() {
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+// Initialise — ensure first mode-check shows
+document.querySelectorAll('.mode-check').forEach((el, i) => {
+  el.style.display = i === 0 ? '' : 'none';
+});
+</script>
+</body>
+</html>

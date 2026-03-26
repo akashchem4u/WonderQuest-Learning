@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Explainer Video Frame v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Progress ribbon */
+  .ribbon{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(155,114,255,.1);border-bottom:2px solid rgba(155,114,255,.3);position:relative}
+  .r-stars{font-weight:900;font-size:13px;color:#ffd166}
+  .r-dots{display:flex;gap:4px}
+  .rdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15)}
+  .rdot.done{background:#9b72ff}
+  .rdot.cur{background:#9b72ff;box-shadow:0 0 6px #9b72ff}
+
+  /* Video area */
+  .video-container{position:relative;width:375px;height:220px;background:#060414;overflow:hidden}
+  .video-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#0d0927,#1a0d40);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+  .video-emoji{font-size:52px}
+  .video-label{font-size:12px;color:rgba(255,255,255,.4);font-weight:700}
+  .play-button{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:rgba(155,114,255,.8);border:3px solid #9b72ff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;box-shadow:0 0 20px rgba(155,114,255,.4)}
+  .video-progress{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.15)}
+  .video-fill{height:100%;background:linear-gradient(90deg,#9b72ff,#58e8c1);width:0}
+  .video-timer{position:absolute;top:10px;right:12px;background:rgba(0,0,0,.6);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:900;color:#fff}
+
+  /* Coach avatar overlay */
+  .coach-overlay{position:absolute;bottom:0;left:0;width:80px;height:80px;font-size:52px;display:flex;align-items:flex-end;justify-content:center;animation:coachFloat 2s ease-in-out infinite}
+  @keyframes coachFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .coach-name-tag{position:absolute;bottom:4px;left:0;background:rgba(155,114,255,.9);border-radius:0 8px 0 0;padding:2px 8px;font-size:9px;font-weight:900;color:#fff}
+
+  /* Caption strip */
+  .caption-strip{background:rgba(0,0,0,.85);padding:10px 14px;min-height:44px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(255,255,255,.1)}
+  .caption-icon{font-size:14px;flex-shrink:0}
+  .caption-text{font-size:12px;color:#fff;font-weight:700;line-height:1.4;flex:1}
+  .caption-text span.highlight{color:#ffd166}
+
+  /* Controls row */
+  .controls-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(255,255,255,.04)}
+  .ctrl-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;color:#fff;cursor:pointer}
+  .ctrl-btn.replay{border-color:rgba(155,114,255,.4);color:#9b72ff;background:rgba(155,114,255,.1)}
+  .ctrl-btn.skip-small{font-size:10px;opacity:.5;background:transparent;border-color:rgba(255,255,255,.1)}
+  .ctrl-progress{font-size:11px;color:rgba(255,255,255,.4);font-weight:700}
+
+  /* Content below video */
+  .content-below{padding:14px 16px}
+  .content-title{font-size:16px;font-weight:900;color:#fff;margin-bottom:6px}
+  .content-sub{font-size:12px;color:rgba(255,255,255,.55);line-height:1.4}
+
+  /* Waveform playing indicator */
+  .audio-indicator{display:flex;align-items:center;gap:3px;padding:6px 0}
+  .wave-bar{width:3px;border-radius:3px;background:#9b72ff;animation:wave 1.2s ease-in-out infinite}
+  .wave-bar:nth-child(1){height:12px;animation-delay:0s}
+  .wave-bar:nth-child(2){height:20px;animation-delay:.1s}
+  .wave-bar:nth-child(3){height:16px;animation-delay:.2s}
+  .wave-bar:nth-child(4){height:24px;animation-delay:.3s}
+  .wave-bar:nth-child(5){height:14px;animation-delay:.4s}
+  @keyframes wave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.4)}}
+
+  /* Skip confirmation state */
+  .skip-confirm{background:rgba(255,255,255,.05);border-radius:16px;padding:14px;margin:12px 16px;display:flex;gap:10px;align-items:flex-start}
+  .sc-icon{font-size:24px;flex-shrink:0}
+  .sc-text{font-size:12px;color:rgba(255,255,255,.6);line-height:1.4}
+  .sc-title{font-size:13px;font-weight:900;color:#fff;margin-bottom:3px}
+  .sc-actions{display:flex;gap:8px;margin-top:8px}
+  .sc-btn{background:rgba(155,114,255,.2);border:1px solid rgba(155,114,255,.4);border-radius:10px;padding:6px 14px;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;color:#9b72ff;cursor:pointer}
+  .sc-btn.yes{background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.15)}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('video-playing')">Video Playing</button>
+  <button class="tab" onclick="show('coach-overlay')">Coach Overlay</button>
+  <button class="tab" onclick="show('caption-strip')">Caption Strip</button>
+  <button class="tab" onclick="show('skip-continue')">Skip/Continue State</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-explainer-video-frame-v2.html</code> — Video/voice explainer container · 375px mobile · coach overlay · caption strip · replay/skip
+</div>
+
+<!-- VIDEO PLAYING -->
+<div id="video-playing" class="panel active">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="video-container">
+      <div class="video-placeholder">
+        <div class="video-emoji">🌊</div>
+        <div class="video-label">Playing: Ocean Sounds</div>
+      </div>
+      <div class="audio-indicator" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);gap:5px">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+      </div>
+      <div class="video-progress"><div class="video-fill" style="width:45%"></div></div>
+      <div class="video-timer">0:12 / 0:28</div>
+    </div>
+    <div class="caption-strip">
+      <span class="caption-icon">💬</span>
+      <div class="caption-text">The ocean is <span class="highlight">full of life</span>. Listen to the waves crash on the shore...</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn replay">🔁 Replay</button>
+      <div class="ctrl-progress">Explainer 1 of 3</div>
+      <button class="ctrl-btn skip-small">Skip</button>
+    </div>
+    <div class="content-below">
+      <div class="content-title">Ocean Sounds Lesson</div>
+      <div class="content-sub">Listen carefully — you'll answer questions about what you hear!</div>
+    </div>
+  </div>
+</div>
+
+<!-- COACH OVERLAY -->
+<div id="coach-overlay" class="panel">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="video-container" style="height:240px">
+      <div class="video-placeholder" style="height:100%">
+        <div class="video-emoji">🌊</div>
+        <div class="video-label">Video paused — Coach is talking!</div>
+      </div>
+      <div class="video-progress"><div class="video-fill" style="width:45%"></div></div>
+      <!-- Coach overlay bottom-left -->
+      <div class="coach-overlay">
+        <span>🦉</span>
+        <div class="coach-name-tag">Pip</div>
+      </div>
+      <!-- Speech bubble -->
+      <div style="position:absolute;bottom:68px;left:76px;background:rgba(155,114,255,.95);border-radius:12px 12px 12px 0;padding:8px 12px;max-width:200px">
+        <div style="font-size:12px;font-weight:900;color:#fff;line-height:1.4">Did you hear that? "crash" is the sound waves make! 🌊</div>
+      </div>
+    </div>
+    <div class="caption-strip">
+      <span class="caption-icon">🦉</span>
+      <div class="caption-text"><span class="highlight">Pip says:</span> "crash" — c-r-a-s-h — five letters!</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn replay">🔁 Replay</button>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="audio-indicator"><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div></div>
+        <span style="font-size:11px;color:#9b72ff;font-weight:700">Coach speaking</span>
+      </div>
+      <button class="ctrl-btn skip-small">Skip</button>
+    </div>
+    <div class="content-below">
+      <div style="background:rgba(155,114,255,.1);border:1px solid rgba(155,114,255,.3);border-radius:12px;padding:10px">
+        <div style="font-size:11px;color:#9b72ff;font-weight:900;margin-bottom:4px">🦉 Coach Pip is highlighting...</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7)">Tap the waveform bars above to pause Coach Pip!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAPTION STRIP -->
+<div id="caption-strip" class="panel">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="video-container">
+      <div class="video-placeholder">
+        <div class="video-emoji" style="font-size:36px">🦈 🐋 🐠</div>
+        <div class="video-label">Ocean creatures scene</div>
+      </div>
+      <div class="video-progress"><div class="video-fill" style="width:72%"></div></div>
+      <div class="video-timer">0:20 / 0:28</div>
+    </div>
+    <!-- Caption strip variants shown stacked -->
+    <div style="background:rgba(0,0,0,.9);padding:10px 14px;border-bottom:1px solid rgba(155,114,255,.2)">
+      <div style="font-size:10px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Caption (current line)</div>
+      <div style="font-size:13px;color:#fff;font-weight:700;line-height:1.5">Sharks are <span style="color:#ffd166;font-weight:900">apex predators</span> — they're at the top of the food chain!</div>
+    </div>
+    <div style="background:rgba(0,0,0,.6);padding:8px 14px">
+      <div style="font-size:10px;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;margin-bottom:3px">Next line (preview)</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.4">They have special teeth that keep growing back...</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn replay">🔁 Replay</button>
+      <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700">Captions ON</div>
+      <button class="ctrl-btn skip-small">Skip</button>
+    </div>
+    <div class="content-below">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);background:rgba(255,255,255,.04);border-radius:12px;padding:10px">Caption displays key vocabulary highlighted in gold. Captions follow along with the audio automatically.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SKIP / CONTINUE STATE -->
+<div id="skip-continue" class="panel">
+  <div class="screen">
+    <div class="ribbon">
+      <div class="r-stars">⭐ 3</div>
+      <div class="r-dots">
+        <div class="rdot done"></div><div class="rdot done"></div><div class="rdot done"></div>
+        <div class="rdot cur"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div style="font-size:11px;color:#9b72ff;font-weight:900">🌊 Ocean</div>
+    </div>
+    <div class="video-container" style="opacity:.6">
+      <div class="video-placeholder">
+        <div class="video-emoji">🌊</div>
+        <div class="video-label">Video paused</div>
+      </div>
+      <div class="video-progress"><div class="video-fill" style="width:28%"></div></div>
+      <!-- Pause overlay -->
+      <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center">
+        <div style="width:52px;height:52px;border-radius:50%;background:rgba(155,114,255,.8);display:flex;align-items:center;justify-content:center;font-size:18px">⏸</div>
+      </div>
+    </div>
+    <div class="skip-confirm">
+      <div class="sc-icon">🦉</div>
+      <div>
+        <div class="sc-title">Want to skip this explainer?</div>
+        <div class="sc-text">It's totally OK — you can always replay it later from your profile. You won't miss any stars!</div>
+        <div class="sc-actions">
+          <button class="sc-btn">▶ Keep watching</button>
+          <button class="sc-btn yes">Skip for now</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 16px">
+      <div style="background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2);border-radius:12px;padding:10px;font-size:11px;color:rgba(255,255,255,.55);line-height:1.5">
+        <strong style="color:#ffd166">Pro tip:</strong> Watching explainers helps you earn more stars on the questions that follow!
+      </div>
+    </div>
+    <div class="controls-row" style="margin-top:12px">
+      <button class="ctrl-btn replay" style="flex:1;justify-content:center">▶ Resume video</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: play-explainer-video-frame-v2.html</h3>
+      <ul>
+        <li>375px mobile · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>Video/voice explainer container with coach overlay</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Video Playing:</strong> Video area + progress bar + timer + caption strip + replay/skip controls</li>
+        <li><strong>Coach Overlay:</strong> Owl coach in bottom-left quadrant overlaid on video with speech bubble</li>
+        <li><strong>Caption Strip:</strong> Full caption with key vocabulary highlighted gold, next-line preview</li>
+        <li><strong>Skip/Continue:</strong> Gentle pause + skip confirmation — no pressure, no star penalty</li>
+      </ul>
+      <h3>Design Rules</h3>
+      <ul>
+        <li>Skip button is small and non-prominent (avoids encouraging avoidance)</li>
+        <li>Replaying video does not cost stars</li>
+        <li>Coach avatar always bottom-left, overlaid (not obscuring content center)</li>
+        <li>Captions highlight vocabulary words in gold (#ffd166)</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">375px mobile</span>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P0 gold #ffd166</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

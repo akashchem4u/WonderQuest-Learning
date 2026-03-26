@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Content Health Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #060a0f; color: #c8d4e0; min-height: 100vh; }
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #1a2230; color: #ffd166; }
+  .tab.active { background: #ffd166; color: #0d1117; }
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; min-height: 720px; background: #0d1117; border-radius: 36px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.7), 0 0 0 2px #1e2a3a; flex-shrink: 0; position: relative; display: flex; flex-direction: column; }
+  .phone-label { font-size: 11px; color: #ffd166; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+  .status-bar { height: 44px; background: #060a0f; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+  .status-bar-time { font-size: 14px; font-weight: 700; color: #e8f0f8; }
+  .header-bar { background: #0d1117; border-bottom: 1px solid #1e2a3a; padding: 12px 20px 14px; flex-shrink: 0; }
+  .hb-back { font-size: 12px; color: rgba(255,255,255,.4); font-weight: 600; margin-bottom: 4px; }
+  .hb-title { font-size: 20px; font-weight: 700; color: #e8f0f8; }
+  .hb-sub { font-size: 13px; color: #7a8a9e; margin-top: 2px; }
+  .scroll-body { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+  .section-lbl { font-size: 11px; font-weight: 700; color: #5a6a7e; text-transform: uppercase; letter-spacing: .08em; padding: 14px 20px 8px; }
+
+  /* ── KPI grid ── */
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px; margin-bottom: 4px; }
+  .kpi-card { background: #121820; border-radius: 12px; padding: 14px; }
+  .kpi-val { font-size: 24px; font-weight: 700; }
+  .kpi-lbl { font-size: 10px; color: #7a8a9e; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+  .kpi-delta { font-size: 11px; font-weight: 700; margin-top: 3px; }
+  .up-bad { color: #e07070; }
+  .down-good { color: #50b880; }
+  .flat { color: #7a8a9e; }
+
+  /* ── Skill health row ── */
+  .skill-health-row { margin: 0 16px 8px; background: #121820; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-left: 4px solid transparent; }
+  .shr-ok { border-left-color: #50b880; }
+  .shr-warn { border-left-color: #f0c030; }
+  .shr-alert { border-left-color: #e04040; }
+  .shr-icon { font-size: 20px; flex-shrink: 0; }
+  .shr-info { flex: 1; }
+  .shr-name { font-size: 13px; font-weight: 700; color: #e8f0f8; }
+  .shr-stats { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+  .shr-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
+  .sb-ok { background: rgba(80,184,128,.15); color: #50b880; }
+  .sb-warn { background: rgba(240,192,48,.12); color: #f0c030; }
+  .sb-alert { background: rgba(224,64,64,.15); color: #ff7070; }
+
+  /* ── Alert strip ── */
+  .alert-strip { margin: 0 16px 8px; border-radius: 12px; padding: 12px 14px; display: flex; gap: 10px; }
+  .as-warn { background: #1a1400; border: 1.5px solid rgba(240,192,48,.3); }
+  .as-crit { background: #1a0808; border: 1.5px solid rgba(224,64,64,.4); }
+  .as-ok { background: #081a0e; border: 1.5px solid rgba(80,184,128,.2); }
+  .as-icon { font-size: 18px; flex-shrink: 0; }
+  .as-text h4 { font-size: 13px; font-weight: 700; }
+  .as-warn .as-text h4 { color: #f0c030; }
+  .as-crit .as-text h4 { color: #ff7070; }
+  .as-ok .as-text h4 { color: #50c878; }
+  .as-text p { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+
+  /* ── Review queue row ── */
+  .queue-row { margin: 0 16px 8px; background: #121820; border-radius: 12px; padding: 12px 14px; border-left: 3px solid transparent; cursor: pointer; }
+  .qr-flagged { border-left-color: #e04040; }
+  .qr-pending { border-left-color: #f0c030; }
+  .qr-title { font-size: 13px; font-weight: 700; color: #e8f0f8; }
+  .qr-meta { font-size: 11px; color: #7a8a9e; margin-top: 3px; }
+  .qr-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 6px; }
+
+  /* ── Spec ── */
+  .spec-section { background: #0d1117; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #1e2a3a; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #ffd166; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #7a8a9e; font-size: 11px; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #1e2a3a; letter-spacing: .06em; }
+  td { padding: 8px; border-bottom: 1px solid #121820; color: #9aaabe; }
+  td:first-child { color: #e8f0f8; font-weight: 600; }
+  code { background: #1a2230; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('content-health')">Content Health</button>
+  <button class="tab" onclick="show('skill-breakdown')">Skill Breakdown</button>
+  <button class="tab" onclick="show('review-queue')">Review Queue</button>
+  <button class="tab" onclick="show('coverage-gaps')">Coverage Gaps</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CONTENT HEALTH -->
+<div id="content-health" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Owner Content Health — Mobile</strong><br>
+    Compact content quality ops view for alpha monitoring on the go.
+    Data: <code>GET /owner/content/health</code> — flag rates per skill, QA scores, coverage percentages, review queue size.
+    Flag rate = questions with ≥1 child report / total questions per skill. QA score = automated + reviewer checks.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Health overview -->
+    <div>
+      <div class="phone-label">Content health overview</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span style="font-size:12px;color:#f0c030;font-weight:700;">⚠️ 3 issues</span></div>
+        <div class="header-bar">
+          <div class="hb-back">← Owner Dashboard</div>
+          <div class="hb-title">Content Health</div>
+          <div class="hb-sub">147 active questions · QA score 84/100</div>
+        </div>
+
+        <div class="scroll-body">
+          <!-- Alert -->
+          <div class="alert-strip as-warn" style="margin-top:12px;">
+            <div class="as-icon">⚠️</div>
+            <div class="as-text">
+              <h4>3 questions flagged by users</h4>
+              <p>2 in Phonics · 1 in Writing. In review queue.</p>
+            </div>
+          </div>
+
+          <!-- KPI grid -->
+          <div class="section-lbl">Overview</div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-val" style="color:#e8f0f8;">147</div>
+              <div class="kpi-lbl">Active questions</div>
+              <div class="kpi-delta flat">→ same</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-val" style="color:#50b880;">84</div>
+              <div class="kpi-lbl">QA score / 100</div>
+              <div class="kpi-delta down-good">↑ +4 this week</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-val" style="color:#e07070;">3</div>
+              <div class="kpi-lbl">Flagged questions</div>
+              <div class="kpi-delta up-bad">↑ +2 this week</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-val" style="color:#f0c030;">8</div>
+              <div class="kpi-lbl">In review queue</div>
+              <div class="kpi-delta up-bad">↑ +3</div>
+            </div>
+          </div>
+
+          <!-- Skill health list -->
+          <div class="section-lbl">Skills by flag rate</div>
+          <div class="skill-health-row shr-alert">
+            <div class="shr-icon">🔤</div>
+            <div class="shr-info">
+              <div class="shr-name">Phonics patterns</div>
+              <div class="shr-stats">2 flagged / 28 questions · 7.1% flag rate</div>
+            </div>
+            <span class="shr-badge sb-alert">Alert</span>
+          </div>
+          <div class="skill-health-row shr-warn">
+            <div class="shr-icon">✏️</div>
+            <div class="shr-info">
+              <div class="shr-name">Writing sentences</div>
+              <div class="shr-stats">1 flagged / 22 questions · 4.5% flag rate</div>
+            </div>
+            <span class="shr-badge sb-warn">Review</span>
+          </div>
+          <div class="skill-health-row shr-ok">
+            <div class="shr-icon">📖</div>
+            <div class="shr-info">
+              <div class="shr-name">Reading fluency</div>
+              <div class="shr-stats">0 flagged / 31 questions · 0% flag rate</div>
+            </div>
+            <span class="shr-badge sb-ok">Healthy</span>
+          </div>
+          <div class="skill-health-row shr-ok">
+            <div class="shr-icon">💭</div>
+            <div class="shr-info">
+              <div class="shr-name">Comprehension</div>
+              <div class="shr-stats">0 flagged / 26 questions · 0% flag rate</div>
+            </div>
+            <span class="shr-badge sb-ok">Healthy</span>
+          </div>
+          <div class="skill-health-row shr-ok">
+            <div class="shr-icon">🔢</div>
+            <div class="shr-info">
+              <div class="shr-name">Vocabulary</div>
+              <div class="shr-stats">0 flagged / 40 questions · 0% flag rate</div>
+            </div>
+            <span class="shr-badge sb-ok">Healthy</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QA score detail -->
+    <div>
+      <div class="phone-label">QA score breakdown</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span></div>
+        <div class="header-bar">
+          <div class="hb-back">← Content Health</div>
+          <div class="hb-title">QA Score</div>
+          <div class="hb-sub">84 / 100 · This week</div>
+        </div>
+        <div class="scroll-body">
+          <div class="section-lbl">Score breakdown</div>
+          <div style="margin:0 16px 8px;background:#121820;border-radius:12px;padding:14px;">
+            <div style="display:flex;justify-content:center;align-items:center;margin-bottom:14px;">
+              <div style="text-align:center;">
+                <div style="font-size:48px;font-weight:700;color:#f0c030;">84</div>
+                <div style="font-size:13px;color:#7a8a9e;">out of 100</div>
+                <div style="font-size:12px;font-weight:700;color:#f0c030;margin-top:4px;">⚠️ Good — room to improve</div>
+              </div>
+            </div>
+            <!-- Score bars -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+                  <span style="color:#e8f0f8;font-weight:600;">Correct answer always marked</span>
+                  <span style="color:#50b880;font-weight:700;">100%</span>
+                </div>
+                <div style="height:8px;background:#1e2a3a;border-radius:4px;"><div style="height:100%;width:100%;background:#50b880;border-radius:4px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+                  <span style="color:#e8f0f8;font-weight:600;">All options distinct</span>
+                  <span style="color:#50b880;font-weight:700;">96%</span>
+                </div>
+                <div style="height:8px;background:#1e2a3a;border-radius:4px;"><div style="height:100%;width:96%;background:#50b880;border-radius:4px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+                  <span style="color:#e8f0f8;font-weight:600;">Reading level appropriate</span>
+                  <span style="color:#f0c030;font-weight:700;">82%</span>
+                </div>
+                <div style="height:8px;background:#1e2a3a;border-radius:4px;"><div style="height:100%;width:82%;background:#f0c030;border-radius:4px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+                  <span style="color:#e8f0f8;font-weight:600;">User flag rate ≤2%</span>
+                  <span style="color:#e07070;font-weight:700;">78%</span>
+                </div>
+                <div style="height:8px;background:#1e2a3a;border-radius:4px;"><div style="height:100%;width:78%;background:#e07070;border-radius:4px;"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="alert-strip as-warn">
+            <div class="as-icon">⚠️</div>
+            <div class="as-text">
+              <h4>Reading level: 18 questions below target</h4>
+              <p>Phonics and Writing questions scoring below band reading target. Reviewer notes available.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SKILL BREAKDOWN -->
+<div id="skill-breakdown" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Content by skill</strong><br>
+    Per-skill: total questions, flagged count, avg difficulty, coverage % per node, QA score.
+    Alert threshold: flag rate &gt;3% for any skill triggers content-health warning.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Phonics detail — alert state</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span></div>
+        <div style="background:#1a0808;border-bottom:1px solid rgba(224,64,64,.3);padding:12px 20px 14px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:4px;">← Content Health</div>
+          <div style="font-size:18px;font-weight:700;color:#e8f0f8;">🔤 Phonics patterns</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#e04040;"></div>
+            <div style="font-size:12px;color:#ff7070;font-weight:700;">Alert · 7.1% flag rate</div>
+          </div>
+        </div>
+        <div class="scroll-body">
+          <div class="kpi-grid" style="margin-top:14px;">
+            <div class="kpi-card"><div class="kpi-val" style="color:#e8f0f8;">28</div><div class="kpi-lbl">Total questions</div></div>
+            <div class="kpi-card"><div class="kpi-val" style="color:#ff7070;">2</div><div class="kpi-lbl">Flagged</div></div>
+            <div class="kpi-card"><div class="kpi-val" style="color:#f0c030;">71</div><div class="kpi-lbl">QA score</div></div>
+            <div class="kpi-card"><div class="kpi-val" style="color:#9b72ff;">7.1%</div><div class="kpi-lbl">Flag rate</div></div>
+          </div>
+
+          <div class="section-lbl">Flagged questions</div>
+          <div class="queue-row qr-flagged">
+            <div class="qr-title">Q14 — Which letters make the "sh" sound?</div>
+            <div class="qr-meta">Node 2 · 3 child reports · "wrong answer marked"</div>
+            <div><span class="qr-tag" style="background:rgba(224,64,64,.15);color:#ff7070;">Wrong answer flagged</span></div>
+          </div>
+          <div class="queue-row qr-flagged">
+            <div class="qr-title">Q18 — Find the blend in "splash"</div>
+            <div class="qr-meta">Node 3 · 1 child report · "confusing question"</div>
+            <div><span class="qr-tag" style="background:rgba(240,192,48,.12);color:#f0c030;">Needs review</span></div>
+          </div>
+
+          <div class="section-lbl">Coverage per node</div>
+          <div style="margin:0 16px;background:#121820;border-radius:12px;padding:12px 14px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#e8f0f8;font-weight:600;width:60px;">Node 1</span>
+                <div style="flex:1;height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:100%;background:#50b880;"></div></div>
+                <span style="font-size:11px;color:#50b880;font-weight:700;width:32px;">8/8</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#e8f0f8;font-weight:600;width:60px;">Node 2</span>
+                <div style="flex:1;height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:87%;background:#f0c030;"></div></div>
+                <span style="font-size:11px;color:#f0c030;font-weight:700;width:32px;">7/8</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#e8f0f8;font-weight:600;width:60px;">Node 3</span>
+                <div style="flex:1;height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:75%;background:#f0c030;"></div></div>
+                <span style="font-size:11px;color:#f0c030;font-weight:700;width:32px;">6/8</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#e8f0f8;font-weight:600;width:60px;">Node 4</span>
+                <div style="flex:1;height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:50%;background:#e07070;"></div></div>
+                <span style="font-size:11px;color:#e07070;font-weight:700;width:32px;">4/8</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:12px 16px;">
+            <button style="width:100%;padding:14px;border-radius:14px;border:none;background:#ffd166;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#0d1117;cursor:pointer;">Open Content Review Workbench</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ REVIEW QUEUE -->
+<div id="review-queue" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Review Queue (mobile)</strong><br>
+    Compact view of flagged / pending review questions. Links to full review workbench.
+    Sort: most-flagged first. Tap row → <code>/owner/content/review/:questionId</code>.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Review queue — 8 pending</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span></div>
+        <div class="header-bar">
+          <div class="hb-back">← Content Health</div>
+          <div class="hb-title">Review Queue</div>
+          <div class="hb-sub">8 questions · sorted by reports</div>
+        </div>
+        <div class="scroll-body" style="padding:12px 0;">
+          <!-- Filter chips -->
+          <div style="display:flex;gap:6px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none;">
+            <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:none;background:#ffd166;color:#0d1117;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">All (8)</button>
+            <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(224,64,64,.3);background:rgba(224,64,64,.1);color:#ff7070;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">Flagged (3)</button>
+            <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(240,192,48,.3);background:rgba(240,192,48,.1);color:#f0c030;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">Pending (5)</button>
+          </div>
+
+          <div class="queue-row qr-flagged">
+            <div class="qr-title">Q14 · Which letters make the "sh" sound?</div>
+            <div class="qr-meta">🔤 Phonics · Node 2 · 3 reports</div>
+            <div><span class="qr-tag" style="background:rgba(224,64,64,.15);color:#ff7070;">3 reports · wrong answer</span></div>
+          </div>
+          <div class="queue-row qr-flagged">
+            <div class="qr-title">Q31 · Which sentence uses "their" correctly?</div>
+            <div class="qr-meta">✏️ Writing · Node 4 · 2 reports</div>
+            <div><span class="qr-tag" style="background:rgba(224,64,64,.15);color:#ff7070;">2 reports · confusing</span></div>
+          </div>
+          <div class="queue-row qr-flagged">
+            <div class="qr-title">Q18 · Find the blend in "splash"</div>
+            <div class="qr-meta">🔤 Phonics · Node 3 · 1 report</div>
+            <div><span class="qr-tag" style="background:rgba(224,64,64,.15);color:#ff7070;">1 report · unclear</span></div>
+          </div>
+          <div class="queue-row qr-pending">
+            <div class="qr-title">Q42 · Story sequencing — new question draft</div>
+            <div class="qr-meta">💭 Comprehension · Node 5 · awaiting review</div>
+            <div><span class="qr-tag" style="background:rgba(240,192,48,.12);color:#f0c030;">New · not yet reviewed</span></div>
+          </div>
+          <div class="queue-row qr-pending">
+            <div class="qr-title">Q43 · Vocabulary: homophones exercise</div>
+            <div class="qr-meta">🔢 Vocabulary · Node 3 · awaiting review</div>
+            <div><span class="qr-tag" style="background:rgba(240,192,48,.12);color:#f0c030;">New · not yet reviewed</span></div>
+          </div>
+
+          <div style="padding:12px 16px;">
+            <button style="width:100%;padding:14px;border-radius:14px;border:none;background:#ffd166;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#0d1117;cursor:pointer;">Open full workbench →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ COVERAGE GAPS -->
+<div id="coverage-gaps" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Coverage Gaps</strong><br>
+    Coverage = questions available / questions needed per node (target: 8 per node, min 6).
+    Gaps below 6 show as alert. Below 4 = critical — node may run dry mid-session.
+    <code>GET /owner/content/coverage</code> returns per-skill per-node counts.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Coverage gaps — world overview</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span></div>
+        <div class="header-bar">
+          <div class="hb-back">← Content Health</div>
+          <div class="hb-title">Coverage Gaps</div>
+          <div class="hb-sub">2 nodes below minimum</div>
+        </div>
+        <div class="scroll-body">
+          <div class="alert-strip as-crit" style="margin-top:12px;">
+            <div class="as-icon">🚨</div>
+            <div class="as-text">
+              <h4>Node 4 (Phonics) below minimum</h4>
+              <p>4/8 questions only — node may run dry in active sessions. Add content urgently.</p>
+            </div>
+          </div>
+
+          <div class="section-lbl">🔥 Fire World coverage</div>
+          <div style="margin:0 16px;background:#121820;border-radius:12px;padding:14px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:#e8f0f8;font-weight:600;">🔤 Phonics · Node 4</span>
+                  <span style="font-size:11px;font-weight:700;color:#e04040;">4/8 🚨</span>
+                </div>
+                <div style="height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:50%;background:#e04040;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:#e8f0f8;font-weight:600;">✏️ Writing · Node 5</span>
+                  <span style="font-size:11px;font-weight:700;color:#f0c030;">5/8 ⚠️</span>
+                </div>
+                <div style="height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:62%;background:#f0c030;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:#e8f0f8;font-weight:600;">📖 Reading · Node 1–5</span>
+                  <span style="font-size:11px;font-weight:700;color:#50b880;">8/8 ✓</span>
+                </div>
+                <div style="height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:100%;background:#50b880;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:#e8f0f8;font-weight:600;">💭 Comprehension · all</span>
+                  <span style="font-size:11px;font-weight:700;color:#50b880;">8/8 ✓</span>
+                </div>
+                <div style="height:10px;background:#1e2a3a;border-radius:4px;overflow:hidden;"><div style="height:100%;width:100%;background:#50b880;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:12px 16px;">
+            <button style="width:100%;padding:14px;border-radius:14px;border:none;background:#ffd166;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#0d1117;cursor:pointer;">Add Phonics Node 4 content →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>// ENDPOINTS</h3>
+    <table>
+      <tr><th>Endpoint</th><th>Returns</th></tr>
+      <tr><td><code>GET /owner/content/health</code></td><td>QA score, flag rates per skill, review queue size</td></tr>
+      <tr><td><code>GET /owner/content/coverage</code></td><td>Per-skill per-node question counts</td></tr>
+      <tr><td><code>GET /owner/content/review-queue</code></td><td>Flagged + pending review items</td></tr>
+      <tr><td><code>GET /owner/content/skill/:id</code></td><td>Per-skill deep-dive: questions, flags, nodes</td></tr>
+    </table>
+  </div>
+  <div class="spec-section">
+    <h3>// ALERT THRESHOLDS</h3>
+    <table>
+      <tr><th>Metric</th><th>Warning</th><th>Alert / Critical</th></tr>
+      <tr><td>Flag rate per skill</td><td>&gt;2%</td><td>&gt;5% = critical</td></tr>
+      <tr><td>Questions per node</td><td>&lt;6</td><td>&lt;4 = critical (may run dry)</td></tr>
+      <tr><td>QA score</td><td>&lt;80</td><td>&lt;65 = critical</td></tr>
+      <tr><td>Review queue age</td><td>&gt;48 hrs unreviewed</td><td>&gt;7 days = escalate</td></tr>
+    </table>
+  </div>
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th></tr>
+      <tr><td>owner-bg</td><td><code>#0d1117</code></td></tr>
+      <tr><td>owner-gold</td><td><code>#ffd166</code></td></tr>
+      <tr><td>alert-border</td><td><code>rgba(224,64,64,.4)</code></td></tr>
+      <tr><td>warn-border</td><td><code>rgba(240,192,48,.3)</code></td></tr>
+      <tr><td>ok-border</td><td><code>rgba(80,184,128,.2)</code></td></tr>
+      <tr><td>phone-width</td><td>390px</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

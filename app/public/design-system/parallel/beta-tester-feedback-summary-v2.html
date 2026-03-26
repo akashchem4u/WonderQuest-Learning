@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Tester Feedback Summary — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.7;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ── Tab chrome ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#50e890;color:#0d1117}
+.tab-btn:hover:not(.active){background:#eee}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+
+/* ── Shell ── */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sh-title{font-size:15px;font-weight:800;color:#f0f6ff}
+.sh-week{font-size:11px;font-weight:700;color:rgba(255,255,255,.4)}
+.badge-amber{font-size:10px;font-weight:800;background:rgba(245,158,11,.18);color:#f59e0b;border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:2px 9px;letter-spacing:.05em;text-transform:uppercase}
+.badge-owner{font-size:10px;font-weight:800;background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.25);border-radius:10px;padding:2px 9px;letter-spacing:.05em;text-transform:uppercase}
+
+/* ── Stat cells ── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.06)}
+.stat-cell{background:#0d1117;padding:20px 18px}
+.sc-icon{font-size:18px;margin-bottom:8px}
+.sc-num{font-size:26px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:3px}
+.sc-num span{font-size:14px;font-weight:700;color:rgba(255,255,255,.35)}
+.sc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e}
+.sc-sub{font-size:11px;font-weight:700;margin-top:4px}
+.col-green{color:#50e890}.col-amber{color:#f59e0b}.col-coral{color:#ff7b6b}.col-violet{color:#9b72ff}.col-mint{color:#58e8c1}
+
+/* ── Section label ── */
+.sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* ── Body area ── */
+.body-pad{padding:24px}
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:24px}
+.full-col{margin-bottom:24px}
+
+/* ── Donut (SVG-based) ── */
+.donut-wrap{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.donut-svg-wrap{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:10px}
+.legend-row{display:flex;align-items:center;gap:10px}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.legend-label{font-size:12px;color:#f0f6ff;font-weight:600;min-width:110px}
+.legend-pct{font-size:12px;font-weight:800}
+.legend-bar-bg{flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:5px;min-width:60px}
+.legend-bar-fill{height:5px;border-radius:3px}
+
+/* ── Word cloud ── */
+.word-cloud{display:flex;flex-wrap:wrap;gap:10px 14px;padding:8px 0}
+.wc-word{font-weight:700;line-height:1;cursor:default;transition:transform .15s}
+.wc-word:hover{transform:scale(1.08)}
+.wc-lg{font-size:22px}.wc-md{font-size:16px}.wc-sm{font-size:12px}
+.wc-pos{color:#50e890}.wc-neg{color:#ff7b6b}.wc-neu{color:rgba(240,246,255,.4)}
+
+/* ── Theme cards ── */
+.themes-list{display:flex;flex-direction:column;gap:10px}
+.theme-card{background:#161b22;border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:14px}
+.theme-rank{font-size:11px;font-weight:800;color:rgba(255,255,255,.25);width:20px;flex-shrink:0;text-align:center}
+.theme-icon{font-size:20px;flex-shrink:0}
+.theme-body{flex:1}
+.theme-title{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.theme-meta{font-size:11px;color:#8b949e}
+.theme-mentions{font-size:12px;font-weight:800;color:#f59e0b;flex-shrink:0}
+.mention-bar-bg{margin-top:6px;background:rgba(255,255,255,.07);border-radius:3px;height:4px;width:100%}
+.mention-bar-fill{height:4px;border-radius:3px;background:linear-gradient(90deg,#f59e0b,#ffd166)}
+
+/* ── Card wrapper ── */
+.card{background:#161b22;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,.05);margin-bottom:20px}
+.card:last-child{margin-bottom:0}
+
+/* ── SVG bar chart (trend) ── */
+.chart-wrap{overflow-x:auto;padding-bottom:4px}
+svg text{font-family:system-ui,-apple-system,sans-serif}
+
+/* ── Response rate strip ── */
+.rate-strip{background:#161b22;border-radius:10px;padding:14px 18px;margin-top:20px;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:16px}
+.rate-icon{font-size:22px;flex-shrink:0}
+.rate-text{font-size:13px;color:#f0f6ff;font-weight:600}
+.rate-pct{font-size:20px;font-weight:900;color:#50e890;margin-left:auto;flex-shrink:0}
+
+/* ── Spec tab ── */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+.spec-card{background:#161b22;border-radius:10px;padding:18px;border:1px solid rgba(255,255,255,.05)}
+.spec-card-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#50e890;margin-bottom:12px}
+.spec-item{font-size:12px;color:rgba(240,246,255,.75);line-height:1.7;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.spec-item:last-child{border-bottom:none}
+.spec-item strong{color:#f0f6ff;font-weight:700}
+.spec-code{font-family:monospace;font-size:11px;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;color:#58e8c1}
+.spec-full{grid-column:1/-1}
+
+/* ── Dividers ── */
+.divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:0}
+
+/* ── Chart legend ── */
+.chart-legend{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.6);font-weight:600}
+.cl-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ITEM 254 · beta-tester-feedback-summary-v2.html · WonderQuest parallel-agent build</strong>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">All Beta Testers Summary</button>
+  <button class="tab-btn" onclick="showTab(2)">Weekly Trend</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 1 — All Beta Testers Summary
+══════════════════════════════════════════════ -->
+<div id="tab1" class="screen active">
+  <div class="shell">
+
+    <!-- Header -->
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <span class="sh-title">Beta Tester Feedback Summary</span>
+        <span class="sh-week">Week 3 of 6</span>
+        <span class="badge-amber">Beta</span>
+        <span class="badge-owner">Owner Only</span>
+      </div>
+    </div>
+
+    <!-- Section 1: Overview stats -->
+    <div class="stats-row">
+      <div class="stat-cell">
+        <div class="sc-icon">📋</div>
+        <div class="sc-num">183</div>
+        <div class="sc-label">Total Feedback Items</div>
+        <div class="sc-sub" style="color:rgba(255,255,255,.35)">All sources</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-icon">✅</div>
+        <div class="sc-num">114<span>/183</span></div>
+        <div class="sc-label">Resolved</div>
+        <div class="sc-sub col-green">62%</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-icon">🐛</div>
+        <div class="sc-num">42</div>
+        <div class="sc-label">Bugs Reported</div>
+        <div class="sc-sub col-coral">23% of total</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-icon">💡</div>
+        <div class="sc-num">68</div>
+        <div class="sc-label">Suggestions</div>
+        <div class="sc-sub col-violet">37% of total</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-icon">⭐</div>
+        <div class="sc-num">4.1<span>/5</span></div>
+        <div class="sc-label">Feature Ratings Avg</div>
+        <div class="sc-sub col-amber">⭐⭐⭐⭐</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Body area -->
+    <div class="body-pad">
+
+      <!-- Section 2: Feedback type breakdown -->
+      <div class="full-col">
+        <div class="sec-label">Feedback Type Breakdown</div>
+        <div class="card">
+          <div class="donut-wrap">
+            <!-- Donut SVG: 100 unit circumference circle, cx=60,cy=60,r=40 → circumference≈251.3 -->
+            <!-- Segments: Bugs 23%, Suggestions 37%, Feature Ratings 21%, Observations 19% -->
+            <!-- dasharray trick: segment = pct*2.513, offset = cumulative offset -->
+            <div class="donut-svg-wrap">
+              <svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Feedback type donut chart">
+                <circle cx="70" cy="70" r="50" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="22"/>
+                <!-- Bugs 23% → 36.43 of 314.16 -->
+                <circle cx="70" cy="70" r="50" fill="none" stroke="#ff7b6b" stroke-width="22"
+                  stroke-dasharray="36.43 277.73"
+                  stroke-dashoffset="0"
+                  transform="rotate(-90 70 70)"/>
+                <!-- Suggestions 37% → 58.64 -->
+                <circle cx="70" cy="70" r="50" fill="none" stroke="#9b72ff" stroke-width="22"
+                  stroke-dasharray="58.64 255.52"
+                  stroke-dashoffset="-36.43"
+                  transform="rotate(-90 70 70)"/>
+                <!-- Feature Ratings 21% → 33.25 -->
+                <circle cx="70" cy="70" r="50" fill="none" stroke="#58e8c1" stroke-width="22"
+                  stroke-dasharray="33.25 280.91"
+                  stroke-dashoffset="-95.07"
+                  transform="rotate(-90 70 70)"/>
+                <!-- Observations 19% → 30.09 -->
+                <circle cx="70" cy="70" r="50" fill="none" stroke="#f59e0b" stroke-width="22"
+                  stroke-dasharray="30.09 284.07"
+                  stroke-dashoffset="-128.32"
+                  transform="rotate(-90 70 70)"/>
+                <text x="70" y="65" text-anchor="middle" font-size="18" font-weight="900" fill="#f0f6ff">183</text>
+                <text x="70" y="80" text-anchor="middle" font-size="9" font-weight="700" fill="rgba(240,246,255,.4)">ITEMS</text>
+              </svg>
+            </div>
+            <div class="donut-legend">
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#ff7b6b"></div>
+                <span class="legend-label">Bugs</span>
+                <span class="legend-pct col-coral">23%</span>
+                <div class="legend-bar-bg"><div class="legend-bar-fill" style="width:23%;background:#ff7b6b"></div></div>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#9b72ff"></div>
+                <span class="legend-label">Suggestions</span>
+                <span class="legend-pct col-violet">37%</span>
+                <div class="legend-bar-bg"><div class="legend-bar-fill" style="width:37%;background:#9b72ff"></div></div>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#58e8c1"></div>
+                <span class="legend-label">Feature Ratings</span>
+                <span class="legend-pct col-mint">21%</span>
+                <div class="legend-bar-bg"><div class="legend-bar-fill" style="width:21%;background:#58e8c1"></div></div>
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background:#f59e0b"></div>
+                <span class="legend-label">Observations</span>
+                <span class="legend-pct col-amber">19%</span>
+                <div class="legend-bar-bg"><div class="legend-bar-fill" style="width:19%;background:#f59e0b"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Left: Word cloud + themes -->
+        <div>
+          <!-- Section 3: Sentiment word cloud -->
+          <div class="sec-label">Sentiment Word Cloud</div>
+          <div class="card" style="margin-bottom:20px">
+            <div class="word-cloud">
+              <!-- Large / Positive -->
+              <span class="wc-word wc-lg wc-pos" title="Frequency: Very High">fun</span>
+              <span class="wc-word wc-lg wc-pos" title="Frequency: Very High">easy to use</span>
+              <span class="wc-word wc-lg wc-pos" title="Frequency: Very High">love the quests</span>
+              <span class="wc-word wc-lg wc-pos" title="Frequency: High">clear</span>
+              <!-- Medium / Negative or mixed -->
+              <span class="wc-word wc-md wc-neg" title="Frequency: Medium">slow loading</span>
+              <span class="wc-word wc-md wc-neu" title="Frequency: Medium">want more levels</span>
+              <span class="wc-word wc-md wc-pos" title="Frequency: Medium">helpful hints</span>
+              <!-- Small / Negative -->
+              <span class="wc-word wc-sm wc-neg" title="Frequency: Low">confusing</span>
+              <span class="wc-word wc-sm wc-neg" title="Frequency: Low">missing sounds</span>
+              <span class="wc-word wc-sm wc-neg" title="Frequency: Low">colour blind</span>
+              <!-- Extra fill words -->
+              <span class="wc-word wc-md wc-pos" title="Frequency: Medium">engaging</span>
+              <span class="wc-word wc-sm wc-neu" title="Frequency: Low">needs practice mode</span>
+              <span class="wc-word wc-sm wc-pos" title="Frequency: Low">rewards work</span>
+              <span class="wc-word wc-md wc-neg" title="Frequency: Medium">too fast</span>
+              <span class="wc-word wc-sm wc-pos" title="Frequency: Low">love the badges</span>
+              <span class="wc-word wc-sm wc-neu" title="Frequency: Low">more content</span>
+              <span class="wc-word wc-sm wc-neg" title="Frequency: Low">hard to read</span>
+              <span class="wc-word wc-md wc-pos" title="Frequency: Medium">motivating</span>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:16px;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:700;color:#50e890">● Positive</span>
+              <span style="font-size:10px;font-weight:700;color:#ff7b6b">● Negative</span>
+              <span style="font-size:10px;font-weight:700;color:rgba(240,246,255,.4)">● Neutral</span>
+              <span style="font-size:10px;color:rgba(240,246,255,.3);margin-left:auto">Size = frequency</span>
+            </div>
+          </div>
+
+          <!-- Section 4: Top themes -->
+          <div class="sec-label">Top Themes</div>
+          <div class="themes-list">
+            <div class="theme-card">
+              <div class="theme-rank">#1</div>
+              <div class="theme-icon">🐢</div>
+              <div class="theme-body">
+                <div class="theme-title">Voice readout speed too fast</div>
+                <div class="mention-bar-bg"><div class="mention-bar-fill" style="width:100%"></div></div>
+              </div>
+              <div class="theme-mentions">18 mentions</div>
+            </div>
+            <div class="theme-card">
+              <div class="theme-rank">#2</div>
+              <div class="theme-icon">🐛</div>
+              <div class="theme-body">
+                <div class="theme-title">Loading delays on first session</div>
+                <div class="mention-bar-bg"><div class="mention-bar-fill" style="width:78%"></div></div>
+              </div>
+              <div class="theme-mentions">14 mentions</div>
+            </div>
+            <div class="theme-card">
+              <div class="theme-rank">#3</div>
+              <div class="theme-icon">🌟</div>
+              <div class="theme-body">
+                <div class="theme-title">Quest completion celebration loved</div>
+                <div class="mention-bar-bg"><div class="mention-bar-fill" style="width:67%;background:linear-gradient(90deg,#50e890,#58e8c1)"></div></div>
+              </div>
+              <div class="theme-mentions">12 mentions</div>
+            </div>
+            <div class="theme-card">
+              <div class="theme-rank">#4</div>
+              <div class="theme-icon">📚</div>
+              <div class="theme-body">
+                <div class="theme-title">P3 content depth wanted</div>
+                <div class="mention-bar-bg"><div class="mention-bar-fill" style="width:61%;background:linear-gradient(90deg,#9b72ff,#a78bfa)"></div></div>
+              </div>
+              <div class="theme-mentions">11 mentions</div>
+            </div>
+            <div class="theme-card">
+              <div class="theme-rank">#5</div>
+              <div class="theme-icon">🎨</div>
+              <div class="theme-body">
+                <div class="theme-title">Colour contrast improvements</div>
+                <div class="mention-bar-bg"><div class="mention-bar-fill" style="width:50%;background:linear-gradient(90deg,#58e8c1,#50e890)"></div></div>
+              </div>
+              <div class="theme-mentions">9 mentions</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: summary note -->
+        <div>
+          <div class="sec-label">Summary Notes</div>
+          <div class="card">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:12px">Tester Breakdown</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="font-size:12px;color:#f0f6ff;font-weight:600">Teacher cohorts</span>
+                <span style="font-size:13px;font-weight:800;color:#9b72ff">8 schools</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="font-size:12px;color:#f0f6ff;font-weight:600">Family cohorts</span>
+                <span style="font-size:13px;font-weight:800;color:#58e8c1">24 households</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="font-size:12px;color:#f0f6ff;font-weight:600">Response rate</span>
+                <span style="font-size:13px;font-weight:800;color:#50e890">62%</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+                <span style="font-size:12px;color:#f0f6ff;font-weight:600">Avg items / tester</span>
+                <span style="font-size:13px;font-weight:800;color:#f0f6ff">5.7</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:12px">Resolution Progress</div>
+            <!-- Progress bar -->
+            <div style="background:rgba(255,255,255,.07);border-radius:8px;height:12px;overflow:hidden;margin-bottom:10px">
+              <div style="width:62%;height:100%;background:linear-gradient(90deg,#50e890,#58e8c1);border-radius:8px"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.4);font-weight:600">
+              <span>0</span>
+              <span style="color:#50e890;font-weight:800">62% resolved</span>
+              <span>183</span>
+            </div>
+            <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <span style="color:rgba(255,255,255,.55)">Resolved</span>
+                <span style="color:#50e890;font-weight:800">114</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <span style="color:rgba(255,255,255,.55)">Open</span>
+                <span style="color:#f59e0b;font-weight:800">69</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:12px">Beta Period</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="height:6px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden">
+                <div style="width:50%;height:100%;background:linear-gradient(90deg,#f59e0b,#ffd166);border-radius:6px"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.35);font-weight:600">
+                <span>Week 1</span>
+                <span style="color:#f59e0b;font-weight:800">Week 3 of 6</span>
+                <span>Week 6</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 2 — Weekly Trend
+══════════════════════════════════════════════ -->
+<div id="tab2" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <span class="sh-title">Weekly Feedback Trend</span>
+        <span class="sh-week">Weeks 1–3</span>
+        <span class="badge-amber">Beta</span>
+      </div>
+    </div>
+
+    <div class="body-pad">
+
+      <!-- Chart legend -->
+      <div class="chart-legend">
+        <div class="cl-item"><div class="cl-dot" style="background:#ff7b6b"></div>Bugs</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#9b72ff"></div>Suggestions</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#58e8c1"></div>Feature Ratings</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#ffd166;border-radius:50%"></div>Resolution Rate %</div>
+      </div>
+
+      <div class="card">
+        <div class="sec-label" style="margin-bottom:16px">Feedback Volume by Week</div>
+        <div class="chart-wrap">
+          <!-- SVG Bar chart: 3 weeks × 3 bars + resolution line overlay -->
+          <!-- Canvas: 700×260, margins: left=50 right=20 top=20 bottom=40 -->
+          <!-- Plot area: 630×200. 3 week groups, each 180px wide, 3 bars 40px each, gap 10px -->
+          <svg viewBox="0 0 700 280" width="100%" style="min-width:420px" role="img" aria-label="Weekly feedback trend bar chart">
+            <!-- Y-axis labels (max 35 to give headroom above 31) -->
+            <text x="44" y="28" text-anchor="end" font-size="9" fill="rgba(240,246,255,.3)">35</text>
+            <text x="44" y="71" text-anchor="end" font-size="9" fill="rgba(240,246,255,.3)">25</text>
+            <text x="44" y="114" text-anchor="end" font-size="9" fill="rgba(240,246,255,.3)">15</text>
+            <text x="44" y="157" text-anchor="end" font-size="9" fill="rgba(240,246,255,.3)">5</text>
+
+            <!-- Y-axis gridlines (y=24 top, y=220 bottom, range=35 → px per unit=196/35=5.6) -->
+            <line x1="48" y1="24" x2="680" y2="24" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+            <line x1="48" y1="67" x2="680" y2="67" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+            <line x1="48" y1="110" x2="680" y2="110" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+            <line x1="48" y1="153" x2="680" y2="153" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+            <line x1="48" y1="220" x2="680" y2="220" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+
+            <!-- px per unit: (220-24)/35 = 5.6 -->
+            <!-- bar bottom y=220, top=220-(val*5.6) -->
+            <!-- WEEK 1: bugs=18→height=100.8 y=119.2, sug=24→h=134.4 y=85.6, rat=31→h=173.6 y=46.4 -->
+            <!-- Group 1 x start: 70, bar width=50, gap=12 -->
+            <!-- W1 x positions: 70,132,194 -->
+            <rect x="70"  y="119" width="50" height="101" rx="4" fill="#ff7b6b" opacity=".85"/>
+            <rect x="132" y="86"  width="50" height="134" rx="4" fill="#9b72ff" opacity=".85"/>
+            <rect x="194" y="47"  width="50" height="173" rx="4" fill="#58e8c1" opacity=".85"/>
+            <!-- W1 values -->
+            <text x="95"  y="113" text-anchor="middle" font-size="10" font-weight="700" fill="#ff7b6b">18</text>
+            <text x="157" y="80"  text-anchor="middle" font-size="10" font-weight="700" fill="#9b72ff">24</text>
+            <text x="219" y="41"  text-anchor="middle" font-size="10" font-weight="700" fill="#58e8c1">31</text>
+            <!-- W1 label -->
+            <text x="157" y="238" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(240,246,255,.5)">Week 1</text>
+
+            <!-- WEEK 2: bugs=12→h=67.2 y=152.8, sug=22→h=123.2 y=96.8, rat=28→h=156.8 y=63.2 -->
+            <!-- x: 280,342,404 -->
+            <rect x="280" y="153" width="50" height="67"  rx="4" fill="#ff7b6b" opacity=".85"/>
+            <rect x="342" y="97"  width="50" height="123" rx="4" fill="#9b72ff" opacity=".85"/>
+            <rect x="404" y="63"  width="50" height="157" rx="4" fill="#58e8c1" opacity=".85"/>
+            <text x="305" y="147" text-anchor="middle" font-size="10" font-weight="700" fill="#ff7b6b">12</text>
+            <text x="367" y="91"  text-anchor="middle" font-size="10" font-weight="700" fill="#9b72ff">22</text>
+            <text x="429" y="57"  text-anchor="middle" font-size="10" font-weight="700" fill="#58e8c1">28</text>
+            <text x="367" y="238" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(240,246,255,.5)">Week 2</text>
+
+            <!-- WEEK 3: bugs=8→h=44.8 y=175.2, sug=18→h=100.8 y=119.2, rat=22→h=123.2 y=96.8 -->
+            <!-- x: 490,552,614 -->
+            <rect x="490" y="175" width="50" height="45"  rx="4" fill="#ff7b6b" opacity=".85"/>
+            <rect x="552" y="119" width="50" height="101" rx="4" fill="#9b72ff" opacity=".85"/>
+            <rect x="614" y="97"  width="50" height="123" rx="4" fill="#58e8c1" opacity=".85"/>
+            <text x="515" y="169" text-anchor="middle" font-size="10" font-weight="700" fill="#ff7b6b">8</text>
+            <text x="577" y="113" text-anchor="middle" font-size="10" font-weight="700" fill="#9b72ff">18</text>
+            <text x="639" y="91"  text-anchor="middle" font-size="10" font-weight="700" fill="#58e8c1">22</text>
+            <text x="577" y="238" text-anchor="middle" font-size="11" font-weight="700" fill="rgba(240,246,255,.5)">Week 3</text>
+
+            <!-- Resolution rate line overlay (right y-axis: 0-100%) -->
+            <!-- Chart y: 100%=24, 0%=220, range=196 -->
+            <!-- W1=45% → 220-(45/100)*196 = 220-88.2=131.8, x=157 (group centre) -->
+            <!-- W2=67% → 220-(67/100)*196 = 220-131.3=88.7, x=367 -->
+            <!-- W3=80% → 220-(80/100)*196 = 220-156.8=63.2, x=577 -->
+            <polyline points="157,132 367,89 577,63"
+              fill="none" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="6 3"
+              stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Data points -->
+            <circle cx="157" cy="132" r="5" fill="#ffd166" stroke="#0d1117" stroke-width="2"/>
+            <circle cx="367" cy="89"  r="5" fill="#ffd166" stroke="#0d1117" stroke-width="2"/>
+            <circle cx="577" cy="63"  r="5" fill="#ffd166" stroke="#0d1117" stroke-width="2"/>
+            <!-- Labels -->
+            <text x="157" y="122" text-anchor="middle" font-size="9" font-weight="800" fill="#ffd166">45%</text>
+            <text x="367" y="79"  text-anchor="middle" font-size="9" font-weight="800" fill="#ffd166">67%</text>
+            <text x="577" y="53"  text-anchor="middle" font-size="9" font-weight="800" fill="#ffd166">80%</text>
+
+            <!-- Right y-axis label -->
+            <text x="692" y="28"  text-anchor="middle" font-size="8" fill="rgba(253,209,102,.5)" transform="rotate(90,692,28)">Resolution %</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Trend summary cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+        <div class="card" style="margin-bottom:0;text-align:center">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:10px">Week 1 Volume</div>
+          <div style="font-size:28px;font-weight:900;color:#f0f6ff">73</div>
+          <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-top:4px">Launch week — high volume</div>
+        </div>
+        <div class="card" style="margin-bottom:0;text-align:center">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:10px">Week 2 Volume</div>
+          <div style="font-size:28px;font-weight:900;color:#f0f6ff">62</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:700;margin-top:4px">Settling in</div>
+        </div>
+        <div class="card" style="margin-bottom:0;text-align:center">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:10px">Week 3 Volume</div>
+          <div style="font-size:28px;font-weight:900;color:#f0f6ff">48</div>
+          <div style="font-size:11px;color:#50e890;font-weight:700;margin-top:4px">Reducing — positive sign</div>
+        </div>
+      </div>
+
+      <!-- Response rate strip -->
+      <div class="rate-strip">
+        <div class="rate-icon">📬</div>
+        <div class="rate-text">
+          <strong style="color:#f0f6ff">Tester response rate this week</strong><br>
+          <span style="font-size:12px;color:rgba(255,255,255,.5)">62% of testers submitted at least 1 item this week</span>
+        </div>
+        <div class="rate-pct">62%</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 3 — Spec
+══════════════════════════════════════════════ -->
+<div id="tab3" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <span class="sh-title">Spec — Beta Tester Feedback Summary</span>
+        <span class="badge-owner">Owner Only</span>
+      </div>
+    </div>
+
+    <div class="body-pad">
+      <div class="spec-grid">
+
+        <div class="spec-card">
+          <div class="spec-card-title">Privacy</div>
+          <div class="spec-item"><strong>Identifier:</strong> All feedback identified by <span class="spec-code">tester_label</span> = school name or cohort (never personal name unless <span class="spec-code">tester_consent_to_name = true</span>)</div>
+          <div class="spec-item"><strong>Aggregate only:</strong> This view shows no individual feedback items — those are in <span class="spec-code">beta-feedback-resolution-loop</span> and <span class="spec-code">beta-issue-report-sheet</span></div>
+          <div class="spec-item"><strong>Beta-only data:</strong> Tagged with <span class="spec-code">beta_source=true</span>; hidden after GA in owner dashboard</div>
+          <div class="spec-item"><strong>Owner gate:</strong> <span class="spec-code">is_owner=true</span> required; content team sees only content-related themes</div>
+        </div>
+
+        <div class="spec-card">
+          <div class="spec-card-title">Sentiment Analysis</div>
+          <div class="spec-item"><strong>Method:</strong> Keyword extraction from feedback body; manual classification by content team</div>
+          <div class="spec-item"><strong>Human-in-the-loop:</strong> No AI-only sentiment — human review required for negative themes</div>
+          <div class="spec-item"><strong>Word cloud source:</strong> Frequency-ranked terms from aggregated feedback text</div>
+          <div class="spec-item"><strong>Classification:</strong> Positive / Negative / Neutral assigned by content team, not automated</div>
+        </div>
+
+        <div class="spec-card">
+          <div class="spec-card-title">Database Schema</div>
+          <div class="spec-item"><strong>Table:</strong> <span class="spec-code">beta_feedback_summaries</span></div>
+          <div class="spec-item"><strong>Columns:</strong> <span class="spec-code">week</span>, <span class="spec-code">total</span>, <span class="spec-code">bugs</span>, <span class="spec-code">suggestions</span>, <span class="spec-code">ratings</span>, <span class="spec-code">observations</span>, <span class="spec-code">resolved_count</span></div>
+          <div class="spec-item"><strong>JSONB column:</strong> <span class="spec-code">top_themes JSONB</span> — stores ranked theme list</div>
+          <div class="spec-item"><strong>Refresh:</strong> Weekly refresh cycle; content team updates manually after weekly review session</div>
+        </div>
+
+        <div class="spec-card">
+          <div class="spec-card-title">Access Control</div>
+          <div class="spec-item"><strong>Owner only:</strong> Full summary view requires <span class="spec-code">is_owner=true</span> gate</div>
+          <div class="spec-item"><strong>Content team:</strong> Scoped to content-related themes only (P-band coverage, explainer clarity)</div>
+          <div class="spec-item"><strong>GA behaviour:</strong> <span class="spec-code">beta_source=true</span> items hidden from dashboard after general availability launch</div>
+          <div class="spec-item"><strong>Linked views:</strong> Individual items visible in <span class="spec-code">beta-feedback-resolution-loop-v2</span> and <span class="spec-code">beta-issue-report-sheet-v2</span> only</div>
+        </div>
+
+        <div class="spec-card spec-full">
+          <div class="spec-card-title">Data Flow &amp; Governance</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div>
+              <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Collection</div>
+              <div class="spec-item">Feedback submitted via <span class="spec-code">beta-feedback-launcher</span></div>
+              <div class="spec-item">Structured fields: type, body, tester_label, session_id</div>
+              <div class="spec-item">Auto-tagged <span class="spec-code">beta_source=true</span> at submission</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Processing</div>
+              <div class="spec-item">Content team keyword extraction weekly</div>
+              <div class="spec-item">Theme ranking by mention count</div>
+              <div class="spec-item">Human classification for negative sentiment</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Output</div>
+              <div class="spec-item">This summary (owner view)</div>
+              <div class="spec-item">Content team scoped report</div>
+              <div class="spec-item">Resolution loop for engineering</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+}
+</script>
+
+</body>
+</html>

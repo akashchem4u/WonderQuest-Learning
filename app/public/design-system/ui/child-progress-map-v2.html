@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Child Progress Map v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cosmic:  #100b2e;
+      --cosmic2: #1a1254;
+      --gold:    #ffd166;
+      --violet:  #9b72ff;
+      --mint:    #58e8c1;
+      --coral:   #ff7b6b;
+      --sky:     #4ab5ff;
+      --white:   #ffffff;
+    }
+    body { font-family: 'Nunito', sans-serif; background: #080618; color: #e2e8f0; min-height: 100vh; }
+
+    /* TABS */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,6,24,.97); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.1); background: transparent;
+      color: #94a3b8; font-size: 12px; font-family: 'Sora', sans-serif;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { background: var(--gold); color: #1a1a2e; font-weight: 700; border-color: transparent; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,.06); color: #e2e8f0; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #fbbf24; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ═══════════════════════════════════════
+       SHARED COSMIC CHROME
+    ═══════════════════════════════════════ */
+    .cosmic-frame { background: var(--cosmic); min-height: 600px; position: relative; overflow: hidden; }
+    .star-layer {
+      position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 12%, rgba(255,255,255,.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 6%,  rgba(255,255,255,.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 10%, rgba(255,255,255,.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 22%, rgba(255,255,255,.4) 0%, transparent 100%),
+        radial-gradient(2px 2px at 45% 35%, rgba(155,114,255,.3) 0%, transparent 100%),
+        radial-gradient(2px 2px at 70% 65%, rgba(88,232,193,.25) 0%, transparent 100%);
+    }
+
+    /* Mobile wrap */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; gap: 32px; flex-wrap: wrap; }
+    .phone-frame {
+      width: 375px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.08);
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: #000; border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--cosmic); min-height: 780px; position: relative; overflow: hidden; }
+
+    /* Topbar in play shell */
+    .mob-topbar {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 52px 18px 12px;
+    }
+    .mob-back { font-size: 20px; color: rgba(255,255,255,.5); }
+    .mob-title { font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; color: #fff; }
+    .mob-star-count { font-size: 13px; color: var(--gold); font-weight: 900; }
+
+    /* ── PROGRESS MAP NODE TRAIL ── */
+    .map-trail {
+      position: relative; z-index: 5;
+      padding: 12px 24px 120px;
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+    }
+
+    /* Connector line */
+    .connector { width: 3px; height: 28px; border-radius: 3px; }
+    .connector.done { background: var(--mint); }
+    .connector.current { background: linear-gradient(180deg, var(--mint) 0%, var(--violet) 100%); }
+    .connector.locked { background: rgba(255,255,255,.1); }
+
+    /* Map node */
+    .map-node {
+      width: 68px; height: 68px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; position: relative; cursor: pointer;
+      transition: transform .2s;
+    }
+    .map-node:hover { transform: scale(1.08); }
+    .map-node.done {
+      background: radial-gradient(circle, rgba(88,232,193,.25) 0%, rgba(88,232,193,.08) 100%);
+      border: 2.5px solid var(--mint);
+      box-shadow: 0 0 16px rgba(88,232,193,.3);
+    }
+    .map-node.current {
+      background: radial-gradient(circle, rgba(255,209,102,.25) 0%, rgba(255,209,102,.08) 100%);
+      border: 2.5px solid var(--gold);
+      box-shadow: 0 0 24px rgba(255,209,102,.4);
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+    .map-node.locked {
+      background: rgba(255,255,255,.04); border: 2px solid rgba(255,255,255,.1); cursor: default;
+    }
+    .map-node.locked:hover { transform: none; }
+
+    /* Node check for done */
+    .node-check {
+      position: absolute; bottom: -2px; right: -2px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--mint); display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--cosmic); font-weight: 900; border: 2px solid var(--cosmic);
+    }
+    /* Node lock */
+    .node-lock {
+      position: absolute; bottom: -2px; right: -2px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center;
+      font-size: 10px; border: 2px solid var(--cosmic);
+    }
+
+    /* Node label */
+    .node-wrap { display: flex; flex-direction: column; align-items: center; position: relative; }
+    .node-label {
+      font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,.6); margin-top: 6px; text-align: center; max-width: 90px;
+    }
+    .node-label.done { color: var(--mint); }
+    .node-label.current { color: var(--gold); font-weight: 900; }
+
+    /* Stars under done node */
+    .node-stars { font-size: 10px; color: var(--gold); margin-top: 2px; letter-spacing: 1px; }
+
+    /* Section divider */
+    .section-divider {
+      margin: 8px 0; padding: 6px 18px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+    }
+    .section-divider.p0 { background: rgba(255,209,102,.12); color: var(--gold); }
+    .section-divider.p1 { background: rgba(155,114,255,.12); color: var(--violet); }
+    .section-divider.p2 { background: rgba(88,232,193,.1); color: var(--mint); }
+
+    /* Sticky play CTA */
+    .mob-sticky-cta {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(0deg, var(--cosmic) 65%, transparent);
+      padding: 16px 18px 32px;
+    }
+    .mob-cta-btn {
+      display: block; width: 100%; padding: 16px;
+      background: var(--gold); color: #1a1a2e;
+      font-family: 'Nunito', sans-serif; font-size: 17px; font-weight: 900;
+      border-radius: 16px; border: none; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255,209,102,.3); text-align: center;
+    }
+
+    /* ── BADGE COLLECTION ── */
+    .badge-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      padding: 16px 18px;
+    }
+    .badge-cell {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer;
+    }
+    .badge-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+      transition: transform .2s;
+    }
+    .badge-icon:hover { transform: scale(1.1); }
+    .badge-icon.earned {
+      background: radial-gradient(circle, rgba(255,209,102,.2) 0%, rgba(155,114,255,.1) 100%);
+      border: 2px solid rgba(255,209,102,.4);
+      box-shadow: 0 0 14px rgba(255,209,102,.2);
+    }
+    .badge-icon.locked {
+      background: rgba(255,255,255,.04); border: 2px solid rgba(255,255,255,.08);
+      filter: grayscale(1); opacity: .35;
+    }
+    .badge-name { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.5); text-align: center; }
+    .badge-name.earned { color: var(--gold); }
+
+    /* ── TROPHY SHELF ── */
+    .trophy-shelf {
+      display: flex; gap: 14px; padding: 16px 18px; overflow-x: auto; scrollbar-width: none;
+    }
+    .trophy-shelf::-webkit-scrollbar { display: none; }
+    .trophy-card {
+      flex-shrink: 0; width: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .trophy-icon {
+      width: 72px; height: 72px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center; font-size: 36px;
+    }
+    .trophy-icon.earned {
+      background: radial-gradient(135deg, rgba(255,209,102,.2) 0%, rgba(155,114,255,.15) 100%);
+      border: 1.5px solid rgba(255,209,102,.35);
+      box-shadow: 0 4px 16px rgba(255,209,102,.15);
+    }
+    .trophy-icon.locked {
+      background: rgba(255,255,255,.03); border: 1.5px solid rgba(255,255,255,.07);
+      filter: grayscale(1); opacity: .25; position: relative;
+    }
+    .trophy-name { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.45); text-align: center; line-height: 1.3; }
+    .trophy-name.earned { color: var(--gold); }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; }
+    .spec-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; }
+    .spec-row-desc { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .spec-table th { color: #94a3b8; font-weight: 600; }
+    .spec-table td { color: #e2e8f0; }
+    .spec-table td code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--mint); }
+
+    @keyframes glowPulse { 0%,100%{box-shadow:0 0 18px rgba(255,209,102,.35)} 50%{box-shadow:0 0 32px rgba(255,209,102,.6)} }
+    @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .float { animation: floatY 3s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Progress Map Trail</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Band Section Dividers</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Badge Collection</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Trophy Shelf</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Spec Notes</button>
+</div>
+
+<!-- TAB 1: PROGRESS MAP TRAIL -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>🗺️ Child Progress Map — Node Trail</strong>
+    Vertical node trail on mobile (primary entry). Each node = one quest/skill. Done nodes: mint ring + check badge. Current node: gold ring + glow pulse. Locked: faint. No accuracy % shown on any node. Sticky CTA at bottom: "Continue quest →". Tap a done node → shows stars earned (no score).
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="star-layer"></div>
+
+        <div class="mob-topbar">
+          <div class="mob-back">‹</div>
+          <div class="mob-title">Your Quest Map ✦</div>
+          <div class="mob-star-count">⭐ 42</div>
+        </div>
+
+        <div class="map-trail">
+          <!-- Completed nodes -->
+          <div class="node-wrap">
+            <div class="section-divider p0">Pre-K · Counting</div>
+          </div>
+
+          <div class="node-wrap">
+            <div class="map-node done float">
+              🐣
+              <div class="node-check">✓</div>
+            </div>
+            <div class="node-label done">Count to 5</div>
+            <div class="node-stars">⭐⭐⭐</div>
+          </div>
+          <div class="connector done"></div>
+
+          <div class="node-wrap">
+            <div class="map-node done">
+              🐠
+              <div class="node-check">✓</div>
+            </div>
+            <div class="node-label done">Count to 10</div>
+            <div class="node-stars">⭐⭐⭐</div>
+          </div>
+          <div class="connector done"></div>
+
+          <div class="node-wrap">
+            <div class="map-node done">
+              🦋
+              <div class="node-check">✓</div>
+            </div>
+            <div class="node-label done">Shapes</div>
+            <div class="node-stars">⭐⭐</div>
+          </div>
+          <div class="connector current"></div>
+
+          <!-- Current node -->
+          <div class="node-wrap">
+            <div class="section-divider p1">K–1 · Adding</div>
+          </div>
+          <div class="node-wrap">
+            <div class="map-node current">
+              🐉
+            </div>
+            <div class="node-label current">Adding to 5</div>
+            <div class="node-stars" style="color:var(--violet);">★ Current quest</div>
+          </div>
+          <div class="connector locked"></div>
+
+          <!-- Locked nodes -->
+          <div class="node-wrap">
+            <div class="map-node locked">
+              🦄
+              <div class="node-lock">🔒</div>
+            </div>
+            <div class="node-label">Adding to 10</div>
+          </div>
+          <div class="connector locked"></div>
+
+          <div class="node-wrap">
+            <div class="map-node locked">
+              🌟
+              <div class="node-lock">🔒</div>
+            </div>
+            <div class="node-label">Place Value</div>
+          </div>
+        </div>
+
+        <div class="mob-sticky-cta">
+          <button class="mob-cta-btn">Continue quest 🐉 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: BAND SECTION DIVIDERS -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>🎨 Band Section Dividers</strong>
+    Section divider pills separate skill bands on the map. P0 gold, P1 violet, P2 mint, P3 coral. They don't say "Pre-K" in the child-facing view — use friendly names like "Counting World" or "Letter Land". The band chip text shown here is for engineering reference only.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="min-height:580px;">
+        <div class="star-layer"></div>
+
+        <div class="mob-topbar">
+          <div class="mob-back">‹</div>
+          <div class="mob-title">Quest Map ✦</div>
+          <div class="mob-star-count">⭐ 42</div>
+        </div>
+
+        <div class="map-trail" style="padding-bottom:40px;">
+          <!-- P0 world -->
+          <div class="node-wrap">
+            <div class="section-divider p0">🌱 Counting World</div>
+          </div>
+          <div class="node-wrap">
+            <div class="map-node done"><div style="font-size:24px;">🐣</div><div class="node-check">✓</div></div>
+            <div class="node-label done">Count to 5</div>
+          </div>
+          <div class="connector done"></div>
+
+          <!-- P1 world -->
+          <div class="node-wrap" style="margin-top:8px;">
+            <div class="section-divider p1">🔮 Adding World</div>
+          </div>
+          <div class="node-wrap">
+            <div class="map-node current"><div style="font-size:24px;">🐉</div></div>
+            <div class="node-label current">Adding to 5</div>
+          </div>
+          <div class="connector locked"></div>
+
+          <!-- P2 world -->
+          <div class="node-wrap" style="margin-top:8px;">
+            <div class="section-divider p2">🌊 Number World</div>
+          </div>
+          <div class="node-wrap">
+            <div class="map-node locked"><div style="font-size:24px;">🦋</div><div class="node-lock">🔒</div></div>
+            <div class="node-label">Place Value</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: BADGE COLLECTION -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>🏅 Badge Collection</strong>
+    4×N grid. Earned badges: gold ring + glow. Locked badges: greyscale + 0.35 opacity. Locked badges show no name (spoiler prevention) — just a "?" or neutral emoji. Tap earned badge → shows earned date + what it was for (no score). No accuracy % ever shown.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="min-height:680px;">
+        <div class="star-layer"></div>
+
+        <div class="mob-topbar">
+          <div class="mob-back">‹</div>
+          <div class="mob-title">My Badges 🏅</div>
+          <div class="mob-star-count" style="font-size:11px;color:rgba(255,255,255,.5);">8 / 24</div>
+        </div>
+
+        <div style="padding:8px 18px;position:relative;z-index:5;">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Earned</div>
+          <div class="badge-grid">
+            <div class="badge-cell">
+              <div class="badge-icon earned float">🌟</div>
+              <div class="badge-name earned">First Quest</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">🔢</div>
+              <div class="badge-name earned">Counter</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">🐠</div>
+              <div class="badge-name earned">Ocean 10</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">🦋</div>
+              <div class="badge-name earned">Shape Star</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">🔥</div>
+              <div class="badge-name earned">3-Day Streak</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">📖</div>
+              <div class="badge-name earned">Story Time</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">🐣</div>
+              <div class="badge-name earned">Hatchling</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon earned">🌈</div>
+              <div class="badge-name earned">Color Quest</div>
+            </div>
+          </div>
+
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px;">Still to find</div>
+          <div class="badge-grid">
+            <div class="badge-cell">
+              <div class="badge-icon locked">❓</div>
+              <div class="badge-name">?</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon locked">❓</div>
+              <div class="badge-name">?</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon locked">❓</div>
+              <div class="badge-name">?</div>
+            </div>
+            <div class="badge-cell">
+              <div class="badge-icon locked">❓</div>
+              <div class="badge-name">?</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: TROPHY SHELF -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>🏆 Trophy Shelf</strong>
+    Horizontal scroll shelf. Trophies are bigger, rarer awards than badges. Locked trophies are greyscale + no name. Tap an earned trophy → full-screen celebration replay (quiet, no confetti — just glow and trophy + stars). Never show what locked trophies are named.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="min-height:540px;">
+        <div class="star-layer"></div>
+
+        <div class="mob-topbar">
+          <div class="mob-back">‹</div>
+          <div class="mob-title">Trophy Shelf 🏆</div>
+          <div class="mob-star-count" style="font-size:11px;color:rgba(255,255,255,.5);">3 / 12</div>
+        </div>
+
+        <div style="position:relative;z-index:5;padding:12px 0 8px;">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;padding:0 18px;margin-bottom:10px;">Earned</div>
+          <div class="trophy-shelf">
+            <div class="trophy-card">
+              <div class="trophy-icon earned float">🏆</div>
+              <div class="trophy-name earned">First Adventure</div>
+            </div>
+            <div class="trophy-card">
+              <div class="trophy-icon earned">🌙</div>
+              <div class="trophy-name earned">Night Owl</div>
+            </div>
+            <div class="trophy-card">
+              <div class="trophy-icon earned">🐉</div>
+              <div class="trophy-name earned">Dragon Tamer</div>
+            </div>
+            <div class="trophy-card">
+              <div class="trophy-icon locked">❓</div>
+              <div class="trophy-name">???</div>
+            </div>
+            <div class="trophy-card">
+              <div class="trophy-icon locked">❓</div>
+              <div class="trophy-name">???</div>
+            </div>
+            <div class="trophy-card">
+              <div class="trophy-icon locked">❓</div>
+              <div class="trophy-name">???</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:relative;z-index:5;padding:16px 18px;">
+          <div style="background:rgba(255,209,102,.07);border:1px solid rgba(255,209,102,.18);border-radius:14px;padding:16px;">
+            <div style="font-size:13px;font-weight:900;color:var(--gold);font-family:'Nunito',sans-serif;margin-bottom:4px;">🐉 Dragon Tamer</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.6;">Completed the Adding World quest chain. Earned 3 days ago.</div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <span style="font-size:18px;">⭐⭐⭐</span>
+              <span style="font-size:11px;color:rgba(255,255,255,.4);align-self:center;">42 stars total</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: SPEC NOTES -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>📐 Spec Notes — Child Progress Map v2</strong>
+    Node trail is the child-facing progress view inside <code>/play</code> or <code>/child/map</code>. No accuracy %, no scores, no attempt counts shown anywhere. Progress shown only through stars, node state (done/current/locked), badges, and trophies.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Child Progress Map — Spec</div>
+    <div class="spec-sub">Child-facing only. All Nunito. Dark cosmic theme.</div>
+
+    <div class="spec-section">
+      <h3>Node states</h3>
+      <table class="spec-table">
+        <thead><tr><th>State</th><th>Ring color</th><th>Animation</th><th>Badge</th><th>Label</th></tr></thead>
+        <tbody>
+          <tr><td>Done</td><td><code>#58e8c1</code> mint</td><td>subtle floatY</td><td>✓ check (mint)</td><td>Mint text, stars shown</td></tr>
+          <tr><td>Current</td><td><code>#ffd166</code> gold</td><td>glowPulse loop</td><td>None</td><td>Gold text, "Current quest"</td></tr>
+          <tr><td>Locked</td><td><code>rgba(255,255,255,.1)</code></td><td>None</td><td>🔒 lock</td><td>Faint grey, no stars</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>What is NEVER shown</h3>
+      <div class="spec-row"><div class="spec-row-desc">❌ Accuracy percentages<br>❌ Correct/incorrect attempt counts<br>❌ Names of locked badges or trophies<br>❌ Comparison to other children<br>❌ Missed-day counts or streaks framed negatively</div></div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Stars system</h3>
+      <div class="spec-row"><div class="spec-row-desc">Each completed quest shows 1–3 stars (based on engagement, not accuracy). Stars shown on map under done nodes. Star total shown in topbar. Stars power the overall "level" display — no score, just stars.</div></div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Section divider friendly names</h3>
+      <table class="spec-table">
+        <thead><tr><th>Band</th><th>Engineering label</th><th>Child-facing name</th></tr></thead>
+        <tbody>
+          <tr><td>P0</td><td>Pre-K</td><td>🌱 Counting World (example)</td></tr>
+          <tr><td>P1</td><td>K–1</td><td>🔮 Adding World (example)</td></tr>
+          <tr><td>P2</td><td>G2–3</td><td>🌊 Number World (example)</td></tr>
+          <tr><td>P3</td><td>G4–5</td><td>🔥 Challenge World (example)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

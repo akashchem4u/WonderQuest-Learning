@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Content Review Workbench v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Desktop frame */
+  .df { background: #0d1117; border-radius: 16px; border: 6px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.55); overflow: hidden; font-family: 'Sora','Segoe UI',sans-serif; }
+  .df-inner { overflow-x: auto; min-width: 960px; }
+  .frame-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  /* Top nav */
+  .top-nav { background: #0d1117; border-bottom: 1px solid #2a3040; padding: 0 24px; display: flex; align-items: center; height: 52px; gap: 24px; }
+  .top-nav-logo { font-size: 15px; font-weight: 900; color: #e0e6f0; }
+  .top-nav-link { font-size: 12px; font-weight: 600; color: #445566; padding: 0 4px; cursor: pointer; }
+  .top-nav-link.active { color: #ffd166; border-bottom: 2px solid #ffd166; height: 52px; display: flex; align-items: center; }
+  .top-nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .top-nav-badge { background: #ff6b6b22; border: 1px solid #ff6b6b44; border-radius: 20px; padding: 3px 9px; font-size: 11px; color: #ff9999; font-weight: 700; }
+
+  /* KPI strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #2a3040; border-bottom: 1px solid #2a3040; }
+  .kpi-cell { background: #141a26; padding: 12px 16px; display: flex; flex-direction: column; }
+  .kpi-val { font-size: 22px; font-weight: 800; }
+  .kpi-lbl { font-size: 10px; color: #445566; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .kpi-delta { font-size: 10px; font-weight: 700; margin-top: 4px; }
+  .delta-up { color: #ff6b6b; }
+  .delta-down { color: #58e8c1; }
+
+  /* 3-col layout */
+  .three-col { display: grid; grid-template-columns: 280px 1fr 340px; min-height: 560px; }
+
+  /* Left queue */
+  .queue-col { border-right: 1px solid #2a3040; overflow-y: auto; background: #0d1117; }
+  .col-hdr { padding: 12px 16px; border-bottom: 1px solid #2a3040; position: sticky; top: 0; background: #0d1117; z-index: 5; }
+  .col-hdr-title { font-size: 12px; font-weight: 800; color: #e0e6f0; }
+  .col-hdr-sub { font-size: 10px; color: #445566; margin-top: 2px; }
+
+  .filter-strip { display: flex; gap: 4px; padding: 8px 12px; overflow-x: auto; border-bottom: 1px solid #2a3040; }
+  .filter-strip::-webkit-scrollbar { display: none; }
+  .fchip { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; border: 1px solid #2a3040; background: #141a26; color: #667; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
+  .fchip.active { background: #ffd166; color: #1a1400; border-color: #ffd166; }
+  .fchip.flagged { background: #ff6b6b22; color: #ff9999; border-color: #ff6b6b44; }
+
+  .queue-item { padding: 12px 14px; border-bottom: 1px solid #1e2433; cursor: pointer; border-left: 3px solid transparent; }
+  .queue-item:hover { background: #141a26; }
+  .queue-item.selected { background: #141a26; border-left-color: #ffd166; }
+  .queue-item.flagged { border-left-color: #ff6b6b; background: #160a0a; }
+  .queue-item.flagged.selected { background: #1a0e0e; }
+  .qi-band { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #445566; margin-bottom: 3px; }
+  .qi-title { font-size: 12px; font-weight: 700; color: #e0e6f0; line-height: 1.4; margin-bottom: 4px; }
+  .qi-meta { display: flex; align-items: center; gap: 6px; }
+  .qi-type { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .type-new { background: #0d1a12; color: #58e8c1; }
+  .type-revision { background: #1e2a3a; color: #5599ee; }
+  .type-flagged { background: #1a0e0e; color: #ff9999; }
+  .qi-date { font-size: 10px; color: #445566; margin-left: auto; }
+
+  /* Center: content preview */
+  .preview-col { overflow-y: auto; background: #141a26; padding: 0; }
+  .preview-topbar { padding: 12px 20px; border-bottom: 1px solid #2a3040; background: #0d1117; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 5; }
+  .preview-title { font-size: 13px; font-weight: 800; color: #e0e6f0; }
+  .preview-actions { display: flex; gap: 8px; }
+  .p-btn { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; }
+  .p-btn-approve { background: #58e8c1; color: #042018; }
+  .p-btn-revise { background: #ffd166; color: #1a1400; }
+  .p-btn-archive { background: #1e2433; color: #445566; border: 1px solid #2a3040; }
+
+  /* Content preview body */
+  .preview-body { padding: 20px; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .meta-cell { background: #0d1117; border: 1px solid #2a3040; border-radius: 8px; padding: 8px 10px; }
+  .meta-key { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #445566; margin-bottom: 2px; }
+  .meta-val { font-size: 11px; font-weight: 600; color: #c8d4e4; }
+
+  /* Question card */
+  .question-card { background: #0d1117; border: 1px solid #2a3040; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .q-prompt { font-size: 14px; font-weight: 700; color: #e0e6f0; margin-bottom: 12px; line-height: 1.5; }
+  .q-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; }
+  .q-option.correct { background: #0d1a12; border: 1.5px solid #58e8c166; color: #a0e8d0; }
+  .q-option.wrong { background: #141a26; border: 1px solid #2a3040; color: #778899; }
+  .q-option.flagged-opt { background: #1a0e0e; border: 1.5px solid #ff6b6b44; color: #ff9999; }
+  .q-opt-circle { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+
+  .qa-flag-banner { background: #1a0e0e; border: 1px solid #ff6b6b44; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: #ff9999; line-height: 1.5; }
+
+  /* Right: QA health + notes */
+  .right-col { border-left: 1px solid #2a3040; overflow-y: auto; background: #0d1117; }
+  .qa-score { padding: 16px; border-bottom: 1px solid #2a3040; }
+  .qa-score-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #445566; margin-bottom: 10px; }
+  .qa-score-val { font-size: 32px; font-weight: 800; }
+  .qa-score-lbl { font-size: 11px; color: #445566; margin-top: 2px; }
+  .qa-check-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e2433; }
+  .qa-check-row:last-child { border-bottom: none; }
+  .qa-check-icon { font-size: 14px; flex-shrink: 0; }
+  .qa-check-label { font-size: 11px; color: #a0a8b8; flex: 1; }
+  .qa-check-status { font-size: 10px; font-weight: 700; }
+  .qa-pass { color: #58e8c1; }
+  .qa-fail { color: #ff6b6b; }
+  .qa-warn { color: #ffd166; }
+
+  .review-notes { padding: 14px 16px; border-bottom: 1px solid #2a3040; }
+  .review-notes-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #445566; margin-bottom: 8px; }
+  .note-input { width: 100%; background: #141a26; border: 1px solid #2a3040; border-radius: 8px; padding: 8px 10px; font-size: 11px; font-family: inherit; color: #c8d4e4; resize: none; outline: none; line-height: 1.5; }
+  .note-input:focus { border-color: #ffd166; }
+
+  /* Spec */
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('workbench')">Review Workbench</button>
+  <button class="tab" onclick="show('flagged')">Flagged Content</button>
+  <button class="tab" onclick="show('approve')">Approve / Revise / Archive</button>
+  <button class="tab" onclick="show('mobile')">Mobile Notes</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══ TAB 1: REVIEW WORKBENCH ═══ -->
+<div id="workbench" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — Content Review Workbench (Desktop)</strong><br>
+    3-col layout: left = review queue list (new / revision / flagged + filter chips), center = content preview with question card + flagged-answer banner, right = QA health score checklist + reviewer notes. Actions: Approve (mint) / Request Revision (gold) / Archive (grey). Owner dark ops theme.
+  </div>
+  <div class="frame-label">Desktop · Content Review Workbench</div>
+  <div class="df">
+    <div class="df-inner">
+      <div style="min-width:960px;">
+        <!-- Top nav -->
+        <div class="top-nav">
+          <div class="top-nav-logo">🌟 WonderQuest Owner</div>
+          <div class="top-nav-link">Dashboard</div>
+          <div class="top-nav-link">Feedback</div>
+          <div class="top-nav-link active">Content Review</div>
+          <div class="top-nav-link">Route Health</div>
+          <div class="top-nav-right">
+            <div class="top-nav-badge">🚩 3 flagged</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:#ffd166;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#1a1400;">OW</div>
+          </div>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="kpi-strip">
+          <div class="kpi-cell">
+            <div class="kpi-val" style="color:#ffd166;">12</div>
+            <div class="kpi-lbl">Pending Review</div>
+            <div class="kpi-delta delta-up">↑ 4 this week</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-val" style="color:#ff6b6b;">3</div>
+            <div class="kpi-lbl">Flagged</div>
+            <div class="kpi-delta delta-up">↑ 2 new</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-val" style="color:#58e8c1;">47</div>
+            <div class="kpi-lbl">Approved (30d)</div>
+            <div class="kpi-delta delta-down">↑ healthy</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-val" style="color:#5599ee;">8</div>
+            <div class="kpi-lbl">In Revision</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-val" style="color:#a0a8b8;">96.2%</div>
+            <div class="kpi-lbl">QA Pass Rate</div>
+            <div class="kpi-delta delta-down">↑ 0.4%</div>
+          </div>
+        </div>
+
+        <!-- 3-col -->
+        <div class="three-col">
+          <!-- Left: queue -->
+          <div class="queue-col">
+            <div class="col-hdr">
+              <div class="col-hdr-title">Review Queue</div>
+              <div class="col-hdr-sub">12 pending · sorted by priority</div>
+            </div>
+            <div class="filter-strip">
+              <div class="fchip active">All 12</div>
+              <div class="fchip flagged">🚩 Flagged 3</div>
+              <div class="fchip">New 6</div>
+              <div class="fchip">Revision 3</div>
+            </div>
+
+            <!-- Flagged items first -->
+            <div style="padding:6px 12px 4px;font-size:9px;font-weight:700;text-transform:uppercase;color:#ff9999;letter-spacing:0.09em;">🚩 Flagged by users</div>
+
+            <div class="queue-item flagged selected">
+              <div class="qi-band">P1 · K–1 Violet · Fractions Intro</div>
+              <div class="qi-title">Add fractions: 1/2 + 1/4</div>
+              <div class="qi-meta">
+                <div class="qi-type type-flagged">🚩 Flagged</div>
+                <div style="font-size:10px;color:#ff9999;">Wrong answer</div>
+                <div class="qi-date">2 days ago</div>
+              </div>
+            </div>
+            <div class="queue-item flagged">
+              <div class="qi-band">P1 · K–1 Violet · Fractions Intro</div>
+              <div class="qi-title">Fraction visual: shade 1/3 of shape</div>
+              <div class="qi-meta">
+                <div class="qi-type type-flagged">🚩 Flagged</div>
+                <div style="font-size:10px;color:#ff9999;">Mislabeled</div>
+                <div class="qi-date">3 days ago</div>
+              </div>
+            </div>
+
+            <!-- New content -->
+            <div style="padding:6px 12px 4px;font-size:9px;font-weight:700;text-transform:uppercase;color:#58e8c1;letter-spacing:0.09em;">New content</div>
+
+            <div class="queue-item">
+              <div class="qi-band">P2 · G2–3 Mint · Multiplication</div>
+              <div class="qi-title">Skip counting by 4s to 40</div>
+              <div class="qi-meta">
+                <div class="qi-type type-new">New</div>
+                <div class="qi-date">Today</div>
+              </div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-band">P2 · G2–3 Mint · Division Intro</div>
+              <div class="qi-title">Share 12 apples equally among 3</div>
+              <div class="qi-meta">
+                <div class="qi-type type-new">New</div>
+                <div class="qi-date">Today</div>
+              </div>
+            </div>
+            <div class="queue-item">
+              <div class="qi-band">P0 · Pre-K Gold · Counting</div>
+              <div class="qi-title">Count objects to 20: farm scene</div>
+              <div class="qi-meta">
+                <div class="qi-type type-revision">Revision</div>
+                <div class="qi-date">Yesterday</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: content preview -->
+          <div class="preview-col">
+            <div class="preview-topbar">
+              <div>
+                <div class="preview-title">node_frac_add_01 · Fractions Intro</div>
+                <div style="font-size:10px;color:#445566;margin-top:2px;">P1 · K–1 · v1.3.2 · Flagged 11 times</div>
+              </div>
+              <div class="preview-actions">
+                <button class="p-btn p-btn-approve">Approve</button>
+                <button class="p-btn p-btn-revise">Request Revision</button>
+                <button class="p-btn p-btn-archive">Archive</button>
+              </div>
+            </div>
+
+            <div class="preview-body">
+              <!-- Flag banner -->
+              <div class="qa-flag-banner">
+                🚩 <strong>Flagged by 11 users</strong> — Most common report: "Wrong answer marked correct". Answer key shows 2/4 but correct answer is 3/4.
+              </div>
+
+              <!-- Meta grid -->
+              <div class="meta-grid">
+                <div class="meta-cell">
+                  <div class="meta-key">Node ID</div>
+                  <div class="meta-val" style="font-family:monospace;font-size:10px;">node_frac_add_01</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-key">Band</div>
+                  <div class="meta-val">P1 · K–1 Violet</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-key">Skill</div>
+                  <div class="meta-val">Fractions Intro</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-key">Version</div>
+                  <div class="meta-val">v1.3.2</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-key">Difficulty</div>
+                  <div class="meta-val">Node 4/10</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-key">Last edited</div>
+                  <div class="meta-val">14 days ago</div>
+                </div>
+              </div>
+
+              <!-- Question card -->
+              <div class="question-card">
+                <div class="q-prompt">What is 1/2 + 1/4?</div>
+                <div class="q-option wrong">
+                  <div class="q-opt-circle" style="background:#2a3040;color:#667;">A</div>
+                  1/6
+                </div>
+                <div class="q-option flagged-opt">
+                  <div class="q-opt-circle" style="background:#ff6b6b33;color:#ff6b6b;">✓</div>
+                  <span>2/4</span>
+                  <span style="font-size:10px;color:#ff9999;margin-left:auto;">⚠ Wrong answer key</span>
+                </div>
+                <div class="q-option wrong">
+                  <div class="q-opt-circle" style="background:#2a3040;color:#667;">C</div>
+                  2/8
+                </div>
+                <div class="q-option" style="background:#0d1a12;border:1.5px dashed #58e8c166;color:#58e8c1;">
+                  <div class="q-opt-circle" style="background:#58e8c133;color:#58e8c1;">D</div>
+                  <span>3/4</span>
+                  <span style="font-size:10px;color:#58e8c1;margin-left:auto;">✓ Correct answer</span>
+                </div>
+              </div>
+
+              <!-- Hint text -->
+              <div style="background:#0d1117;border:1px solid #2a3040;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#445566;margin-bottom:6px;">Hint Text (v1.3.2)</div>
+                <div style="font-size:12px;color:#778899;line-height:1.6;">"Try drawing each fraction as a picture. 1/2 means 1 out of 2 equal parts, and 1/4 means 1 out of 4 equal parts. To add them, make the parts the same size first!"</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: QA + notes -->
+          <div class="right-col">
+            <div class="col-hdr">
+              <div class="col-hdr-title">QA Health</div>
+              <div class="col-hdr-sub">node_frac_add_01</div>
+            </div>
+            <div class="qa-score" style="padding:14px 16px;">
+              <div class="qa-score-title">QA Score</div>
+              <div class="qa-score-val" style="color:#ff6b6b;">42/100</div>
+              <div class="qa-score-lbl">Failing — answer key error</div>
+            </div>
+            <div style="padding:10px 16px;border-bottom:1px solid #2a3040;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#445566;margin-bottom:8px;letter-spacing:0.07em;">Checklist</div>
+              <div class="qa-check-row">
+                <div class="qa-check-icon">📝</div>
+                <div class="qa-check-label">Question text readable</div>
+                <div class="qa-check-status qa-pass">✓ Pass</div>
+              </div>
+              <div class="qa-check-row">
+                <div class="qa-check-icon">✅</div>
+                <div class="qa-check-label">Correct answer marked</div>
+                <div class="qa-check-status qa-fail">✗ Fail</div>
+              </div>
+              <div class="qa-check-row">
+                <div class="qa-check-icon">🔤</div>
+                <div class="qa-check-label">All options distinct</div>
+                <div class="qa-check-status qa-pass">✓ Pass</div>
+              </div>
+              <div class="qa-check-row">
+                <div class="qa-check-icon">💡</div>
+                <div class="qa-check-label">Hint text present</div>
+                <div class="qa-check-status qa-pass">✓ Pass</div>
+              </div>
+              <div class="qa-check-row">
+                <div class="qa-check-icon">🎯</div>
+                <div class="qa-check-label">Difficulty appropriate</div>
+                <div class="qa-check-status qa-warn">⚠ Review</div>
+              </div>
+              <div class="qa-check-row">
+                <div class="qa-check-icon">🧒</div>
+                <div class="qa-check-label">Age-appropriate language</div>
+                <div class="qa-check-status qa-pass">✓ Pass</div>
+              </div>
+            </div>
+
+            <!-- Reviewer notes -->
+            <div class="review-notes">
+              <div class="review-notes-title">Reviewer Notes</div>
+              <textarea class="note-input" rows="4" placeholder="Add notes before approving / requesting revision…">Answer key error confirmed — D (3/4) is correct, not B (2/4). Needs immediate fix. Also flagging hint text for review — the "make parts same size" wording may be confusing without a visual.</textarea>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+              <button style="padding:12px;border-radius:10px;border:none;background:#58e8c1;color:#042018;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">Approve</button>
+              <button style="padding:10px;border-radius:10px;border:none;background:#ffd166;color:#1a1400;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">Request Revision</button>
+              <button style="padding:10px;border-radius:10px;border:1px solid #2a3040;background:transparent;color:#445566;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Archive</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: FLAGGED CONTENT ═══ -->
+<div id="flagged" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Flagged Content View</strong><br>
+    Focused view of only flagged content. Pre-filtered queue + counts per skill area. Each flagged item shows: report count, most common report type, and linked feedback items. "Fix in Editor" deep-link available inline.
+  </div>
+  <div class="frame-label">Desktop · Flagged Content Only</div>
+  <div class="df">
+    <div class="df-inner"><div style="min-width:960px;">
+      <div class="top-nav">
+        <div class="top-nav-logo">🌟 WonderQuest Owner</div>
+        <div class="top-nav-link active">Content Review</div>
+        <div class="top-nav-right">
+          <div class="top-nav-badge">🚩 3 flagged</div>
+        </div>
+      </div>
+      <div style="background:#1a0e0e;border-bottom:2px solid #ff6b6b44;padding:12px 20px;display:flex;align-items:center;gap:14px;">
+        <div style="font-size:13px;font-weight:800;color:#ff9999;">🚩 3 Content Issues Flagged by Users</div>
+        <div style="font-size:12px;color:#ff6b6b88;">Sorted by report count</div>
+        <button style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:#ff6b6b22;color:#ff9999;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Export Report</button>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+        <!-- Flagged item 1 -->
+        <div style="background:#141a26;border:1px solid #ff6b6b44;border-left:4px solid #ff6b6b;border-radius:12px;padding:16px;">
+          <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div style="flex:1;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#445566;margin-bottom:4px;">P1 · K–1 Violet · Fractions Intro</div>
+              <div style="font-size:14px;font-weight:800;color:#e0e6f0;margin-bottom:6px;">Add fractions: 1/2 + 1/4 → node_frac_add_01</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <div style="background:#1a0e0e;border:1px solid #ff6b6b44;border-radius:6px;padding:3px 8px;font-size:11px;color:#ff9999;font-weight:700;">🚩 11 reports</div>
+                <div style="background:#1e2433;border-radius:6px;padding:3px 8px;font-size:11px;color:#a0a8b8;">Wrong answer key</div>
+                <div style="background:#1e2433;border-radius:6px;padding:3px 8px;font-size:11px;color:#a0a8b8;">2/4 marked correct, should be 3/4</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+              <button style="padding:7px 14px;border-radius:8px;border:none;background:#9b72ff;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Fix in Editor →</button>
+              <button style="padding:7px 14px;border-radius:8px;border:1px solid #ff6b6b44;background:#1a0e0e;color:#ff9999;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">View Reports</button>
+            </div>
+          </div>
+        </div>
+        <!-- Flagged item 2 -->
+        <div style="background:#141a26;border:1px solid #ff6b6b44;border-left:4px solid #ff9944;border-radius:12px;padding:16px;">
+          <div style="display:flex;align-items:flex-start;gap:14px;">
+            <div style="flex:1;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#445566;margin-bottom:4px;">P1 · K–1 Violet · Fractions Intro</div>
+              <div style="font-size:14px;font-weight:800;color:#e0e6f0;margin-bottom:6px;">Fraction visual: shade 1/3 of shape → node_frac_vis_03</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <div style="background:#1a0f08;border:1px solid #ff994444;border-radius:6px;padding:3px 8px;font-size:11px;color:#ffaa66;font-weight:700;">🚩 3 reports</div>
+                <div style="background:#1e2433;border-radius:6px;padding:3px 8px;font-size:11px;color:#a0a8b8;">Image mislabeled</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+              <button style="padding:7px 14px;border-radius:8px;border:none;background:#9b72ff;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Fix in Editor →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: APPROVE / REVISE / ARCHIVE ═══ -->
+<div id="approve" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — Approve / Request Revision / Archive Actions</strong><br>
+    Post-action states for each CTA. Approve: item gets mint ✓ badge, moved to "Approved" section, version bumped. Revision: item returns to author with inline notes + specific check failures highlighted. Archive: confirmation modal + reason required.
+  </div>
+  <div class="frame-label">Post-Approve State</div>
+  <div class="df" style="margin-bottom:24px;">
+    <div class="df-inner"><div style="min-width:960px;">
+      <div class="top-nav">
+        <div class="top-nav-logo">🌟 WonderQuest Owner</div>
+        <div class="top-nav-link active">Content Review</div>
+      </div>
+      <div class="three-col" style="min-height:300px;">
+        <div class="queue-col">
+          <div class="col-hdr"><div class="col-hdr-title">Review Queue</div><div class="col-hdr-sub">11 pending</div></div>
+          <div class="queue-item" style="background:#0d1a12;border-bottom:1px solid #1e2433;opacity:0.7;">
+            <div class="qi-band">P1 · K–1 · Fractions Intro</div>
+            <div class="qi-title" style="color:#a0b8a8;">Add fractions: 1/2 + 1/4</div>
+            <div class="qi-meta">
+              <div class="qi-type" style="background:#0d1a12;color:#58e8c1;">✓ Approved</div>
+              <div class="qi-date">Just now</div>
+            </div>
+          </div>
+          <div class="queue-item flagged selected">
+            <div class="qi-band">P1 · K–1 · Fractions Intro</div>
+            <div class="qi-title">Fraction visual: shade 1/3</div>
+            <div class="qi-meta">
+              <div class="qi-type type-flagged">🚩 Flagged</div>
+              <div class="qi-date">3 days ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-col">
+          <div class="preview-topbar">
+            <div><div class="preview-title">node_frac_add_01 — Approved</div></div>
+            <div style="background:#0d1a12;border:1.5px solid #58e8c1;border-radius:20px;padding:5px 14px;font-size:12px;color:#58e8c1;font-weight:700;">✓ v1.3.3 Approved</div>
+          </div>
+          <div class="preview-body">
+            <div style="background:#0d1a12;border:1.5px solid #58e8c1;border-radius:10px;padding:14px;text-align:center;">
+              <div style="font-size:24px;margin-bottom:6px;">✅</div>
+              <div style="font-size:14px;font-weight:800;color:#58e8c1;margin-bottom:4px;">Content Approved</div>
+              <div style="font-size:12px;color:#a0e8d0;line-height:1.6;">Version bumped to v1.3.3. Content is now live. All 11 flagged reports automatically resolved.</div>
+            </div>
+          </div>
+        </div>
+        <div class="right-col">
+          <div style="padding:16px;text-align:center;border-bottom:1px solid #2a3040;">
+            <div style="font-size:28px;margin-bottom:6px;">✅</div>
+            <div style="font-size:12px;font-weight:700;color:#58e8c1;margin-bottom:4px;">Approved · v1.3.3</div>
+            <div style="font-size:11px;color:#445566;">11 feedback reports resolved</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame-label">Revision Request State</div>
+  <div class="df">
+    <div class="df-inner"><div style="min-width:960px;">
+      <div class="top-nav">
+        <div class="top-nav-logo">🌟 WonderQuest Owner</div>
+        <div class="top-nav-link active">Content Review</div>
+      </div>
+      <div class="three-col" style="min-height:280px;">
+        <div class="queue-col">
+          <div class="col-hdr"><div class="col-hdr-title">Review Queue</div></div>
+          <div class="queue-item" style="border-left-color:#ffd166;background:#141a00;border-bottom:1px solid #1e2433;">
+            <div class="qi-band">P2 · G2–3 · Multiplication</div>
+            <div class="qi-title">Skip counting by 4s to 40</div>
+            <div class="qi-meta">
+              <div class="qi-type" style="background:#1a1400;color:#ffd166;border:1px solid #ffd16644;">⟳ Revision Requested</div>
+              <div class="qi-date">Just now</div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-col">
+          <div class="preview-topbar">
+            <div><div class="preview-title">node_mult_skip4_01 — Revision Requested</div></div>
+          </div>
+          <div class="preview-body">
+            <div style="background:#1a1400;border:1.5px solid #ffd16666;border-radius:10px;padding:14px;margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#ffd166;margin-bottom:8px;">Revision Notes Sent to Author</div>
+              <div style="font-size:12px;color:#c8d4e4;line-height:1.6;">"Hint text references 'skip count forward' but the question asks students to skip back. Please revise hint to match question direction. Also — difficulty level feels high for node 2/10, consider reducing to node 4 or 5."</div>
+            </div>
+            <div style="background:#0d1117;border:1px solid #2a3040;border-radius:8px;padding:12px;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#445566;margin-bottom:6px;">Failed Checks</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <div style="font-size:12px;color:#ff6b6b;">✗</div>
+                <div style="font-size:12px;color:#a0a8b8;">Hint text matches question direction</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="font-size:12px;color:#ffd166;">⚠</div>
+                <div style="font-size:12px;color:#a0a8b8;">Difficulty appropriate for node position</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="right-col">
+          <div style="padding:16px;text-align:center;">
+            <div style="font-size:24px;margin-bottom:6px;">⟳</div>
+            <div style="font-size:12px;font-weight:700;color:#ffd166;margin-bottom:4px;">Revision Requested</div>
+            <div style="font-size:11px;color:#445566;line-height:1.5;">Returned to author with notes. Will re-enter queue when resubmitted.</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: MOBILE NOTES ═══ -->
+<div id="mobile" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — Mobile Notes</strong><br>
+    On mobile, the 3-col workbench collapses: default view shows queue list. Tapping an item pushes a full-screen content preview with approve/revise actions at bottom. QA score shown as a small badge in the topbar. No inline editor on mobile — "Fix in Editor" opens CMS deep-link.
+  </div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;">
+    <div>
+      <div class="frame-label">Mobile Queue List</div>
+      <div style="width:390px;background:#0d1117;border-radius:40px;border:8px solid #2a3040;box-shadow:0 12px 40px rgba(0,0,0,0.55);overflow:hidden;font-family:'Sora','Segoe UI',sans-serif;">
+        <div style="overflow-y:auto;max-height:680px;">
+          <div style="display:flex;justify-content:space-between;padding:12px 20px 6px;font-size:11px;font-weight:700;color:#a0a8b8;background:#0d1117;"><span>9:41</span><span>●●● 🔋</span></div>
+          <div style="background:#0d1117;border-bottom:1px solid #2a3040;padding:10px 16px;display:flex;align-items:center;gap:10px;">
+            <div><div style="font-size:15px;font-weight:700;color:#e0e6f0;">Content Review</div><div style="font-size:11px;color:#445566;">12 pending</div></div>
+            <div style="margin-left:auto;background:#ff6b6b22;border:1px solid #ff6b6b44;border-radius:8px;padding:4px 8px;font-size:11px;color:#ff9999;font-weight:700;">🚩 3</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#2a3040;margin:10px 14px;border-radius:8px;overflow:hidden;">
+            <div style="background:#141a26;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:#ffd166;">12</div><div style="font-size:9px;color:#445566;text-transform:uppercase;">Pending</div></div>
+            <div style="background:#141a26;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:#ff6b6b;">3</div><div style="font-size:9px;color:#445566;text-transform:uppercase;">Flagged</div></div>
+            <div style="background:#141a26;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:#58e8c1;">96%</div><div style="font-size:9px;color:#445566;text-transform:uppercase;">QA Pass</div></div>
+          </div>
+          <div style="padding:4px 14px 4px;font-size:9px;font-weight:700;text-transform:uppercase;color:#ff9999;letter-spacing:0.09em;">🚩 Flagged first</div>
+          <div style="margin:4px 14px 6px;background:#1a0e0e;border:1px solid #ff6b6b44;border-left:3px solid #ff6b6b;border-radius:10px;padding:11px 12px;">
+            <div style="font-size:10px;color:#445566;margin-bottom:2px;">P1 · Fractions Intro</div>
+            <div style="font-size:12px;font-weight:700;color:#e0e6f0;margin-bottom:4px;">Add fractions: 1/2 + 1/4</div>
+            <div style="display:flex;gap:6px;"><div style="background:#1a0e0e;border:1px solid #ff6b6b44;border-radius:4px;padding:2px 7px;font-size:10px;color:#ff9999;font-weight:700;">🚩 11 reports</div></div>
+          </div>
+          <div style="margin:0 14px 6px;background:#141a26;border:1px solid #2a3040;border-left:3px solid #58e8c1;border-radius:10px;padding:11px 12px;">
+            <div style="font-size:10px;color:#445566;margin-bottom:2px;">P2 · G2–3 · Multiplication</div>
+            <div style="font-size:12px;font-weight:700;color:#e0e6f0;margin-bottom:4px;">Skip counting by 4s to 40</div>
+            <div style="display:flex;gap:6px;"><div style="background:#0d1a12;border:1px solid #58e8c133;border-radius:4px;padding:2px 7px;font-size:10px;color:#58e8c1;font-weight:700;">New</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC ═══ -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Tab 5 — Spec Notes</strong></div>
+
+  <div class="spec-h2">Route & Layout</div>
+  <div class="spec-note">Route: <code>/owner/content/review</code>. Desktop-first 3-col layout. Mobile collapses to queue list → detail push screen. Left col: 280px, right col: 340px, center: flexible. Min desktop width: 960px.</div>
+
+  <div class="spec-h2">Review Queue Sort Order</div>
+  <div class="spec-note">Default: Flagged items first (sorted by report count desc), then New content (sorted by submission date desc), then Revision returns. Filter chips override this. QA fail always surfaces a content item to top of its section.</div>
+
+  <div class="spec-h2">QA Checklist Items</div>
+  <table class="spec-table">
+    <tr><th>Check</th><th>Fail = block approve?</th></tr>
+    <tr><td>Correct answer marked</td><td>Yes — hard block</td></tr>
+    <tr><td>Question text readable</td><td>No — warning only</td></tr>
+    <tr><td>All options distinct</td><td>Yes — hard block</td></tr>
+    <tr><td>Hint text present</td><td>No — warning only</td></tr>
+    <tr><td>Difficulty appropriate</td><td>No — reviewer judgment</td></tr>
+    <tr><td>Age-appropriate language</td><td>No — reviewer judgment</td></tr>
+  </table>
+
+  <div class="spec-h2">Actions</div>
+  <table class="spec-table">
+    <tr><th>Action</th><th>Result</th><th>Notes</th></tr>
+    <tr><td>Approve</td><td>Version bumped (patch), item moves to Approved, linked feedback reports auto-resolved</td><td>Requires all hard-block QA checks to pass</td></tr>
+    <tr><td>Request Revision</td><td>Item returned to author with reviewer notes + failed QA checks highlighted. Re-enters queue on resubmission.</td><td>Note is required</td></tr>
+    <tr><td>Archive</td><td>Item removed from queue and CMS. Confirmation modal + reason required.</td><td>Not reversible without re-import</td></tr>
+    <tr><td>Fix in Editor</td><td>Deep-link to CMS: <code>/content/editor?node=:nodeId&source=review</code></td><td>Available on flagged items</td></tr>
+  </table>
+
+  <div class="spec-h2">Design Tokens</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>Owner base bg</td><td><code>#0d1117</code></td></tr>
+    <tr><td>Surface</td><td><code>#141a26</code></td></tr>
+    <tr><td>Gold accent</td><td><code>#ffd166</code></td></tr>
+    <tr><td>Flagged bg</td><td><code>#1a0e0e</code></td></tr>
+    <tr><td>Approved bg</td><td><code>#0d1a12</code></td></tr>
+    <tr><td>Revision bg</td><td><code>#1a1400</code></td></tr>
+    <tr><td>Font</td><td>Sora · owner</td></tr>
+    <tr><td>QA pass</td><td><code>#58e8c1</code></td></tr>
+    <tr><td>QA fail</td><td><code>#ff6b6b</code></td></tr>
+    <tr><td>QA warn</td><td><code>#ffd166</code></td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

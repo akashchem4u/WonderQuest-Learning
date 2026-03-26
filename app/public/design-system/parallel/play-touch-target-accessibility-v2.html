@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 227 · play-touch-target-accessibility-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --green: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --p0: #ffd166;
+      --p1: #9b72ff;
+      --p2: #58e8c1;
+      --p3: #ff7b6b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Engineering hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #2a1f00;
+    }
+
+    /* ── Tab switcher ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      width: fit-content;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: rgba(240,246,255,.5);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--green);
+      color: #0d1117;
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: rgba(255,255,255,.07);
+      color: var(--text);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Shared card ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,.45);
+      margin-bottom: 20px;
+    }
+
+    /* ══════════════════════════════════════
+       TAB 1 — Touch Target Showcase
+    ══════════════════════════════════════ */
+    .frames-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .frame-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(240,246,255,.6);
+      text-align: center;
+    }
+
+    /* Phone frame shell */
+    .phone {
+      width: 375px;
+      height: 667px;
+      background: #0d1117;
+      border: 2px solid rgba(255,255,255,.12);
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 0 6px #1a1f2a, 0 24px 64px rgba(0,0,0,.7);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Notch */
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 20px;
+      background: #161b22;
+      border-radius: 12px;
+      z-index: 10;
+    }
+
+    /* Phone inner scroll area */
+    .phone-inner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 44px 16px 0;
+      overflow: hidden;
+    }
+
+    /* Phone header */
+    .phone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0 12px;
+      position: relative;
+    }
+
+    .phone-header .back-btn {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(255,255,255,.06);
+      border: none;
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .phone-header .quest-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .phone-header .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--p1), var(--p2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    /* Question card */
+    .q-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .q-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .q-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--p0);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .speaker-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(80,232,144,.15);
+      border: 1.5px solid var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      position: relative;
+      color: var(--green);
+    }
+
+    .q-text {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    /* Answer buttons */
+    .answers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      padding-bottom: 8px;
+    }
+
+    .ans-btn {
+      width: 100%;
+      height: 56px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      transition: background .15s;
+      position: relative;
+      text-align: left;
+    }
+
+    .ans-btn .ans-letter {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    /* Bottom nav */
+    .phone-nav {
+      display: flex;
+      height: 56px;
+      border-top: 1px solid var(--border);
+      background: var(--card-bg);
+      margin-top: auto;
+      flex-shrink: 0;
+    }
+
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 9px;
+      color: rgba(240,246,255,.4);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .nav-tab.active-nav {
+      color: var(--green);
+    }
+
+    .nav-tab .nav-icon {
+      font-size: 18px;
+    }
+
+    /* ── Debug overlay styles ── */
+    .debug-active .debuggable {
+      outline: 2px dashed var(--green) !important;
+      outline-offset: 2px;
+    }
+
+    .debug-badge {
+      display: none;
+      position: absolute;
+      top: -10px;
+      right: -4px;
+      background: var(--green);
+      color: #0d1117;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 4px;
+      white-space: nowrap;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .debug-active .debug-badge {
+      display: block;
+    }
+
+    .check-badge {
+      position: absolute;
+      top: -10px;
+      left: -4px;
+      background: #1a3a2a;
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* Frame 1 checkmarks (always visible in standard view) */
+    .frame1 .check-badge { display: block; }
+    .frame1 .debug-badge { display: none; }
+
+    /* Frame 2 always shows audit overlay */
+    .frame2 .debuggable {
+      outline: 2px dashed var(--green);
+      outline-offset: 2px;
+    }
+
+    .frame2 .debug-badge { display: block; }
+    .frame2 .check-badge { display: none; }
+
+    .frame2 .warn-target {
+      outline-color: #ff4d4d !important;
+    }
+
+    .warn-badge {
+      display: block;
+      position: absolute;
+      top: -10px;
+      right: -4px;
+      background: #ff4d4d;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 4px;
+      white-space: nowrap;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .all-pass-banner {
+      background: rgba(80,232,144,.15);
+      border: 1.5px solid var(--green);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      text-align: center;
+      margin: 6px 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── Debug toggle control ── */
+    .debug-control {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: fit-content;
+    }
+
+    .toggle-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+
+    .debug-label {
+      font-size: 14px;
+      color: rgba(240,246,255,.7);
+      font-family: monospace;
+    }
+
+    .dev-pill {
+      background: rgba(155,114,255,.2);
+      border: 1px solid var(--p1);
+      color: var(--p1);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: .05em;
+    }
+
+    /* ══════════════════════════════════════
+       TAB 2 — Target Size Reference
+    ══════════════════════════════════════ */
+    .ref-table-wrap {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .ref-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    .ref-table th {
+      background: rgba(255,255,255,.04);
+      color: rgba(240,246,255,.45);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .ref-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .ref-table tr:last-child td { border-bottom: none; }
+
+    .ref-table tr:hover td { background: rgba(255,255,255,.025); }
+
+    .status-pass {
+      color: var(--green);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-warn {
+      color: #ffb347;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-na {
+      color: rgba(240,246,255,.3);
+    }
+
+    .el-name {
+      font-weight: 600;
+    }
+
+    .min-pill {
+      background: rgba(255,255,255,.06);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: rgba(240,246,255,.7);
+      white-space: nowrap;
+    }
+
+    .actual-pill {
+      background: rgba(80,232,144,.1);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .warn-pill {
+      background: rgba(255,179,71,.1);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #ffb347;
+      white-space: nowrap;
+    }
+
+    /* Warning notes */
+    .warn-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .warn-card {
+      background: rgba(255,179,71,.08);
+      border: 1.5px solid rgba(255,179,71,.3);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .warn-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffb347;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .warn-card-body {
+      font-size: 13px;
+      color: rgba(240,246,255,.7);
+      line-height: 1.55;
+    }
+
+    /* CSS snippet block */
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace;
+      font-size: 12.5px;
+      color: #c9d1d9;
+      line-height: 1.65;
+      overflow-x: auto;
+      white-space: pre;
+      margin-top: 20px;
+    }
+
+    .code-comment { color: #6e7681; }
+    .code-selector { color: var(--p1); }
+    .code-prop { color: #79c0ff; }
+    .code-val { color: var(--p2); }
+
+    /* ══════════════════════════════════════
+       TAB 3 — Spec
+    ══════════════════════════════════════ */
+    .spec-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .spec-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+
+    .spec-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(240,246,255,.4);
+      margin-bottom: 10px;
+    }
+
+    .spec-card-body {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .spec-card-body strong {
+      color: var(--green);
+    }
+
+    .band-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .band-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: rgba(240,246,255,.35);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .band-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      color: rgba(240,246,255,.85);
+    }
+
+    .band-table tr:last-child td { border-bottom: none; }
+
+    .band-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .spec-code {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: monospace;
+      font-size: 12.5px;
+      color: var(--p2);
+      margin-top: 6px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .never-box {
+      background: rgba(255,123,107,.08);
+      border: 1.5px solid rgba(255,123,107,.35);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: rgba(240,246,255,.8);
+      margin-top: 6px;
+    }
+
+    .never-box strong { color: var(--p3); }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 227 · play-touch-target-accessibility-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab switcher -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab(1)">Touch Target Showcase</button>
+    <button class="tab-btn" onclick="showTab(2)">Target Size Reference</button>
+    <button class="tab-btn" onclick="showTab(3)">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 1 — Touch Target Showcase
+  ══════════════════════════════════════ -->
+  <div class="screen active" id="screen-1">
+    <div class="card">
+      <div class="section-title">Touch Target Showcase</div>
+
+      <div class="frames-row">
+
+        <!-- Frame 1: Standard Play Screen -->
+        <div class="frame-wrap">
+          <div class="frame-label">Frame 1 — Standard Play Screen</div>
+          <div class="phone frame1" id="phone1">
+            <div class="phone-inner">
+
+              <!-- Header -->
+              <div class="phone-header">
+                <button class="back-btn debuggable" style="position:relative;">
+                  ←
+                  <span class="check-badge">✓ 44×44px</span>
+                </button>
+                <span class="quest-label">Ocean Quest</span>
+                <div class="avatar debuggable" style="position:relative;">
+                  🐙
+                  <span class="check-badge">✓ 44×44px</span>
+                </div>
+              </div>
+
+              <!-- Question card -->
+              <div class="q-card">
+                <div class="q-card-top">
+                  <span class="q-badge">Question 3 of 6</span>
+                  <button class="speaker-btn debuggable" style="position:relative;">
+                    🔊
+                    <span class="check-badge">✓ 44×44px</span>
+                    <span class="debug-badge">44×44</span>
+                  </button>
+                </div>
+                <div class="q-text">Which animal lives in the ocean and has eight arms?</div>
+              </div>
+
+              <!-- Answer buttons -->
+              <div class="answers">
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">A</span> Elephant
+                  <span class="check-badge">✓ 44×44px</span>
+                  <span class="debug-badge">56×343</span>
+                </button>
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">B</span> Octopus
+                  <span class="check-badge">✓ 44×44px</span>
+                  <span class="debug-badge">56×343</span>
+                </button>
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">C</span> Butterfly
+                  <span class="check-badge">✓ 44×44px</span>
+                  <span class="debug-badge">56×343</span>
+                </button>
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">D</span> Lion
+                  <span class="check-badge">✓ 44×44px</span>
+                  <span class="debug-badge">56×343</span>
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Bottom nav -->
+            <div class="phone-nav">
+              <div class="nav-tab active-nav debuggable" style="position:relative;">
+                <span class="nav-icon">🏠</span>
+                <span>Home</span>
+                <span class="check-badge" style="top:-10px;left:50%;transform:translateX(-50%);right:auto;">✓ 56px tall</span>
+              </div>
+              <div class="nav-tab debuggable" style="position:relative;">
+                <span class="nav-icon">⭐</span>
+                <span>Quests</span>
+                <span class="check-badge" style="top:-10px;left:50%;transform:translateX(-50%);right:auto;display:none;">✓</span>
+              </div>
+              <div class="nav-tab debuggable" style="position:relative;">
+                <span class="nav-icon">🏆</span>
+                <span>Badges</span>
+              </div>
+              <div class="nav-tab debuggable" style="position:relative;">
+                <span class="nav-icon">👤</span>
+                <span>Profile</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Frame 2: Touch Target Audit Overlay -->
+        <div class="frame-wrap">
+          <div class="frame-label">Frame 2 — Touch Target Audit Overlay (debug ON)</div>
+          <div class="phone frame2" id="phone2">
+            <div class="phone-inner">
+
+              <!-- Header -->
+              <div class="phone-header">
+                <button class="back-btn debuggable" style="position:relative;">
+                  ←
+                  <span class="debug-badge">44×44 ✓</span>
+                </button>
+                <span class="quest-label">Ocean Quest</span>
+                <div class="avatar debuggable" style="position:relative;">
+                  🐙
+                  <span class="debug-badge">44×44 ✓</span>
+                </div>
+              </div>
+
+              <!-- Question card -->
+              <div class="q-card">
+                <div class="q-card-top">
+                  <span class="q-badge">Question 3 of 6</span>
+                  <button class="speaker-btn debuggable" style="position:relative;">
+                    🔊
+                    <span class="debug-badge">44×44 ✓</span>
+                  </button>
+                </div>
+                <div class="q-text">Which animal lives in the ocean and has eight arms?</div>
+              </div>
+
+              <!-- Answer buttons -->
+              <div class="answers">
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">A</span> Elephant
+                  <span class="debug-badge">56×343 ✓</span>
+                </button>
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">B</span> Octopus
+                  <span class="debug-badge">56×343 ✓</span>
+                </button>
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">C</span> Butterfly
+                  <span class="debug-badge">56×343 ✓</span>
+                </button>
+                <button class="ans-btn debuggable" style="position:relative;">
+                  <span class="ans-letter">D</span> Lion
+                  <span class="debug-badge">56×343 ✓</span>
+                </button>
+              </div>
+
+              <!-- Drag handle (warn example) -->
+              <div class="debuggable warn-target" style="position:relative; height:32px; background:rgba(255,255,255,.04); border-radius:8px; display:flex; align-items:center; justify-content:center; margin-top:4px; flex-shrink:0;">
+                <div style="width:36px; height:4px; border-radius:2px; background:rgba(255,255,255,.2);"></div>
+                <span class="warn-badge">32px ⚠</span>
+              </div>
+
+            </div>
+
+            <!-- All targets pass banner -->
+            <div class="all-pass-banner">All primary targets pass ✓ &nbsp;·&nbsp; 1 warning — see Tab 2</div>
+
+            <!-- Bottom nav -->
+            <div class="phone-nav">
+              <div class="nav-tab active-nav debuggable" style="position:relative;">
+                <span class="nav-icon">🏠</span>
+                <span>Home</span>
+                <span class="debug-badge" style="top:-10px;left:50%;transform:translateX(-50%);right:auto;">56px ✓</span>
+              </div>
+              <div class="nav-tab debuggable" style="position:relative;">
+                <span class="nav-icon">⭐</span>
+                <span>Quests</span>
+              </div>
+              <div class="nav-tab debuggable" style="position:relative;">
+                <span class="nav-icon">🏆</span>
+                <span>Badges</span>
+              </div>
+              <div class="nav-tab debuggable" style="position:relative;">
+                <span class="nav-icon">👤</span>
+                <span>Profile</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /frames-row -->
+
+      <!-- Debug toggle -->
+      <div class="debug-control">
+        <input type="checkbox" class="toggle-checkbox" id="debugToggle" onchange="toggleDebug(this)" />
+        <label class="debug-label" for="debugToggle">Show touch target overlays (Frame 1)</label>
+        <span class="dev-pill">DEV MODE</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 2 — Target Size Reference
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-2">
+    <div class="card">
+      <div class="section-title">Target Size Reference — Child Play UI</div>
+
+      <div class="ref-table-wrap">
+        <table class="ref-table">
+          <thead>
+            <tr>
+              <th>Element</th>
+              <th>Min Size</th>
+              <th>Actual Size</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="el-name">Answer button (4-option)</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">56px tall × full-width</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Answer button (2-option)</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">72px tall × full-width</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Speaker / Hear-it-again button</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">44×44px</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">"Hear it again" chip</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">48px tall</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Bottom nav tab</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">56px tall × ¼ width</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Back button (header)</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">44×44px</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Avatar / profile chip</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">44×44px</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Badge (tappable)</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">48×48px</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Close button (modal)</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">44×44px</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Quest path node</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="actual-pill">56×56px (active) / 48×48px (locked)</span></td>
+              <td class="status-pass">✓ Pass</td>
+            </tr>
+            <tr>
+              <td class="el-name">Drag handle (bottom sheet)</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="warn-pill">40px tall × 44px wide</span></td>
+              <td class="status-warn">⚠ Warn</td>
+            </tr>
+            <tr>
+              <td class="el-name">Speed toggle pill</td>
+              <td><span class="min-pill">44×44px</span></td>
+              <td><span class="warn-pill">32px tall</span></td>
+              <td class="status-warn">⚠ Warn — expand hit area via padding</td>
+            </tr>
+            <tr>
+              <td class="el-name">Star icon (decorative)</td>
+              <td><span class="status-na">N/A — not interactive</span></td>
+              <td class="status-na">—</td>
+              <td class="status-na">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Warning resolution notes -->
+      <div class="warn-cards">
+        <div class="warn-card">
+          <div class="warn-card-title">⚠ Drag handle (bottom sheet) — 40px tall</div>
+          <div class="warn-card-body">
+            The visual drag handle pill is only 40px tall, 4px below the 44px minimum.<br/>
+            <strong>Resolution:</strong> Wrap in a transparent hit-area container with <code style="color:#ffb347;">min-height: 44px</code> and vertically center the visual element inside. This maintains the visual design while meeting the touch target requirement.
+          </div>
+        </div>
+        <div class="warn-card">
+          <div class="warn-card-title">⚠ Speed toggle pill — 32px tall</div>
+          <div class="warn-card-body">
+            The speed toggle pill is 32px tall, well below minimum. This is a secondary control that appears in some play screens.<br/>
+            <strong>Resolution:</strong> Apply <code style="color:#ffb347;">padding: 6px 0</code> to expand the hit area to ≥44px while keeping the visual pill at 32px. Alternatively, increase the pill height to 44px for P0–P1 bands. Use <code style="color:#ffb347;">::before</code> pseudo-element hit area expansion as a last resort.
+          </div>
+        </div>
+      </div>
+
+      <!-- CSS snippet -->
+      <div class="code-block"><span class="code-comment">/* WonderQuest touch target minimum enforcement */</span>
+<span class="code-selector">.wq-interactive</span> {
+  <span class="code-prop">min-height</span>: <span class="code-val">44px</span>;
+  <span class="code-prop">min-width</span>: <span class="code-val">44px</span>;
+  <span class="code-comment">/* For small visual elements, expand hit area with padding */</span>
+  <span class="code-prop">padding</span>: <span class="code-val">calc((44px - 1em) / 2)</span>;
+}</div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 3 — Spec
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-3">
+    <div class="spec-grid">
+
+      <div class="spec-card">
+        <div class="spec-card-title">Standard</div>
+        <div class="spec-card-body">
+          <strong>WCAG 2.1 Success Criterion 2.5.5 (AA)</strong> — Target Size ≥ 44×44 CSS pixels for all interactive elements presented to users.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">WonderQuest Target</div>
+        <div class="spec-card-body">
+          ≥ <strong>44×44px</strong> for all interactive elements (WCAG AA baseline). Children's primary play elements target <strong>56px+ height</strong>. Spacing between adjacent tappable elements must be ≥ 8px to prevent mis-taps.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">Hit Area Expansion</div>
+        <div class="spec-card-body">
+          For visually small elements, use CSS <code style="color:var(--p2);">padding</code> or a <code style="color:var(--p2);">::before</code> pseudo-element to expand the interactive hit area beyond the visual boundary. The visual appearance need not change — only the tappable region is enlarged.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">Band-Specific Sizing Rules</div>
+        <div class="spec-card-body">
+          <table class="band-table">
+            <thead>
+              <tr>
+                <th>Band</th>
+                <th>Age</th>
+                <th>Answer Button Height</th>
+                <th>Gap Between Targets</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="band-dot" style="background:var(--p0);"></span><strong>P0</strong> Pre-K</td>
+                <td>4–5 yr</td>
+                <td><strong style="color:var(--p0);">72px tall</strong></td>
+                <td>16px</td>
+              </tr>
+              <tr>
+                <td><span class="band-dot" style="background:var(--p1);"></span><strong>P1</strong> K–1</td>
+                <td>5–7 yr</td>
+                <td><strong style="color:var(--p1);">64px tall</strong></td>
+                <td>12px</td>
+              </tr>
+              <tr>
+                <td><span class="band-dot" style="background:var(--p2);"></span><strong>P2</strong> G2–3</td>
+                <td>7–9 yr</td>
+                <td><strong style="color:var(--p2);">56px tall</strong></td>
+                <td>8px</td>
+              </tr>
+              <tr>
+                <td><span class="band-dot" style="background:var(--p3);"></span><strong>P3</strong> G4–5</td>
+                <td>9–11 yr</td>
+                <td><strong style="color:var(--p3);">52px tall</strong></td>
+                <td>8px</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">Special Consideration — P0 Band (ages 4–6)</div>
+        <div class="spec-card-body">
+          Answer buttons scaled to <strong>72px+ height</strong>. Extra spacing applied between all interactive elements. No small controls (speed toggles, close icons) rendered without expanded hit area. Layout must accommodate imprecise motor control typical of pre-K children.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">Testing Protocol</div>
+        <div class="spec-card-body">
+          All child-facing screens must pass touch-target audit in CI using automated tool + manual check on real device. Smallest supported device: <strong>iPhone SE 4.7"</strong> (375px logical width). Two-pass approach required: automated scan first, then manual verification on physical device.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">Automated Test (Cypress)</div>
+        <div class="spec-code">cy.get('[data-interactive]').each(el => {
+  expect(el.outerHeight()).to.be.gte(44)
+})</div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-card-title">Never</div>
+        <div class="never-box">
+          <strong>Never</strong> use small icon-only buttons in child play screens without an expanded hit area. <strong>Never</strong> place interactive elements closer than 8px to another interactive element. <strong>Never</strong> rely solely on visual size to meet touch target requirements — always verify the rendered hit area.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i + 1 === t);
+      });
+      document.querySelectorAll('.screen').forEach((scr, i) => {
+        scr.classList.toggle('active', i + 1 === t);
+      });
+    }
+
+    function toggleDebug(checkbox) {
+      const phone1 = document.getElementById('phone1');
+      if (checkbox.checked) {
+        phone1.classList.add('debug-active');
+      } else {
+        phone1.classList.remove('debug-active');
+      }
+    }
+  </script>
+
+</body>
+</html>

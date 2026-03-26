@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Age-Appropriateness Check v2 — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0d1117;
+    color: #f0f6ff;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #1a1200;
+    line-height: 1.6;
+  }
+
+  /* ── Page wrapper ── */
+  .page-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  h1.page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f0f6ff;
+    margin-bottom: 6px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: #8b949e;
+    margin-bottom: 28px;
+  }
+
+  /* ── Tab navigation ── */
+  .tabs-wrapper {
+    background: #0d1117;
+    padding: 0 0 0;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin-bottom: 28px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 18px 12px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 2px solid transparent;
+    transition: color 120ms, border-color 120ms, background 120ms;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: #f0f6ff; background: rgba(255,255,255,.04); }
+  .tab-btn.active { color: #f0f6ff; border-bottom-color: #50e890; }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Card ── */
+  .card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+
+  .card + .card { margin-top: 16px; }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f6ff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  /* ── Checker layout ── */
+  .checker-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .input-panel {
+    width: 380px;
+    flex-shrink: 0;
+  }
+
+  .results-panel {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Form controls ── */
+  .field-group {
+    margin-bottom: 16px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+  }
+
+  .form-select,
+  .form-textarea {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 6px;
+    color: #f0f6ff;
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 120ms;
+    outline: none;
+  }
+
+  .form-select {
+    padding: 9px 12px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: #50e890;
+  }
+
+  .form-textarea {
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 110px;
+    line-height: 1.5;
+  }
+
+  .run-btn {
+    width: 100%;
+    padding: 11px 0;
+    background: #50e890;
+    color: #0d1117;
+    border: none;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 140ms, transform 80ms;
+    margin-top: 4px;
+  }
+
+  .run-btn:hover { background: #3fd478; }
+  .run-btn:active { transform: scale(.98); }
+
+  /* ── Results panel ── */
+  .results-empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: #4a5568;
+    font-size: 13px;
+  }
+
+  .results-empty-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: .4;
+  }
+
+  .results-content { display: none; }
+  .results-content.visible { display: block; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .result-question-preview {
+    font-size: 13px;
+    color: #c9d1d9;
+    font-style: italic;
+    max-width: 480px;
+    line-height: 1.45;
+  }
+
+  .band-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: .03em;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  .band-p0 { background: rgba(255,209,102,.15); color: #ffd166; border: 1px solid rgba(255,209,102,.3); }
+  .band-p1 { background: rgba(155,114,255,.15); color: #9b72ff; border: 1px solid rgba(155,114,255,.3); }
+  .band-p2 { background: rgba(88,232,193,.15); color: #58e8c1; border: 1px solid rgba(88,232,193,.3); }
+  .band-p3 { background: rgba(255,123,107,.15); color: #ff7b6b; border: 1px solid rgba(255,123,107,.3); }
+
+  /* ── Check section ── */
+  .check-section {
+    margin-bottom: 18px;
+  }
+
+  .check-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 10px;
+  }
+
+  /* ── Vocab table ── */
+  .vocab-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .vocab-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6e7681;
+    padding: 5px 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .vocab-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    color: #c9d1d9;
+  }
+
+  .vocab-table tr:last-child td { border-bottom: none; }
+
+  .vocab-table tr:hover td { background: rgba(255,255,255,.03); }
+
+  .tag-word {
+    font-family: monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e6edf3;
+  }
+
+  .status-ok {
+    color: #50e890;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .status-warn {
+    color: #f59e0b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .status-fail {
+    color: #ff7b6b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .vocab-summary-row td {
+    color: #50e890;
+    font-size: 12px;
+    font-style: italic;
+    padding-top: 8px;
+  }
+
+  /* ── FK row ── */
+  .metric-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.03);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.05);
+  }
+
+  .metric-label {
+    font-size: 13px;
+    color: #c9d1d9;
+    flex: 1;
+  }
+
+  .metric-value {
+    font-size: 17px;
+    font-weight: 700;
+    color: #50e890;
+    font-family: monospace;
+  }
+
+  .metric-target {
+    font-size: 11px;
+    color: #6e7681;
+    white-space: nowrap;
+  }
+
+  /* ── Sensitivity flags ── */
+  .flag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .flag-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: 13px;
+  }
+
+  .flag-item.warn {
+    background: rgba(245,158,11,.07);
+    border-color: rgba(245,158,11,.25);
+  }
+
+  .flag-item.ok {
+    background: rgba(80,232,144,.05);
+    border-color: rgba(80,232,144,.18);
+  }
+
+  .flag-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+
+  .flag-text {
+    flex: 1;
+    line-height: 1.45;
+  }
+
+  .flag-phrase {
+    font-family: monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #e6edf3;
+  }
+
+  .flag-category {
+    font-size: 11px;
+    font-weight: 700;
+    color: #f59e0b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .flag-note {
+    font-size: 12px;
+    color: #8b949e;
+    margin-top: 2px;
+  }
+
+  /* ── Safe language pills ── */
+  .safe-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .safe-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.2);
+    color: #50e890;
+    font-weight: 500;
+  }
+
+  /* ── Overall verdict ── */
+  .verdict-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 2px solid;
+    margin-top: 4px;
+  }
+
+  .verdict-row.pass-review {
+    background: rgba(245,158,11,.07);
+    border-color: rgba(245,158,11,.35);
+  }
+
+  .verdict-row.pass {
+    background: rgba(80,232,144,.07);
+    border-color: rgba(80,232,144,.35);
+  }
+
+  .verdict-row.fail {
+    background: rgba(255,123,107,.07);
+    border-color: rgba(255,123,107,.35);
+  }
+
+  .verdict-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .verdict-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f59e0b;
+  }
+
+  .verdict-row.pass .verdict-label { color: #50e890; }
+  .verdict-row.fail .verdict-label { color: #ff7b6b; }
+
+  .verdict-desc {
+    font-size: 12px;
+    color: #8b949e;
+    margin-top: 2px;
+  }
+
+  /* ─────────────────────────────────────────── */
+  /* Tab 2 — Band Standards Reference            */
+  /* ─────────────────────────────────────────── */
+
+  .bands-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 760px) {
+    .bands-grid { grid-template-columns: 1fr; }
+    .checker-layout { flex-direction: column; }
+    .input-panel { width: 100%; }
+  }
+
+  .band-card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 18px 20px;
+    border-top: 3px solid transparent;
+  }
+
+  .band-card.p0 { border-top-color: #ffd166; }
+  .band-card.p1 { border-top-color: #9b72ff; }
+  .band-card.p2 { border-top-color: #58e8c1; }
+  .band-card.p3 { border-top-color: #ff7b6b; }
+
+  .band-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .band-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .band-dot.p0 { background: #ffd166; }
+  .band-dot.p1 { background: #9b72ff; }
+  .band-dot.p2 { background: #58e8c1; }
+  .band-dot.p3 { background: #ff7b6b; }
+
+  .band-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f6ff;
+  }
+
+  .band-card-subtitle {
+    font-size: 11px;
+    color: #8b949e;
+    margin-top: 1px;
+  }
+
+  .band-spec-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .band-spec-list li {
+    font-size: 12px;
+    color: #c9d1d9;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    line-height: 1.45;
+  }
+
+  .spec-key {
+    font-weight: 700;
+    color: #8b949e;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 90px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding-top: 1px;
+  }
+
+  .spec-val { flex: 1; }
+
+  .forbidden-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #ff7b6b;
+    background: rgba(255,123,107,.12);
+    border: 1px solid rgba(255,123,107,.25);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 3px;
+    margin-bottom: 3px;
+    letter-spacing: .02em;
+  }
+
+  /* ─────────────────────────────────────────── */
+  /* Tab 3 — Spec                                */
+  /* ─────────────────────────────────────────── */
+
+  .spec-section {
+    margin-bottom: 20px;
+  }
+
+  .spec-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #50e890;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(80,232,144,.15);
+  }
+
+  .spec-body {
+    font-size: 13px;
+    color: #c9d1d9;
+    line-height: 1.65;
+  }
+
+  .spec-body p {
+    margin-bottom: 8px;
+  }
+
+  .spec-body p:last-child { margin-bottom: 0; }
+
+  .code-inline {
+    font-family: monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #9b72ff;
+  }
+
+  .formula-block {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #58e8c1;
+    margin: 8px 0;
+    line-height: 1.6;
+  }
+
+  .db-schema {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.08);
+    border-left: 3px solid #9b72ff;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #c9d1d9;
+    line-height: 1.75;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .target-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .target-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6e7681;
+    padding: 5px 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .target-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    color: #c9d1d9;
+  }
+
+  .target-table tr:last-child td { border-bottom: none; }
+
+  .gate-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.05);
+    font-size: 13px;
+    color: #c9d1d9;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .gate-icon { flex-shrink: 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 237 · content-age-appropriateness-check-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <h1 class="page-title">Content Age-Appropriateness Check</h1>
+  <p class="page-subtitle">Review and validate question content against band standards before publish</p>
+
+  <!-- Tab bar -->
+  <div class="tabs-wrapper">
+    <ul class="tab-bar" role="tablist">
+      <li><button class="tab-btn active" onclick="showTab(0)" role="tab">Age-Appropriateness Checker</button></li>
+      <li><button class="tab-btn" onclick="showTab(1)" role="tab">Band Standards Reference</button></li>
+      <li><button class="tab-btn" onclick="showTab(2)" role="tab">Spec</button></li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 0 — Age-Appropriateness Checker
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-0">
+
+    <div class="checker-layout">
+
+      <!-- Input panel -->
+      <div class="input-panel card">
+        <div class="card-title">
+          <div class="card-title-icon" style="background:rgba(80,232,144,.15); color:#50e890;">✦</div>
+          Input
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="band-select">Band</label>
+          <select class="form-select" id="band-select">
+            <option value="p0">P0 — Pre-K Starters (4–5 yr)</option>
+            <option value="p1">P1 — Adventurers (5–7 yr, K–1)</option>
+            <option value="p2">P2 — Explorers (7–9 yr, G2–3)</option>
+            <option value="p3">P3 — Trailblazers (9–11 yr, G4–5)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="question-text">Question text</label>
+          <textarea class="form-textarea" id="question-text" placeholder="Paste question + answer options here…">When you feel sad, it's okay to cry. What do you do when you feel happy?</textarea>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="subject-select">Subject</label>
+          <select class="form-select" id="subject-select">
+            <option value="maths">Maths</option>
+            <option value="literacy">Literacy</option>
+            <option value="science">Science</option>
+            <option value="social" selected>Social Studies</option>
+            <option value="arts">Arts</option>
+          </select>
+        </div>
+
+        <button class="run-btn" onclick="runCheck()">Run Check</button>
+      </div>
+
+      <!-- Results panel -->
+      <div class="results-panel card">
+        <div class="card-title">
+          <div class="card-title-icon" style="background:rgba(245,158,11,.15); color:#f59e0b;">◎</div>
+          Results
+        </div>
+
+        <!-- Empty state -->
+        <div class="results-empty" id="results-empty">
+          <div class="results-empty-icon">◎</div>
+          <div>Select band, paste your question, then click <strong>Run Check</strong>.</div>
+        </div>
+
+        <!-- Populated results (shown after run) -->
+        <div class="results-content" id="results-content">
+
+          <!-- Header -->
+          <div class="result-header">
+            <div class="result-question-preview" id="result-question-preview">
+              "When you feel sad, it's okay to cry. What do you do when you feel happy?"
+            </div>
+            <span class="band-badge band-p0" id="result-band-badge">P0</span>
+          </div>
+
+          <!-- Vocabulary check -->
+          <div class="check-section">
+            <div class="check-section-title">Vocabulary check</div>
+            <table class="vocab-table">
+              <thead>
+                <tr>
+                  <th>Word</th>
+                  <th>Grade level</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="tag-word">sad</span></td>
+                  <td>Grade K</td>
+                  <td><span class="status-ok">✓ OK for P0</span></td>
+                </tr>
+                <tr>
+                  <td><span class="tag-word">okay</span></td>
+                  <td>Grade K</td>
+                  <td><span class="status-ok">✓ OK for P0</span></td>
+                </tr>
+                <tr>
+                  <td><span class="tag-word">cry</span></td>
+                  <td>Grade K</td>
+                  <td><span class="status-ok">✓ OK for P0</span></td>
+                </tr>
+                <tr>
+                  <td><span class="tag-word">happy</span></td>
+                  <td>Grade Pre-K</td>
+                  <td><span class="status-ok">✓ OK for P0</span></td>
+                </tr>
+                <tr class="vocab-summary-row">
+                  <td colspan="3">All words within P0 vocabulary range ✓</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Flesch-Kincaid -->
+          <div class="check-section">
+            <div class="check-section-title">Flesch-Kincaid Reading Level</div>
+            <div class="metric-row">
+              <span class="metric-label">Computed F-K score</span>
+              <span class="metric-value">1.2</span>
+              <span class="metric-target">Target for P0: ≤ 2.0</span>
+              <span class="status-ok">✓</span>
+            </div>
+          </div>
+
+          <!-- Content sensitivity flags -->
+          <div class="check-section">
+            <div class="check-section-title">Content sensitivity flags</div>
+            <div class="flag-list">
+              <div class="flag-item warn">
+                <span class="flag-icon">⚠</span>
+                <div class="flag-text">
+                  <div><span class="flag-phrase">"when you feel sad"</span> &nbsp;<span class="flag-category">Emotional content</span></div>
+                  <div class="flag-note">Review for potential anxiety trigger — Manual check recommended</div>
+                </div>
+              </div>
+              <div class="flag-item warn">
+                <span class="flag-icon">⚠</span>
+                <div class="flag-text">
+                  <div><span class="flag-phrase">"cry"</span></div>
+                  <div class="flag-note">Could cause distress for some children — note in review</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Safe language check -->
+          <div class="check-section">
+            <div class="check-section-title">Safe language check</div>
+            <div class="safe-pills">
+              <span class="safe-pill">✓ No timer language</span>
+              <span class="safe-pill">✓ No shame language</span>
+              <span class="safe-pill">✓ No exclusionary language</span>
+            </div>
+          </div>
+
+          <!-- Overall verdict -->
+          <div class="check-section">
+            <div class="check-section-title">Overall</div>
+            <div class="verdict-row pass-review">
+              <span class="verdict-icon">⚠</span>
+              <div>
+                <div class="verdict-label">Pass with review note</div>
+                <div class="verdict-desc">Auto checks passed. Sensitivity flags require manual reviewer confirmation before advancing to Published.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 1 — Band Standards Reference
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-1">
+
+    <div class="bands-grid">
+
+      <!-- P0 -->
+      <div class="band-card p0">
+        <div class="band-card-header">
+          <div class="band-dot p0"></div>
+          <div>
+            <div class="band-card-title">P0 — Pre-K Starters</div>
+            <div class="band-card-subtitle">4–5 years</div>
+          </div>
+          <span class="band-badge band-p0" style="margin-left:auto;">P0</span>
+        </div>
+        <ul class="band-spec-list">
+          <li>
+            <span class="spec-key">Max words</span>
+            <span class="spec-val">12 words per question</span>
+          </li>
+          <li>
+            <span class="spec-key">Answers</span>
+            <span class="spec-val">2 (preferred) or 4 (simple)</span>
+          </li>
+          <li>
+            <span class="spec-key">Vocabulary</span>
+            <span class="spec-val">Dolch Pre-K sight words + common nouns</span>
+          </li>
+          <li>
+            <span class="spec-key">Concepts</span>
+            <span class="spec-val">Counting 1–10, basic colours/shapes, animal names, simple rhymes</span>
+          </li>
+          <li>
+            <span class="spec-key">Tone</span>
+            <span class="spec-val">Warm, playful; 1–2 syllable words preferred</span>
+          </li>
+          <li>
+            <span class="spec-key">Forbidden</span>
+            <span class="spec-val">
+              <span class="forbidden-tag">abstract concepts</span>
+              <span class="forbidden-tag">multi-step instructions</span>
+              <span class="forbidden-tag">hypotheticals</span>
+              <span class="forbidden-tag">death / illness</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- P1 -->
+      <div class="band-card p1">
+        <div class="band-card-header">
+          <div class="band-dot p1"></div>
+          <div>
+            <div class="band-card-title">P1 — Adventurers</div>
+            <div class="band-card-subtitle">5–7 years · K–1</div>
+          </div>
+          <span class="band-badge band-p1" style="margin-left:auto;">P1</span>
+        </div>
+        <ul class="band-spec-list">
+          <li>
+            <span class="spec-key">Max words</span>
+            <span class="spec-val">20 words per question</span>
+          </li>
+          <li>
+            <span class="spec-key">Answers</span>
+            <span class="spec-val">4 choices</span>
+          </li>
+          <li>
+            <span class="spec-key">Vocabulary</span>
+            <span class="spec-val">Dolch K–1 sight words + subject vocabulary</span>
+          </li>
+          <li>
+            <span class="spec-key">Concepts</span>
+            <span class="spec-val">Addition/subtraction to 20, CVC reading, basic science</span>
+          </li>
+          <li>
+            <span class="spec-key">Tone</span>
+            <span class="spec-val">Encouraging, clear, concrete language</span>
+          </li>
+          <li>
+            <span class="spec-key">Forbidden</span>
+            <span class="spec-val">
+              <span class="forbidden-tag">complex conditionals</span>
+              <span class="forbidden-tag">&gt;2-step reasoning</span>
+              <span class="forbidden-tag">scary content</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- P2 -->
+      <div class="band-card p2">
+        <div class="band-card-header">
+          <div class="band-dot p2"></div>
+          <div>
+            <div class="band-card-title">P2 — Explorers</div>
+            <div class="band-card-subtitle">7–9 years · G2–3</div>
+          </div>
+          <span class="band-badge band-p2" style="margin-left:auto;">P2</span>
+        </div>
+        <ul class="band-spec-list">
+          <li>
+            <span class="spec-key">Max words</span>
+            <span class="spec-val">30 words per question</span>
+          </li>
+          <li>
+            <span class="spec-key">Answers</span>
+            <span class="spec-val">4 choices</span>
+          </li>
+          <li>
+            <span class="spec-key">Vocabulary</span>
+            <span class="spec-val">Grade 2–3 academic vocabulary</span>
+          </li>
+          <li>
+            <span class="spec-key">Concepts</span>
+            <span class="spec-val">Multiplication intro, chapter-book reading level, ecosystems</span>
+          </li>
+          <li>
+            <span class="spec-key">Tone</span>
+            <span class="spec-val">Curious, exploratory; supports multi-sentence questions</span>
+          </li>
+          <li>
+            <span class="spec-key">Forbidden</span>
+            <span class="spec-val">
+              <span class="forbidden-tag">adult social contexts</span>
+              <span class="forbidden-tag">political content</span>
+              <span class="forbidden-tag">extreme weather distress</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- P3 -->
+      <div class="band-card p3">
+        <div class="band-card-header">
+          <div class="band-dot p3"></div>
+          <div>
+            <div class="band-card-title">P3 — Trailblazers</div>
+            <div class="band-card-subtitle">9–11 years · G4–5</div>
+          </div>
+          <span class="band-badge band-p3" style="margin-left:auto;">P3</span>
+        </div>
+        <ul class="band-spec-list">
+          <li>
+            <span class="spec-key">Max words</span>
+            <span class="spec-val">40 words per question</span>
+          </li>
+          <li>
+            <span class="spec-key">Answers</span>
+            <span class="spec-val">4 choices (sometimes 5)</span>
+          </li>
+          <li>
+            <span class="spec-key">Vocabulary</span>
+            <span class="spec-val">Grade 4–5 + subject-specific terms</span>
+          </li>
+          <li>
+            <span class="spec-key">Concepts</span>
+            <span class="spec-val">Fractions/decimals, novel-length reading, historical events</span>
+          </li>
+          <li>
+            <span class="spec-key">Tone</span>
+            <span class="spec-val">Confident, analytical; supports inference questions</span>
+          </li>
+          <li>
+            <span class="spec-key">Forbidden</span>
+            <span class="spec-val">
+              <span class="forbidden-tag">graphic violence</span>
+              <span class="forbidden-tag">inappropriate social themes</span>
+              <span class="forbidden-tag">adult humour</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TAB 2 — Spec
+  ════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-2">
+    <div class="card">
+
+      <div class="spec-section">
+        <div class="spec-section-title">Vocabulary check</div>
+        <div class="spec-body">
+          <p>Wordlist database mapped to grade levels using Dolch, Fry, and Curriculum Word Lists. Each word is scored by grade level. Words above the band ceiling are flagged amber. Words more than 2 grades above the ceiling are flagged red.</p>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-section-title">Flesch-Kincaid Reading Level</div>
+        <div class="spec-body">
+          <p>Formula:</p>
+          <div class="formula-block">FK = 0.39 × (words / sentences) + 11.8 × (syllables / words) − 15.59</div>
+          <p>Band targets:</p>
+          <table class="target-table">
+            <thead>
+              <tr>
+                <th>Band</th>
+                <th>FK target</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="band-badge band-p0">P0</span></td><td>≤ 2.0</td></tr>
+              <tr><td><span class="band-badge band-p1">P1</span></td><td>≤ 3.5</td></tr>
+              <tr><td><span class="band-badge band-p2">P2</span></td><td>≤ 5.0</td></tr>
+              <tr><td><span class="band-badge band-p3">P3</span></td><td>≤ 7.0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-section-title">Content sensitivity</div>
+        <div class="spec-body">
+          <p>Safe language checker categories are applied at check time. Emotional content is reviewed manually for P0 and P1. Categories include timer language, shame language, exclusionary language, distress-inducing content, and adult social contexts.</p>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-section-title">Auto vs Manual pipeline</div>
+        <div class="spec-body">
+          <div class="gate-item"><span class="gate-icon">⚡</span><div><strong>Auto:</strong> Vocabulary check + Flesch-Kincaid score computed automatically on submit.</div></div>
+          <div class="gate-item"><span class="gate-icon">⚠</span><div><strong>Semi-auto:</strong> Sensitivity flags are auto-raised; manual confirmation required to resolve.</div></div>
+          <div class="gate-item"><span class="gate-icon">👤</span><div><strong>Always human:</strong> Final approval decision is always made by a human reviewer.</div></div>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-section-title">Database schema</div>
+        <div class="db-schema">content_age_checks (
+  id               UUID PRIMARY KEY,
+  skill_id         UUID REFERENCES skills(id),
+  question_id      UUID REFERENCES questions(id),
+  band_id          TEXT,
+  fk_score         NUMERIC(5,2),
+  vocab_flags      JSONB,
+  sensitivity_flags JSONB,
+  overall_status   ENUM('pass','pass_review','fail','pending'),
+  checked_at       TIMESTAMPTZ,
+  reviewer_id      UUID REFERENCES users(id),
+  reviewed_at      TIMESTAMPTZ
+)</div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-section-title">Publish gate</div>
+        <div class="spec-body">
+          <div class="gate-item"><span class="gate-icon">🔒</span><div>Age-appropriateness check must be <strong>completed</strong> (any status) and <strong>approved</strong> before <span class="code-inline">review_status</span> can advance to <span class="code-inline">Published</span>.</div></div>
+          <div class="gate-item"><span class="gate-icon">🔄</span><div><strong>Re-check trigger:</strong> If question text is edited after approval, age check status is automatically reset to <span class="code-inline">pending</span> and must be re-run.</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ── Tab switching ── */
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach((p, i) => {
+      p.classList.toggle('active', i === t);
+    });
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === t);
+    });
+  }
+
+  /* ── Run check ── */
+  function runCheck() {
+    const band = document.getElementById('band-select').value;
+    const question = document.getElementById('question-text').value.trim();
+
+    if (!question) {
+      alert('Please enter a question to check.');
+      return;
+    }
+
+    // Hide empty state, show results
+    document.getElementById('results-empty').style.display = 'none';
+    const resultsContent = document.getElementById('results-content');
+    resultsContent.classList.add('visible');
+
+    // Update question preview (truncate if long)
+    const preview = document.getElementById('result-question-preview');
+    const displayText = question.length > 120 ? question.slice(0, 117) + '…' : question;
+    preview.textContent = '"' + displayText + '"';
+
+    // Update band badge
+    const badge = document.getElementById('result-band-badge');
+    badge.className = 'band-badge band-' + band;
+    const bandLabels = { p0: 'P0', p1: 'P1', p2: 'P2', p3: 'P3' };
+    badge.textContent = bandLabels[band];
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owner Content Publish Calendar — WonderQuest #285</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --accent: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --muted: #8b949e;
+      --card-hover: #1c2330;
+      --status-green: #50e890;
+      --status-green-bg: rgba(80,232,144,.12);
+      --status-amber: #f0a030;
+      --status-amber-bg: rgba(240,160,48,.12);
+      --status-violet: #a78bfa;
+      --status-violet-bg: rgba(167,139,250,.12);
+      --status-gray: #8b949e;
+      --status-gray-bg: rgba(139,148,158,.12);
+      --status-red: #f87171;
+      --status-red-bg: rgba(248,113,113,.12);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ─── Layout ─── */
+    .page-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    /* ─── Hint Box ─── */
+    .hint-box {
+      background: rgba(240,160,48,.10);
+      border: 1px solid rgba(240,160,48,.35);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      font-size: 12px;
+      color: #f0a030;
+      line-height: 1.7;
+    }
+    .hint-box strong { color: #f5c842; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* ─── Page Header ─── */
+    .page-header {
+      margin-bottom: 28px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .page-header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ─── Tab Nav ─── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 10px 18px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      margin-bottom: -1px;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ─── Tab Panels ─── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── Calendar Tab ─── */
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .cal-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .cal-nav-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color .15s, border-color .15s;
+      font-size: 16px;
+    }
+    .cal-nav-btn:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .cal-day-label {
+      background: var(--card);
+      padding: 10px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-align: center;
+    }
+    .cal-cell {
+      background: var(--card);
+      min-height: 100px;
+      padding: 8px;
+      vertical-align: top;
+      position: relative;
+    }
+    .cal-cell.empty { background: rgba(13,17,23,.7); }
+    .cal-cell.today .cal-date { background: var(--accent); color: #0d1117; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .cal-date {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cal-event {
+      border-radius: 5px;
+      padding: 4px 7px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 3px;
+      cursor: pointer;
+      transition: opacity .12s, transform .12s;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      border: 1px solid transparent;
+    }
+    .cal-event:hover { opacity: .85; transform: translateY(-1px); }
+    .cal-event.active-event { outline: 2px solid var(--text); outline-offset: 1px; }
+    .cal-event.green { background: var(--status-green-bg); color: var(--status-green); border-color: rgba(80,232,144,.2); }
+    .cal-event.amber { background: var(--status-amber-bg); color: var(--status-amber); border-color: rgba(240,160,48,.2); }
+    .cal-event.violet { background: var(--status-violet-bg); color: var(--status-violet); border-color: rgba(167,139,250,.2); }
+    .cal-event.gray { background: var(--status-gray-bg); color: var(--status-gray); border-color: rgba(139,148,158,.2); }
+
+    /* ─── Detail Panel ─── */
+    .detail-panel {
+      margin-top: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: none;
+    }
+    .detail-panel.open { display: block; }
+
+    .detail-panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .detail-panel-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .detail-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      padding: 4px;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color .12s, background .12s;
+    }
+    .detail-close:hover { color: var(--text); background: rgba(255,255,255,.06); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .detail-field label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 5px;
+    }
+    .detail-field .val {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .detail-notes-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .detail-notes {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      resize: vertical;
+      min-height: 72px;
+      margin-bottom: 16px;
+      transition: border-color .15s;
+    }
+    .detail-notes:focus { outline: none; border-color: var(--accent); }
+
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 0 20px;
+      height: 44px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(.98); }
+    .btn-approve { background: var(--status-green-bg); color: var(--status-green); border-color: rgba(80,232,144,.25); }
+    .btn-defer   { background: var(--status-red-bg); color: var(--status-red); border-color: rgba(248,113,113,.25); }
+    .btn-outline { background: transparent; color: var(--muted); border-color: var(--border); }
+    .btn-outline:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+
+    /* ─── Status Chip ─── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: capitalize;
+      white-space: nowrap;
+    }
+    .chip-green  { background: var(--status-green-bg);  color: var(--status-green); }
+    .chip-amber  { background: var(--status-amber-bg);  color: var(--status-amber); }
+    .chip-violet { background: var(--status-violet-bg); color: var(--status-violet); }
+    .chip-gray   { background: var(--status-gray-bg);   color: var(--status-gray); }
+    .chip-red    { background: var(--status-red-bg);    color: var(--status-red); }
+    .chip-blue   { background: rgba(99,179,237,.12);    color: #63b3ed; }
+
+    /* ─── List Tab ─── */
+    .list-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color .12s, border-color .12s, background .12s;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+    }
+    .filter-chip:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+    .filter-chip.active { background: var(--status-green-bg); color: var(--accent); border-color: rgba(80,232,144,.3); }
+
+    .sort-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .sort-select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      min-height: 36px;
+    }
+    .sort-select:focus { outline: 2px solid var(--accent); }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead th {
+      background: var(--card);
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--card-hover); }
+    tbody td {
+      padding: 13px 16px;
+      font-size: 13px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .td-title { font-weight: 500; }
+    .td-type {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+    .td-muted { color: var(--muted); font-size: 12px; }
+
+    /* ─── Spec Tab ─── */
+    .spec-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .spec-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .spec-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .spec-row dt {
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 130px;
+      flex-shrink: 0;
+    }
+    .spec-row dd { color: var(--text); }
+    pre.code-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12px;
+      color: #a5d6a7;
+      overflow-x: auto;
+      line-height: 1.7;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .lifecycle-flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .lifecycle-step {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .lifecycle-arrow {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .lifecycle-branch {
+      font-size: 12px;
+      color: var(--status-red);
+      margin-top: 6px;
+    }
+
+    .rule-list {
+      list-style: none;
+      counter-reset: rules;
+    }
+    .rule-list li {
+      counter-increment: rules;
+      padding: 10px 0 10px 36px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      position: relative;
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list li::before {
+      content: counter(rules);
+      position: absolute;
+      left: 0;
+      top: 10px;
+      background: var(--status-green-bg);
+      color: var(--accent);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .rule-list li strong { color: var(--accent); }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .cal-cell { min-height: 72px; padding: 4px; }
+      .cal-day-label { font-size: 9px; padding: 8px 4px; }
+      .cal-event { font-size: 10px; padding: 3px 5px; }
+      .cal-date { font-size: 11px; }
+      .detail-grid { grid-template-columns: 1fr 1fr; }
+      .sort-wrap { margin-left: 0; width: 100%; }
+      .tab-btn { padding: 10px 12px; font-size: 13px; }
+    }
+    @media (max-width: 480px) {
+      .cal-grid { font-size: 10px; }
+      .cal-cell { padding: 3px; min-height: 56px; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Engineering Hint Box (always first) -->
+  <div class="hint-box" role="note" aria-label="Engineering hint">
+    <strong>Engineering Hint</strong> &mdash; owner-content-publish-calendar-v2<br/>
+    <strong>Persona:</strong> Owner + Content Team &nbsp;|&nbsp;
+    <strong>Route:</strong> /owner/content/calendar &nbsp;|&nbsp;
+    <strong>Auth:</strong> role IN ('owner','content_team')<br/>
+    <strong>DB:</strong> <code>content_publish_events { id, title, content_type ENUM('theme_pack','quest_batch','band_update','system_update'), status ENUM('draft','in_review','approved','scheduled','published','deferred'), scheduled_at, published_at, assigned_to, release_version, notes }</code><br/>
+    <strong>Privacy:</strong> No child PII in content metadata
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Content Publish Calendar</h1>
+    <p>Schedule and track theme packs, quest batches, band updates, and system releases.</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <nav class="tab-nav" role="tablist" aria-label="Content calendar views">
+    <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-calendar"  id="btn-calendar"  onclick="showTab('calendar')">Calendar</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-list"      id="btn-list"      onclick="showTab('list')">List View</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-spec"      id="btn-spec"      onclick="showTab('spec')">Spec</button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════
+       TAB 1 — Calendar
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-calendar" role="tabpanel" aria-labelledby="btn-calendar">
+
+    <div class="cal-header">
+      <button class="cal-nav-btn" aria-label="Previous month" onclick="calNav(-1)">&#8592;</button>
+      <h2 id="cal-month-label">April 2026</h2>
+      <button class="cal-nav-btn" aria-label="Next month" onclick="calNav(1)">&#8594;</button>
+    </div>
+
+    <div class="cal-grid" role="grid" aria-label="April 2026 content calendar">
+      <!-- Day labels -->
+      <div class="cal-day-label" role="columnheader">Mon</div>
+      <div class="cal-day-label" role="columnheader">Tue</div>
+      <div class="cal-day-label" role="columnheader">Wed</div>
+      <div class="cal-day-label" role="columnheader">Thu</div>
+      <div class="cal-day-label" role="columnheader">Fri</div>
+      <div class="cal-day-label" role="columnheader">Sat</div>
+      <div class="cal-day-label" role="columnheader">Sun</div>
+
+      <!-- Week 1: Apr 1 is Wednesday -->
+      <div class="cal-cell empty" role="gridcell" aria-label="Empty"></div>
+      <div class="cal-cell empty" role="gridcell" aria-label="Empty"></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 1">
+        <div class="cal-date">1</div>
+        <button class="cal-event green" onclick="openDetail('evt-1')" aria-expanded="false" id="cal-evt-1" aria-label="Space Pack — Planet Patrol, theme pack, Scheduled">
+          Space Pack — Planet Patrol
+        </button>
+      </div>
+      <div class="cal-cell" role="gridcell" aria-label="April 2"><div class="cal-date">2</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 3"><div class="cal-date">3</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 4"><div class="cal-date">4</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 5"><div class="cal-date">5</div></div>
+
+      <!-- Week 2 -->
+      <div class="cal-cell" role="gridcell" aria-label="April 6"><div class="cal-date">6</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 7">
+        <div class="cal-date">7</div>
+        <button class="cal-event amber" onclick="openDetail('evt-2')" aria-expanded="false" id="cal-evt-2" aria-label="P3 Social Studies Quest Batch, quest batch, In Review">
+          P3 Social Studies Quest Batch
+        </button>
+      </div>
+      <div class="cal-cell" role="gridcell" aria-label="April 8"><div class="cal-date">8</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 9"><div class="cal-date">9</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 10">
+        <div class="cal-date">10</div>
+        <button class="cal-event violet" onclick="openDetail('evt-3')" aria-expanded="false" id="cal-evt-3" aria-label="v2.6 System Update, system update, Approved">
+          v2.6 System Update
+        </button>
+      </div>
+      <div class="cal-cell" role="gridcell" aria-label="April 11"><div class="cal-date">11</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 12"><div class="cal-date">12</div></div>
+
+      <!-- Week 3 -->
+      <div class="cal-cell" role="gridcell" aria-label="April 13"><div class="cal-date">13</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 14"><div class="cal-date">14</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 15">
+        <div class="cal-date">15</div>
+        <button class="cal-event gray" onclick="openDetail('evt-4')" aria-expanded="false" id="cal-evt-4" aria-label="Ocean Adventure — Deep Sea Pack, theme pack, Draft">
+          Ocean Adventure — Deep Sea Pack
+        </button>
+      </div>
+      <div class="cal-cell" role="gridcell" aria-label="April 16"><div class="cal-date">16</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 17"><div class="cal-date">17</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 18"><div class="cal-date">18</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 19"><div class="cal-date">19</div></div>
+
+      <!-- Week 4 -->
+      <div class="cal-cell" role="gridcell" aria-label="April 20"><div class="cal-date">20</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 21"><div class="cal-date">21</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 22">
+        <div class="cal-date">22</div>
+        <button class="cal-event green" onclick="openDetail('evt-5')" aria-expanded="false" id="cal-evt-5" aria-label="P0 Reading Quest Batch Q2, quest batch, Scheduled">
+          P0 Reading Quest Batch Q2
+        </button>
+      </div>
+      <div class="cal-cell" role="gridcell" aria-label="April 23"><div class="cal-date">23</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 24"><div class="cal-date">24</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 25"><div class="cal-date">25</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 26"><div class="cal-date">26</div></div>
+
+      <!-- Week 5 -->
+      <div class="cal-cell" role="gridcell" aria-label="April 27"><div class="cal-date">27</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 28">
+        <div class="cal-date">28</div>
+        <button class="cal-event amber" onclick="openDetail('evt-6')" aria-expanded="false" id="cal-evt-6" aria-label="Arts Pack — Sketch Lab, theme pack, In Review">
+          Arts Pack — Sketch Lab
+        </button>
+      </div>
+      <div class="cal-cell" role="gridcell" aria-label="April 29"><div class="cal-date">29</div></div>
+      <div class="cal-cell" role="gridcell" aria-label="April 30"><div class="cal-date">30</div></div>
+      <div class="cal-cell empty" role="gridcell" aria-label="Empty"></div>
+      <div class="cal-cell empty" role="gridcell" aria-label="Empty"></div>
+      <div class="cal-cell empty" role="gridcell" aria-label="Empty"></div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="detail-panel" id="detail-panel" role="region" aria-label="Event details" aria-live="polite">
+      <div class="detail-panel-header">
+        <div>
+          <h3 id="dp-title"></h3>
+          <span id="dp-status-chip"></span>
+        </div>
+        <button class="detail-close" onclick="closeDetail()" aria-label="Close detail panel">&#10005;</button>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-field">
+          <label>Content Type</label>
+          <span class="val" id="dp-type"></span>
+        </div>
+        <div class="detail-field">
+          <label>Scheduled At</label>
+          <span class="val" id="dp-scheduled"></span>
+        </div>
+        <div class="detail-field">
+          <label>Assigned To</label>
+          <span class="val" id="dp-assigned"></span>
+        </div>
+        <div class="detail-field">
+          <label>Release Version</label>
+          <span class="val" id="dp-version"></span>
+        </div>
+      </div>
+      <p class="detail-notes-label">Notes</p>
+      <textarea class="detail-notes" id="dp-notes" placeholder="Add notes for this release..." aria-label="Release notes"></textarea>
+      <div class="detail-actions">
+        <button class="btn btn-approve" onclick="handleApprove()">&#10003; Approve</button>
+        <button class="btn btn-defer"   onclick="handleDefer()">&#8635; Defer</button>
+        <button class="btn btn-outline" onclick="closeDetail()">Cancel</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-calendar -->
+
+  <!-- ═══════════════════════════════════════════
+       TAB 2 — List View
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-list" role="tabpanel" aria-labelledby="btn-list">
+
+    <div class="list-toolbar" role="toolbar" aria-label="Filter and sort controls">
+      <div class="filter-chips" role="group" aria-label="Filter by content type">
+        <button class="filter-chip active" data-filter="all"           onclick="setFilter('all')">All</button>
+        <button class="filter-chip"        data-filter="theme_pack"    onclick="setFilter('theme_pack')">Theme Packs</button>
+        <button class="filter-chip"        data-filter="quest_batch"   onclick="setFilter('quest_batch')">Quest Batches</button>
+        <button class="filter-chip"        data-filter="system_update" onclick="setFilter('system_update')">System Updates</button>
+        <button class="filter-chip"        data-filter="band_update"   onclick="setFilter('band_update')">Band Updates</button>
+      </div>
+      <div class="sort-wrap">
+        <label for="sort-select" style="font-size:12px;">Sort by</label>
+        <select class="sort-select" id="sort-select" aria-label="Sort table by" onchange="renderTable()">
+          <option value="scheduled_at">Scheduled At</option>
+          <option value="title">Title</option>
+          <option value="status">Status</option>
+          <option value="content_type">Content Type</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap" role="region" aria-label="Content events list">
+      <table aria-live="polite">
+        <thead>
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Content Type</th>
+            <th scope="col">Status</th>
+            <th scope="col">Scheduled At</th>
+            <th scope="col">Assigned To</th>
+            <th scope="col">Release Version</th>
+          </tr>
+        </thead>
+        <tbody id="list-tbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-list -->
+
+  <!-- ═══════════════════════════════════════════
+       TAB 3 — Spec
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+
+    <!-- Component + Route -->
+    <div class="spec-section">
+      <h3>Component</h3>
+      <dl>
+        <div class="spec-row"><dt>Component</dt><dd><code>ContentPublishCalendar</code></dd></div>
+        <div class="spec-row"><dt>Route</dt><dd><code>/owner/content/calendar</code></dd></div>
+        <div class="spec-row"><dt>Auth</dt><dd>Owner, Content Team — <code>role IN ('owner', 'content_team')</code></dd></div>
+        <div class="spec-row"><dt>WonderQuest #</dt><dd>285</dd></div>
+        <div class="spec-row"><dt>Props</dt><dd><code>initialMonth?: string (YYYY-MM)</code>, <code>defaultView?: 'calendar' | 'list'</code>, <code>readOnly?: boolean</code></dd></div>
+      </dl>
+    </div>
+
+    <!-- DB Schema -->
+    <div class="spec-section">
+      <h3>Database Schema</h3>
+      <pre class="code-block">content_publish_events {
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title            VARCHAR(255) NOT NULL,
+  content_type     ENUM(
+                     'theme_pack',
+                     'quest_batch',
+                     'band_update',
+                     'system_update'
+                   ) NOT NULL,
+  status           ENUM(
+                     'draft',
+                     'in_review',
+                     'approved',
+                     'scheduled',
+                     'published',
+                     'deferred'
+                   ) NOT NULL DEFAULT 'draft',
+  scheduled_at     TIMESTAMPTZ,
+  published_at     TIMESTAMPTZ,
+  assigned_to      UUID REFERENCES users(id),
+  release_version  VARCHAR(20),
+  notes            TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+}
+-- Privacy: No child PII stored in content metadata columns</pre>
+    </div>
+
+    <!-- Status Lifecycle -->
+    <div class="spec-section">
+      <h3>Status Lifecycle</h3>
+      <div class="lifecycle-flow" aria-label="Status progression">
+        <span class="lifecycle-step">draft</span>
+        <span class="lifecycle-arrow" aria-hidden="true">&#8594;</span>
+        <span class="lifecycle-step">in_review</span>
+        <span class="lifecycle-arrow" aria-hidden="true">&#8594;</span>
+        <span class="lifecycle-step">approved</span>
+        <span class="lifecycle-arrow" aria-hidden="true">&#8594;</span>
+        <span class="lifecycle-step">scheduled</span>
+        <span class="lifecycle-arrow" aria-hidden="true">&#8594;</span>
+        <span class="lifecycle-step">published</span>
+      </div>
+      <div class="lifecycle-branch">&#8627; Any state (except published) can transition to <strong>deferred</strong> — requires notes field to be populated.</div>
+    </div>
+
+    <!-- Business Rules -->
+    <div class="spec-section">
+      <h3>Business Rules</h3>
+      <ol class="rule-list">
+        <li><strong>No child PII</strong> — Content metadata (title, notes, release_version) must never contain child personal identifying information. Validated server-side before write.</li>
+        <li><strong>P0 quest batch owner approval</strong> — Quest batches tagged as P0 priority require explicit Owner role approval before status can advance beyond <code>in_review</code>. Content Team alone cannot approve P0 batches.</li>
+        <li><strong>Theme pack child safety sign-off</strong> — All <code>theme_pack</code> items require a child safety review sign-off (separate <code>safety_sign_off_at</code> timestamp) before transitioning to <code>approved</code> or <code>scheduled</code>.</li>
+        <li><strong>Deferred items require notes</strong> — An item cannot be set to <code>deferred</code> status unless the <code>notes</code> field is non-empty. UI enforces this; API validates server-side and returns HTTP 422 on violation.</li>
+        <li><strong>Calendar max 3 events per day cell</strong> — The calendar view renders at most 3 event cards per day. If a day has more than 3 events, a "+N more" overflow chip is shown; clicking it opens the full list filtered to that date.</li>
+      </ol>
+    </div>
+
+  </div><!-- /tab-spec -->
+
+</div><!-- /page-wrap -->
+
+<script>
+  /* ──────────────────────────────────────────────
+     DATA
+  ────────────────────────────────────────────── */
+  const EVENTS = [
+    {
+      id: 'evt-1',
+      title: 'Space Pack — Planet Patrol',
+      content_type: 'theme_pack',
+      status: 'scheduled',
+      statusLabel: 'Scheduled',
+      statusColor: 'green',
+      scheduled_at: 'Apr 1, 2026 09:00',
+      assigned_to: 'Maya Chen',
+      release_version: 'v2.5.1',
+      notes: 'Includes 8 new planet-themed activities. Child safety sign-off completed 2026-03-18.'
+    },
+    {
+      id: 'evt-2',
+      title: 'P3 Social Studies Quest Batch',
+      content_type: 'quest_batch',
+      status: 'in_review',
+      statusLabel: 'In Review',
+      statusColor: 'amber',
+      scheduled_at: 'Apr 7, 2026 10:00',
+      assigned_to: 'Jordan Lee',
+      release_version: 'v2.5.2',
+      notes: 'P3 batch — community helpers unit. Awaiting curriculum review.'
+    },
+    {
+      id: 'evt-3',
+      title: 'v2.6 System Update',
+      content_type: 'system_update',
+      status: 'approved',
+      statusLabel: 'Approved',
+      statusColor: 'violet',
+      scheduled_at: 'Apr 10, 2026 02:00',
+      assigned_to: 'Dev Ops Team',
+      release_version: 'v2.6.0',
+      notes: 'Maintenance window 2–4 AM. Includes performance improvements and band UI refresh.'
+    },
+    {
+      id: 'evt-4',
+      title: 'Ocean Adventure — Deep Sea Pack',
+      content_type: 'theme_pack',
+      status: 'draft',
+      statusLabel: 'Draft',
+      statusColor: 'gray',
+      scheduled_at: 'Apr 15, 2026 09:00',
+      assigned_to: 'Priya Nair',
+      release_version: 'v2.6.1',
+      notes: ''
+    },
+    {
+      id: 'evt-5',
+      title: 'P0 Reading Quest Batch Q2',
+      content_type: 'quest_batch',
+      status: 'scheduled',
+      statusLabel: 'Scheduled',
+      statusColor: 'green',
+      scheduled_at: 'Apr 22, 2026 09:00',
+      assigned_to: 'Jordan Lee',
+      release_version: 'v2.6.2',
+      notes: 'P0 — Owner approved 2026-03-20. Q2 phonics + early reading quests (ages 5–7).'
+    },
+    {
+      id: 'evt-6',
+      title: 'Arts Pack — Sketch Lab',
+      content_type: 'theme_pack',
+      status: 'in_review',
+      statusLabel: 'In Review',
+      statusColor: 'amber',
+      scheduled_at: 'Apr 28, 2026 09:00',
+      assigned_to: 'Sam Okoro',
+      release_version: 'v2.6.3',
+      notes: 'Drawing and creativity activities. Child safety sign-off pending.'
+    }
+  ];
+
+  let activeFilter = 'all';
+  let activeEventId = null;
+
+  /* ──────────────────────────────────────────────
+     TAB SYSTEM
+  ────────────────────────────────────────────── */
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.getElementById('tab-' + t).classList.add('active');
+    const btn = document.getElementById('btn-' + t);
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    if (t === 'list') renderTable();
+  }
+
+  /* ──────────────────────────────────────────────
+     CALENDAR NAV (stub — placeholder month label)
+  ────────────────────────────────────────────── */
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let calYear = 2026, calMonth = 3; // April = index 3
+
+  function calNav(dir) {
+    calMonth += dir;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    document.getElementById('cal-month-label').textContent = MONTHS[calMonth] + ' ' + calYear;
+  }
+
+  /* ──────────────────────────────────────────────
+     STATUS CHIP HELPER
+  ────────────────────────────────────────────── */
+  function statusChipHTML(evt) {
+    const colorMap = { green: 'chip-green', amber: 'chip-amber', violet: 'chip-violet', gray: 'chip-gray', red: 'chip-red' };
+    const cls = colorMap[evt.statusColor] || 'chip-gray';
+    return `<span class="chip ${cls}">${evt.statusLabel}</span>`;
+  }
+
+  function typeLabel(type) {
+    const map = { theme_pack: 'Theme Pack', quest_batch: 'Quest Batch', system_update: 'System Update', band_update: 'Band Update' };
+    return map[type] || type;
+  }
+
+  /* ──────────────────────────────────────────────
+     CALENDAR DETAIL PANEL
+  ────────────────────────────────────────────── */
+  function openDetail(id) {
+    const evt = EVENTS.find(e => e.id === id);
+    if (!evt) return;
+
+    // Deactivate previous
+    if (activeEventId) {
+      const prev = document.getElementById('cal-' + activeEventId);
+      if (prev) { prev.classList.remove('active-event'); prev.setAttribute('aria-expanded', 'false'); }
+    }
+    activeEventId = id;
+    const btn = document.getElementById('cal-' + id);
+    if (btn) { btn.classList.add('active-event'); btn.setAttribute('aria-expanded', 'true'); }
+
+    document.getElementById('dp-title').textContent = evt.title;
+    document.getElementById('dp-status-chip').innerHTML = statusChipHTML(evt);
+    document.getElementById('dp-type').textContent = typeLabel(evt.content_type);
+    document.getElementById('dp-scheduled').textContent = evt.scheduled_at;
+    document.getElementById('dp-assigned').textContent = evt.assigned_to;
+    document.getElementById('dp-version').textContent = evt.release_version;
+    document.getElementById('dp-notes').value = evt.notes;
+
+    const panel = document.getElementById('detail-panel');
+    panel.classList.add('open');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeDetail() {
+    if (activeEventId) {
+      const btn = document.getElementById('cal-' + activeEventId);
+      if (btn) { btn.classList.remove('active-event'); btn.setAttribute('aria-expanded', 'false'); }
+      activeEventId = null;
+    }
+    document.getElementById('detail-panel').classList.remove('open');
+  }
+
+  function handleApprove() {
+    if (!activeEventId) return;
+    const evt = EVENTS.find(e => e.id === activeEventId);
+    if (!evt) return;
+    evt.status = 'approved';
+    evt.statusLabel = 'Approved';
+    evt.statusColor = 'violet';
+    document.getElementById('dp-status-chip').innerHTML = statusChipHTML(evt);
+    // Update calendar event color
+    const btn = document.getElementById('cal-' + activeEventId);
+    if (btn) {
+      btn.classList.remove('green','amber','gray','red');
+      btn.classList.add('violet');
+    }
+    showToast('Event approved.');
+  }
+
+  function handleDefer() {
+    if (!activeEventId) return;
+    const notes = document.getElementById('dp-notes').value.trim();
+    if (!notes) {
+      showToast('Notes are required before deferring. Please add a reason.', true);
+      document.getElementById('dp-notes').focus();
+      return;
+    }
+    const evt = EVENTS.find(e => e.id === activeEventId);
+    if (!evt) return;
+    evt.status = 'deferred';
+    evt.statusLabel = 'Deferred';
+    evt.statusColor = 'red';
+    evt.notes = notes;
+    document.getElementById('dp-status-chip').innerHTML = statusChipHTML(evt);
+    const btn = document.getElementById('cal-' + activeEventId);
+    if (btn) {
+      btn.classList.remove('green','amber','gray','violet');
+      btn.classList.add('gray');
+    }
+    showToast('Event deferred.');
+  }
+
+  /* ──────────────────────────────────────────────
+     LIST VIEW
+  ────────────────────────────────────────────── */
+  function setFilter(f) {
+    activeFilter = f;
+    document.querySelectorAll('.filter-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.filter === f);
+    });
+    renderTable();
+  }
+
+  function renderTable() {
+    const sortBy = document.getElementById('sort-select').value;
+    let data = activeFilter === 'all' ? [...EVENTS] : EVENTS.filter(e => e.content_type === activeFilter);
+
+    data.sort((a, b) => {
+      if (sortBy === 'scheduled_at') return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
+      if (sortBy === 'status') return a.status.localeCompare(b.status);
+      if (sortBy === 'content_type') return a.content_type.localeCompare(b.content_type);
+      return 0;
+    });
+
+    const colorMap = { green: 'chip-green', amber: 'chip-amber', violet: 'chip-violet', gray: 'chip-gray', red: 'chip-red' };
+
+    const tbody = document.getElementById('list-tbody');
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted);">No events for this filter.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(evt => `
+      <tr>
+        <td class="td-title">${evt.title}</td>
+        <td><span class="td-type">${evt.content_type}</span></td>
+        <td><span class="chip ${colorMap[evt.statusColor] || 'chip-gray'}">${evt.statusLabel}</span></td>
+        <td class="td-muted">${evt.scheduled_at}</td>
+        <td class="td-muted">${evt.assigned_to}</td>
+        <td class="td-muted">${evt.release_version}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* ──────────────────────────────────────────────
+     TOAST NOTIFICATIONS
+  ────────────────────────────────────────────── */
+  let toastTimer = null;
+  function showToast(msg, isError) {
+    let toast = document.getElementById('wq-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'wq-toast';
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .2s;max-width:320px;pointer-events:none;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.background = isError ? 'rgba(248,113,113,.18)' : 'rgba(80,232,144,.15)';
+    toast.style.color = isError ? '#f87171' : '#50e890';
+    toast.style.border = isError ? '1px solid rgba(248,113,113,.3)' : '1px solid rgba(80,232,144,.3)';
+    toast.style.opacity = '1';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  }
+
+  /* ──────────────────────────────────────────────
+     INIT
+  ────────────────────────────────────────────── */
+  renderTable();
+</script>
+</body>
+</html>

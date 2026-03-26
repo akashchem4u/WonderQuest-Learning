@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1.0">
+<title>WonderQuest – Question Browser Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8eaf0;width:390px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;gap:3px;padding:10px 10px 0;background:#10161e;position:sticky;top:0;z-index:100;border-bottom:1px solid #1a2535;flex-wrap:wrap}
+.tab{padding:7px 10px;border-radius:8px 8px 0 0;cursor:pointer;font-size:10px;font-weight:600;color:#7a8a9a;background:#151e2a;border:1px solid #1a2535;border-bottom:none;transition:all .2s;white-space:nowrap}
+.tab.active{background:#1a2a3e;color:#58c8f0;border-color:#58c8f0}
+.panel{display:none;padding:12px}
+.panel.active{display:block}
+.hint{background:#0a1a2a;border:1px solid #58c8f0;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#58c8f0;line-height:1.5}
+
+/* Search bar */
+.search-bar{background:#151e2a;border:1px solid #1a2535;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.search-bar input{flex:1;background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:13px;color:#e8eaf0}
+.search-bar input::placeholder{color:#4a6080}
+
+/* Filter chips */
+.filter-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid #2a3540;color:#7a8a9a;background:#151e2a;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.chip.active{background:#1a2a3e;color:#58c8f0;border-color:#58c8f0}
+.chip.b1-active{background:#1a5030;color:#50c880;border-color:#50c880}
+.chip.b2-active{background:#1a2a40;color:#58c8f0;border-color:#58c8f0}
+.chip.b3-active{background:#2a2000;color:#f0c030;border-color:#f0c030}
+.chip.b4-active{background:#2a0a2a;color:#c084fc;border-color:#c084fc}
+
+/* Question cards */
+.q-card{background:#151e2a;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #1a2535;cursor:pointer;transition:all .2s}
+.q-card:hover{background:#1a2535;border-color:#2a3a50}
+.q-card.expanded{border-color:#58c8f0}
+.q-card-header{display:flex;align-items:flex-start;gap:8px}
+.band-chip{display:inline-block;padding:3px 8px;border-radius:4px;font-size:9px;font-weight:700;flex-shrink:0}
+.b1{background:#1a5030;color:#50c880}
+.b2{background:#1a2a40;color:#58c8f0}
+.b3{background:#2a2000;color:#f0c030}
+.b4{background:#2a0a2a;color:#c084fc}
+.q-preview{flex:1;font-size:12px;color:#e8eaf0;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.q-status{flex-shrink:0}
+.status-badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.sb-approved{background:rgba(34,197,94,.15);color:#22c55e}
+.sb-pending{background:rgba(245,158,11,.15);color:#f59e0b}
+.sb-blocked{background:rgba(239,68,68,.15);color:#ef4444}
+.sb-draft{background:rgba(88,200,240,.15);color:#58c8f0}
+.q-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:10px;color:#4a6080}
+.qa-chip{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700}
+.qa-pass{background:rgba(34,197,94,.15);color:#22c55e}
+.qa-fail{background:rgba(239,68,68,.15);color:#ef4444}
+.qa-pend{background:rgba(245,158,11,.15);color:#f59e0b}
+
+/* Expanded detail */
+.q-detail{display:none;margin-top:10px;border-top:1px solid #1a2535;padding-top:10px}
+.q-card.expanded .q-detail{display:block}
+.answer-option{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:5px;border:1px solid #1a2535;font-size:12px}
+.answer-option.correct{border-color:#22c55e;background:rgba(34,197,94,.08)}
+.answer-letter{width:20px;height:20px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.correct .answer-letter{background:#22c55e;color:#0a1a0d}
+.detail-actions{display:flex;gap:6px;margin-top:10px}
+.detail-btn{flex:1;border:none;border-radius:7px;padding:8px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('browse')">Browse Questions</div>
+  <div class="tab" onclick="show('filter')">Filter View</div>
+  <div class="tab" onclick="show('detail')">Question Detail</div>
+  <div class="tab" onclick="show('quickedit')">Quick Edit</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Browse Questions -->
+<div id="browse" class="panel active">
+  <div class="hint">Question browser. Tap a card to expand full detail and answer options.</div>
+  <div class="search-bar">
+    <span style="color:#4a6080">🔍</span>
+    <input type="text" placeholder="Search questions...">
+  </div>
+  <div class="filter-row">
+    <div class="chip active">All (847)</div>
+    <div class="chip b1-active">Band 1</div>
+    <div class="chip b2-active">Band 2</div>
+    <div class="chip b3-active">Band 3</div>
+    <div class="chip b4-active">Band 4</div>
+    <div class="chip">Pending</div>
+    <div class="chip">Blocked</div>
+    <div class="chip">Approved</div>
+  </div>
+
+  <!-- Q Card 1 -->
+  <div class="q-card" onclick="toggleCard(this)">
+    <div class="q-card-header">
+      <span class="band-chip b2">B2</span>
+      <div class="q-preview">What is 7 + 8?</div>
+      <div class="q-status"><span class="status-badge sb-blocked">BLOCKED</span></div>
+    </div>
+    <div class="q-meta">
+      <span>addition-facts</span>
+      <span>·</span>
+      <span class="qa-chip qa-fail">NO ANSWER</span>
+      <span>·</span>
+      <span>Q-1047</span>
+    </div>
+    <div class="q-detail">
+      <div style="font-size:13px;font-weight:600;color:#e8eaf0;margin-bottom:10px">What is 7 + 8?</div>
+      <div class="answer-option"><div class="answer-letter">A</div><span>13</span></div>
+      <div class="answer-option"><div class="answer-letter">B</div><span>14</span></div>
+      <div class="answer-option"><div class="answer-letter">C</div><span>15</span></div>
+      <div class="answer-option"><div class="answer-letter">D</div><span>16</span></div>
+      <div style="background:#2a0808;border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:#ef4444">No correct answer marked — must fix before publish</div>
+      <div class="detail-actions">
+        <button class="detail-btn" style="background:#ef4444;color:#fff">Fix Block →</button>
+        <button class="detail-btn" style="background:#151e2a;color:#58c8f0;border:1px solid #1a2535">Full Detail</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q Card 2 -->
+  <div class="q-card" onclick="toggleCard(this)">
+    <div class="q-card-header">
+      <span class="band-chip b3">B3</span>
+      <div class="q-preview">What is 3 × 4?</div>
+      <div class="q-status"><span class="status-badge sb-pending">PENDING</span></div>
+    </div>
+    <div class="q-meta">
+      <span>multiplication-intro</span>
+      <span>·</span>
+      <span class="qa-chip qa-pend">QA PENDING</span>
+      <span>·</span>
+      <span>Q-0892</span>
+    </div>
+    <div class="q-detail">
+      <div style="font-size:13px;font-weight:600;color:#e8eaf0;margin-bottom:10px">What is 3 × 4?</div>
+      <div class="answer-option"><div class="answer-letter">A</div><span>7</span></div>
+      <div class="answer-option correct"><div class="answer-letter">B</div><span>12 <span style="color:#22c55e;font-size:10px;margin-left:4px">✓ correct</span></span></div>
+      <div class="answer-option"><div class="answer-letter">C</div><span>34</span></div>
+      <div class="answer-option"><div class="answer-letter">D</div><span>9</span></div>
+      <div style="background:#0a1a2a;border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:#7a8a9a">QA pending — no blocks detected. Ready for approval.</div>
+      <div class="detail-actions">
+        <button class="detail-btn" style="background:#22c55e;color:#0a1a0d">Approve →</button>
+        <button class="detail-btn" style="background:#151e2a;color:#58c8f0;border:1px solid #1a2535">Edit</button>
+        <button class="detail-btn" style="background:#151e2a;color:#ef4444;border:1px solid #1a2535">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q Card 3 -->
+  <div class="q-card" onclick="toggleCard(this)">
+    <div class="q-card-header">
+      <span class="band-chip b1">B1</span>
+      <div class="q-preview">Count the stars: ★ ★ ★ ★ ★</div>
+      <div class="q-status"><span class="status-badge sb-approved">APPROVED</span></div>
+    </div>
+    <div class="q-meta">
+      <span>counting-cardinality</span>
+      <span>·</span>
+      <span class="qa-chip qa-pass">QA PASS</span>
+      <span>·</span>
+      <span>Q-0214</span>
+    </div>
+    <div class="q-detail">
+      <div style="font-size:13px;font-weight:600;color:#e8eaf0;margin-bottom:10px">Count the stars: ★ ★ ★ ★ ★</div>
+      <div class="answer-option"><div class="answer-letter">A</div><span>4</span></div>
+      <div class="answer-option correct"><div class="answer-letter">B</div><span>5 <span style="color:#22c55e;font-size:10px;margin-left:4px">✓ correct</span></span></div>
+      <div class="answer-option"><div class="answer-letter">C</div><span>6</span></div>
+      <div class="answer-option"><div class="answer-letter">D</div><span>3</span></div>
+      <div style="background:#0a2e1a;border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:#22c55e">Approved · Live · Published Mar 21</div>
+      <div class="detail-actions">
+        <button class="detail-btn" style="background:#151e2a;color:#58c8f0;border:1px solid #1a2535">Edit</button>
+        <button class="detail-btn" style="background:#151e2a;color:#f59e0b;border:1px solid #1a2535">Unpublish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q Card 4 -->
+  <div class="q-card" onclick="toggleCard(this)">
+    <div class="q-card-header">
+      <span class="band-chip b4">B4</span>
+      <div class="q-preview">Solve: 2x + 5 = 13. What is x?</div>
+      <div class="q-status"><span class="status-badge sb-pending">PENDING</span></div>
+    </div>
+    <div class="q-meta">
+      <span>algebra-intro</span>
+      <span>·</span>
+      <span class="qa-chip qa-pend">QA PENDING</span>
+      <span>·</span>
+      <span>Q-1103</span>
+    </div>
+    <div class="q-detail">
+      <div style="font-size:13px;font-weight:600;color:#e8eaf0;margin-bottom:10px">Solve: 2x + 5 = 13. What is x?</div>
+      <div class="answer-option"><div class="answer-letter">A</div><span>3</span></div>
+      <div class="answer-option correct"><div class="answer-letter">B</div><span>4 <span style="color:#22c55e;font-size:10px;margin-left:4px">✓ correct</span></span></div>
+      <div class="answer-option"><div class="answer-letter">C</div><span>6</span></div>
+      <div class="answer-option"><div class="answer-letter">D</div><span>9</span></div>
+      <div class="detail-actions">
+        <button class="detail-btn" style="background:#22c55e;color:#0a1a0d">Approve →</button>
+        <button class="detail-btn" style="background:#151e2a;color:#58c8f0;border:1px solid #1a2535">Edit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q Card 5 -->
+  <div class="q-card" onclick="toggleCard(this)">
+    <div class="q-card-header">
+      <span class="band-chip b2">B2</span>
+      <div class="q-preview">Which number is greater: 14 or 41?</div>
+      <div class="q-status"><span class="status-badge sb-blocked">BLOCKED</span></div>
+    </div>
+    <div class="q-meta">
+      <span>number-comparison</span>
+      <span>·</span>
+      <span class="qa-chip qa-fail">DUP OPT</span>
+      <span>·</span>
+      <span>Q-1048</span>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:12px;font-size:12px;color:#4a6080">Showing 5 of 847 questions</div>
+</div>
+
+<!-- Filter View -->
+<div id="filter" class="panel">
+  <div class="hint">Filter by band, status, and skill. Results update as filters are applied.</div>
+  <div style="background:#151e2a;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid #1a2535">
+    <div style="font-size:12px;font-weight:700;color:#58c8f0;margin-bottom:10px">FILTER BY BAND</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="chip active">All</div>
+      <div class="chip b1-active">Band 1</div>
+      <div class="chip b2-active">Band 2</div>
+      <div class="chip b3-active">Band 3</div>
+      <div class="chip b4-active">Band 4</div>
+    </div>
+  </div>
+  <div style="background:#151e2a;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid #1a2535">
+    <div style="font-size:12px;font-weight:700;color:#58c8f0;margin-bottom:10px">FILTER BY STATUS</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="chip active">All</div>
+      <div class="chip" style="border-color:#22c55e;color:#22c55e">Approved</div>
+      <div class="chip" style="border-color:#f59e0b;color:#f59e0b">Pending</div>
+      <div class="chip" style="border-color:#ef4444;color:#ef4444">Blocked</div>
+      <div class="chip" style="border-color:#58c8f0;color:#58c8f0">Draft</div>
+    </div>
+  </div>
+  <div style="background:#151e2a;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid #1a2535">
+    <div style="font-size:12px;font-weight:700;color:#58c8f0;margin-bottom:10px">FILTER BY SKILL</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="chip active">All Skills</div>
+      <div class="chip">addition-facts</div>
+      <div class="chip">subtraction</div>
+      <div class="chip">multiplication-intro</div>
+      <div class="chip">counting</div>
+      <div class="chip">place-value</div>
+      <div class="chip">geometry</div>
+    </div>
+  </div>
+  <div style="background:#151e2a;border-radius:10px;padding:14px;border:1px solid #1a2535;text-align:center">
+    <div style="font-size:20px;font-weight:800;color:#58c8f0">847</div>
+    <div style="font-size:11px;color:#7a8a9a;margin-top:4px">matching questions</div>
+    <button style="width:100%;margin-top:10px;background:#58c8f0;color:#0a1a2a;border:none;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Apply Filters →</button>
+  </div>
+</div>
+
+<!-- Question Detail -->
+<div id="detail" class="panel">
+  <div class="hint">Full question detail view. Tap answer options to mark correct.</div>
+  <div style="background:#151e2a;border-radius:12px;padding:14px;border:1px solid #1a2535;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="band-chip b3">B3</span>
+      <span style="font-size:10px;color:#7a8a9a;font-family:monospace">Q-0892</span>
+      <span class="status-badge sb-pending" style="margin-left:auto">PENDING</span>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:#e8eaf0;margin-bottom:4px">What is 3 × 4?</div>
+    <div style="font-size:11px;color:#7a8a9a;margin-bottom:12px">Skill: multiplication-intro · Band 3 · Grade 2-3</div>
+    <div class="answer-option"><div class="answer-letter">A</div><span style="font-size:13px">7</span></div>
+    <div class="answer-option correct" style="margin-top:5px"><div class="answer-letter">B</div><span style="font-size:13px">12 <span style="color:#22c55e;font-size:10px">✓ marked correct</span></span></div>
+    <div class="answer-option" style="margin-top:5px"><div class="answer-letter">C</div><span style="font-size:13px">34</span></div>
+    <div class="answer-option" style="margin-top:5px"><div class="answer-letter">D</div><span style="font-size:13px">9</span></div>
+  </div>
+  <div style="background:#151e2a;border-radius:10px;padding:12px;border:1px solid #1a2535;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#58c8f0;margin-bottom:6px">VALIDATION</div>
+    <div style="font-size:12px;color:#22c55e;line-height:1.8"><span>✓</span> Correct answer marked (B)</div>
+    <div style="font-size:12px;color:#22c55e;line-height:1.8"><span>✓</span> No duplicate options</div>
+    <div style="font-size:12px;color:#22c55e;line-height:1.8"><span>✓</span> 4 options provided</div>
+    <div style="font-size:12px;color:#22c55e;line-height:1.8"><span>✓</span> Skill ID assigned</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <button style="background:#22c55e;color:#0a1a0d;border:none;border-radius:8px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Approve Question ✓</button>
+    <div style="display:flex;gap:6px">
+      <button style="flex:1;background:#151e2a;color:#58c8f0;border:1px solid #1a2535;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Edit</button>
+      <button style="flex:1;background:#151e2a;color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Reject</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Edit -->
+<div id="quickedit" class="panel">
+  <div class="hint">Quick edit for field-level changes without opening full editor.</div>
+  <div style="background:#151e2a;border-radius:12px;padding:14px;border:1px solid #1a2535">
+    <div style="font-size:12px;font-weight:700;color:#58c8f0;margin-bottom:10px">EDITING: Q-1047</div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:#7a8a9a;margin-bottom:4px;letter-spacing:.5px">QUESTION TEXT</div>
+      <textarea style="width:100%;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:10px;color:#e8eaf0;font-family:'Sora',sans-serif;font-size:12px;resize:none;min-height:60px">What is 7 + 8?</textarea>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:#7a8a9a;margin-bottom:6px;letter-spacing:.5px">ANSWER OPTIONS (tap to set correct)</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;align-items:center;gap:6px;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:7px 10px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#7a8a9a">A</div>
+          <input style="flex:1;background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:12px;color:#e8eaf0" value="13">
+          <input type="radio" name="correct" style="accent-color:#22c55e">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:#0a2e1a;border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:7px 10px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0a1a0d">B</div>
+          <input style="flex:1;background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:12px;color:#e8eaf0" value="15">
+          <input type="radio" name="correct" checked style="accent-color:#22c55e">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:7px 10px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#7a8a9a">C</div>
+          <input style="flex:1;background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:12px;color:#e8eaf0" value="14">
+          <input type="radio" name="correct" style="accent-color:#22c55e">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:7px 10px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#7a8a9a">D</div>
+          <input style="flex:1;background:transparent;border:none;outline:none;font-family:'Sora',sans-serif;font-size:12px;color:#e8eaf0" value="16">
+          <input type="radio" name="correct" style="accent-color:#22c55e">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button style="flex:2;background:#58c8f0;color:#0a1a2a;border:none;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Save Changes</button>
+      <button style="flex:1;background:#151e2a;color:#7a8a9a;border:1px solid #1a2535;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the mobile question browser.</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="background:#151e2a;border-radius:8px;padding:12px;border:1px solid #1a2535;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#58c8f0;font-weight:700;margin-bottom:4px">VIEWPORT</div>
+      390px mobile · Sora · #10161e · #58c8f0 cyan
+    </div>
+    <div style="background:#151e2a;border-radius:8px;padding:12px;border:1px solid #1a2535;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#58c8f0;font-weight:700;margin-bottom:4px">FILTERS</div>
+      Band chips (B1-B4) / Status (approved/pending/blocked/draft) / Skill
+    </div>
+    <div style="background:#151e2a;border-radius:8px;padding:12px;border:1px solid #1a2535;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#58c8f0;font-weight:700;margin-bottom:4px">CARD EXPAND</div>
+      Tap card to expand: 4 answer options, correct marker, QA status, actions (approve/edit/reject)
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleCard(card){
+  card.classList.toggle('expanded');
+}
+</script>
+</body>
+</html>

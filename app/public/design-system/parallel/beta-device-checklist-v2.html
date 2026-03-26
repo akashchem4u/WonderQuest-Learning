@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Device Checklist — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0d1117;
+    --card:     #161b22;
+    --accent:   #50e890;
+    --text:     #f0f6ff;
+    --muted:    #8b949e;
+    --border:   rgba(255,255,255,.06);
+    --beta:     #f59e0b;
+    --pass:     #50e890;
+    --fail:     #ef4444;
+    --warn:     #f59e0b;
+    --pending:  #8b949e;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* ─── Engineering hint ─── */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1200;
+    font-size: 12px;
+    line-height: 1.6;
+    font-family: 'Courier New', monospace;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+  }
+  .eng-hint strong { font-weight: 700; }
+
+  /* ─── Header ─── */
+  .page-header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .page-header h1 { font-size: 18px; font-weight: 700; }
+  .page-header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .beta-badge {
+    margin-left: auto;
+    background: rgba(245,158,11,.15);
+    color: var(--beta);
+    border: 1px solid rgba(245,158,11,.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  /* ─── Tab bar ─── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border);
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    border-radius: 4px 4px 0 0;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ─── Tab panels ─── */
+  .tab-panel { display: none; padding: 28px 24px; max-width: 900px; margin: 0 auto; }
+  .tab-panel.active { display: block; }
+
+  /* ─── Checklist card ─── */
+  .checklist-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Card header */
+  .cl-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cl-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .cl-title { font-size: 18px; font-weight: 700; }
+  .overall-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background .3s, color .3s;
+  }
+  .chip-ready   { background: rgba(80,232,144,.15); color: var(--pass); border: 1px solid rgba(80,232,144,.3); }
+  .chip-warn    { background: rgba(245,158,11,.15);  color: var(--warn); border: 1px solid rgba(245,158,11,.3); }
+  .chip-notready{ background: rgba(239,68,68,.15);   color: var(--fail); border: 1px solid rgba(239,68,68,.3); }
+  .chip-pending { background: rgba(139,148,158,.12); color: var(--pending); border: 1px solid rgba(139,148,158,.25); }
+
+  .device-strip {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(255,255,255,.03);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .device-strip .dot { color: var(--border); }
+
+  /* Auto-check button */
+  .autocheck-row {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn-autocheck {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn-autocheck:hover { opacity: .9; }
+  .btn-autocheck:active { transform: scale(.97); }
+  .btn-autocheck:disabled { opacity: .5; cursor: not-allowed; }
+  .autocheck-status {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .progress-bar-wrap {
+    flex: 1;
+    min-width: 120px;
+    height: 4px;
+    background: rgba(255,255,255,.08);
+    border-radius: 4px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width .2s;
+    width: 0%;
+  }
+
+  /* Sections */
+  .cl-section {
+    border-bottom: 1px solid var(--border);
+  }
+  .cl-section:last-child { border-bottom: none; }
+
+  .cl-section-header {
+    padding: 14px 24px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.02);
+  }
+  .section-icon { font-size: 16px; }
+  .section-name { font-size: 13px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .06em; }
+  .section-req { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  .section-count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Checklist items */
+  .cl-item {
+    padding: 12px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    transition: background .15s;
+    user-select: none;
+  }
+  .cl-item:hover { background: rgba(255,255,255,.03); }
+
+  .cl-checkbox {
+    width: 20px; height: 20px;
+    border: 2px solid var(--muted);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .2s, background .2s;
+    font-size: 12px;
+  }
+  .cl-checkbox.checked {
+    background: var(--pass);
+    border-color: var(--pass);
+    color: #0d1117;
+  }
+  .cl-checkbox.fail-box {
+    background: rgba(239,68,68,.15);
+    border-color: var(--fail);
+  }
+  .cl-checkbox.warn-box {
+    background: rgba(245,158,11,.15);
+    border-color: var(--warn);
+  }
+
+  .cl-item-body { flex: 1; min-width: 0; }
+  .cl-item-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cl-label { font-size: 14px; font-weight: 500; }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .badge-req  { background: rgba(80,232,144,.12); color: var(--pass); border: 1px solid rgba(80,232,144,.25); }
+  .badge-rec  { background: rgba(245,158,11,.12);  color: var(--warn); border: 1px solid rgba(245,158,11,.25); }
+  .badge-auto { background: rgba(139,148,158,.1);  color: var(--muted); border: 1px solid rgba(139,148,158,.2); }
+  .badge-manual { background: rgba(139,148,158,.1); color: var(--muted); border: 1px solid rgba(139,148,158,.2); }
+
+  .cl-status-icon {
+    margin-left: auto;
+    font-size: 17px;
+    flex-shrink: 0;
+    transition: all .3s;
+  }
+
+  .cl-detail {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.5;
+    display: none;
+  }
+  .cl-item.expanded .cl-detail { display: block; }
+  .cl-detail .domain-list {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+  }
+  .domain-tag {
+    background: rgba(255,255,255,.06);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+  }
+  .btn-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    padding: 5px 12px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .btn-inline:hover { background: rgba(255,255,255,.12); }
+
+  /* Checklist footer */
+  .cl-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: rgba(255,255,255,.02);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .summary-text { font-size: 13px; color: var(--muted); flex: 1; }
+  .summary-text span { color: var(--text); font-weight: 600; }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .btn-download:hover { background: rgba(255,255,255,.12); }
+
+  /* ─── Coverage Matrix ─── */
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  .coverage-table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.03); }
+  td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .device-name { font-weight: 600; color: var(--text); }
+  .os-info { color: var(--muted); font-size: 12px; }
+  .tester-family {
+    background: rgba(80,232,144,.1); color: var(--pass);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: 12px; padding: 2px 9px; font-size: 11px; font-weight: 700;
+  }
+  .tester-teacher {
+    background: rgba(139,148,158,.1); color: var(--muted);
+    border: 1px solid rgba(139,148,158,.2);
+    border-radius: 12px; padding: 2px 9px; font-size: 11px; font-weight: 700;
+  }
+  .status-ok   { color: var(--pass); font-weight: 600; }
+  .status-warn { color: var(--warn); font-weight: 600; }
+  .status-fail { color: var(--fail); font-weight: 600; }
+
+  .coverage-summary {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .cov-stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    flex: 1;
+    min-width: 130px;
+  }
+  .cov-stat-num { font-size: 28px; font-weight: 800; color: var(--text); }
+  .cov-stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cov-stat.critical .cov-stat-num { color: var(--fail); }
+  .cov-stat.warn-stat .cov-stat-num { color: var(--warn); }
+  .cov-stat.ok-stat .cov-stat-num { color: var(--pass); }
+
+  .issues-strip {
+    margin-top: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .issues-strip-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .issue-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ─── Spec tab ─── */
+  .spec-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .spec-block-header {
+    padding: 14px 20px;
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  pre {
+    padding: 20px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text);
+    font-family: 'Courier New', Courier, monospace;
+    overflow-x: auto;
+    background: transparent;
+    white-space: pre;
+  }
+  pre .kw  { color: #79c0ff; }
+  pre .str { color: #a5d6ff; }
+  pre .cm  { color: var(--muted); font-style: italic; }
+  pre .ty  { color: #ffa657; }
+  pre .en  { color: #d2a8ff; }
+
+  .spec-table-wrap {
+    padding: 20px;
+  }
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .spec-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .spec-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table td code {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #79c0ff;
+    background: rgba(121,192,255,.08);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .pass-rules {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pass-rule {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .rule-ready   { background: rgba(80,232,144,.08);  border: 1px solid rgba(80,232,144,.2); }
+  .rule-notready{ background: rgba(239,68,68,.08);    border: 1px solid rgba(239,68,68,.2); }
+  .rule-warn    { background: rgba(245,158,11,.08);   border: 1px solid rgba(245,158,11,.2); }
+  .rule-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .device-target {
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .target-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    .page-header { padding: 14px 16px; }
+    .tab-bar { padding: 12px 16px 0; gap: 0; }
+    .tab-btn { padding: 10px 12px; font-size: 13px; }
+    .tab-panel { padding: 20px 16px; }
+    .cl-header, .autocheck-row, .cl-footer { padding-left: 16px; padding-right: 16px; }
+    .cl-section-header { padding-left: 16px; padding-right: 16px; }
+    .cl-item { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint" style="max-width:900px;margin-left:auto;margin-right:auto;margin-top:20px;margin-bottom:20px">
+  <strong>beta-device-checklist-v2.html</strong> — Beta device setup checklist. Used before each beta session to verify device readiness.
+  Two modes: <strong>Self-check</strong> (tester manually marks items) and <strong>Auto-check</strong> (app runs automated tests).
+  Checklist categories: Network / Audio / Display / App Version / Data / Permissions.
+  Pass threshold: all Required items must pass; Recommended items: warn if failed.
+  Device coverage target: <strong>iOS 16+</strong> / <strong>Android 12+</strong> / <strong>Chrome 108+</strong> / <strong>Safari 15+</strong>.
+</div>
+
+<!-- Page header -->
+<div class="page-header">
+  <div class="logo-mark">🔍</div>
+  <div>
+    <div class="page-header h1" style="font-size:18px;font-weight:700;">Beta Device Checklist</div>
+    <div class="sub">WonderQuest Learning Platform · Pre-session verification</div>
+  </div>
+  <div class="beta-badge">Beta v2.5.9</div>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('checklist')">Device Checklist</button>
+  <button class="tab-btn" onclick="showTab('coverage')">Device Coverage Matrix</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 1 — Device Checklist
+═══════════════════════════════════════════════════════ -->
+<div id="tab-checklist" class="tab-panel active">
+
+  <div class="checklist-card">
+
+    <!-- Card header -->
+    <div class="cl-header">
+      <div class="cl-title-row">
+        <div class="cl-title">Device Readiness Check</div>
+        <div class="overall-chip chip-pending" id="overall-chip">⏳ Pending</div>
+      </div>
+      <div class="device-strip">
+        <span>iPhone 14 Pro</span><span class="dot">·</span>
+        <span>iOS 17.2</span><span class="dot">·</span>
+        <span>Safari 16</span><span class="dot">·</span>
+        <span style="color:var(--beta);font-weight:600;">WonderQuest v2.5.9-beta</span>
+      </div>
+    </div>
+
+    <!-- Auto-check controls -->
+    <div class="autocheck-row">
+      <button class="btn-autocheck" id="autocheck-btn" onclick="runAutoCheck()">🔍 Run Auto-Check</button>
+      <div class="progress-bar-wrap" id="progress-wrap">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="autocheck-status" id="autocheck-status">Run auto-check to verify your device</div>
+    </div>
+
+    <!-- ── NETWORK ── -->
+    <div class="cl-section">
+      <div class="cl-section-header">
+        <span class="section-icon">📡</span>
+        <span class="section-name">Network</span>
+        <span class="section-req">Required</span>
+        <span class="section-count" id="net-count">0/3</span>
+      </div>
+
+      <div class="cl-item" id="item-internet" onclick="toggleItem('internet')">
+        <div class="cl-checkbox" id="cb-internet">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Internet connection available</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-internet">
+            Checks <code>navigator.onLine</code> to verify network connectivity. Must be true before session start.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-internet">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-speed" onclick="toggleItem('speed')">
+        <div class="cl-checkbox" id="cb-speed">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Connection speed ≥ 2 Mbps</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-speed">
+            Estimated via latency ping test to WonderQuest CDN. Minimum 2 Mbps required for audio/video playback.
+            <br><br>Measured: <strong id="speed-val">—</strong>
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-speed">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-firewall" onclick="toggleItem('firewall')">
+        <div class="cl-checkbox" id="cb-firewall">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Firewall not blocking app domains</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-manual">Manual</span>
+          </div>
+          <div class="cl-detail" id="det-firewall">
+            Verify the following domains are accessible from your network:
+            <div class="domain-list">
+              <span class="domain-tag">wonderquest.app</span>
+              <span class="domain-tag">api.wonderquest.app</span>
+              <span class="domain-tag">cdn.wonderquest.app</span>
+              <span class="domain-tag">assets.wonderquest.app</span>
+              <span class="domain-tag">beta.wonderquest.app</span>
+            </div>
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-firewall">⏳</div>
+      </div>
+    </div>
+
+    <!-- ── AUDIO ── -->
+    <div class="cl-section">
+      <div class="cl-section-header">
+        <span class="section-icon">🔊</span>
+        <span class="section-name">Audio</span>
+        <span class="section-req">Required for most tests</span>
+        <span class="section-count" id="aud-count">0/3</span>
+      </div>
+
+      <div class="cl-item" id="item-audio-out" onclick="toggleItem('audio-out')">
+        <div class="cl-checkbox" id="cb-audio-out">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Audio output working</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-audio-out">
+            A short 440 Hz tone will be generated via Web Audio API. Confirm you can hear it.
+            <br><br>
+            <button class="btn-inline" onclick="playTestTone(event)">🔔 Play Test Tone</button>
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-audio-out">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-volume" onclick="toggleItem('volume')">
+        <div class="cl-checkbox" id="cb-volume">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Volume not muted</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-manual">Manual</span>
+          </div>
+          <div class="cl-detail" id="det-volume">
+            Check that your device volume is at least 50%. WonderQuest audio feedback is essential for child learning sessions.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-volume">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-mic" onclick="toggleItem('mic')">
+        <div class="cl-checkbox" id="cb-mic">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Microphone available <em style="font-style:italic;color:var(--muted);font-size:12px">(voice feature)</em></span>
+            <span class="badge badge-rec">Recommended</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-mic">
+            Checked via <code>navigator.mediaDevices.enumerateDevices()</code>. Voice-mode quests require microphone access. Non-blocking if unavailable — voice features will be skipped.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-mic">⏳</div>
+      </div>
+    </div>
+
+    <!-- ── DISPLAY ── -->
+    <div class="cl-section">
+      <div class="cl-section-header">
+        <span class="section-icon">🖥️</span>
+        <span class="section-name">Display</span>
+        <span class="section-req">Required</span>
+        <span class="section-count" id="dis-count">0/3</span>
+      </div>
+
+      <div class="cl-item" id="item-screen" onclick="toggleItem('screen')">
+        <div class="cl-checkbox" id="cb-screen">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Screen size ≥ 375px wide</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-screen">
+            Measured via <code>window.innerWidth</code>. Current: <strong id="screen-val">—</strong>px
+            <br>Minimum supported width: 375px (iPhone SE). Narrower devices may have layout issues.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-screen">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-zoom" onclick="toggleItem('zoom')">
+        <div class="cl-checkbox" id="cb-zoom">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">No accessibility zoom &gt;200% active</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-manual">Manual</span>
+          </div>
+          <div class="cl-detail" id="det-zoom">
+            Check Settings → Accessibility → Display &amp; Text Size → Larger Text. High zoom levels can break WonderQuest layouts. Recommended: system font size at default or +1 step.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-zoom">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-darkmode" onclick="toggleItem('darkmode')">
+        <div class="cl-checkbox" id="cb-darkmode">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Dark mode enabled</span>
+            <span class="badge badge-rec">Recommended</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-darkmode">
+            Detected via <code>matchMedia('prefers-color-scheme: dark')</code>. WonderQuest beta is dark-first; light mode may show styling issues during this phase.
+            <br><br>Detected: <strong id="darkmode-val">—</strong>
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-darkmode">⏳</div>
+      </div>
+    </div>
+
+    <!-- ── APP VERSION ── -->
+    <div class="cl-section">
+      <div class="cl-section-header">
+        <span class="section-icon">📦</span>
+        <span class="section-name">App Version</span>
+        <span class="section-req">Required</span>
+        <span class="section-count" id="app-count">0/3</span>
+      </div>
+
+      <div class="cl-item" id="item-appver" onclick="toggleItem('appver')">
+        <div class="cl-checkbox" id="cb-appver">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">WonderQuest v2.5.9-beta installed</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-appver">
+            Reads <code>APP_VERSION</code> environment variable at runtime. Expected: <strong>v2.5.9-beta</strong>. Older versions may not report beta telemetry correctly.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-appver">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-build" onclick="toggleItem('build')">
+        <div class="cl-checkbox" id="cb-build">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Latest beta build (build #1247)</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-build">
+            Compares local build number against <code>/api/beta/latest-build</code>. Current latest: <strong>#1247</strong>. Outdated builds may have resolved bugs that affect test validity.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-build">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-cache" onclick="toggleItem('cache')">
+        <div class="cl-checkbox" id="cb-cache">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">No cached data from previous beta version</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-manual">Manual</span>
+          </div>
+          <div class="cl-detail" id="det-cache">
+            Old cached data can corrupt session state. Clear before testing.
+            <br><br>
+            <button class="btn-inline" onclick="clearCache(event)">🗑️ Clear Cache</button>
+            <span id="cache-cleared" style="font-size:12px;color:var(--pass);margin-left:8px;display:none;">✓ Cache cleared</span>
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-cache">⏳</div>
+      </div>
+    </div>
+
+    <!-- ── PERMISSIONS ── -->
+    <div class="cl-section">
+      <div class="cl-section-header">
+        <span class="section-icon">🔐</span>
+        <span class="section-name">Permissions</span>
+        <span class="section-req">Required</span>
+        <span class="section-count" id="perm-count">0/2</span>
+      </div>
+
+      <div class="cl-item" id="item-notif" onclick="toggleItem('notif')">
+        <div class="cl-checkbox" id="cb-notif">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Notifications enabled</span>
+            <span class="badge badge-rec">Recommended</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-notif">
+            Checked via <code>Notification.permission === 'granted'</code>. Used for session reminders and real-time beta alerts. Non-blocking — session proceeds without notifications.
+            <br><br>Current permission: <strong id="notif-val">—</strong>
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-notif">⏳</div>
+      </div>
+
+      <div class="cl-item" id="item-storage" onclick="toggleItem('storage')">
+        <div class="cl-checkbox" id="cb-storage">☐</div>
+        <div class="cl-item-body">
+          <div class="cl-item-top">
+            <span class="cl-label">Storage permission granted</span>
+            <span class="badge badge-req">Required</span>
+            <span class="badge badge-auto">Auto</span>
+          </div>
+          <div class="cl-detail" id="det-storage">
+            Verified via <code>StorageManager</code> API. WonderQuest stores session progress, earned badges, and offline content locally. Storage access is required for continuity.
+          </div>
+        </div>
+        <div class="cl-status-icon" id="si-storage">⏳</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="cl-footer">
+      <div class="summary-text" id="footer-summary">
+        <span id="pass-count">0</span> passed · <span id="warn-count">0</span> warnings · <span id="fail-count">0</span> failed · <span id="pending-count">14</span> pending
+      </div>
+      <button class="btn-download" onclick="downloadReport()">⬇ Download Checklist Report</button>
+    </div>
+
+  </div><!-- /checklist-card -->
+</div><!-- /tab-checklist -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 2 — Device Coverage Matrix
+═══════════════════════════════════════════════════════ -->
+<div id="tab-coverage" class="tab-panel">
+
+  <div class="section-title">Device Coverage Matrix</div>
+  <div class="section-sub">Devices being tested across the beta cohort</div>
+
+  <div class="coverage-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>OS</th>
+          <th>Browser</th>
+          <th>Tester Type</th>
+          <th>Status</th>
+          <th>Issues Logged</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="device-name">iPhone 14 Pro</span></td>
+          <td><span class="os-info">iOS 17.2</span></td>
+          <td>Safari</td>
+          <td><span class="tester-family">Family</span></td>
+          <td class="status-ok">✅ No issues</td>
+          <td style="color:var(--muted);">—</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">iPhone 12</span></td>
+          <td><span class="os-info">iOS 16.1</span></td>
+          <td>Safari</td>
+          <td><span class="tester-teacher">Teacher</span></td>
+          <td class="status-warn">⚠ Audio delay</td>
+          <td style="color:var(--warn);font-size:12px;">WQ-412: Audio plays 800ms late on K1 scenes</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">iPad Air (5th gen)</span></td>
+          <td><span class="os-info">iPadOS 17</span></td>
+          <td>Safari</td>
+          <td><span class="tester-family">Family</span></td>
+          <td class="status-ok">✅ No issues</td>
+          <td style="color:var(--muted);">—</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">Samsung Galaxy S23</span></td>
+          <td><span class="os-info">Android 13</span></td>
+          <td>Chrome</td>
+          <td><span class="tester-family">Family</span></td>
+          <td class="status-warn">⚠ Display gap</td>
+          <td style="color:var(--warn);font-size:12px;">WQ-418: 2px gap in progress strip on 120Hz screens</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">Pixel 7</span></td>
+          <td><span class="os-info">Android 13</span></td>
+          <td>Chrome</td>
+          <td><span class="tester-teacher">Teacher</span></td>
+          <td class="status-ok">✅ No issues</td>
+          <td style="color:var(--muted);">—</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">Chromebook (Lenovo)</span></td>
+          <td><span class="os-info">ChromeOS</span></td>
+          <td>Chrome</td>
+          <td><span class="tester-teacher">Teacher</span></td>
+          <td class="status-fail">❌ Mic blocked</td>
+          <td style="color:var(--fail);font-size:12px;">WQ-421: <strong>CRITICAL</strong> — Microphone blocked by managed device policy</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">MacBook Pro</span></td>
+          <td><span class="os-info">macOS 14</span></td>
+          <td>Chrome</td>
+          <td><span class="tester-teacher">Teacher</span></td>
+          <td class="status-ok">✅ No issues</td>
+          <td style="color:var(--muted);">—</td>
+        </tr>
+        <tr>
+          <td><span class="device-name">MacBook Air</span></td>
+          <td><span class="os-info">macOS 14</span></td>
+          <td>Safari</td>
+          <td><span class="tester-teacher">Teacher</span></td>
+          <td class="status-warn">⚠ Performance</td>
+          <td style="color:var(--warn);font-size:12px;">WQ-425: Frame drops on voice coach overlay animations</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="coverage-summary">
+    <div class="cov-stat">
+      <div class="cov-stat-num">11</div>
+      <div class="cov-stat-label">Total devices tracked</div>
+    </div>
+    <div class="cov-stat">
+      <div class="cov-stat-num">8</div>
+      <div class="cov-stat-label">Active testers</div>
+    </div>
+    <div class="cov-stat ok-stat">
+      <div class="cov-stat-num">6</div>
+      <div class="cov-stat-label">iOS devices</div>
+    </div>
+    <div class="cov-stat">
+      <div class="cov-stat-num">2</div>
+      <div class="cov-stat-label">Android devices</div>
+    </div>
+    <div class="cov-stat">
+      <div class="cov-stat-num">1</div>
+      <div class="cov-stat-label">Chromebook</div>
+    </div>
+    <div class="cov-stat">
+      <div class="cov-stat-num">2</div>
+      <div class="cov-stat-label">macOS devices</div>
+    </div>
+  </div>
+
+  <div class="issues-strip">
+    <div class="issues-strip-item">
+      <div class="issue-dot" style="background:var(--fail)"></div>
+      <strong style="color:var(--fail)">1 critical</strong>
+    </div>
+    <div class="issues-strip-item">
+      <div class="issue-dot" style="background:var(--warn)"></div>
+      <strong style="color:var(--warn)">3 warnings</strong>
+    </div>
+    <div class="issues-strip-item">
+      <div class="issue-dot" style="background:var(--pass)"></div>
+      <strong style="color:var(--pass)">0 blockers</strong>
+    </div>
+    <div style="margin-left:auto;font-size:12px;color:var(--muted);">
+      Last updated: 2026-03-24 · Cohort: Family (3) + Teacher (5)
+    </div>
+  </div>
+
+</div><!-- /tab-coverage -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 3 — Spec
+═══════════════════════════════════════════════════════ -->
+<div id="tab-spec" class="tab-panel">
+
+  <!-- Schema -->
+  <div class="spec-block" style="margin-bottom:24px;">
+    <div class="spec-block-header">Database Schema</div>
+    <pre><span class="kw">CREATE TABLE</span> <span class="ty">beta_device_checks</span> (
+  <span class="en">id</span>              <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY</span>,
+  <span class="en">user_id</span>         <span class="ty">UUID</span>,
+  <span class="en">session_id</span>      <span class="ty">UUID</span>         <span class="kw">NULLABLE</span>,
+  <span class="en">device_info</span>     <span class="ty">JSONB</span>,        <span class="cm">-- { model, os_version, browser, app_version, build_number }</span>
+  <span class="en">check_results</span>   <span class="ty">JSONB</span>,        <span class="cm">-- { [check_key]: { status, value, checked_at } }</span>
+  <span class="en">overall_status</span>  <span class="ty">ENUM</span>(<span class="str">'ready'</span>, <span class="str">'warnings'</span>, <span class="str">'not_ready'</span>),
+  <span class="en">run_at</span>          <span class="ty">TIMESTAMPTZ</span>  <span class="kw">DEFAULT NOW</span>()
+);</pre>
+  </div>
+
+  <!-- Auto-check methods -->
+  <div class="spec-block" style="margin-bottom:24px;">
+    <div class="spec-block-header">Auto-Check Methods</div>
+    <div class="spec-table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Method</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Internet</td>
+            <td><code>navigator.onLine</code></td>
+          </tr>
+          <tr>
+            <td>Screen width</td>
+            <td><code>window.innerWidth &gt;= 375</code></td>
+          </tr>
+          <tr>
+            <td>Dark mode</td>
+            <td><code>matchMedia('prefers-color-scheme: dark').matches</code></td>
+          </tr>
+          <tr>
+            <td>Notifications</td>
+            <td><code>Notification.permission === 'granted'</code></td>
+          </tr>
+          <tr>
+            <td>Microphone</td>
+            <td><code>navigator.mediaDevices.enumerateDevices()</code></td>
+          </tr>
+          <tr>
+            <td>App version</td>
+            <td><code>Compare APP_VERSION env var to /api/beta/latest-build</code></td>
+          </tr>
+          <tr>
+            <td>Storage</td>
+            <td><code>navigator.storage.estimate()</code> via <code>StorageManager</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pass threshold -->
+  <div class="spec-block" style="margin-bottom:24px;">
+    <div class="spec-block-header">Pass / Fail Rules</div>
+    <div class="pass-rules">
+      <div class="pass-rule rule-ready">
+        <div class="rule-icon">✅</div>
+        <div>
+          <strong>overall_status = "ready"</strong><br>
+          All <em>Required</em> items PASS. Recommended items may be skipped or warned. Session may begin immediately.
+        </div>
+      </div>
+      <div class="pass-rule rule-notready">
+        <div class="rule-icon">❌</div>
+        <div>
+          <strong>overall_status = "not_ready"</strong><br>
+          Any <em>Required</em> item FAILS. Session is <strong>blocked</strong>. Tester must resolve all required failures before proceeding.
+        </div>
+      </div>
+      <div class="pass-rule rule-warn">
+        <div class="rule-icon">⚠️</div>
+        <div>
+          <strong>overall_status = "warnings"</strong><br>
+          All Required items PASS but one or more <em>Recommended</em> items FAIL. Session is allowed with a warning note in the beta report. Tester should document the limitation.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device targets -->
+  <div class="spec-block">
+    <div class="spec-block-header">Supported Device Coverage Target</div>
+    <div class="device-target">
+      <div class="target-pill">📱 iOS 16+</div>
+      <div class="target-pill">🤖 Android 12+</div>
+      <div class="target-pill">🌐 Chrome 108+</div>
+      <div class="target-pill">🧭 Safari 15+</div>
+      <div class="target-pill">💻 macOS 12+</div>
+      <div class="target-pill">📚 ChromeOS (latest)</div>
+    </div>
+    <div style="padding: 0 20px 20px; font-size:12px; color:var(--muted); line-height:1.6;">
+      Devices outside these targets may be tested opportunistically but issues on out-of-target devices are <strong style="color:var(--text)">deprioritized</strong> unless they represent &gt;5% of user base. Beta reports should flag out-of-target runs clearly.
+    </div>
+  </div>
+
+</div><!-- /tab-spec -->
+
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const ITEMS = [
+  // [key, required (true=req / false=rec), auto (true=auto / false=manual)]
+  ['internet',   true,  true],
+  ['speed',      true,  true],
+  ['firewall',   true,  false],
+  ['audio-out',  true,  true],
+  ['volume',     true,  false],
+  ['mic',        false, true],
+  ['screen',     true,  true],
+  ['zoom',       true,  false],
+  ['darkmode',   false, true],
+  ['appver',     true,  true],
+  ['build',      true,  true],
+  ['cache',      true,  false],
+  ['notif',      false, true],
+  ['storage',    true,  true],
+];
+
+// status: 'pending' | 'pass' | 'fail' | 'warn'
+const state = {};
+ITEMS.forEach(([k]) => { state[k] = 'pending'; });
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function showTab(t) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const map = { checklist: 0, coverage: 1, spec: 2 };
+  btns[map[t]].classList.add('active');
+}
+
+// ─── Toggle item expand & manual check ───────────────────────────────────────
+function toggleItem(key) {
+  const item = document.getElementById('item-' + key);
+  const wasExpanded = item.classList.contains('expanded');
+  // Collapse all first
+  document.querySelectorAll('.cl-item').forEach(el => el.classList.remove('expanded'));
+  if (!wasExpanded) item.classList.add('expanded');
+
+  // Manual items: toggle pass on click
+  const entry = ITEMS.find(([k]) => k === key);
+  if (entry && !entry[1] === false || (entry && !entry[2])) {
+    // All manual items — toggle pass/pending
+    if (entry && !entry[2]) {
+      const cur = state[key];
+      if (cur === 'pending' || cur === 'fail') {
+        setStatus(key, 'pass');
+      }
+    }
+  }
+  updateOverall();
+}
+
+// ─── Set status for an item ───────────────────────────────────────────────────
+function setStatus(key, status) {
+  state[key] = status;
+  const cb   = document.getElementById('cb-' + key);
+  const si   = document.getElementById('si-' + key);
+
+  // Checkbox appearance
+  cb.className = 'cl-checkbox';
+  if (status === 'pass') {
+    cb.classList.add('checked');
+    cb.textContent = '✓';
+  } else if (status === 'fail') {
+    cb.classList.add('fail-box');
+    cb.textContent = '✗';
+  } else if (status === 'warn') {
+    cb.classList.add('warn-box');
+    cb.textContent = '⚠';
+  } else {
+    cb.textContent = '☐';
+  }
+
+  // Status icon
+  const icons = { pass: '✅', fail: '❌', warn: '⚠️', pending: '⏳' };
+  si.textContent = icons[status] || '⏳';
+}
+
+// ─── Section counters ────────────────────────────────────────────────────────
+function updateSectionCounts() {
+  const sections = {
+    'net':  ['internet', 'speed', 'firewall'],
+    'aud':  ['audio-out', 'volume', 'mic'],
+    'dis':  ['screen', 'zoom', 'darkmode'],
+    'app':  ['appver', 'build', 'cache'],
+    'perm': ['notif', 'storage'],
+  };
+  Object.entries(sections).forEach(([prefix, keys]) => {
+    const passed = keys.filter(k => state[k] === 'pass' || state[k] === 'warn').length;
+    const el = document.getElementById(prefix + '-count');
+    if (el) el.textContent = `${passed}/${keys.length}`;
+  });
+}
+
+// ─── Overall status ───────────────────────────────────────────────────────────
+function updateOverall() {
+  updateSectionCounts();
+
+  let passes = 0, warns = 0, fails = 0, pending = 0;
+  ITEMS.forEach(([key, required, _]) => {
+    const s = state[key];
+    if (s === 'pass') passes++;
+    else if (s === 'warn') warns++;
+    else if (s === 'fail') fails++;
+    else pending++;
+  });
+
+  const chip = document.getElementById('overall-chip');
+
+  // Determine if any REQUIRED item failed
+  const requiredFail = ITEMS.some(([k, req]) => req && state[k] === 'fail');
+  // Determine if any recommended item failed/warned
+  const recWarn = ITEMS.some(([k, req]) => !req && (state[k] === 'warn' || state[k] === 'fail'));
+
+  let overall;
+  if (pending === ITEMS.length) {
+    overall = 'pending';
+  } else if (requiredFail) {
+    overall = 'not_ready';
+  } else if (pending > 0) {
+    overall = 'pending';
+  } else if (recWarn || warns > 0) {
+    overall = 'warnings';
+  } else {
+    overall = 'ready';
+  }
+
+  chip.className = 'overall-chip';
+  if (overall === 'ready')    { chip.classList.add('chip-ready');    chip.textContent = '✅ Ready'; }
+  else if (overall === 'not_ready') { chip.classList.add('chip-notready'); chip.textContent = '❌ Not Ready'; }
+  else if (overall === 'warnings')  { chip.classList.add('chip-warn');    chip.textContent = '⚠ Warnings'; }
+  else                              { chip.classList.add('chip-pending');  chip.textContent = '⏳ Pending'; }
+
+  // Footer counts
+  document.getElementById('pass-count').textContent    = passes;
+  document.getElementById('warn-count').textContent    = warns;
+  document.getElementById('fail-count').textContent    = fails;
+  document.getElementById('pending-count').textContent = pending;
+}
+
+// ─── Auto-check simulation ────────────────────────────────────────────────────
+let checking = false;
+
+async function runAutoCheck() {
+  if (checking) return;
+  checking = true;
+  const btn = document.getElementById('autocheck-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Checking…';
+
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressFill = document.getElementById('progress-fill');
+  progressWrap.style.display = 'block';
+
+  const statusEl = document.getElementById('autocheck-status');
+
+  // Reset all to pending
+  ITEMS.forEach(([k]) => setStatus(k, 'pending'));
+  updateOverall();
+
+  // Auto items only
+  const autoItems = ITEMS.filter(([,, auto]) => auto);
+  const total = autoItems.length;
+
+  for (let i = 0; i < total; i++) {
+    const [key] = autoItems[i];
+    statusEl.textContent = `Checking: ${getLabelFor(key)}…`;
+    progressFill.style.width = ((i / total) * 100) + '%';
+
+    await delay(120 + Math.random() * 80);
+
+    const result = await simulateCheck(key);
+    setStatus(key, result);
+    updateOverall();
+  }
+
+  progressFill.style.width = '100%';
+  await delay(200);
+  progressWrap.style.display = 'none';
+
+  checking = false;
+  btn.disabled = false;
+  btn.textContent = '🔁 Re-run Auto-Check';
+  statusEl.textContent = 'Auto-check complete. Manual items require your confirmation.';
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function getLabelFor(key) {
+  const labels = {
+    'internet':  'Internet connection',
+    'speed':     'Connection speed',
+    'audio-out': 'Audio output',
+    'mic':       'Microphone',
+    'screen':    'Screen size',
+    'darkmode':  'Dark mode',
+    'appver':    'App version',
+    'build':     'Build number',
+    'notif':     'Notifications',
+    'storage':   'Storage access',
+  };
+  return labels[key] || key;
+}
+
+async function simulateCheck(key) {
+  switch (key) {
+    case 'internet':
+      return navigator.onLine ? 'pass' : 'fail';
+
+    case 'speed': {
+      // Simulate estimated speed (random 2–15 Mbps for demo)
+      const mbps = (Math.random() * 13 + 2).toFixed(1);
+      const el = document.getElementById('speed-val');
+      if (el) el.textContent = mbps + ' Mbps (estimated)';
+      return parseFloat(mbps) >= 2 ? 'pass' : 'fail';
+    }
+
+    case 'audio-out':
+      // Web Audio API check — just verify it's available
+      return (window.AudioContext || window.webkitAudioContext) ? 'pass' : 'warn';
+
+    case 'mic': {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasMic = devices.some(d => d.kind === 'audioinput');
+        return hasMic ? 'pass' : 'warn';
+      } catch (e) {
+        return 'warn';
+      }
+    }
+
+    case 'screen': {
+      const w = window.innerWidth;
+      const el = document.getElementById('screen-val');
+      if (el) el.textContent = w;
+      return w >= 375 ? 'pass' : 'fail';
+    }
+
+    case 'darkmode': {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const el = document.getElementById('darkmode-val');
+      if (el) el.textContent = isDark ? 'Dark mode ✓' : 'Light mode';
+      return isDark ? 'pass' : 'warn';
+    }
+
+    case 'appver':
+      // Simulate: pretend current version matches
+      return Math.random() > 0.1 ? 'pass' : 'fail';
+
+    case 'build':
+      // Simulate API check
+      return Math.random() > 0.15 ? 'pass' : 'warn';
+
+    case 'notif': {
+      let perm = 'unknown';
+      try { perm = Notification.permission; } catch(e) { perm = 'unavailable'; }
+      const el = document.getElementById('notif-val');
+      if (el) el.textContent = perm;
+      if (perm === 'granted') return 'pass';
+      if (perm === 'denied')  return 'warn';
+      return 'warn'; // 'default' — not yet requested
+    }
+
+    case 'storage': {
+      try {
+        if (navigator.storage && navigator.storage.estimate) {
+          await navigator.storage.estimate();
+          return 'pass';
+        }
+        return 'warn';
+      } catch(e) {
+        return 'warn';
+      }
+    }
+
+    default:
+      return 'pass';
+  }
+}
+
+// ─── Test tone ────────────────────────────────────────────────────────────────
+function playTestTone(e) {
+  e.stopPropagation();
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 1);
+  } catch(err) {
+    alert('Audio not available in this browser context.');
+  }
+}
+
+// ─── Clear cache ──────────────────────────────────────────────────────────────
+function clearCache(e) {
+  e.stopPropagation();
+  // Simulate cache clear
+  if (window.caches) {
+    caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+  }
+  const el = document.getElementById('cache-cleared');
+  if (el) el.style.display = 'inline';
+  setStatus('cache', 'pass');
+  updateOverall();
+}
+
+// ─── Download report ──────────────────────────────────────────────────────────
+function downloadReport() {
+  const lines = [
+    'WonderQuest Beta Device Checklist Report',
+    '==========================================',
+    `Generated: ${new Date().toISOString()}`,
+    `Device: iPhone 14 Pro · iOS 17.2 · Safari 16 · WonderQuest v2.5.9-beta`,
+    '',
+  ];
+  ITEMS.forEach(([key, required, auto]) => {
+    const s = state[key];
+    const icon = { pass: '[PASS]', fail: '[FAIL]', warn: '[WARN]', pending: '[PENDING]' }[s] || '[?]';
+    const reqStr = required ? 'Required' : 'Recommended';
+    const autoStr = auto ? 'Auto' : 'Manual';
+    lines.push(`${icon} ${key.padEnd(12)} (${reqStr}, ${autoStr})`);
+  });
+  lines.push('');
+  // Overall
+  const requiredFail = ITEMS.some(([k, req]) => req && state[k] === 'fail');
+  const pending = ITEMS.filter(([k]) => state[k] === 'pending').length;
+  const recWarn = ITEMS.some(([k, req]) => !req && (state[k] === 'warn' || state[k] === 'fail'));
+  let overall = pending === ITEMS.length ? 'PENDING' : requiredFail ? 'NOT_READY' : pending > 0 ? 'PENDING' : recWarn ? 'WARNINGS' : 'READY';
+  lines.push(`Overall Status: ${overall}`);
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wonderquest-device-checklist-${Date.now()}.txt`;
+  a.click();
+}
+
+// ─── Expand toggle (separate from status toggle) ──────────────────────────────
+// Override toggleItem to separate expand from status
+(function() {
+  const original = window.toggleItem;
+  window.toggleItem = function(key) {
+    const item = document.getElementById('item-' + key);
+    const wasExpanded = item.classList.contains('expanded');
+    document.querySelectorAll('.cl-item').forEach(el => el.classList.remove('expanded'));
+    if (!wasExpanded) item.classList.add('expanded');
+
+    // Manual items: clicking toggles pass state
+    const entry = ITEMS.find(([k]) => k === key);
+    if (entry && !entry[2]) {
+      // manual item
+      const cur = state[key];
+      if (cur === 'pending') {
+        setStatus(key, 'pass');
+      } else if (cur === 'pass') {
+        setStatus(key, 'pending');
+      }
+      updateOverall();
+    }
+  };
+})();
+
+// Init
+updateOverall();
+</script>
+</body>
+</html>

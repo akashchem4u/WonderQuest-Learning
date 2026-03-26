@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Workbench Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Owner shell */
+.owner-shell{display:flex;max-width:960px;background:#0d1117;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);height:640px}
+.owner-sb{width:190px;background:#010409;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05)}
+.sb-logo{padding:16px 12px 12px;font-size:13px;font-weight:900;color:#f0f6ff;border-bottom:1px solid rgba(255,255,255,.05)}
+.sb-logo span{color:#50e890}
+.sb-sect{padding:10px 8px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.2)}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;margin:1px 4px;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer}
+.sb-item.active{background:rgba(80,232,144,.1);color:#50e890}
+.sb-icon{font-size:13px;width:16px;text-align:center}
+.sb-badge{font-size:9px;font-weight:800;padding:1px 4px;border-radius:4px;margin-left:auto}
+.sb-badge-red{background:#f85149;color:#fff}
+.sb-badge-amber{background:#f59e0b;color:#1a1440}
+.sb-spacer{flex:1}
+.sb-footer{padding:10px;border-top:1px solid rgba(255,255,255,.05);font-size:10px;color:rgba(255,255,255,.3)}
+
+.owner-main{flex:1;background:#0d1117;display:flex;overflow:hidden}
+
+/* Workbench 2-panel */
+.wb-left{width:320px;border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;flex-shrink:0}
+.wb-right{flex:1;overflow-y:auto;padding:16px 18px;background:#0d1117}
+
+/* Left panel header */
+.wbl-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.wbl-title{font-size:12px;font-weight:800;color:#f0f6ff;margin-bottom:8px}
+.wbl-filters{display:flex;gap:5px;flex-wrap:wrap}
+.wbl-filter{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;border:none;font-family:system-ui}
+.wbf-active{background:#50e890;color:#010409}
+.wbf-inactive{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45)}
+.wbf-red{background:rgba(248,81,73,.2);color:#f85149}
+
+/* Feedback list */
+.wb-list{flex:1;overflow-y:auto}
+.fb-item{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.fb-item:hover{background:rgba(255,255,255,.03)}
+.fb-item.active-item{background:rgba(80,232,144,.06);border-left:3px solid #50e890}
+.fb-item-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.fb-priority{font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px}
+.fbp-p0{background:#f85149;color:#fff}
+.fbp-p1{background:#f59e0b;color:#1a1440}
+.fbp-p2{background:#2563eb;color:#fff}
+.fbp-feat{background:rgba(80,232,144,.2);color:#50e890}
+.fb-type{font-size:9px;color:rgba(255,255,255,.3);font-weight:700}
+.fb-time{font-size:9px;color:rgba(255,255,255,.2);margin-left:auto}
+.fb-summary{font-size:11px;color:rgba(255,255,255,.7);line-height:1.3;margin-bottom:4px}
+.fb-meta{font-size:10px;color:rgba(255,255,255,.25)}
+.fb-status-row{display:flex;gap:5px;margin-top:4px}
+.fb-status-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px}
+.fsc-open{background:rgba(245,158,11,.15);color:#f59e0b}
+.fsc-review{background:rgba(37,99,235,.2);color:#60a5fa}
+.fsc-resolved{background:rgba(80,232,144,.15);color:#50e890}
+
+/* Right panel — feedback detail */
+.fb-detail-header{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.fdh-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.fdh-title{font-size:14px;font-weight:800;color:#f0f6ff;flex:1;line-height:1.3}
+.fdh-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.fdh-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px}
+.fdc-school{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.fdc-screen{background:rgba(37,99,235,.15);color:#60a5fa}
+.fdc-sev{background:rgba(245,158,11,.15);color:#f59e0b}
+.fdh-body{font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;background:rgba(255,255,255,.03);border-radius:6px;padding:8px 10px;border:1px solid rgba(255,255,255,.05)}
+
+/* Action row */
+.fb-action-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.fb-action-btn{padding:7px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui;border:none}
+.fab-resolve{background:#50e890;color:#010409}
+.fab-p2{background:#2563eb;color:#fff}
+.fab-close{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)}
+.fab-escalate{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+
+/* Owner note */
+.owner-note{margin-bottom:12px}
+.on-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:6px}
+.on-textarea{width:100%;padding:8px 10px;background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:11px;font-family:system-ui;color:rgba(255,255,255,.7);resize:none;min-height:70px;outline:none}
+.on-send{padding:6px 14px;background:#50e890;color:#010409;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui;margin-top:5px}
+
+/* History */
+.hist-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
+.hist-item:last-child{border-bottom:none}
+.hi-time{color:rgba(255,255,255,.2);flex-shrink:0;width:70px}
+.hi-text{color:rgba(255,255,255,.5);flex:1;line-height:1.4}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-feedback-workbench-desktop-v3.html</strong><br>
+  Owner feedback workbench — full triage and resolution workspace for all teacher-submitted feedback.<br>
+  <strong>Distinct from:</strong> Home preview (quick glance) | Feedback summary (analytics). Workbench = full working interface for acting on feedback.<br>
+  <strong>Layout:</strong> 2-panel — left: feedback queue list with filters. Right: selected feedback detail + actions.<br>
+  <strong>Actions:</strong> Resolve (with note) | Bump priority | Assign to team (eng/curriculum/support) | Close / Won't fix | Escalate to P0.<br>
+  <strong>Owner note:</strong> Owner can reply to the teacher from here. Message delivered to teacher's platform notification panel (not email).<br>
+  <strong>Privacy:</strong> Shows school name + teacher role (not teacher name). Feedback is attributed to school for product analytics.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('queue')">Live Queue</button>
+  <button class="tab-btn" onclick="showTab('expanded')">Expanded Item</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Live Queue ─────────────────────────────────────────────────── -->
+<div id="tab-queue" class="screen active">
+  <p class="section-title">Feedback workbench — live queue with expanded P1 item</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-sect">Ops</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item"><span class="sb-icon">📡</span>Route Health</div>
+      <div class="sb-item"><span class="sb-icon">🚀</span>Release Gate</div>
+      <div class="sb-item active"><span class="sb-icon">💬</span>Feedback <span class="sb-badge sb-badge-amber">3</span></div>
+      <div class="sb-sect">Analytics</div>
+      <div class="sb-item"><span class="sb-icon">📊</span>Command Center</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">Avi M. · Owner</div>
+    </div>
+    <div class="owner-main">
+      <!-- Left panel -->
+      <div class="wb-left">
+        <div class="wbl-header">
+          <div class="wbl-title">Feedback Queue <span style="color:rgba(255,255,255,.3);font-weight:400">(3 open)</span></div>
+          <div class="wbl-filters">
+            <button class="wbl-filter wbf-active">All open</button>
+            <button class="wbl-filter wbf-red">P0/P1</button>
+            <button class="wbl-filter wbf-inactive">Bugs</button>
+            <button class="wbl-filter wbf-inactive">Features</button>
+          </div>
+        </div>
+        <div class="wb-list">
+          <!-- P1 - active -->
+          <div class="fb-item active-item">
+            <div class="fb-item-top">
+              <span class="fb-priority fbp-p1">P1</span>
+              <span class="fb-type">Bug</span>
+              <span class="fb-time">2h ago</span>
+            </div>
+            <div class="fb-summary">Mastery bar not updating after session ends</div>
+            <div class="fb-meta">Maple Ridge Elementary · Teacher home</div>
+            <div class="fb-status-row">
+              <span class="fb-status-chip fsc-review">Under review</span>
+            </div>
+          </div>
+          <!-- P2 feature -->
+          <div class="fb-item">
+            <div class="fb-item-top">
+              <span class="fb-priority fbp-feat">Feature</span>
+              <span class="fb-type">Request</span>
+              <span class="fb-time">Mar 18</span>
+            </div>
+            <div class="fb-summary">Export class progress as PDF for parent-teacher conferences</div>
+            <div class="fb-meta">Sunnybrook K-5 · Command center</div>
+            <div class="fb-status-row">
+              <span class="fb-status-chip fsc-review">In review · Product team</span>
+            </div>
+          </div>
+          <!-- P2 content -->
+          <div class="fb-item">
+            <div class="fb-item-top">
+              <span class="fb-priority fbp-p2">P2</span>
+              <span class="fb-type">Content</span>
+              <span class="fb-time">Mar 10</span>
+            </div>
+            <div class="fb-summary">Ambiguous diagram in P2 Fractions: Comparing question set</div>
+            <div class="fb-meta">Lincoln Park Primary · Play session</div>
+            <div class="fb-status-row">
+              <span class="fb-status-chip fsc-review">Curriculum review</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right detail panel -->
+      <div class="wb-right">
+        <div class="fb-detail-header">
+          <div class="fdh-top">
+            <div>
+              <span class="fb-priority fbp-p1" style="font-size:10px">P1 Bug</span>
+            </div>
+            <div class="fdh-title" style="margin-left:8px">Mastery bar not updating after session ends (student detail page)</div>
+          </div>
+          <div class="fdh-meta">
+            <span class="fdh-chip fdc-school">Maple Ridge Elementary</span>
+            <span class="fdh-chip fdc-screen">Student detail page</span>
+            <span class="fdh-chip fdc-sev">Moderate severity</span>
+            <span class="fdh-chip" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)">Submitted 2h ago</span>
+          </div>
+          <div class="fdh-body">
+            "I viewed Jordan's profile after their session ended but the mastery bar for Long Division still shows the old value. Refreshing the page fixes it but the stale state is confusing. Happened twice this week on the same student's profile."
+          </div>
+        </div>
+
+        <div class="fb-action-row">
+          <button class="fb-action-btn fab-resolve">✓ Mark resolved</button>
+          <button class="fb-action-btn fab-p2">↑ Bump to P0</button>
+          <button class="fb-action-btn fab-escalate">🔔 Escalate to on-call</button>
+          <button class="fb-action-btn fab-close">✕ Won't fix</button>
+        </div>
+
+        <div class="owner-note">
+          <div class="on-label">Reply to teacher (delivered via platform notification)</div>
+          <textarea class="on-textarea" placeholder="Write a note to the teacher…">Thanks for flagging this — confirmed. The mastery score is cached client-side and not invalidated after a session closes. We're pushing a fix in today's build (#248). You should see accurate mastery on refresh after 6pm.</textarea>
+          <button class="on-send">Send reply</button>
+        </div>
+
+        <div class="on-label" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:6px">History</div>
+        <div class="hist-item"><div class="hi-time">9:14am</div><div class="hi-text">Feedback submitted by teacher at Maple Ridge Elementary</div></div>
+        <div class="hist-item"><div class="hi-time">9:22am</div><div class="hi-text">Auto-triaged: P1 (Moderate severity bug · Teacher portal). Slack alert sent to #engineering.</div></div>
+        <div class="hist-item"><div class="hi-time">10:08am</div><div class="hi-text">Kavya R. confirmed bug — cache invalidation missing on session_end event. Fix in progress.</div></div>
+        <div class="hist-item"><div class="hi-time">11:05am</div><div class="hi-text">Status set to "Under review" by Avi M.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Expanded Item ───────────────────────────────────────────────── -->
+<div id="tab-expanded" class="screen">
+  <p class="section-title">Expanded feedback item — feature request with full detail</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-item active"><span class="sb-icon">💬</span>Feedback</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">Avi M.</div>
+    </div>
+    <div class="owner-main">
+      <div class="wb-left">
+        <div class="wbl-header">
+          <div class="wbl-title">Feedback Queue</div>
+        </div>
+        <div class="wb-list">
+          <div class="fb-item">
+            <div class="fb-item-top"><span class="fb-priority fbp-p1">P1</span><span class="fb-type">Bug</span><span class="fb-time">2h</span></div>
+            <div class="fb-summary">Mastery bar not updating after session</div>
+          </div>
+          <div class="fb-item active-item">
+            <div class="fb-item-top"><span class="fb-priority fbp-feat">Feature</span><span class="fb-type">Request</span><span class="fb-time">Mar 18</span></div>
+            <div class="fb-summary">Export class progress as PDF</div>
+            <div class="fb-status-row"><span class="fb-status-chip fsc-review">In review</span></div>
+          </div>
+          <div class="fb-item">
+            <div class="fb-item-top"><span class="fb-priority fbp-p2">P2</span><span class="fb-type">Content</span><span class="fb-time">Mar 10</span></div>
+            <div class="fb-summary">Ambiguous fractions diagram</div>
+          </div>
+        </div>
+      </div>
+      <div class="wb-right">
+        <div class="fb-detail-header">
+          <div class="fdh-top">
+            <span class="fb-priority fbp-feat" style="font-size:10px;flex-shrink:0">Feature</span>
+            <div class="fdh-title" style="margin-left:8px">Export class progress as PDF for parent-teacher conferences</div>
+          </div>
+          <div class="fdh-meta">
+            <span class="fdh-chip fdc-school">Sunnybrook K-5</span>
+            <span class="fdh-chip fdc-screen">Command center</span>
+            <span class="fdh-chip" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)">6 days ago</span>
+            <span class="fdh-chip" style="background:rgba(80,232,144,.12);color:#50e890">12 upvotes</span>
+          </div>
+          <div class="fdh-body">
+            "Would love a printable one-page class summary I can bring to parent-teacher night. Ideally: student name, band, current skills in progress, streak, and a mastery trend. Parents love having something tangible. Could also use it for my own planning."
+          </div>
+        </div>
+        <div style="background:#161b22;border-radius:10px;padding:10px 14px;margin-bottom:10px;border:1px solid rgba(80,232,144,.15)">
+          <div style="font-size:10px;font-weight:700;color:#50e890;margin-bottom:4px">PRODUCT NOTE — Avi M.</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.4">This is the #3 most upvoted feature request this month. 12 teachers from 8 schools. Already in Q2 roadmap (teacher-class-summary PDF export). Targeting April release.</div>
+        </div>
+        <div class="fb-action-row">
+          <button class="fb-action-btn" style="background:rgba(80,232,144,.15);color:#50e890">📋 Add to roadmap</button>
+          <button class="fb-action-btn fab-close">✕ Won't build</button>
+        </div>
+        <div class="owner-note">
+          <div class="on-label">Reply to teacher</div>
+          <textarea class="on-textarea">Thanks for this — it's a popular request! We're planning a PDF export feature for our April release. I'll notify you when it's live. 🙏</textarea>
+          <button class="on-send">Send reply</button>
+        </div>
+        <div class="on-label" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:6px">Upvoted by</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.8">
+          12 teachers across 8 schools · Sunnybrook K-5 (3) · Maple Ridge (2) · Lincoln Park (2) · 5 others
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-feedback-workbench-desktop-v3.html<br>
+      <strong>Route:</strong> /console/feedback<br>
+      <strong>Data model:</strong> feedback table + feedback_upvotes + feedback_replies. Owner replies stored as feedback_replies (type: owner_note).
+    </div>
+    <h2 class="spec-h2">Priority Auto-triage Rules</h2>
+    <table class="spec-table">
+      <tr><th>Severity submitted</th><th>Auto P-level</th><th>Slack alert</th><th>Response SLA</th></tr>
+      <tr><td>Critical (platform unusable)</td><td>P0</td><td>#on-call immediate</td><td>4h</td></tr>
+      <tr><td>Major (impacts teaching)</td><td>P1</td><td>#engineering</td><td>24h</td></tr>
+      <tr><td>Moderate (workaround exists)</td><td>P2</td><td>None</td><td>48h</td></tr>
+      <tr><td>Minor</td><td>P3</td><td>None</td><td>1 week</td></tr>
+      <tr><td>Feature request</td><td>Feature</td><td>None</td><td>Monthly review</td></tr>
+    </table>
+    <h2 class="spec-h2">Privacy in Workbench</h2>
+    <p class="spec-p">Feedback attributed to school name (B2B relationship). Teacher name NOT shown to owner — only school + teacher role (e.g. "Class 4B teacher at Maple Ridge"). This protects individual teacher privacy within the owner analytics view. Teacher identity is stored server-side for response routing but not displayed.</p>
+    <h2 class="spec-h2">Owner Reply Routing</h2>
+    <p class="spec-p">Owner replies are delivered to the teacher's platform notification panel (not email). Teacher sees: "WonderQuest team replied to your feedback." Reply text shown in teacher's feedback history. No email notification unless teacher has opted into email feedback updates in their settings.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

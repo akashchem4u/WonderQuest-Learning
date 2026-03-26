@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Voice Parent Controls (Item 265)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --green: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --parent: #a78bfa;
+      --p0: #ffd166;
+      --p1: #9b72ff;
+      --p2: #58e8c1;
+      --p3: #ff7b6b;
+      --muted: #8b949e;
+      --card2: #1c2330;
+      --input-bg: #0d1117;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Engineering Hint ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #1a1a00;
+      line-height: 1.5;
+    }
+    .hint-box strong { font-weight: 700; }
+
+    /* ── Page shell ── */
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 16px 60px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .page-header .badge-parent {
+      background: rgba(167,139,250,.18);
+      color: var(--parent);
+      border: 1px solid rgba(167,139,250,.35);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+    }
+    .item-num {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 5px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, color .15s;
+      min-height: 44px;
+    }
+    .tab-btn.active {
+      background: rgba(80,232,144,.12);
+      color: var(--green);
+      font-weight: 600;
+    }
+    .tab-btn:hover:not(.active) {
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Section heading ── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 14px;
+    }
+
+    /* ── Child Cards ── */
+    .child-cards {
+      display: grid;
+      gap: 20px;
+    }
+
+    .child-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .child-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .avatar.p0 { background: rgba(255,209,102,.18); color: var(--p0); border: 2px solid rgba(255,209,102,.35); }
+    .avatar.p1 { background: rgba(155,114,255,.18); color: var(--p1); border: 2px solid rgba(155,114,255,.35); }
+    .avatar.p2 { background: rgba(88,232,193,.18); color: var(--p2); border: 2px solid rgba(88,232,193,.35); }
+    .avatar.p3 { background: rgba(255,123,107,.18); color: var(--p3); border: 2px solid rgba(255,123,107,.35); }
+
+    .child-info { flex: 1; }
+    .child-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .band-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px;
+      letter-spacing: .03em;
+    }
+    .band-badge.p0 { background: rgba(255,209,102,.15); color: var(--p0); border: 1px solid rgba(255,209,102,.3); }
+    .band-badge.p1 { background: rgba(155,114,255,.15); color: var(--p1); border: 1px solid rgba(155,114,255,.3); }
+    .band-badge.p2 { background: rgba(88,232,193,.15); color: var(--p2); border: 1px solid rgba(88,232,193,.3); }
+
+    .child-card-body {
+      padding: 0 20px 20px;
+    }
+
+    /* ── Control Row ── */
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .ctrl-row:last-of-type { border-bottom: none; }
+
+    .ctrl-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 120px;
+      flex-shrink: 0;
+    }
+
+    .ctrl-value { flex: 1; }
+
+    /* Dropdown */
+    .coach-select {
+      background: var(--input-bg);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 12px;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 160px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .coach-select:focus {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    .preview-btn {
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 8px;
+      color: var(--green);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background .15s;
+    }
+    .preview-btn:hover { background: rgba(80,232,144,.2); }
+    .preview-btn:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+
+    /* Speed toggle */
+    .speed-toggle {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .speed-opt {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .speed-opt.selected {
+      background: rgba(167,139,250,.15);
+      border-color: rgba(167,139,250,.4);
+      color: var(--parent);
+      font-weight: 600;
+    }
+    .speed-opt:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+
+    .lock-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, border-color .15s;
+    }
+    .lock-btn.locked {
+      background: rgba(255,209,102,.1);
+      border-color: rgba(255,209,102,.3);
+      color: var(--p0);
+    }
+    .lock-btn:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+
+    /* Quiet hours */
+    .qh-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .time-input {
+      background: var(--input-bg);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 10px;
+      min-height: 44px;
+      min-width: 120px;
+    }
+    .time-input:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+    .time-sep { color: var(--muted); font-size: 13px; }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.1);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .2s;
+    }
+    .toggle-switch input:checked + .toggle-track {
+      background: var(--green);
+    }
+    .toggle-switch input:checked + .toggle-track::after {
+      transform: translateX(20px);
+    }
+    .toggle-switch input:focus + .toggle-track {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    /* Child control chip */
+    .child-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 20px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+    }
+    .child-chip::before { content: '✦'; font-size: 10px; }
+
+    /* Save button */
+    .save-btn {
+      display: block;
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px;
+      background: rgba(80,232,144,.12);
+      border: 1.5px solid rgba(80,232,144,.4);
+      border-radius: 10px;
+      color: var(--green);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background .15s, transform .1s;
+    }
+    .save-btn:hover { background: rgba(80,232,144,.2); }
+    .save-btn:active { transform: scale(.98); }
+    .save-btn:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+
+    /* Save toast */
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.35);
+      border-radius: 8px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 14px;
+      margin-top: 10px;
+    }
+    .toast.show { display: flex; }
+
+    /* ── Control legend ── */
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 28px;
+    }
+    @media (max-width: 560px) { .legend-grid { grid-template-columns: 1fr; } }
+
+    .legend-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .legend-card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 12px;
+    }
+    .legend-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .legend-card li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .legend-card li .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green { background: var(--green); }
+    .dot-parent { background: var(--parent); }
+
+    /* ── Tab 2 — Quiet Hours ── */
+    .qh-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .qh-global-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .qh-global-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .qh-global-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .qh-notice {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .qh-table-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .qh-table-title {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .qh-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .qh-table th {
+      text-align: left;
+      padding: 12px 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .qh-table td {
+      padding: 14px 20px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .qh-table tr:last-child td { border-bottom: none; }
+    .qh-table tr:hover td { background: rgba(255,255,255,.02); }
+
+    .qh-child-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .qh-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .qh-time-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .log-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .log-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .log-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .schema-note {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+      background: rgba(0,0,0,.3);
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+
+    .log-list {
+      list-style: none;
+    }
+    .log-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .log-item:last-child { border-bottom: none; }
+
+    .log-ts {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      padding-top: 2px;
+      min-width: 90px;
+    }
+    .log-details { flex: 1; }
+    .log-child-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .log-session {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .suppressed-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,123,107,.1);
+      border: 1px solid rgba(255,123,107,.3);
+      border-radius: 10px;
+      color: var(--p3);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* ── Tab 3 — Spec ── */
+    .spec-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+    }
+    .spec-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--parent);
+      margin-bottom: 16px;
+      letter-spacing: .02em;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .spec-table tr td {
+      padding: 9px 0;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .spec-table tr:last-child td { border-bottom: none; }
+    .spec-table td:first-child {
+      color: var(--muted);
+      font-weight: 600;
+      width: 180px;
+      padding-right: 16px;
+      flex-shrink: 0;
+    }
+    .spec-table td:last-child { color: var(--text); }
+
+    .spec-code {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--green);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .rule-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .rule-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .rule-list li::before {
+      content: '—';
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .coppa-box {
+      background: rgba(255,209,102,.06);
+      border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #ffd166;
+      line-height: 1.5;
+    }
+    .coppa-box strong { font-weight: 700; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .ctrl-label { min-width: 90px; }
+      .coach-select { min-width: 130px; }
+      .qh-table th:nth-child(3), .qh-table td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Engineering Hint -->
+  <div class="hint-box" role="note" aria-label="Engineering hint">
+    <strong>⚙️ Engineering Hint</strong><br />
+    Parent audio/voice controls hub. Parents can set voice coach, speed, quiet hours, and per-child locks from one place. All changes write to <code>child_audio_prefs</code> via optimistic UI → sync queue. Changes take effect on next child session start. Schema: <code>parent_voice_control_changes { id, parent_id, child_id, setting_key, old_value, new_value, changed_at }</code>. Privacy: child first name only; no accuracy data; no DOB.
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <h1>Voice &amp; Audio Controls</h1>
+    <span class="badge-parent">Parent</span>
+    <span class="item-num">#265</span>
+  </div>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar" role="tablist" aria-label="Voice controls sections">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="screen-controls" id="tab-controls" onclick="showTab('controls')">Controls</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="screen-quiet" id="tab-quiet" onclick="showTab('quiet')">Quiet Hours</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="screen-spec" id="tab-spec" onclick="showTab('spec')">Spec</button>
+  </nav>
+
+  <!-- ════════════════════════════════════════
+       TAB 1 — Controls
+  ════════════════════════════════════════ -->
+  <section class="screen active" id="screen-controls" role="tabpanel" aria-labelledby="tab-controls">
+
+    <p class="section-title">Per-child audio settings</p>
+
+    <div class="child-cards">
+
+      <!-- ── Emma (Band P1) ── -->
+      <div class="child-card" aria-label="Audio settings for Emma">
+        <div class="child-card-header">
+          <div class="avatar p1" aria-hidden="true">E</div>
+          <div class="child-info">
+            <div class="child-name">Emma</div>
+            <div class="band-badge p1">● Band P1</div>
+          </div>
+        </div>
+        <div class="child-card-body">
+
+          <!-- Voice Coach -->
+          <div class="ctrl-row">
+            <label class="ctrl-label" for="coach-emma">Voice Coach</label>
+            <div class="ctrl-value">
+              <select class="coach-select" id="coach-emma" name="coach-emma">
+                <option value="orbit">Orbit</option>
+                <option value="luna" selected>Luna</option>
+                <option value="rex">Rex</option>
+                <option value="maya">Maya</option>
+                <option value="zara">Zara</option>
+                <option value="text">Text-only</option>
+              </select>
+            </div>
+            <button class="preview-btn" onclick="previewCoach('emma')" aria-label="Preview voice coach for Emma">Preview</button>
+          </div>
+
+          <!-- Speed -->
+          <div class="ctrl-row">
+            <span class="ctrl-label" id="speed-label-emma">Speed</span>
+            <div class="ctrl-value speed-toggle" role="group" aria-labelledby="speed-label-emma">
+              <button class="speed-opt selected" id="speed-slow-emma" onclick="selectSpeed('emma','slow')" aria-pressed="true">Slow (0.75×)</button>
+              <button class="speed-opt" id="speed-normal-emma" onclick="selectSpeed('emma','normal')" aria-pressed="false">Normal (0.9×)</button>
+            </div>
+            <button class="lock-btn locked" id="lock-emma" onclick="toggleLock('emma')" aria-label="Speed lock for Emma — currently locked" title="Lock/unlock speed">🔒</button>
+          </div>
+
+          <!-- Quiet Hours -->
+          <div class="ctrl-row">
+            <span class="ctrl-label">Quiet Hours</span>
+            <div class="ctrl-value">
+              <div class="qh-row">
+                <label for="qh-start-emma" class="sr-only">Quiet hours start for Emma</label>
+                <input class="time-input" type="time" id="qh-start-emma" name="qh-start-emma" value="20:00" aria-label="Quiet hours start" />
+                <span class="time-sep">–</span>
+                <label for="qh-end-emma" class="sr-only">Quiet hours end for Emma</label>
+                <input class="time-input" type="time" id="qh-end-emma" name="qh-end-emma" value="07:00" aria-label="Quiet hours end" />
+              </div>
+            </div>
+            <label class="toggle-switch" aria-label="Enable quiet hours for Emma">
+              <input type="checkbox" checked onchange="toggleQH('emma', this)" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+
+          <!-- Replay Readout -->
+          <div class="ctrl-row">
+            <span class="ctrl-label">Replay Readout</span>
+            <div class="ctrl-value">
+              <span class="child-chip">Child may control</span>
+            </div>
+          </div>
+
+          <!-- Stop Readout -->
+          <div class="ctrl-row">
+            <span class="ctrl-label">Stop Readout</span>
+            <div class="ctrl-value">
+              <span class="child-chip">Child may control</span>
+            </div>
+          </div>
+
+          <button class="save-btn" onclick="saveCard('emma')" aria-label="Save audio settings for Emma">Save Emma's Settings</button>
+          <div class="toast" id="toast-emma" role="status" aria-live="polite">✓ Saved — takes effect on Emma's next session</div>
+        </div>
+      </div>
+
+      <!-- ── Noah (Band P0) ── -->
+      <div class="child-card" aria-label="Audio settings for Noah">
+        <div class="child-card-header">
+          <div class="avatar p0" aria-hidden="true">N</div>
+          <div class="child-info">
+            <div class="child-name">Noah</div>
+            <div class="band-badge p0">● Band P0</div>
+          </div>
+        </div>
+        <div class="child-card-body">
+
+          <div class="ctrl-row">
+            <label class="ctrl-label" for="coach-noah">Voice Coach</label>
+            <div class="ctrl-value">
+              <select class="coach-select" id="coach-noah" name="coach-noah">
+                <option value="orbit" selected>Orbit</option>
+                <option value="luna">Luna</option>
+                <option value="rex">Rex</option>
+                <option value="maya">Maya</option>
+                <option value="zara">Zara</option>
+                <option value="text">Text-only</option>
+              </select>
+            </div>
+            <button class="preview-btn" onclick="previewCoach('noah')" aria-label="Preview voice coach for Noah">Preview</button>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label" id="speed-label-noah">Speed</span>
+            <div class="ctrl-value speed-toggle" role="group" aria-labelledby="speed-label-noah">
+              <button class="speed-opt selected" id="speed-slow-noah" onclick="selectSpeed('noah','slow')" aria-pressed="true">Slow (0.75×)</button>
+              <button class="speed-opt" id="speed-normal-noah" onclick="selectSpeed('noah','normal')" aria-pressed="false">Normal (0.9×)</button>
+            </div>
+            <button class="lock-btn locked" id="lock-noah" onclick="toggleLock('noah')" aria-label="Speed lock for Noah — currently locked" title="Lock/unlock speed">🔒</button>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label">Quiet Hours</span>
+            <div class="ctrl-value">
+              <div class="qh-row">
+                <label for="qh-start-noah" class="sr-only">Quiet hours start for Noah</label>
+                <input class="time-input" type="time" id="qh-start-noah" name="qh-start-noah" value="20:00" aria-label="Quiet hours start" />
+                <span class="time-sep">–</span>
+                <label for="qh-end-noah" class="sr-only">Quiet hours end for Noah</label>
+                <input class="time-input" type="time" id="qh-end-noah" name="qh-end-noah" value="07:00" aria-label="Quiet hours end" />
+              </div>
+            </div>
+            <label class="toggle-switch" aria-label="Enable quiet hours for Noah">
+              <input type="checkbox" checked onchange="toggleQH('noah', this)" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label">Replay Readout</span>
+            <div class="ctrl-value"><span class="child-chip">Child may control</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label">Stop Readout</span>
+            <div class="ctrl-value"><span class="child-chip">Child may control</span></div>
+          </div>
+
+          <button class="save-btn" onclick="saveCard('noah')" aria-label="Save audio settings for Noah">Save Noah's Settings</button>
+          <div class="toast" id="toast-noah" role="status" aria-live="polite">✓ Saved — takes effect on Noah's next session</div>
+        </div>
+      </div>
+
+      <!-- ── Lily (Band P2) ── -->
+      <div class="child-card" aria-label="Audio settings for Lily">
+        <div class="child-card-header">
+          <div class="avatar p2" aria-hidden="true">L</div>
+          <div class="child-info">
+            <div class="child-name">Lily</div>
+            <div class="band-badge p2">● Band P2</div>
+          </div>
+        </div>
+        <div class="child-card-body">
+
+          <div class="ctrl-row">
+            <label class="ctrl-label" for="coach-lily">Voice Coach</label>
+            <div class="ctrl-value">
+              <select class="coach-select" id="coach-lily" name="coach-lily">
+                <option value="orbit">Orbit</option>
+                <option value="luna">Luna</option>
+                <option value="rex">Rex</option>
+                <option value="maya" selected>Maya</option>
+                <option value="zara">Zara</option>
+                <option value="text">Text-only</option>
+              </select>
+            </div>
+            <button class="preview-btn" onclick="previewCoach('lily')" aria-label="Preview voice coach for Lily">Preview</button>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label" id="speed-label-lily">Speed</span>
+            <div class="ctrl-value speed-toggle" role="group" aria-labelledby="speed-label-lily">
+              <button class="speed-opt" id="speed-slow-lily" onclick="selectSpeed('lily','slow')" aria-pressed="false">Slow (0.75×)</button>
+              <button class="speed-opt selected" id="speed-normal-lily" onclick="selectSpeed('lily','normal')" aria-pressed="true">Normal (0.9×)</button>
+            </div>
+            <button class="lock-btn" id="lock-lily" onclick="toggleLock('lily')" aria-label="Speed lock for Lily — currently unlocked" title="Lock/unlock speed">🔓</button>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label">Quiet Hours</span>
+            <div class="ctrl-value">
+              <div class="qh-row">
+                <label for="qh-start-lily" class="sr-only">Quiet hours start for Lily</label>
+                <input class="time-input" type="time" id="qh-start-lily" name="qh-start-lily" value="20:00" aria-label="Quiet hours start" />
+                <span class="time-sep">–</span>
+                <label for="qh-end-lily" class="sr-only">Quiet hours end for Lily</label>
+                <input class="time-input" type="time" id="qh-end-lily" name="qh-end-lily" value="07:00" aria-label="Quiet hours end" />
+              </div>
+            </div>
+            <label class="toggle-switch" aria-label="Enable quiet hours for Lily">
+              <input type="checkbox" onchange="toggleQH('lily', this)" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label">Replay Readout</span>
+            <div class="ctrl-value"><span class="child-chip">Child may control</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <span class="ctrl-label">Stop Readout</span>
+            <div class="ctrl-value"><span class="child-chip">Child may control</span></div>
+          </div>
+
+          <button class="save-btn" onclick="saveCard('lily')" aria-label="Save audio settings for Lily">Save Lily's Settings</button>
+          <div class="toast" id="toast-lily" role="status" aria-live="polite">✓ Saved — takes effect on Lily's next session</div>
+        </div>
+      </div>
+
+    </div><!-- /child-cards -->
+
+    <!-- Control legend -->
+    <div class="legend-grid" role="region" aria-label="Who controls what">
+      <div class="legend-card">
+        <h3>What your child controls</h3>
+        <ul>
+          <li><span class="dot dot-green"></span>Speed — when unlocked by you</li>
+          <li><span class="dot dot-green"></span>Replay Readout</li>
+          <li><span class="dot dot-green"></span>Stop Readout</li>
+        </ul>
+      </div>
+      <div class="legend-card">
+        <h3>What you control</h3>
+        <ul>
+          <li><span class="dot dot-parent"></span>Voice Coach selection</li>
+          <li><span class="dot dot-parent"></span>Speed — when locked</li>
+          <li><span class="dot dot-parent"></span>Quiet Hours window</li>
+        </ul>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════
+       TAB 2 — Quiet Hours
+  ════════════════════════════════════════ -->
+  <section class="screen" id="screen-quiet" role="tabpanel" aria-labelledby="tab-quiet">
+    <div class="qh-panel">
+
+      <!-- Global toggle card -->
+      <div class="qh-global-card">
+        <div class="qh-global-header">
+          <h3>Global Quiet Hours</h3>
+          <label class="toggle-switch" aria-label="Enable global quiet hours for all children">
+            <input type="checkbox" id="global-qh" checked onchange="toggleGlobalQH(this)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <p class="qh-notice">No voice readouts play during quiet hours. Quest progress still saves normally. Per-child overrides below take priority over this global setting.</p>
+      </div>
+
+      <!-- Per-child override table -->
+      <div class="qh-table-card">
+        <div class="qh-table-title">Per-child Overrides</div>
+        <table class="qh-table" aria-label="Per-child quiet hours overrides">
+          <thead>
+            <tr>
+              <th scope="col">Child</th>
+              <th scope="col">Window</th>
+              <th scope="col">Enabled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="qh-child-name">
+                  <span class="qh-dot" style="background:var(--p1)"></span>Emma
+                </div>
+              </td>
+              <td>
+                <div class="qh-time-row">
+                  <label for="qh2-start-emma" class="sr-only">Quiet hours start for Emma</label>
+                  <input class="time-input" type="time" id="qh2-start-emma" value="20:00" style="min-width:100px" aria-label="Start time" />
+                  <span class="time-sep">–</span>
+                  <label for="qh2-end-emma" class="sr-only">Quiet hours end for Emma</label>
+                  <input class="time-input" type="time" id="qh2-end-emma" value="07:00" style="min-width:100px" aria-label="End time" />
+                </div>
+              </td>
+              <td>
+                <label class="toggle-switch" aria-label="Enable quiet hours override for Emma">
+                  <input type="checkbox" checked />
+                  <span class="toggle-track"></span>
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="qh-child-name">
+                  <span class="qh-dot" style="background:var(--p0)"></span>Noah
+                </div>
+              </td>
+              <td>
+                <div class="qh-time-row">
+                  <label for="qh2-start-noah" class="sr-only">Quiet hours start for Noah</label>
+                  <input class="time-input" type="time" id="qh2-start-noah" value="19:30" style="min-width:100px" aria-label="Start time" />
+                  <span class="time-sep">–</span>
+                  <label for="qh2-end-noah" class="sr-only">Quiet hours end for Noah</label>
+                  <input class="time-input" type="time" id="qh2-end-noah" value="07:30" style="min-width:100px" aria-label="End time" />
+                </div>
+              </td>
+              <td>
+                <label class="toggle-switch" aria-label="Enable quiet hours override for Noah">
+                  <input type="checkbox" checked />
+                  <span class="toggle-track"></span>
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="qh-child-name">
+                  <span class="qh-dot" style="background:var(--p2)"></span>Lily
+                </div>
+              </td>
+              <td>
+                <div class="qh-time-row">
+                  <label for="qh2-start-lily" class="sr-only">Quiet hours start for Lily</label>
+                  <input class="time-input" type="time" id="qh2-start-lily" value="20:30" style="min-width:100px" aria-label="Start time" />
+                  <span class="time-sep">–</span>
+                  <label for="qh2-end-lily" class="sr-only">Quiet hours end for Lily</label>
+                  <input class="time-input" type="time" id="qh2-end-lily" value="07:00" style="min-width:100px" aria-label="End time" />
+                </div>
+              </td>
+              <td>
+                <label class="toggle-switch" aria-label="Enable quiet hours override for Lily">
+                  <input type="checkbox" />
+                  <span class="toggle-track"></span>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Enforcement log -->
+      <div class="log-card">
+        <div class="log-header">
+          <h3>Enforcement Log <span style="color:var(--muted);font-weight:400;font-size:12px">(last 5 events)</span></h3>
+          <span class="schema-note">quiet_hours_enforcements</span>
+        </div>
+        <ul class="log-list" aria-label="Quiet hours enforcement log">
+          <li class="log-item">
+            <div class="log-ts">Mar 24, 9:14 PM</div>
+            <div class="log-details">
+              <div class="log-child-name">Emma <span class="suppressed-chip">suppressed</span></div>
+              <div class="log-session">Session attempted: "Phonics — ch sounds" · reason: quiet_hours_active</div>
+            </div>
+          </li>
+          <li class="log-item">
+            <div class="log-ts">Mar 24, 8:47 PM</div>
+            <div class="log-details">
+              <div class="log-child-name">Noah <span class="suppressed-chip">suppressed</span></div>
+              <div class="log-session">Session attempted: "Numbers 1–10 review" · reason: quiet_hours_active</div>
+            </div>
+          </li>
+          <li class="log-item">
+            <div class="log-ts">Mar 23, 9:02 PM</div>
+            <div class="log-details">
+              <div class="log-child-name">Emma <span class="suppressed-chip">suppressed</span></div>
+              <div class="log-session">Session attempted: "Sight words set 3" · reason: quiet_hours_active</div>
+            </div>
+          </li>
+          <li class="log-item">
+            <div class="log-ts">Mar 23, 8:31 PM</div>
+            <div class="log-details">
+              <div class="log-child-name">Noah <span class="suppressed-chip">suppressed</span></div>
+              <div class="log-session">Session attempted: "Colors &amp; shapes" · reason: quiet_hours_active</div>
+            </div>
+          </li>
+          <li class="log-item">
+            <div class="log-ts">Mar 22, 9:18 PM</div>
+            <div class="log-details">
+              <div class="log-child-name">Lily <span class="suppressed-chip">suppressed</span></div>
+              <div class="log-session">Session attempted: "Story time: The Brave Bunny" · reason: quiet_hours_active</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       TAB 3 — Spec
+  ════════════════════════════════════════ -->
+  <section class="screen" id="screen-spec" role="tabpanel" aria-labelledby="tab-spec">
+    <div class="spec-panel">
+
+      <div class="spec-card">
+        <h3>Component Identity</h3>
+        <table class="spec-table">
+          <tbody>
+            <tr>
+              <td>Component</td>
+              <td><code>VoiceParentControls</code></td>
+            </tr>
+            <tr>
+              <td>Item #</td>
+              <td>265</td>
+            </tr>
+            <tr>
+              <td>Route</td>
+              <td><code>/parent/settings/voice</code></td>
+            </tr>
+            <tr>
+              <td>Auth</td>
+              <td>Parent session required</td>
+            </tr>
+            <tr>
+              <td>Props</td>
+              <td><code>children[]</code>, <code>audioPrefs{}</code>, <code>onSave()</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="spec-card">
+        <h3>Database Tables</h3>
+        <div class="spec-code">child_audio_prefs
+  child_id, coach, speed, speed_locked,
+  quiet_hours_enabled, quiet_start, quiet_end,
+  updated_at
+
+parent_voice_control_changes
+  id, parent_id, child_id, setting_key,
+  old_value, new_value, changed_at
+
+quiet_hours_enforcements
+  child_id, attempted_at, suppressed, reason</div>
+      </div>
+
+      <div class="spec-card">
+        <h3>Behaviour Rules</h3>
+        <ul class="rule-list">
+          <li>Coach change invalidates child session cache — next login fetches fresh voice pack.</li>
+          <li>Speed is stored per-child, not per-device. Changing device does not reset speed.</li>
+          <li>Quiet hours use local device time (parent's timezone at save time).</li>
+          <li>Child-controlled items: speed (when unlocked), replay readout, stop readout.</li>
+          <li>Parent-controlled items: coach, speed-lock, quiet hours window.</li>
+          <li>No accuracy data surfaced in this view — WonderQuest privacy policy.</li>
+          <li>All writes are optimistic → sync queue; UI confirms immediately.</li>
+          <li>Changes take effect on the child's next session start, not mid-session.</li>
+        </ul>
+      </div>
+
+      <div class="spec-card">
+        <h3>Voice Coach Options</h3>
+        <table class="spec-table">
+          <tbody>
+            <tr><td>Orbit</td><td>Energetic, adventure-themed</td></tr>
+            <tr><td>Luna</td><td>Calm, gentle</td></tr>
+            <tr><td>Rex</td><td>Playful, dinosaur persona</td></tr>
+            <tr><td>Maya</td><td>Warm, encouraging</td></tr>
+            <tr><td>Zara</td><td>Curious, science explorer</td></tr>
+            <tr><td>Text-only</td><td>No voice — text readouts only</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="spec-card">
+        <h3>Band Speed Defaults</h3>
+        <table class="spec-table">
+          <tbody>
+            <tr><td>P0 (gold)</td><td>Slow (0.75×) — locked by default</td></tr>
+            <tr><td>P1 (violet)</td><td>Slow (0.75×) — locked by default</td></tr>
+            <tr><td>P2 (mint)</td><td>Normal (0.9×) — unlocked by default</td></tr>
+            <tr><td>P3 (coral)</td><td>Normal (0.9×) — unlocked by default</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="coppa-box">
+        <strong>COPPA Notice</strong><br />
+        Parental consent gate is required before any voice data is stored for a child. This view displays child first name only — no last name, no date of birth, no accuracy metrics. Audio preferences are associated with child_id only. Voice preview samples are streamed and not stored.
+      </div>
+
+    </div>
+  </section>
+
+</div><!-- /page-wrap -->
+
+<script>
+  /* ── Tab switching ── */
+  function showTab(t) {
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.getElementById('screen-' + t).classList.add('active');
+    const btn = document.getElementById('tab-' + t);
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+  }
+
+  /* ── Speed selection ── */
+  function selectSpeed(child, speed) {
+    const slowBtn = document.getElementById('speed-slow-' + child);
+    const normalBtn = document.getElementById('speed-normal-' + child);
+    if (speed === 'slow') {
+      slowBtn.classList.add('selected');   slowBtn.setAttribute('aria-pressed','true');
+      normalBtn.classList.remove('selected'); normalBtn.setAttribute('aria-pressed','false');
+    } else {
+      normalBtn.classList.add('selected');   normalBtn.setAttribute('aria-pressed','true');
+      slowBtn.classList.remove('selected');  slowBtn.setAttribute('aria-pressed','false');
+    }
+    // Optimistic write marker (would push to sync queue in real app)
+    console.log('[child_audio_prefs] speed write:', child, speed);
+  }
+
+  /* ── Lock toggle ── */
+  function toggleLock(child) {
+    const btn = document.getElementById('lock-' + child);
+    const isLocked = btn.classList.contains('locked');
+    if (isLocked) {
+      btn.classList.remove('locked');
+      btn.textContent = '🔓';
+      btn.setAttribute('aria-label', 'Speed lock for ' + child + ' — currently unlocked');
+    } else {
+      btn.classList.add('locked');
+      btn.textContent = '🔒';
+      btn.setAttribute('aria-label', 'Speed lock for ' + child + ' — currently locked');
+    }
+    console.log('[child_audio_prefs] speed_locked write:', child, !isLocked);
+  }
+
+  /* ── Quiet hours toggle (per card) ── */
+  function toggleQH(child, cb) {
+    console.log('[child_audio_prefs] quiet_hours_enabled write:', child, cb.checked);
+  }
+
+  /* ── Global quiet hours toggle ── */
+  function toggleGlobalQH(cb) {
+    console.log('[child_audio_prefs] global quiet_hours_enabled write:', cb.checked);
+  }
+
+  /* ── Preview coach ── */
+  function previewCoach(child) {
+    const sel = document.getElementById('coach-' + child);
+    const coach = sel ? sel.value : 'unknown';
+    // In production: stream a sample clip; here we just log
+    console.log('[preview] coach sample requested:', coach, 'for', child);
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '▶ Playing…';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.disabled = false;
+    }, 1800);
+  }
+
+  /* ── Save card (optimistic write) ── */
+  function saveCard(child) {
+    const toastEl = document.getElementById('toast-' + child);
+    // Simulate optimistic write to sync queue
+    console.log('[child_audio_prefs] full save for:', child);
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Content Health Detail — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-back{font-size:12px;font-weight:700;color:#50e890;cursor:pointer}
+.sh-sep{font-size:12px;color:rgba(255,255,255,.2)}
+.sh-title{font-size:13px;font-weight:800;color:#f0f6ff;flex:1}
+.sh-actions{display:flex;align-items:center;gap:12px}
+.sha-btn{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.sha-block{font-size:11px;font-weight:700;color:#f85149;cursor:pointer}
+.sha-resolve{font-size:11px;font-weight:700;color:#50e890;border:1px solid rgba(80,232,144,.3);padding:4px 10px;border-radius:6px;cursor:pointer}
+
+/* Status banner */
+.status-banner{padding:12px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-blocked{background:rgba(248,81,73,.08)}
+.sb-review{background:rgba(245,158,11,.06)}
+.sb-pass{background:rgba(80,232,144,.05)}
+.sbp-tag{font-size:12px;font-weight:800;padding:4px 12px;border-radius:6px}
+.sbt-blocked{background:rgba(248,81,73,.2);color:#f85149}
+.sbt-review{background:rgba(245,158,11,.15);color:#f59e0b}
+.sbt-pass{background:rgba(80,232,144,.15);color:#50e890}
+.sb-meta{font-size:11px;color:rgba(255,255,255,.4);flex:1}
+.sb-band{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px}
+
+/* 2-col body */
+.det-body{display:grid;grid-template-columns:1fr 320px;gap:0}
+.det-main{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06)}
+.det-side{padding:18px 20px}
+
+/* Sections */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card{background:#161b22;border-radius:12px;padding:16px 18px;margin-bottom:14px;border:1px solid rgba(255,255,255,.05)}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:12px}
+
+/* Stats row */
+.stat-strip{display:flex;gap:8px;margin-bottom:14px}
+.stat-chip{background:#161b22;border-radius:8px;padding:10px 14px;flex:1;border:1px solid rgba(255,255,255,.05)}
+.scc-n{font-size:16px;font-weight:900;color:#f0f6ff}
+.scc-l{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.04em;margin-top:2px}
+
+/* Error reports list */
+.error-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.error-item:last-child{border-bottom:none}
+.ei-top{display:flex;gap:8px;align-items:flex-start;margin-bottom:4px}
+.ei-type{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;flex-shrink:0}
+.et-bug{background:rgba(248,81,73,.15);color:#f85149}
+.et-wording{background:rgba(245,158,11,.12);color:#f59e0b}
+.et-asset{background:rgba(155,114,255,.12);color:#9b72ff}
+.ei-desc{font-size:11px;color:rgba(255,255,255,.7);font-weight:700;flex:1}
+.ei-time{font-size:10px;color:rgba(255,255,255,.2)}
+.ei-reporter{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px}
+.ei-detail{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;margin-top:4px}
+
+/* Question preview */
+.q-preview{background:#0d1117;border-radius:10px;padding:14px 16px;margin-bottom:10px;border:1px solid rgba(255,255,255,.06)}
+.qp-label{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:6px}
+.qp-text{font-size:13px;color:#f0f6ff;font-weight:700;margin-bottom:8px}
+.qp-options{display:flex;flex-direction:column;gap:4px}
+.qp-opt{font-size:11px;color:rgba(255,255,255,.6);padding:5px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.07)}
+.qp-opt.wrong-marked-correct{background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3);color:#f85149}
+.qp-opt.correct{background:rgba(80,232,144,.08);border-color:rgba(80,232,144,.2);color:#50e890}
+
+/* Review history */
+.hist-item{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.hist-item:last-child{border-bottom:none}
+.hi-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.hi-text{font-size:11px;color:rgba(255,255,255,.5);flex:1}
+.hi-time{font-size:10px;color:rgba(255,255,255,.2)}
+
+/* Side panels */
+.side-panel{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sp-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:8px}
+.sp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sp-row:last-child{border-bottom:none}
+.spr-label{color:rgba(255,255,255,.4)}
+.spr-val{color:#f0f6ff;font-weight:600}
+.action-btns{display:flex;flex-direction:column;gap:6px}
+.act-btn{width:100%;padding:9px 12px;border-radius:7px;font-size:11px;font-weight:700;font-family:system-ui;cursor:pointer;text-align:left;border:none}
+.ab-fix{background:rgba(80,232,144,.1);color:#50e890;border:1px solid rgba(80,232,144,.2)}
+.ab-block{background:rgba(248,81,73,.1);color:#f85149;border:1px solid rgba(248,81,73,.15)}
+.ab-review{background:rgba(245,158,11,.08);color:#f59e0b;border:1px solid rgba(245,158,11,.15)}
+.ab-dismiss{background:rgba(255,255,255,.04);color:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.08)}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-content-health-detail-v3.html</strong><br>
+  Drill-down view for a single flagged/blocked/reviewed skill. Reached by clicking a skill row in owner-content-health-desktop-v2.html.<br>
+  <strong>3 states:</strong> Blocked (hard error confirmed), Under Review (flagged but still live), Passed (review complete, all clear).<br>
+  <strong>Shows:</strong> Status banner → error reports list → question preview (with flagged answer highlighted) → review history log → actions sidebar.<br>
+  <strong>Actions:</strong> Mark fixed + unblock / Request curriculum review / Block delivery / Dismiss (false positive). All actions create a content_review_log entry.<br>
+  <strong>Privacy:</strong> Error reporter shown as "Teacher, [School]" only. No individual student data here.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('blocked')">Blocked Skill</button>
+  <button class="tab-btn" onclick="showTab('review')">Under Review</button>
+  <button class="tab-btn" onclick="showTab('passed')">Passed Review</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Blocked Skill ───────────────────────────────────────── -->
+<div id="tab-blocked" class="screen active">
+  <p class="section-title">Content detail — blocked skill</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-back">← Content Health</div>
+      <div class="sh-sep">/</div>
+      <div class="sh-title">Fractions: Mixed Numbers</div>
+      <div class="sh-actions">
+        <span class="sha-resolve">✓ Mark Fixed + Unblock</span>
+        <span class="sha-btn">↓ Export</span>
+      </div>
+    </div>
+    <div class="status-banner sb-blocked">
+      <span class="sbp-tag sbt-blocked">🔒 Blocked — Delivery Locked</span>
+      <div class="sb-meta">8 error reports · Confirmed wrong-answer-as-correct bug · Locked 2d ago · ~1,240 sessions affected</div>
+      <span class="sb-band" style="background:rgba(88,232,193,.1);color:#58e8c1">P2 G2–3</span>
+    </div>
+    <div class="det-body">
+      <div class="det-main">
+        <div class="stat-strip">
+          <div class="stat-chip"><div class="scc-n" style="color:#f85149">8</div><div class="scc-l">Error Reports</div></div>
+          <div class="stat-chip"><div class="scc-n" style="color:#f59e0b">12%</div><div class="scc-l">Skip Rate</div></div>
+          <div class="stat-chip"><div class="scc-n">1,240</div><div class="scc-l">Sessions 7d</div></div>
+          <div class="stat-chip"><div class="scc-n" style="color:#f85149">LOCKED</div><div class="scc-l">Delivery</div></div>
+        </div>
+
+        <div class="sec-hdr">Error Reports (8)</div>
+        <div class="card">
+          <div class="error-item">
+            <div class="ei-top">
+              <span class="ei-type et-bug">Wrong Answer</span>
+              <div class="ei-desc">Selecting 3/4 for "1/2 of 3/4" is being marked correct</div>
+              <div class="ei-time">2d ago</div>
+            </div>
+            <div class="ei-reporter">Teacher, Maplewood School · Confirmed by 5 other teachers</div>
+            <div class="ei-detail">Students selecting the distractor answer 3/4 are receiving a "Correct!" response. The correct answer should be 3/8. Reproducible on iOS and web.</div>
+          </div>
+          <div class="error-item">
+            <div class="ei-top">
+              <span class="ei-type et-bug">Wrong Answer</span>
+              <div class="ei-desc">Mixed number 2¾ showing as answer to "Simplify 11/4"</div>
+              <div class="ei-time">3d ago</div>
+            </div>
+            <div class="ei-reporter">Teacher, Oak Park Prep</div>
+            <div class="ei-detail">Second error in this skill — appears the answer key for question set B has two entries swapped.</div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">Question Preview — Flagged Question</div>
+        <div class="card">
+          <div class="card-title">Question with confirmed wrong answer</div>
+          <div class="q-preview">
+            <div class="qp-label">Q14 of 20 — Mixed Numbers</div>
+            <div class="qp-text">What is 1/2 of 3/4?</div>
+            <div class="qp-options">
+              <div class="qp-opt wrong-marked-correct">A) 3/4 ← Marked as CORRECT (BUG — this is wrong)</div>
+              <div class="qp-opt correct">B) 3/8 ← Actually correct answer</div>
+              <div class="qp-opt">C) 1/2</div>
+              <div class="qp-opt">D) 6/4</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3)">Answer key entry: question_id=4412, correct_index=0 (should be 1). Fix: UPDATE content_answers SET correct_index=1 WHERE question_id=4412;</div>
+        </div>
+
+        <div class="sec-hdr">Review History</div>
+        <div class="card">
+          <div class="hist-item">
+            <div class="hi-dot" style="background:#f85149"></div>
+            <div style="flex:1"><div class="hi-text">Skill blocked — delivery locked after 5+ confirmed reports</div><div class="hi-time">2d ago (auto)</div></div>
+          </div>
+          <div class="hist-item">
+            <div class="hi-dot" style="background:#f59e0b"></div>
+            <div style="flex:1"><div class="hi-text">Flagged for review — auto-detect: wrong-answer reports exceeded threshold (2)</div><div class="hi-time">2d ago</div></div>
+          </div>
+          <div class="hist-item">
+            <div class="hi-dot" style="background:rgba(255,255,255,.3)"></div>
+            <div style="flex:1"><div class="hi-text">Skill published — v2.4 release</div><div class="hi-time">3 weeks ago</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="det-side">
+        <div class="side-panel">
+          <div class="sp-title">Skill Details</div>
+          <div class="sp-row"><div class="spr-label">Skill ID</div><div class="spr-val">SK-0284</div></div>
+          <div class="sp-row"><div class="spr-label">Band</div><div class="spr-val" style="color:#58e8c1">P2 G2–3</div></div>
+          <div class="sp-row"><div class="spr-label">Subject</div><div class="spr-val">Maths</div></div>
+          <div class="sp-row"><div class="spr-label">Questions</div><div class="spr-val">20</div></div>
+          <div class="sp-row"><div class="spr-label">Status</div><div class="spr-val" style="color:#f85149">Blocked</div></div>
+          <div class="sp-row"><div class="spr-label">Blocked since</div><div class="spr-val">2d ago</div></div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Actions</div>
+          <div class="action-btns">
+            <button class="act-btn ab-fix">✓ Mark Fixed + Unblock</button>
+            <button class="act-btn ab-review">📋 Assign to Curriculum Team</button>
+            <button class="act-btn ab-dismiss">✗ False Positive — Dismiss</button>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px">Unblocking requires SQL fix to answer key. Deploy required before unblock.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Under Review ────────────────────────────────────────── -->
+<div id="tab-review" class="screen">
+  <p class="section-title">Content detail — under review (skill still live)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-back">← Content Health</div>
+      <div class="sh-sep">/</div>
+      <div class="sh-title">Subtraction: Borrowing</div>
+      <div class="sh-actions">
+        <span class="sha-block">🔒 Block Delivery</span>
+        <span class="sha-resolve">✓ Resolve + Publish</span>
+      </div>
+    </div>
+    <div class="status-banner sb-review">
+      <span class="sbp-tag sbt-review">⚠ Under Review — Skill Live</span>
+      <div class="sb-meta">Auto-flagged: skip rate 78% (threshold 60%). Skill still delivering to students. Curriculum review recommended.</div>
+      <span class="sb-band" style="background:rgba(255,209,102,.1);color:#ffd166">P0 Pre-K</span>
+    </div>
+    <div class="det-body">
+      <div class="det-main">
+        <div class="stat-strip">
+          <div class="stat-chip"><div class="scc-n" style="color:#f59e0b">78%</div><div class="scc-l">Skip Rate</div></div>
+          <div class="stat-chip"><div class="scc-n">320</div><div class="scc-l">Sessions 7d</div></div>
+          <div class="stat-chip"><div class="scc-n">1</div><div class="scc-l">Error Reports</div></div>
+          <div class="stat-chip"><div class="scc-n" style="color:#50e890">LIVE</div><div class="scc-l">Delivery</div></div>
+        </div>
+
+        <div class="sec-hdr">Error Reports (1)</div>
+        <div class="card">
+          <div class="error-item">
+            <div class="ei-top">
+              <span class="ei-type et-wording">Difficulty</span>
+              <div class="ei-desc">Skill seems too hard for Pre-K — students are skipping immediately</div>
+              <div class="ei-time">3d ago</div>
+            </div>
+            <div class="ei-reporter">Teacher, Cedar Grove Elementary</div>
+            <div class="ei-detail">Pre-K students can't read the word problems. The difficulty calibration seems off — this might be misfiled as P0 when it should be P1 or P2.</div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">Skip Rate Data</div>
+        <div class="card">
+          <div class="card-title">Weekly skip rate trend — Subtraction: Borrowing</div>
+          <div style="display:flex;gap:4px;align-items:flex-end;height:50px;margin-bottom:6px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1"><div style="width:100%;background:#f59e0b;opacity:.6;border-radius:2px 2px 0 0" style="height:20px"></div><div style="font-size:8px;color:rgba(255,255,255,.25)">W1</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:25px;background:#f59e0b;opacity:.65;border-radius:2px 2px 0 0"></div><div style="font-size:8px;color:rgba(255,255,255,.25)">W2</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:30px;background:#f59e0b;opacity:.7;border-radius:2px 2px 0 0"></div><div style="font-size:8px;color:rgba(255,255,255,.25)">W3</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:39px;background:#f85149;opacity:.7;border-radius:2px 2px 0 0"></div><div style="font-size:8px;color:rgba(255,255,255,.25)">W4</div></div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3)">Skip rate trending up: W1=42% → W2=55% → W3=64% → W4=78%. Auto-flagged at 60%.</div>
+        </div>
+      </div>
+      <div class="det-side">
+        <div class="side-panel">
+          <div class="sp-title">Skill Details</div>
+          <div class="sp-row"><div class="spr-label">Skill ID</div><div class="spr-val">SK-0041</div></div>
+          <div class="sp-row"><div class="spr-label">Band</div><div class="spr-val" style="color:#ffd166">P0 Pre-K</div></div>
+          <div class="sp-row"><div class="spr-label">Subject</div><div class="spr-val">Maths</div></div>
+          <div class="sp-row"><div class="spr-label">Status</div><div class="spr-val" style="color:#f59e0b">Under Review</div></div>
+          <div class="sp-row"><div class="spr-label">Delivery</div><div class="spr-val" style="color:#50e890">Still live</div></div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Actions</div>
+          <div class="action-btns">
+            <button class="act-btn ab-review">📋 Assign to Curriculum Team</button>
+            <button class="act-btn ab-block">🔒 Block Delivery Now</button>
+            <button class="act-btn ab-fix">✓ Resolve — No Action Needed</button>
+            <button class="act-btn ab-dismiss">✗ False Positive — Dismiss</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Passed Review ───────────────────────────────────────── -->
+<div id="tab-passed" class="screen">
+  <p class="section-title">Content detail — passed review (all clear)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-back">← Content Health</div>
+      <div class="sh-sep">/</div>
+      <div class="sh-title">Fractions: Equivalent</div>
+      <div class="sh-actions">
+        <span class="sha-btn">View History</span>
+      </div>
+    </div>
+    <div class="status-banner sb-pass">
+      <span class="sbp-tag sbt-pass">✅ Published — Passed Review</span>
+      <div class="sb-meta">Previously flagged — curriculum review complete. All clear. Unblocked 3d ago.</div>
+      <span class="sb-band" style="background:rgba(88,232,193,.1);color:#58e8c1">P2 G2–3</span>
+    </div>
+    <div class="det-body">
+      <div class="det-main">
+        <div class="stat-strip">
+          <div class="stat-chip"><div class="scc-n" style="color:#50e890">0</div><div class="scc-l">Active Reports</div></div>
+          <div class="stat-chip"><div class="scc-n" style="color:#50e890">14%</div><div class="scc-l">Skip Rate</div></div>
+          <div class="stat-chip"><div class="scc-n">940</div><div class="scc-l">Sessions 7d</div></div>
+          <div class="stat-chip"><div class="scc-n" style="color:#50e890">LIVE</div><div class="scc-l">Delivery</div></div>
+        </div>
+
+        <div class="sec-hdr">Review History</div>
+        <div class="card">
+          <div class="hist-item">
+            <div class="hi-dot" style="background:#50e890"></div>
+            <div style="flex:1"><div class="hi-text">Review passed — skill unblocked and published</div><div class="hi-time">3d ago · Curriculum team</div></div>
+          </div>
+          <div class="hist-item">
+            <div class="hi-dot" style="background:#f59e0b"></div>
+            <div style="flex:1"><div class="hi-text">Assigned to curriculum team for review</div><div class="hi-time">5d ago</div></div>
+          </div>
+          <div class="hist-item">
+            <div class="hi-dot" style="background:#f85149"></div>
+            <div style="flex:1"><div class="hi-text">Blocked — 3 wrong-answer reports confirmed</div><div class="hi-time">5d ago (auto)</div></div>
+          </div>
+          <div class="hist-item">
+            <div class="hi-dot" style="background:rgba(255,255,255,.3)"></div>
+            <div style="flex:1"><div class="hi-text">Skill published — v2.3 release</div><div class="hi-time">2 months ago</div></div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);background:#161b22;border-radius:8px;padding:12px 14px;border:1px solid rgba(80,232,144,.12)">✅ Curriculum note: Answer key corrected (question_ids 3280, 3285). Image assets re-uploaded. Retested by 2 reviewers. Clear to publish.</div>
+      </div>
+      <div class="det-side">
+        <div class="side-panel">
+          <div class="sp-title">Skill Details</div>
+          <div class="sp-row"><div class="spr-label">Skill ID</div><div class="spr-val">SK-0281</div></div>
+          <div class="sp-row"><div class="spr-label">Band</div><div class="spr-val" style="color:#58e8c1">P2 G2–3</div></div>
+          <div class="sp-row"><div class="spr-label">Subject</div><div class="spr-val">Maths</div></div>
+          <div class="sp-row"><div class="spr-label">Status</div><div class="spr-val" style="color:#50e890">Published</div></div>
+          <div class="sp-row"><div class="spr-label">Last reviewed</div><div class="spr-val">3d ago</div></div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Actions</div>
+          <div class="action-btns">
+            <button class="act-btn ab-review">📋 Re-flag for Review</button>
+            <button class="act-btn ab-block">🔒 Block Delivery</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-content-health-detail-v3.html<br>
+      <strong>Single-skill content health drill-down.</strong> 3 states: Blocked / Under Review / Passed. Shows error reports, question preview, review history, and actions.
+    </div>
+    <h2 class="spec-h2">Navigation</h2>
+    <p class="spec-p">Reached by clicking a skill row in owner-content-health-desktop-v2.html or from the release gate Content category detail. Back arrow returns to content health overview.</p>
+    <h2 class="spec-h2">Question Preview</h2>
+    <p class="spec-p">Shows the specific question with the flagged error. Wrong-as-correct answers highlighted in red. Correct answer highlighted in green. SQL fix reference shown for engineers. This is read-only — question editing happens in the content management system, not here.</p>
+    <h2 class="spec-h2">Actions</h2>
+    <p class="spec-p">Mark Fixed + Unblock: requires a deploy with the fix first. Block Delivery: instant, no deploy needed. Assign to Curriculum Team: creates a review task. Dismiss: marks as false positive with mandatory reason. All actions logged in content_review_log with timestamp and actor.</p>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">Error reporter = "Teacher, [School]" only. No individual teacher name. No student data (only aggregate skip rate and session count).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

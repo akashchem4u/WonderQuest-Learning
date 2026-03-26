@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparison Methodology Explainer — WonderQuest Item 259</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 1100px;
+  color: #5a4000;
+}
+.eng-hint strong { color: #7a5c00; }
+
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0d1117;
+  color: #f0f6ff;
+  min-height: 100vh;
+  padding: 24px 24px 48px;
+}
+
+/* ── Tab chrome ── */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  max-width: 1100px;
+}
+.tab-btn {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.08);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #161b22;
+  color: #8b949e;
+  transition: all .18s;
+}
+.tab-btn.active {
+  background: #50e890;
+  color: #0d1117;
+  border-color: #50e890;
+}
+.tab-btn:hover:not(.active) {
+  background: rgba(255,255,255,.06);
+  color: #f0f6ff;
+  border-color: rgba(255,255,255,.15);
+}
+.tab-btn:focus-visible {
+  outline: 2px solid #50e890;
+  outline-offset: 2px;
+}
+
+/* ── Screen panels ── */
+.screen { display: none; max-width: 1100px; }
+.screen.active { display: block; }
+
+/* ── Page header ── */
+.page-header { margin-bottom: 32px; }
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f0f6ff;
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+.page-header .subtitle {
+  font-size: 14px;
+  color: #8b949e;
+}
+.parent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(167,139,250,.12);
+  border: 1px solid rgba(167,139,250,.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-bottom: 14px;
+}
+
+/* ── Section headings ── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: #8b949e;
+  margin-bottom: 14px;
+  margin-top: 36px;
+}
+.section-label:first-of-type { margin-top: 0; }
+
+/* ── Intro card ── */
+.intro-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-left: 3px solid #50e890;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0f6ff;
+  line-height: 1.55;
+}
+
+/* ── Do / Don't grid ── */
+.do-dont-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.do-card, .dont-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.do-card { border-left: 3px solid #50e890; }
+.dont-card { border-left: 3px solid #f87171; }
+.card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 10px;
+}
+.do-card .card-label { color: #50e890; }
+.dont-card .card-label { color: #f87171; }
+.bullet-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bullet-list li {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.55;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.bullet-list li::before {
+  content: "–";
+  flex-shrink: 0;
+  color: #50e890;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.dont-card .bullet-list li::before { color: #f87171; }
+
+/* ── Comparison type grid ── */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.comparison-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.comparison-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a78bfa;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.comparison-card-body {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.6;
+}
+.comparison-note {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.55;
+  margin-top: 4px;
+}
+
+/* ── Range cards (bucket cards) ── */
+.range-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.range-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.range-card.earlier { border-top: 3px solid #a78bfa; }
+.range-card.similar { border-top: 3px solid #50e890; }
+.range-card.started { border-top: 3px solid #fbbf24; }
+.range-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.range-card.earlier .range-title { color: #a78bfa; }
+.range-card.similar .range-title { color: #50e890; }
+.range-card.started .range-title { color: #fbbf24; }
+.range-quote {
+  font-size: 12px;
+  font-weight: 600;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.range-card.earlier .range-quote { color: rgba(167,139,250,.7); }
+.range-card.similar .range-quote { color: rgba(80,232,144,.7); }
+.range-card.started .range-quote { color: rgba(251,191,36,.7); }
+.range-body {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.6;
+}
+
+/* ── Amber warning box ── */
+.amber-box {
+  background: rgba(251,191,36,.07);
+  border: 1px solid rgba(251,191,36,.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 13px;
+  color: #e5c97a;
+  line-height: 1.7;
+}
+.amber-box-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #fbbf24;
+  margin-bottom: 10px;
+}
+.amber-box ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.amber-box ul li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.amber-box ul li::before {
+  content: "×";
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-top: 1px;
+}
+
+/* ── Data sources tab ── */
+.data-section { margin-bottom: 28px; }
+.data-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: #8b949e;
+  margin-bottom: 14px;
+}
+.data-list-card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: 18px 22px;
+}
+.data-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.data-list li {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.55;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.data-list.do li::before {
+  content: "✓";
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #50e890;
+  font-size: 13px;
+  margin-top: 1px;
+}
+.data-list.dont li::before {
+  content: "✗";
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #f87171;
+  font-size: 13px;
+  margin-top: 1px;
+}
+.cohort-card {
+  background: rgba(167,139,250,.08);
+  border: 1px solid rgba(167,139,250,.25);
+  border-radius: 12px;
+  padding: 18px 22px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.cohort-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+.cohort-body { flex: 1; }
+.cohort-body strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #a78bfa;
+  margin-bottom: 4px;
+}
+.cohort-body p {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.6;
+}
+
+/* ── Spec tab ── */
+.spec-block { margin-bottom: 28px; }
+.spec-block-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(167,139,250,.2);
+}
+.spec-card-wrap {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.spec-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  vertical-align: top;
+}
+.spec-table td:first-child {
+  width: 38%;
+  color: #8b949e;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.spec-table td:last-child { color: #c9d1d9; line-height: 1.6; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-tag {
+  display: inline-block;
+  background: rgba(80,232,144,.1);
+  border: 1px solid rgba(80,232,144,.25);
+  border-radius: 6px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #50e890;
+  margin: 2px 2px 2px 0;
+}
+.spec-tag.violet { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.3); color: #a78bfa; }
+.spec-tag.red { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.25); color: #f87171; }
+.spec-tag.amber { background: rgba(251,191,36,.08); border-color: rgba(251,191,36,.25); color: #fbbf24; }
+.spec-code {
+  font-family: monospace;
+  font-size: 12px;
+  background: rgba(255,255,255,.06);
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #50e890;
+}
+.spec-note {
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div class="eng-hint" aria-label="Engineering metadata">
+  <strong>ITEM 259</strong> &middot; comparison-methodology-explainer-v2.html &middot; WonderQuest parallel-agent build
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar" role="tablist" aria-label="Comparison methodology tabs">
+  <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-methodology" id="btn-methodology" onclick="showTab('methodology')">Methodology Explainer</button>
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-data" id="btn-data" onclick="showTab('data')">Data Sources</button>
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-spec" id="btn-spec" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 1 — Methodology Explainer
+══════════════════════════════════════════════ -->
+<div class="screen active" id="tab-methodology" role="tabpanel" aria-labelledby="btn-methodology">
+
+  <div class="page-header">
+    <div class="parent-badge" aria-label="Parent access only">
+      <span aria-hidden="true">&#128100;</span> Parents only
+    </div>
+    <h1>How We Compare — A Plain-Language Guide</h1>
+    <p class="subtitle">For Emma's parents — understanding what WonderQuest comparisons actually mean</p>
+  </div>
+
+  <!-- Section 1: What is being compared? -->
+  <div class="section-label" id="section1-heading">Section 1 — What is being compared?</div>
+
+  <div class="intro-card" aria-describedby="section1-heading">
+    WonderQuest compares how deeply children explore skills — not how many they get right.
+  </div>
+
+  <div class="do-dont-grid" aria-label="What WonderQuest does and does not compare">
+    <div class="do-card">
+      <div class="card-label">We look at</div>
+      <ul class="bullet-list">
+        <li>How many skills your child has visited</li>
+        <li>How often they return to a skill</li>
+        <li>Whether they are progressing to harder challenges</li>
+        <li>Quest completions</li>
+      </ul>
+    </div>
+    <div class="dont-card">
+      <div class="card-label">We do NOT look at</div>
+      <ul class="bullet-list">
+        <li>How many questions were answered correctly</li>
+        <li>Speed of answers</li>
+        <li>Test scores</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 2: Who is Emma compared to? -->
+  <div class="section-label" id="section2-heading">Section 2 — Who is Emma compared to?</div>
+
+  <div class="comparison-grid" aria-labelledby="section2-heading">
+    <div class="comparison-card">
+      <div class="comparison-card-title">
+        <span aria-hidden="true">&#128100;</span> Age comparison
+      </div>
+      <div class="comparison-card-body">
+        Other children who are 8 years old on WonderQuest.
+      </div>
+    </div>
+    <div class="comparison-card">
+      <div class="comparison-card-title">
+        <span aria-hidden="true">&#127979;</span> Grade comparison
+      </div>
+      <div class="comparison-card-body">
+        Other children in Grade 3 on WonderQuest.
+      </div>
+    </div>
+  </div>
+  <div class="comparison-note" role="note">
+    Both use only WonderQuest data — not national tests or external databases.
+  </div>
+
+  <!-- Section 3: What do the labels mean? -->
+  <div class="section-label" id="section3-heading">Section 3 — What do the labels mean?</div>
+
+  <div class="range-grid" aria-labelledby="section3-heading">
+    <div class="range-card earlier">
+      <div class="range-title">Exploring earlier</div>
+      <div class="range-quote">"Exploring this area more deeply than many children her age/grade"</div>
+      <div class="range-body">
+        Emma is exploring this area more deeply than many children her age or grade. Her curiosity is leading her into this territory.
+      </div>
+    </div>
+    <div class="range-card similar">
+      <div class="range-title">Similar pace</div>
+      <div class="range-quote">"Exploration pattern is similar to many children her age/grade"</div>
+      <div class="range-body">
+        Emma's exploration pattern is similar to many children her age or grade. She's right in the heart of the WonderQuest community.
+      </div>
+    </div>
+    <div class="range-card started">
+      <div class="range-title">Just getting started</div>
+      <div class="range-quote">"Hasn't explored much in this area yet — that's completely fine!"</div>
+      <div class="range-body">
+        Emma hasn't explored much in this area yet — that's completely fine! Every child comes to new topics in their own time.
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: What this is NOT -->
+  <div class="section-label" id="section4-heading">Section 4 — What this is NOT</div>
+
+  <div class="amber-box" role="note" aria-labelledby="section4-heading">
+    <div class="amber-box-title">Important — please read</div>
+    <ul>
+      <li>This is not a test score.</li>
+      <li>This is not a prediction of academic performance.</li>
+      <li>This is not a diagnosis of any kind.</li>
+      <li>These comparisons exist only to help you spot patterns in Emma's interests.</li>
+    </ul>
+  </div>
+
+</div><!-- /tab-methodology -->
+
+
+<!-- ══════════════════════════════════════════════
+     TAB 2 — Data Sources
+══════════════════════════════════════════════ -->
+<div class="screen" id="tab-data" role="tabpanel" aria-labelledby="btn-data">
+
+  <div class="page-header">
+    <div class="parent-badge" aria-label="Parent access only">
+      <span aria-hidden="true">&#128100;</span> Parents only
+    </div>
+    <h1>Where the Comparison Data Comes From</h1>
+    <p class="subtitle">A plain-language overview of the data sources used in WonderQuest comparisons</p>
+  </div>
+
+  <!-- What data is used -->
+  <div class="data-section">
+    <div class="data-section-title">What data is used</div>
+    <div class="data-list-card">
+      <ul class="data-list do" aria-label="Data sources used in comparisons">
+        <li>Sessions completed on WonderQuest</li>
+        <li>Skills explored (topics visited)</li>
+        <li>Quests completed</li>
+        <li>Time of last visit (to detect active vs inactive periods)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- What data is NOT used -->
+  <div class="data-section">
+    <div class="data-section-title">What data is NOT used</div>
+    <div class="data-list-card">
+      <ul class="data-list dont" aria-label="Data sources excluded from comparisons">
+        <li>Accuracy or correctness on individual questions</li>
+        <li>School grades or teacher assessments</li>
+        <li>External test scores (SATs, state assessments)</li>
+        <li>Data from other apps or services</li>
+        <li>Any personally identifying data from other children</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Minimum cohort size -->
+  <div class="data-section">
+    <div class="data-section-title">Minimum cohort size</div>
+    <div class="cohort-card" role="note" aria-label="Privacy protection through minimum cohort size">
+      <span class="cohort-icon" aria-hidden="true">&#128274;</span>
+      <div class="cohort-body">
+        <strong>Privacy protection built in</strong>
+        <p>Emma is only compared to groups of at least 50 other children — this protects everyone's privacy. If a group is too small, we show "Not enough data yet" rather than a potentially misleading comparison.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-data -->
+
+
+<!-- ══════════════════════════════════════════════
+     TAB 3 — Spec
+══════════════════════════════════════════════ -->
+<div class="screen" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+
+  <div class="page-header">
+    <div class="parent-badge" style="background:rgba(80,232,144,.1);border-color:rgba(80,232,144,.3);color:#50e890;" aria-label="Engineering and product documentation">
+      <span aria-hidden="true">&#9881;</span> Engineering &amp; Product
+    </div>
+    <h1>Technical Specification</h1>
+    <p class="subtitle">Item 259 — comparison-methodology-explainer-v2.html</p>
+  </div>
+
+  <!-- Language rules -->
+  <div class="spec-block">
+    <div class="spec-block-title">Language Rules</div>
+    <div class="spec-card-wrap">
+      <table class="spec-table">
+        <tr>
+          <td>Required framing</td>
+          <td>
+            <span class="spec-tag">earlier</span>
+            <span class="spec-tag">similar</span>
+            <span class="spec-tag amber">just getting started</span>
+            <div class="spec-note">All comparison labels must use the "earlier / similar / just getting started" vocabulary. Copy reviewed by editorial before release.</div>
+          </td>
+        </tr>
+        <tr>
+          <td>Banned terms</td>
+          <td>
+            <span class="spec-tag red">above average</span>
+            <span class="spec-tag red">below average</span>
+            <span class="spec-tag red">struggling</span>
+            <span class="spec-tag red">behind</span>
+            <span class="spec-tag red">advanced</span>
+            <span class="spec-tag red">gifted</span>
+            <div class="spec-note">Enforced at copy review; automated lint check planned for v3.</div>
+          </td>
+        </tr>
+        <tr>
+          <td>Mandatory tone</td>
+          <td>Positive, curiosity-focused framing across all three labels and all supporting copy.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Data -->
+  <div class="spec-block">
+    <div class="spec-block-title">Data</div>
+    <div class="spec-card-wrap">
+      <table class="spec-table">
+        <tr>
+          <td>Signal type</td>
+          <td>Engagement and exploration signals only. No accuracy or correctness data is used.</td>
+        </tr>
+        <tr>
+          <td>Cohort minimum</td>
+          <td><span class="spec-tag">n = 50</span> — comparisons suppressed below this threshold; "Not enough data yet" shown in UI.</td>
+        </tr>
+        <tr>
+          <td>Update cadence</td>
+          <td>Monthly recalculation. Reflects recent activity, not all-time totals.</td>
+        </tr>
+        <tr>
+          <td>Age comparison table</td>
+          <td><code class="spec-code">child_age_comparisons</code></td>
+        </tr>
+        <tr>
+          <td>Grade comparison table</td>
+          <td><code class="spec-code">child_grade_comparisons</code></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Legal / Privacy -->
+  <div class="spec-block">
+    <div class="spec-block-title">Legal &amp; Privacy</div>
+    <div class="spec-card-wrap">
+      <table class="spec-table">
+        <tr>
+          <td>FERPA compliance</td>
+          <td>No individually identifiable data from other users is exposed. Emma's data is not shared with the cohort.</td>
+        </tr>
+        <tr>
+          <td>Data isolation</td>
+          <td>Only anonymous aggregate patterns are used to generate comparison buckets.</td>
+        </tr>
+        <tr>
+          <td>Privacy link</td>
+          <td>Full privacy policy linked from every comparison view. Link must be present and visible.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Benchmark disclaimer -->
+  <div class="spec-block">
+    <div class="spec-block-title">Benchmark Disclaimer</div>
+    <div class="spec-card-wrap">
+      <table class="spec-table">
+        <tr>
+          <td>Display rule</td>
+          <td>Benchmark disclaimer must always be shown alongside comparison views — never hidden.</td>
+        </tr>
+        <tr>
+          <td>Version control</td>
+          <td>Methodology is version-controlled. Disclaimer is re-shown to parents on every methodology version change.</td>
+        </tr>
+        <tr>
+          <td>Acceptance key</td>
+          <td><code class="spec-code">parent_preferences.comparison_disclaimer_accepted_at</code> (ISO timestamp + version)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Access controls -->
+  <div class="spec-block">
+    <div class="spec-block-title">Access Controls</div>
+    <div class="spec-card-wrap">
+      <table class="spec-table">
+        <tr>
+          <td>Parent persona</td>
+          <td><span class="spec-tag violet">Full access</span> — sees age and grade comparisons for their linked child.</td>
+        </tr>
+        <tr>
+          <td>Child persona</td>
+          <td><span class="spec-tag red">No access</span> — child never sees any comparison data. They see only their own quest progress and milestones.</td>
+        </tr>
+        <tr>
+          <td>Teacher persona</td>
+          <td><span class="spec-tag amber">Class-level only</span> — sees class-level aggregate data. Does not see per-child comparison buckets.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- WCAG / Accessibility -->
+  <div class="spec-block">
+    <div class="spec-block-title">Accessibility (WCAG)</div>
+    <div class="spec-card-wrap">
+      <table class="spec-table">
+        <tr>
+          <td>Keyboard access</td>
+          <td>All cards and interactive controls are keyboard-accessible. Focus-visible outlines on all focusable elements.</td>
+        </tr>
+        <tr>
+          <td>Colour independence</td>
+          <td>No colour-only information conveyance. Each comparison label uses a distinct text label, so colour is supplementary not essential.</td>
+        </tr>
+        <tr>
+          <td>Tab panel roles</td>
+          <td><code class="spec-code">role="tab"</code>, <code class="spec-code">role="tabpanel"</code>, and <code class="spec-code">aria-selected</code> managed via <code class="spec-code">showTab()</code>.</td>
+        </tr>
+        <tr>
+          <td>Privacy policy link</td>
+          <td>Links to full privacy policy — must be descriptive anchor text, not "click here".</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-spec -->
+
+<script>
+function showTab(t) {
+  var tabs = ['methodology', 'data', 'spec'];
+  tabs.forEach(function(id) {
+    var screen = document.getElementById('tab-' + id);
+    var btn = document.getElementById('btn-' + id);
+    var isActive = (id === t);
+    screen.classList.toggle('active', isActive);
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+}
+</script>
+</body>
+</html>

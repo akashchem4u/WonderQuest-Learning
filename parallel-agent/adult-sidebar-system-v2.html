@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adult Sidebar System v2 — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0d1117;
+    color: #f0f6ff;
+    min-height: 100vh;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1200;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  /* ── Tab navigation ── */
+  .tabs-wrapper {
+    background: #0f1118;
+    padding: 16px 20px 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px 10px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 2px solid transparent;
+    transition: color 120ms, border-color 120ms, background 120ms;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: #f0f6ff; background: rgba(255,255,255,.04); }
+  .tab-btn.active { color: #f0f6ff; border-bottom-color: #50e890; }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .tab-content-wrap { padding: 20px; }
+
+  /* ═══════════════════════════════════════════
+     SIDEBAR + DEMO LAYOUT
+  ═══════════════════════════════════════════ */
+  .demo-layout {
+    display: flex;
+    height: calc(100vh - 120px);
+    min-height: 600px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+
+  /* ── Sidebar base ── */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: #161b22;
+    border-right: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: width 200ms ease, min-width 200ms ease;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }
+
+  .sidebar.collapsed { width: 60px; min-width: 60px; }
+
+  /* ── Sidebar header ── */
+  .sidebar-header {
+    padding: 16px 14px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    flex-shrink: 0;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .wq-logo-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+    letter-spacing: -.5px;
+  }
+  .wq-logo-circle.teacher { background: rgba(56,189,248,.18); color: #38bdf8; }
+  .wq-logo-circle.parent  { background: rgba(167,139,250,.18); color: #a78bfa; }
+  .wq-logo-circle.owner   { background: rgba(80,232,144,.18);  color: #50e890; }
+
+  .wordmark {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f0f6ff;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity 200ms ease, width 200ms ease;
+  }
+  .sidebar.collapsed .wordmark { opacity: 0; width: 0; overflow: hidden; }
+
+  /* Avatar row */
+  .avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .avatar-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .avatar-circle.teacher { background: rgba(56,189,248,.2); color: #38bdf8; border: 1.5px solid rgba(56,189,248,.35); }
+  .avatar-circle.parent  { background: rgba(167,139,250,.2); color: #a78bfa; border: 1.5px solid rgba(167,139,250,.35); }
+  .avatar-circle.owner   { background: rgba(80,232,144,.2);  color: #50e890; border: 1.5px solid rgba(80,232,144,.35); }
+
+  .avatar-info { overflow: hidden; }
+  .avatar-name { font-size: 13px; font-weight: 600; color: #f0f6ff; white-space: nowrap; }
+  .avatar-role { font-size: 11px; color: #8b949e; white-space: nowrap; }
+
+  .school-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #8b949e;
+    margin-top: 4px;
+  }
+  .online-dot {
+    width: 7px;
+    height: 7px;
+    background: #50e890;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Child switcher chips */
+  .child-chips {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .child-chip {
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid rgba(167,139,250,.3);
+    color: #8b949e;
+    background: transparent;
+    transition: all 120ms;
+  }
+  .child-chip.active {
+    background: rgba(167,139,250,.18);
+    color: #a78bfa;
+    border-color: rgba(167,139,250,.55);
+  }
+
+  /* Owner header specifics */
+  .owner-console-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8b949e;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .env-badge {
+    display: inline-block;
+    background: rgba(239,68,68,.18);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,.35);
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    letter-spacing: .06em;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .mfa-row {
+    font-size: 11px;
+    color: #50e890;
+    margin-top: 5px;
+  }
+
+  /* P0 incident banner */
+  .p0-banner {
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.3);
+    border-left: 3px solid #ef4444;
+    padding: 7px 10px;
+    margin: 8px 10px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 11px;
+    color: #fca5a5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .p0-pulse {
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse-ring 1.5s infinite;
+  }
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); }
+    50% { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+  }
+  .sidebar.collapsed .p0-banner { display: none; }
+
+  /* ── Nav sections ── */
+  .nav-section { padding: 10px 0 4px; }
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #8b949e;
+    padding: 0 16px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity 200ms;
+  }
+  .sidebar.collapsed .nav-section-label { opacity: 0; height: 0; padding: 0; }
+
+  /* ── Nav items ── */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    height: 40px;
+    cursor: pointer;
+    position: relative;
+    border-left: 4px solid transparent;
+    transition: background 120ms;
+    text-decoration: none;
+    color: #8b949e;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.04); color: #c9d1d9; }
+
+  /* Active states per persona */
+  .nav-item.active.teacher-active {
+    border-left-color: #38bdf8;
+    background: rgba(56,189,248,.08);
+    color: #f0f6ff;
+  }
+  .nav-item.active.parent-active {
+    border-left-color: #a78bfa;
+    background: rgba(167,139,250,.08);
+    color: #f0f6ff;
+  }
+  .nav-item.active.owner-active {
+    border-left-color: #50e890;
+    background: rgba(80,232,144,.08);
+    color: #f0f6ff;
+  }
+
+  .nav-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .nav-label {
+    flex: 1;
+    overflow: hidden;
+    transition: opacity 200ms, width 200ms;
+  }
+  .sidebar.collapsed .nav-label { opacity: 0; width: 0; overflow: hidden; }
+
+  /* Badge */
+  .nav-badge {
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    flex-shrink: 0;
+    transition: opacity 200ms;
+    line-height: 1;
+  }
+  .sidebar.collapsed .nav-badge { display: none; }
+
+  /* Tooltip for collapsed state */
+  .nav-item { position: relative; }
+  .nav-tooltip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1f2937;
+    color: #f0f6ff;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    z-index: 300;
+    border: 1px solid rgba(255,255,255,.08);
+    transition: opacity 120ms;
+  }
+  .sidebar.collapsed .nav-item:hover .nav-tooltip { opacity: 1; }
+
+  /* ── Sidebar footer ── */
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 10px 10px 6px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    flex-shrink: 0;
+  }
+  .signout-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 120ms, color 120ms;
+    white-space: nowrap;
+    text-align: left;
+  }
+  .signout-btn:hover { background: rgba(255,255,255,.05); color: #f87171; }
+  .signout-btn .nav-label { opacity: 1; width: auto; }
+  .sidebar.collapsed .signout-btn .nav-label { opacity: 0; width: 0; overflow: hidden; }
+
+  .plan-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(80,232,144,.12);
+    color: #50e890;
+    border: 1px solid rgba(80,232,144,.25);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    margin: 4px 0 6px;
+    white-space: nowrap;
+    transition: opacity 200ms;
+  }
+  .sidebar.collapsed .plan-chip { opacity: 0; height: 0; padding: 0; overflow: hidden; margin: 0; }
+
+  .version-label {
+    font-size: 10px;
+    color: #8b949e;
+    text-align: center;
+    padding: 4px 0 2px;
+    transition: opacity 200ms;
+  }
+  .sidebar.collapsed .version-label { opacity: 0; height: 0; overflow: hidden; }
+
+  .collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 18px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 120ms, color 120ms;
+    line-height: 1;
+    margin-top: 4px;
+  }
+  .collapse-btn:hover { background: rgba(255,255,255,.05); color: #f0f6ff; }
+
+  /* ── Content area placeholder ── */
+  .content-area {
+    flex: 1;
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #8b949e;
+    font-weight: 500;
+    transition: margin-left 200ms ease;
+  }
+
+  /* ═══════════════════════════════════════════
+     TAB 4 — COLLAPSED STATE (side by side)
+  ═══════════════════════════════════════════ */
+  .collapsed-demo-wrap {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .collapsed-demo-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .collapsed-persona-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8b949e;
+  }
+  .collapsed-sidebar {
+    width: 60px;
+    background: #161b22;
+    border-right: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .collapsed-header {
+    padding: 14px 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    flex-direction: column;
+    gap: 6px;
+  }
+  .persona-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-bottom: 4px;
+  }
+  .collapsed-nav-item {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    border-left: 3px solid transparent;
+    font-size: 17px;
+    transition: background 120ms;
+  }
+  .collapsed-nav-item:hover { background: rgba(255,255,255,.04); }
+  .collapsed-nav-item.active.teacher-active {
+    border-left-color: #38bdf8;
+    background: rgba(56,189,248,.08);
+  }
+  .collapsed-nav-item.active.parent-active {
+    border-left-color: #a78bfa;
+    background: rgba(167,139,250,.08);
+  }
+  .collapsed-nav-item.active.owner-active {
+    border-left-color: #50e890;
+    background: rgba(80,232,144,.08);
+  }
+  .badge-dot {
+    position: absolute;
+    top: 7px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 1.5px solid #161b22;
+  }
+  .collapsed-tooltip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1f2937;
+    color: #f0f6ff;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    z-index: 300;
+    border: 1px solid rgba(255,255,255,.08);
+    transition: opacity 120ms;
+  }
+  .collapsed-nav-item:hover .collapsed-tooltip { opacity: 1; }
+  .collapsed-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #8b949e;
+    height: 38px;
+    cursor: pointer;
+    border-top: 1px solid rgba(255,255,255,.06);
+    background: none;
+    transition: background 120ms;
+    margin-top: auto;
+  }
+  .collapsed-expand-btn:hover { background: rgba(255,255,255,.05); }
+  .collapsed-section-spacer { height: 6px; }
+
+  /* ═══════════════════════════════════════════
+     TAB 5 — SPEC
+  ═══════════════════════════════════════════ */
+  .spec-wrap {
+    max-width: 820px;
+  }
+  .spec-section { margin-bottom: 28px; }
+  .spec-h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f0f6ff;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .spec-h3 { font-size: 13px; font-weight: 600; color: #c9d1d9; margin-bottom: 8px; }
+  pre.spec-code {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 12px;
+    color: #79c0ff;
+    overflow-x: auto;
+    line-height: 1.7;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+  }
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .spec-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: #161b22;
+    color: #8b949e;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .spec-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    color: #c9d1d9;
+    vertical-align: top;
+  }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table td code {
+    background: rgba(56,189,248,.1);
+    color: #79c0ff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+  }
+  .spec-rule { font-size: 13px; color: #c9d1d9; line-height: 1.7; }
+  .spec-rule li { margin-bottom: 5px; padding-left: 4px; }
+  ul.spec-rule { padding-left: 18px; }
+  .token-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .token-card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .token-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .token-meta { font-size: 11px; }
+  .token-name { color: #f0f6ff; font-weight: 600; }
+  .token-hex  { color: #8b949e; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HINT BOX ═══════════════════ -->
+<div style="padding: 16px 20px 0;">
+  <div class="hint-box">
+    <strong>adult-sidebar-system-v2.html</strong> — Desktop sidebar navigation system. Used by: Teacher (blue accent), Parent (violet accent), Owner (green accent). Layout: fixed 240px wide sidebar + flex:1 content area (demo only). Sidebar variants: Expanded (240px, icon+label), Collapsed (60px, icon only, tooltip on hover). Active item: coloured left border (4px) + subtle bg highlight. Badges: notification count bubble on nav items. Collapse trigger: chevron button at bottom of sidebar. Storage: sidebar_state saved to localStorage('wq_sidebar_collapsed'). Persona switching: sidebar header changes logo tint + nav items entirely.
+  </div>
+</div>
+
+<!-- ═══════════════════ TABS ═══════════════════ -->
+<div class="tabs-wrapper">
+  <ul class="tab-bar" role="tablist">
+    <li><button class="tab-btn active" onclick="switchTab('teacher')" data-tab="teacher">Teacher Sidebar</button></li>
+    <li><button class="tab-btn" onclick="switchTab('parent')" data-tab="parent">Parent Sidebar</button></li>
+    <li><button class="tab-btn" onclick="switchTab('owner')" data-tab="owner">Owner Sidebar</button></li>
+    <li><button class="tab-btn" onclick="switchTab('collapsed')" data-tab="collapsed">Collapsed State</button></li>
+    <li><button class="tab-btn" onclick="switchTab('spec')" data-tab="spec">Spec</button></li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1 — TEACHER SIDEBAR
+═══════════════════════════════════════════════ -->
+<div id="panel-teacher" class="tab-panel active">
+  <div class="tab-content-wrap">
+    <div class="demo-layout">
+
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar-teacher">
+
+        <!-- Header -->
+        <div class="sidebar-header">
+          <div class="logo-row">
+            <div class="wq-logo-circle teacher">WQ</div>
+            <span class="wordmark">WonderQuest</span>
+          </div>
+          <div class="avatar-row">
+            <div class="avatar-circle teacher">JS</div>
+            <div class="avatar-info">
+              <div class="avatar-name">Ms. Johnson</div>
+              <div class="avatar-role">Teacher · Grade 3</div>
+            </div>
+          </div>
+          <div class="school-row">
+            <div class="online-dot"></div>
+            <span>Maple Ridge Elementary</span>
+          </div>
+        </div>
+
+        <!-- Nav -->
+        <nav style="flex:1; padding-bottom:4px;">
+
+          <div class="nav-section">
+            <div class="nav-section-label">Main</div>
+            <div class="nav-item active teacher-active" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-label">Home</span>
+              <span class="nav-tooltip">Home</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">👥</span>
+              <span class="nav-label">Students</span>
+              <span class="nav-tooltip">Students</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">📋</span>
+              <span class="nav-label">Review Queue</span>
+              <span class="nav-badge">3</span>
+              <span class="nav-tooltip">Review Queue</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Analytics</span>
+              <span class="nav-tooltip">Analytics</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Classroom</div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">📚</span>
+              <span class="nav-label">Assignments</span>
+              <span class="nav-tooltip">Assignments</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">🎯</span>
+              <span class="nav-label">Interventions</span>
+              <span class="nav-badge">2</span>
+              <span class="nav-tooltip">Interventions</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">📣</span>
+              <span class="nav-label">Announcements</span>
+              <span class="nav-tooltip">Announcements</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">📅</span>
+              <span class="nav-label">Schedule</span>
+              <span class="nav-tooltip">Schedule</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Tools</div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">🔍</span>
+              <span class="nav-label">Content Browser</span>
+              <span class="nav-tooltip">Content Browser</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">💬</span>
+              <span class="nav-label">Messages</span>
+              <span class="nav-badge">5</span>
+              <span class="nav-tooltip">Messages</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-label">Settings</span>
+              <span class="nav-tooltip">Settings</span>
+            </div>
+            <div class="nav-item" onclick="setActiveTeacher(this)">
+              <span class="nav-icon">❓</span>
+              <span class="nav-label">Help &amp; Feedback</span>
+              <span class="nav-tooltip">Help &amp; Feedback</span>
+            </div>
+          </div>
+
+        </nav>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+          <button class="signout-btn">
+            <span style="font-size:15px;">↩</span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+          <button class="collapse-btn" onclick="toggleCollapse('teacher')" title="Collapse sidebar" id="collapse-btn-teacher">‹</button>
+        </div>
+
+      </aside>
+
+      <!-- Content area -->
+      <div class="content-area" id="content-teacher">Content area — Teacher · Home</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 2 — PARENT SIDEBAR
+═══════════════════════════════════════════════ -->
+<div id="panel-parent" class="tab-panel">
+  <div class="tab-content-wrap">
+    <div class="demo-layout">
+
+      <aside class="sidebar" id="sidebar-parent">
+
+        <div class="sidebar-header">
+          <div class="logo-row">
+            <div class="wq-logo-circle parent">WQ</div>
+            <span class="wordmark">WonderQuest</span>
+          </div>
+          <div class="avatar-row">
+            <div class="avatar-circle parent">SC</div>
+            <div class="avatar-info">
+              <div class="avatar-name">Sarah Chen</div>
+              <div class="avatar-role">Parent</div>
+            </div>
+          </div>
+          <div class="child-chips">
+            <span class="child-chip active">Emma 🌟</span>
+            <span class="child-chip">Noah ⚡</span>
+          </div>
+        </div>
+
+        <nav style="flex:1; padding-bottom:4px;">
+
+          <div class="nav-section">
+            <div class="nav-section-label">Overview</div>
+            <div class="nav-item active parent-active" onclick="setActiveParent(this)">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-label">Home</span>
+              <span class="nav-tooltip">Home</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">📈</span>
+              <span class="nav-label">Progress</span>
+              <span class="nav-tooltip">Progress</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">🏆</span>
+              <span class="nav-label">Achievements</span>
+              <span class="nav-tooltip">Achievements</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Family</div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">👶</span>
+              <span class="nav-label">Emma's Profile</span>
+              <span class="nav-tooltip">Emma's Profile</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">👦</span>
+              <span class="nav-label">Noah's Profile</span>
+              <span class="nav-tooltip">Noah's Profile</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">📅</span>
+              <span class="nav-label">Weekly Summary</span>
+              <span class="nav-tooltip">Weekly Summary</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">School</div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">🏫</span>
+              <span class="nav-label">School Connection</span>
+              <span class="nav-tooltip">School Connection</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">✉️</span>
+              <span class="nav-label">Teacher Messages</span>
+              <span class="nav-badge">1</span>
+              <span class="nav-tooltip">Teacher Messages</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">📋</span>
+              <span class="nav-label">School Announcements</span>
+              <span class="nav-tooltip">Announcements</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Account</div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">🔔</span>
+              <span class="nav-label">Notifications</span>
+              <span class="nav-tooltip">Notifications</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">🔒</span>
+              <span class="nav-label">Privacy &amp; Safety</span>
+              <span class="nav-tooltip">Privacy &amp; Safety</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">⚙️</span>
+              <span class="nav-label">Settings</span>
+              <span class="nav-tooltip">Settings</span>
+            </div>
+            <div class="nav-item" onclick="setActiveParent(this)">
+              <span class="nav-icon">❓</span>
+              <span class="nav-label">Help</span>
+              <span class="nav-tooltip">Help</span>
+            </div>
+          </div>
+
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="plan-chip">
+            <span>●</span> Family Plan · Active
+          </div>
+          <button class="signout-btn">
+            <span style="font-size:15px;">↩</span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+          <button class="collapse-btn" onclick="toggleCollapse('parent')" id="collapse-btn-parent">‹</button>
+        </div>
+
+      </aside>
+
+      <div class="content-area" id="content-parent">Content area — Parent · Home</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 3 — OWNER SIDEBAR
+═══════════════════════════════════════════════ -->
+<div id="panel-owner" class="tab-panel">
+  <div class="tab-content-wrap">
+    <div class="demo-layout">
+
+      <aside class="sidebar" id="sidebar-owner">
+
+        <div class="sidebar-header">
+          <div class="logo-row">
+            <div class="wq-logo-circle owner">WQ</div>
+            <span class="wordmark">WonderQuest</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:2px; margin-bottom:4px;">
+            <span class="owner-console-label">Owner Console</span>
+            <span class="env-badge">PROD</span>
+          </div>
+          <div class="mfa-row">🔐 MFA Active</div>
+        </div>
+
+        <!-- P0 Incident Banner -->
+        <div class="p0-banner">
+          <div class="p0-pulse"></div>
+          <span>⚠ P0 Incident Active — INC-2024-0089</span>
+        </div>
+
+        <nav style="flex:1; padding-bottom:4px;">
+
+          <div class="nav-section">
+            <div class="nav-section-label">Operations</div>
+            <div class="nav-item active owner-active" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-label">Home</span>
+              <span class="nav-tooltip">Home</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🛣️</span>
+              <span class="nav-label">Route Health</span>
+              <span class="nav-tooltip">Route Health</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🚀</span>
+              <span class="nav-label">Release Gate</span>
+              <span class="nav-tooltip">Release Gate</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Command Center</span>
+              <span class="nav-tooltip">Command Center</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Feedback</div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">💬</span>
+              <span class="nav-label">Feedback Queue</span>
+              <span class="nav-badge">7</span>
+              <span class="nav-tooltip">Feedback Queue</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🔔</span>
+              <span class="nav-label">Alerts</span>
+              <span class="nav-badge" style="background:#ef4444;">1</span>
+              <span class="nav-tooltip">Alerts — P0</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">📋</span>
+              <span class="nav-label">Incident Log</span>
+              <span class="nav-tooltip">Incident Log</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">Content</div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">📦</span>
+              <span class="nav-label">Release Bundles</span>
+              <span class="nav-tooltip">Release Bundles</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🗂️</span>
+              <span class="nav-label">Content Review</span>
+              <span class="nav-tooltip">Content Review</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">📐</span>
+              <span class="nav-label">Coverage Map</span>
+              <span class="nav-tooltip">Coverage Map</span>
+            </div>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">System</div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🏛️</span>
+              <span class="nav-label">Governance Log</span>
+              <span class="nav-tooltip">Governance Log</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">👥</span>
+              <span class="nav-label">School Accounts</span>
+              <span class="nav-tooltip">School Accounts</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">🔧</span>
+              <span class="nav-label">System Config</span>
+              <span class="nav-tooltip">System Config</span>
+            </div>
+            <div class="nav-item" onclick="setActiveOwner(this)">
+              <span class="nav-icon">📜</span>
+              <span class="nav-label">Audit Trail</span>
+              <span class="nav-tooltip">Audit Trail</span>
+            </div>
+          </div>
+
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="version-label">v2.6.0-rc3</div>
+          <button class="signout-btn">
+            <span style="font-size:15px;">↩</span>
+            <span class="nav-label">Sign Out</span>
+          </button>
+          <button class="collapse-btn" onclick="toggleCollapse('owner')" id="collapse-btn-owner">‹</button>
+        </div>
+
+      </aside>
+
+      <div class="content-area" id="content-owner">Content area — Owner · Home</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 4 — COLLAPSED STATE
+═══════════════════════════════════════════════ -->
+<div id="panel-collapsed" class="tab-panel">
+  <div class="tab-content-wrap">
+    <p style="color:#8b949e; font-size:13px; margin-bottom:16px;">Three personas shown in 60px collapsed icon-only form. Hover icons for tooltips.</p>
+    <div class="collapsed-demo-wrap">
+
+      <!-- Teacher collapsed -->
+      <div class="collapsed-demo-col">
+        <span class="collapsed-persona-label" style="color:#38bdf8;">Teacher</span>
+        <div class="collapsed-sidebar">
+          <div class="collapsed-header">
+            <div class="persona-dot" style="background:#38bdf8;"></div>
+            <div class="wq-logo-circle teacher" style="width:28px;height:28px;font-size:11px;">WQ</div>
+          </div>
+
+          <!-- Main -->
+          <div class="collapsed-nav-item active teacher-active">🏠
+            <span class="collapsed-tooltip">Home</span>
+          </div>
+          <div class="collapsed-nav-item">👥
+            <span class="collapsed-tooltip">Students</span>
+          </div>
+          <div class="collapsed-nav-item">📋
+            <div class="badge-dot"></div>
+            <span class="collapsed-tooltip">Review Queue (3)</span>
+          </div>
+          <div class="collapsed-nav-item">📊
+            <span class="collapsed-tooltip">Analytics</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- Classroom -->
+          <div class="collapsed-nav-item">📚
+            <span class="collapsed-tooltip">Assignments</span>
+          </div>
+          <div class="collapsed-nav-item">🎯
+            <div class="badge-dot"></div>
+            <span class="collapsed-tooltip">Interventions (2)</span>
+          </div>
+          <div class="collapsed-nav-item">📣
+            <span class="collapsed-tooltip">Announcements</span>
+          </div>
+          <div class="collapsed-nav-item">📅
+            <span class="collapsed-tooltip">Schedule</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- Tools -->
+          <div class="collapsed-nav-item">🔍
+            <span class="collapsed-tooltip">Content Browser</span>
+          </div>
+          <div class="collapsed-nav-item">💬
+            <div class="badge-dot"></div>
+            <span class="collapsed-tooltip">Messages (5)</span>
+          </div>
+          <div class="collapsed-nav-item">⚙️
+            <span class="collapsed-tooltip">Settings</span>
+          </div>
+          <div class="collapsed-nav-item">❓
+            <span class="collapsed-tooltip">Help &amp; Feedback</span>
+          </div>
+          <div class="collapsed-expand-btn" title="Expand sidebar">›</div>
+        </div>
+      </div>
+
+      <!-- Parent collapsed -->
+      <div class="collapsed-demo-col">
+        <span class="collapsed-persona-label" style="color:#a78bfa;">Parent</span>
+        <div class="collapsed-sidebar">
+          <div class="collapsed-header">
+            <div class="persona-dot" style="background:#a78bfa;"></div>
+            <div class="wq-logo-circle parent" style="width:28px;height:28px;font-size:11px;">WQ</div>
+          </div>
+
+          <!-- Overview -->
+          <div class="collapsed-nav-item active parent-active">🏠
+            <span class="collapsed-tooltip">Home</span>
+          </div>
+          <div class="collapsed-nav-item">📈
+            <span class="collapsed-tooltip">Progress</span>
+          </div>
+          <div class="collapsed-nav-item">🏆
+            <span class="collapsed-tooltip">Achievements</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- Family -->
+          <div class="collapsed-nav-item">👶
+            <span class="collapsed-tooltip">Emma's Profile</span>
+          </div>
+          <div class="collapsed-nav-item">👦
+            <span class="collapsed-tooltip">Noah's Profile</span>
+          </div>
+          <div class="collapsed-nav-item">📅
+            <span class="collapsed-tooltip">Weekly Summary</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- School -->
+          <div class="collapsed-nav-item">🏫
+            <span class="collapsed-tooltip">School Connection</span>
+          </div>
+          <div class="collapsed-nav-item">✉️
+            <div class="badge-dot"></div>
+            <span class="collapsed-tooltip">Teacher Messages (1)</span>
+          </div>
+          <div class="collapsed-nav-item">📋
+            <span class="collapsed-tooltip">Announcements</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- Account -->
+          <div class="collapsed-nav-item">🔔
+            <span class="collapsed-tooltip">Notifications</span>
+          </div>
+          <div class="collapsed-nav-item">🔒
+            <span class="collapsed-tooltip">Privacy &amp; Safety</span>
+          </div>
+          <div class="collapsed-nav-item">⚙️
+            <span class="collapsed-tooltip">Settings</span>
+          </div>
+          <div class="collapsed-nav-item">❓
+            <span class="collapsed-tooltip">Help</span>
+          </div>
+          <div class="collapsed-expand-btn">›</div>
+        </div>
+      </div>
+
+      <!-- Owner collapsed -->
+      <div class="collapsed-demo-col">
+        <span class="collapsed-persona-label" style="color:#50e890;">Owner</span>
+        <div class="collapsed-sidebar">
+          <div class="collapsed-header">
+            <div class="persona-dot" style="background:#50e890;"></div>
+            <div class="wq-logo-circle owner" style="width:28px;height:28px;font-size:11px;">WQ</div>
+          </div>
+
+          <!-- Operations -->
+          <div class="collapsed-nav-item active owner-active">🏠
+            <span class="collapsed-tooltip">Home</span>
+          </div>
+          <div class="collapsed-nav-item">🛣️
+            <span class="collapsed-tooltip">Route Health</span>
+          </div>
+          <div class="collapsed-nav-item">🚀
+            <span class="collapsed-tooltip">Release Gate</span>
+          </div>
+          <div class="collapsed-nav-item">📊
+            <span class="collapsed-tooltip">Command Center</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- Feedback -->
+          <div class="collapsed-nav-item">💬
+            <div class="badge-dot"></div>
+            <span class="collapsed-tooltip">Feedback Queue (7)</span>
+          </div>
+          <div class="collapsed-nav-item">🔔
+            <div class="badge-dot" style="background:#ef4444;"></div>
+            <span class="collapsed-tooltip">Alerts — P0 (1)</span>
+          </div>
+          <div class="collapsed-nav-item">📋
+            <span class="collapsed-tooltip">Incident Log</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- Content -->
+          <div class="collapsed-nav-item">📦
+            <span class="collapsed-tooltip">Release Bundles</span>
+          </div>
+          <div class="collapsed-nav-item">🗂️
+            <span class="collapsed-tooltip">Content Review</span>
+          </div>
+          <div class="collapsed-nav-item">📐
+            <span class="collapsed-tooltip">Coverage Map</span>
+          </div>
+          <div class="collapsed-section-spacer"></div>
+          <!-- System -->
+          <div class="collapsed-nav-item">🏛️
+            <span class="collapsed-tooltip">Governance Log</span>
+          </div>
+          <div class="collapsed-nav-item">👥
+            <span class="collapsed-tooltip">School Accounts</span>
+          </div>
+          <div class="collapsed-nav-item">🔧
+            <span class="collapsed-tooltip">System Config</span>
+          </div>
+          <div class="collapsed-nav-item">📜
+            <span class="collapsed-tooltip">Audit Trail</span>
+          </div>
+          <div class="collapsed-expand-btn">›</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 5 — SPEC
+═══════════════════════════════════════════════ -->
+<div id="panel-spec" class="tab-panel">
+  <div class="tab-content-wrap">
+    <div class="spec-wrap">
+
+      <!-- Design Tokens -->
+      <div class="spec-section">
+        <div class="spec-h2">Design Tokens</div>
+        <div class="token-grid">
+          <div class="token-card">
+            <div class="token-swatch" style="background:#0d1117;"></div>
+            <div class="token-meta"><div class="token-name">Dark base</div><div class="token-hex">#0d1117</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:#161b22;"></div>
+            <div class="token-meta"><div class="token-name">Card bg</div><div class="token-hex">#161b22</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:#50e890;"></div>
+            <div class="token-meta"><div class="token-name">Accent green / Owner</div><div class="token-hex">#50e890</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:#38bdf8;"></div>
+            <div class="token-meta"><div class="token-name">Teacher accent</div><div class="token-hex">#38bdf8</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:#a78bfa;"></div>
+            <div class="token-meta"><div class="token-name">Parent accent</div><div class="token-hex">#a78bfa</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:#f0f6ff;"></div>
+            <div class="token-meta"><div class="token-name">Text near-white</div><div class="token-hex">#f0f6ff</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:#8b949e;"></div>
+            <div class="token-meta"><div class="token-name">Muted text</div><div class="token-hex">#8b949e</div></div>
+          </div>
+          <div class="token-card">
+            <div class="token-swatch" style="background:rgba(255,255,255,.06); border:1px dashed #444;"></div>
+            <div class="token-meta"><div class="token-name">Border</div><div class="token-hex">rgba(255,255,255,.06)</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav item schema -->
+      <div class="spec-section">
+        <div class="spec-h2">Nav Item Data Model</div>
+        <pre class="spec-code">sidebar_nav_items(
+  id            UUID PRIMARY KEY,
+  persona       ENUM('teacher', 'parent', 'owner'),
+  section       TEXT,             -- e.g. 'Main', 'Classroom', 'Tools'
+  label         TEXT,             -- Display label
+  icon          TEXT,             -- Emoji or icon key
+  route_path    TEXT,             -- e.g. '/teacher/home'
+  sort_order    INT,
+  badge_key     TEXT NULLABLE,    -- key to look up in live counts
+  requires_role TEXT[]            -- RBAC: e.g. ['teacher', 'admin']
+)</pre>
+      </div>
+
+      <!-- Badge count sources -->
+      <div class="spec-section">
+        <div class="spec-h2">Badge Count Sources</div>
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Badge Key</th>
+              <th>Source Query</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>review_queue</code></td>
+              <td>SELECT COUNT(*) FROM review_queue WHERE assigned_to = :user_id AND status='open'</td>
+            </tr>
+            <tr>
+              <td><code>interventions</code></td>
+              <td>SELECT COUNT(*) FROM interventions WHERE class_id = :class_id AND status='active'</td>
+            </tr>
+            <tr>
+              <td><code>messages</code></td>
+              <td>SELECT COUNT(*) FROM messages WHERE recipient_id = :user_id AND read_at IS NULL</td>
+            </tr>
+            <tr>
+              <td><code>feedback_queue</code></td>
+              <td>SELECT COUNT(*) FROM feedback WHERE status IN ('open','investigating') AND assigned_to IS NULL</td>
+            </tr>
+            <tr>
+              <td><code>p0_alerts</code></td>
+              <td>SELECT COUNT(*) FROM platform_incidents WHERE severity='P0' AND resolved_at IS NULL</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Layout rules -->
+      <div class="spec-section">
+        <div class="spec-h2">Layout Rules</div>
+        <ul class="spec-rule">
+          <li>Sidebar: <code>position:fixed; top:0; left:0; height:100vh; overflow-y:auto; z-index:100</code></li>
+          <li>Expanded width: <code>240px</code> — Collapsed width: <code>60px</code></li>
+          <li>Width transition: <code>width 200ms ease</code></li>
+          <li>Main content offset: <code>margin-left:240px</code> (expanded) / <code>margin-left:60px</code> (collapsed)</li>
+          <li>Persistence: <code>localStorage('wq_sidebar_collapsed')</code> = <code>'true'</code> / <code>'false'</code></li>
+          <li>Scrollbar: <code>.sidebar::-webkit-scrollbar { width: 4px }</code> thin custom track</li>
+        </ul>
+      </div>
+
+      <!-- Active state rules -->
+      <div class="spec-section">
+        <div class="spec-h2">Active &amp; Hover State Rules</div>
+        <table class="spec-table">
+          <thead>
+            <tr><th>State</th><th>Persona</th><th>Left Border</th><th>Background</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Active</td><td>Teacher</td>
+              <td><code>4px solid #38bdf8</code></td>
+              <td><code>rgba(56,189,248,.08)</code></td>
+            </tr>
+            <tr>
+              <td>Active</td><td>Parent</td>
+              <td><code>4px solid #a78bfa</code></td>
+              <td><code>rgba(167,139,250,.08)</code></td>
+            </tr>
+            <tr>
+              <td>Active</td><td>Owner</td>
+              <td><code>4px solid #50e890</code></td>
+              <td><code>rgba(80,232,144,.08)</code></td>
+            </tr>
+            <tr>
+              <td>Hover</td><td>All</td>
+              <td>—</td>
+              <td><code>rgba(255,255,255,.04)</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Collapsed state rules -->
+      <div class="spec-section">
+        <div class="spec-h2">Collapsed State (60px)</div>
+        <ul class="spec-rule">
+          <li>Icon only — <code>.nav-label</code> opacity:0, width:0 (CSS transition)</li>
+          <li>Section labels hidden: <code>opacity:0; height:0</code></li>
+          <li>Badge count hidden; replaced by 8px red dot at top-right of icon</li>
+          <li>Tooltip on hover via CSS <code>::after</code> or sibling element, left: <code>calc(100% + 10px)</code></li>
+          <li>Collapse button shows <code>›</code> (pointing right) to expand</li>
+          <li>Header shows WQ logo circle only — wordmark hidden</li>
+          <li>Footer plan chip and version label: <code>opacity:0; height:0; overflow:hidden</code></li>
+        </ul>
+      </div>
+
+      <!-- Demo layout spec -->
+      <div class="spec-section">
+        <div class="spec-h2">Demo Layout (per tab)</div>
+        <pre class="spec-code">.demo-layout {
+  display: flex;
+  height: 100vh;  /* minus header */
+}
+
+.sidebar {
+  width: 240px;  /* or 60px collapsed */
+  background: #161b22;
+  border-right: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: width 200ms ease;
+}
+
+.content-area {
+  flex: 1;
+  background: #0d1117;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Shows: "Content area — [Persona] [Route]" */
+}</pre>
+      </div>
+
+    </div><!-- /.spec-wrap -->
+  </div>
+</div>
+
+<!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+<script>
+  // ── Tab switching ──
+  function switchTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    document.querySelector('[data-tab="' + name + '"]').classList.add('active');
+  }
+
+  // ── Active nav item ──
+  function setActiveNavItem(el, persona) {
+    const sidebar = el.closest('.sidebar');
+    sidebar.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active', 'teacher-active', 'parent-active', 'owner-active');
+    });
+    el.classList.add('active', persona + '-active');
+
+    // Update content area label
+    const label = el.querySelector('.nav-label');
+    const contentArea = document.getElementById('content-' + persona);
+    if (contentArea && label) {
+      const personaName = persona.charAt(0).toUpperCase() + persona.slice(1);
+      contentArea.textContent = 'Content area — ' + personaName + ' · ' + label.textContent;
+    }
+  }
+
+  function setActiveTeacher(el) { setActiveNavItem(el, 'teacher'); }
+  function setActiveParent(el)  { setActiveNavItem(el, 'parent'); }
+  function setActiveOwner(el)   { setActiveNavItem(el, 'owner'); }
+
+  // ── Sidebar collapse toggle ──
+  function toggleCollapse(persona) {
+    const sidebar = document.getElementById('sidebar-' + persona);
+    const btn = document.getElementById('collapse-btn-' + persona);
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    btn.textContent = isCollapsed ? '›' : '‹';
+    try {
+      localStorage.setItem('wq_sidebar_collapsed_' + persona, isCollapsed ? 'true' : 'false');
+    } catch(e) {}
+  }
+
+  // ── Restore collapse state from localStorage ──
+  (function restoreCollapseStates() {
+    ['teacher', 'parent', 'owner'].forEach(function(persona) {
+      try {
+        var stored = localStorage.getItem('wq_sidebar_collapsed_' + persona);
+        if (stored === 'true') {
+          var sidebar = document.getElementById('sidebar-' + persona);
+          var btn = document.getElementById('collapse-btn-' + persona);
+          if (sidebar) sidebar.classList.add('collapsed');
+          if (btn) btn.textContent = '›';
+        }
+      } catch(e) {}
+    });
+  })();
+
+  // ── Child chip interaction (Parent tab) ──
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('child-chip')) {
+      const chips = e.target.closest('.child-chips').querySelectorAll('.child-chip');
+      chips.forEach(c => c.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  });
+</script>
+</body>
+</html>

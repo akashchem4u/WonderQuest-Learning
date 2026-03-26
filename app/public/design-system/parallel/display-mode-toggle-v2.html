@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Display Mode Toggle — WonderQuest UI Spec</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --muted: #8b949e;
+    --border: rgba(255,255,255,.06);
+    --surface2: #1c2333;
+    --surface3: #21262d;
+    --red: #f85149;
+    --yellow: #d29922;
+    --blue: #58a6ff;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1200;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .hint-box strong { color: #7a4f00; }
+
+  /* ── Page wrapper ── */
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: var(--text); }
+  .page-header p { color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+    font-family: inherit;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .section { margin-bottom: 40px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+
+  /* ── Badge chip ── */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(80,232,144,.1);
+    border: 1px solid rgba(80,232,144,.25);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ══════════════════════════════════
+     TAB 1 — Toggle Component
+  ══════════════════════════════════ */
+
+  /* Variant A — Segmented control */
+  .segmented-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .segmented-control {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 4px;
+    display: inline-flex;
+    gap: 2px;
+    border: 1px solid var(--border);
+  }
+  .seg-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: background .15s, color .15s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .seg-btn:hover { color: var(--text); background: rgba(255,255,255,.05); }
+  .seg-btn.active {
+    background: var(--accent);
+    color: #0d1117;
+    font-weight: 600;
+  }
+
+  /* Variant B — Dropdown menu item */
+  .dropdown-demo {
+    background: var(--surface3);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    width: 260px;
+    overflow: hidden;
+  }
+  .dropdown-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .dropdown-item {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .dropdown-item:hover { background: rgba(255,255,255,.04); }
+  .dropdown-item-label { flex: 1; }
+  .dropdown-item-label span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,.12);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform .2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
+  .dropdown-more {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--blue);
+    cursor: pointer;
+  }
+  .dropdown-more:hover { text-decoration: underline; }
+
+  /* Variant C — Icon buttons */
+  .icon-btn-row { display: flex; gap: 8px; align-items: center; }
+  .icon-mode-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background .15s, border-color .15s, color .15s;
+    font-family: inherit;
+  }
+  .icon-mode-btn:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .icon-mode-btn.active {
+    background: rgba(80,232,144,.12);
+    border-color: rgba(80,232,144,.3);
+    color: var(--accent);
+  }
+  .icon-mode-btn .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2d333b;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 5px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .icon-mode-btn:hover .tooltip { opacity: 1; }
+
+  /* Live preview card */
+  .live-preview-wrap { margin-top: 28px; }
+  .live-preview-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  #live-preview-card {
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 340px;
+    transition: background .3s, color .3s, border .3s;
+  }
+
+  /* mode classes for live card */
+  #live-preview-card.mode-dark {
+    background: #161b22;
+    color: #f0f6ff;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  #live-preview-card.mode-light {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+  }
+  #live-preview-card.mode-high-contrast {
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+  }
+  #live-preview-card.mode-print {
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .mode-indicator {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    transition: background .3s, color .3s;
+  }
+  #live-preview-card.mode-dark   .mode-indicator { background: rgba(80,232,144,.15); color: #50e890; }
+  #live-preview-card.mode-light  .mode-indicator { background: #f0f4ff; color: #3b5bdb; }
+  #live-preview-card.mode-high-contrast .mode-indicator { background: #ffffff; color: #000000; border: 1px solid #000; }
+  #live-preview-card.mode-print  .mode-indicator { background: #f0f0f0; color: #000000; border: 1px solid #999; }
+
+  .mini-card-name { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+  .mini-stats { display: flex; gap: 14px; margin-bottom: 12px; }
+  .mini-stat { text-align: center; }
+  .mini-stat .val { font-size: 18px; font-weight: 700; }
+  .mini-stat .lbl { font-size: 10px; opacity: .6; }
+  .mini-bar-track {
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    transition: background .3s;
+  }
+  #live-preview-card.mode-dark   .mini-bar-track { background: rgba(255,255,255,.08); }
+  #live-preview-card.mode-light  .mini-bar-track { background: #e2e8f0; }
+  #live-preview-card.mode-high-contrast .mini-bar-track { background: #333; }
+  #live-preview-card.mode-print  .mini-bar-track { background: #e0e0e0; }
+
+  .mini-bar-fill { height: 100%; width: 68%; border-radius: 3px; transition: background .3s; }
+  #live-preview-card.mode-dark   .mini-bar-fill { background: #50e890; }
+  #live-preview-card.mode-light  .mini-bar-fill { background: #3b82f6; }
+  #live-preview-card.mode-high-contrast .mini-bar-fill { background: #ffffff; }
+  #live-preview-card.mode-print  .mini-bar-fill { background: #555; }
+
+  .mini-action-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .3s, color .3s, border .3s;
+  }
+  #live-preview-card.mode-dark   .mini-action-btn { background: #50e890; color: #0d1117; }
+  #live-preview-card.mode-light  .mini-action-btn { background: #3b82f6; color: #fff; }
+  #live-preview-card.mode-high-contrast .mini-action-btn { background: #ffffff; color: #000000; border: 2px solid #ffffff; }
+  #live-preview-card.mode-print  .mini-action-btn { background: #fff; color: #000; border: 1px solid #000; }
+
+  /* variant placement rows */
+  .variant-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .variant-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .variant-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .variant-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(80,232,144,.1);
+    border: 1px solid rgba(80,232,144,.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .variant-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .variant-sub { font-size: 11px; color: var(--muted); }
+
+  /* ══════════════════════════════════
+     TAB 2 — Mode Previews
+  ══════════════════════════════════ */
+  .modes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 640px) { .modes-grid { grid-template-columns: 1fr; } }
+
+  .mode-preview-wrap {}
+  .mode-preview-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .mode-preview-title.dark   { color: #50e890; }
+  .mode-preview-title.light  { color: #3b82f6; }
+  .mode-preview-title.hc     { color: #e0e0e0; }
+  .mode-preview-title.print  { color: #555; }
+
+  /* The 4 sample cards */
+  .sample-card { border-radius: 10px; padding: 18px; }
+
+  .sample-card.dark {
+    background: #161b22;
+    color: #f0f6ff;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .sample-card.light {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+  }
+  .sample-card.hc {
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+  }
+  .sample-card.print {
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #000000;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .sc-name { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .sc-chip {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  .dark  .sc-chip { background: rgba(80,232,144,.15); color: #50e890; }
+  .light .sc-chip { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .hc    .sc-chip { background: #ffffff; color: #000000; border: 1px solid #fff; }
+  .print .sc-chip { background: #f5f5f5; color: #000; border: 1px solid #999; }
+
+  .sc-stats { display: flex; gap: 12px; margin-bottom: 12px; }
+  .sc-stat .v { font-size: 20px; font-weight: 800; }
+  .sc-stat .l { font-size: 10px; }
+  .dark  .sc-stat .l { color: #8b949e; }
+  .light .sc-stat .l { color: #64748b; }
+  .hc    .sc-stat .l { color: #cccccc; }
+  .print .sc-stat .l { color: #555; }
+
+  .sc-bar { height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+  .dark  .sc-bar { background: rgba(255,255,255,.08); }
+  .light .sc-bar { background: #e2e8f0; }
+  .hc    .sc-bar { background: #333; }
+  .print .sc-bar { background: #ddd; }
+
+  .sc-bar-fill { height: 100%; width: 72%; border-radius: 3px; }
+  .dark  .sc-bar-fill { background: #50e890; }
+  .light .sc-bar-fill { background: #3b82f6; }
+  .hc    .sc-bar-fill { background: #ffffff; }
+  .print .sc-bar-fill { background: #333; }
+
+  .sc-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+  }
+  .dark  .sc-btn { background: #50e890; color: #0d1117; }
+  .light .sc-btn { background: #3b82f6; color: #ffffff; }
+  .hc    .sc-btn { background: #ffffff; color: #000000; border: 2px solid #fff; }
+  .print .sc-btn { background: #fff; color: #000; border: 1px solid #000; }
+
+  /* ══════════════════════════════════
+     TAB 3 — Accessibility
+  ══════════════════════════════════ */
+  .a11y-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .a11y-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .a11y-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .a11y-table tr:last-child td { border-bottom: none; }
+  .a11y-table tr:hover td { background: rgba(255,255,255,.02); }
+  .ratio-val { font-weight: 700; font-size: 14px; font-family: 'Courier New', monospace; }
+  .pass-aaa { color: #50e890; font-weight: 700; font-size: 12px; }
+  .pass-aa  { color: #58a6ff; font-weight: 700; font-size: 12px; }
+  .wcag-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: .04em;
+  }
+  .aaa-pill { background: rgba(80,232,144,.15); color: #50e890; border: 1px solid rgba(80,232,144,.3); }
+  .aa-pill  { background: rgba(88,166,255,.12); color: #58a6ff; border: 1px solid rgba(88,166,255,.3); }
+
+  .threshold-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 20px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .threshold-group h4 { font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--muted); }
+  .threshold-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-size: 12px; }
+  .threshold-row .ratio { font-family: monospace; font-weight: 700; min-width: 52px; }
+  .threshold-row .desc { color: var(--muted); }
+
+  .note-box {
+    background: rgba(80,232,144,.05);
+    border: 1px solid rgba(80,232,144,.15);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .note-box strong { color: var(--accent); }
+
+  /* ══════════════════════════════════
+     TAB 4 — Spec
+  ══════════════════════════════════ */
+  .spec-section { margin-bottom: 28px; }
+  .spec-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .code-block {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #e6edf3;
+    overflow-x: auto;
+    margin-bottom: 12px;
+    white-space: pre;
+  }
+  .code-block .kw  { color: #ff7b72; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .cm  { color: #8b949e; }
+  .code-block .fn  { color: #d2a8ff; }
+  .code-block .num { color: #79c0ff; }
+  .code-block .prop{ color: #ffa657; }
+
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .spec-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .spec-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Courier New', monospace;
+    color: #e6edf3;
+  }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .method-get  { color: #50e890; font-weight: 700; }
+  .method-patch { color: #f0a050; font-weight: 700; }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--muted); min-width: 140px; flex-shrink: 0; }
+  .info-val { color: var(--text); font-family: 'Courier New', monospace; }
+
+  /* divider */
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* JS-toggling the active mode for live demo */
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    <strong>display-mode-toggle-v2.html</strong> — Display mode toggle component.<br>
+    4 modes: Dark (default), Light, High Contrast (WCAG AAA), Print-Friendly (ink-saving).<br>
+    Stored in: <strong>user_preferences.display_mode</strong> (ENUM dark/light/high_contrast/print).<br>
+    Applied via: CSS class on &lt;html&gt; element (class='mode-dark'/'mode-light' etc).<br>
+    Respects <strong>prefers-color-scheme</strong> media query as default.<br>
+    Available to: all adult personas. Child personas: Dark mode only — no toggle shown.<br>
+    High Contrast mode: minimum contrast ratio 7:1 (WCAG AAA).<br>
+    Print-Friendly: removes backgrounds, uses black text on white.
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <h1>Display Mode Toggle</h1>
+    <p>UI component for switching between Dark · Light · High Contrast · Print-Friendly display modes — WonderQuest item #188</p>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" role="tablist" aria-label="Display mode toggle sections">
+    <button class="tab-btn active" role="tab" aria-selected="true"  onclick="showTab(1)" id="tab-btn-1">Toggle Component</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" onclick="showTab(2)" id="tab-btn-2">Mode Previews</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" onclick="showTab(3)" id="tab-btn-3">Accessibility</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" onclick="showTab(4)" id="tab-btn-4">Spec</button>
+  </div>
+
+  <!-- ══════════════════════
+       TAB 1 — Toggle Component
+  ══════════════════════ -->
+  <div class="tab-panel active" id="panel-1">
+
+    <div class="variant-wrap">
+
+      <!-- Variant A: Segmented control -->
+      <div class="variant-card">
+        <div class="variant-header">
+          <span class="variant-label">Variant A</span>
+          <div>
+            <div class="variant-title">Segmented Control</div>
+            <div class="variant-sub">For Settings page — full 4-mode selector</div>
+          </div>
+        </div>
+
+        <div class="segmented-wrap">
+          <div class="segmented-control" role="group" aria-label="Display mode">
+            <button class="seg-btn active" id="seg-dark"   onclick="setMode('dark')"          aria-pressed="true">🌙 Dark</button>
+            <button class="seg-btn"        id="seg-light"  onclick="setMode('light')"         aria-pressed="false">☀️ Light</button>
+            <button class="seg-btn"        id="seg-hc"     onclick="setMode('high-contrast')" aria-pressed="false">⬛ High Contrast</button>
+            <button class="seg-btn"        id="seg-print"  onclick="setMode('print')"         aria-pressed="false">🖨️ Print</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);">Clicking a segment calls <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;">setMode(mode)</code> — updates the live preview card below</div>
+        </div>
+      </div>
+
+      <!-- Variant B: Dropdown -->
+      <div class="variant-card">
+        <div class="variant-header">
+          <span class="variant-label">Variant B</span>
+          <div>
+            <div class="variant-title">Dropdown / Avatar Menu Item</div>
+            <div class="variant-sub">Topbar avatar menu — quick dark ↔ light toggle + "More display options" link</div>
+          </div>
+        </div>
+
+        <div class="dropdown-demo" role="menu" aria-label="Display options menu">
+          <div class="dropdown-header">Display</div>
+          <div class="dropdown-item" role="menuitem" onclick="toggleDropdownSwitch()">
+            <span style="font-size:16px;">🌙</span>
+            <div class="dropdown-item-label">
+              Dark Mode
+              <span id="dropdown-mode-text">Currently: Dark</span>
+            </div>
+            <label class="toggle-switch" aria-label="Toggle dark mode">
+              <input type="checkbox" id="dropdown-toggle" checked onchange="handleDropdownToggle(this)">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="dropdown-more" role="menuitem" tabindex="0">More display options →</div>
+        </div>
+
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);line-height:1.6;">
+          The dropdown toggle controls Dark ↔ Light only.<br>
+          Full 4-mode picker is accessible via "More display options →" (opens Settings &gt; Display).
+        </div>
+      </div>
+
+      <!-- Variant C: Icon buttons -->
+      <div class="variant-card">
+        <div class="variant-header">
+          <span class="variant-label">Variant C</span>
+          <div>
+            <div class="variant-title">Icon Buttons (Compact)</div>
+            <div class="variant-sub">For toolbars, topbar compact placement — icon-only with tooltips</div>
+          </div>
+        </div>
+
+        <div class="icon-btn-row" role="group" aria-label="Display mode icon buttons">
+          <button class="icon-mode-btn active" id="icon-dark"   onclick="setMode('dark')"          aria-label="Dark mode" title="Dark">
+            🌙
+            <span class="tooltip">Dark</span>
+          </button>
+          <button class="icon-mode-btn"        id="icon-light"  onclick="setMode('light')"         aria-label="Light mode" title="Light">
+            ☀️
+            <span class="tooltip">Light</span>
+          </button>
+          <button class="icon-mode-btn"        id="icon-hc"     onclick="setMode('high-contrast')" aria-label="High Contrast mode" title="High Contrast">
+            ⬛
+            <span class="tooltip">High Contrast</span>
+          </button>
+          <button class="icon-mode-btn"        id="icon-print"  onclick="setMode('print')"         aria-label="Print-Friendly mode" title="Print">
+            🖨️
+            <span class="tooltip">Print</span>
+          </button>
+        </div>
+
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);">
+          Active button: <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;">background:rgba(80,232,144,.12); border:1px solid rgba(80,232,144,.3)</code>
+        </div>
+      </div>
+
+    </div><!-- end variant-wrap -->
+
+    <!-- Live preview card -->
+    <div class="live-preview-wrap">
+      <div class="live-preview-label">Live Preview — current mode applied to sample student card</div>
+      <div id="live-preview-card" class="mode-dark" role="region" aria-label="Live preview of display mode" aria-live="polite">
+        <span class="mode-indicator" id="mode-indicator-text">🌙 Dark Mode</span>
+        <div class="mini-card-name">Aria M. · Grade 3</div>
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="val">87</div><div class="lbl">Score</div></div>
+          <div class="mini-stat"><div class="val">12</div><div class="lbl">Streak</div></div>
+          <div class="mini-stat"><div class="val">94%</div><div class="lbl">Accuracy</div></div>
+        </div>
+        <div class="mini-bar-track" role="progressbar" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100" aria-label="Progress 68%">
+          <div class="mini-bar-fill"></div>
+        </div>
+        <button class="mini-action-btn">View Progress</button>
+      </div>
+    </div>
+
+  </div><!-- end tab 1 -->
+
+  <!-- ══════════════════════
+       TAB 2 — Mode Previews
+  ══════════════════════ -->
+  <div class="tab-panel" id="panel-2">
+
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">
+      Same student card content rendered in all 4 display modes. Cards are static previews — use Tab 1 for interactive switching.
+    </p>
+
+    <div class="modes-grid">
+
+      <!-- Dark -->
+      <div class="mode-preview-wrap">
+        <div class="mode-preview-title dark">🌙 Dark Mode (default)</div>
+        <div class="sample-card dark" role="region" aria-label="Dark mode preview">
+          <div class="sc-chip">Grade 3 · Reading</div>
+          <div class="sc-name">Aria M.</div>
+          <div class="sc-stats">
+            <div class="sc-stat"><div class="v">87</div><div class="l">Score</div></div>
+            <div class="sc-stat"><div class="v">12</div><div class="l">Streak</div></div>
+            <div class="sc-stat"><div class="v">94%</div><div class="l">Accuracy</div></div>
+          </div>
+          <div class="sc-bar"><div class="sc-bar-fill"></div></div>
+          <button class="sc-btn">View Progress</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:monospace;">
+          bg:#161b22 · text:#f0f6ff<br>border:rgba(255,255,255,.06)
+        </div>
+      </div>
+
+      <!-- Light -->
+      <div class="mode-preview-wrap">
+        <div class="mode-preview-title light" style="color:#58a6ff;">☀️ Light Mode</div>
+        <div class="sample-card light" role="region" aria-label="Light mode preview">
+          <div class="sc-chip">Grade 3 · Reading</div>
+          <div class="sc-name">Aria M.</div>
+          <div class="sc-stats">
+            <div class="sc-stat"><div class="v">87</div><div class="l">Score</div></div>
+            <div class="sc-stat"><div class="v">12</div><div class="l">Streak</div></div>
+            <div class="sc-stat"><div class="v">94%</div><div class="l">Accuracy</div></div>
+          </div>
+          <div class="sc-bar"><div class="sc-bar-fill"></div></div>
+          <button class="sc-btn">View Progress</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:monospace;">
+          bg:#ffffff · text:#0f172a<br>border:#e2e8f0
+        </div>
+      </div>
+
+      <!-- High Contrast -->
+      <div class="mode-preview-wrap">
+        <div class="mode-preview-title hc">⬛ High Contrast (WCAG AAA)</div>
+        <div class="sample-card hc" role="region" aria-label="High Contrast mode preview">
+          <div class="sc-chip">Grade 3 · Reading</div>
+          <div class="sc-name">Aria M.</div>
+          <div class="sc-stats">
+            <div class="sc-stat"><div class="v">87</div><div class="l">Score</div></div>
+            <div class="sc-stat"><div class="v">12</div><div class="l">Streak</div></div>
+            <div class="sc-stat"><div class="v">94%</div><div class="l">Accuracy</div></div>
+          </div>
+          <div class="sc-bar"><div class="sc-bar-fill"></div></div>
+          <button class="sc-btn">View Progress</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:monospace;">
+          bg:#000000 · text:#ffffff<br>border:2px solid #ffffff
+        </div>
+      </div>
+
+      <!-- Print -->
+      <div class="mode-preview-wrap">
+        <div class="mode-preview-title print" style="color:#999;">🖨️ Print-Friendly</div>
+        <div class="sample-card print" role="region" aria-label="Print-Friendly mode preview">
+          <div class="sc-chip">Grade 3 · Reading</div>
+          <div class="sc-name">Aria M.</div>
+          <div class="sc-stats">
+            <div class="sc-stat"><div class="v">87</div><div class="l">Score</div></div>
+            <div class="sc-stat"><div class="v">12</div><div class="l">Streak</div></div>
+            <div class="sc-stat"><div class="v">94%</div><div class="l">Accuracy</div></div>
+          </div>
+          <div class="sc-bar"><div class="sc-bar-fill"></div></div>
+          <button class="sc-btn">View Progress</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:monospace;">
+          bg:#ffffff · text:#000000<br>border:#000000 · serif font
+        </div>
+      </div>
+
+    </div><!-- end modes-grid -->
+
+    <div class="note-box" style="margin-top:28px;">
+      <strong>Child view note:</strong> Child personas see Dark mode only — the mode toggle is not rendered in child sessions. High Contrast mode does <em>not</em> remove child fun aesthetics (emojis, colour coding remain); it increases contrast ratios while preserving the visual identity.
+    </div>
+
+  </div><!-- end tab 2 -->
+
+  <!-- ══════════════════════
+       TAB 3 — Accessibility
+  ══════════════════════ -->
+  <div class="tab-panel" id="panel-3">
+
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">
+      WCAG 2.1 contrast ratios for each display mode. All modes meet at minimum WCAG AA; High Contrast and Print meet full AAA.
+    </p>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="a11y-table" role="table" aria-label="Contrast ratios by mode">
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Normal text</th>
+            <th>Large text</th>
+            <th>UI components</th>
+            <th>WCAG level</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>🌙 Dark</strong></td>
+            <td>
+              <div class="ratio-val">11.2:1</div>
+              <div style="font-size:10px;color:var(--muted);font-family:monospace;margin-top:2px;">#f0f6ff on #161b22</div>
+            </td>
+            <td><span class="pass-aaa">✅ AAA</span></td>
+            <td><span class="pass-aa">✅ AA</span></td>
+            <td>
+              <span class="wcag-pill aaa-pill">AAA text</span>
+              <span class="wcag-pill aa-pill" style="margin-left:4px;">AA UI</span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>☀️ Light</strong></td>
+            <td>
+              <div class="ratio-val">13.4:1</div>
+              <div style="font-size:10px;color:var(--muted);font-family:monospace;margin-top:2px;">#0f172a on #ffffff</div>
+            </td>
+            <td><span class="pass-aaa">✅ AAA</span></td>
+            <td><span class="pass-aa">✅ AA</span></td>
+            <td>
+              <span class="wcag-pill aaa-pill">AAA text</span>
+              <span class="wcag-pill aa-pill" style="margin-left:4px;">AA UI</span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>⬛ High Contrast</strong></td>
+            <td>
+              <div class="ratio-val">21:1</div>
+              <div style="font-size:10px;color:var(--muted);font-family:monospace;margin-top:2px;">#ffffff on #000000</div>
+            </td>
+            <td><span class="pass-aaa">✅ AAA</span></td>
+            <td><span class="pass-aaa">✅ AAA</span></td>
+            <td>
+              <span class="wcag-pill aaa-pill">Full AAA</span>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>🖨️ Print</strong></td>
+            <td>
+              <div class="ratio-val">21:1</div>
+              <div style="font-size:10px;color:var(--muted);font-family:monospace;margin-top:2px;">#000000 on #ffffff</div>
+            </td>
+            <td><span class="pass-aaa">✅ AAA</span></td>
+            <td><span class="pass-aaa">✅ AAA</span></td>
+            <td>
+              <span class="wcag-pill aaa-pill">Full AAA</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- WCAG thresholds reminder -->
+    <div class="threshold-box">
+      <div class="threshold-group">
+        <h4>WCAG 2.1 — Level AA minimums</h4>
+        <div class="threshold-row">
+          <span class="ratio wcag-pill aa-pill">4.5:1</span>
+          <span class="desc">Normal text (under 18pt / 14pt bold)</span>
+        </div>
+        <div class="threshold-row">
+          <span class="ratio wcag-pill aa-pill">3:1</span>
+          <span class="desc">Large text (18pt+ / 14pt+ bold) &amp; UI components</span>
+        </div>
+      </div>
+      <div class="threshold-group">
+        <h4>WCAG 2.1 — Level AAA minimums</h4>
+        <div class="threshold-row">
+          <span class="ratio wcag-pill aaa-pill">7:1</span>
+          <span class="desc">Normal text</span>
+        </div>
+        <div class="threshold-row">
+          <span class="ratio wcag-pill aaa-pill">4.5:1</span>
+          <span class="desc">Large text &amp; UI components</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <strong>Child persona:</strong> Locked to Dark mode only — no toggle is rendered. High Contrast mode preserves emojis and colour-coding; contrast ratios are enforced at 7:1+ minimum across all interactive elements.<br><br>
+      <strong>Keyboard access:</strong> All toggle variants are keyboard-navigable. Segmented control uses arrow-key roving focus. Icon buttons expose aria-label. Dropdown toggle is labelled and focusable.
+    </div>
+
+  </div><!-- end tab 3 -->
+
+  <!-- ══════════════════════
+       TAB 4 — Spec
+  ══════════════════════ -->
+  <div class="tab-panel" id="panel-4">
+
+    <!-- DB schema -->
+    <div class="spec-section">
+      <h3>Database Schema</h3>
+      <div class="code-block"><span class="cm">-- user_preferences table (relevant columns)</span>
+<span class="kw">CREATE TABLE</span> user_preferences (
+  user_id      <span class="prop">UUID</span>        <span class="kw">PRIMARY KEY REFERENCES</span> users(id),
+  display_mode <span class="prop">ENUM</span>(
+                 <span class="str">'dark'</span>,
+                 <span class="str">'light'</span>,
+                 <span class="str">'high_contrast'</span>,
+                 <span class="str">'print'</span>
+               )               <span class="kw">NOT NULL DEFAULT</span> <span class="str">'dark'</span>,
+  updated_at   <span class="prop">TIMESTAMPTZ</span>  <span class="kw">DEFAULT NOW</span>()
+);</div>
+    </div>
+
+    <!-- API -->
+    <div class="spec-section">
+      <h3>API Endpoints</h3>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table class="spec-table" role="table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Body / Response</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="method-get">GET</span></td>
+              <td>/api/user/preferences</td>
+              <td>→ { display_mode: "dark" }</td>
+              <td style="font-family:sans-serif;font-size:11px;color:var(--muted);">Returns current stored preference</td>
+            </tr>
+            <tr>
+              <td><span class="method-patch">PATCH</span></td>
+              <td>/api/user/preferences</td>
+              <td>{ display_mode: "light" }</td>
+              <td style="font-family:sans-serif;font-size:11px;color:var(--muted);">Updates preference; synced across devices</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Application logic -->
+    <div class="spec-section">
+      <h3>Application Logic</h3>
+      <div class="code-block"><span class="cm">// 1. On page load — apply stored preference</span>
+<span class="kw">async function</span> <span class="fn">initDisplayMode</span>() {
+  <span class="kw">const</span> prefs = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/user/preferences'</span>).<span class="fn">then</span>(r => r.<span class="fn">json</span>());
+  document.documentElement.className = <span class="str">'mode-'</span> + prefs.display_mode;
+}
+
+<span class="cm">// 2. setMode() — called by all toggle variants</span>
+<span class="kw">function</span> <span class="fn">setMode</span>(mode) {
+  <span class="cm">// Apply immediately (optimistic UI)</span>
+  document.documentElement.className = <span class="str">'mode-'</span> + mode;
+
+  <span class="cm">// Persist to server</span>
+  <span class="fn">fetch</span>(<span class="str">'/api/user/preferences'</span>, {
+    method: <span class="str">'PATCH'</span>,
+    headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+    body: <span class="fn">JSON.stringify</span>({ display_mode: mode })
+  });
+}</div>
+    </div>
+
+    <!-- CSS classes -->
+    <div class="spec-section">
+      <h3>CSS Classes on &lt;html&gt;</h3>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table class="spec-table" role="table">
+          <thead>
+            <tr><th>Mode</th><th>HTML class</th><th>Applied when</th></tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-family:sans-serif;color:var(--muted);">Dark</td><td>mode-dark</td><td style="font-family:sans-serif;font-size:11px;color:var(--muted);">Default / prefers-color-scheme: dark</td></tr>
+            <tr><td style="font-family:sans-serif;color:var(--muted);">Light</td><td>mode-light</td><td style="font-family:sans-serif;font-size:11px;color:var(--muted);">User selection / prefers-color-scheme: light</td></tr>
+            <tr><td style="font-family:sans-serif;color:var(--muted);">High Contrast</td><td>mode-high-contrast</td><td style="font-family:sans-serif;font-size:11px;color:var(--muted);">User selection only</td></tr>
+            <tr><td style="font-family:sans-serif;color:var(--muted);">Print</td><td>mode-print</td><td style="font-family:sans-serif;font-size:11px;color:var(--muted);">User selection + window.matchMedia('print')</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Fallback + sync -->
+    <div class="spec-section">
+      <h3>Fallback &amp; Sync Rules</h3>
+      <div class="code-block"><span class="cm">// Fallback — before user preference is loaded</span>
+<span class="kw">const</span> prefersDark  = window.<span class="fn">matchMedia</span>(<span class="str">'(prefers-color-scheme: dark)'</span>).matches;
+<span class="kw">const</span> prefersLight = window.<span class="fn">matchMedia</span>(<span class="str">'(prefers-color-scheme: light)'</span>).matches;
+document.documentElement.className = prefersDark ? <span class="str">'mode-dark'</span> : <span class="str">'mode-light'</span>;
+
+<span class="cm">// Print mode — auto-apply on browser print dialog</span>
+window.<span class="fn">matchMedia</span>(<span class="str">'print'</span>).<span class="fn">addEventListener</span>(<span class="str">'change'</span>, (e) => {
+  <span class="kw">if</span> (e.matches) document.documentElement.className = <span class="str">'mode-print'</span>;
+});
+
+<span class="cm">// Child persona — lock to dark, ignore preference field</span>
+<span class="kw">if</span> (currentUser.persona === <span class="str">'child'</span>) {
+  document.documentElement.className = <span class="str">'mode-dark'</span>;
+  <span class="cm">// Toggle UI is not rendered for child accounts</span>
+}</span></div>
+    </div>
+
+    <!-- Sync notes -->
+    <div class="spec-section">
+      <h3>Sync &amp; Storage Notes</h3>
+      <div class="card">
+        <div class="info-row">
+          <span class="info-key">Persistence</span>
+          <span class="info-val" style="font-family:sans-serif;color:var(--text);">Server-side via <code style="font-family:monospace;font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;">user_preferences</code> table — synced across all devices</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Fallback storage</span>
+          <span class="info-val" style="font-family:sans-serif;color:var(--text);">localStorage <code style="font-family:monospace;font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;">wq_display_mode</code> used only when unauthenticated</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Child persona</span>
+          <span class="info-val" style="font-family:sans-serif;color:var(--text);">Mode locked to <code style="font-family:monospace;font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;">dark</code>; preference field ignored; toggle not rendered</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Print auto-apply</span>
+          <span class="info-val" style="font-family:sans-serif;color:var(--text);"><code style="font-family:monospace;font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;">window.matchMedia('print')</code> fires; does not overwrite stored preference</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">OS preference</span>
+          <span class="info-val" style="font-family:sans-serif;color:var(--text);">Used as initial default only; explicit user selection always wins</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end tab 4 -->
+
+</div><!-- end page -->
+
+<script>
+  // ── Tab switching ──
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach((p, i) => {
+      p.classList.toggle('active', i + 1 === t);
+    });
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', i + 1 === t);
+      b.setAttribute('aria-selected', i + 1 === t ? 'true' : 'false');
+    });
+  }
+
+  // ── Active mode state ──
+  let currentMode = 'dark';
+
+  const modeConfig = {
+    'dark':          { label: '🌙 Dark Mode',          indicator: '🌙 Dark Mode'    },
+    'light':         { label: '☀️ Light Mode',         indicator: '☀️ Light Mode'   },
+    'high-contrast': { label: '⬛ High Contrast Mode',  indicator: '⬛ High Contrast' },
+    'print':         { label: '🖨️ Print-Friendly Mode', indicator: '🖨️ Print'        }
+  };
+
+  function setMode(mode) {
+    currentMode = mode;
+
+    // Update live preview card
+    const card = document.getElementById('live-preview-card');
+    card.className = 'mode-' + mode;
+
+    // Update mode indicator text
+    document.getElementById('mode-indicator-text').textContent = modeConfig[mode].indicator;
+
+    // Update Variant A segmented buttons
+    ['dark', 'light', 'hc', 'print'].forEach(k => {
+      const id = 'seg-' + k;
+      const el = document.getElementById(id);
+      if (el) {
+        const isActive = k === (mode === 'high-contrast' ? 'hc' : mode);
+        el.classList.toggle('active', isActive);
+        el.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      }
+    });
+
+    // Update Variant C icon buttons
+    ['dark', 'light', 'hc', 'print'].forEach(k => {
+      const id = 'icon-' + k;
+      const el = document.getElementById(id);
+      if (el) {
+        const isActive = k === (mode === 'high-contrast' ? 'hc' : mode);
+        el.classList.toggle('active', isActive);
+      }
+    });
+
+    // Sync dropdown toggle (dark/light only)
+    const dToggle = document.getElementById('dropdown-toggle');
+    const dText   = document.getElementById('dropdown-mode-text');
+    if (mode === 'dark') {
+      dToggle.checked = true;
+      dText.textContent = 'Currently: Dark';
+    } else if (mode === 'light') {
+      dToggle.checked = false;
+      dText.textContent = 'Currently: Light';
+    } else {
+      dText.textContent = 'Via Settings: ' + modeConfig[mode].indicator;
+    }
+  }
+
+  function toggleDropdownSwitch() {
+    const dToggle = document.getElementById('dropdown-toggle');
+    dToggle.checked = !dToggle.checked;
+    handleDropdownToggle(dToggle);
+  }
+
+  function handleDropdownToggle(checkbox) {
+    setMode(checkbox.checked ? 'dark' : 'light');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Loading State System v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --muted: #8b949e;
+    --border: rgba(255,255,255,.06);
+    --card2: #1e2530;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --gold: #fbbf24;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Engineering hint box ── */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #92400e; }
+
+  /* ── Layout ── */
+  .page-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .page-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section headings ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── Card container ── */
+  .demo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .demo-card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 16px;
+  }
+
+  /* ════════════════════════════════
+     SKELETON ANIMATIONS
+  ════════════════════════════════ */
+  @keyframes shimmer {
+    0%   { background-position: 200% 0 }
+    100% { background-position: -200% 0 }
+  }
+  .sk {
+    background: linear-gradient(90deg, #161b22 25%, #1e2530 50%, #161b22 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 6px;
+    display: block;
+  }
+
+  /* ── Metric Card Row Skeleton ── */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .metric-sk-card {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .metric-sk-icon { width: 36px; height: 36px; border-radius: 8px; }
+  .metric-sk-value { width: 70%; height: 24px; }
+  .metric-sk-label { width: 55%; height: 13px; }
+
+  /* ── Table Skeleton ── */
+  .sk-table { width: 100%; border-collapse: collapse; }
+  .sk-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .sk-table td { padding: 8px 12px; }
+  .sk-table tr { height: 52px; }
+  .sk-table tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  .sk-cell-sm  { height: 14px; width: 60px; }
+  .sk-cell-md  { height: 14px; width: 120px; }
+  .sk-cell-lg  { height: 14px; width: 180px; }
+  .sk-cell-xs  { height: 14px; width: 40px; }
+
+  /* ── Review Queue Skeleton ── */
+  .rq-sk-list { display: flex; flex-direction: column; gap: 12px; }
+  .rq-sk-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card2);
+    border-radius: 8px;
+  }
+  .rq-sk-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+  .rq-sk-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .rq-sk-line-short { height: 13px; width: 40%; }
+  .rq-sk-line-long  { height: 13px; width: 75%; }
+  .rq-sk-badge { width: 60px; height: 24px; border-radius: 12px; flex-shrink: 0; }
+
+  /* ── Student Card Skeleton ── */
+  .student-sk-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--card2);
+    border-radius: 8px;
+  }
+  .student-sk-top { display: flex; align-items: center; gap: 12px; }
+  .student-sk-av { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+  .student-sk-name-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .student-sk-name { height: 14px; width: 50%; }
+  .student-sk-sub  { height: 12px; width: 35%; }
+  .student-sk-chips { display: flex; gap: 8px; }
+  .student-sk-chip { height: 24px; width: 70px; border-radius: 12px; }
+
+  /* ── Content Skill Card Skeleton ── */
+  .skill-sk-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: var(--card2);
+    border-radius: 8px;
+  }
+  .skill-sk-title  { height: 16px; width: 65%; }
+  .skill-sk-chips  { display: flex; gap: 8px; }
+  .skill-sk-chip1  { height: 22px; width: 80px; border-radius: 11px; }
+  .skill-sk-chip2  { height: 22px; width: 60px; border-radius: 11px; }
+  .skill-sk-bar-wrap {
+    height: 8px;
+    width: 100%;
+    background: rgba(255,255,255,.04);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .skill-sk-bar-fill {
+    height: 100%;
+    width: 60%;
+    background: linear-gradient(90deg, #161b22 25%, #1e2530 50%, #161b22 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+  }
+
+  /* ── Notification Drawer Skeleton ── */
+  .notif-sk-wrap {
+    background: var(--card2);
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 360px;
+  }
+  .notif-sk-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .notif-sk-bell {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .notif-sk-title-block { height: 14px; width: 120px; }
+  .notif-sk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .notif-sk-item:last-child { border-bottom: none; }
+  .notif-sk-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .notif-sk-body { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .notif-sk-line1 { height: 12px; width: 85%; }
+  .notif-sk-line2 { height: 12px; width: 60%; }
+  .notif-sk-ts    { height: 11px; width: 45px; flex-shrink: 0; }
+
+  /* ════════════════════════════════
+     SPINNER ANIMATIONS
+  ════════════════════════════════ */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes twinkle-spin {
+    0%   { transform: rotate(0deg) scale(1); }
+    50%  { transform: rotate(180deg) scale(1.15); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+  @keyframes color-pulse {
+    0%, 100% { color: var(--accent); }
+    50%       { color: var(--gold); }
+  }
+
+  .spinner {
+    border-style: solid;
+    border-color: rgba(255,255,255,.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .sp-sm  { width: 16px; height: 16px; border-width: 2px; }
+  .sp-md  { width: 24px; height: 24px; border-width: 2px; }
+  .sp-lg  { width: 32px; height: 32px; border-width: 2.5px; }
+  .sp-xl  { width: 48px; height: 48px; border-width: 3px; }
+
+  /* Branded spinner */
+  .branded-spinner-wrap {
+    position: relative;
+    width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .branded-ring {
+    position: absolute;
+    inset: 0;
+    border: 3px solid rgba(255,255,255,.08);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  .branded-logo {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--accent);
+    z-index: 1;
+    letter-spacing: -.5px;
+  }
+
+  /* Spinner variants row */
+  .spinner-row {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .spinner-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .spinner-item span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Inline loading indicators */
+  .inline-demo-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .inline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .inline-label {
+    width: 160px;
+    font-size: 12px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* Loading button */
+  .btn-loading {
+    background: rgba(80,232,144,.12);
+    border: 1px solid rgba(80,232,144,.25);
+    color: var(--accent);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: not-allowed;
+    opacity: .85;
+  }
+
+  /* Input with spinner */
+  .input-loading-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .input-loading {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 36px 7px 12px;
+    color: var(--muted);
+    font-size: 13px;
+    width: 220px;
+    outline: none;
+  }
+  .input-spinner {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* Table cell loading */
+  .mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .mini-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .mini-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cell-loading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* Full-page loading */
+  .fullpage-demo {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .fullpage-text {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* Child spinner */
+  .child-spinner-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .star-spinner {
+    font-size: 36px;
+    animation: twinkle-spin 1.2s ease-in-out infinite, color-pulse 1.2s ease-in-out infinite;
+    display: inline-block;
+    line-height: 1;
+  }
+  .child-caption {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Nav loading bar */
+  .nav-bar-demo {
+    background: var(--card2);
+    border-radius: 8px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .nav-bar-track {
+    height: 3px;
+    background: rgba(255,255,255,.06);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .nav-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #50e890, #58e8c1);
+    border-radius: 2px;
+    transition: width .3s ease, opacity .3s ease;
+  }
+  @keyframes nav-indeterminate {
+    0%   { width: 0%; opacity: 1; }
+    60%  { width: 85%; opacity: 1; }
+    100% { width: 85%; opacity: 1; }
+  }
+  .nav-bar-fill.running {
+    animation: nav-indeterminate 1.2s ease-out forwards;
+  }
+  .nav-bar-fill.complete {
+    width: 100% !important;
+    animation: none;
+    transition: width .15s ease, opacity .4s ease .2s;
+  }
+  .nav-bar-fill.fade-out {
+    opacity: 0;
+  }
+  .nav-trigger-btn {
+    background: rgba(80,232,144,.12);
+    border: 1px solid rgba(80,232,144,.25);
+    color: var(--accent);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .nav-trigger-btn:hover { background: rgba(80,232,144,.2); }
+  .nav-status { font-size: 12px; color: var(--muted); margin-top: 8px; height: 18px; }
+
+  /* ════════════════════════════════
+     PROGRESS BARS
+  ════════════════════════════════ */
+  @keyframes amber-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+    50%       { box-shadow: 0 0 0 6px rgba(245,158,11,.0); }
+  }
+  @keyframes bar-fill {
+    from { width: 0% }
+    to   { width: 65% }
+  }
+  @keyframes bar-fill-upload {
+    from { width: 0% }
+    to   { width: 72% }
+  }
+  @keyframes bar-fill-release {
+    from { width: 0% }
+    to   { width: 50% }
+  }
+  @keyframes bar-fill-bulk {
+    from { width: 0% }
+    to   { width: 50% }
+  }
+
+  /* Step progress */
+  .steps-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .step-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card2);
+    color: var(--muted);
+  }
+  .step-chip.done {
+    background: rgba(80,232,144,.1);
+    border-color: rgba(80,232,144,.3);
+    color: var(--accent);
+  }
+  .step-chip.active {
+    background: rgba(245,158,11,.1);
+    border-color: rgba(245,158,11,.4);
+    color: var(--amber);
+    animation: amber-pulse 1.5s ease-in-out infinite;
+  }
+  .step-chip.pending { opacity: .5; }
+  .step-arrow {
+    color: var(--muted);
+    font-size: 11px;
+    opacity: .4;
+    padding: 0 2px;
+  }
+
+  .progress-bar-wrap {
+    height: 10px;
+    background: rgba(255,255,255,.06);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--accent), #58e8c1);
+    animation: bar-fill 1.8s ease-out forwards;
+  }
+  .progress-bar-fill.upload {
+    animation: bar-fill-upload 2s ease-out forwards;
+  }
+  .progress-bar-fill.release {
+    animation: bar-fill-release 1.5s ease-out forwards;
+  }
+  .progress-bar-fill.bulk {
+    animation: bar-fill-bulk 1.6s ease-out forwards;
+  }
+  .progress-bar-fill.complete {
+    background: var(--accent);
+    width: 100% !important;
+    animation: none;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .progress-pct { font-weight: 600; color: var(--text); }
+  .progress-cancel {
+    background: none;
+    border: 1px solid rgba(239,68,68,.3);
+    color: #ef4444;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .progress-cancel:hover { background: rgba(239,68,68,.08); }
+
+  /* File upload */
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .file-icon { font-size: 18px; }
+  .file-name { font-size: 13px; color: var(--text); }
+  .file-size { font-size: 12px; color: var(--muted); }
+
+  /* Release gate */
+  .check-list { display: flex; flex-direction: column; gap: 8px; }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    padding: 6px 0;
+  }
+  .check-icon { width: 20px; text-align: center; flex-shrink: 0; font-size: 14px; }
+  .check-label { flex: 1; }
+  .check-label.done-text { color: var(--accent); }
+  .check-label.fail-text { color: var(--red); }
+  .check-label.pending-text { color: var(--muted); }
+
+  /* Bulk action */
+  .bulk-complete-msg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 10px;
+  }
+
+  /* ════════════════════════════════
+     SPEC TAB
+  ════════════════════════════════ */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 680px) {
+    .spec-grid { grid-template-columns: 1fr; }
+    .metric-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  .spec-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .spec-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .spec-tree {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(0,0,0,.35);
+    border-radius: 6px;
+    padding: 12px;
+    line-height: 1.8;
+    color: #c9d1d9;
+    overflow-x: auto;
+  }
+  .spec-tree .kw  { color: #7ee787; }
+  .spec-tree .cm  { color: #8b949e; }
+  .spec-tree .str { color: #79c0ff; }
+
+  .timing-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .timing-table th {
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .timing-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .timing-table td:first-child { color: var(--text); font-weight: 500; font-family: monospace; }
+  .timing-table td:last-child  { color: var(--muted); }
+  .badge-none   { color: var(--muted); font-style: italic; }
+  .badge-spinner{ color: var(--accent); }
+  .badge-skel   { color: var(--gold); }
+  .badge-skel-e { color: #f97316; }
+
+  .css-block {
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(0,0,0,.35);
+    border-radius: 6px;
+    padding: 14px;
+    line-height: 1.75;
+    color: #c9d1d9;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .css-block .prop { color: #79c0ff; }
+  .css-block .val  { color: #a5d6ff; }
+  .css-block .sel  { color: #7ee787; }
+  .css-block .at   { color: #ff7b72; }
+  .css-block .com  { color: #8b949e; }
+
+  .a11y-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .a11y-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .a11y-list .pill {
+    background: rgba(80,232,144,.12);
+    border: 1px solid rgba(80,232,144,.2);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-family: monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .a11y-list .desc { color: var(--muted); }
+
+  /* Tab 2 layout helpers */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="eng-hint">
+    <strong>loading-state-system-v2.html</strong> — Loading state components.
+    3 strategies: (1) <strong>Skeleton Screen</strong> — for content that has a known shape (lists, cards, tables);
+    (2) <strong>Spinner</strong> — for indeterminate short waits (&lt;2s);
+    (3) <strong>Progress Bar</strong> — for multi-step operations with known steps (file upload, batch import).
+    All loading states use <code>@keyframes shimmer</code> (skeleton) or <code>@keyframes spin</code> (spinner).
+    Target: never show spinner &gt;2s — if loading &gt;2s, switch to skeleton.
+    Child loading states use playful animated star/sparkle instead of generic spinner.
+  </div>
+
+  <div class="page-title">Loading State System</div>
+  <div class="page-sub">WonderQuest · UI Pattern Library · v2</div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('skeletons')">Skeleton Screens</button>
+    <button class="tab-btn" onclick="showTab('spinners')">Spinners &amp; Indicators</button>
+    <button class="tab-btn" onclick="showTab('progress')">Progress Bars</button>
+    <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 1 — SKELETON SCREENS
+  ══════════════════════════════════════ -->
+  <div id="tab-skeletons" class="tab-panel active">
+
+    <p class="section-label">Metric Card Row — 4 cards</p>
+    <div class="demo-card" aria-busy="true">
+      <div class="demo-card-title">Metric cards (owner/admin dashboard row)</div>
+      <div class="metric-row">
+        <div class="metric-sk-card">
+          <span class="sk metric-sk-icon"></span>
+          <span class="sk metric-sk-value"></span>
+          <span class="sk metric-sk-label"></span>
+        </div>
+        <div class="metric-sk-card">
+          <span class="sk metric-sk-icon"></span>
+          <span class="sk metric-sk-value"></span>
+          <span class="sk metric-sk-label"></span>
+        </div>
+        <div class="metric-sk-card">
+          <span class="sk metric-sk-icon"></span>
+          <span class="sk metric-sk-value"></span>
+          <span class="sk metric-sk-label"></span>
+        </div>
+        <div class="metric-sk-card">
+          <span class="sk metric-sk-icon"></span>
+          <span class="sk metric-sk-value"></span>
+          <span class="sk metric-sk-label"></span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label">List / Table — 5 rows</p>
+    <div class="demo-card" aria-busy="true">
+      <div class="demo-card-title">Question browser / review queue table</div>
+      <table class="sk-table">
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Subject</th>
+            <th>Band</th>
+            <th>Status</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="sk sk-cell-lg"></span></td>
+            <td><span class="sk sk-cell-md"></span></td>
+            <td><span class="sk sk-cell-sm"></span></td>
+            <td><span class="sk sk-cell-sm"></span></td>
+            <td><span class="sk sk-cell-xs"></span></td>
+          </tr>
+          <tr>
+            <td><span class="sk sk-cell-lg" style="width:140px"></span></td>
+            <td><span class="sk sk-cell-md" style="width:90px"></span></td>
+            <td><span class="sk sk-cell-sm"></span></td>
+            <td><span class="sk sk-cell-sm" style="width:70px"></span></td>
+            <td><span class="sk sk-cell-xs"></span></td>
+          </tr>
+          <tr>
+            <td><span class="sk sk-cell-lg" style="width:160px"></span></td>
+            <td><span class="sk sk-cell-md"></span></td>
+            <td><span class="sk sk-cell-sm" style="width:50px"></span></td>
+            <td><span class="sk sk-cell-sm"></span></td>
+            <td><span class="sk sk-cell-xs"></span></td>
+          </tr>
+          <tr>
+            <td><span class="sk sk-cell-lg" style="width:130px"></span></td>
+            <td><span class="sk sk-cell-md" style="width:100px"></span></td>
+            <td><span class="sk sk-cell-sm"></span></td>
+            <td><span class="sk sk-cell-sm" style="width:55px"></span></td>
+            <td><span class="sk sk-cell-xs"></span></td>
+          </tr>
+          <tr>
+            <td><span class="sk sk-cell-lg" style="width:155px"></span></td>
+            <td><span class="sk sk-cell-md" style="width:80px"></span></td>
+            <td><span class="sk sk-cell-sm" style="width:55px"></span></td>
+            <td><span class="sk sk-cell-sm"></span></td>
+            <td><span class="sk sk-cell-xs"></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="section-label">Review Queue Items — 4 stacked</p>
+    <div class="demo-card" aria-busy="true">
+      <div class="demo-card-title">Content review queue item skeleton</div>
+      <div class="rq-sk-list">
+        <div class="rq-sk-item">
+          <span class="sk rq-sk-avatar"></span>
+          <div class="rq-sk-lines">
+            <span class="sk rq-sk-line-short"></span>
+            <span class="sk rq-sk-line-long"></span>
+          </div>
+          <span class="sk rq-sk-badge"></span>
+        </div>
+        <div class="rq-sk-item">
+          <span class="sk rq-sk-avatar"></span>
+          <div class="rq-sk-lines">
+            <span class="sk rq-sk-line-short" style="width:30%"></span>
+            <span class="sk rq-sk-line-long" style="width:80%"></span>
+          </div>
+          <span class="sk rq-sk-badge"></span>
+        </div>
+        <div class="rq-sk-item">
+          <span class="sk rq-sk-avatar"></span>
+          <div class="rq-sk-lines">
+            <span class="sk rq-sk-line-short" style="width:45%"></span>
+            <span class="sk rq-sk-line-long" style="width:65%"></span>
+          </div>
+          <span class="sk rq-sk-badge" style="width:70px"></span>
+        </div>
+        <div class="rq-sk-item">
+          <span class="sk rq-sk-avatar"></span>
+          <div class="rq-sk-lines">
+            <span class="sk rq-sk-line-short" style="width:35%"></span>
+            <span class="sk rq-sk-line-long"></span>
+          </div>
+          <span class="sk rq-sk-badge" style="width:50px"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p class="section-label" style="margin-top:0">Student Card</p>
+        <div class="demo-card" aria-busy="true" style="margin-bottom:0">
+          <div class="demo-card-title">Student card (teacher view)</div>
+          <div class="student-sk-card">
+            <div class="student-sk-top">
+              <span class="sk student-sk-av"></span>
+              <div class="student-sk-name-group">
+                <span class="sk student-sk-name"></span>
+                <span class="sk student-sk-sub"></span>
+              </div>
+            </div>
+            <div class="student-sk-chips">
+              <span class="sk student-sk-chip"></span>
+              <span class="sk student-sk-chip" style="width:80px"></span>
+              <span class="sk student-sk-chip" style="width:60px"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="section-label" style="margin-top:0">Content Skill Card</p>
+        <div class="demo-card" aria-busy="true" style="margin-bottom:0">
+          <div class="demo-card-title">Skill card (content view)</div>
+          <div class="skill-sk-card">
+            <span class="sk skill-sk-title"></span>
+            <div class="skill-sk-chips">
+              <span class="sk skill-sk-chip1"></span>
+              <span class="sk skill-sk-chip2"></span>
+            </div>
+            <div class="skill-sk-bar-wrap">
+              <div class="skill-sk-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label">Notification Drawer</p>
+    <div class="demo-card" aria-busy="true">
+      <div class="demo-card-title">Notification drawer (parent / teacher)</div>
+      <div class="notif-sk-wrap">
+        <div class="notif-sk-header">
+          <span class="notif-sk-bell">🔔</span>
+          <span class="sk notif-sk-title-block"></span>
+        </div>
+        <div class="notif-sk-item">
+          <span class="sk notif-sk-dot"></span>
+          <div class="notif-sk-body">
+            <span class="sk notif-sk-line1"></span>
+            <span class="sk notif-sk-line2"></span>
+          </div>
+          <span class="sk notif-sk-ts"></span>
+        </div>
+        <div class="notif-sk-item">
+          <span class="sk notif-sk-dot"></span>
+          <div class="notif-sk-body">
+            <span class="sk notif-sk-line1" style="width:70%"></span>
+            <span class="sk notif-sk-line2" style="width:50%"></span>
+          </div>
+          <span class="sk notif-sk-ts"></span>
+        </div>
+        <div class="notif-sk-item">
+          <span class="sk notif-sk-dot"></span>
+          <div class="notif-sk-body">
+            <span class="sk notif-sk-line1" style="width:90%"></span>
+            <span class="sk notif-sk-line2" style="width:55%"></span>
+          </div>
+          <span class="sk notif-sk-ts"></span>
+        </div>
+        <div class="notif-sk-item">
+          <span class="sk notif-sk-dot"></span>
+          <div class="notif-sk-body">
+            <span class="sk notif-sk-line1" style="width:75%"></span>
+            <span class="sk notif-sk-line2" style="width:45%"></span>
+          </div>
+          <span class="sk notif-sk-ts"></span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-skeletons -->
+
+  <!-- ══════════════════════════════════════
+       TAB 2 — SPINNERS & INDICATORS
+  ══════════════════════════════════════ -->
+  <div id="tab-spinners" class="tab-panel">
+
+    <p class="section-label">Spinner Variants</p>
+    <div class="demo-card">
+      <div class="demo-card-title">All size variants (SM → Branded)</div>
+      <div class="spinner-row">
+        <div class="spinner-item">
+          <div class="spinner sp-sm" role="status" aria-label="Loading"></div>
+          <span>SM · 16px</span>
+        </div>
+        <div class="spinner-item">
+          <div class="spinner sp-md" role="status" aria-label="Loading"></div>
+          <span>MD · 24px (default)</span>
+        </div>
+        <div class="spinner-item">
+          <div class="spinner sp-lg" role="status" aria-label="Loading"></div>
+          <span>LG · 32px</span>
+        </div>
+        <div class="spinner-item">
+          <div class="spinner sp-xl" role="status" aria-label="Loading"></div>
+          <span>XL · 48px</span>
+        </div>
+        <div class="spinner-item">
+          <div class="branded-spinner-wrap" role="status" aria-label="Loading WonderQuest">
+            <div class="branded-ring"></div>
+            <span class="branded-logo">WQ</span>
+          </div>
+          <span>Branded (owner/admin)</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label">Inline Loading Indicators</p>
+    <div class="demo-card">
+      <div class="demo-card-title">Loading embedded in UI elements</div>
+      <div class="inline-demo-row">
+
+        <div class="inline-item">
+          <span class="inline-label">Button loading state</span>
+          <button class="btn-loading" disabled aria-label="Saving, please wait">
+            <div class="spinner sp-sm" role="status" aria-label="Loading"></div>
+            Saving...
+          </button>
+        </div>
+
+        <div class="inline-item">
+          <span class="inline-label">Input field searching</span>
+          <div class="input-loading-wrap">
+            <input class="input-loading" value="fractions grade 3" readonly aria-label="Search field" />
+            <div class="spinner sp-sm input-spinner" role="status" aria-label="Searching"></div>
+          </div>
+        </div>
+
+        <div class="inline-item">
+          <span class="inline-label">Table cell updating</span>
+          <table class="mini-table" style="width:320px">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Score</th>
+                <th>Streak</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mia T.</td>
+                <td><div class="cell-loading"><div class="spinner sp-sm" role="status" aria-label="Loading score"></div><span>Updating…</span></div></td>
+                <td>7 days</td>
+              </tr>
+              <tr>
+                <td>Carlos D.</td>
+                <td>92%</td>
+                <td><div class="cell-loading"><div class="spinner sp-sm" role="status" aria-label="Loading streak"></div><span>Updating…</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p class="section-label" style="margin-top:0">Full-Page Loading</p>
+        <div class="fullpage-demo" role="status" aria-label="Loading WonderQuest">
+          <div class="spinner sp-xl"></div>
+          <span class="fullpage-text">Loading WonderQuest...</span>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px">
+          Used for: first page load, auth redirect, heavy data hydration
+        </p>
+      </div>
+
+      <div>
+        <p class="section-label" style="margin-top:0">Child-Friendly Spinner</p>
+        <div class="demo-card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:center;min-height:140px">
+          <div class="child-spinner-wrap" role="status" aria-label="Loading, just a moment">
+            <span class="star-spinner">✦</span>
+            <span class="child-caption">Just a moment ✨</span>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--muted)">
+          Used ONLY in child-facing routes — not in adult UIs. Accent green + gold alternating via CSS animation.
+        </p>
+      </div>
+    </div>
+
+    <p class="section-label">Navigation Loading Bar</p>
+    <div class="demo-card">
+      <div class="demo-card-title">Top-of-page navigation progress (NProgress-style)</div>
+      <div class="nav-bar-demo">
+        <div class="nav-bar-track">
+          <div class="nav-bar-fill" id="navBar"></div>
+        </div>
+        <button class="nav-trigger-btn" onclick="triggerNavBar()">Start loading</button>
+        <div class="nav-status" id="navStatus"></div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">
+        Animates 0% → 85% on navigate, then waits; on complete snaps to 100% then fades out.
+      </p>
+    </div>
+
+  </div><!-- /tab-spinners -->
+
+  <!-- ══════════════════════════════════════
+       TAB 3 — PROGRESS BARS
+  ══════════════════════════════════════ -->
+  <div id="tab-progress" class="tab-panel">
+
+    <p class="section-label">Multi-Step Operation — Batch Import</p>
+    <div class="demo-card">
+      <div class="demo-card-title">Batch question import (5-step pipeline)</div>
+      <div class="steps-row">
+        <div class="step-chip done">✓ Validate</div>
+        <span class="step-arrow">›</span>
+        <div class="step-chip active">→ Parse</div>
+        <span class="step-arrow">›</span>
+        <div class="step-chip pending">○ Check Dupes</div>
+        <span class="step-arrow">›</span>
+        <div class="step-chip pending">○ Score</div>
+        <span class="step-arrow">›</span>
+        <div class="step-chip pending">○ Publish</div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div
+          class="progress-bar-fill"
+          role="progressbar"
+          aria-valuenow="65"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          style="animation: bar-fill 1.8s ease-out forwards;"
+        ></div>
+      </div>
+      <div class="progress-meta">
+        <div>
+          <span class="progress-pct">65%</span>
+          <span style="margin-left:8px;color:var(--muted)">Processing 478 of 732 questions…</span>
+        </div>
+        <span style="color:var(--muted);font-size:12px">Est. 2 min remaining</span>
+      </div>
+      <button class="progress-cancel">Cancel Import</button>
+    </div>
+
+    <p class="section-label">File Upload Progress</p>
+    <div class="demo-card">
+      <div class="demo-card-title">Single file upload with byte progress</div>
+      <div class="file-chip">
+        <span class="file-icon">🎵</span>
+        <div style="flex:1">
+          <div class="file-name">audio-q-fractions-v2.mp3</div>
+          <div class="file-size">2.4 MB</div>
+        </div>
+        <span style="font-size:13px;font-weight:600;color:var(--text)">72%</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div
+          class="progress-bar-fill upload"
+          role="progressbar"
+          aria-valuenow="72"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        ></div>
+      </div>
+      <div class="progress-meta">
+        <span>1.73 MB / 2.4 MB uploaded</span>
+        <span>~4s remaining</span>
+      </div>
+    </div>
+
+    <p class="section-label">Release Gate Check Progress</p>
+    <div class="demo-card">
+      <div class="demo-card-title">Running automated release checks</div>
+      <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">
+        Running all checks… <strong style="color:var(--text)">3 / 6 complete</strong>
+      </div>
+      <div class="check-list">
+        <div class="check-item">
+          <span class="check-icon">✅</span>
+          <span class="check-label done-text">Schema validation passed</span>
+        </div>
+        <div class="check-item">
+          <span class="check-icon">✅</span>
+          <span class="check-label done-text">Duplicate question check passed</span>
+        </div>
+        <div class="check-item">
+          <span class="check-icon">✅</span>
+          <span class="check-label done-text">Safe language check passed</span>
+        </div>
+        <div class="check-item">
+          <span class="check-icon" style="display:inline-flex;align-items:center;justify-content:center">
+            <div class="spinner sp-sm" role="status" aria-label="Running check"></div>
+          </span>
+          <span class="check-label pending-text">Audio file integrity check…</span>
+        </div>
+        <div class="check-item" style="opacity:.45">
+          <span class="check-icon">○</span>
+          <span class="check-label pending-text">Difficulty calibration</span>
+        </div>
+        <div class="check-item" style="opacity:.45">
+          <span class="check-icon">○</span>
+          <span class="check-label pending-text">Publish readiness gate</span>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="progress-bar-wrap">
+          <div
+            class="progress-bar-fill release"
+            role="progressbar"
+            aria-valuenow="50"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          ></div>
+        </div>
+        <div class="progress-meta">
+          <span class="progress-pct">50%</span>
+          <span>3 / 6 checks complete</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label">Bulk Action Progress — Approve 24 Skills</p>
+    <div class="demo-card">
+      <div class="demo-card-title">Bulk skill approval operation</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">
+        Approving 24 skills…
+      </div>
+      <div class="progress-bar-wrap">
+        <div
+          id="bulkBar"
+          class="progress-bar-fill bulk"
+          role="progressbar"
+          aria-valuenow="50"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        ></div>
+      </div>
+      <div class="progress-meta" style="margin-bottom:10px">
+        <span id="bulkCounter"><span class="progress-pct">12</span> / 24 approved</span>
+        <span style="color:var(--muted)">50%</span>
+      </div>
+      <div class="bulk-complete-msg" id="bulkDone" style="display:none">
+        ✓ All 24 skills approved
+      </div>
+      <button class="nav-trigger-btn" onclick="runBulkDemo()" style="margin-top:8px">
+        Replay animation
+      </button>
+    </div>
+
+  </div><!-- /tab-progress -->
+
+  <!-- ══════════════════════════════════════
+       TAB 4 — SPEC
+  ══════════════════════════════════════ -->
+  <div id="tab-spec" class="tab-panel">
+
+    <p class="section-label">Strategy Decision Tree</p>
+    <div class="demo-card">
+      <div class="css-block"><span class="at">// Loading strategy decision tree</span>
+
+<span class="sel">if</span> (knownShape && loadTime > <span class="val">500ms</span>)   → <span class="prop">skeleton screen</span>
+<span class="sel">else if</span> (loadTime < <span class="val">2s</span>)               → <span class="prop">spinner</span> <span class="at">(inline or centered)</span>
+<span class="sel">else if</span> (multiStep)                  → <span class="prop">step progress bar</span>
+<span class="sel">else</span>                                 → <span class="prop">skeleton screen</span> <span class="at">(fallback)</span></div>
+    </div>
+
+    <p class="section-label">Timing Thresholds</p>
+    <div class="demo-card">
+      <table class="timing-table">
+        <thead>
+          <tr>
+            <th>Duration</th>
+            <th>Indicator</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>&lt; 100ms</td>
+            <td><span class="badge-none">None</span></td>
+            <td class="timing-table td">Instant — no indicator avoids flash</td>
+          </tr>
+          <tr>
+            <td>100ms – 500ms</td>
+            <td><span class="badge-spinner">Inline spinner only</span></td>
+            <td>Short wait — full skeleton would flash awkwardly</td>
+          </tr>
+          <tr>
+            <td>500ms – 2s</td>
+            <td><span class="badge-skel">Skeleton screen</span></td>
+            <td>Best perceived performance — user sees layout immediately</td>
+          </tr>
+          <tr>
+            <td>&gt; 2s</td>
+            <td><span class="badge-skel-e">Skeleton + time estimate</span></td>
+            <td>Long wait needs expectation setting; reduces abandonment</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-grid">
+      <div class="spec-card">
+        <h3>Shimmer CSS</h3>
+        <div class="css-block"><span class="at">@keyframes</span> <span class="sel">shimmer</span> {
+  <span class="prop">0%</span>   { background-position: <span class="val">200% 0</span> }
+  <span class="prop">100%</span> { background-position: <span class="val">-200% 0</span> }
+}
+
+.<span class="sel">skeleton-block</span> {
+  <span class="prop">background</span>: <span class="val">linear-gradient(</span>
+    <span class="val">90deg,</span>
+    <span class="val">#161b22 25%,</span>
+    <span class="val">#1e2530 50%,</span>
+    <span class="val">#161b22 75%</span>
+  <span class="val">)</span>;
+  <span class="prop">background-size</span>: <span class="val">200% 100%</span>;
+  <span class="prop">animation</span>: <span class="val">shimmer 1.5s ease-in-out infinite</span>;
+  <span class="prop">border-radius</span>: <span class="val">6px</span>;
+}</div>
+      </div>
+
+      <div class="spec-card">
+        <h3>Spinner CSS</h3>
+        <div class="css-block"><span class="at">@keyframes</span> <span class="sel">spin</span> {
+  <span class="prop">to</span> { transform: <span class="val">rotate(360deg)</span> }
+}
+
+.<span class="sel">spinner</span> {
+  <span class="prop">border</span>: <span class="val">2px solid rgba(255,255,255,.1)</span>;
+  <span class="prop">border-top</span>: <span class="val">2px solid #50e890</span>;
+  <span class="prop">border-radius</span>: <span class="val">50%</span>;
+  <span class="prop">animation</span>: <span class="val">spin 0.8s linear infinite</span>;
+}
+
+<span class="at">/* Child-facing star spinner */</span>
+<span class="at">@keyframes</span> <span class="sel">twinkle-spin</span> {
+  <span class="prop">0%</span>   { transform: <span class="val">rotate(0deg) scale(1)</span> }
+  <span class="prop">50%</span>  { transform: <span class="val">rotate(180deg) scale(1.15)</span> }
+  <span class="prop">100%</span> { transform: <span class="val">rotate(360deg) scale(1)</span> }
+}</div>
+      </div>
+    </div>
+
+    <p class="section-label">Accessibility Requirements</p>
+    <div class="demo-card">
+      <ul class="a11y-list">
+        <li>
+          <span class="pill">role="status"</span>
+          <span class="desc">All spinner elements must carry <code>role="status"</code> so screen readers announce the loading state without interrupting the user.</span>
+        </li>
+        <li>
+          <span class="pill">aria-label</span>
+          <span class="desc">Spinners must have descriptive <code>aria-label="Loading"</code> (or more specific e.g. <code>"Loading score"</code>). Do not rely on visible text alone.</span>
+        </li>
+        <li>
+          <span class="pill">aria-busy</span>
+          <span class="desc">Skeleton screen containers must set <code>aria-busy="true"</code> on the wrapper element while data is loading; remove the attribute (or set to <code>false</code>) when data arrives.</span>
+        </li>
+        <li>
+          <span class="pill">role="progressbar"</span>
+          <span class="desc">All determinate progress bars require <code>role="progressbar"</code> with <code>aria-valuenow</code>, <code>aria-valuemin="0"</code>, and <code>aria-valuemax="100"</code> kept current as progress changes.</span>
+        </li>
+        <li>
+          <span class="pill">prefers-reduced-motion</span>
+          <span class="desc">Wrap all <code>animation</code> declarations in <code>@media (prefers-reduced-motion: no-preference)</code>; fall back to static skeleton blocks and an opacity pulse for users who have reduced motion enabled.</span>
+        </li>
+      </ul>
+    </div>
+
+    <p class="section-label">Usage Rules by Route</p>
+    <div class="demo-card">
+      <table class="timing-table">
+        <thead>
+          <tr>
+            <th>Route audience</th>
+            <th>Spinner style</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Child (play, home)</td>
+            <td style="color:var(--gold)">Star / sparkle spinner</td>
+            <td>Never use ring spinner in child-facing routes</td>
+          </tr>
+          <tr>
+            <td>Parent, Teacher</td>
+            <td style="color:var(--accent)">Ring spinner (SM–LG)</td>
+            <td>Standard ring; skeleton for &gt;500ms waits</td>
+          </tr>
+          <tr>
+            <td>Owner / Admin</td>
+            <td style="color:var(--accent)">Branded WQ spinner (XL)</td>
+            <td>Use branded variant for full-page loads only</td>
+          </tr>
+          <tr>
+            <td>Content team</td>
+            <td style="color:var(--accent)">Ring spinner (SM–MD)</td>
+            <td>Inline + skeleton; step progress for batch ops</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-spec -->
+
+</div><!-- /page-wrap -->
+
+<script>
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + t).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  /* ── Nav bar demo ── */
+  let navTimer = null;
+  function triggerNavBar() {
+    const bar = document.getElementById('navBar');
+    const status = document.getElementById('navStatus');
+
+    // Reset
+    clearTimeout(navTimer);
+    bar.className = 'nav-bar-fill';
+    bar.style.width = '0%';
+    bar.style.opacity = '1';
+    status.textContent = 'Navigating…';
+
+    // Start fill to 85%
+    void bar.offsetWidth; // force reflow
+    bar.classList.add('running');
+
+    // After 1.4s complete
+    navTimer = setTimeout(() => {
+      bar.className = 'nav-bar-fill complete';
+      bar.style.width = '100%';
+      status.textContent = 'Navigation complete ✓';
+
+      // Fade out after another 300ms
+      setTimeout(() => {
+        bar.classList.add('fade-out');
+        setTimeout(() => {
+          bar.style.width = '0%';
+          bar.style.opacity = '1';
+          bar.className = 'nav-bar-fill';
+          status.textContent = '';
+        }, 450);
+      }, 350);
+    }, 1600);
+  }
+
+  /* ── Bulk action demo ── */
+  let bulkAnim = null;
+  function runBulkDemo() {
+    const bar = document.getElementById('bulkBar');
+    const counter = document.getElementById('bulkCounter');
+    const done = document.getElementById('bulkDone');
+
+    clearInterval(bulkAnim);
+    done.style.display = 'none';
+    bar.classList.remove('complete');
+    bar.style.width = '0%';
+    bar.setAttribute('aria-valuenow', '0');
+
+    let count = 0;
+    const total = 24;
+    bulkAnim = setInterval(() => {
+      count++;
+      const pct = Math.round((count / total) * 100);
+      bar.style.width = pct + '%';
+      bar.setAttribute('aria-valuenow', pct);
+      counter.innerHTML = '<span class="progress-pct">' + count + '</span> / ' + total + ' approved';
+
+      if (count >= total) {
+        clearInterval(bulkAnim);
+        bar.classList.add('complete');
+        done.style.display = 'flex';
+      }
+    }, 80);
+  }
+</script>
+</body>
+</html>

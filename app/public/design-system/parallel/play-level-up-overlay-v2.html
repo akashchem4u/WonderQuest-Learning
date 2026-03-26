@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-level-up-overlay-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-level-up-overlay-v2.html           ║
+     ║                                                              ║
+     ║  Full-screen overlay shown when child crosses a level        ║
+     ║  threshold. Separate from play-reward-pulse-overlay — this  ║
+     ║  is a deeper, dedicated screen (not just a pulse).           ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Entry Animation : badge drops in, XP bar fills      ║
+     ║  Tab 2 — Perks Panel     : what the new level unlocks        ║
+     ║  Tab 3 — Band Variants   : Pre-K/K-1/G2-3/G4-5 level names  ║
+     ║  Tab 4 — Spec            : trigger rules, levels list        ║
+     ║                                                              ║
+     ║  RULES                                                        ║
+     ║  • Tap to advance from Entry → Perks → Dismiss               ║
+     ║  • Never auto-dismiss (too important, child should see it)   ║
+     ║  • Stars NEVER decrease in level-up overlay                  ║
+     ║  • Level names are band-specific (different per band)        ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+
+  /* ── Level-up overlay ── */
+  .lu-overlay {
+    position: absolute; inset: 0; z-index: 20;
+    background: radial-gradient(ellipse at 50% 40%, rgba(28,14,80,0.97) 0%, rgba(10,5,30,0.99) 70%);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 36px 24px 32px; gap: 14px;
+  }
+
+  /* Particle field */
+  .particles {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+  }
+  .p-dot {
+    position: absolute; border-radius: 50%;
+    animation: p-float linear infinite;
+    opacity: 0;
+  }
+  @keyframes p-float {
+    0%   { transform: translateY(700px) scale(0.5); opacity: 0; }
+    10%  { opacity: 0.7; }
+    90%  { opacity: 0.5; }
+    100% { transform: translateY(-20px) scale(1.2); opacity: 0; }
+  }
+
+  /* Star counter */
+  .lu-star {
+    position: absolute; top: 22px; right: 20px; z-index: 5;
+    background: rgba(10,5,30,0.8); border: 1.5px solid #9b72ff66; border-radius: 20px;
+    padding: 5px 12px; font-size: 0.88rem; font-weight: 900; color: #c0a8ff;
+    animation: bump-in 0.4s 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes bump-in {
+    from { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.2); }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* "Level Up!" banner */
+  .lu-banner {
+    font-size: 0.78rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #9b72ff; opacity: 0.8; z-index: 2;
+    animation: fade-in 0.4s ease-out;
+  }
+  @keyframes fade-in { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
+
+  /* Badge circle */
+  .lu-badge {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: linear-gradient(135deg, #9b72ff, #5a28e8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 3.5rem;
+    box-shadow: 0 0 0 10px rgba(155,114,255,0.12), 0 0 0 20px rgba(155,114,255,0.05), 0 0 40px rgba(155,114,255,0.3);
+    z-index: 2;
+    animation: badge-drop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+    animation-delay: 0.1s;
+  }
+  @keyframes badge-drop {
+    from { transform: translateY(-60px) scale(0.4); opacity: 0; }
+    70%  { transform: translateY(6px) scale(1.05); }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  /* Level name */
+  .lu-level-name {
+    font-size: 1.6rem; font-weight: 900; color: #fff; text-align: center; z-index: 2;
+    animation: fade-in 0.4s 0.5s ease-out both;
+  }
+  .lu-level-subtitle {
+    font-size: 0.9rem; font-weight: 700; color: #b89eff; text-align: center; z-index: 2;
+    animation: fade-in 0.4s 0.65s ease-out both;
+  }
+
+  /* XP bar */
+  .lu-xp-wrap {
+    width: 100%; z-index: 2;
+    animation: fade-in 0.4s 0.7s ease-out both;
+  }
+  .lu-xp-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.7rem; font-weight: 700; color: #8070b0; margin-bottom: 5px;
+  }
+  .lu-xp-track {
+    height: 10px; background: #1a1440; border-radius: 5px; overflow: hidden;
+    position: relative;
+  }
+  .lu-xp-prev {
+    height: 100%; background: #2a2050; border-radius: 5px;
+    position: absolute; left: 0; width: 80%;
+  }
+  .lu-xp-fill {
+    height: 100%; background: linear-gradient(90deg, #9b72ff, #ffd166);
+    border-radius: 5px; width: 0;
+    animation: xp-surge 0.8s 0.8s ease-out forwards;
+    position: absolute; left: 0;
+  }
+  @keyframes xp-surge {
+    0% { width: 0; }
+    40% { width: 100%; }
+    60% { width: 100%; }
+    100% { width: 22%; }
+  }
+  .lu-xp-overflow {
+    position: absolute; right: 0; top: 0; height: 100%; width: 22%;
+    background: linear-gradient(90deg, #9b72ff88, #9b72ff);
+    border-radius: 0 5px 5px 0;
+    animation: xp-overflow 0.4s 1.4s ease-out both;
+    transform-origin: left;
+  }
+  @keyframes xp-overflow { from{transform:scaleX(0);} to{transform:scaleX(1);} }
+
+  /* Previous level label */
+  .lu-prev {
+    font-size: 0.72rem; font-weight: 700; color: #6050a0;
+    text-align: center; z-index: 2;
+    animation: fade-in 0.3s 0.6s ease-out both;
+  }
+
+  /* CTA button */
+  .lu-cta {
+    width: 100%; height: 54px; border-radius: 27px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; z-index: 2;
+    margin-top: auto;
+    animation: fade-in 0.4s 1s ease-out both;
+  }
+
+  /* ── Perks panel ── */
+  .lu-perks-overlay {
+    position: absolute; inset: 0; z-index: 20;
+    background: linear-gradient(180deg, #1a1040 0%, #100b2e 100%);
+    display: flex; flex-direction: column;
+    padding: 28px 24px 32px; gap: 14px;
+  }
+  .lu-perks-header { display: flex; flex-direction: column; gap: 4px; }
+  .lu-perks-badge-row { display: flex; align-items: center; gap: 12px; }
+  .lu-perks-badge-sm {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, #9b72ff, #5a28e8);
+    display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+    box-shadow: 0 0 0 4px rgba(155,114,255,0.15);
+  }
+  .lu-perks-name { font-size: 1.1rem; font-weight: 900; color: #fff; }
+  .lu-perks-sub { font-size: 0.8rem; font-weight: 700; color: #9b72ff; }
+  .lu-perk-list { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .lu-perk {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #1e1840; border: 1.5px solid #9b72ff33; border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .lu-perk-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .lu-perk-text { display: flex; flex-direction: column; gap: 2px; }
+  .lu-perk-title { font-size: 0.9rem; font-weight: 900; color: #fff; }
+  .lu-perk-desc { font-size: 0.78rem; font-weight: 700; color: #9080c0; line-height: 1.4; }
+  .lu-perks-cta {
+    height: 54px; border-radius: 27px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+  }
+
+  /* ── Band variants table ── */
+  .band-table {
+    width: 100%; max-width: 760px;
+    background: #14102a; border: 1.5px solid #2a2050; border-radius: 12px;
+    overflow: hidden;
+  }
+  .bt-row {
+    display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 0;
+    border-bottom: 1px solid #1e1850;
+    padding: 10px 14px; align-items: center;
+  }
+  .bt-row:last-child { border-bottom: none; }
+  .bt-row.header { background: #1a1440; font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #6050a0; }
+  .bt-band { font-size: 0.8rem; font-weight: 900; }
+  .bt-cell { font-size: 0.78rem; font-weight: 700; color: #b0a0e0; }
+  .bt-cell.em { color: #fff; font-weight: 900; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-level-up-overlay-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Entry Animation</button>
+  <button class="tab-btn" onclick="showTab('t2')">Perks Panel</button>
+  <button class="tab-btn" onclick="showTab('t3')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Entry Animation ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Entry Animation — Badge Drops, XP Bar Surges</h4>
+    Badge drops from top with spring physics. Particles float upward.
+    XP bar surges to 100% then resets to show progress in new level (22% shown).
+    Previous level label shows progression. "See What's New →" CTA.
+    No auto-dismiss — child must tap to proceed.
+  </div>
+  <div class="phone">
+    <div class="lu-overlay">
+      <div class="particles">
+        <div class="p-dot" style="width:5px;height:5px;background:#9b72ff;left:12%;animation-duration:3.2s;animation-delay:0.1s;"></div>
+        <div class="p-dot" style="width:4px;height:4px;background:#ffd166;left:28%;animation-duration:2.8s;animation-delay:0.6s;"></div>
+        <div class="p-dot" style="width:6px;height:6px;background:#58e8c1;left:50%;animation-duration:3.5s;animation-delay:0.3s;"></div>
+        <div class="p-dot" style="width:4px;height:4px;background:#ff7b6b;left:70%;animation-duration:2.9s;animation-delay:0.9s;"></div>
+        <div class="p-dot" style="width:5px;height:5px;background:#9b72ff;left:85%;animation-duration:3.1s;animation-delay:0.2s;"></div>
+        <div class="p-dot" style="width:3px;height:3px;background:#ffd166;left:40%;animation-duration:2.6s;animation-delay:1.2s;"></div>
+      </div>
+
+      <div class="lu-star">⭐ 25</div>
+      <div class="lu-banner">✨ Level Up!</div>
+      <div class="lu-badge">🌟</div>
+      <div class="lu-level-name">Star Explorer</div>
+      <div class="lu-level-subtitle">You reached Level 3 — keep climbing!</div>
+      <div class="lu-prev">↑ From Trailblazer (Level 2)</div>
+
+      <div class="lu-xp-wrap">
+        <div class="lu-xp-label">
+          <span>Star Explorer</span>
+          <span>22 / 100 XP</span>
+        </div>
+        <div class="lu-xp-track">
+          <div class="lu-xp-prev"></div>
+          <div class="lu-xp-fill"></div>
+        </div>
+      </div>
+
+      <button class="lu-cta">See What's New →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Perks Panel ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Perks Panel — What the New Level Unlocks</h4>
+    Second screen after tapping "See What's New →".
+    Shows 2–3 unlocked features/perks. Tap "Let's go!" to dismiss and continue session.
+    Perks are motivational context — not critical path.
+  </div>
+  <div class="phone">
+    <div class="lu-perks-overlay">
+      <div class="lu-perks-header">
+        <div class="lu-perks-badge-row">
+          <div class="lu-perks-badge-sm">🌟</div>
+          <div>
+            <div class="lu-perks-name">Star Explorer — Level 3</div>
+            <div class="lu-perks-sub">Here's what you just unlocked!</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lu-perk-list">
+        <div class="lu-perk">
+          <div class="lu-perk-icon">🗺️</div>
+          <div class="lu-perk-text">
+            <div class="lu-perk-title">New World Region</div>
+            <div class="lu-perk-desc">The Enchanted Forest is now open — explore new quests!</div>
+          </div>
+        </div>
+        <div class="lu-perk">
+          <div class="lu-perk-icon">🎨</div>
+          <div class="lu-perk-text">
+            <div class="lu-perk-title">New Avatar Outfit</div>
+            <div class="lu-perk-desc">The Explorer Cape is yours — check your avatar page!</div>
+          </div>
+        </div>
+        <div class="lu-perk">
+          <div class="lu-perk-icon">⚡</div>
+          <div class="lu-perk-text">
+            <div class="lu-perk-title">Bonus Stars Unlocked</div>
+            <div class="lu-perk-desc">Boss questions now award +3 ⭐ instead of +2!</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="lu-perks-cta">Let's go! 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Band Variants (Level Names) ── -->
+<div class="screen" id="t3">
+  <div class="anno" style="max-width:760px;">
+    <h4>Band Variants — Level Name System</h4>
+    Each band has its own level name progression. Names are themed to the band's content world.
+    XP thresholds are the same across bands — only names differ.
+  </div>
+  <div class="band-table">
+    <div class="bt-row header">
+      <div class="bt-band">Level</div>
+      <div class="bt-cell">Pre-K (Gold)</div>
+      <div class="bt-cell">K-1 (Violet)</div>
+      <div class="bt-cell">G2-3 (Mint)</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">1</div>
+      <div class="bt-cell">🌱 Seedling</div>
+      <div class="bt-cell">🔤 Letter Finder</div>
+      <div class="bt-cell">🔢 Number Cub</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">2</div>
+      <div class="bt-cell em">🌸 Bloomer</div>
+      <div class="bt-cell">🔊 Sound Hunter</div>
+      <div class="bt-cell">✖️ Skip Counter</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">3</div>
+      <div class="bt-cell">🌟 Shining Star</div>
+      <div class="bt-cell em">🌟 Star Explorer</div>
+      <div class="bt-cell">📐 Pattern Seeker</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">4</div>
+      <div class="bt-cell">🦋 Wonder Wings</div>
+      <div class="bt-cell">📚 Word Wizard</div>
+      <div class="bt-cell em">🧮 Math Adventurer</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">5</div>
+      <div class="bt-cell">🏆 Quest Champion</div>
+      <div class="bt-cell">🏆 Reading Champion</div>
+      <div class="bt-cell">🏆 Math Champion</div>
+    </div>
+  </div>
+
+  <div class="band-table" style="margin-top:0;">
+    <div class="bt-row header">
+      <div class="bt-band">Level</div>
+      <div class="bt-cell" style="grid-column:2/5;">G4-5 (Coral) — Level Names</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">1</div>
+      <div class="bt-cell">📖 Story Starter</div>
+      <div class="bt-cell">🔍 Clue Finder</div>
+      <div class="bt-cell">✏️ Word Shaper</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">2</div>
+      <div class="bt-cell">🧩 Puzzle Solver</div>
+      <div class="bt-cell em">🌟 Inference Master</div>
+      <div class="bt-cell">⚡ Deep Thinker</div>
+    </div>
+    <div class="bt-row">
+      <div class="bt-band" style="color:#6050a0;">5</div>
+      <div class="bt-cell">🏆 Quest Champion</div>
+      <div class="bt-cell"></div><div class="bt-cell"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Trigger Logic</h4>
+      <ul>
+        <li>Fires when XP total crosses level threshold</li>
+        <li>Thresholds: L1=0, L2=50XP, L3=150XP, L4=300XP, L5=500XP</li>
+        <li>XP per action: correct=10, boss=20, streak5=15, session=5 bonus</li>
+        <li>Level-up overlay is shown at END of session, not mid-session</li>
+        <li class="dont">❌ Never interrupt active play for level-up</li>
+        <li class="do">✅ Queue level-up to show after session-complete screen</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Flow</h4>
+      <ul>
+        <li>Entry Animation → Perks Panel → Dismiss (3 taps max)</li>
+        <li>Entry: badge drop + XP surge + "See What's New" CTA</li>
+        <li>Perks: 2–3 unlock cards + "Let's go!" CTA</li>
+        <li>No auto-dismiss — child must engage</li>
+        <li>After dismiss: back to home hub or session complete</li>
+        <li>First level-up ever: extra confetti in particles</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Badge Dimensions</h4>
+      <ul>
+        <li>Entry badge: 120px diameter</li>
+        <li>Perks panel badge: 48px (small row badge)</li>
+        <li>Shadow rings: 0 0 0 10px / 20px rgba(accent,0.12/0.05)</li>
+        <li>Gradient: band accent → darker shade</li>
+        <li>Animation: <code>badge-drop</code> — translateY(-60px)→0, 0.6s spring</li>
+        <li>Font inside: band emoji (🌟 for K-1 at L3)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>XP Bar Surge</h4>
+      <ul>
+        <li>Bar surges to 100% then snaps back to start of new level</li>
+        <li>Surge keyframe: 0%→100% (0.8s) → 22% (overflow, 0.4s)</li>
+        <li>Overflow shows progress in new level immediately</li>
+        <li>Color: <code>linear-gradient(90deg, band-accent, #ffd166)</code></li>
+        <li>Previous level track: <code>#2a2050</code> (dim background fill)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

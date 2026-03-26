@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Tone Preview Panel · WonderQuest Item 262</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .page-sub   { font-size: 14px; color: rgba(240,246,255,.45); margin-bottom: 20px; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+    }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex; gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+
+    .tab-btn {
+      background: none; border: none;
+      border-bottom: 2px solid transparent;
+      color: rgba(240,246,255,.5);
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      padding: 10px 18px; transition: color .2s, border-color .2s;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: #f0f6ff; }
+    .tab-btn.active { color: #50e890; border-bottom-color: #50e890; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: rgba(240,246,255,.45); margin-bottom: 14px;
+    }
+
+    /* ── Tab 1 layout ── */
+    .preview-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .control-group { margin-bottom: 18px; }
+    .control-label { font-size: 12px; color: rgba(240,246,255,.5); margin-bottom: 7px; display: block; }
+
+    select {
+      width: 100%; background: #0d1117;
+      border: 1px solid rgba(255,255,255,.12); border-radius: 7px;
+      color: #f0f6ff; font-size: 14px; padding: 9px 12px;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; cursor: pointer;
+    }
+    select:focus { outline: 2px solid #50e890; outline-offset: 1px; }
+
+    /* Band chips */
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: none; border-radius: 20px; cursor: pointer;
+      font-size: 12px; font-weight: 700; padding: 5px 14px;
+      transition: opacity .15s, transform .1s; opacity: .5;
+    }
+    .chip:hover { opacity: .82; transform: translateY(-1px); }
+    .chip.active { opacity: 1; box-shadow: 0 0 0 2px rgba(255,255,255,.2); }
+    .chip-p0 { background: #ffd166; color: #1a1200; }
+    .chip-p1 { background: #9b72ff; color: #fff; }
+    .chip-p2 { background: #58e8c1; color: #001a14; }
+    .chip-p3 { background: #ff7b6b; color: #fff; }
+
+    /* Category pills */
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px; color: rgba(240,246,255,.65); cursor: pointer;
+      font-size: 12px; padding: 5px 13px; transition: background .15s, color .15s;
+    }
+    .pill:hover { background: rgba(255,255,255,.1); color: #f0f6ff; }
+    .pill.active { background: rgba(80,232,144,.15); border-color: #50e890; color: #50e890; }
+
+    /* Speed toggles */
+    .speed-row { display: flex; gap: 10px; align-items: center; }
+    .speed-opt {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px; color: rgba(240,246,255,.55); cursor: pointer;
+      font-size: 12px; padding: 5px 12px; transition: background .15s, color .15s;
+    }
+    .speed-opt.active {
+      background: rgba(80,232,144,.15); border-color: #50e890; color: #50e890; font-weight: 600;
+    }
+    .speed-badge {
+      background: rgba(255,255,255,.1); border-radius: 20px; display: none;
+      font-size: 12px; padding: 4px 12px; color: #ffd166;
+      border: 1px solid rgba(255,209,102,.3); margin-top: 8px;
+    }
+    .speed-badge.visible { display: inline-flex; align-items: center; gap: 5px; }
+
+    /* Play button */
+    .play-btn {
+      align-items: center; background: #50e890; border: none; border-radius: 8px;
+      color: #0d1117; cursor: pointer; display: flex; font-size: 14px; font-weight: 700;
+      gap: 7px; padding: 11px 20px; transition: background .2s, transform .1s;
+      width: 100%; justify-content: center; margin-top: 8px;
+    }
+    .play-btn:hover { background: #6fefaa; transform: translateY(-1px); }
+    .play-btn:active { transform: translateY(0); }
+    .play-btn.playing {
+      background: rgba(80,232,144,.15); color: #50e890;
+      border: 1px solid rgba(80,232,144,.5);
+    }
+
+    /* Waveform panel */
+    .waveform-panel {
+      display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 28px;
+    }
+    .avatar-circle {
+      align-items: center; background: rgba(255,255,255,.05);
+      border: 2px solid rgba(255,255,255,.1); border-radius: 50%;
+      display: flex; font-size: 52px; height: 100px; justify-content: center; width: 100px;
+    }
+
+    /* Waveform bars */
+    .waveform { align-items: flex-end; display: flex; gap: 5px; height: 52px; }
+    .wbar {
+      background: rgba(80,232,144,.28); border-radius: 3px;
+      transition: height .2s; width: 9px;
+    }
+    .wbar.playing {
+      background: #50e890;
+      animation: wbounce var(--dur, .6s) ease-in-out infinite alternate;
+    }
+    @keyframes wbounce {
+      0%   { height: var(--lo, 10px); }
+      100% { height: var(--hi, 40px); }
+    }
+
+    .sample-text {
+      font-size: 17px; font-weight: 500; text-align: center;
+      line-height: 1.55; max-width: 380px; color: #f0f6ff;
+    }
+    .voice-label-sub { font-size: 13px; color: rgba(240,246,255,.4); margin-top: -8px; }
+
+    /* ── Tab 2 ── */
+    .compare-cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+
+    .voice-card {
+      background: #0d1117; border: 2px solid rgba(255,255,255,.06);
+      border-radius: 12px; display: flex; flex-direction: column;
+      align-items: center; gap: 10px; padding: 18px 14px;
+      flex: 1; min-width: 130px; transition: border-color .2s, box-shadow .2s;
+    }
+    .voice-card.playing {
+      border-color: #50e890;
+      box-shadow: 0 0 0 3px rgba(80,232,144,.13);
+    }
+    .vc-emoji  { font-size: 34px; line-height: 1; }
+    .vc-name   { font-size: 13px; font-weight: 600; color: #f0f6ff; text-align: center; }
+    .vc-speed  { font-size: 11px; color: rgba(240,246,255,.38); }
+
+    .mini-wave { display: flex; gap: 3px; height: 26px; align-items: flex-end; }
+    .mbar { width: 5px; border-radius: 2px; background: rgba(80,232,144,.25); }
+    .mbar.active {
+      background: #50e890;
+      animation: wbounce var(--dur, .5s) ease-in-out infinite alternate;
+    }
+
+    .vc-play-btn {
+      background: rgba(80,232,144,.1); border: 1px solid rgba(80,232,144,.35);
+      border-radius: 6px; color: #50e890; cursor: pointer;
+      font-size: 12px; font-weight: 700; padding: 6px 14px;
+      transition: background .15s; white-space: nowrap;
+    }
+    .vc-play-btn:hover { background: rgba(80,232,144,.22); }
+
+    .compare-sample {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+      border-radius: 8px; color: rgba(240,246,255,.5); font-size: 14px;
+      font-style: italic; padding: 12px 16px; text-align: center;
+    }
+
+    /* ── Tab 3 Spec ── */
+    .spec-section { margin-bottom: 26px; }
+    .spec-section h3 {
+      font-size: 12px; font-weight: 700; color: #50e890;
+      text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px;
+    }
+    .spec-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    .spec-table td {
+      padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: top;
+    }
+    .spec-table td:first-child { width: 34%; color: rgba(240,246,255,.5); font-weight: 500; }
+    .spec-table td:last-child  { color: #f0f6ff; }
+
+    code {
+      background: rgba(255,255,255,.07); border-radius: 4px;
+      font-family: monospace; font-size: 12px; padding: 1px 6px;
+    }
+
+    ul.spec-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    ul.spec-list li { font-size: 13px; color: #f0f6ff; padding-left: 18px; position: relative; }
+    ul.spec-list li::before { content: '→'; position: absolute; left: 0; color: #50e890; }
+
+    .band-pill {
+      display: inline-block; border-radius: 4px; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; letter-spacing: .04em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hint-box">ITEM 262 · voice-tone-preview-panel-v2.html · WonderQuest parallel-agent build</div>
+
+  <div class="page-title">Voice Tone Preview Panel</div>
+  <div class="page-sub">Preview voice coaches with live TTS samples before committing to a selection.</div>
+
+  <!-- ARIA live region -->
+  <div id="liveAnnounce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-preview" onclick="showTab(0)">Voice Tone Preview</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-compare" onclick="showTab(1)">Side-by-Side Comparison</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-spec"    onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 1 — Voice Tone Preview Panel
+  ══════════════════════════════════════════ -->
+  <div id="tab-preview" class="tab-panel active" role="tabpanel" aria-labelledby="tabbtn-0">
+    <div class="preview-layout">
+
+      <!-- Left: Controls (320px) -->
+      <div class="card">
+        <div class="card-title">Preview Controls</div>
+
+        <!-- Voice selector -->
+        <div class="control-group">
+          <label class="control-label" for="voiceSelect">Voice Coach</label>
+          <select id="voiceSelect" onchange="onVoiceChange()">
+            <option value="Luna"  selected>Luna the Explorer 🌙</option>
+            <option value="Orbit">Orbit the Robot 🤖</option>
+            <option value="Rex">Rex the Dino 🦕</option>
+            <option value="Maya">Maya the Fairy 🧚</option>
+            <option value="Zara">Zara the Scientist 🔭</option>
+            <option value="Text">Text only 📄</option>
+          </select>
+        </div>
+
+        <!-- Band selector -->
+        <div class="control-group">
+          <span class="control-label" id="band-lbl">Band</span>
+          <div class="chip-row" role="group" aria-labelledby="band-lbl">
+            <button class="chip chip-p0" id="chip-P0" aria-pressed="false" onclick="selectBand('P0')">P0</button>
+            <button class="chip chip-p1 active" id="chip-P1" aria-pressed="true"  onclick="selectBand('P1')">P1</button>
+            <button class="chip chip-p2" id="chip-P2" aria-pressed="false" onclick="selectBand('P2')">P2</button>
+            <button class="chip chip-p3" id="chip-P3" aria-pressed="false" onclick="selectBand('P3')">P3</button>
+          </div>
+        </div>
+
+        <!-- Category pills -->
+        <div class="control-group">
+          <span class="control-label" id="cat-lbl">Sample Phrase Category</span>
+          <div class="pill-row" role="group" aria-labelledby="cat-lbl">
+            <button class="pill active" id="pill-Question"      aria-pressed="true"  onclick="selectCategory('Question')">Question</button>
+            <button class="pill"        id="pill-Hint"          aria-pressed="false" onclick="selectCategory('Hint')">Hint</button>
+            <button class="pill"        id="pill-Celebration"   aria-pressed="false" onclick="selectCategory('Celebration')">Celebration</button>
+            <button class="pill"        id="pill-ErrorRecovery" aria-pressed="false" onclick="selectCategory('ErrorRecovery')">Error Recovery</button>
+          </div>
+        </div>
+
+        <!-- Speed toggle -->
+        <div class="control-group">
+          <span class="control-label">Playback Speed</span>
+          <div class="speed-row">
+            <button class="speed-opt active" id="speed-normal" onclick="setSpeed('normal')">Normal (0.9×)</button>
+            <button class="speed-opt"        id="speed-slow"   onclick="setSpeed('slow')">Slow (0.75×)</button>
+          </div>
+          <div id="slowBadge" class="speed-badge">🐢 Playing at slow speed</div>
+        </div>
+
+        <!-- Play button -->
+        <button class="play-btn" id="mainPlayBtn"
+                aria-label="Play sample for Luna"
+                onclick="toggleMainPlay()">
+          ▶ Play Sample
+        </button>
+      </div>
+
+      <!-- Right: Waveform display -->
+      <div class="card waveform-panel">
+        <div class="avatar-circle" id="mainAvatar" aria-hidden="true">🌙</div>
+
+        <div class="waveform" id="mainWaveform" aria-hidden="true">
+          <div class="wbar" style="height:14px; --lo:10px; --hi:38px; --dur:.55s;"></div>
+          <div class="wbar" style="height:24px; --lo:16px; --hi:44px; --dur:.42s;"></div>
+          <div class="wbar" style="height:38px; --lo:20px; --hi:50px; --dur:.70s;"></div>
+          <div class="wbar" style="height:20px; --lo:12px; --hi:40px; --dur:.38s;"></div>
+          <div class="wbar" style="height:12px; --lo:8px;  --hi:32px; --dur:.62s;"></div>
+        </div>
+
+        <div class="sample-text" id="mainSampleText">"Which word sounds like 'cat'? Listen carefully!"</div>
+        <div class="voice-label-sub" id="voiceLabel">Luna the Explorer 🌙</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 2 — Side-by-Side Comparison
+  ══════════════════════════════════════════ -->
+  <div id="tab-compare" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-1">
+    <div class="card">
+      <div class="card-title">All Voice Coaches — Side-by-Side</div>
+      <div class="compare-cards" id="compareCards"></div>
+      <div class="compare-sample">"Which shape has four equal sides?"</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 3 — Spec
+  ══════════════════════════════════════════ -->
+  <div id="tab-spec" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-2">
+    <div class="card">
+      <div class="card-title">Technical Specification — Item 262</div>
+
+      <div class="spec-section">
+        <h3>Preview Trigger</h3>
+        <ul class="spec-list">
+          <li>Web Speech API <code>speechSynthesis.speak(utterance)</code> — no server call made.</li>
+          <li>Any active utterance is cancelled first via <code>speechSynthesis.cancel()</code> before a new one starts.</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <h3>Voice Mapping</h3>
+        <table class="spec-table">
+          <tr><td>Luna the Explorer</td> <td><code>tts_voice_key: "en-GB-female-soft"</code> — closest match from <code>getVoices()</code>; fallback to first available.</td></tr>
+          <tr><td>Orbit the Robot</td>   <td><code>tts_voice_key: "en-US-male-neutral"</code></td></tr>
+          <tr><td>Rex the Dino</td>      <td><code>tts_voice_key: "en-US-male-deep"</code></td></tr>
+          <tr><td>Maya the Fairy</td>    <td><code>tts_voice_key: "en-GB-female-light"</code></td></tr>
+          <tr><td>Zara the Scientist</td><td><code>tts_voice_key: "en-US-female-clear"</code></td></tr>
+        </table>
+      </div>
+
+      <div class="spec-section">
+        <h3>Locale &amp; Rate</h3>
+        <table class="spec-table">
+          <tr><td>Locale</td>      <td>Respects <code>child_audio_prefs.voice_locale</code>; defaults to <code>en-GB</code>.</td></tr>
+          <tr><td>Normal rate</td> <td><code>utterance.rate = 0.9</code></td></tr>
+          <tr><td>Slow rate</td>   <td><code>utterance.rate = 0.75</code></td></tr>
+        </table>
+      </div>
+
+      <div class="spec-section">
+        <h3>Privacy</h3>
+        <ul class="spec-list">
+          <li>No audio recorded.</li>
+          <li>No server call made during preview.</li>
+          <li>No voice biometrics collected.</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <h3>Sample Phrases CMS</h3>
+        <ul class="spec-list">
+          <li>Stored in <code>voice_sample_phrases(band_id, category, text)</code> CMS table.</li>
+          <li>Updateable without a deploy — fetched at runtime.</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <h3>WCAG Accessibility</h3>
+        <ul class="spec-list">
+          <li>[▶ Play] button has <code>aria-label="Play sample for {VoiceName}"</code>.</li>
+          <li>Waveform bars are decorative — marked <code>aria-hidden="true"</code>.</li>
+          <li>Playing state announced via <code>aria-live="polite"</code> region.</li>
+          <li>Band and category buttons expose <code>aria-pressed</code> toggle state.</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <h3>Band Vocabulary</h3>
+        <table class="spec-table">
+          <tr>
+            <td><span class="band-pill" style="background:rgba(255,209,102,.14);border:1px solid rgba(255,209,102,.4);color:#ffd166;">P0</span></td>
+            <td>Early learner — simple picture-based prompts.</td>
+          </tr>
+          <tr>
+            <td><span class="band-pill" style="background:rgba(155,114,255,.14);border:1px solid rgba(155,114,255,.4);color:#9b72ff;">P1</span></td>
+            <td>Phonics / early reading — rhyme and sound-based language.</td>
+          </tr>
+          <tr>
+            <td><span class="band-pill" style="background:rgba(88,232,193,.14);border:1px solid rgba(88,232,193,.4);color:#58e8c1;">P2</span></td>
+            <td>Fluent reader — conceptual vocabulary, shape and math language.</td>
+          </tr>
+          <tr>
+            <td><span class="band-pill" style="background:rgba(255,123,107,.14);border:1px solid rgba(255,123,107,.4);color:#ff7b6b;">P3</span></td>
+            <td>Advanced — passage comprehension, abstract ideas.</td>
+          </tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ══ Data ════════════════════════════════════ */
+    const VOICE_META = {
+      Luna:  { label: 'Luna the Explorer',  emoji: '🌙' },
+      Orbit: { label: 'Orbit the Robot',    emoji: '🤖' },
+      Rex:   { label: 'Rex the Dino',       emoji: '🦕' },
+      Maya:  { label: 'Maya the Fairy',     emoji: '🧚' },
+      Zara:  { label: 'Zara the Scientist', emoji: '🔭' },
+      Text:  { label: 'Text only',          emoji: '📄' },
+    };
+
+    const PHRASES = {
+      P0: {
+        Question:      "Look at the picture. What do you see? 🌟",
+        Hint:          "Here's a clue — look at the shape's corners!",
+        Celebration:   "Amazing! You found it! ⭐ You're on a roll!",
+        ErrorRecovery: "Try a different one! You've got this! 🌟",
+      },
+      P1: {
+        Question:      "Which word sounds like 'cat'? Listen carefully!",
+        Hint:          "Here's a clue — look at the shape's corners!",
+        Celebration:   "Amazing! You found it! ⭐ You're on a roll!",
+        ErrorRecovery: "Try a different one! You've got this! 🌟",
+      },
+      P2: {
+        Question:      "Can you find the shape with four equal sides?",
+        Hint:          "Here's a clue — look at the shape's corners!",
+        Celebration:   "Amazing! You found it! ⭐ You're on a roll!",
+        ErrorRecovery: "Try a different one! You've got this! 🌟",
+      },
+      P3: {
+        Question:      "Read the passage and identify the main idea.",
+        Hint:          "Here's a clue — look at the shape's corners!",
+        Celebration:   "Amazing! You found it! ⭐ You're on a roll!",
+        ErrorRecovery: "Try a different one! You've got this! 🌟",
+      },
+    };
+
+    /* ══ State ═══════════════════════════════════ */
+    let state = {
+      band:          'P1',
+      category:      'Question',
+      speed:         'normal',
+      mainPlaying:   false,
+      compareActive: null,
+    };
+    let mainTimer = null;
+    const compareTimers = {};
+
+    /* ══ Tab switching ═══════════════════════════ */
+    function showTab(idx) {
+      document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === idx);
+        b.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+      });
+      if (idx === 1) buildCompareCards();
+    }
+
+    /* ══ Helpers ═════════════════════════════════ */
+    function announce(msg) {
+      const el = document.getElementById('liveAnnounce');
+      el.textContent = '';
+      requestAnimationFrame(() => { el.textContent = msg; });
+    }
+
+    function currentPhrase() {
+      return PHRASES[state.band][state.category] || '';
+    }
+
+    function currentRate() {
+      return state.speed === 'slow' ? 0.75 : 0.9;
+    }
+
+    function refreshSampleText() {
+      document.getElementById('mainSampleText').textContent = '"' + currentPhrase() + '"';
+    }
+
+    /* ══ TTS ═════════════════════════════════════ */
+    function speakText(text, rate, onEnd) {
+      if (!window.speechSynthesis) { setTimeout(onEnd, 2400); return; }
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate = rate;
+      utt.lang = 'en-GB';
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length) {
+        utt.voice = voices.find(v => v.lang && v.lang.startsWith('en-GB')) || voices[0];
+      }
+      utt.onend   = onEnd || null;
+      utt.onerror = onEnd || null;
+      window.speechSynthesis.speak(utt);
+    }
+
+    /* ══ Tab 1: Controls ═════════════════════════ */
+    function selectBand(band) {
+      state.band = band;
+      ['P0','P1','P2','P3'].forEach(b => {
+        const el = document.getElementById('chip-' + b);
+        el.classList.toggle('active', b === band);
+        el.setAttribute('aria-pressed', b === band ? 'true' : 'false');
+      });
+      refreshSampleText();
+      stopMain();
+    }
+
+    function selectCategory(cat) {
+      state.category = cat;
+      ['Question','Hint','Celebration','ErrorRecovery'].forEach(c => {
+        const el = document.getElementById('pill-' + c);
+        if (el) {
+          el.classList.toggle('active', c === cat);
+          el.setAttribute('aria-pressed', c === cat ? 'true' : 'false');
+        }
+      });
+      refreshSampleText();
+      stopMain();
+    }
+
+    function setSpeed(s) {
+      state.speed = s;
+      document.getElementById('speed-normal').classList.toggle('active', s === 'normal');
+      document.getElementById('speed-slow').classList.toggle('active', s === 'slow');
+      document.getElementById('slowBadge').classList.toggle('visible', s === 'slow');
+    }
+
+    function onVoiceChange() {
+      const sel  = document.getElementById('voiceSelect');
+      const key  = sel.value;
+      const meta = VOICE_META[key];
+      document.getElementById('mainAvatar').textContent  = meta.emoji;
+      document.getElementById('voiceLabel').textContent  = meta.label + ' ' + meta.emoji;
+      document.getElementById('mainPlayBtn').setAttribute('aria-label', 'Play sample for ' + meta.label);
+      stopMain();
+    }
+
+    /* ══ Tab 1: Waveform ═════════════════════════ */
+    function startMainWave() {
+      document.querySelectorAll('#mainWaveform .wbar').forEach(b => b.classList.add('playing'));
+    }
+    function stopMainWave() {
+      document.querySelectorAll('#mainWaveform .wbar').forEach(b => b.classList.remove('playing'));
+    }
+
+    function stopMain() {
+      state.mainPlaying = false;
+      stopMainWave();
+      if (mainTimer) { clearTimeout(mainTimer); mainTimer = null; }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      const btn = document.getElementById('mainPlayBtn');
+      btn.classList.remove('playing');
+      btn.innerHTML = '&#9654; Play Sample';
+    }
+
+    function toggleMainPlay() {
+      if (state.mainPlaying) { stopMain(); return; }
+
+      const text = currentPhrase();
+      const rate = currentRate();
+      const btn  = document.getElementById('mainPlayBtn');
+
+      state.mainPlaying = true;
+      startMainWave();
+      btn.classList.add('playing');
+      btn.innerHTML = '&#9632; Stop';
+      announce('Playing: ' + text);
+
+      const estimatedMs = Math.ceil((text.length / 14) * 1000 / rate) + 700;
+      speakText(text, rate, stopMain);
+      mainTimer = setTimeout(stopMain, estimatedMs);
+    }
+
+    /* ══ Tab 2: Compare cards ════════════════════ */
+    function buildCompareCards() {
+      const container = document.getElementById('compareCards');
+      if (container.childElementCount > 0) return;
+
+      const coaches = ['Luna','Orbit','Rex','Maya','Zara'];
+      const wHeights = [8,  14, 20, 14, 8];
+      const wLos     = [6,  10, 14, 10, 6];
+      const wHis     = [18, 24, 28, 24, 18];
+      const wDurs    = [.55,.42,.70,.38,.62];
+
+      coaches.forEach(key => {
+        const { label, emoji } = VOICE_META[key];
+
+        const bars = wHeights.map((h, i) =>
+          `<div class="mbar" id="mb-${key}-${i}"
+            style="height:${h}px; --lo:${wLos[i]}px; --hi:${wHis[i]}px; --dur:${wDurs[i]}s;"></div>`
+        ).join('');
+
+        const card = document.createElement('div');
+        card.className = 'voice-card';
+        card.id = 'vc-' + key;
+        card.innerHTML = `
+          <div class="vc-emoji" aria-hidden="true">${emoji}</div>
+          <div class="vc-name">${label}</div>
+          <div class="vc-speed">0.9&#215; &middot; en-GB</div>
+          <div class="mini-wave" id="mw-${key}" aria-hidden="true">${bars}</div>
+          <button class="vc-play-btn" id="vcbtn-${key}"
+                  aria-label="Play sample for ${label}"
+                  onclick="toggleCompare('${key}', '${label}')">&#9654; Play</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleCompare(key, label) {
+      if (state.compareActive === key) { stopCompare(key); return; }
+      if (state.compareActive) stopCompare(state.compareActive);
+
+      state.compareActive = key;
+      const card = document.getElementById('vc-' + key);
+      const btn  = document.getElementById('vcbtn-' + key);
+      card.classList.add('playing');
+      document.querySelectorAll('#mw-' + key + ' .mbar').forEach(b => b.classList.add('active'));
+      btn.innerHTML = '&#9632; Stop';
+      announce('Playing sample for ' + label);
+
+      const text = 'Which shape has four equal sides?';
+      const rate = 0.9;
+      const estimatedMs = Math.ceil((text.length / 14) * 1000 / rate) + 700;
+      speakText(text, rate, () => stopCompare(key));
+      compareTimers[key] = setTimeout(() => stopCompare(key), estimatedMs);
+    }
+
+    function stopCompare(key) {
+      state.compareActive = null;
+      const card = document.getElementById('vc-' + key);
+      const btn  = document.getElementById('vcbtn-' + key);
+      if (card) card.classList.remove('playing');
+      if (btn)  btn.innerHTML = '&#9654; Play';
+      document.querySelectorAll('#mw-' + key + ' .mbar').forEach(b => b.classList.remove('active'));
+      if (compareTimers[key]) { clearTimeout(compareTimers[key]); delete compareTimers[key]; }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+
+    /* ══ Init ════════════════════════════════════ */
+    refreshSampleText();
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = function() {};
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Daily Goals Strip v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:0 12px 32px}
+.panel.active{display:block}
+
+/* ---------- COMPACT STRIP ---------- */
+.strip-context{padding:16px 0 8px;font-size:12px;color:#9b8fe0;font-weight:700;letter-spacing:0.5px}
+.goals-strip{background:#1e1550;border:2px solid #2d2570;border-radius:16px;padding:12px;display:flex;align-items:center;gap:10px;overflow-x:auto;scrollbar-width:none}
+.goals-strip::-webkit-scrollbar{display:none}
+.goal-chip{background:#100b2e;border:2px solid #2d2570;border-radius:14px;padding:8px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;transition:border-color 0.2s}
+.goal-chip.done{border-color:#58e8c1;background:#0a2e28}
+.goal-chip .gc-emoji{font-size:20px}
+.goal-chip .gc-text{font-size:12px;font-weight:700;color:#c8b8ff;white-space:nowrap}
+.goal-chip .gc-dot-row{display:flex;gap:3px;margin-top:2px}
+.goal-chip .gc-dot{width:6px;height:6px;border-radius:50%;background:#2d2570}
+.goal-chip .gc-dot.filled{background:#ffd166}
+.goal-chip.done .gc-text{color:#58e8c1}
+.goal-chip.done .gc-dot.filled{background:#58e8c1}
+
+.strip-right{display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-left:auto}
+.streak-fire{font-size:22px;line-height:1}
+.streak-num{font-size:12px;font-weight:900;color:#ff7b6b}
+.star-goal-strip{background:#ffd16622;border:1px solid #ffd166;border-radius:10px;padding:4px 10px;font-size:11px;font-weight:700;color:#ffd166;margin-top:4px;text-align:center}
+
+/* Context bar below strip */
+.strip-summary{display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-top:8px;font-size:12px;color:#9b8fe0}
+.strip-summary .progress-dots{display:flex;gap:4px}
+.strip-summary .pd{width:10px;height:10px;border-radius:50%;background:#2d2570}
+.strip-summary .pd.done{background:#ffd166}
+
+/* Fake home hub context */
+.home-hub-preview{background:#1a1240;border:2px solid #2d2570;border-radius:16px;padding:16px;margin-top:12px}
+.hub-greeting{font-size:16px;font-weight:900;color:#fff;margin-bottom:4px}
+.hub-sub{font-size:12px;color:#9b8fe0;margin-bottom:12px}
+.hub-world-row{display:flex;gap:8px}
+.hub-world{background:#1e1550;border-radius:12px;padding:10px;flex:1;text-align:center;font-size:11px;font-weight:700;color:#9b8fe0}
+.hub-world .hw-emoji{font-size:24px}
+
+/* ---------- EXPANDED GOALS ---------- */
+.goals-header{padding:16px 0 8px;font-size:20px;font-weight:900;color:#ffd166}
+.goals-sub{font-size:13px;color:#9b8fe0;margin-bottom:16px}
+.goal-card{background:#1e1550;border:2px solid #2d2570;border-radius:16px;padding:14px;margin-bottom:12px;position:relative}
+.goal-card.done{border-color:#58e8c1;background:#0e2820}
+.goal-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.goal-card-emoji{font-size:32px}
+.goal-card-info{flex:1}
+.goal-card-name{font-size:16px;font-weight:900}
+.goal-card-steps{font-size:12px;color:#9b8fe0;margin-top:2px}
+.goal-reward{display:flex;align-items:center;gap:4px;background:#ffd16622;border:1px solid #ffd166;border-radius:10px;padding:3px 10px;font-size:12px;font-weight:700;color:#ffd166}
+.goal-progress-bar{background:#2d2570;border-radius:8px;height:10px;overflow:hidden}
+.goal-progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#9b72ff,#58e8c1)}
+.goal-done-check{position:absolute;top:12px;right:12px;font-size:22px}
+
+/* ---------- ALL DONE ---------- */
+.celebrate-wrap{text-align:center;padding:24px 16px}
+.celebrate-emoji{font-size:72px;animation:bounce-in 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes bounce-in{0%{transform:scale(0)}100%{transform:scale(1)}}
+.celebrate-title{font-size:28px;font-weight:900;color:#ffd166;margin-top:12px}
+.celebrate-sub{font-size:14px;color:#9b8fe0;margin-top:6px;line-height:1.5}
+.done-rewards{display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap}
+.done-reward-chip{background:#1e1550;border:2px solid #ffd166;border-radius:14px;padding:10px 16px;text-align:center}
+.done-reward-chip .dr-val{font-size:22px;font-weight:900;color:#ffd166}
+.done-reward-chip .dr-label{font-size:11px;color:#9b8fe0;margin-top:2px}
+.star-burst{display:inline-block;animation:spin-burst 1s ease infinite}
+@keyframes spin-burst{0%,100%{transform:scale(1)}50%{transform:scale(1.3) rotate(20deg)}}
+
+/* ---------- NO GOALS ---------- */
+.no-goals-wrap{text-align:center;padding:40px 16px}
+.no-goals-emoji{font-size:60px}
+.no-goals-title{font-size:20px;font-weight:900;color:#9b72ff;margin-top:12px}
+.no-goals-body{font-size:13px;color:#9b8fe0;margin-top:6px;line-height:1.5}
+.parent-note{background:#1e1550;border:2px solid #2d2570;border-radius:14px;padding:12px 16px;margin-top:20px;text-align:left;font-size:12px;color:#9b8fe0;line-height:1.5}
+.parent-note strong{color:#9b72ff}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/child/daily-goals</code> → returns today's 3 goals with <code>emoji, name, stepsTotal, stepsDone, starReward</code>. Goals set by parent via Parent Hub. Strip collapses to 48px if all goals done. Streak from <code>GET /api/child/streak</code>. Star-goal from <code>dailyStarGoal</code> in child profile.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('strip')">Goals Strip</div>
+  <div class="tab" onclick="show('expanded')">Goals Expanded</div>
+  <div class="tab" onclick="show('alldone')">All Goals Done</div>
+  <div class="tab" onclick="show('nogoals')">No Goals Yet</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Goals Strip (compact) -->
+<div id="strip" class="panel active">
+  <div class="strip-context">Today's goals · 1 of 3 done</div>
+  <div class="goals-strip">
+    <div class="goal-chip done">
+      <div class="gc-emoji">🔤</div>
+      <div>
+        <div class="gc-text">Letters</div>
+        <div class="gc-dot-row">
+          <div class="gc-dot filled"></div>
+          <div class="gc-dot filled"></div>
+          <div class="gc-dot filled"></div>
+        </div>
+      </div>
+    </div>
+    <div class="goal-chip">
+      <div class="gc-emoji">🔢</div>
+      <div>
+        <div class="gc-text">Counting</div>
+        <div class="gc-dot-row">
+          <div class="gc-dot filled"></div>
+          <div class="gc-dot"></div>
+          <div class="gc-dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="goal-chip">
+      <div class="gc-emoji">🎵</div>
+      <div>
+        <div class="gc-text">Rhymes</div>
+        <div class="gc-dot-row">
+          <div class="gc-dot"></div>
+          <div class="gc-dot"></div>
+          <div class="gc-dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="strip-right">
+      <div class="streak-fire">🔥</div>
+      <div class="streak-num">5 days</div>
+      <div class="star-goal-strip">⭐ Goal: 15</div>
+    </div>
+  </div>
+  <div class="strip-summary">
+    <span>1 of 3 done</span>
+    <div class="progress-dots">
+      <div class="pd done"></div>
+      <div class="pd"></div>
+      <div class="pd"></div>
+    </div>
+  </div>
+
+  <!-- Simulated home hub context -->
+  <div class="home-hub-preview">
+    <div class="hub-greeting">Good morning, Maya! 👋</div>
+    <div class="hub-sub">Ready for an adventure?</div>
+    <!-- Strip sits above this content -->
+    <div class="hub-world-row">
+      <div class="hub-world"><div class="hw-emoji">🌊</div><div>Ocean World</div></div>
+      <div class="hub-world"><div class="hw-emoji">⭐</div><div>Star World</div></div>
+      <div class="hub-world"><div class="hw-emoji">🌙</div><div>Dream World</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Goals Expanded -->
+<div id="expanded" class="panel">
+  <div class="goals-header">Today's goals ✨</div>
+  <div class="goals-sub">Do all 3 to earn your bonus stars!</div>
+
+  <div class="goal-card done">
+    <div class="goal-done-check">✅</div>
+    <div class="goal-card-top">
+      <div class="goal-card-emoji">🔤</div>
+      <div class="goal-card-info">
+        <div class="goal-card-name">Letter Hero</div>
+        <div class="goal-card-steps">3 of 3 questions done</div>
+      </div>
+      <div class="goal-reward">⭐ +5</div>
+    </div>
+    <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:100%;background:linear-gradient(90deg,#58e8c1,#00c9a0)"></div></div>
+  </div>
+
+  <div class="goal-card">
+    <div class="goal-card-top">
+      <div class="goal-card-emoji">🔢</div>
+      <div class="goal-card-info">
+        <div class="goal-card-name">Counting Quest</div>
+        <div class="goal-card-steps">1 of 3 questions done</div>
+      </div>
+      <div class="goal-reward">⭐ +5</div>
+    </div>
+    <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:33%"></div></div>
+  </div>
+
+  <div class="goal-card">
+    <div class="goal-card-top">
+      <div class="goal-card-emoji">🎵</div>
+      <div class="goal-card-info">
+        <div class="goal-card-name">Rhyme Time</div>
+        <div class="goal-card-steps">0 of 3 questions done</div>
+      </div>
+      <div class="goal-reward">⭐ +5</div>
+    </div>
+    <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #ffd166;border-radius:14px;padding:12px 16px;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:13px;font-weight:900;color:#ffd166">⭐ Bonus stars</div>
+      <div style="font-size:12px;color:#9b8fe0">Complete all 3 goals</div>
+    </div>
+    <div style="font-size:22px;font-weight:900;color:#ffd166">+10</div>
+  </div>
+</div>
+
+<!-- TAB 3: All Goals Done -->
+<div id="alldone" class="panel">
+  <div class="celebrate-wrap">
+    <div class="celebrate-emoji">🌟</div>
+    <div class="celebrate-title">All done today!</div>
+    <div class="celebrate-sub">You crushed all your goals! You're amazing, Maya!</div>
+
+    <div class="done-rewards">
+      <div class="done-reward-chip">
+        <div class="dr-val"><span class="star-burst">⭐</span> 25</div>
+        <div class="dr-label">Stars earned</div>
+      </div>
+      <div class="done-reward-chip">
+        <div class="dr-val">🔥 6</div>
+        <div class="dr-label">Day streak!</div>
+      </div>
+      <div class="done-reward-chip">
+        <div class="dr-val">✅ 3</div>
+        <div class="dr-label">Goals done</div>
+      </div>
+    </div>
+
+    <div style="background:#1e1550;border:2px solid #58e8c1;border-radius:16px;padding:16px;margin-top:20px;width:100%;text-align:left">
+      <div style="font-size:14px;font-weight:900;color:#58e8c1;margin-bottom:6px">🌟 Want more adventures?</div>
+      <div style="font-size:13px;color:#9b8fe0;line-height:1.5">Your goals are done but you can still play! Extra adventures earn bonus stars.</div>
+    </div>
+
+    <button style="background:linear-gradient(135deg,#58e8c1,#00c9a0);color:#100b2e;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:14px">🚀 Keep exploring!</button>
+    <button style="background:transparent;border:2px solid #2d2570;border-radius:16px;padding:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%;margin-top:8px">I'm done for today</button>
+  </div>
+</div>
+
+<!-- TAB 4: No Goals Yet -->
+<div id="nogoals" class="panel">
+  <div class="no-goals-wrap">
+    <div class="no-goals-emoji">💫</div>
+    <div class="no-goals-title">No goals today yet!</div>
+    <div class="no-goals-body">Your grown-up sets goals for you. But you can still explore and earn stars!</div>
+
+    <div class="parent-note">
+      <strong>For grown-ups:</strong> Set daily goals in the Parent Hub to give your child a fun structure for learning each day.
+    </div>
+
+    <button style="background:linear-gradient(135deg,#9b72ff,#7b52df);color:#fff;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:20px">🌊 Explore anyway!</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel" style="padding-top:16px">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-daily-goals-strip-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px, fits top of home hub</span></div>
+    <div class="spec-row"><span class="sk">Compact height</span><span class="sv">~80px</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">Goal count</span><span class="sv">3 (parent configurable)</span></div>
+    <div class="spec-row"><span class="sk">Streak</span><span class="sv">Shown as fire icon + days count</span></div>
+    <div class="spec-row"><span class="sk">Star goal</span><span class="sv">From child profile dailyStarGoal</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Daily goals</span><span class="sv">GET /api/child/daily-goals</span></div>
+    <div class="spec-row"><span class="sk">Streak</span><span class="sv">GET /api/child/streak</span></div>
+    <div class="spec-row"><span class="sk">Goal progress</span><span class="sv">PATCH /api/child/goals/{id}/progress</span></div>
+    <div class="spec-row"><span class="sk">Goal complete</span><span class="sv">POST /api/child/goals/{id}/complete</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">Streak-safe</span><span class="sv">✓ — no shame if 0/3</span></div>
+    <div class="spec-row"><span class="sk">No timers</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">All-done collapse</span><span class="sv">Strip compresses after all goals done</span></div>
+    <div class="spec-row"><span class="sk">No-goals fallback</span><span class="sv">✓ — shows free-explore CTA</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Content Alpha Readiness Dashboard v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #10161e;
+  font-family: 'Sora', sans-serif;
+  color: #d0e8f0;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+/* ── Layout ── */
+.page-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Hint Box ── */
+.hint-box {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-family: monospace;
+  font-size: 12.5px;
+  color: #5a3e00;
+  line-height: 1.7;
+}
+.hint-box strong { color: #8b5a00; }
+
+/* ── Tab Bar ── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #1e2e3e;
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #7a9ab0;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .2s, border-color .2s;
+  margin-bottom: -2px;
+}
+.tab-btn:hover { color: #d0e8f0; }
+.tab-btn.active {
+  color: #58c8f0;
+  border-bottom-color: #58c8f0;
+}
+
+/* ── Tab Panels ── */
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 12px;
+  padding: 20px;
+}
+.card + .card { margin-top: 16px; }
+
+/* ── Section Headers ── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a9ab0;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: 14px;
+}
+
+/* ── Chips ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.chip-ok    { background: #0e2a1a; color: #4ce890; border: 1px solid #1e5030; }
+.chip-warn  { background: #2a1e00; color: #ffd166; border: 1px solid #4a3600; }
+.chip-crit  { background: #2a0e0e; color: #ff7b6b; border: 1px solid #5a2020; }
+.chip-cyan  { background: #0c2030; color: #58c8f0; border: 1px solid #1a4060; }
+.chip-muted { background: #1a2a38; color: #7a9ab0; border: 1px solid #1e2e3e; }
+
+/* ── Status chips for explicit-text label ── */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity .2s, transform .1s;
+}
+.btn:hover { opacity: .85; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: #58c8f0; color: #0a1620; }
+.btn-outline { background: none; color: #58c8f0; border: 1.5px solid #58c8f0; }
+.btn-warn   { background: #ffd166; color: #1a0f00; }
+.btn-crit   { background: #ff7b6b; color: #1a0808; }
+.btn-ghost  { background: #1a2a38; color: #d0e8f0; border: 1px solid #1e2e3e; }
+.btn-sm { padding: 5px 11px; font-size: 11px; }
+
+/* ──────────────────────────────────
+   TAB 1: Alpha Readiness Overview
+   ────────────────────────────────── */
+
+/* Page header */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  flex: 1;
+}
+.date-chip {
+  background: #1a2a38;
+  border: 1px solid #1e2e3e;
+  color: #7a9ab0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.not-ready-chip {
+  background: #2a0e0e;
+  border: 2px solid #ff7b6b;
+  color: #ff9080;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Readiness Gauge */
+.gauge-card { padding: 24px; }
+.gauge-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.gauge-score {
+  font-size: 52px;
+  font-weight: 700;
+  color: #58c8f0;
+  line-height: 1;
+}
+.gauge-denom {
+  font-size: 24px;
+  color: #7a9ab0;
+}
+.gauge-threshold {
+  font-size: 12px;
+  color: #7a9ab0;
+  margin-bottom: 14px;
+}
+.gauge-threshold span {
+  color: #ffd166;
+  font-weight: 700;
+}
+.gauge-bar-bg {
+  height: 14px;
+  background: #1a2a38;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  position: relative;
+}
+.gauge-bar-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #1a80c8, #58c8f0);
+  transition: width .6s ease;
+}
+.gauge-threshold-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: #ffd166;
+  border-radius: 2px;
+}
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #7a9ab0;
+  margin-bottom: 20px;
+}
+.gauge-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 200px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+}
+.breakdown-label {
+  font-size: 13px;
+  color: #d0e8f0;
+}
+.breakdown-bar-bg {
+  height: 8px;
+  background: #1a2a38;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.breakdown-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+.fill-ok   { background: #4ce890; }
+.fill-warn { background: #ffd166; }
+.fill-crit { background: #ff7b6b; }
+.fill-cyan { background: #58c8f0; }
+.breakdown-pts {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Band Grid */
+.band-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.band-card {
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 12px;
+  padding: 18px;
+  border-top: 3px solid;
+}
+.band-card-p0 { border-top-color: #ffd166; }
+.band-card-p1 { border-top-color: #9b72ff; }
+.band-card-p2 { border-top-color: #58e8c1; }
+.band-card-p3 { border-top-color: #ff7b6b; }
+.band-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+.band-card-sub {
+  font-size: 12px;
+  color: #7a9ab0;
+  margin-bottom: 12px;
+}
+.band-card-stats {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.band-stat {
+  font-size: 13px;
+  color: #d0e8f0;
+}
+.band-stat span {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  display: block;
+}
+
+/* Blockers */
+.blockers-card { padding: 24px; }
+.blocker-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #1e2e3e;
+}
+.blocker-row:last-of-type { border-bottom: none; }
+.blocker-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2a0e0e;
+  border: 2px solid #ff7b6b;
+  color: #ff7b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.blocker-desc {
+  flex: 1;
+  font-size: 13px;
+  color: #d0e8f0;
+}
+.blocker-sub {
+  font-size: 11px;
+  color: #7a9ab0;
+  margin-top: 2px;
+}
+.blocker-cta {
+  flex-shrink: 0;
+}
+.fix-all-cta {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 10px;
+  justify-content: center;
+}
+
+/* ──────────────────────────────────
+   TAB 2: Question Count by Band
+   ────────────────────────────────── */
+
+/* Band filter */
+.band-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.band-filter-btn {
+  padding: 7px 18px;
+  border-radius: 20px;
+  border: 2px solid #1e2e3e;
+  background: #141e28;
+  color: #7a9ab0;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.band-filter-btn.active-p3 { border-color: #ff7b6b; color: #ff7b6b; background: #1e0e0e; }
+.band-filter-btn.active-p0 { border-color: #ffd166; color: #ffd166; background: #1e1800; }
+.band-filter-btn.active-p1 { border-color: #9b72ff; color: #9b72ff; background: #14102a; }
+.band-filter-btn.active-p2 { border-color: #58e8c1; color: #58e8c1; background: #0e1e1a; }
+
+/* Band detail header */
+.band-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.band-detail-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff7b6b;
+}
+.band-detail-stats {
+  font-size: 13px;
+  color: #7a9ab0;
+  flex: 1;
+}
+.coverage-bar-wrap {
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.coverage-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.coverage-bar-bg {
+  height: 12px;
+  background: #1a2a38;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.coverage-bar-fill-warn {
+  height: 100%;
+  background: linear-gradient(90deg, #b06000, #ffd166);
+  border-radius: 6px;
+  width: 79%;
+}
+
+/* Coverage Table */
+.coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.coverage-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a9ab0;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 10px 12px;
+  background: #0e1820;
+  border-bottom: 1px solid #1e2e3e;
+}
+.coverage-table td {
+  padding: 11px 12px;
+  font-size: 13px;
+  color: #d0e8f0;
+  border-bottom: 1px solid #1a2a38;
+}
+.coverage-table tr:last-child td { border-bottom: none; }
+.coverage-table tr.row-crit { background: #1e0c0c; }
+.coverage-table tr.row-warn { background: #1a1400; }
+.coverage-table tr.row-ok   { background: #0e1c14; }
+.cell-crit {
+  color: #ff7b6b;
+  font-weight: 700;
+}
+.cell-warn {
+  color: #ffd166;
+  font-weight: 700;
+}
+.cell-ok {
+  color: #4ce890;
+  font-weight: 700;
+}
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .6; }
+}
+.pulse { animation: pulse-red 1.5s ease-in-out infinite; }
+
+.bulk-row td {
+  background: #0c1a28;
+  border-top: 2px solid #1e2e3e;
+  padding: 14px 12px;
+}
+
+/* CSS Bar Chart */
+.chart-card { padding: 24px; }
+.chart-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #d0e8f0;
+  margin-bottom: 20px;
+}
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 160px;
+  position: relative;
+  padding: 0 0 28px;
+  border-left: 1px solid #1e2e3e;
+  border-bottom: 1px solid #1e2e3e;
+}
+.target-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed #ffd166;
+  pointer-events: none;
+}
+.target-line-label {
+  position: absolute;
+  right: 4px;
+  font-size: 10px;
+  color: #ffd166;
+  font-weight: 700;
+  transform: translateY(-100%);
+}
+.bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+.bar-bar {
+  width: 100%;
+  max-width: 44px;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: height .4s ease;
+}
+.bar-bar.bar-crit { background: #ff7b6b; }
+.bar-bar.bar-warn { background: #ffd166; }
+.bar-bar.bar-ok   { background: #4ce890; }
+.bar-label {
+  font-size: 9px;
+  color: #7a9ab0;
+  text-align: center;
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.bar-val {
+  font-size: 10px;
+  color: #d0e8f0;
+  font-weight: 600;
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.chart-y-labels {
+  position: absolute;
+  left: -28px;
+  top: 0;
+  bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #7a9ab0;
+}
+
+/* ──────────────────────────────────
+   TAB 3: Explainer Coverage
+   ────────────────────────────────── */
+
+.summary-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.summary-card {
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 12px;
+  padding: 18px;
+}
+.summary-card-val {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+.summary-card-label {
+  font-size: 12px;
+  color: #7a9ab0;
+}
+.summary-card-sub {
+  font-size: 13px;
+  color: #7a9ab0;
+  margin-top: 4px;
+}
+
+/* Explainer status table */
+.explainer-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+.explainer-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a9ab0;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 10px 12px;
+  background: #0e1820;
+  border-bottom: 1px solid #1e2e3e;
+}
+.explainer-table td {
+  padding: 11px 12px;
+  font-size: 13px;
+  color: #d0e8f0;
+  border-bottom: 1px solid #1a2a38;
+  vertical-align: middle;
+}
+.explainer-table tr:last-child td { border-bottom: none; }
+
+/* Missing explainer cards */
+.missing-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.missing-card {
+  background: #1e0e0e;
+  border: 1px solid #5a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+}
+.missing-card-skill {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff9080;
+  margin-bottom: 6px;
+}
+.missing-card-node {
+  font-size: 12px;
+  color: #7a9ab0;
+  margin-bottom: 10px;
+}
+.missing-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.priority-flag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+.pf-high   { background: #2a0e0e; color: #ff7b6b; border: 1px solid #5a2020; }
+.pf-med    { background: #2a1e00; color: #ffd166; border: 1px solid #4a3600; }
+.pf-low    { background: #0e2020; color: #58e8c1; border: 1px solid #1a4040; }
+
+/* ──────────────────────────────────
+   TAB 4: Publish Readiness
+   ────────────────────────────────── */
+
+.publish-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.publish-card {
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 12px;
+  padding: 18px;
+  border-top: 3px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.publish-card.pc-p0 { border-top-color: #ffd166; }
+.publish-card.pc-p1 { border-top-color: #9b72ff; }
+.publish-card.pc-p2 { border-top-color: #58e8c1; }
+.publish-card.pc-p3 { border-top-color: #ff7b6b; }
+.publish-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.publish-nodes-ready {
+  font-size: 13px;
+  color: #7a9ab0;
+}
+.publish-nodes-ready strong {
+  color: #d0e8f0;
+}
+.publish-blocks {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.publish-blocks li {
+  font-size: 12px;
+  color: #7a9ab0;
+  padding-left: 14px;
+  position: relative;
+}
+.publish-blocks li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #ff7b6b;
+}
+.publish-blocks li.ok::before { color: #4ce890; }
+
+/* Action queue */
+.action-queue {
+  margin-bottom: 20px;
+}
+.action-queue-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #d0e8f0;
+  margin-bottom: 4px;
+}
+.action-queue-sub {
+  font-size: 12px;
+  color: #7a9ab0;
+  margin-bottom: 16px;
+}
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.action-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1a2a38;
+  border: 2px solid #58c8f0;
+  color: #58c8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.action-num.a-crit {
+  border-color: #ff7b6b;
+  color: #ff7b6b;
+  background: #1e0e0e;
+}
+.action-desc {
+  flex: 1;
+  font-size: 13px;
+  color: #d0e8f0;
+  min-width: 200px;
+}
+.action-desc strong { color: #ffffff; }
+.action-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.effort-chip {
+  background: #1a2a38;
+  color: #7a9ab0;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #1e2e3e;
+}
+.assignee-chip {
+  background: #0c2030;
+  color: #58c8f0;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #1a4060;
+}
+.action-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Alpha progress card */
+.alpha-progress-card {
+  background: #141e28;
+  border: 2px solid #1e2e3e;
+  border-radius: 14px;
+  padding: 24px;
+}
+.alpha-progress-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+.alpha-progress-sub {
+  font-size: 13px;
+  color: #7a9ab0;
+  margin-bottom: 18px;
+}
+.progress-gauge-wrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+.progress-gauge-bg {
+  height: 16px;
+  background: #1a2a38;
+  border-radius: 8px;
+  overflow: visible;
+  position: relative;
+}
+.progress-gauge-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #1a80c8, #58c8f0);
+  width: 71%;
+  position: relative;
+}
+.progress-gauge-fill-projected {
+  height: 100%;
+  border-radius: 0 8px 8px 0;
+  background: rgba(88, 200, 240, 0.3);
+  border: 2px dashed #58c8f0;
+  position: absolute;
+  top: 0;
+  left: 71%;
+  width: 18%;
+}
+.progress-target-tick {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  background: #ffd166;
+  border-radius: 2px;
+  left: 85%;
+}
+.progress-target-label {
+  position: absolute;
+  top: -22px;
+  font-size: 10px;
+  color: #ffd166;
+  font-weight: 700;
+  transform: translateX(-50%);
+  left: 85%;
+  white-space: nowrap;
+}
+.progress-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #7a9ab0;
+  margin-top: 6px;
+  margin-bottom: 18px;
+}
+.progress-scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.progress-scenario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+.ps-partial {
+  background: #1a1a00;
+  border: 1px solid #3a3000;
+}
+.ps-full {
+  background: #0e2020;
+  border: 1px solid #1a4040;
+}
+.ps-icon { font-size: 18px; }
+.ps-text { flex: 1; font-size: 13px; color: #d0e8f0; }
+.ps-score {
+  font-size: 20px;
+  font-weight: 700;
+}
+.ps-partial .ps-score { color: #ffd166; }
+.ps-full .ps-score { color: #58e8c1; }
+
+/* ──────────────────────────────────
+   TAB 5: Spec
+   ────────────────────────────────── */
+
+.spec-section {
+  margin-bottom: 20px;
+}
+.spec-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #58c8f0;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1e2e3e;
+}
+.spec-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.spec-list li {
+  font-size: 13px;
+  color: #d0e8f0;
+  padding-left: 18px;
+  position: relative;
+}
+.spec-list li::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  color: #58c8f0;
+  font-weight: 700;
+}
+.spec-list li code {
+  background: #1a2a38;
+  color: #58c8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+}
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.token-card {
+  background: #141e28;
+  border: 1px solid #1e2e3e;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+}
+.token-card-key {
+  color: #7a9ab0;
+  font-family: monospace;
+  margin-bottom: 4px;
+}
+.token-card-val {
+  color: #d0e8f0;
+  font-weight: 600;
+}
+.token-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 6px;
+  border: 1px solid rgba(255,255,255,.15);
+}
+
+/* ── Utility ── */
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="show('t1')">1 · Alpha Readiness Overview</button>
+    <button class="tab-btn" onclick="show('t2')">2 · Question Count by Band</button>
+    <button class="tab-btn" onclick="show('t3')">3 · Explainer Coverage</button>
+    <button class="tab-btn" onclick="show('t4')">4 · Publish Readiness &amp; Next Actions</button>
+    <button class="tab-btn" onclick="show('t5')">5 · Spec</button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════
+       TAB 1 — Alpha Readiness Overview
+       ═══════════════════════════════════════════ -->
+  <div id="t1" class="tab active">
+
+    <div class="hint-box">
+      <strong>Engineering hint (Tab 1):</strong> Populate from <code>GET /content/alpha/summary</code>.
+      <code>readinessScore</code> is computed server-side (weighted sum). Overall status chip is
+      <code>NOT READY</code> when <code>readinessScore &lt; 85</code> OR any P0/P1 blocker exists.
+      Band grid is driven by <code>bandSummaries[]</code>; blocker rows come from
+      <code>alphaBlockers[]</code> sorted by severity. Re-fetch every 5 min or on user action.
+    </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Alpha Readiness</h1>
+      <span class="date-chip">2026-03-22</span>
+      <span class="not-ready-chip">⚠️ NOT READY — 4 blockers</span>
+    </div>
+
+    <!-- Readiness Score -->
+    <div class="card gauge-card">
+      <div class="section-label">Overall Readiness Score</div>
+      <div class="gauge-header">
+        <span class="gauge-score">71</span>
+        <span class="gauge-denom">/100</span>
+      </div>
+      <div class="gauge-threshold">Alpha GO threshold: <span>85/100</span> &nbsp;·&nbsp; Gap: <span style="color:#ff7b6b">−14 pts</span></div>
+      <div class="gauge-bar-bg">
+        <div class="gauge-bar-fill" style="width:71%"></div>
+        <div class="gauge-threshold-mark" style="left:85%"></div>
+      </div>
+      <div class="gauge-labels">
+        <span>0</span>
+        <span style="color:#ffd166">GO: 85</span>
+        <span>100</span>
+      </div>
+
+      <!-- Score breakdown -->
+      <div class="gauge-breakdown">
+        <div class="breakdown-row">
+          <span class="breakdown-label">Question Coverage <span style="color:#7a9ab0;font-size:11px">(40pts)</span></span>
+          <div class="breakdown-bar-bg"><div class="breakdown-bar-fill fill-warn" style="width:68%"></div></div>
+          <span class="breakdown-pts" style="color:#ffd166">27 / 40 pts</span>
+          <span class="chip chip-warn">⚠️ 68%</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="breakdown-label">Explainer Coverage <span style="color:#7a9ab0;font-size:11px">(25pts)</span></span>
+          <div class="breakdown-bar-bg"><div class="breakdown-bar-fill fill-ok" style="width:80%"></div></div>
+          <span class="breakdown-pts" style="color:#4ce890">20 / 25 pts</span>
+          <span class="chip chip-ok">✅ 80%</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="breakdown-label">QA Pass Rate <span style="color:#7a9ab0;font-size:11px">(20pts)</span></span>
+          <div class="breakdown-bar-bg"><div class="breakdown-bar-fill fill-ok" style="width:91%"></div></div>
+          <span class="breakdown-pts" style="color:#4ce890">18 / 20 pts</span>
+          <span class="chip chip-ok">✅ 91%</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="breakdown-label">Publish Readiness <span style="color:#7a9ab0;font-size:11px">(15pts)</span></span>
+          <div class="breakdown-bar-bg"><div class="breakdown-bar-fill fill-crit" style="width:40%"></div></div>
+          <span class="breakdown-pts" style="color:#ff7b6b">6 / 15 pts</span>
+          <span class="chip chip-crit">❌ 40%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Band Summary Grid -->
+    <div class="section-label mt-20">Band Summary</div>
+    <div class="band-grid">
+      <div class="band-card band-card-p0">
+        <div class="flex-between">
+          <div class="band-card-name">P0 · K-1 Core</div>
+          <span class="chip chip-ok">✅ Ready</span>
+        </div>
+        <div class="band-card-sub">Pre-K to Grade 1 foundational skills</div>
+        <div class="band-card-stats">
+          <div class="band-stat"><span>214</span>Questions</div>
+          <div class="band-stat"><span>18</span>Explainers</div>
+        </div>
+      </div>
+      <div class="band-card band-card-p1">
+        <div class="flex-between">
+          <div class="band-card-name">P1 · G2-3</div>
+          <span class="chip chip-ok">✅ Ready</span>
+        </div>
+        <div class="band-card-sub">Grades 2–3 bridge skills</div>
+        <div class="band-card-stats">
+          <div class="band-stat"><span>187</span>Questions</div>
+          <div class="band-stat"><span>15</span>Explainers</div>
+        </div>
+      </div>
+      <div class="band-card band-card-p2">
+        <div class="flex-between">
+          <div class="band-card-name">P2 · G3-4</div>
+          <span class="chip chip-warn">⚠️ 3 nodes critical</span>
+        </div>
+        <div class="band-card-sub">Grades 3–4 expansion skills</div>
+        <div class="band-card-stats">
+          <div class="band-stat"><span>134</span>Questions</div>
+          <div class="band-stat"><span>11</span>Explainers</div>
+        </div>
+      </div>
+      <div class="band-card band-card-p3">
+        <div class="flex-between">
+          <div class="band-card-name">P3 · G4-5</div>
+          <span class="chip chip-crit">❌ 8 nodes critical</span>
+        </div>
+        <div class="band-card-sub" style="color:#ff9080">BLOCKER — release critical</div>
+        <div class="band-card-stats">
+          <div class="band-stat"><span>76</span>Questions</div>
+          <div class="band-stat"><span>6</span>Explainers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alpha Blockers -->
+    <div class="card blockers-card mt-20">
+      <div class="section-label">Alpha Blockers</div>
+
+      <div class="blocker-row">
+        <div class="blocker-num">1</div>
+        <div class="blocker-desc">
+          P3 (G4-5) has 8 critical nodes below 4 Q/node threshold
+          <div class="blocker-sub">8 nodes &lt;4 Q — release blocker · Affects ~340 learners</div>
+        </div>
+        <span class="chip chip-crit">Critical</span>
+        <button class="btn btn-crit btn-sm blocker-cta" onclick="show('t2')">View Nodes →</button>
+      </div>
+
+      <div class="blocker-row">
+        <div class="blocker-num">2</div>
+        <div class="blocker-desc">
+          6 explainers missing entirely (no script, no media)
+          <div class="blocker-sub">Required for publish gate · 4 are in P3 band</div>
+        </div>
+        <span class="chip chip-crit">Critical</span>
+        <button class="btn btn-crit btn-sm blocker-cta" onclick="show('t3')">View Missing →</button>
+      </div>
+
+      <div class="blocker-row">
+        <div class="blocker-num">3</div>
+        <div class="blocker-desc">
+          P2 has 3 nodes in warning range (4-5 Q/node)
+          <div class="blocker-sub">Not release-blocking but degrades alpha quality</div>
+        </div>
+        <span class="chip chip-warn">Warning</span>
+        <button class="btn btn-outline btn-sm blocker-cta" onclick="show('t2')">View P2 →</button>
+      </div>
+
+      <div class="blocker-row">
+        <div class="blocker-num">4</div>
+        <div class="blocker-desc">
+          Publish Readiness score 40% — only 2 of 4 bands publishable
+          <div class="blocker-sub">P3 and P2 both blocked from publish pipeline</div>
+        </div>
+        <span class="chip chip-warn">Warning</span>
+        <button class="btn btn-outline btn-sm blocker-cta" onclick="show('t4')">View Publish →</button>
+      </div>
+
+      <button class="btn btn-primary fix-all-cta" onclick="show('t4')">Fix All P3 Critical Gaps — See Action Queue →</button>
+    </div>
+
+  </div><!-- /t1 -->
+
+
+  <!-- ═══════════════════════════════════════════
+       TAB 2 — Question Count by Band
+       ═══════════════════════════════════════════ -->
+  <div id="t2" class="tab">
+
+    <div class="hint-box">
+      <strong>Engineering hint (Tab 2):</strong> Node coverage table populated from
+      <code>GET /content/coverage/band/:id</code>. Sort order: critical (&lt;4Q) first with
+      <code>pulse</code> animation, then warning (4-5Q), then OK (≥6Q). "Add Q →" button deeplinks to
+      <code>/content/studio/questions/new?nodeId=:id</code>. Bar chart uses CSS height calc:
+      <code>height = (qCount / maxQCount) * 130px</code>. Target line at
+      <code>bottom = (8 / maxQCount) * 130px</code>. Re-render on band filter click.
+    </div>
+
+    <!-- Band Filter -->
+    <div class="band-filter">
+      <button class="band-filter-btn" onclick="filterBand(this,'p0')">P0 · K-1 Core</button>
+      <button class="band-filter-btn" onclick="filterBand(this,'p1')">P1 · G2-3</button>
+      <button class="band-filter-btn" onclick="filterBand(this,'p2')">P2 · G3-4</button>
+      <button class="band-filter-btn active-p3" onclick="filterBand(this,'p3')">P3 · G4-5 ← Problem band</button>
+    </div>
+
+    <!-- Band Detail Header -->
+    <div class="band-detail-header">
+      <span class="band-detail-name">G4-5 (P3)</span>
+      <div class="band-detail-stats">
+        <strong style="color:#d0e8f0">76 total Q</strong> &nbsp;·&nbsp; 12 nodes &nbsp;·&nbsp;
+        Target: <strong style="color:#ffd166">96 Q</strong> (8 Q/node)
+        &nbsp;·&nbsp; Gap: <strong style="color:#ff7b6b">−20 Q</strong>
+      </div>
+      <span class="chip chip-warn">79% coverage</span>
+    </div>
+
+    <!-- Coverage Bar -->
+    <div class="coverage-bar-wrap">
+      <div class="coverage-bar-label">
+        <span style="color:#ffd166;font-weight:700">Coverage: 76 / 96 questions (79%)</span>
+        <span style="color:#7a9ab0">Target: 96 Q at 8/node</span>
+      </div>
+      <div class="coverage-bar-bg">
+        <div class="coverage-bar-fill-warn"></div>
+      </div>
+    </div>
+
+    <!-- Node Coverage Table -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="coverage-table">
+        <thead>
+          <tr>
+            <th>Node Name</th>
+            <th>Questions</th>
+            <th>Status</th>
+            <th>Gap</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-crit">
+            <td>Fractions — Part/Whole</td>
+            <td class="cell-crit pulse">2</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−6 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Long Division Intro</td>
+            <td class="cell-crit pulse">2</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−6 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Multi-Step Word Problems</td>
+            <td class="cell-crit pulse">3</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−5 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Decimal Notation</td>
+            <td class="cell-crit pulse">3</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−5 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Area &amp; Perimeter</td>
+            <td class="cell-crit pulse">1</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−7 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Roman Numerals</td>
+            <td class="cell-crit pulse">2</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−6 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Basic Geometry — Angles</td>
+            <td class="cell-crit pulse">3</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−5 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-crit">
+            <td>Data &amp; Graphs</td>
+            <td class="cell-crit pulse">3</td>
+            <td><span class="chip chip-crit">❌ Critical</span></td>
+            <td class="cell-crit">−5 Q</td>
+            <td><button class="btn btn-crit btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-warn">
+            <td>Multiplication Fluency</td>
+            <td class="cell-warn">5</td>
+            <td><span class="chip chip-warn">⚠️ Warning</span></td>
+            <td class="cell-warn">−3 Q</td>
+            <td><button class="btn btn-outline btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-warn">
+            <td>Reading Comprehension P4</td>
+            <td class="cell-warn">4</td>
+            <td><span class="chip chip-warn">⚠️ Warning</span></td>
+            <td class="cell-warn">−4 Q</td>
+            <td><button class="btn btn-outline btn-sm">Add Q →</button></td>
+          </tr>
+          <tr class="row-ok">
+            <td>Vocabulary in Context</td>
+            <td class="cell-ok">7</td>
+            <td><span class="chip chip-ok">✅ OK</span></td>
+            <td style="color:#4ce890">−1 Q</td>
+            <td><span style="color:#4a6858;font-size:12px">—</span></td>
+          </tr>
+          <tr class="row-ok">
+            <td>Sentence Structure G4</td>
+            <td class="cell-ok">8</td>
+            <td><span class="chip chip-ok">✅ OK</span></td>
+            <td style="color:#4ce890">Target met</td>
+            <td><span style="color:#4a6858;font-size:12px">—</span></td>
+          </tr>
+          <tr class="bulk-row">
+            <td colspan="5">
+              <div class="flex-between">
+                <span style="font-size:13px;color:#ff9080;font-weight:700">8 critical nodes — 45 questions needed to reach minimum threshold (6/node)</span>
+                <button class="btn btn-crit">Add questions to all critical nodes →</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bar Chart -->
+    <div class="card chart-card mt-16">
+      <div class="chart-title">Question count per node — P3 G4-5 (target line = 8)</div>
+      <div style="position:relative;padding-left:32px">
+        <div class="chart-y-labels">
+          <span>12</span>
+          <span>8</span>
+          <span>4</span>
+          <span>0</span>
+        </div>
+        <div class="bar-chart" id="barChart">
+          <div class="target-line" style="bottom: calc(28px + 8/12 * 130px)">
+            <span class="target-line-label">Target 8</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:14px;font-size:12px">
+        <span><span style="display:inline-block;width:12px;height:12px;background:#ff7b6b;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Critical (&lt;4)</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:#ffd166;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Warning (4-5)</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:#4ce890;border-radius:2px;vertical-align:middle;margin-right:4px"></span>OK (≥6)</span>
+        <span><span style="display:inline-block;width:24px;height:0;border-top:2px dashed #ffd166;vertical-align:middle;margin-right:4px"></span>Target = 8</span>
+      </div>
+    </div>
+
+  </div><!-- /t2 -->
+
+
+  <!-- ═══════════════════════════════════════════
+       TAB 3 — Explainer Coverage
+       ═══════════════════════════════════════════ -->
+  <div id="t3" class="tab">
+
+    <div class="hint-box">
+      <strong>Engineering hint (Tab 3):</strong> Explainer status from
+      <code>GET /content/explainers/status</code>. Status flow: Missing → Draft → In Review →
+      QA Approved → Published. A "QA hard block" (e.g. broken audio) prevents publish even if script
+      is approved. Media hints = structured JSON in <code>explainer.mediaHints[]</code>. Filter table
+      by band or status using client-side JS. Missing explainer cards link to
+      <code>/content/studio/explainers/new?skillId=:id</code>.
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards-row">
+      <div class="summary-card">
+        <div class="summary-card-val">50</div>
+        <div class="summary-card-label">Total Explainers</div>
+        <div class="summary-card-sub">Across all 4 bands</div>
+      </div>
+      <div class="summary-card" style="border-color:#1e4030">
+        <div class="summary-card-val" style="color:#4ce890">32</div>
+        <div class="summary-card-label">Published</div>
+        <div class="summary-card-sub" style="color:#4ce890">64% publish rate</div>
+      </div>
+      <div class="summary-card" style="border-color:#2a2000">
+        <div class="summary-card-val" style="color:#ffd166">12</div>
+        <div class="summary-card-label">Draft / In Review</div>
+        <div class="summary-card-sub">In pipeline</div>
+      </div>
+      <div class="summary-card" style="border-color:#3a1010">
+        <div class="summary-card-val" style="color:#ff7b6b">6</div>
+        <div class="summary-card-label">Missing</div>
+        <div class="summary-card-sub" style="color:#ff7b6b">⚠️ Release blocker</div>
+      </div>
+    </div>
+
+    <!-- Explainer Status Table -->
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
+      <table class="explainer-table">
+        <thead>
+          <tr>
+            <th>Skill</th>
+            <th>Band</th>
+            <th>Status</th>
+            <th>Script</th>
+            <th>Media Hints</th>
+            <th>QA</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sight Words — Set A</td>
+            <td><span class="chip chip-muted" style="color:#ffd166;border-color:#3a2800;background:#1a1200">P0</span></td>
+            <td><span class="chip chip-ok">Published</span></td>
+            <td>✅</td>
+            <td>✅</td>
+            <td><span class="chip chip-ok" style="font-size:11px">Passed</span></td>
+            <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td>Phonics — Short Vowels</td>
+            <td><span class="chip chip-muted" style="color:#ffd166;border-color:#3a2800;background:#1a1200">P0</span></td>
+            <td><span class="chip chip-ok">Published</span></td>
+            <td>✅</td>
+            <td>✅</td>
+            <td><span class="chip chip-ok" style="font-size:11px">Passed</span></td>
+            <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td>Sight Words — Audio Transcript</td>
+            <td><span class="chip chip-muted" style="color:#9b72ff;border-color:#2a1a5a;background:#100c28">P1</span></td>
+            <td><span class="chip chip-ok">Published</span></td>
+            <td>✅</td>
+            <td>⚠️ Missing</td>
+            <td><span class="chip chip-warn" style="font-size:11px">Pending</span></td>
+            <td><button class="btn btn-warn btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td>Multiplication — Arrays</td>
+            <td><span class="chip chip-muted" style="color:#9b72ff;border-color:#2a1a5a;background:#100c28">P1</span></td>
+            <td><span class="chip chip-cyan">In Review</span></td>
+            <td>✅</td>
+            <td>✅</td>
+            <td><span class="chip chip-warn" style="font-size:11px">Pending</span></td>
+            <td><button class="btn btn-outline btn-sm">Review</button></td>
+          </tr>
+          <tr>
+            <td>Geometry — 2D Shapes</td>
+            <td><span class="chip chip-muted" style="color:#58e8c1;border-color:#0e3a2a;background:#0a1e18">P2</span></td>
+            <td><span class="chip chip-warn">Draft</span></td>
+            <td>✅</td>
+            <td>❌ Blocked</td>
+            <td><span class="chip chip-crit" style="font-size:11px">Blocked</span></td>
+            <td><button class="btn btn-crit btn-sm">Resolve</button></td>
+          </tr>
+          <tr>
+            <td>Fractions — Part/Whole</td>
+            <td><span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c">P3</span></td>
+            <td><span class="chip chip-crit">Missing</span></td>
+            <td>❌</td>
+            <td>❌ Blocked</td>
+            <td><span class="chip chip-crit" style="font-size:11px">Blocked</span></td>
+            <td><button class="btn btn-primary btn-sm">Create</button></td>
+          </tr>
+          <tr>
+            <td>Long Division Intro</td>
+            <td><span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c">P3</span></td>
+            <td><span class="chip chip-crit">Missing</span></td>
+            <td>❌</td>
+            <td>❌ Blocked</td>
+            <td><span class="chip chip-crit" style="font-size:11px">Blocked</span></td>
+            <td><button class="btn btn-primary btn-sm">Create</button></td>
+          </tr>
+          <tr>
+            <td>Area &amp; Perimeter</td>
+            <td><span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c">P3</span></td>
+            <td><span class="chip chip-crit">Missing</span></td>
+            <td>❌</td>
+            <td>❌ Blocked</td>
+            <td><span class="chip chip-crit" style="font-size:11px">Blocked</span></td>
+            <td><button class="btn btn-primary btn-sm">Create</button></td>
+          </tr>
+          <tr>
+            <td>Decimal Notation</td>
+            <td><span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c">P3</span></td>
+            <td><span class="chip chip-crit">Missing</span></td>
+            <td>❌</td>
+            <td>❌ Blocked</td>
+            <td><span class="chip chip-crit" style="font-size:11px">Blocked</span></td>
+            <td><button class="btn btn-primary btn-sm">Create</button></td>
+          </tr>
+          <tr>
+            <td>Reading Comprehension P4</td>
+            <td><span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c">P3</span></td>
+            <td><span class="chip chip-warn">Draft</span></td>
+            <td>✅</td>
+            <td>⚠️ Missing</td>
+            <td><span class="chip chip-warn" style="font-size:11px">Pending</span></td>
+            <td><button class="btn btn-warn btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td>Data &amp; Graphs</td>
+            <td><span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c">P3</span></td>
+            <td><span class="chip chip-crit">Missing</span></td>
+            <td>❌</td>
+            <td>❌ Blocked</td>
+            <td><span class="chip chip-crit" style="font-size:11px">Blocked</span></td>
+            <td><button class="btn btn-primary btn-sm">Create</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Missing Explainer Cards -->
+    <div class="section-label">Missing Explainers — Action Required</div>
+    <div class="missing-cards-grid">
+      <div class="missing-card">
+        <div class="missing-card-skill">Fractions — Part/Whole</div>
+        <div class="missing-card-node">
+          <span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c;font-size:11px">P3</span>
+          &nbsp;Node: Fractions · 2 questions (critical node)
+        </div>
+        <div class="missing-card-footer">
+          <button class="btn btn-primary btn-sm">Create Explainer →</button>
+          <span class="priority-flag pf-high">High Priority</span>
+        </div>
+      </div>
+      <div class="missing-card">
+        <div class="missing-card-skill">Long Division Intro</div>
+        <div class="missing-card-node">
+          <span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c;font-size:11px">P3</span>
+          &nbsp;Node: Division · 2 questions (critical node)
+        </div>
+        <div class="missing-card-footer">
+          <button class="btn btn-primary btn-sm">Create Explainer →</button>
+          <span class="priority-flag pf-high">High Priority</span>
+        </div>
+      </div>
+      <div class="missing-card">
+        <div class="missing-card-skill">Area &amp; Perimeter</div>
+        <div class="missing-card-node">
+          <span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c;font-size:11px">P3</span>
+          &nbsp;Node: Geometry · 1 question (critical node)
+        </div>
+        <div class="missing-card-footer">
+          <button class="btn btn-primary btn-sm">Create Explainer →</button>
+          <span class="priority-flag pf-high">High Priority</span>
+        </div>
+      </div>
+      <div class="missing-card">
+        <div class="missing-card-skill">Decimal Notation</div>
+        <div class="missing-card-node">
+          <span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c;font-size:11px">P3</span>
+          &nbsp;Node: Decimals · 3 questions (critical node)
+        </div>
+        <div class="missing-card-footer">
+          <button class="btn btn-primary btn-sm">Create Explainer →</button>
+          <span class="priority-flag pf-high">High Priority</span>
+        </div>
+      </div>
+      <div class="missing-card">
+        <div class="missing-card-skill">Data &amp; Graphs</div>
+        <div class="missing-card-node">
+          <span class="chip chip-muted" style="color:#ff7b6b;border-color:#3a1010;background:#1a0c0c;font-size:11px">P3</span>
+          &nbsp;Node: Data Literacy · 3 questions (critical node)
+        </div>
+        <div class="missing-card-footer">
+          <button class="btn btn-primary btn-sm">Create Explainer →</button>
+          <span class="priority-flag pf-med">Medium Priority</span>
+        </div>
+      </div>
+      <div class="missing-card">
+        <div class="missing-card-skill">Geometry — 2D Shapes</div>
+        <div class="missing-card-node">
+          <span class="chip chip-muted" style="color:#58e8c1;border-color:#0e3a2a;background:#0a1e18;font-size:11px">P2</span>
+          &nbsp;Node: Shapes · 6 questions (OK node, but explainer needed)
+        </div>
+        <div class="missing-card-footer">
+          <button class="btn btn-primary btn-sm">Create Explainer →</button>
+          <span class="priority-flag pf-med">Medium Priority</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /t3 -->
+
+
+  <!-- ═══════════════════════════════════════════
+       TAB 4 — Publish Readiness & Next Actions
+       ═══════════════════════════════════════════ -->
+  <div id="t4" class="tab">
+
+    <div class="hint-box">
+      <strong>Engineering hint (Tab 4):</strong> Publish readiness from
+      <code>GET /content/publish/readiness</code>. Publish gate: band ready when all nodes ≥4Q
+      + all explainers Published (not Draft) + no QA hard blocks. Action queue auto-sorted by:
+      blocker status → band priority (P0 first) → effort (low effort first for quick wins).
+      Estimated effort chips are content-team estimates stored in
+      <code>action.estimatedMins</code>. Assignee chips link to team member profile in
+      content admin tools. "Completing top 3 actions" score projection computed client-side from
+      <code>action.scoreImpact</code> array.
+    </div>
+
+    <!-- Publish Cards -->
+    <div class="section-label">Publish Readiness by Band</div>
+    <div class="publish-cards-row">
+      <div class="publish-card pc-p0">
+        <div class="flex-between">
+          <div class="publish-card-name">P0 · K-1 Core</div>
+          <span class="chip chip-ok" style="font-size:11px">Ready</span>
+        </div>
+        <div class="publish-nodes-ready"><strong>18 / 18</strong> nodes publish-ready</div>
+        <ul class="publish-blocks">
+          <li class="ok">All nodes ≥6 Q/node</li>
+          <li class="ok">All explainers Published</li>
+          <li class="ok">No QA hard blocks</li>
+        </ul>
+        <button class="btn btn-primary btn-sm">Publish Band →</button>
+      </div>
+      <div class="publish-card pc-p1">
+        <div class="flex-between">
+          <div class="publish-card-name">P1 · G2-3</div>
+          <span class="chip chip-warn" style="font-size:11px">Partially Ready</span>
+        </div>
+        <div class="publish-nodes-ready"><strong>13 / 15</strong> nodes publish-ready</div>
+        <ul class="publish-blocks">
+          <li class="ok">All nodes ≥6 Q/node</li>
+          <li>1 explainer In Review (Multiplication — Arrays)</li>
+          <li>1 media hint pending (Sight Words)</li>
+        </ul>
+        <button class="btn btn-outline btn-sm">Review Blockers →</button>
+      </div>
+      <div class="publish-card pc-p2">
+        <div class="flex-between">
+          <div class="publish-card-name">P2 · G3-4</div>
+          <span class="chip chip-warn" style="font-size:11px">Partially Ready</span>
+        </div>
+        <div class="publish-nodes-ready"><strong>8 / 11</strong> nodes publish-ready</div>
+        <ul class="publish-blocks">
+          <li>3 nodes below coverage threshold (4-5 Q)</li>
+          <li>1 explainer Draft (Geometry — 2D Shapes)</li>
+          <li>1 QA hard block on Geometry explainer</li>
+        </ul>
+        <button class="btn btn-outline btn-sm">Review Blockers →</button>
+      </div>
+      <div class="publish-card pc-p3" style="border-color:#5a1a1a">
+        <div class="flex-between">
+          <div class="publish-card-name">P3 · G4-5</div>
+          <span class="chip chip-crit" style="font-size:11px">Blocked</span>
+        </div>
+        <div class="publish-nodes-ready"><strong style="color:#ff7b6b">2 / 12</strong> nodes publish-ready</div>
+        <ul class="publish-blocks">
+          <li>8 nodes below minimum threshold (&lt;4 Q)</li>
+          <li>6 explainers Missing entirely</li>
+          <li>Multiple QA hard blocks (no script)</li>
+        </ul>
+        <button class="btn btn-crit btn-sm">Fix Critical Gaps →</button>
+      </div>
+    </div>
+
+    <!-- Priority Action Queue -->
+    <div class="action-queue mt-20">
+      <div class="action-queue-title">Recommended Actions to Reach Alpha GO</div>
+      <div class="action-queue-sub">Sorted by: blocker severity → band priority → lowest effort first</div>
+
+      <div class="action-item" style="border-color:#3a1010;background:#1a0e0e">
+        <div class="action-num a-crit">1</div>
+        <div class="action-desc">
+          Add <strong>8 questions to P3 Node: Fractions — Part/Whole</strong> to clear critical threshold
+        </div>
+        <div class="action-meta">
+          <span class="effort-chip">~2h</span>
+          <span class="assignee-chip">Content Team</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-crit btn-sm">Create →</button>
+        </div>
+      </div>
+
+      <div class="action-item" style="border-color:#3a1010;background:#1a0e0e">
+        <div class="action-num a-crit">2</div>
+        <div class="action-desc">
+          Add <strong>8 questions to P3 Node: Area &amp; Perimeter</strong> (currently only 1 Q — worst gap)
+        </div>
+        <div class="action-meta">
+          <span class="effort-chip">~2h</span>
+          <span class="assignee-chip">Content Team</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-crit btn-sm">Create →</button>
+        </div>
+      </div>
+
+      <div class="action-item" style="border-color:#2a1a00;background:#160e00">
+        <div class="action-num a-crit">3</div>
+        <div class="action-desc">
+          Submit <strong>P2 Geometry — 2D Shapes explainer draft for QA review</strong> to unblock P2 publish
+        </div>
+        <div class="action-meta">
+          <span class="effort-chip">~1h</span>
+          <span class="assignee-chip">Script Writer</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-warn btn-sm">Review →</button>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">4</div>
+        <div class="action-desc">
+          Fix <strong>audio transcript media hint for P1 Sight Words explainer</strong>
+        </div>
+        <div class="action-meta">
+          <span class="effort-chip">~30 min</span>
+          <span class="assignee-chip">Media Team</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-outline btn-sm">Edit →</button>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">5</div>
+        <div class="action-desc">
+          Create <strong>explainer script for P3 Long Division Intro</strong> (currently no script, no media)
+        </div>
+        <div class="action-meta">
+          <span class="effort-chip">~2h</span>
+          <span class="assignee-chip">Content Team</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-primary btn-sm">Create →</button>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">6</div>
+        <div class="action-desc">
+          Add <strong>warning-range questions to P3 Multiplication Fluency</strong> (5 → 8 Q) for target coverage
+        </div>
+        <div class="action-meta">
+          <span class="effort-chip">~1h</span>
+          <span class="assignee-chip">Content Team</span>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-outline btn-sm">Add Q →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alpha Progress Card -->
+    <div class="alpha-progress-card">
+      <div class="alpha-progress-title">Progress to Alpha GO</div>
+      <div class="alpha-progress-sub">Current: 71/100 &nbsp;·&nbsp; Target: 85/100 &nbsp;·&nbsp; Gap: −14 pts</div>
+
+      <div class="progress-gauge-wrap">
+        <div style="position:relative;margin-bottom:24px">
+          <div class="progress-target-label">GO: 85</div>
+          <div class="progress-gauge-bg">
+            <div style="position:relative;height:16px;border-radius:8px;overflow:hidden">
+              <div class="progress-gauge-fill"></div>
+              <div class="progress-gauge-fill-projected"></div>
+            </div>
+            <div class="progress-target-tick"></div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-gauge-labels">
+        <span>0</span>
+        <span>Current: <strong style="color:#58c8f0">71</strong></span>
+        <span>Projected top-3: <strong style="color:#ffd166">82</strong></span>
+        <span>All actions: <strong style="color:#58e8c1">89</strong></span>
+        <span>100</span>
+      </div>
+
+      <div class="progress-scenarios">
+        <div class="progress-scenario ps-partial">
+          <span class="ps-icon">⚡</span>
+          <div class="ps-text">
+            <strong>Completing top 3 actions above</strong>
+            <div style="font-size:12px;color:#7a9ab0;margin-top:2px">~5h total effort · Clears 2 critical nodes + 1 explainer QA block</div>
+          </div>
+          <div>
+            <span style="font-size:12px;color:#7a9ab0">71 → </span>
+            <span class="ps-score">82/100</span>
+          </div>
+        </div>
+        <div class="progress-scenario ps-full">
+          <span class="ps-icon">🎯</span>
+          <div class="ps-text">
+            <strong>Completing all 6 actions</strong>
+            <div style="font-size:12px;color:#7a9ab0;margin-top:2px">~8.5h total effort · Clears all critical gaps + explainer backlog</div>
+          </div>
+          <div>
+            <span style="font-size:12px;color:#7a9ab0">71 → </span>
+            <span class="ps-score">89/100</span>
+            <span class="chip chip-ok" style="font-size:11px;margin-left:8px">Near GO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /t4 -->
+
+
+  <!-- ═══════════════════════════════════════════
+       TAB 5 — Spec
+       ═══════════════════════════════════════════ -->
+  <div id="t5" class="tab">
+
+    <div class="hint-box">
+      <strong>Engineering hint (Tab 5 — Spec Reference):</strong>
+      This tab is a living spec reference for content-admin alpha readiness. Update endpoint paths
+      and threshold values here as the backend contract evolves. Score weights must sum to 100.
+      Coverage thresholds apply to all bands equally — no per-band overrides in alpha scope.
+      Publish gate is AND logic: all conditions must pass. Action queue priority algorithm is
+      deterministic: no ML, purely rule-based sort.
+    </div>
+
+    <div class="card">
+      <!-- Routes -->
+      <div class="spec-section">
+        <div class="spec-section-title">API Routes</div>
+        <ul class="spec-list">
+          <li><code>GET /content/alpha/summary</code> — Overall readiness score, band summaries, blocker list</li>
+          <li><code>GET /content/coverage/band/:id</code> — Node-level Q count for a band (id = p0/p1/p2/p3)</li>
+          <li><code>GET /content/explainers/status</code> — Full explainer list with status, script, mediaHints, QA fields</li>
+          <li><code>GET /content/publish/readiness</code> — Per-band publish gate evaluation with blocking items array</li>
+        </ul>
+      </div>
+
+      <!-- Coverage Thresholds -->
+      <div class="spec-section">
+        <div class="spec-section-title">Coverage Thresholds (Q/node)</div>
+        <ul class="spec-list">
+          <li><strong style="color:#4ce890">OK (green)</strong> — ≥6 Q/node. Acceptable for alpha release.</li>
+          <li><strong style="color:#ffd166">Warning (amber)</strong> — 4–5 Q/node. Not a release blocker but degrades learner experience.</li>
+          <li><strong style="color:#ff7b6b">Critical (red)</strong> — &lt;4 Q/node. <strong>Release blocker.</strong> Band cannot publish.</li>
+          <li><strong style="color:#58c8f0">Target</strong> — 8 Q/node. Full-quality experience. Used as target line in charts.</li>
+        </ul>
+      </div>
+
+      <!-- Scoring -->
+      <div class="spec-section">
+        <div class="spec-section-title">Alpha Readiness Score (100pts total)</div>
+        <ul class="spec-list">
+          <li><strong>Question Coverage (40pts)</strong> — % of nodes at ≥4Q threshold (weighted to total weight)</li>
+          <li><strong>Explainer Coverage (25pts)</strong> — % of required explainers in Published or In-Review status</li>
+          <li><strong>QA Pass Rate (20pts)</strong> — % of submitted explainers that passed QA (no hard blocks)</li>
+          <li><strong>Publish Readiness (15pts)</strong> — % of bands meeting all publish gate conditions</li>
+          <li><strong style="color:#ffd166">GO threshold: ≥85/100</strong> — Alpha launch approved when score ≥85 AND no critical blockers in P0 or P1</li>
+        </ul>
+      </div>
+
+      <!-- Publish Gate -->
+      <div class="spec-section">
+        <div class="spec-section-title">Publish Gate (AND logic — all must pass)</div>
+        <ul class="spec-list">
+          <li>All nodes in band ≥4 Q/node (minimum threshold)</li>
+          <li>All required explainers for band are in "Published" status (not Draft, not In Review)</li>
+          <li>No QA hard blocks on any explainer in band</li>
+          <li>All media hints fields populated (audio transcript, visual cues)</li>
+        </ul>
+      </div>
+
+      <!-- Action Queue Algorithm -->
+      <div class="spec-section">
+        <div class="spec-section-title">Action Queue Generation Algorithm</div>
+        <ul class="spec-list">
+          <li><strong>Step 1:</strong> Filter all open gaps (critical nodes, missing explainers, QA blocks)</li>
+          <li><strong>Step 2:</strong> Sort by blocker status — items that are release blockers float to top</li>
+          <li><strong>Step 3:</strong> Secondary sort by band priority — P0 before P1 before P2 before P3</li>
+          <li><strong>Step 4:</strong> Tertiary sort by estimated effort ASC — low-effort quick wins surfaced early</li>
+          <li><strong>Step 5:</strong> Annotate each action with <code>action.scoreImpact</code> (pts gained if resolved)</li>
+          <li>Max 8 items shown in queue. "View all" loads full gap list in separate view.</li>
+        </ul>
+      </div>
+
+      <!-- Explainer Status Flow -->
+      <div class="spec-section">
+        <div class="spec-section-title">Explainer Status Flow</div>
+        <ul class="spec-list">
+          <li><strong style="color:#ff7b6b">Missing</strong> → No record exists. Content team must create from scratch.</li>
+          <li><strong style="color:#ffd166">Draft</strong> → Script in progress. Not yet submitted for QA. Cannot publish.</li>
+          <li><strong style="color:#58c8f0">In Review</strong> → Submitted for QA review. Awaiting approval.</li>
+          <li><strong style="color:#58c8f0">QA Approved</strong> → Passed QA review. Ready to publish.</li>
+          <li><strong style="color:#4ce890">Published</strong> → Live in production. Counts toward publish gate.</li>
+          <li>Hard blocks can occur at Draft → In Review (broken media) or In Review → QA Approved (script issues). Hard blocks return status to Draft.</li>
+        </ul>
+      </div>
+
+      <!-- Design Tokens -->
+      <div class="spec-section">
+        <div class="spec-section-title">Design Tokens</div>
+        <div class="token-grid">
+          <div class="token-card">
+            <div class="token-card-key">bg</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#10161e"></span>#10161e</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">card</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#141e28"></span>#141e28</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">border</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#1e2e3e"></span>#1e2e3e</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">accent</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#58c8f0"></span>#58c8f0</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">text</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#d0e8f0"></span>#d0e8f0</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">muted</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#7a9ab0"></span>#7a9ab0</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">P0 band</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#ffd166"></span>#ffd166</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">P1 band</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#9b72ff"></span>#9b72ff</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">P2 band</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#58e8c1"></span>#58e8c1</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">P3 band</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#ff7b6b"></span>#ff7b6b</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">ok / green</div>
+            <div class="token-card-val"><span class="token-swatch" style="background:#4ce890"></span>#4ce890</div>
+          </div>
+          <div class="token-card">
+            <div class="token-card-key">font</div>
+            <div class="token-card-val">Sora (Google Fonts)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /t5 -->
+
+</div><!-- /page-wrapper -->
+
+<script>
+// ── Tab switcher ──
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx = { t1: 0, t2: 1, t3: 2, t4: 3, t5: 4 }[id];
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}
+
+// ── Band filter (Tab 2) ──
+function filterBand(el, band) {
+  document.querySelectorAll('.band-filter-btn').forEach(b => {
+    b.className = 'band-filter-btn';
+  });
+  el.classList.add('active-' + band);
+  // In production, re-render table and chart for selected band.
+  // P3 is shown by default — other bands would fetch from /content/coverage/band/:id.
+  if (band !== 'p3') {
+    alert('Demo: Band ' + band.toUpperCase() + ' data would load from GET /content/coverage/band/' + band);
+    // Reset to p3 active state for demo
+    el.className = 'band-filter-btn';
+    document.querySelectorAll('.band-filter-btn')[3].classList.add('active-p3');
+  }
+}
+
+// ── Build CSS Bar Chart (Tab 2) ──
+(function buildBarChart() {
+  const nodes = [
+    { label: 'Frac.',   q: 2,  status: 'crit' },
+    { label: 'Div.',    q: 2,  status: 'crit' },
+    { label: 'Word P.', q: 3,  status: 'crit' },
+    { label: 'Dec.',    q: 3,  status: 'crit' },
+    { label: 'Area',    q: 1,  status: 'crit' },
+    { label: 'Roman',   q: 2,  status: 'crit' },
+    { label: 'Geom.',   q: 3,  status: 'crit' },
+    { label: 'Data',    q: 3,  status: 'crit' },
+    { label: 'Mult.',   q: 5,  status: 'warn' },
+    { label: 'Read.',   q: 4,  status: 'warn' },
+    { label: 'Vocab.',  q: 7,  status: 'ok'   },
+    { label: 'Sent.',   q: 8,  status: 'ok'   },
+  ];
+  const maxQ = 12;
+  const chartH = 130; // px of usable bar area
+
+  const chart = document.getElementById('barChart');
+  if (!chart) return;
+
+  // Target line
+  const tline = chart.querySelector('.target-line');
+  if (tline) {
+    const targetBottom = 28 + (8 / maxQ) * chartH;
+    tline.style.bottom = targetBottom + 'px';
+  }
+
+  // Build bars
+  nodes.forEach(n => {
+    const h = Math.max(4, Math.round((n.q / maxQ) * chartH));
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+    col.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:28px;position:relative;';
+
+    const bar = document.createElement('div');
+    bar.className = 'bar-bar bar-' + n.status;
+    bar.style.cssText = `width:100%;height:${h}px;border-radius:4px 4px 0 0;position:relative;max-width:44px;`;
+
+    const val = document.createElement('span');
+    val.className = 'bar-val';
+    val.textContent = n.q;
+    bar.appendChild(val);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'bar-label';
+    lbl.textContent = n.label;
+    bar.appendChild(lbl);
+
+    col.appendChild(bar);
+    chart.appendChild(col);
+  });
+})();
+</script>
+</body>
+</html>

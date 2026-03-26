@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-low-confidence-retry-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-low-confidence-retry-v2.html       ║
+     ║                                                              ║
+     ║  Screen shown when the system detects low confidence on a    ║
+     ║  skill (child has missed it 3+ times across multiple         ║
+     ║  sessions). Offers a focused retry mode for that skill.      ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Skill Review   : "Practice mode" card for 1 skill  ║
+     ║  Tab 2 — In Practice    : practice questions (simpler)       ║
+     ║  Tab 3 — Practice Done  : completed practice, confidence up  ║
+     ║  Tab 4 — Spec           : confidence model, trigger rules    ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .phone-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 24px 20px 28px; gap: 14px;
+  }
+
+  /* Practice mode banner */
+  .practice-banner {
+    background: linear-gradient(135deg, #1a1040, #221960);
+    border: 2px solid #9b72ff44; border-radius: 16px;
+    padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0;
+  }
+  .pb-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: #9b72ff; }
+  .pb-title { font-size: 1.2rem; font-weight: 900; color: #fff; }
+  .pb-sub { font-size: 0.84rem; font-weight: 700; color: #b0a0e0; line-height: 1.4; }
+
+  /* Skill card */
+  .skill-card {
+    display: flex; align-items: center; gap: 14px;
+    background: #221960; border: 1.5px solid #9b72ff44; border-radius: 14px; padding: 14px 16px;
+    flex-shrink: 0;
+  }
+  .skill-icon { font-size: 2.4rem; flex-shrink: 0; }
+  .skill-info { display: flex; flex-direction: column; gap: 4px; }
+  .skill-name { font-size: 0.96rem; font-weight: 900; color: #fff; }
+  .skill-desc { font-size: 0.78rem; font-weight: 700; color: #9080c0; }
+
+  /* Confidence meter */
+  .conf-row { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .conf-label-row { display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 700; color: #6050a0; }
+  .conf-track { height: 10px; background: #1a1440; border-radius: 5px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #ff7b6b, #ffd166); }
+  .conf-fill.low { width: 22%; }
+  .conf-fill.medium { width: 55%; background: linear-gradient(90deg, #ffd166, #9b72ff); }
+  .conf-fill.high { width: 85%; background: linear-gradient(90deg, #58e8c1, #9b72ff); }
+
+  /* Practice plan */
+  .practice-plan {
+    background: #14102a; border: 1.5px solid #2a2060; border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+  }
+  .pp-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #6050a0; }
+  .pp-item { display: flex; align-items: center; gap: 8px; }
+  .pp-dot { width: 8px; height: 8px; border-radius: 50%; background: #9b72ff; flex-shrink: 0; }
+  .pp-text { font-size: 0.82rem; font-weight: 700; color: #b0a0e0; }
+
+  /* Coach */
+  .coach-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #1a1440; border: 1.5px solid #9b72ff33; border-radius: 12px;
+    padding: 11px 13px; flex-shrink: 0;
+  }
+  .coach-av { font-size: 1.4rem; flex-shrink: 0; }
+  .coach-txt { font-size: 0.8rem; font-weight: 700; color: #c8bef0; line-height: 1.4; }
+  .coach-name { font-size: 0.66rem; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+
+  /* CTAs */
+  .btn-primary {
+    height: 54px; border-radius: 27px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; flex-shrink: 0;
+  }
+  .btn-secondary {
+    height: 44px; border-radius: 22px; background: none;
+    border: 1.5px solid #2a2060; color: #9080c0;
+    font-size: 0.84rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
+  }
+
+  /* Practice screen elements */
+  .practice-topbar {
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    background: #1a1040; border: 1.5px solid #9b72ff33; border-radius: 12px; padding: 8px 12px;
+  }
+  .pt-label { font-size: 0.72rem; font-weight: 900; color: #9b72ff; }
+  .pt-progress { display: flex; gap: 4px; }
+  .pt-dot { width: 10px; height: 10px; border-radius: 50%; background: #2a2050; }
+  .pt-dot.done { background: #9b72ff; }
+  .pt-dot.current { background: #9b72ff55; border: 2px solid #9b72ff; }
+
+  .q-hero { background: #1a1440; border: 2px solid #9b72ff44; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
+  .q-emoji { font-size: 3rem; }
+  .q-text { font-size: 1rem; font-weight: 900; color: #fff; }
+  .q-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .qc { background: #1a1440; border: 2px solid #2a2060; border-radius: 14px; height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 1.8rem; font-weight: 900; }
+  .qc .ph { font-size: 0.7rem; color: #9080c0; font-weight: 700; }
+
+  /* Practice done */
+  .done-hero { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; justify-content: center; }
+  .done-emoji { font-size: 4rem; animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+  @keyframes pop { from{transform:scale(0.3);opacity:0;} 60%{transform:scale(1.15);} to{transform:scale(1);opacity:1;} }
+  .done-title { font-size: 1.4rem; font-weight: 900; color: #fff; text-align: center; }
+  .done-sub { font-size: 0.88rem; font-weight: 700; color: #b0a0e0; text-align: center; line-height: 1.4; }
+  .conf-up {
+    background: #1a2a15; border: 1.5px solid #50e89044; border-radius: 12px;
+    padding: 10px 16px; width: 100%;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .cu-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #50e890; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-low-confidence-retry-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Skill Review</button>
+  <button class="tab-btn" onclick="showTab('t2')">In Practice</button>
+  <button class="tab-btn" onclick="showTab('t3')">Practice Done</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Skill Review ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Skill Review — Practice Mode Offer</h4>
+    Shown at session start when system detects low confidence on a skill.
+    Confidence meter shows current level (low = red-to-gold gradient).
+    Practice plan: 3 scaffolded questions. Child opts in — never forced.
+    Stars awarded for practice questions too.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="practice-banner">
+        <div class="pb-label">🎯 Practice Mode</div>
+        <div class="pb-title">Let's practice one skill!</div>
+        <div class="pb-sub">You've been working on Beginning Sounds. A little practice now will make it easier!</div>
+      </div>
+
+      <div class="skill-card">
+        <div class="skill-icon">🔤</div>
+        <div class="skill-info">
+          <div class="skill-name">Beginning Sounds</div>
+          <div class="skill-desc">K-1 · Phonics · 3 practice questions</div>
+        </div>
+      </div>
+
+      <div class="conf-row">
+        <div class="conf-label-row">
+          <span>Your confidence</span>
+          <span style="color:#ff9b6b;">Building up… 💪</span>
+        </div>
+        <div class="conf-track"><div class="conf-fill low"></div></div>
+      </div>
+
+      <div class="practice-plan">
+        <div class="pp-label">Today's practice plan</div>
+        <div class="pp-item"><div class="pp-dot"></div><div class="pp-text">Start with easy words (2 choices)</div></div>
+        <div class="pp-item"><div class="pp-dot"></div><div class="pp-text">Try normal words (4 choices)</div></div>
+        <div class="pp-item"><div class="pp-dot"></div><div class="pp-text">One challenge word! (4 choices)</div></div>
+      </div>
+
+      <div class="coach-row">
+        <div class="coach-av">🦁</div>
+        <div class="coach-txt">
+          <div class="coach-name">Coach Leo</div>
+          This will only take a minute — and you'll feel so much more confident after!
+        </div>
+      </div>
+
+      <button class="btn-primary">Start 3-question practice! ▶</button>
+      <button class="btn-secondary">Skip to regular session</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: In Practice ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>In Practice — Easier Questions, Clear Mode Label</h4>
+    Practice topbar shows mode label + dot progress (3 dots for 3 Qs).
+    Questions are scaffolded: 2 choices instead of 4, picture/phoneme hints shown.
+    Stars awarded normally. No timer. Practice mode badge persistent at top.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="practice-topbar">
+        <div class="pt-label">🎯 Practice — Beginning Sounds</div>
+        <div class="pt-progress">
+          <div class="pt-dot done"></div>
+          <div class="pt-dot current"></div>
+          <div class="pt-dot"></div>
+        </div>
+      </div>
+
+      <div class="q-hero">
+        <div class="q-emoji">🐱</div>
+        <div class="q-text">"cat" starts with…</div>
+        <div style="font-size:0.78rem;font-weight:700;color:#9080c0;">(Hint: it sounds like "cuh"!)</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0;">
+        <div class="qc" style="height:86px;font-size:2.4rem;">C <span class="ph">cuh</span></div>
+        <div class="qc" style="height:86px;font-size:2.4rem;">T <span class="ph">tuh</span></div>
+      </div>
+
+      <div style="font-size:0.78rem;font-weight:700;color:#6050a0;text-align:center;flex-shrink:0;">
+        Question 2 of 3 · ⭐ 1 star earned
+      </div>
+
+      <div class="coach-row">
+        <div class="coach-av">🦁</div>
+        <div class="coach-txt">
+          <div class="coach-name">Coach Leo</div>
+          Say "cat" slowly — "cuh-aaa-t" — what letter do you hear first?
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Practice Done ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Practice Done — Confidence Increased</h4>
+    Confidence meter shows before/after (from 22% to 55%).
+    Big celebration message. "Now let's try the real session!" CTA.
+    Stars earned in practice are KEPT — shown in running total.
+    Coach sends off encouragingly.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="done-hero">
+        <div class="done-emoji">🌟</div>
+        <div class="done-title">Practice complete!</div>
+        <div class="done-sub">You got all 3 practice questions right — your skills are growing!</div>
+        <div class="conf-up">
+          <div class="cu-label">Confidence level</div>
+          <div class="conf-label-row" style="font-size:0.72rem;font-weight:700;color:#6050a0;display:flex;justify-content:space-between;">
+            <span>Before practice</span><span>After practice</span>
+          </div>
+          <div class="conf-track" style="position:relative;height:12px;margin-top:2px;">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:22%;background:linear-gradient(90deg,#ff7b6b,#ffd166);border-radius:5px;opacity:0.4;"></div>
+            <div class="conf-fill medium" style="height:100%;"></div>
+          </div>
+          <div style="font-size:0.76rem;font-weight:700;color:#50e890;text-align:right;">22% → 55% ✓</div>
+        </div>
+      </div>
+      <div class="coach-row">
+        <div class="coach-av">🦁</div>
+        <div class="coach-txt">
+          <div class="coach-name">Coach Leo</div>
+          Look at that confidence jump! Now let's take that into the real session!
+        </div>
+      </div>
+      <button class="btn-primary">Start regular session → ⭐ 1 star earned</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Confidence Model</h4>
+      <ul>
+        <li>Low confidence: skill wrong 3+ times across 2+ sessions</li>
+        <li>Confidence score: 0–100, based on correctness history</li>
+        <li>Low (&lt;30%): offer practice at session start</li>
+        <li>Medium (30–60%): optional practice, not shown unless requested</li>
+        <li>High (&gt;60%): no practice offered</li>
+        <li>Practice improves score: +10% per correct answer</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Practice Questions</h4>
+      <ul>
+        <li>Always 3 questions (not adjustable in v2)</li>
+        <li>Scaffolded: Q1=2 choices, Q2=4 choices, Q3=4 choices (harder)</li>
+        <li>Phoneme/picture hints always shown (full scaffolding)</li>
+        <li>Stars: +1 ⭐ per correct answer (same as regular)</li>
+        <li>No stars lost on wrong practice answers</li>
+        <li class="dont">❌ Never 5 practice Qs — 3 max to keep it quick</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Opt-In Rules</h4>
+      <ul>
+        <li>Practice is ALWAYS opt-in — child can skip</li>
+        <li>"Skip to regular session" always visible</li>
+        <li>No guilt language: "Skip to regular session" not "Skip practice"</li>
+        <li>If skipped 3+ times: stop offering for that skill</li>
+        <li>Practice shown max once per session-start, not mid-session</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Confidence Meter</h4>
+      <ul>
+        <li>Height: 10px (skill review) / 12px (done screen)</li>
+        <li>Low: gradient <code>#ff7b6b → #ffd166</code></li>
+        <li>Medium: gradient <code>#ffd166 → #9b72ff</code></li>
+        <li>High: gradient <code>#58e8c1 → #9b72ff</code></li>
+        <li>Done screen shows before/after comparison</li>
+        <li class="dont">❌ Never show % number to child — just the bar</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

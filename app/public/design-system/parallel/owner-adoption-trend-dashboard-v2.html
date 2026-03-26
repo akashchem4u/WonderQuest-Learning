@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Owner Adoption Trend Dashboard v2 — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d1117;
+    color: #f0f6ff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #1a1a1a;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f0f6ff;
+    letter-spacing: -0.3px;
+  }
+  .owner-badge {
+    background: #50e890;
+    color: #0d1117;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  /* ── Tab nav ── */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: rgba(240,246,255,.45);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .18s, border-color .18s;
+    border-radius: 4px 4px 0 0;
+  }
+  .tab-btn:hover { color: #f0f6ff; }
+  .tab-btn.active {
+    color: #50e890;
+    border-bottom-color: #50e890;
+  }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: rgba(240,246,255,.45);
+    margin-bottom: 8px;
+  }
+
+  /* ── Section title ── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(240,246,255,.6);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 14px;
+  }
+
+  /* ── KPI row ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 960px) {
+    .kpi-row { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  .kpi-card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 18px 16px 14px;
+  }
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(240,246,255,.4);
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #f0f6ff;
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .kpi-delta {
+    font-size: 12px;
+    font-weight: 600;
+    color: #50e890;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .kpi-delta.neutral { color: rgba(240,246,255,.5); }
+
+  /* ── Chart section ── */
+  .chart-section {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chart-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f6ff;
+  }
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: rgba(240,246,255,.5);
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  svg.mau-chart { width: 100%; height: 280px; display: block; overflow: visible; }
+
+  /* ── Cohort row ── */
+  .cohort-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 700px) { .cohort-row { grid-template-columns: 1fr; } }
+
+  /* ── Mini bar chart ── */
+  .mini-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 70px;
+    margin-top: 12px;
+  }
+  .mini-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .mini-bar {
+    width: 100%;
+    background: #50e890;
+    border-radius: 3px 3px 0 0;
+    opacity: .82;
+    transition: opacity .2s;
+  }
+  .mini-bar:hover { opacity: 1; }
+  .mini-bar-label {
+    font-size: 10px;
+    color: rgba(240,246,255,.4);
+    white-space: nowrap;
+  }
+
+  /* ── Retention curve ── */
+  .retention-row {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .retention-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .retention-label {
+    width: 32px;
+    color: rgba(240,246,255,.5);
+    flex-shrink: 0;
+  }
+  .retention-bar-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(255,255,255,.06);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .retention-bar-fill {
+    height: 100%;
+    background: #50e890;
+    border-radius: 5px;
+    transition: width .4s ease;
+  }
+  .retention-pct {
+    width: 38px;
+    text-align: right;
+    color: #f0f6ff;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* ── Funnel ── */
+  .funnel-section {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .funnel-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .funnel-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .funnel-step-label {
+    width: 180px;
+    font-size: 13px;
+    color: rgba(240,246,255,.75);
+    flex-shrink: 0;
+  }
+  .funnel-bar-track {
+    flex: 1;
+    height: 22px;
+    background: rgba(255,255,255,.05);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+  .funnel-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0d1117;
+    transition: width .5s ease;
+  }
+  .funnel-count {
+    width: 55px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0f6ff;
+    flex-shrink: 0;
+  }
+  .funnel-pct {
+    width: 38px;
+    text-align: right;
+    font-size: 12px;
+    color: rgba(240,246,255,.5);
+    flex-shrink: 0;
+  }
+
+  /* ── Period selector ── */
+  .period-selector {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .period-btn {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    color: rgba(240,246,255,.6);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .period-btn:hover { background: rgba(255,255,255,.1); color: #f0f6ff; }
+  .period-btn.active {
+    background: rgba(80,232,144,.15);
+    border-color: #50e890;
+    color: #50e890;
+  }
+
+  /* ── Schools table ── */
+  .schools-section { margin-bottom: 28px; }
+  .table-wrap {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(240,246,255,.4);
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    transition: background .15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.025); }
+  tbody td {
+    padding: 11px 16px;
+    color: #f0f6ff;
+    vertical-align: middle;
+  }
+  td.school-name { font-weight: 600; }
+  td.school-since { color: rgba(240,246,255,.45); font-size: 12px; }
+
+  /* ── Band mix chips ── */
+  .band-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+  .band-chip {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.3px;
+  }
+  .band-chip.prek { background: rgba(255,180,60,.18); color: #ffb43c; }
+  .band-chip.k1   { background: rgba(80,232,144,.18); color: #50e890; }
+  .band-chip.g23  { background: rgba(80,160,255,.18); color: #50a0ff; }
+  .band-chip.g45  { background: rgba(200,120,255,.18); color: #c878ff; }
+
+  /* ── Engagement chips ── */
+  .eng-chip {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 5px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  .eng-chip.high   { background: rgba(80,232,144,.15); color: #50e890; border: 1px solid rgba(80,232,144,.3); }
+  .eng-chip.medium { background: rgba(255,180,60,.12); color: #ffb43c; border: 1px solid rgba(255,180,60,.3); }
+  .eng-chip.low    { background: rgba(255,100,90,.12); color: #ff6a5e; border: 1px solid rgba(255,100,90,.25); }
+
+  /* ── Spec tab ── */
+  .spec-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .spec-card {
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .spec-card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #50e890;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+  }
+  .spec-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .spec-list li {
+    font-size: 13px;
+    color: rgba(240,246,255,.8);
+    display: flex;
+    gap: 8px;
+    line-height: 1.5;
+  }
+  .spec-list li::before {
+    content: '→';
+    color: #50e890;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .spec-code {
+    font-family: monospace;
+    background: rgba(255,255,255,.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #c8e6ff;
+  }
+
+  /* ── Data lag notice ── */
+  .lag-notice {
+    font-size: 11px;
+    color: rgba(240,246,255,.35);
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .lag-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f0c040;
+    flex-shrink: 0;
+  }
+
+  /* ── Annotation marker ── */
+  .annotation-group text {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 10px;
+    fill: rgba(240,246,255,.6);
+  }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div class="hint-box">ITEM 249 · owner-adoption-trend-dashboard-v2.html · WonderQuest parallel-agent build</div>
+
+<!-- Page header -->
+<div class="page-header">
+  <div class="page-title">Adoption Trends</div>
+  <div class="owner-badge">Owner Only</div>
+  <div style="margin-left:auto;">
+    <div class="period-selector" id="period-selector">
+      <button class="period-btn" onclick="setPeriod('7d',this)">7d</button>
+      <button class="period-btn active" onclick="setPeriod('30d',this)">30d</button>
+      <button class="period-btn" onclick="setPeriod('90d',this)">90d</button>
+      <button class="period-btn" onclick="setPeriod('all',this)">All Time</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tab nav -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('dashboard',this)">Adoption Dashboard</button>
+  <button class="tab-btn" onclick="showTab('schools',this)">School Adoption</button>
+  <button class="tab-btn" onclick="showTab('spec',this)">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 1 — ADOPTION DASHBOARD
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-dashboard">
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">MAU</div>
+      <div class="kpi-value">2,847</div>
+      <div class="kpi-delta">▲ +12% MoM</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">DAU</div>
+      <div class="kpi-value">634</div>
+      <div class="kpi-delta">▲ +8% WoW</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Schools</div>
+      <div class="kpi-value">14</div>
+      <div class="kpi-delta">+2 this month</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Families</div>
+      <div class="kpi-value">1,203</div>
+      <div class="kpi-delta">+134 this month</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">DAU / MAU</div>
+      <div class="kpi-value" style="font-size:24px;">22.3%</div>
+      <div class="kpi-delta neutral" style="color:#50e890;">● Healthy</div>
+    </div>
+  </div>
+
+  <!-- MAU Trend Chart -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">MAU Growth — 12 Months</div>
+        <div class="lag-notice"><span class="lag-dot"></span>Analytics warehouse · 4–6h data lag</div>
+      </div>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:#50e890;"></span>MAU</span>
+        <span><span class="legend-dot" style="background:rgba(80,232,144,.25);"></span>Trend area</span>
+      </div>
+    </div>
+    <!-- SVG line chart -->
+    <svg class="mau-chart" viewBox="0 0 780 250" preserveAspectRatio="xMidYMid meet" id="mau-svg">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#50e890" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#50e890" stop-opacity="0.02"/>
+        </linearGradient>
+        <clipPath id="chartClip">
+          <rect x="52" y="10" width="710" height="200"/>
+        </clipPath>
+      </defs>
+
+      <!-- Y-axis grid lines and labels -->
+      <!-- 3000 -->
+      <line x1="52" y1="10"  x2="762" y2="10"  stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      <text x="46" y="14"  text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">3000</text>
+      <!-- 2500 -->
+      <line x1="52" y1="43"  x2="762" y2="43"  stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      <text x="46" y="47"  text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">2500</text>
+      <!-- 2000 -->
+      <line x1="52" y1="77"  x2="762" y2="77"  stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      <text x="46" y="81"  text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">2000</text>
+      <!-- 1500 -->
+      <line x1="52" y1="110" x2="762" y2="110" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      <text x="46" y="114" text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">1500</text>
+      <!-- 1000 -->
+      <line x1="52" y1="143" x2="762" y2="143" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      <text x="46" y="147" text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">1000</text>
+      <!-- 500 -->
+      <line x1="52" y1="177" x2="762" y2="177" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+      <text x="46" y="181" text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">500</text>
+      <!-- 0 -->
+      <line x1="52" y1="210" x2="762" y2="210" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+      <text x="46" y="214" text-anchor="end" fill="rgba(240,246,255,.35)" font-size="10">0</text>
+
+      <!-- X-axis month labels -->
+      <!-- Points spaced: 52 + i * (710/11) = 52 + i*64.5, i=0..11 -->
+      <text x="52"   y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Apr</text>
+      <text x="117"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">May</text>
+      <text x="181"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Jun</text>
+      <text x="246"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Jul</text>
+      <text x="311"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Aug</text>
+      <text x="375"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Sep</text>
+      <text x="440"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Oct</text>
+      <text x="505"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Nov</text>
+      <text x="569"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Dec</text>
+      <text x="634"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Jan</text>
+      <text x="698"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Feb</text>
+      <text x="762"  y="228" text-anchor="middle" fill="rgba(240,246,255,.35)" font-size="10">Mar</text>
+
+      <!--
+        MAU values: 200,400,600,900,1200,1500,1800,2100,2400,2600,2750,2847
+        Y range: 0→3000 mapped to 210→10 (200px height)
+        y = 210 - (val/3000)*200
+      -->
+      <!-- Area fill polygon (clip to chart area) -->
+      <polygon clip-path="url(#chartClip)"
+        fill="url(#areaGrad)"
+        points="
+          52,210
+          52,196.7
+          117,183.3
+          181,170
+          246,150
+          311,130
+          375,110
+          440,90
+          505,70
+          569,50
+          634,36.7
+          698,26.7
+          762,20.1
+          762,210
+        "
+      />
+
+      <!-- Line -->
+      <polyline
+        clip-path="url(#chartClip)"
+        fill="none"
+        stroke="#50e890"
+        stroke-width="2.5"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        points="
+          52,196.7
+          117,183.3
+          181,170
+          246,150
+          311,130
+          375,110
+          440,90
+          505,70
+          569,50
+          634,36.7
+          698,26.7
+          762,20.1
+        "
+      />
+
+      <!-- Data points -->
+      <circle cx="52"  cy="196.7" r="3.5" fill="#50e890"/>
+      <circle cx="117" cy="183.3" r="3.5" fill="#50e890"/>
+      <circle cx="181" cy="170"   r="3.5" fill="#50e890"/>
+      <circle cx="246" cy="150"   r="3.5" fill="#50e890"/>
+      <circle cx="311" cy="130"   r="3.5" fill="#50e890"/>
+      <circle cx="375" cy="110"   r="3.5" fill="#50e890"/>
+      <circle cx="440" cy="90"    r="3.5" fill="#50e890"/>
+      <circle cx="505" cy="70"    r="3.5" fill="#50e890"/>
+      <circle cx="569" cy="50"    r="3.5" fill="#50e890"/>
+      <circle cx="634" cy="36.7"  r="3.5" fill="#50e890"/>
+      <circle cx="698" cy="26.7"  r="3.5" fill="#50e890"/>
+      <circle cx="762" cy="20.1"  r="4.5" fill="#50e890" stroke="#0d1117" stroke-width="2"/>
+
+      <!-- Annotation: Beta launch at month 3 (Jun, x=181) -->
+      <g class="annotation-group">
+        <line x1="181" y1="170" x2="181" y2="135" stroke="#f0c040" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="148" y="117" width="66" height="17" rx="3" fill="rgba(240,192,64,.15)" stroke="rgba(240,192,64,.4)" stroke-width="1"/>
+        <text x="181" y="129" text-anchor="middle" fill="#f0c040" font-size="9.5" font-weight="700">Beta launch</text>
+      </g>
+
+      <!-- Annotation: School onboarding at month 7 (Oct, x=440) -->
+      <g class="annotation-group">
+        <line x1="440" y1="90" x2="440" y2="55" stroke="#50a0ff" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="394" y="37" width="92" height="17" rx="3" fill="rgba(80,160,255,.15)" stroke="rgba(80,160,255,.4)" stroke-width="1"/>
+        <text x="440" y="49" text-anchor="middle" fill="#50a0ff" font-size="9.5" font-weight="700">School onboarding</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Cohort breakdown -->
+  <div class="cohort-row">
+    <!-- Teachers card -->
+    <div class="card">
+      <div class="card-title">Teacher Cohort — 14 Schools · 28 Teachers</div>
+      <div style="font-size:12px; color:rgba(240,246,255,.45); margin-bottom:4px;">Engagement sessions per week (8-week window)</div>
+      <div class="mini-bars">
+        <!-- Relative session heights over 8 weeks: 60,72,68,80,88,82,90,95 (out of 100) -->
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:42px;"></div>
+          <div class="mini-bar-label">W1</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:50px;"></div>
+          <div class="mini-bar-label">W2</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:48px; opacity:.7;"></div>
+          <div class="mini-bar-label">W3</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:56px;"></div>
+          <div class="mini-bar-label">W4</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:62px;"></div>
+          <div class="mini-bar-label">W5</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:58px; opacity:.75;"></div>
+          <div class="mini-bar-label">W6</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:63px;"></div>
+          <div class="mini-bar-label">W7</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar" style="height:67px;"></div>
+          <div class="mini-bar-label">W8</div>
+        </div>
+      </div>
+      <div style="font-size:11px; color:rgba(240,246,255,.35); margin-top:10px;">Avg sessions/teacher/week: 4.2 · Trend ▲ improving</div>
+    </div>
+
+    <!-- Family retention card -->
+    <div class="card">
+      <div class="card-title">Family Retention Curve — 1,203 Families</div>
+      <div style="font-size:12px; color:rgba(240,246,255,.45); margin-bottom:2px;">% still active by week</div>
+      <div class="retention-row">
+        <div class="retention-item">
+          <div class="retention-label">W1</div>
+          <div class="retention-bar-track">
+            <div class="retention-bar-fill" style="width:100%;"></div>
+          </div>
+          <div class="retention-pct">100%</div>
+        </div>
+        <div class="retention-item">
+          <div class="retention-label">W2</div>
+          <div class="retention-bar-track">
+            <div class="retention-bar-fill" style="width:89%;"></div>
+          </div>
+          <div class="retention-pct">89%</div>
+        </div>
+        <div class="retention-item">
+          <div class="retention-label">W3</div>
+          <div class="retention-bar-track">
+            <div class="retention-bar-fill" style="width:81%; opacity:.85;"></div>
+          </div>
+          <div class="retention-pct" style="color:rgba(240,246,255,.5);">~81%</div>
+        </div>
+        <div class="retention-item">
+          <div class="retention-label">W4</div>
+          <div class="retention-bar-track">
+            <div class="retention-bar-fill" style="width:74%;"></div>
+          </div>
+          <div class="retention-pct">74%</div>
+        </div>
+        <div class="retention-item">
+          <div class="retention-label">W6</div>
+          <div class="retention-bar-track">
+            <div class="retention-bar-fill" style="width:67%; opacity:.8;"></div>
+          </div>
+          <div class="retention-pct" style="color:rgba(240,246,255,.5);">~67%</div>
+        </div>
+        <div class="retention-item">
+          <div class="retention-label">W8</div>
+          <div class="retention-bar-track">
+            <div class="retention-bar-fill" style="width:61%;"></div>
+          </div>
+          <div class="retention-pct">61%</div>
+        </div>
+      </div>
+      <div style="font-size:11px; color:rgba(240,246,255,.35); margin-top:10px;">61% 8-week retention · Industry avg ~55%</div>
+    </div>
+  </div>
+
+  <!-- Activation funnel -->
+  <div class="funnel-section">
+    <div class="section-title">Activation Funnel</div>
+    <div class="lag-notice" style="margin-bottom:12px;"><span class="lag-dot"></span>Each step = distinct event in <span class="spec-code">analytics_events</span> table</div>
+    <div class="funnel-rows">
+      <div class="funnel-item">
+        <div class="funnel-step-label">Signed up</div>
+        <div class="funnel-bar-track">
+          <div class="funnel-bar-fill" style="width:100%; background:#50e890;">100%</div>
+        </div>
+        <div class="funnel-count">1,847</div>
+        <div class="funnel-pct">—</div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-step-label">Completed onboarding</div>
+        <div class="funnel-bar-track">
+          <div class="funnel-bar-fill" style="width:87%; background:#4dd880;">87%</div>
+        </div>
+        <div class="funnel-count">1,612</div>
+        <div class="funnel-pct">87%</div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-step-label">First session</div>
+        <div class="funnel-bar-track">
+          <div class="funnel-bar-fill" style="width:81%; background:#44c870;">81%</div>
+        </div>
+        <div class="funnel-count">1,489</div>
+        <div class="funnel-pct">81%</div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-step-label">7-day return</div>
+        <div class="funnel-bar-track">
+          <div class="funnel-bar-fill" style="width:51%; background:#f0c040; color:#0d1117;">51%</div>
+        </div>
+        <div class="funnel-count">934</div>
+        <div class="funnel-pct">51%</div>
+      </div>
+      <div class="funnel-item">
+        <div class="funnel-step-label">30-day active</div>
+        <div class="funnel-bar-track">
+          <div class="funnel-bar-fill" style="width:40%; background:#ff7a5c; color:#fff;">40%</div>
+        </div>
+        <div class="funnel-count">734</div>
+        <div class="funnel-pct">40%</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-dashboard -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 2 — SCHOOL ADOPTION
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-schools">
+
+  <div class="schools-section">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+      <div class="section-title" style="margin-bottom:0;">Active Schools (14)</div>
+      <div style="font-size:12px; color:rgba(240,246,255,.4);">
+        Engagement:
+        <span class="eng-chip high" style="margin:0 4px;">High ≥70%</span>
+        <span class="eng-chip medium" style="margin:0 4px;">Med 40–69%</span>
+        <span class="eng-chip low" style="margin:0 4px;">Low &lt;40%</span>
+        DAU/MAU
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>School Name</th>
+            <th>Band Mix</th>
+            <th>Teachers</th>
+            <th>Students</th>
+            <th>Sessions (30d)</th>
+            <th>Engagement</th>
+            <th>Since</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="school-name">Maplewood Elementary</td>
+            <td><div class="band-chips"><span class="band-chip k1">K–1</span><span class="band-chip g23">G2–3</span></div></td>
+            <td>4</td>
+            <td>96</td>
+            <td>1,840</td>
+            <td><span class="eng-chip high">High</span></td>
+            <td class="school-since">Sep 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Ridgeline Academy</td>
+            <td><div class="band-chips"><span class="band-chip prek">Pre-K</span><span class="band-chip k1">K–1</span><span class="band-chip g23">G2–3</span></div></td>
+            <td>3</td>
+            <td>74</td>
+            <td>1,210</td>
+            <td><span class="eng-chip high">High</span></td>
+            <td class="school-since">Oct 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Sunridge Primary School</td>
+            <td><div class="band-chips"><span class="band-chip k1">K–1</span></div></td>
+            <td>2</td>
+            <td>48</td>
+            <td>724</td>
+            <td><span class="eng-chip high">High</span></td>
+            <td class="school-since">Oct 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Clearwater Learning Center</td>
+            <td><div class="band-chips"><span class="band-chip g23">G2–3</span><span class="band-chip g45">G4–5</span></div></td>
+            <td>2</td>
+            <td>52</td>
+            <td>680</td>
+            <td><span class="eng-chip medium">Medium</span></td>
+            <td class="school-since">Nov 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Pinecrest Charter School</td>
+            <td><div class="band-chips"><span class="band-chip prek">Pre-K</span><span class="band-chip k1">K–1</span></div></td>
+            <td>2</td>
+            <td>44</td>
+            <td>590</td>
+            <td><span class="eng-chip medium">Medium</span></td>
+            <td class="school-since">Nov 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Heritage Grove School</td>
+            <td><div class="band-chips"><span class="band-chip k1">K–1</span><span class="band-chip g23">G2–3</span><span class="band-chip g45">G4–5</span></div></td>
+            <td>3</td>
+            <td>70</td>
+            <td>870</td>
+            <td><span class="eng-chip high">High</span></td>
+            <td class="school-since">Oct 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Westfield Elementary</td>
+            <td><div class="band-chips"><span class="band-chip g23">G2–3</span></div></td>
+            <td>2</td>
+            <td>50</td>
+            <td>410</td>
+            <td><span class="eng-chip medium">Medium</span></td>
+            <td class="school-since">Dec 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Lakeside Prep</td>
+            <td><div class="band-chips"><span class="band-chip prek">Pre-K</span><span class="band-chip k1">K–1</span></div></td>
+            <td>2</td>
+            <td>38</td>
+            <td>295</td>
+            <td><span class="eng-chip low">Low</span></td>
+            <td class="school-since">Jan 2025</td>
+          </tr>
+          <tr>
+            <td class="school-name">Northgate Primary</td>
+            <td><div class="band-chips"><span class="band-chip k1">K–1</span><span class="band-chip g23">G2–3</span></div></td>
+            <td>3</td>
+            <td>65</td>
+            <td>780</td>
+            <td><span class="eng-chip high">High</span></td>
+            <td class="school-since">Nov 2024</td>
+          </tr>
+          <tr>
+            <td class="school-name">Elm Street Academy</td>
+            <td><div class="band-chips"><span class="band-chip g45">G4–5</span></div></td>
+            <td>1</td>
+            <td>24</td>
+            <td>180</td>
+            <td><span class="eng-chip low">Low</span></td>
+            <td class="school-since">Feb 2025</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="lag-notice" style="margin-top:10px;"><span class="lag-dot"></span>Individual student names are never displayed · B2B contract context only</div>
+  </div>
+
+</div><!-- /tab-schools -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 3 — SPEC
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-spec">
+  <div class="spec-section">
+
+    <div class="spec-card">
+      <h3>Access Control</h3>
+      <ul class="spec-list">
+        <li>Owner only gate: <span class="spec-code">is_owner=true</span> — not accessible to teachers, parents, or content team</li>
+        <li>All adoption metrics are aggregate; no individual student or family data is exposed</li>
+      </ul>
+    </div>
+
+    <div class="spec-card">
+      <h3>Data Source &amp; Freshness</h3>
+      <ul class="spec-list">
+        <li>Source: Analytics warehouse (daily snapshots) · 4–6 hour data lag · not real-time</li>
+        <li>Table: <span class="spec-code">adoption_snapshots(date, mau, dau, schools_count, families_count, dau_mau_ratio)</span> refreshed daily</li>
+        <li>Activation funnel events sourced from <span class="spec-code">analytics_events</span> table — each funnel step = a distinct event type</li>
+      </ul>
+    </div>
+
+    <div class="spec-card">
+      <h3>Metric Definitions</h3>
+      <ul class="spec-list">
+        <li><strong>MAU</strong> — Users with ≥1 session in the calendar month</li>
+        <li><strong>DAU/MAU ratio</strong> — Stickiness metric · Healthy threshold: &gt;20% · Concerning: &lt;15%</li>
+        <li><strong>Activation funnel</strong> — Each step represents a distinct event logged in <span class="spec-code">analytics_events</span></li>
+        <li><strong>School data</strong> — School names shown in B2B contract context · Individual student names are NEVER shown</li>
+      </ul>
+    </div>
+
+    <div class="spec-card">
+      <h3>Export Options</h3>
+      <ul class="spec-list">
+        <li>CSV export — aggregate metrics only; no PII included</li>
+        <li>PDF export — board and investor use; formatted summary with KPI row and trend chart</li>
+      </ul>
+    </div>
+
+    <div class="spec-card">
+      <h3>School Engagement Classification</h3>
+      <ul class="spec-list">
+        <li><span class="eng-chip high" style="display:inline-block; margin-right:6px;">High</span>DAU/MAU ≥ 70%</li>
+        <li><span class="eng-chip medium" style="display:inline-block; margin-right:6px;">Medium</span>DAU/MAU 40–69%</li>
+        <li><span class="eng-chip low" style="display:inline-block; margin-right:6px;">Low</span>DAU/MAU &lt; 40%</li>
+      </ul>
+    </div>
+
+  </div>
+</div><!-- /tab-spec -->
+
+
+<script>
+  function showTab(name, btn) {
+    // Hide all panels, deactivate all tab buttons
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+    // Show target panel
+    const panel = document.getElementById('tab-' + name);
+    if (panel) panel.classList.add('active');
+
+    // Activate button
+    if (btn) btn.classList.add('active');
+  }
+
+  function setPeriod(period, btn) {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    // In production this would re-fetch data; for now it's a visual state change
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Permission Denied States</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f8f9fa; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #343a40; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 130px; padding: 13px 12px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1a2e3b; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+
+/* Full-page states (mobile-proportioned for child, wider for adult) */
+.state-card { background: #fff; border: 1px solid #e8edf0; border-radius: 24px; padding: 40px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 420px; margin: 0 auto; }
+.state-illus { font-size: 72px; }
+.state-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px; }
+.state-heading { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.state-desc { font-size: 14px; color: #6b7280; line-height: 1.6; max-width: 320px; }
+.state-note { font-size: 12px; color: #9ca3af; line-height: 1.5; background: #f8f9fa; border-radius: 10px; padding: 10px 14px; width: 100%; text-align: left; }
+
+.btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.btn-primary { padding: 14px 28px; border-radius: 50px; font-weight: 700; font-size: 15px; cursor: pointer; border: none; font-family: 'Sora', sans-serif; width: 100%; }
+.btn-ghost { padding: 13px 28px; border-radius: 50px; font-weight: 600; font-size: 14px; cursor: pointer; background: none; font-family: 'Sora', sans-serif; width: 100%; }
+
+/* Wrong Role */
+.wrong-role-card { background: #fff; }
+.tag-role { background: #fce7f3; color: #9d174d; }
+.btn-role { background: #9d174d; color: #fff; }
+.btn-role-ghost { color: #9d174d; border: 2px solid #fce7f3; }
+
+/* Not Linked */
+.tag-link { background: #e0f2fe; color: #0369a1; }
+.btn-link { background: #0369a1; color: #fff; }
+.btn-link-ghost { color: #0369a1; border: 2px solid #e0f2fe; }
+
+/* Session Expired */
+.tag-session { background: #d1fae5; color: #065f46; }
+.btn-session { background: #065f46; color: #fff; }
+.btn-session-ghost { color: #374151; border: 2px solid #e8edf0; }
+
+/* Coming Soon */
+.tag-soon { background: #fef9c3; color: #a16207; }
+.btn-soon { background: #a16207; color: #fff; }
+.btn-soon-ghost { color: #a16207; border: 2px solid #fef9c3; }
+
+/* Account context strip */
+.account-strip { background: #f3f4f6; border: 1px solid #e8edf0; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+.acct-icon { font-size: 20px; }
+.acct-label { font-size: 12px; color: #6b7280; }
+.acct-val { font-size: 14px; font-weight: 600; color: #1a2e3b; }
+.acct-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: auto; white-space: nowrap; }
+
+/* Child version wrapper */
+.child-state-card { background: #1a1340; border: 2px solid #2d2060; border-radius: 24px; padding: 40px 28px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 375px; margin: 0 auto; }
+.child-heading { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 22px; color: #ffd166; line-height: 1.2; }
+.child-desc { font-size: 14px; color: #b8a8e8; line-height: 1.6; max-width: 280px; }
+.child-cta { background: linear-gradient(135deg, #ffd166, #ff9f43); color: #100b2e; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; border: none; border-radius: 50px; padding: 14px 32px; cursor: pointer; width: 100%; }
+.child-ghost { background: transparent; color: #9985cc; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; border: 1.5px solid #3d2d8e; border-radius: 50px; padding: 12px 28px; cursor: pointer; width: 100%; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 0; border: 1px solid #e8edf0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #343a40; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('wrong-role')">Wrong Role</button>
+  <button onclick="show('not-linked')">Not Linked</button>
+  <button onclick="show('session-expired')">Session Expired</button>
+  <button onclick="show('coming-soon')">Coming Soon</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- WRONG ROLE -->
+<div id="wrong-role" class="tab-content active">
+  <div class="hint">Wrong role — user is trying to access a section they don't have permission for. Explains what access they have, not what was blocked. Never says "forbidden."</div>
+
+  <!-- Adult version -->
+  <div class="page" style="padding-bottom:16px">
+    <div class="page-title">Wrong Role — Adult Surface</div>
+    <div class="page-sub">Shown when a parent tries to access teacher tools, or a teacher tries to access owner console, etc.</div>
+
+    <div class="state-card">
+      <div class="account-strip">
+        <span class="acct-icon">👤</span>
+        <div>
+          <div class="acct-label">Signed in as</div>
+          <div class="acct-val">Sarah R.</div>
+        </div>
+        <span class="acct-badge" style="background:#d1fae5;color:#065f46">Parent Account</span>
+      </div>
+
+      <span class="state-tag tag-role">Access Type</span>
+      <div class="state-illus">🧑‍🏫</div>
+      <div class="state-heading" style="color:#9d174d">Teacher Access Required</div>
+      <div class="state-desc">This section is for teachers only. You're signed in as a parent, which gives you access to your child's progress summary instead.</div>
+
+      <div class="state-note">
+        <strong>Your account type:</strong> Parent<br>
+        <strong>Required:</strong> Teacher account<br>
+        If you are a teacher, sign in with your teacher credentials or contact your school admin.
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary btn-role">Go to My Parent Dashboard</button>
+        <button class="btn-ghost btn-role-ghost">Sign In as a Teacher Instead</button>
+        <button class="btn-ghost" style="color:#6b7280;border:2px solid #e8edf0;font-size:13px">Contact Support</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Child version -->
+  <div class="page" style="background:#100b2e;border-radius:16px;padding:20px 24px;margin-top:16px">
+    <div style="font-size:14px;font-weight:700;color:#ffd166;margin-bottom:16px">Child surface version:</div>
+    <div class="child-state-card">
+      <div class="state-illus">🔒</div>
+      <div class="child-heading">This Area is for<br>Grown-Ups!</div>
+      <div class="child-desc">This part of WonderQuest is only for teachers and parents. Let's go back to your world!</div>
+      <button class="child-cta">Back to My World 🌟</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOT LINKED -->
+<div id="not-linked" class="tab-content">
+  <div class="hint">Not linked — parent is trying to view a child's data but hasn't linked a child yet, or the link expired. Clear path to link. Privacy note shown.</div>
+
+  <div class="page">
+    <div class="page-title">Not Linked — Parent Needs to Link</div>
+    <div class="page-sub">Shown to a parent account that hasn't linked a child, or whose link needs to be refreshed.</div>
+
+    <div class="state-card">
+      <span class="state-tag tag-link">Link Required</span>
+      <div class="state-illus">🔗</div>
+      <div class="state-heading" style="color:#0369a1">Link Your Child First</div>
+      <div class="state-desc">To view activity, badges, and progress, you need to link your account to your child's WonderQuest profile.</div>
+
+      <div class="state-note">
+        <strong>What you'll need:</strong><br>
+        • Your child's school-issued code (from their teacher)<br>
+        • It looks like: WQ-2024-AB<br>
+        <br>
+        Linking takes less than 2 minutes and only shows you your child's own data.
+      </div>
+
+      <div style="background:#e0f2fe;border:1px solid #0369a1;border-radius:12px;padding:12px;width:100%;text-align:left;font-size:12px;color:#0369a1;line-height:1.5">
+        🔒 Privacy: Linking only gives you access to your child's own learning highlights — no other students' data.
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary btn-link">Link My Child Now →</button>
+        <button class="btn-ghost btn-link-ghost">I Don't Have a Code — Get Help</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teacher version (roster not set up) -->
+  <div class="page" style="padding-top:8px">
+    <div class="page-sub">Teacher version — class roster not yet set up:</div>
+    <div class="state-card" style="max-width:420px">
+      <span class="state-tag" style="background:#dbeafe;color:#1e3a8a">Setup Required</span>
+      <div class="state-illus">🏫</div>
+      <div class="state-heading" style="color:#2a5080">Set Up Your Class First</div>
+      <div class="state-desc">Your class roster isn't set up yet. Share your class code with students and wait for them to join before analytics appear here.</div>
+      <div class="btn-group">
+        <button class="btn-primary" style="background:#2a5080;color:#fff">Set Up My Class →</button>
+        <button class="btn-ghost" style="color:#6b7280;border:2px solid #e8edf0">View Setup Guide</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SESSION EXPIRED -->
+<div id="session-expired" class="tab-content">
+  <div class="hint">Session expired — clean, calm. Saves state so user returns to same page. Child version hands off to parent without blame. Auto-redirect countdown.</div>
+
+  <!-- Adult version -->
+  <div class="page" style="padding-bottom:16px">
+    <div class="page-title">Session Expired — Adult</div>
+    <div class="page-sub">Shown to parent, teacher, or owner when auth token expires after inactivity.</div>
+
+    <div class="state-card">
+      <span class="state-tag tag-session">Session Expired</span>
+      <div class="state-illus">🔑</div>
+      <div class="state-heading" style="color:#065f46">Your Session Expired</div>
+      <div class="state-desc">You've been inactive for a while, so we signed you out to keep your account secure. Sign back in to continue right where you left off.</div>
+
+      <div class="state-note">
+        <strong>Don't worry:</strong> Your data is safe and nothing was lost. You'll return to the page you were on after signing back in.
+      </div>
+
+      <div style="background:#d1fae5;border:1px solid #22c55e;border-radius:12px;padding:12px;width:100%;text-align:center;font-size:13px;color:#065f46;font-weight:600">
+        Signing you out in <strong>5</strong> seconds…
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary btn-session">Sign Back In</button>
+        <button class="btn-ghost btn-session-ghost">Go to Home Page</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Child version -->
+  <div class="page" style="background:#100b2e;border-radius:16px;padding:20px 24px;margin-top:0">
+    <div style="font-size:14px;font-weight:700;color:#ffd166;margin-bottom:16px">Child surface version:</div>
+    <div class="child-state-card">
+      <div class="state-illus">💤</div>
+      <div class="child-heading">You Fell Asleep!</div>
+      <div class="child-desc">Your adventure went to sleep while you were away. Ask a grown-up to sign you back in!</div>
+      <button class="child-cta">Ask a Grown-Up 🙋</button>
+      <button class="child-ghost" style="margin-top:4px">Go Back to Start</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMING SOON -->
+<div id="coming-soon" class="tab-content">
+  <div class="hint">Feature not available yet / Coming Soon — warm, exciting. Doesn't say "you don't have access," it says the feature is coming. Notify when ready CTA.</div>
+
+  <div class="page">
+    <div class="page-title">Coming Soon</div>
+    <div class="page-sub">Shown when a feature is announced but not yet released. Positive framing — exciting, not blocking.</div>
+
+    <!-- General coming soon -->
+    <div class="state-card" style="margin-bottom:24px">
+      <span class="state-tag tag-soon">Coming Soon</span>
+      <div class="state-illus">🚀</div>
+      <div class="state-heading" style="color:#a16207">This Feature is Coming Soon!</div>
+      <div class="state-desc">We're building something great here. This feature will be available in an upcoming WonderQuest update.</div>
+
+      <div style="background:#fef9c3;border:1px solid #f59e0b;border-radius:12px;padding:14px;width:100%;text-align:left">
+        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px">What's coming:</div>
+        <div style="font-size:13px;color:#78350f;line-height:1.7">✨ Skill-based adaptive questions<br>📊 Side-by-side class comparison view<br>🏆 Team challenge mode for classes</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary btn-soon">Notify Me When It's Ready</button>
+        <button class="btn-ghost btn-soon-ghost">View Current Features</button>
+      </div>
+    </div>
+
+    <!-- Owner/Teacher — feature requires upgrade -->
+    <div style="page-sub;margin-bottom:12px;font-size:14px;color:#6b7280">Teacher/Owner version — feature requires plan upgrade:</div>
+    <div class="state-card">
+      <span class="state-tag" style="background:#dbeafe;color:#1e3a8a">Plan Required</span>
+      <div class="state-illus">⭐</div>
+      <div class="state-heading" style="color:#2a5080">Available on Pro Plan</div>
+      <div class="state-desc">Advanced analytics and custom reporting are available on the WonderQuest Pro plan. Your school currently has the Standard plan.</div>
+
+      <div style="background:#f8f9fa;border:1px solid #e8edf0;border-radius:12px;padding:14px;width:100%;text-align:left">
+        <div style="font-size:12px;color:#6b7280;line-height:1.7">
+          <strong style="color:#1a2e3b">Your plan:</strong> Standard<br>
+          <strong style="color:#1a2e3b">Required:</strong> Pro or Enterprise<br>
+          Contact your WonderQuest account manager to explore upgrade options.
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" style="background:#2a5080;color:#fff">Talk to Our Team</button>
+        <button class="btn-ghost" style="color:#6b7280;border:2px solid #e8edf0">See What's Included</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for global-permission-denied-v2.</div>
+  <div class="page">
+    <div class="spec-section">
+      <div class="spec-title">4 Denied-Access Variants</div>
+      <div class="spec-row"><span class="spec-key">Wrong Role</span><span class="spec-val">Shows user's actual role + what's needed</span></div>
+      <div class="spec-row"><span class="spec-key">Not Linked</span><span class="spec-val">Clear path to link + privacy note</span></div>
+      <div class="spec-row"><span class="spec-key">Session Expired</span><span class="spec-val">Calm, state-saved, countdown, child hand-off</span></div>
+      <div class="spec-row"><span class="spec-key">Coming Soon</span><span class="spec-val">Positive framing, notify CTA, no "blocked" language</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Language Rules (all variants)</div>
+      <div class="spec-note">✅ Never say "forbidden," "blocked," "denied," "unauthorized"<br>✅ Explain what the user CAN do, not just what they can't<br>✅ Child surface: zero jargon, hand off to grown-up<br>✅ Always show account context strip (who they're signed in as)<br>✅ Always include a primary CTA and a secondary "go back" path<br>✅ Privacy note shown on "Not Linked" variant</div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Session Expired Rules</div>
+      <div class="spec-row"><span class="spec-key">State saved?</span><span class="spec-val">Yes — returns to same page after sign-in</span></div>
+      <div class="spec-row"><span class="spec-key">Countdown</span><span class="spec-val">5s countdown before auto-redirect</span></div>
+      <div class="spec-row"><span class="spec-key">Child version</span><span class="spec-val">Hand off to grown-up, not sign-in form</span></div>
+      <div class="spec-row"><span class="spec-key">Timeout trigger</span><span class="spec-val">30 min inactivity (parent/teacher), 8hr (owner)</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Color Tags by Variant</div>
+      <div class="spec-row"><span class="spec-key">Wrong Role</span><span class="spec-val">Pink/rose #fce7f3 / #9d174d</span></div>
+      <div class="spec-row"><span class="spec-key">Not Linked</span><span class="spec-val">Light blue #e0f2fe / #0369a1</span></div>
+      <div class="spec-row"><span class="spec-key">Session Expired</span><span class="spec-val">Green #d1fae5 / #065f46</span></div>
+      <div class="spec-row"><span class="spec-key">Coming Soon</span><span class="spec-val">Yellow #fef9c3 / #a16207</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

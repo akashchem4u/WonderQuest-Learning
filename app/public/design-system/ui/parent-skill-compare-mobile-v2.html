@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Skill Compare Mobile v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #e8e4dc; color: #1a1a1a; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #d4cfc7; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #c8c3bb; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #555; }
+  .tab.active { background: #fff; color: #1a1a1a; }
+  .panel { display: none; padding: 20px 16px 40px; background: #fff; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #fffbe6; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #7a5c00; line-height: 1.6; }
+  .hint strong { color: #5a3e00; }
+
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 800px; background: #f5f0e8; border-radius: 40px; border: 8px solid #1a1a1a; box-shadow: 0 12px 40px rgba(0,0,0,0.22); overflow: hidden; flex-shrink: 0; font-family: 'Sora', 'Segoe UI', sans-serif; }
+  .phone-inner { height: 100%; overflow-y: auto; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #2c3e50; background: #f5f0e8; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #f5f0e8; border-bottom: 1px solid #e0d8cc; }
+  .topbar-back { width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #2c7a6e; box-shadow: 0 1px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+  .topbar-sub { font-size: 12px; color: #888; margin-top: 1px; }
+
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #888; padding: 0 16px; margin: 14px 0 8px; }
+
+  /* Skill header */
+  .skill-header { margin: 14px 16px; background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-left: 5px solid #9b72ff; }
+  .skill-subject { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9b72ff; margin-bottom: 4px; }
+  .skill-name { font-size: 18px; font-weight: 800; color: #1a1a1a; margin-bottom: 4px; }
+  .skill-desc { font-size: 12px; color: #666; line-height: 1.5; }
+
+  /* Child compare cards */
+  .compare-row { margin: 0 16px 12px; display: flex; gap: 10px; }
+  .child-compare-card { flex: 1; background: #fff; border-radius: 14px; padding: 14px 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .ccc-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 8px; }
+  .ccc-name { font-size: 13px; font-weight: 800; color: #1a1a1a; margin-bottom: 2px; }
+  .ccc-grade { font-size: 11px; color: #888; margin-bottom: 10px; }
+  .tier-badge { display: inline-block; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+  .tier-strength { background: #e2f8f0; color: #0d7a5f; }
+  .tier-support { background: #ffe8e6; color: #c0392b; }
+  .tier-next { background: #eef3ff; color: #2255aa; }
+  .tier-na { background: #f0f0f0; color: #aaa; }
+  .progress-mini { height: 6px; background: #f0ebe3; border-radius: 8px; overflow: hidden; margin-bottom: 6px; }
+  .prog-fill { height: 100%; border-radius: 8px; }
+  .fill-strength { background: #58e8c1; width: 82%; }
+  .fill-support { background: #ff7b6b; width: 28%; }
+  .fill-next { background: #5586e0; width: 55%; }
+  .fill-na { background: #ddd; width: 0%; }
+  .ccc-plain { font-size: 11px; color: #888; line-height: 1.5; }
+
+  /* vs divider */
+  .vs-divider { display: flex; align-items: center; justify-content: center; width: 28px; flex-shrink: 0; }
+  .vs-circle { width: 24px; height: 24px; background: #f5f0e8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #aaa; }
+
+  /* Band row */
+  .band-row { margin: 0 16px 10px; background: #fff; border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .br-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .br-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .br-name { font-size: 13px; font-weight: 700; color: #1a1a1a; flex: 1; }
+  .br-children { display: flex; gap: 8px; }
+  .br-child-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; background: #f5f0e8; font-size: 11px; font-weight: 700; }
+
+  /* Activity card */
+  .activity-card { margin: 0 16px 10px; background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); display: flex; gap: 12px; }
+  .act-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .act-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
+  .act-body { font-size: 12px; color: #666; line-height: 1.5; }
+  .act-tags { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .act-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #f0ebe3; color: #888; }
+
+  /* Footer */
+  .action-footer { position: sticky; bottom: 0; background: #f5f0e8; border-top: 1px solid #e0d8cc; padding: 12px 16px 28px; display: flex; gap: 10px; }
+  .btn-primary { flex: 1; background: #2c7a6e; color: #fff; border: none; border-radius: 12px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; }
+  .btn-secondary { background: #fff; color: #2c7a6e; border: 2px solid #2c7a6e; border-radius: 12px; padding: 13px 16px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  .bottom-nav { display: flex; background: #fff; border-top: 1px solid #e8e2d6; padding: 8px 0 18px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #aaa; }
+  .nav-item.active { color: #2c7a6e; }
+  .nav-icon { font-size: 20px; }
+
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .spec-table th { background: #f0f4f8; padding: 8px 12px; text-align: left; font-weight: 700; font-size: 12px; color: #555; border-bottom: 2px solid #dde; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: top; line-height: 1.5; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-teal { background: #dcfaf3; color: #0d7a5f; }
+  .pill-red { background: #ffe0de; color: #a83225; }
+  .pill-blue { background: #e8efff; color: #1a4faa; }
+
+  h2 { font-size: 18px; font-weight: 800; color: #1a1a1a; margin-bottom: 6px; }
+  h3 { font-size: 14px; font-weight: 700; color: #333; margin: 20px 0 8px; }
+  p { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 12px; }
+  ul { font-size: 13px; color: #555; line-height: 1.7; padding-left: 18px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('two-children')">2 Children — Same Skill</button>
+  <button class="tab" onclick="show('different-bands')">Different Bands</button>
+  <button class="tab" onclick="show('family-overview')">Family Skill Overview</button>
+  <button class="tab" onclick="show('shared-activity')">Shared Activity Suggestions</button>
+  <button class="tab" onclick="show('spec')">Spec Notes</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 1 -->
+<div id="two-children" class="panel active">
+  <div class="hint"><strong>Panel 1 — 2 Children, Same Skill:</strong> Parent views one skill shared by both children in the same band. Side-by-side child cards showing tier, progress bar (no %). Plain language. Shared activity suggestions at bottom. Parent warm light theme, Sora, teal accent. No accuracy %, no missed-day framing.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Both children — same skill, different tiers</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Skill Compare</div>
+              <div class="topbar-sub">Maya &amp; Leo · Comparing Numbers</div>
+            </div>
+          </div>
+
+          <!-- Skill header -->
+          <div class="skill-header">
+            <div class="skill-subject">Math · K–1 Violet</div>
+            <div class="skill-name">Comparing Numbers</div>
+            <div class="skill-desc">Identify which group has more or fewer — using objects, pictures, and numbers.</div>
+          </div>
+
+          <!-- Side-by-side compare -->
+          <div class="section-label">How each child is doing</div>
+          <div class="compare-row">
+            <!-- Maya -->
+            <div class="child-compare-card">
+              <div class="ccc-avatar" style="background:#ede7ff;">🦄</div>
+              <div class="ccc-name">Maya</div>
+              <div class="ccc-grade">Grade K–1</div>
+              <div class="tier-badge tier-support">Building 🌱</div>
+              <div class="progress-mini"><div class="prog-fill fill-support"></div></div>
+              <div class="ccc-plain">Still developing — could use a bit of practice at home.</div>
+            </div>
+            <div class="vs-divider"><div class="vs-circle">vs</div></div>
+            <!-- Leo -->
+            <div class="child-compare-card">
+              <div class="ccc-avatar" style="background:#dcfaf3;">🐉</div>
+              <div class="ccc-name">Leo</div>
+              <div class="ccc-grade">Grade K–1</div>
+              <div class="tier-badge tier-strength">Strength 💪</div>
+              <div class="progress-mini"><div class="prog-fill fill-strength"></div></div>
+              <div class="ccc-plain">Leo's got this down — he can help teach Maya!</div>
+            </div>
+          </div>
+
+          <!-- Insight -->
+          <div style="margin:0 16px 14px; background:#fffbe6; border:1px solid #ffd16688; border-radius:12px; padding:12px 14px; font-size:13px; color:#7a5c00; line-height:1.6;">
+            💡 <strong>Leo knows this skill well</strong> — try practicing together. Teaching is one of the best ways to reinforce learning!
+          </div>
+
+          <!-- Shared activities -->
+          <div class="section-label">Try together this weekend</div>
+          <div class="activity-card">
+            <div class="act-icon" style="background:#fff6dc;">🃏</div>
+            <div>
+              <div class="act-title">Card compare game</div>
+              <div class="act-body">Flip two cards — who has the bigger number? Let Leo explain why he's right.</div>
+              <div class="act-tags">
+                <div class="act-tag">For Maya 🌱</div>
+                <div class="act-tag">Leo can lead</div>
+                <div class="act-tag">5 min</div>
+              </div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="act-icon" style="background:#f0eaff;">🍎</div>
+            <div>
+              <div class="act-title">More or fewer at dinner</div>
+              <div class="act-body">Ask "who has more peas on their plate?" — both kids answer, compare reasoning.</div>
+              <div class="act-tags">
+                <div class="act-tag">Both kids</div>
+                <div class="act-tag">2 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">Message teacher</div>
+            <div class="btn-secondary">📅</div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Both children — same tier (both strength)</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Skill Compare</div>
+              <div class="topbar-sub">Maya &amp; Leo · Counting to 20</div>
+            </div>
+          </div>
+
+          <div class="skill-header" style="border-left-color:#9b72ff;">
+            <div class="skill-subject">Math · K–1 Violet</div>
+            <div class="skill-name">Counting to 20</div>
+            <div class="skill-desc">Count objects forward and backward — the last number tells how many total.</div>
+          </div>
+
+          <div class="section-label">How each child is doing</div>
+          <div class="compare-row">
+            <div class="child-compare-card">
+              <div class="ccc-avatar" style="background:#ede7ff;">🦄</div>
+              <div class="ccc-name">Maya</div>
+              <div class="ccc-grade">Grade K–1</div>
+              <div class="tier-badge tier-strength">Strength 💪</div>
+              <div class="progress-mini"><div class="prog-fill fill-strength"></div></div>
+              <div class="ccc-plain">Maya's got this — a solid foundation here.</div>
+            </div>
+            <div class="vs-divider"><div class="vs-circle">+</div></div>
+            <div class="child-compare-card">
+              <div class="ccc-avatar" style="background:#dcfaf3;">🐉</div>
+              <div class="ccc-name">Leo</div>
+              <div class="ccc-grade">Grade K–1</div>
+              <div class="tier-badge tier-strength">Strength 💪</div>
+              <div class="progress-mini"><div class="prog-fill fill-strength"></div></div>
+              <div class="ccc-plain">Leo's got this too — great family moment!</div>
+            </div>
+          </div>
+
+          <div style="margin:0 16px 14px; background:#e2f8f0; border:1px solid #58e8c188; border-radius:12px; padding:12px 14px; font-size:13px; color:#0d7a5f; line-height:1.6;">
+            🎉 <strong>Both kids are strong here!</strong> They've built a great foundation together. Keep celebrating this with them.
+          </div>
+
+          <div class="section-label">Keep it sharp together</div>
+          <div class="activity-card">
+            <div class="act-icon" style="background:#e2faf4;">🪜</div>
+            <div>
+              <div class="act-title">Stair counting race</div>
+              <div class="act-body">Who can count to 20 fastest on the stairs? Time each other — playful competition!</div>
+              <div class="act-tags"><div class="act-tag">Both kids</div><div class="act-tag">2 min</div></div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">See what's next</div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 2 -->
+<div id="different-bands" class="panel">
+  <div class="hint"><strong>Panel 2 — Different Bands:</strong> Children are in different bands (e.g., Maya in K–1 Violet, Leo in G2–3 Mint). The skill comparison is band-adjusted — show analogous skills, not the same skill. Clear band labels. No cross-band skill mapping that confuses parents.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Different bands — analogous skills</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Skill Compare</div>
+              <div class="topbar-sub">Maya &amp; Leo · Number Sense</div>
+            </div>
+          </div>
+
+          <!-- Band mismatch callout -->
+          <div style="margin:12px 16px; background:#f8f6f2; border:1px solid #e0d8cc; border-radius:12px; padding:12px 14px; font-size:12px; color:#777; line-height:1.6;">
+            Maya and Leo are in <strong>different learning bands</strong> — we're showing their equivalent "Number Sense" skills in each band.
+          </div>
+
+          <!-- Maya's skill -->
+          <div class="section-label">Maya · K–1 Violet</div>
+          <div class="skill-header" style="margin-bottom:10px; border-left-color:#9b72ff;">
+            <div class="skill-subject" style="color:#9b72ff;">Math · K–1 Violet Band</div>
+            <div class="skill-name" style="font-size:15px;">Comparing Numbers</div>
+          </div>
+          <div style="margin:0 16px 14px;">
+            <div class="tier-badge tier-support" style="margin-bottom:6px;">Building 🌱</div>
+            <div class="progress-mini"><div class="prog-fill fill-support"></div></div>
+            <div style="font-size:12px; color:#888; margin-top:4px;">Still developing — a little practice goes a long way.</div>
+          </div>
+
+          <!-- Leo's skill -->
+          <div class="section-label">Leo · G2–3 Mint</div>
+          <div class="skill-header" style="margin-bottom:10px; border-left-color:#58e8c1;">
+            <div class="skill-subject" style="color:#1a9e82;">Math · G2–3 Mint Band</div>
+            <div class="skill-name" style="font-size:15px;">Comparing &amp; Ordering Numbers</div>
+          </div>
+          <div style="margin:0 16px 14px;">
+            <div class="tier-badge tier-next" style="margin-bottom:6px;">Almost there 🚀</div>
+            <div class="progress-mini"><div class="prog-fill fill-next"></div></div>
+            <div style="font-size:12px; color:#888; margin-top:4px;">Getting close — a strong push this week could unlock it!</div>
+          </div>
+
+          <!-- Family insight -->
+          <div style="margin:0 16px 14px; background:#fffbe6; border:1px solid #ffd16688; border-radius:12px; padding:12px 14px; font-size:13px; color:#7a5c00; line-height:1.6;">
+            💡 Both kids are working on <strong>number comparison skills</strong> — different difficulty levels, but you can practice the concept together at home.
+          </div>
+
+          <!-- Shared activity -->
+          <div class="section-label">Practice together</div>
+          <div class="activity-card">
+            <div class="act-icon" style="background:#fff6dc;">🃏</div>
+            <div>
+              <div class="act-title">Tiered card game</div>
+              <div class="act-body">Maya compares 1–10 cards; Leo uses 1–100. Same game, two levels!</div>
+              <div class="act-tags"><div class="act-tag">Both kids</div><div class="act-tag">Different cards</div><div class="act-tag">5 min</div></div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">View each child's detail</div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 3 -->
+<div id="family-overview" class="panel">
+  <div class="hint"><strong>Panel 3 — Family Skill Overview:</strong> All skills for all children on one scrollable screen. Grouped by band, then by child. Each row shows skill name + tier dot + child avatar. Quick-scan view for parents managing multiple children. Tap row → skill detail for that child.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Family skill overview — all children</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">All Skills</div>
+              <div class="topbar-sub">Maya &amp; Leo · Family view</div>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div style="margin:10px 16px; display:flex; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#888;"><div style="width:8px;height:8px;border-radius:50%;background:#58e8c1;"></div>Strength</div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#888;"><div style="width:8px;height:8px;border-radius:50%;background:#ff7b6b;"></div>Building</div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#888;"><div style="width:8px;height:8px;border-radius:50%;background:#5586e0;"></div>Almost there</div>
+          </div>
+
+          <!-- K–1 Violet band section -->
+          <div class="band-row">
+            <div class="br-header">
+              <div class="br-dot" style="background:#9b72ff;"></div>
+              <div class="br-name">K–1 Violet Band</div>
+              <div style="font-size:11px; color:#888;">Maya · Leo</div>
+            </div>
+            <!-- Skill rows -->
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f8f6f2; border-radius:10px; cursor:pointer;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#58e8c1;flex-shrink:0;"></div>
+                <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Counting to 20</div>
+                <div style="display:flex; gap:4px;">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#ede7ff;display:flex;align-items:center;justify-content:center;font-size:11px;">🦄</div>
+                  <div style="width:22px;height:22px;border-radius:50%;background:#dcfaf3;display:flex;align-items:center;justify-content:center;font-size:11px;">🐉</div>
+                </div>
+                <div style="color:#2c7a6e; font-size:14px;">›</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#fff4f3; border-radius:10px; cursor:pointer;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#ff7b6b;flex-shrink:0;"></div>
+                <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Comparing Numbers</div>
+                <div style="display:flex; gap:4px;">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#ede7ff;display:flex;align-items:center;justify-content:center;font-size:11px;">🦄</div>
+                  <div style="width:22px;height:22px;border-radius:50%;background:#dcfaf3;display:flex;align-items:center;justify-content:center;font-size:11px;">🐉</div>
+                </div>
+                <div style="color:#2c7a6e; font-size:14px;">›</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f0f4ff; border-radius:10px; cursor:pointer;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#5586e0;flex-shrink:0;"></div>
+                <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Skip Counting</div>
+                <div style="display:flex; gap:4px;">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#ede7ff;display:flex;align-items:center;justify-content:center;font-size:11px;">🦄</div>
+                </div>
+                <div style="color:#2c7a6e; font-size:14px;">›</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- G2–3 Mint band section (Leo only) -->
+          <div class="band-row">
+            <div class="br-header">
+              <div class="br-dot" style="background:#58e8c1;"></div>
+              <div class="br-name">G2–3 Mint Band</div>
+              <div style="font-size:11px; color:#888;">Leo only</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f8f6f2; border-radius:10px; cursor:pointer;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#58e8c1;flex-shrink:0;"></div>
+                <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Multiplication × 2, 5, 10</div>
+                <div style="display:flex; gap:4px;"><div style="width:22px;height:22px;border-radius:50%;background:#dcfaf3;display:flex;align-items:center;justify-content:center;font-size:11px;">🐉</div></div>
+                <div style="color:#2c7a6e; font-size:14px;">›</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f0f4ff; border-radius:10px; cursor:pointer;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#5586e0;flex-shrink:0;"></div>
+                <div style="flex:1; font-size:13px; font-weight:600; color:#1a1a1a;">Word Problems</div>
+                <div style="display:flex; gap:4px;"><div style="width:22px;height:22px;border-radius:50%;background:#dcfaf3;display:flex;align-items:center;justify-content:center;font-size:11px;">🐉</div></div>
+                <div style="color:#2c7a6e; font-size:14px;">›</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">Back to family summary</div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 4 -->
+<div id="shared-activity" class="panel">
+  <div class="hint"><strong>Panel 4 — Shared Activity Suggestions:</strong> When multiple children are in the same skill (same or analogous), suggest activities both can do together. Show sibling-play activities prominently. Also show single-child activities clearly tagged. Max 3 total.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Shared + individual activities</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div class="topbar-back">←</div>
+            <div>
+              <div class="topbar-title">Try Together</div>
+              <div class="topbar-sub">Comparing Numbers · This weekend</div>
+            </div>
+          </div>
+
+          <!-- Sibling activity (highlighted) -->
+          <div class="section-label">Do together 👫</div>
+          <div class="activity-card" style="border:1.5px solid #ffd16688; border-radius:14px;">
+            <div class="act-icon" style="background:#fff6dc;">🃏</div>
+            <div>
+              <div class="act-title">Card compare game</div>
+              <div class="act-body">Each player flips a card. Leo explains why his is bigger — Maya learns from him!</div>
+              <div class="act-tags">
+                <div class="act-tag" style="background:#ede7ff; color:#6b48c8;">🦄 Maya</div>
+                <div class="act-tag" style="background:#dcfaf3; color:#0d7a5f;">🐉 Leo</div>
+                <div class="act-tag">5 min · Any time</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Maya only -->
+          <div class="section-label">Just for Maya 🦄</div>
+          <div class="activity-card">
+            <div class="act-icon" style="background:#ffe8e6;">🍎</div>
+            <div>
+              <div class="act-title">More or fewer at snack</div>
+              <div class="act-body">Put 3 grapes and 5 crackers. Ask Maya: "which pile has more?"</div>
+              <div class="act-tags">
+                <div class="act-tag" style="background:#ede7ff; color:#6b48c8;">🦄 Maya only</div>
+                <div class="act-tag">2 min · Snack time</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leo only -->
+          <div class="section-label">Just for Leo 🐉</div>
+          <div class="activity-card">
+            <div class="act-icon" style="background:#e2faf4;">🔢</div>
+            <div>
+              <div class="act-title">Number line ordering</div>
+              <div class="act-body">Give Leo 5 random numbers — can he put them in order from least to greatest?</div>
+              <div class="act-tags">
+                <div class="act-tag" style="background:#dcfaf3; color:#0d7a5f;">🐉 Leo only</div>
+                <div class="act-tag">3 min · Evening</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:16px;"></div>
+          <div class="action-footer">
+            <div class="btn-primary">Message Ms. Lin</div>
+            <div class="btn-secondary">📅</div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+            <div class="nav-item"><span class="nav-icon">📊</span>Progress</div>
+            <div class="nav-item"><span class="nav-icon">💬</span>Messages</div>
+            <div class="nav-item"><span class="nav-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 5 -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Panel 5 — Spec Notes:</strong> Canonical spec for parent skill compare mobile. Route: /parent/skill-compare?skillId=X or /parent/family/skills.</div>
+
+  <h2>Parent Skill Compare Mobile — Spec</h2>
+
+  <h3>Access points</h3>
+  <ul>
+    <li>From family summary → tap skill name when multiple children share the skill</li>
+    <li>From child skill detail → "See how Leo is doing on this skill →" CTA (only shown if sibling shares the skill)</li>
+    <li>From "All Skills" overview row when multiple avatar dots are shown</li>
+  </ul>
+
+  <h3>Same-band vs different-band rules</h3>
+  <table class="spec-table">
+    <tr><th>Condition</th><th>Display</th></tr>
+    <tr><td>Both children in same band, same skill</td><td>Side-by-side compare cards with vs/+ divider</td></tr>
+    <tr><td>Children in different bands, analogous skill category</td><td>Two separate skill cards with band labels; callout explaining different levels</td></tr>
+    <tr><td>Only one child has this skill (other hasn't reached it yet)</td><td>One child card + "Leo hasn't reached this skill yet" placeholder</td></tr>
+  </table>
+
+  <h3>Insight generation rules</h3>
+  <table class="spec-table">
+    <tr><th>Scenario</th><th>Insight shown</th></tr>
+    <tr><td>One support + one strength</td><td>"[Strength child] knows this well — try practicing together. Teaching is great reinforcement!"</td></tr>
+    <tr><td>Both strength</td><td>"Both kids are strong here! Keep celebrating this." (green callout)</td></tr>
+    <tr><td>Both support</td><td>"Both kids could use practice here — perfect for a family activity this week."</td></tr>
+    <tr><td>Both next/approaching</td><td>"Both are close — a little push this week could unlock it for both!"</td></tr>
+  </table>
+
+  <h3>Activity tagging rules</h3>
+  <ul>
+    <li>Activities with both children: tag both avatars + "Do together" section header</li>
+    <li>Single-child activities: tag only that child's avatar pill</li>
+    <li>Max 1 shared activity + 1 per child = 3 total maximum</li>
+    <li>Shared activities always shown first (most actionable for family)</li>
+  </ul>
+
+  <h3>Language rules (same as all parent screens)</h3>
+  <ul>
+    <li>Never show accuracy %, never compare scores between children</li>
+    <li>Never frame one child as "better" — use tier language only</li>
+    <li>When one child is stronger: frame as teaching opportunity, not ranking</li>
+    <li>No "behind" / "struggling" / "falling behind" language</li>
+  </ul>
+
+  <h3>Design tokens (parent warm light)</h3>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>bg</td><td>#f5f0e8</td></tr>
+    <tr><td>surface</td><td>#ffffff</td></tr>
+    <tr><td>accent</td><td>#2c7a6e</td></tr>
+    <tr><td>font</td><td>Sora</td></tr>
+    <tr><td>frame-width</td><td>375px</td></tr>
+  </table>
+
+  <div class="hint"><strong>Single source of truth:</strong> Canonical for parent skill compare mobile. Supersedes all prior sibling/family comparison mocks.</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

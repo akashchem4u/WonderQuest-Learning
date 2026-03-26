@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Session Readiness Banner — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Pre-session banner ──────────────────────────────────────────── */
+.session-banner{background:#fff;border-radius:16px;padding:18px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:860px;margin-bottom:16px}
+.sb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sb-left{display:flex;align-items:center;gap:10px}
+.sb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sb-dot-blue{background:#2563eb}
+.sb-dot-green{background:#22c55e;box-shadow:0 0 0 3px #dcfce7}
+.sb-dot-amber{background:#f59e0b}
+.sb-title{font-size:14px;font-weight:800;color:#1a1440}
+.sb-sub{font-size:12px;color:#666}
+.sb-dismiss{font-size:11px;font-weight:700;color:#aaa;background:none;border:none;cursor:pointer;font-family:system-ui}
+
+/* Stats row */
+.sb-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.sb-stat{background:#f8faff;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px}
+.sb-stat-n{font-size:20px;font-weight:900;color:#1a1440}
+.sb-stat-l{font-size:10px;color:#aaa;font-weight:700;margin-top:1px}
+
+/* Readiness checklist */
+.readiness-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.rl-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px}
+.rl-item-ready{background:#f0fdf4}
+.rl-item-warn{background:#fffbeb}
+.rl-item-info{background:#f0f7ff}
+.rl-check{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.rl-text{font-size:12px;color:#333;flex:1}
+.rl-action{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;background:none;border:none;font-family:system-ui;flex-shrink:0}
+.rl-action-amber{color:#d97706}
+
+/* Quick actions */
+.sb-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sb-btn{padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+.sb-btn-primary{background:#2563eb;color:#fff;border:none}
+.sb-btn-outline{background:#fff;color:#2563eb;border:1.5px solid #dbe7ff}
+.sb-btn-amber{background:#fff;color:#d97706;border:1.5px solid #fde68a}
+
+/* ── In-session live banner ─────────────────────────────────────── */
+.live-banner{background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:16px;padding:16px 22px;box-shadow:0 2px 10px rgba(0,0,0,.15);max-width:860px;margin-bottom:16px;color:#fff}
+.lb-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.lb-live{display:flex;align-items:center;gap:6px}
+.lb-live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.3);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(34,197,94,.3)}50%{box-shadow:0 0 0 6px rgba(34,197,94,.1)}}
+.lb-live-label{font-size:12px;font-weight:800;color:#86efac}
+.lb-title{font-size:14px;font-weight:800}
+.lb-end{font-size:11px;color:rgba(255,255,255,.6)}
+.lb-stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.lb-stat{text-align:center}
+.lb-stat-n{font-size:22px;font-weight:900}
+.lb-stat-l{font-size:10px;color:rgba(255,255,255,.6);font-weight:700}
+.lb-bar-wrap{background:rgba(255,255,255,.15);border-radius:4px;height:6px;margin-bottom:12px}
+.lb-bar-fill{height:6px;border-radius:4px;background:#86efac}
+.lb-actions{display:flex;gap:8px}
+.lb-btn{padding:7px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.lb-btn-white{background:#fff;color:#2563eb;border:none}
+
+/* ── Post-session banner ─────────────────────────────────────────── */
+.post-banner{background:#fff;border-radius:16px;padding:18px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:860px;margin-bottom:16px;border-left:4px solid #22c55e}
+.pb-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.pb-icon{font-size:20px}
+.pb-title{font-size:14px;font-weight:800;color:#1a1440}
+.pb-time{font-size:11px;color:#aaa;margin-left:auto}
+.pb-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pb-stat{background:#f0fdf4;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px}
+.pb-stat-n{font-size:20px;font-weight:900;color:#15803d}
+.pb-stat-l{font-size:10px;color:#6b9a6b;font-weight:700;margin-top:1px}
+.pb-wins{font-size:12px;color:#444;line-height:1.6;margin-bottom:10px}
+.pb-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Mobile variant */
+.mob-banner{background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:390px;margin-bottom:12px}
+.mb-row{display:flex;align-items:center;gap:10px}
+.mb-icon{font-size:20px;flex-shrink:0}
+.mb-text{flex:1}
+.mb-title{font-size:13px;font-weight:800;color:#1a1440}
+.mb-sub{font-size:11px;color:#666;margin-top:1px}
+.mb-btn{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;border:none;font-family:system-ui;flex-shrink:0}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-session-readiness-banner-v2.html</strong><br>
+  Banner component shown on teacher home during three session lifecycle phases: Pre-session (before students log in), In-session (live — students actively playing), Post-session (after session ends).<br>
+  <strong>Phase detection:</strong> Based on sessions_today count and real-time active session count. "Pre" = sessions_today = 0. "Live" = active_sessions_now > 0. "Post" = sessions_today > 0 AND active_sessions_now = 0 (within 2h of last session).<br>
+  <strong>No timer anywhere.</strong> The banner never shows countdown timers or time limits.<br>
+  <strong>Live data:</strong> In-session banner uses WebSocket / polling (30s) for live student count.<br>
+  <strong>Dismissal:</strong> Teacher can dismiss any phase banner. It re-appears on next page load if phase condition still active.<br>
+  <strong>Post-session:</strong> Auto-dismissed after 6 hours. Always celebratory — shows wins, stars, and mastery highlights.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('pre')">Pre-Session</button>
+  <button class="tab-btn" onclick="showTab('live')">In-Session (Live)</button>
+  <button class="tab-btn" onclick="showTab('post')">Post-Session</button>
+  <button class="tab-btn" onclick="showTab('mobile')">Mobile</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Pre-Session ────────────────────────────────────────────────── -->
+<div id="tab-pre" class="screen active">
+  <p class="section-title">Pre-session banner — no sessions started yet today</p>
+
+  <div class="session-banner">
+    <div class="sb-top">
+      <div class="sb-left">
+        <div class="sb-dot sb-dot-blue"></div>
+        <div>
+          <div class="sb-title">🌅 Ready for today's sessions</div>
+          <div class="sb-sub">No students have started yet — usually kicks off around 3pm. Class 4B · Tuesday</div>
+        </div>
+      </div>
+      <button class="sb-dismiss">Dismiss</button>
+    </div>
+
+    <div class="sb-stats">
+      <div class="sb-stat">
+        <div class="sb-stat-n">28</div>
+        <div class="sb-stat-l">Students in class</div>
+      </div>
+      <div class="sb-stat">
+        <div class="sb-stat-n">4</div>
+        <div class="sb-stat-l">Queue open</div>
+      </div>
+      <div class="sb-stat">
+        <div class="sb-stat-n">3</div>
+        <div class="sb-stat-l">Assignments active</div>
+      </div>
+      <div class="sb-stat">
+        <div class="sb-stat-n">22</div>
+        <div class="sb-stat-l">Active this week</div>
+      </div>
+    </div>
+
+    <div class="readiness-list">
+      <div class="rl-item rl-item-ready">
+        <div class="rl-check">✅</div>
+        <div class="rl-text">Class roster complete — 28 students enrolled</div>
+      </div>
+      <div class="rl-item rl-item-ready">
+        <div class="rl-check">✅</div>
+        <div class="rl-text">3 active assignments running — Long Division, Fractions, Place Value</div>
+      </div>
+      <div class="rl-item rl-item-warn">
+        <div class="rl-check">⚠️</div>
+        <div class="rl-text">4 students in support queue — action recommended before end of week</div>
+        <button class="rl-action rl-action-amber">Review queue</button>
+      </div>
+      <div class="rl-item rl-item-info">
+        <div class="rl-check">💡</div>
+        <div class="rl-text">3 students ready for band advancement review (Marcus, Bella, Aarav)</div>
+        <button class="rl-action">Review</button>
+      </div>
+    </div>
+
+    <div class="sb-actions">
+      <button class="sb-btn sb-btn-outline">View all students</button>
+      <button class="sb-btn sb-btn-amber">Review queue (4)</button>
+      <button class="sb-btn sb-btn-outline">Check assignments</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── In-Session Live ────────────────────────────────────────────── -->
+<div id="tab-live" class="screen">
+  <p class="section-title">In-session live banner — students actively playing now</p>
+
+  <div class="live-banner">
+    <div class="lb-top">
+      <div class="lb-live">
+        <div class="lb-live-dot"></div>
+        <span class="lb-live-label">LIVE SESSION</span>
+      </div>
+      <div class="lb-title">Class 4B — Active now</div>
+      <div class="lb-end">Session started 4:02pm</div>
+    </div>
+
+    <div class="lb-stats">
+      <div class="lb-stat">
+        <div class="lb-stat-n">18</div>
+        <div class="lb-stat-l">Playing now</div>
+      </div>
+      <div class="lb-stat">
+        <div class="lb-stat-n">47</div>
+        <div class="lb-stat-l">Questions today</div>
+      </div>
+      <div class="lb-stat">
+        <div class="lb-stat-n">⭐ 312</div>
+        <div class="lb-stat-l">Stars earned</div>
+      </div>
+      <div class="lb-stat">
+        <div class="lb-stat-n">3</div>
+        <div class="lb-stat-l">Skills in progress</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:6px;font-weight:700">STUDENT PARTICIPATION TODAY — 18 of 28</div>
+    <div class="lb-bar-wrap">
+      <div class="lb-bar-fill" style="width:64%"></div>
+    </div>
+
+    <div class="lb-actions">
+      <button class="lb-btn lb-btn-white">View live roster</button>
+      <button class="lb-btn">Support queue (4)</button>
+      <button class="lb-btn">Pause updates</button>
+    </div>
+  </div>
+
+  <p style="font-size:11px;color:#888;max-width:860px">Live data refreshes every 30 seconds. Student count shows currently active sessions — does not include students who played earlier today and ended their session.</p>
+</div>
+
+<!-- ── Post-Session ───────────────────────────────────────────────── -->
+<div id="tab-post" class="screen">
+  <p class="section-title">Post-session banner — session wrapped up today</p>
+
+  <div class="post-banner">
+    <div class="pb-top">
+      <div class="pb-icon">🎉</div>
+      <div class="pb-title">Today's session complete — great day, Class 4B!</div>
+      <div class="pb-time">Last activity: 5:47pm</div>
+    </div>
+
+    <div class="pb-stats">
+      <div class="pb-stat">
+        <div class="pb-stat-n">22</div>
+        <div class="pb-stat-l">Students played</div>
+      </div>
+      <div class="pb-stat">
+        <div class="pb-stat-n">⭐ 186</div>
+        <div class="pb-stat-l">Stars earned</div>
+      </div>
+      <div class="pb-stat">
+        <div class="pb-stat-n">4</div>
+        <div class="pb-stat-l">Skills mastered</div>
+      </div>
+      <div class="pb-stat">
+        <div class="pb-stat-n">3</div>
+        <div class="pb-stat-l">Streaks extended</div>
+      </div>
+    </div>
+
+    <div class="pb-wins">
+      🏆 <strong>Today's highlights:</strong> Bella mastered Long Division! · Ethan extended streak to 7 days! · Marcus hit the P2 ceiling again — ready for advancement review.
+    </div>
+
+    <div class="pb-actions">
+      <button class="sb-btn sb-btn-primary" style="background:#15803d">View today's summary</button>
+      <button class="sb-btn sb-btn-outline">Review queue</button>
+      <button class="sb-btn sb-btn-outline" style="color:#aaa;border-color:#f0f0f0">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mobile ────────────────────────────────────────────────────── -->
+<div id="tab-mobile" class="screen">
+  <p class="section-title">Mobile variants — compact banners</p>
+
+  <div style="margin-bottom:20px">
+    <p style="font-size:11px;font-weight:700;color:#8a7a6a;text-transform:uppercase;margin-bottom:10px">Pre-session (mobile)</p>
+    <div class="mob-banner">
+      <div class="mb-row">
+        <div class="mb-icon">🌅</div>
+        <div class="mb-text">
+          <div class="mb-title">Ready for today's sessions</div>
+          <div class="mb-sub">No sessions yet · 4 queue items pending</div>
+        </div>
+        <button class="mb-btn">Review</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:20px">
+    <p style="font-size:11px;font-weight:700;color:#8a7a6a;text-transform:uppercase;margin-bottom:10px">In-session live (mobile)</p>
+    <div class="mob-banner" style="background:linear-gradient(135deg,#1e3a8a,#2563eb)">
+      <div class="mb-row">
+        <div class="mb-icon">🟢</div>
+        <div class="mb-text">
+          <div class="mb-title" style="color:#fff">18 students playing now</div>
+          <div class="mb-sub" style="color:rgba(255,255,255,.65)">⭐ 312 stars · 47 questions</div>
+        </div>
+        <button class="mb-btn" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)">View</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:20px">
+    <p style="font-size:11px;font-weight:700;color:#8a7a6a;text-transform:uppercase;margin-bottom:10px">Post-session (mobile)</p>
+    <div class="mob-banner" style="border-left:3px solid #22c55e">
+      <div class="mb-row">
+        <div class="mb-icon">🎉</div>
+        <div class="mb-text">
+          <div class="mb-title">Great session today!</div>
+          <div class="mb-sub">22 played · ⭐ 186 stars · 4 skills mastered</div>
+        </div>
+        <button class="mb-btn" style="background:#15803d">View</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-session-readiness-banner-v2.html<br>
+      <strong>Phase detection:</strong> sessions_today = 0 → pre-session. active_sessions_now > 0 → live. sessions_today > 0 AND active_sessions_now = 0 (within 2h of last session end) → post-session.<br>
+      <strong>No timer.</strong> Banner never shows countdown timers, time limits, or session duration targets.
+    </div>
+    <h2 class="spec-h2">Phase States</h2>
+    <table class="spec-table">
+      <tr><th>Phase</th><th>Trigger</th><th>Key content</th><th>Auto-dismiss</th></tr>
+      <tr><td>Pre-session</td><td>sessions_today = 0</td><td>Class stats, readiness checklist, queue alert, assignment summary</td><td>When first session starts</td></tr>
+      <tr><td>In-session (live)</td><td>active_sessions_now &gt; 0</td><td>Live student count, stars, questions, participation bar</td><td>When active_sessions_now drops to 0</td></tr>
+      <tr><td>Post-session</td><td>sessions_today &gt; 0 AND no active sessions (within 2h)</td><td>Session totals, highlights, wins, mastery count</td><td>After 6 hours, or on next calendar day</td></tr>
+    </table>
+    <h2 class="spec-h2">Live Data (In-session)</h2>
+    <p class="spec-p">active_sessions_now: count of sessions with last_ping_at within 90 seconds. Refresh: 30s WebSocket or polling. Student count shows currently active sessions — excludes students who played earlier and closed their session.</p>
+    <h2 class="spec-h2">Post-session Tone</h2>
+    <p class="spec-p">Post-session banner is always positive/celebratory. Shows wins, star totals, mastery count. NEVER shows: accuracy %, wrong answers, queue items (those are in the queue panel separately). Post-session is the "good job today" message for the teacher.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

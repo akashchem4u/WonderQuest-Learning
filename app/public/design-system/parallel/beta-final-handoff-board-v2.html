@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Final Handoff Board — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:20px;max-width:1160px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ---- Tab bar ---- */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1160px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#161b22;color:#50e890;border:1px solid rgba(80,232,144,.35)}
+.tab-btn:not(.active):hover{background:#f0ede5}
+
+/* ---- Screen ---- */
+.screen{display:none;max-width:1160px}
+.screen.active{display:block}
+
+/* ---- Shell ---- */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);box-shadow:0 8px 40px rgba(0,0,0,.55)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:12px}
+.sh-logo{font-size:13px;font-weight:900;color:#f0f6ff}
+.sh-logo span{color:#50e890}
+.sh-divider{width:1px;height:18px;background:rgba(255,255,255,.1)}
+.sh-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.55)}
+.sh-right{display:flex;align-items:center;gap:10px}
+.sh-meta{font-size:11px;color:rgba(255,255,255,.3)}
+.badge{font-size:10px;font-weight:800;padding:3px 10px;border-radius:6px;white-space:nowrap}
+.badge-amber{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.badge-green{background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
+.badge-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.badge-blue{background:rgba(56,139,253,.15);color:#58a6ff;border:1px solid rgba(56,139,253,.3)}
+.badge-muted{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1)}
+
+/* ---- Buttons ---- */
+.btn{padding:9px 18px;border-radius:10px;font-size:12px;font-weight:700;font-family:system-ui;cursor:pointer;border:none;transition:all .18s}
+.btn-primary{background:#50e890;color:#010409}
+.btn-primary:hover{background:#6effa3}
+.btn-amber{background:#f59e0b;color:#010409}
+.btn-amber:hover{background:#fbbf24}
+.btn-outline{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15)}
+.btn-outline:hover{border-color:rgba(255,255,255,.35);color:#f0f6ff}
+.btn-disabled{background:#161b22;color:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.08);cursor:not-allowed}
+.btn-ghost{background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1);font-size:11px;padding:6px 13px}
+.btn-ghost:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25)}
+
+/* ---- Section helpers ---- */
+.section{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.05)}
+.section:last-child{border-bottom:none}
+.section-title{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:14px}
+
+/* ---- Hero banner ---- */
+.hero-banner{padding:28px 24px 24px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.hero-left{}
+.hero-headline{font-size:22px;font-weight:900;color:#f0f6ff;line-height:1.25;margin-bottom:6px}
+.hero-sub{font-size:13px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hero-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.2);display:inline-block}
+.hero-right{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+
+/* ---- Stats strip ---- */
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.04)}
+.stat-card{background:#0d1117;padding:20px 22px}
+.stat-card:hover{background:#161b22}
+.stat-val{font-size:30px;font-weight:900;color:#50e890;line-height:1;margin-bottom:4px}
+.stat-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);line-height:1.35}
+
+/* ---- Accordion ---- */
+.accordion{display:flex;flex-direction:column;gap:2px}
+.acc-item{border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden}
+.acc-trigger{width:100%;background:#161b22;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border:none;font-family:system-ui;text-align:left;transition:background .15s}
+.acc-trigger:hover{background:#1c2331}
+.acc-trigger-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.acc-emoji{font-size:16px;flex-shrink:0}
+.acc-trigger-text{}
+.acc-title{font-size:13px;font-weight:700;color:#f0f6ff;line-height:1.3}
+.acc-subtitle{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px}
+.acc-chevron{font-size:14px;color:rgba(255,255,255,.3);transition:transform .2s;flex-shrink:0;margin-left:8px}
+.acc-body{display:none;padding:14px 16px;background:#0f1318;border-top:1px solid rgba(255,255,255,.05)}
+.acc-item.open .acc-chevron{transform:rotate(180deg)}
+.acc-item.open .acc-body{display:block}
+.acc-rec{margin-top:10px;padding:10px 12px;background:rgba(80,232,144,.06);border-left:3px solid #50e890;border-radius:0 6px 6px 0}
+.acc-rec-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#50e890;margin-bottom:3px}
+.acc-rec-text{font-size:12px;color:rgba(255,255,255,.65);line-height:1.5}
+
+/* ---- Change log table ---- */
+.changelog-table{width:100%;border-collapse:collapse}
+.changelog-table th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+.changelog-table td{font-size:12px;color:rgba(255,255,255,.7);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+.changelog-table tr:last-child td{border-bottom:none}
+.changelog-table tr:hover td{background:rgba(255,255,255,.02)}
+.build-tag{font-size:11px;font-weight:800;color:#f0f6ff;background:#161b22;border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:5px;font-family:monospace}
+.impact-ux{color:#58a6ff}
+.impact-eng{color:#bc8cff}
+.impact-crit{color:#f85149;font-weight:700}
+.impact-eng2{color:#f59e0b}
+
+/* ---- Deferred list ---- */
+.deferred-list{display:flex;flex-direction:column;gap:6px}
+.deferred-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.06);gap:10px}
+.di-left{display:flex;align-items:center;gap:10px}
+.di-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);flex-shrink:0}
+.di-label{font-size:12px;color:#f0f6ff;font-weight:600}
+.di-right{font-size:11px;color:rgba(255,255,255,.3);white-space:nowrap}
+
+/* ---- GA Checklist ---- */
+.checklist-section{margin-bottom:6px}
+.checklist-group-header{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.3);padding:14px 20px 8px}
+.checklist-item{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;transition:background .13s}
+.checklist-item:hover{background:rgba(255,255,255,.02)}
+.cl-checkbox{width:18px;height:18px;border-radius:5px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.cl-checked{background:rgba(80,232,144,.12);border:1.5px solid #50e890;color:#50e890}
+.cl-unchecked{background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.12);color:transparent}
+.cl-warn{background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.4);color:#f59e0b}
+.cl-body{flex:1}
+.cl-label{font-size:13px;color:#f0f6ff;font-weight:600;line-height:1.35}
+.cl-checked-label{color:rgba(255,255,255,.55)}
+.cl-note{font-size:11px;color:rgba(255,255,255,.3);margin-top:3px}
+.cl-divider{height:1px;background:rgba(255,255,255,.04);margin:0 20px}
+.ga-activate-bar{padding:20px 24px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ga-activate-info{}
+.ga-activate-label{font-size:14px;font-weight:800;color:#f0f6ff;margin-bottom:3px}
+.ga-activate-sub{font-size:12px;color:rgba(255,255,255,.3)}
+.ga-activate-sub span{color:#f59e0b;font-weight:700}
+
+/* ---- Tester thank-you ---- */
+.composer-layout{display:grid;grid-template-columns:1fr 300px;gap:1px;background:rgba(255,255,255,.04)}
+.composer-main{background:#0d1117;padding:20px 24px}
+.composer-side{background:#0d1117;padding:20px}
+.composer-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px}
+.email-preview{width:100%;min-height:280px;background:#161b22;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#f0f6ff;font-family:system-ui;font-size:12.5px;line-height:1.65;padding:14px 16px;resize:vertical}
+.email-preview:focus{outline:none;border-color:rgba(80,232,144,.35)}
+.send-actions{display:flex;flex-direction:column;gap:8px}
+.send-btn{width:100%;padding:11px 14px;border-radius:9px;font-size:12px;font-weight:700;font-family:system-ui;cursor:pointer;border:none;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:6px;transition:all .18s}
+.send-btn-primary{background:#50e890;color:#010409}
+.send-btn-primary:hover{background:#6effa3}
+.send-btn-outline{background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.65)}
+.send-btn-outline:hover{border-color:rgba(255,255,255,.3);color:#f0f6ff}
+.send-btn-count{font-size:10px;font-weight:600;opacity:.7}
+.send-status-pill{margin-top:14px;padding:10px 12px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.06)}
+.ssp-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-bottom:3px}
+.ssp-val{font-size:12px;color:#f59e0b;font-weight:700}
+.ssp-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:1px}
+.preview-btn{width:100%;margin-top:10px;padding:9px;border-radius:8px;font-size:12px;font-weight:700;font-family:system-ui;background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);cursor:pointer;transition:all .18s}
+.preview-btn:hover{border-color:rgba(255,255,255,.3);color:#f0f6ff}
+
+/* ---- Spec tab ---- */
+.spec-layout{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.04)}
+.spec-panel{background:#0d1117;padding:22px 24px}
+.spec-heading{font-size:13px;font-weight:800;color:#f0f6ff;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-heading-icon{font-size:16px}
+.procedure-list{display:flex;flex-direction:column;gap:6px;counter-reset:proc}
+.procedure-item{display:flex;align-items:flex-start;gap:12px;padding:11px 14px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.05);counter-increment:proc}
+.proc-num{font-size:11px;font-weight:900;color:#50e890;background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.2);width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.proc-text{font-size:12px;color:#f0f6ff;line-height:1.5;flex:1}
+.proc-text code{font-family:monospace;font-size:11px;color:#f59e0b;background:rgba(245,158,11,.1);padding:1px 5px;border-radius:4px}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);padding:7px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+.data-table td{font-size:11.5px;color:rgba(255,255,255,.7);padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;line-height:1.45}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.data-key{font-weight:700;color:#f0f6ff}
+.dt-carry{color:#50e890;font-weight:700}
+.dt-archive{color:#58a6ff}
+.dt-legal{color:#f59e0b}
+.dt-hidden{color:rgba(255,255,255,.38)}
+
+/* ---- Two-column content layout ---- */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){
+  .stats-strip{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .spec-layout{grid-template-columns:1fr}
+  .composer-layout{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>beta-final-handoff-board-v2.html</strong> — Beta final handoff board. Used at end of 6-week beta. Documents: (1) What we learned, (2) What we changed, (3) What remains (backlog), (4) GA launch readiness confirmation, (5) Thank-you comms to testers. Owner-only. This is the 'graduation' document from beta to GA. After this board is signed off, beta features turn off and the GA mode activates.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">🎓 Handoff Summary</button>
+  <button class="tab-btn" onclick="showTab(2)">✅ GA Checklist</button>
+  <button class="tab-btn" onclick="showTab(3)">💌 Tester Thank-You</button>
+  <button class="tab-btn" onclick="showTab(4)">📋 Spec</button>
+</div>
+
+<!-- ==================== TAB 1: HANDOFF SUMMARY ==================== -->
+<div class="screen active" id="tab1">
+  <div class="shell">
+    <!-- Header -->
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Beta Final Handoff Board</div>
+      </div>
+      <div class="sh-right">
+        <div class="sh-meta">Owner-only</div>
+        <div class="badge badge-amber">BETA CLOSE</div>
+        <div class="badge badge-green">Week 6</div>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero-banner">
+      <div class="hero-left">
+        <div class="hero-headline">🎓 Beta Program — Final Handoff</div>
+        <div class="hero-sub">
+          <span>6 weeks</span>
+          <span class="hero-dot"></span>
+          <span>April 7 – May 16, 2026</span>
+          <span class="hero-dot"></span>
+          <span style="color:#50e890;font-weight:700">Graduating to GA</span>
+        </div>
+      </div>
+      <div class="hero-right">
+        <span class="badge badge-green">GA Target: May 18</span>
+        <span class="badge badge-blue">Sign-off pending</span>
+      </div>
+    </div>
+
+    <!-- By the numbers -->
+    <div class="stats-strip">
+      <div class="stat-card">
+        <div class="stat-val">247</div>
+        <div class="stat-label">Total play sessions<br>across beta cohort</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">183</div>
+        <div class="stat-label">Feedback items<br>processed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">21</div>
+        <div class="stat-label">Bugs fixed<br>during beta</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:#f59e0b">94%</div>
+        <div class="stat-label">Of testers surveyed would<br>recommend WonderQuest</div>
+      </div>
+    </div>
+
+    <!-- What we learned -->
+    <div class="section">
+      <div class="section-title">What We Learned — 5 Key Insights</div>
+      <div class="accordion">
+
+        <div class="acc-item open" id="acc1">
+          <button class="acc-trigger" onclick="toggleAcc('acc1')">
+            <div class="acc-trigger-left">
+              <span class="acc-emoji">🎯</span>
+              <div class="acc-trigger-text">
+                <div class="acc-title">Children engage significantly more with animal and ocean themes vs default theme</div>
+                <div class="acc-subtitle">Theme selection · High engagement signal</div>
+              </div>
+            </div>
+            <span class="acc-chevron">▾</span>
+          </button>
+          <div class="acc-body">
+            <p style="font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.6">Across all age bands, sessions using the Animal or Ocean theme showed 38% longer average session duration and 22% higher question completion rate compared to the Default theme. Pre-K learners showed the strongest preference for the Animal theme.</p>
+            <div class="acc-rec">
+              <div class="acc-rec-label">Recommendation</div>
+              <div class="acc-rec-text">Make themes more prominent on the home screen — feature the top 2 themes above the fold. Consider auto-suggesting a theme on first run based on interest capture data.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item" id="acc2">
+          <button class="acc-trigger" onclick="toggleAcc('acc2')">
+            <div class="acc-trigger-left">
+              <span class="acc-emoji">🔊</span>
+              <div class="acc-trigger-text">
+                <div class="acc-title">Audio issues disproportionately affected P0 (Pre-K) users</div>
+                <div class="acc-subtitle">BTA-0047 · 8 reports · Fixed v2.5.12</div>
+              </div>
+            </div>
+            <span class="acc-chevron">▾</span>
+          </button>
+          <div class="acc-body">
+            <p style="font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.6">P0 band relies heavily on audio prompts (letter sounds, counting cues). A 400–600ms audio delay on some Android devices caused confusion and incorrect answers that were scored against learners unfairly. Fixed in v2.5.12 by pre-loading audio assets.</p>
+            <div class="acc-rec">
+              <div class="acc-rec-label">Recommendation</div>
+              <div class="acc-rec-text">Fixed in v2.5.12. Consider adding a pre-session audio check for parents on first launch (especially on Android). P0 band should always pre-load audio on session start.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item" id="acc3">
+          <button class="acc-trigger" onclick="toggleAcc('acc3')">
+            <div class="acc-trigger-left">
+              <span class="acc-emoji">👩‍🏫</span>
+              <div class="acc-trigger-text">
+                <div class="acc-title">Teachers need faster access to the review queue from mobile</div>
+                <div class="acc-subtitle">3 teacher observations · Shipped v2.5.11</div>
+              </div>
+            </div>
+            <span class="acc-chevron">▾</span>
+          </button>
+          <div class="acc-body">
+            <p style="font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.6">Three teachers in the pilot reported that reaching the intervention review queue on mobile took 4+ taps from the home screen. On desktop the shortcut is visible in the sidebar, but the mobile route shell lacked an equivalent entry point.</p>
+            <div class="acc-rec">
+              <div class="acc-rec-label">Recommendation</div>
+              <div class="acc-rec-text">Shipped: Added a mobile shortcut button in v2.5.11. For GA, consider a persistent bottom-bar badge showing pending queue count on mobile teacher home.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item" id="acc4">
+          <button class="acc-trigger" onclick="toggleAcc('acc4')">
+            <div class="acc-trigger-left">
+              <span class="acc-emoji">👨‍👩‍👧</span>
+              <div class="acc-trigger-text">
+                <div class="acc-title">Parents want weekly digest emails, not just in-app notifications</div>
+                <div class="acc-subtitle">Survey finding · 68% of parent cohort · GA backlog</div>
+              </div>
+            </div>
+            <span class="acc-chevron">▾</span>
+          </button>
+          <div class="acc-body">
+            <p style="font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.6">68% of parent respondents said they preferred receiving a weekly email summary of their child's progress over checking the app. Many noted that the in-app notifications are easy to miss when the app is not open. This is especially relevant for parents of younger learners who don't check the app daily.</p>
+            <div class="acc-rec">
+              <div class="acc-rec-label">Recommendation</div>
+              <div class="acc-rec-text">Adding weekly digest emails for GA launch. Default opt-in. Preferences page will allow frequency settings (weekly / biweekly / off).</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item" id="acc5">
+          <button class="acc-trigger" onclick="toggleAcc('acc5')">
+            <div class="acc-trigger-left">
+              <span class="acc-emoji">🐛</span>
+              <div class="acc-trigger-text">
+                <div class="acc-title">Intervention sensitivity was the most-reported issue in beta</div>
+                <div class="acc-subtitle">BTA-0041 · 4 reports · Threshold recalibrated v2.5.9</div>
+              </div>
+            </div>
+            <span class="acc-chevron">▾</span>
+          </button>
+          <div class="acc-body">
+            <p style="font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.6">The original threshold of 3 consecutive incorrect answers triggered an intervention too frequently, especially during fast-paced play where children made accidental taps. Teachers flagged this as disruptive and children reported feeling "the game keeps stopping."</p>
+            <div class="acc-rec">
+              <div class="acc-rec-label">Recommendation</div>
+              <div class="acc-rec-text">Recalibrated threshold from 3 → 5 consecutive incorrect answers in v2.5.9. Monitoring data in the first 2 weeks of GA to validate. May need band-specific tuning for P3/P4.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- What changed -->
+    <div class="section">
+      <div class="section-title">What Changed During Beta — Shipped Improvements</div>
+      <table class="changelog-table">
+        <thead>
+          <tr>
+            <th>Build</th>
+            <th>Change</th>
+            <th>Driven by</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="build-tag">v2.5.8</span></td>
+            <td>Fixed back-navigation bug that lost session state</td>
+            <td style="color:rgba(255,255,255,.45)">BTA-0038 · 2 reports</td>
+            <td class="impact-ux">UX</td>
+          </tr>
+          <tr>
+            <td><span class="build-tag">v2.5.9</span></td>
+            <td>Adjusted intervention threshold from 3→5 consecutive incorrect</td>
+            <td style="color:rgba(255,255,255,.45)">BTA-0041 · 4 reports</td>
+            <td class="impact-eng2">Engagement</td>
+          </tr>
+          <tr>
+            <td><span class="build-tag">v2.5.10</span></td>
+            <td>Fixed student list sorting (by last active date)</td>
+            <td style="color:rgba(255,255,255,.45)">BTA-0052 · 1 report</td>
+            <td class="impact-ux">UX</td>
+          </tr>
+          <tr>
+            <td><span class="build-tag">v2.5.11</span></td>
+            <td>Mobile queue shortcut added to teacher home bottom bar</td>
+            <td style="color:rgba(255,255,255,.45)">Teacher feedback · 3 obs.</td>
+            <td class="impact-ux">UX</td>
+          </tr>
+          <tr>
+            <td><span class="build-tag">v2.5.12</span></td>
+            <td>Fixed P0 audio delay (400–600ms) on Android devices</td>
+            <td style="color:rgba(255,255,255,.45)">BTA-0047 · 8 reports</td>
+            <td class="impact-crit">Critical</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Deferred -->
+    <div class="section">
+      <div class="section-title">What's Deferred — GA+ Backlog</div>
+      <div class="deferred-list">
+        <div class="deferred-item">
+          <div class="di-left">
+            <div class="di-dot" style="background:#50e890"></div>
+            <div class="di-label">Parent weekly digest emails</div>
+          </div>
+          <div class="di-right"><span class="badge badge-green" style="font-size:9px">GA launch</span></div>
+        </div>
+        <div class="deferred-item">
+          <div class="di-left">
+            <div class="di-dot" style="background:#58a6ff"></div>
+            <div class="di-label">Voice answer feature</div>
+          </div>
+          <div class="di-right"><span class="badge badge-blue" style="font-size:9px">v2.7</span></div>
+        </div>
+        <div class="deferred-item">
+          <div class="di-left">
+            <div class="di-dot" style="background:#58a6ff"></div>
+            <div class="di-label">Show skill difficulty on hover (parent/teacher view)</div>
+          </div>
+          <div class="di-right"><span class="badge badge-blue" style="font-size:9px">v2.7</span></div>
+        </div>
+        <div class="deferred-item">
+          <div class="di-left">
+            <div class="di-dot" style="background:#58a6ff"></div>
+            <div class="di-label">Weekly XP totals in parent summary</div>
+          </div>
+          <div class="di-right"><span class="badge badge-blue" style="font-size:9px">v2.7</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 2: GA CHECKLIST ==================== -->
+<div class="screen" id="tab2">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">GA Launch Checklist</div>
+      </div>
+      <div class="sh-right">
+        <div class="sh-meta">All items must be checked before activation</div>
+        <div class="badge badge-amber">3 remaining</div>
+      </div>
+    </div>
+
+    <!-- Technical -->
+    <div class="checklist-group-header">Technical</div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">All P0 and P1 bugs resolved</div>
+        <div class="cl-note">Closed March 15 · 21 bugs total</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Performance: p95 response time &lt; 200ms</div>
+        <div class="cl-note">Verified May 10 · p95 = 147ms on staging</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Uptime 30-day average: 99.94%</div>
+        <div class="cl-note">✅ Target was 99.9% — exceeded</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Security audit completed</div>
+        <div class="cl-note">March 2026 · No critical findings</div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="checklist-group-header" style="margin-top:8px">Content</div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">P0 band: 88 / 80 skills</div>
+        <div class="cl-note">✅ Target met — 10% above minimum</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">P1 band: 127 / 120 skills</div>
+        <div class="cl-note">✅ Target met</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">P2 band: 152 / 150 skills</div>
+        <div class="cl-note">✅ Target met</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-warn">!</div>
+      <div class="cl-body">
+        <div class="cl-label" style="color:#f59e0b">P3 band: 92 / 120 skills — STILL IN PROGRESS</div>
+        <div class="cl-note">⚠ ETA: May 14 · Content team on track · 28 skills remaining</div>
+      </div>
+    </div>
+
+    <!-- Legal / Privacy -->
+    <div class="checklist-group-header" style="margin-top:8px">Legal / Privacy</div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">COPPA review signed off</div>
+        <div class="cl-note">Legal #BL-2026-03</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Privacy policy (production version) published</div>
+        <div class="cl-note">Published May 1, 2026</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">FERPA alignment confirmed</div>
+        <div class="cl-note">✅ Reviewed by legal counsel</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Data deletion pipeline tested</div>
+        <div class="cl-note">✅ End-to-end tested in staging May 9</div>
+      </div>
+    </div>
+
+    <!-- Commercial -->
+    <div class="checklist-group-header" style="margin-top:8px">Commercial</div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">3 signed school contracts</div>
+        <div class="cl-note">✅ Signed May 8 · Lincoln Elem, Westview Academy, Ridgeline K-8</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Pricing page live</div>
+        <div class="cl-note">Published May 10</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-checked">✓</div>
+      <div class="cl-body">
+        <div class="cl-label cl-checked-label">Support playbook finalised</div>
+        <div class="cl-note">Finalised May 9 · Shared with support team</div>
+      </div>
+    </div>
+
+    <!-- Communications -->
+    <div class="checklist-group-header" style="margin-top:8px">Communications</div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-unchecked"></div>
+      <div class="cl-body">
+        <div class="cl-label" style="color:#f0f6ff">Beta tester thank-you emails sent</div>
+        <div class="cl-note">PENDING — See Tab 3 to compose and send</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-unchecked"></div>
+      <div class="cl-body">
+        <div class="cl-label" style="color:#f0f6ff">GA announcement prepared and scheduled</div>
+        <div class="cl-note">PENDING — Draft in Notion, needs final approval</div>
+      </div>
+    </div>
+    <div class="cl-divider"></div>
+    <div class="checklist-item">
+      <div class="cl-checkbox cl-unchecked"></div>
+      <div class="cl-body">
+        <div class="cl-label" style="color:#f0f6ff">App store listing updated for GA version</div>
+        <div class="cl-note">PENDING — Screenshots and description ready, submission needed</div>
+      </div>
+    </div>
+
+    <!-- Activate bar -->
+    <div class="ga-activate-bar">
+      <div class="ga-activate-info">
+        <div class="ga-activate-label">Activate GA Mode</div>
+        <div class="ga-activate-sub">All required items must be checked. <span>3 items remaining.</span></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge badge-amber" style="font-size:11px;padding:5px 12px">3 items remaining</span>
+        <button class="btn btn-disabled" disabled>🚀 Activate GA Mode</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 3: TESTER THANK-YOU ==================== -->
+<div class="screen" id="tab3">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Beta Tester Thank-You Comms</div>
+      </div>
+      <div class="sh-right">
+        <div class="sh-meta">47 recipients total</div>
+        <div class="badge badge-amber">NOT YET SENT</div>
+      </div>
+    </div>
+
+    <div class="composer-layout">
+      <!-- Main composer -->
+      <div class="composer-main">
+        <div class="composer-label">Email template — editable</div>
+        <textarea class="email-preview">Subject: Thank you for helping build WonderQuest 🙏
+
+Hi [Name],
+
+Six weeks ago, you joined our private beta and helped us test something we've been building for a long time. You showed up, played with your children, sat with your students, and took the time to tell us honestly what was working — and what wasn't.
+
+Because of you, we fixed 21 bugs, recalibrated our intervention system so it feels less intrusive, added a quick-access shortcut for teachers on mobile, and learned that animal and ocean themes light kids up in a way we didn't fully expect. Every single piece of that is in the product now.
+
+We read every feedback item. Every one.
+
+What's next: WonderQuest opens to everyone on May 18, 2026. As a founding beta tester, you'll receive:
+
+  • 3 months free access for your family or school
+  • Your name in our founding testers list (optional — just reply to opt in)
+  • First access to new features before they go public
+
+Your account is already upgraded. You don't need to do anything.
+
+Thank you again. We mean it. None of this would be possible without you.
+
+— The WonderQuest Team
+  Asha, Marcus, Dev, Priya, and everyone who built this</textarea>
+      </div>
+
+      <!-- Side controls -->
+      <div class="composer-side">
+        <div class="composer-label">Send to</div>
+        <div class="send-actions">
+          <button class="send-btn send-btn-primary">
+            <span>Send to all beta testers</span>
+            <span class="send-btn-count">47 total</span>
+          </button>
+          <button class="send-btn send-btn-outline">
+            <span>Teacher Pilot only</span>
+            <span class="send-btn-count">24 teachers</span>
+          </button>
+          <button class="send-btn send-btn-outline">
+            <span>Family cohorts only</span>
+            <span class="send-btn-count">23 families</span>
+          </button>
+        </div>
+
+        <button class="preview-btn">👁 Preview email</button>
+
+        <div class="send-status-pill">
+          <div class="ssp-label">Send status</div>
+          <div class="ssp-val">Not yet sent</div>
+          <div class="ssp-sub">Planned for May 16, 2026</div>
+        </div>
+
+        <div style="margin-top:16px;padding:12px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-bottom:8px">Cohort breakdown</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;font-size:11.5px">
+              <span style="color:rgba(255,255,255,.55)">Teacher Pilot</span>
+              <span style="color:#f0f6ff;font-weight:700">24</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11.5px">
+              <span style="color:rgba(255,255,255,.55)">Family — P0/P1</span>
+              <span style="color:#f0f6ff;font-weight:700">14</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11.5px">
+              <span style="color:rgba(255,255,255,.55)">Family — P2/P3</span>
+              <span style="color:#f0f6ff;font-weight:700">9</span>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.06);margin:2px 0"></div>
+            <div style="display:flex;justify-content:space-between;font-size:11.5px">
+              <span style="color:#50e890;font-weight:700">Total</span>
+              <span style="color:#50e890;font-weight:800">47</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,.06);border-radius:8px;border:1px solid rgba(245,158,11,.15)">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#f59e0b;margin-bottom:4px">Note</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">Sending marks the "Beta tester thank-you emails sent" item as complete on the GA Checklist (Tab 2).</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 4: SPEC ==================== -->
+<div class="screen" id="tab4">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Beta Close — Spec &amp; Procedures</div>
+      </div>
+      <div class="sh-right">
+        <div class="badge badge-muted">Owner-only</div>
+      </div>
+    </div>
+
+    <div class="spec-layout">
+      <!-- Left: Close procedures -->
+      <div class="spec-panel">
+        <div class="spec-heading">
+          <span class="spec-heading-icon">⚙️</span>
+          Beta Close Procedures
+        </div>
+        <div class="procedure-list">
+          <div class="procedure-item">
+            <div class="proc-num">1</div>
+            <div class="proc-text">Export all beta data to analytics warehouse</div>
+          </div>
+          <div class="procedure-item">
+            <div class="proc-num">2</div>
+            <div class="proc-text">Set <code>is_beta=false</code> for all beta users</div>
+          </div>
+          <div class="procedure-item">
+            <div class="proc-num">3</div>
+            <div class="proc-text">Set <code>beta_phase_active=false</code> in system config</div>
+          </div>
+          <div class="procedure-item">
+            <div class="proc-num">4</div>
+            <div class="proc-text">Run data anonymisation job (observations, journal entries)</div>
+          </div>
+          <div class="procedure-item">
+            <div class="proc-num">5</div>
+            <div class="proc-text">Archive <code>beta_issues</code> to <code>beta_issues_archive</code></div>
+          </div>
+          <div class="procedure-item">
+            <div class="proc-num">6</div>
+            <div class="proc-text">Send tester thank-you comms (see Tab 3)</div>
+          </div>
+          <div class="procedure-item">
+            <div class="proc-num">7</div>
+            <div class="proc-text">Activate GA mode</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Data transition -->
+      <div class="spec-panel" style="border-left:1px solid rgba(255,255,255,.04)">
+        <div class="spec-heading">
+          <span class="spec-heading-icon">🗄️</span>
+          Data Transition Rules
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data type</th>
+              <th>Treatment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="data-key">Child progress<br><span style="font-weight:400;font-size:10.5px;color:rgba(255,255,255,.35)">XP / stars / streak</span></td>
+              <td><span class="dt-carry">Carried forward</span><br><span style="font-size:10.5px;color:rgba(255,255,255,.35)">Not reset — children keep their progress</span></td>
+            </tr>
+            <tr>
+              <td class="data-key">Beta feedback</td>
+              <td><span class="dt-archive">Archived</span><br><span style="font-size:10.5px;color:rgba(255,255,255,.35)">Retained in archive, not exposed in production feedback queue</span></td>
+            </tr>
+            <tr>
+              <td class="data-key">Observations</td>
+              <td><span class="dt-archive">Anonymised + archived</span><br><span style="font-size:10.5px;color:rgba(255,255,255,.35)">Moved to research archive after anonymisation job</span></td>
+            </tr>
+            <tr>
+              <td class="data-key">Consent records</td>
+              <td><span class="dt-legal">Retained permanently</span><br><span style="font-size:10.5px;color:rgba(255,255,255,.35)">Legal requirement — never deleted</span></td>
+            </tr>
+            <tr>
+              <td class="data-key">Beta features<br><span style="font-weight:400;font-size:10.5px;color:rgba(255,255,255,.35)">FAB / issue board / observation log</span></td>
+              <td><span class="dt-hidden">Hidden from UI</span><br><span style="font-size:10.5px;color:rgba(255,255,255,.35)">Not deleted — concealed behind GA flag after activation</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:20px">
+          <div class="spec-heading">
+            <span class="spec-heading-icon">🔒</span>
+            GA Flag Behaviour
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="padding:10px 12px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+              <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:3px"><code style="font-family:monospace;font-size:10px;background:rgba(245,158,11,.1);padding:1px 5px;border-radius:3px">beta_phase_active=false</code></div>
+              <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Hides all beta-only UI elements. Disables issue report FAB, observation log panel, and beta feedback launcher.</div>
+            </div>
+            <div style="padding:10px 12px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+              <div style="font-size:11px;font-weight:700;color:#50e890;margin-bottom:3px"><code style="font-family:monospace;font-size:10px;background:rgba(80,232,144,.08);padding:1px 5px;border-radius:3px">ga_mode_active=true</code></div>
+              <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Activates GA landing pages, public onboarding flow, and pricing. Disables beta invitation code requirement on sign-up.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sign-off footer -->
+    <div style="padding:20px 24px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#f0f6ff;margin-bottom:4px">Board sign-off</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.35)">Once signed off, this document is locked and beta procedures begin. GA activation follows automatically.</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline">Export as PDF</button>
+        <button class="btn btn-amber">Sign Off &amp; Begin Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+}
+
+function toggleAcc(id) {
+  const item = document.getElementById(id);
+  item.classList.toggle('open');
+}
+</script>
+</body>
+</html>

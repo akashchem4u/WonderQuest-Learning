@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Question Detail v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#10161e;position:sticky;top:0;z-index:100;border-bottom:1px solid #1a2535}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#151e2a;border:1px solid #1a2535;border-bottom:none;transition:all .2s}
+.tab.active{background:#1a2a3e;color:#58c8f0;border-color:#58c8f0}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#0a1a2a;border:1px solid #58c8f0;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#58c8f0;line-height:1.5}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#58c8f0}
+
+.detail-layout{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+.card{background:#151e2a;border-radius:12px;padding:18px;border:1px solid #1a2535}
+.card-title{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:14px}
+.band-chip{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700}
+.b1{background:#1a5030;color:#50c880}
+.b2{background:#1a2a40;color:#58c8f0}
+.b3{background:#2a2000;color:#f0c030}
+.b4{background:#2a0a2a;color:#c084fc}
+
+.q-text{font-size:18px;font-weight:700;color:#e8eaf0;line-height:1.4;margin:12px 0}
+.answer-option{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;margin-bottom:8px;border:2px solid #1a2535;cursor:pointer;transition:all .2s}
+.answer-option:hover{border-color:#2a3a50;background:#1a2535}
+.answer-option.correct{border-color:#22c55e;background:rgba(34,197,94,.08)}
+.answer-option.incorrect-marked{border-color:#ef4444;background:rgba(239,68,68,.05)}
+.answer-letter{width:28px;height:28px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.correct .answer-letter{background:#22c55e;color:#0a1a0d}
+.answer-text{flex:1;font-size:14px;color:#e8eaf0}
+.correct-label{font-size:11px;color:#22c55e;font-weight:700;flex-shrink:0}
+.radio-btn{width:18px;height:18px;border:2px solid #2a3a50;border-radius:50%;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.radio-btn.selected{border-color:#22c55e;background:rgba(34,197,94,.15)}
+.radio-btn.selected::after{content:'';width:8px;height:8px;background:#22c55e;border-radius:50%;display:block}
+
+.meta-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.meta-chip{background:#0a1a2a;border-radius:6px;padding:5px 10px;font-size:11px;color:#7a8a9a}
+.meta-chip span{color:#e8eaf0;font-weight:600}
+
+.action-row{display:flex;gap:10px;margin-top:16px}
+.action-btn{flex:1;border:none;border-radius:10px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-approve{background:#22c55e;color:#0a1a0d}
+.btn-approve:hover{background:#16a34a}
+.btn-reject{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.btn-edit{background:#1a2a3e;color:#58c8f0;border:1px solid #2a3a50}
+
+/* Validation */
+.val-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #1a2535;font-size:12px}
+.val-item:last-child{border-bottom:none}
+.val-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.val-pass{background:#22c55e;color:#0a1a0d}
+.val-fail{background:#ef4444;color:#fff}
+.val-warn{background:#f59e0b;color:#0a0800}
+.val-text{flex:1;color:#e8eaf0}
+.val-detail{font-size:10px;color:#7a8a9a;margin-top:2px}
+.block-alert{background:#2a0808;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#fca5a5;line-height:1.5}
+
+/* QA status */
+.qa-status-card{text-align:center;padding:16px}
+.qa-score{font-size:48px;font-weight:800;line-height:1}
+
+/* Edit mode */
+.edit-field{margin-bottom:14px}
+.edit-label{font-size:10px;font-weight:700;color:#4a6080;letter-spacing:.5px;margin-bottom:5px}
+.edit-input{width:100%;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:10px 12px;color:#e8eaf0;font-family:'Sora',sans-serif;font-size:13px;outline:none}
+.edit-input:focus{border-color:#58c8f0}
+.edit-textarea{width:100%;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:10px 12px;color:#e8eaf0;font-family:'Sora',sans-serif;font-size:13px;resize:none;min-height:80px;outline:none}
+.edit-textarea:focus{border-color:#58c8f0}
+.edit-select{width:100%;background:#0a1a2a;border:1px solid #1a2535;border-radius:8px;padding:10px 12px;color:#e8eaf0;font-family:'Sora',sans-serif;font-size:13px;outline:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('detail')">Question Detail</div>
+  <div class="tab" onclick="show('edit')">Edit Mode</div>
+  <div class="tab" onclick="show('validation')">Validation Results</div>
+  <div class="tab" onclick="show('approve')">Approve / Reject</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Question Detail -->
+<div id="detail" class="panel active">
+  <div class="hint">Full question detail view. Answer options with correct/incorrect marking. Status, skill, band, and QA result shown.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Question <span>Detail</span></div>
+      <div style="font-size:12px;color:#7a8a9a">Q-0892 &nbsp;·&nbsp; multiplication-intro &nbsp;·&nbsp; Band 3</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="show('edit');document.querySelectorAll('.tab').forEach((t,i)=>{if(i===1)t.classList.add('active');else t.classList.remove('active')})" style="background:#1a2a3e;color:#58c8f0;border:1px solid #2a3a50;border-radius:8px;padding:10px 18px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Edit</button>
+      <button style="background:#22c55e;color:#0a1a0d;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Approve →</button>
+    </div>
+  </div>
+  <div class="detail-layout">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span class="band-chip b3">Band 3</span>
+          <span style="background:#1a2a3e;color:#58c8f0;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700">multiplication-intro</span>
+          <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:auto">PENDING REVIEW</span>
+        </div>
+        <div class="q-text">What is 3 × 4?</div>
+        <div class="meta-row">
+          <div class="meta-chip">Band: <span>Band 3</span></div>
+          <div class="meta-chip">Skill: <span>multiplication-intro</span></div>
+          <div class="meta-chip">Grade: <span>2-3</span></div>
+          <div class="meta-chip">Q ID: <span>Q-0892</span></div>
+          <div class="meta-chip">Added: <span>Mar 22</span></div>
+          <div class="meta-chip">By: <span>d.miller</span></div>
+        </div>
+        <div style="margin-top:14px">
+          <div style="font-size:11px;font-weight:700;color:#4a6080;margin-bottom:10px;letter-spacing:.5px">ANSWER OPTIONS</div>
+          <div class="answer-option">
+            <div class="answer-letter">A</div>
+            <div class="answer-text">7</div>
+            <div class="radio-btn"></div>
+          </div>
+          <div class="answer-option correct">
+            <div class="answer-letter">B</div>
+            <div class="answer-text">12</div>
+            <div class="correct-label">✓ Correct</div>
+            <div class="radio-btn selected"></div>
+          </div>
+          <div class="answer-option">
+            <div class="answer-letter">C</div>
+            <div class="answer-text">34</div>
+            <div class="radio-btn"></div>
+          </div>
+          <div class="answer-option">
+            <div class="answer-letter">D</div>
+            <div class="answer-text">9</div>
+            <div class="radio-btn"></div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="action-btn btn-approve">Approve Question ✓</button>
+          <button class="action-btn btn-edit">Edit</button>
+          <button class="action-btn btn-reject">Reject</button>
+        </div>
+      </div>
+      <!-- Explainer link -->
+      <div class="card">
+        <div class="card-title">Linked Explainer</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#e8eaf0">Multiplication Basics: Groups of Equal Size</div>
+            <div style="font-size:11px;color:#7a8a9a;margin-top:3px">EXP-0148 · multiplication-intro · Band 3</div>
+          </div>
+          <a href="#" style="color:#58c8f0;font-size:11px">View →</a>
+        </div>
+      </div>
+    </div>
+    <!-- Right column -->
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">Validation Status</div>
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:40px;font-weight:800;color:#22c55e;line-height:1">✓</div>
+          <div style="font-size:13px;color:#22c55e;font-weight:700;margin-top:4px">No Hard Blocks</div>
+          <div style="font-size:11px;color:#7a8a9a;margin-top:2px">Ready for approval</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div class="val-item"><div class="val-icon val-pass">✓</div><div class="val-text">Correct answer marked</div></div>
+          <div class="val-item"><div class="val-icon val-pass">✓</div><div class="val-text">No duplicate options</div></div>
+          <div class="val-item"><div class="val-icon val-pass">✓</div><div class="val-text">4 options provided</div></div>
+          <div class="val-item"><div class="val-icon val-pass">✓</div><div class="val-text">Skill ID assigned</div></div>
+          <div class="val-item"><div class="val-icon val-pass">✓</div><div class="val-text">Band assigned</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Question History</div>
+        <div style="font-size:12px;color:#7a8a9a;line-height:2">
+          <div><span style="color:#58c8f0">Mar 22 16:30</span> — Imported (batch)</div>
+          <div><span style="color:#58c8f0">Mar 22 16:30</span> — Validation passed</div>
+          <div><span style="color:#f59e0b">Mar 23 09:00</span> — Queued for QA review</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Mode -->
+<div id="edit" class="panel">
+  <div class="hint">Edit question text, answer options, correct answer, skill, and band. Changes require re-validation.</div>
+  <div class="page-header">
+    <div class="page-title">Edit <span>Question</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:20px">
+    <div>
+      <div class="card">
+        <div class="card-title">Question Content</div>
+        <div class="edit-field">
+          <div class="edit-label">QUESTION TEXT</div>
+          <textarea class="edit-textarea">What is 3 × 4?</textarea>
+        </div>
+        <div class="edit-field">
+          <div class="edit-label">OPTION A</div>
+          <div style="display:flex;align-items:center;gap:8px"><input class="edit-input" type="text" value="7" style="flex:1"><input type="radio" name="correct_edit" style="accent-color:#22c55e;width:16px;height:16px"><span style="font-size:11px;color:#7a8a9a">correct</span></div>
+        </div>
+        <div class="edit-field">
+          <div class="edit-label">OPTION B</div>
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(34,197,94,.05);border-radius:8px;padding:4px"><input class="edit-input" type="text" value="12" style="flex:1;border-color:rgba(34,197,94,.3)"><input type="radio" name="correct_edit" checked style="accent-color:#22c55e;width:16px;height:16px"><span style="font-size:11px;color:#22c55e">correct</span></div>
+        </div>
+        <div class="edit-field">
+          <div class="edit-label">OPTION C</div>
+          <div style="display:flex;align-items:center;gap:8px"><input class="edit-input" type="text" value="34" style="flex:1"><input type="radio" name="correct_edit" style="accent-color:#22c55e;width:16px;height:16px"><span style="font-size:11px;color:#7a8a9a">correct</span></div>
+        </div>
+        <div class="edit-field" style="margin-bottom:0">
+          <div class="edit-label">OPTION D</div>
+          <div style="display:flex;align-items:center;gap:8px"><input class="edit-input" type="text" value="9" style="flex:1"><input type="radio" name="correct_edit" style="accent-color:#22c55e;width:16px;height:16px"><span style="font-size:11px;color:#7a8a9a">correct</span></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button style="flex:2;background:#58c8f0;color:#0a1a2a;border:none;border-radius:8px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Save & Validate →</button>
+          <button style="flex:1;background:#151e2a;color:#7a8a9a;border:1px solid #1a2535;border-radius:8px;padding:12px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Metadata</div>
+        <div class="edit-field">
+          <div class="edit-label">SKILL ID</div>
+          <input class="edit-input" type="text" value="multiplication-intro">
+        </div>
+        <div class="edit-field">
+          <div class="edit-label">BAND</div>
+          <select class="edit-select">
+            <option>Band 1 — Pre-K</option>
+            <option>Band 2 — K-1</option>
+            <option selected>Band 3 — Gr 2-3</option>
+            <option>Band 4 — Gr 4+</option>
+          </select>
+        </div>
+        <div class="edit-field" style="margin-bottom:0">
+          <div class="edit-label">NOTES (optional)</div>
+          <textarea class="edit-textarea" style="min-height:60px">Standard multiplication fact. Suitable for Grade 2.</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Validation Results -->
+<div id="validation" class="panel">
+  <div class="hint">Full validation report for this question. Hard blocks prevent publish. Warnings are advisory.</div>
+  <div class="page-header">
+    <div class="page-title">Validation <span>Results</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div style="background:#0a2e1a;border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:36px;font-weight:800;color:#22c55e">PASS</div>
+      <div style="font-size:12px;color:#86efac;margin-top:4px">No hard blocks detected</div>
+    </div>
+    <div style="background:#151e2a;border-radius:12px;padding:16px;border:1px solid #1a2535">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:#7a8a9a">Checks passed</span><span style="font-size:16px;font-weight:700;color:#22c55e">5/5</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:#7a8a9a">Warnings</span><span style="font-size:16px;font-weight:700;color:#f59e0b">0</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:#7a8a9a">Hard blocks</span><span style="font-size:16px;font-weight:700;color:#22c55e">0</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Validation Checks</div>
+    <div class="val-item">
+      <div class="val-icon val-pass">✓</div>
+      <div style="flex:1">
+        <div class="val-text">Correct answer marked</div>
+        <div class="val-detail">Option B "12" is marked as correct</div>
+      </div>
+      <span style="font-size:11px;color:#22c55e;font-weight:700">PASS</span>
+    </div>
+    <div class="val-item">
+      <div class="val-icon val-pass">✓</div>
+      <div style="flex:1">
+        <div class="val-text">No duplicate answer options</div>
+        <div class="val-detail">All 4 options are unique strings</div>
+      </div>
+      <span style="font-size:11px;color:#22c55e;font-weight:700">PASS</span>
+    </div>
+    <div class="val-item">
+      <div class="val-icon val-pass">✓</div>
+      <div style="flex:1">
+        <div class="val-text">Exactly 4 answer options</div>
+        <div class="val-detail">A, B, C, D all provided</div>
+      </div>
+      <span style="font-size:11px;color:#22c55e;font-weight:700">PASS</span>
+    </div>
+    <div class="val-item">
+      <div class="val-icon val-pass">✓</div>
+      <div style="flex:1">
+        <div class="val-text">Skill ID assigned and valid</div>
+        <div class="val-detail">multiplication-intro exists in skill map</div>
+      </div>
+      <span style="font-size:11px;color:#22c55e;font-weight:700">PASS</span>
+    </div>
+    <div class="val-item">
+      <div class="val-icon val-pass">✓</div>
+      <div style="flex:1">
+        <div class="val-text">Band assignment valid</div>
+        <div class="val-detail">Band 3 — Grade 2-3, consistent with skill</div>
+      </div>
+      <span style="font-size:11px;color:#22c55e;font-weight:700">PASS</span>
+    </div>
+  </div>
+  <div style="margin-top:16px">
+    <div style="background:#0a1a2a;border:1px solid #1a2535;border-radius:10px;padding:12px;font-size:12px;color:#7a8a9a">
+      <strong style="color:#58c8f0">Hard block rules:</strong> (1) No correct answer marked — blocks publish entirely. (2) Duplicate answer options — blocks publish entirely. Both conditions must be clear to approve.
+    </div>
+  </div>
+</div>
+
+<!-- Approve/Reject -->
+<div id="approve" class="panel">
+  <div class="hint">Approve sends the question to the live pool. Reject requires a reason and routes back to the author.</div>
+  <div class="page-header">
+    <div class="page-title">Approve <span>/ Reject</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div style="background:#0a2e1a;border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:20px;text-align:center">
+      <div style="font-size:28px;margin-bottom:10px">✓</div>
+      <div style="font-size:16px;font-weight:700;color:#22c55e;margin-bottom:8px">Approve Question</div>
+      <div style="font-size:12px;color:#86efac;margin-bottom:16px;line-height:1.5">All validation checks pass. No hard blocks. Question will be added to the live question pool and become available for sessions in Band 3.</div>
+      <div style="background:#0a1a2a;border-radius:8px;padding:10px;margin-bottom:14px;text-align:left">
+        <div style="font-size:11px;font-weight:700;color:#58c8f0;margin-bottom:6px">APPROVING:</div>
+        <div style="font-size:12px;color:#e8eaf0">Q-0892 — "What is 3 × 4?"</div>
+        <div style="font-size:11px;color:#7a8a9a;margin-top:3px">Band 3 · multiplication-intro</div>
+      </div>
+      <button style="width:100%;background:#22c55e;color:#0a1a0d;border:none;border-radius:10px;padding:14px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Confirm Approval ✓</button>
+    </div>
+    <div style="background:#2a0808;border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:20px">
+      <div style="text-align:center;font-size:28px;margin-bottom:10px">✗</div>
+      <div style="text-align:center;font-size:16px;font-weight:700;color:#ef4444;margin-bottom:8px">Reject Question</div>
+      <div style="font-size:12px;color:#fca5a5;margin-bottom:16px;line-height:1.5;text-align:center">Rejection routes the question back to the author with your reason. They can edit and re-submit.</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:#7a8a9a;margin-bottom:5px;letter-spacing:.5px">REJECTION REASON *</div>
+        <select style="width:100%;background:#1a0808;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px;color:#fca5a5;font-family:'Sora',sans-serif;font-size:13px">
+          <option>Select reason...</option>
+          <option>Wrong correct answer</option>
+          <option>Ambiguous question wording</option>
+          <option>Inappropriate difficulty for band</option>
+          <option>Duplicate question</option>
+          <option>Poor distractor quality</option>
+          <option>Other (specify below)</option>
+        </select>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:#7a8a9a;margin-bottom:5px;letter-spacing:.5px">ADDITIONAL NOTES</div>
+        <textarea style="width:100%;background:#1a0808;border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px;color:#fca5a5;font-family:'Sora',sans-serif;font-size:12px;resize:none;min-height:60px;outline:none" placeholder="Add specific feedback for the author..."></textarea>
+      </div>
+      <button style="width:100%;background:#ef4444;color:#fff;border:none;border-radius:10px;padding:14px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Confirm Rejection</button>
+    </div>
+  </div>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the question detail and review screen.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">VIEWPORT</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Desktop 900px+ · Sora · #10161e bg · #58c8f0 cyan</div>
+    </div>
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">HARD BLOCKS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">No correct answer marked → block publish<br>Duplicate options → block publish</div>
+    </div>
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">ACTIONS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Approve → live pool<br>Reject → back to author + reason<br>Edit → inline edit with re-validation</div>
+    </div>
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">METADATA</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Question ID, skill ID, band, grade, added by, date, linked explainer</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

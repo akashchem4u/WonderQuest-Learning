@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Summary Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-period{display:flex;gap:6px}
+.sp-chip{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.sp-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.sp-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.sh-export{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Top stats */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.stat-cell{background:#0d1117;padding:18px 20px}
+.sc-n{font-size:22px;font-weight:900;color:#f0f6ff}
+.sc-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-top:2px}
+.sc-d{font-size:11px;font-weight:700;margin-top:4px}
+.dg{color:#50e890}.da{color:#f59e0b}
+
+/* Main body */
+.sum-body{display:grid;grid-template-columns:1fr 360px;gap:0}
+.sum-main{padding:24px;border-right:1px solid rgba(255,255,255,.06)}
+.sum-side{padding:20px}
+
+/* Section */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card{background:#161b22;border-radius:12px;padding:18px 20px;margin-bottom:16px;border:1px solid rgba(255,255,255,.05)}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:12px}
+
+/* Volume chart */
+.vol-chart{height:80px;display:flex;gap:3px;align-items:flex-end}
+.vc-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.vc-bar{width:100%;border-radius:2px 2px 0 0;min-height:3px}
+.vc-label{font-size:8px;color:rgba(255,255,255,.25);font-weight:600}
+
+/* Priority dist */
+.prio-dist{display:flex;gap:0;height:18px;border-radius:6px;overflow:hidden;margin-bottom:8px}
+.pd-seg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+.type-bars .type-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.type-row:last-child{border-bottom:none}
+.tr-label{font-size:11px;color:rgba(255,255,255,.55);width:80px;flex-shrink:0}
+.tr-bar-bg{flex:1;background:rgba(255,255,255,.07);border-radius:3px;height:5px}
+.tr-fill{height:5px;border-radius:3px}
+.tr-n{font-size:10px;font-weight:700;color:rgba(255,255,255,.45);text-align:right;width:32px}
+
+/* SLA table */
+.sla-table{width:100%;border-collapse:collapse}
+.sla-table th{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);padding:5px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07)}
+.sla-table td{font-size:11px;padding:6px 8px;color:rgba(255,255,255,.6);border-bottom:1px solid rgba(255,255,255,.04)}
+.sla-table tr:last-child td{border-bottom:none}
+.sla-met{color:#50e890;font-weight:700}
+.sla-miss{color:#f59e0b;font-weight:700}
+
+/* Top schools */
+.school-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.school-row:last-child{border-bottom:none}
+.sr-n{font-size:11px;color:rgba(255,255,255,.25);width:18px;flex-shrink:0}
+.sr-name{font-size:12px;color:rgba(255,255,255,.7);flex:1}
+.sr-count{font-size:11px;font-weight:700;color:rgba(255,255,255,.5)}
+.sr-health{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px}
+.sh-good{background:rgba(80,232,144,.12);color:#50e890}
+.sh-attn{background:rgba(245,158,11,.12);color:#f59e0b}
+
+/* Recent resolutions */
+.res-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.res-row:last-child{border-bottom:none}
+.rr-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.rr-body{flex:1}
+.rr-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.7)}
+.rr-meta{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.rr-time{font-size:10px;color:rgba(255,255,255,.2)}
+
+/* NPS */
+.nps-display{display:flex;align-items:center;gap:16px}
+.nps-ring{width:60px;height:60px;border-radius:50%;border:3px solid #50e890;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0}
+.nps-n{font-size:18px;font-weight:900;color:#50e890}
+.nps-l{font-size:8px;color:rgba(255,255,255,.3);font-weight:700}
+.nps-breakdown{flex:1}
+.nps-row{display:flex;align-items:center;gap:6px;padding:2px 0}
+.nb-label{font-size:10px;color:rgba(255,255,255,.35);width:80px}
+.nb-bar{flex:1;background:rgba(255,255,255,.06);border-radius:2px;height:4px}
+.nb-fill{height:4px;border-radius:2px}
+.nb-n{font-size:10px;color:rgba(255,255,255,.3);width:20px;text-align:right}
+
+/* Side panels */
+.side-card{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sc-head{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:10px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-feedback-summary-desktop-v3.html</strong><br>
+  Aggregate feedback analytics dashboard for the owner. Distinct from the workbench (individual item triage) — this is the weekly/monthly summary view.<br>
+  <strong>Purpose:</strong> Product health check — volume trends, type breakdown, SLA performance, NPS, top-submitting schools.<br>
+  <strong>Period selector:</strong> 7d / 30d / 90d. Data source: feedback_items + feedback_metrics tables (analytics snapshot, not real-time).<br>
+  <strong>Privacy:</strong> All data is school-level aggregates. No individual teacher names. School names shown (B2B contract context).<br>
+  <strong>Export:</strong> Export as CSV (raw metrics) or PDF (formatted summary for board/investor report).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('summary')">Feedback Summary</button>
+  <button class="tab-btn" onclick="showTab('trends')">Trends</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Summary ────────────────────────────────────────────── -->
+<div id="tab-summary" class="screen active">
+  <p class="section-title">Owner feedback summary — 30-day view</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📊 Feedback Summary</div>
+        <div class="sh-period">
+          <button class="sp-chip sp-i">7d</button>
+          <button class="sp-chip sp-a">30d</button>
+          <button class="sp-chip sp-i">90d</button>
+        </div>
+      </div>
+      <div class="sh-export">↓ Export CSV</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-cell">
+        <div class="sc-n">47</div>
+        <div class="sc-l">Total Items</div>
+        <div class="sc-d da">↑12 vs prev</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-n">2</div>
+        <div class="sc-l">Open P0</div>
+        <div class="sc-d da">↑1 vs prev</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-n">94%</div>
+        <div class="sc-l">SLA Met</div>
+        <div class="sc-d dg">↑3pp</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-n">4.2h</div>
+        <div class="sc-l">Avg Resolve</div>
+        <div class="sc-d dg">↓1.3h</div>
+      </div>
+      <div class="stat-cell">
+        <div class="sc-n">+42</div>
+        <div class="sc-l">NPS Score</div>
+        <div class="sc-d dg">↑5pts</div>
+      </div>
+    </div>
+    <div class="sum-body">
+      <div class="sum-main">
+        <div class="sec-hdr">Volume &amp; Priority</div>
+        <div class="card">
+          <div class="card-title">📈 Daily Submission Volume — Last 30 Days</div>
+          <div class="vol-chart">
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:22px;background:#50e890;opacity:.4"></div><div class="vc-label">M1</div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:18px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:30px;background:#f85149;opacity:.6"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:15px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:20px;background:#50e890;opacity:.4"></div><div class="vc-label">W1</div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:12px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:16px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:25px;background:#f59e0b;opacity:.6"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:14px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:18px;background:#50e890;opacity:.4"></div><div class="vc-label">W2</div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:10px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:22px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:35px;background:#f85149;opacity:.7"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:16px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:19px;background:#50e890;opacity:.5"></div><div class="vc-label">W3</div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:14px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:17px;background:#50e890;opacity:.4"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:21px;background:#50e890;opacity:.5"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:28px;background:#50e890;opacity:.6"></div><div class="vc-label"></div></div>
+            <div class="vc-bar-wrap"><div class="vc-bar" style="height:24px;background:#50e890;opacity:.6"></div><div class="vc-label">W4</div></div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <span style="font-size:10px;color:rgba(255,255,255,.3)"><span style="color:#f85149">■</span> P0 spike</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.3)"><span style="color:#f59e0b">■</span> P1 cluster</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.3)"><span style="color:#50e890">■</span> Normal</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🗂 Feedback Type Breakdown</div>
+          <div style="display:flex;gap:4px;height:16px;border-radius:5px;overflow:hidden;margin-bottom:10px">
+            <div style="flex:19;background:#f85149;opacity:.8"></div>
+            <div style="flex:15;background:#f59e0b;opacity:.8"></div>
+            <div style="flex:8;background:#58e8c1;opacity:.7"></div>
+            <div style="flex:5;background:#9b72ff;opacity:.8"></div>
+          </div>
+          <div class="type-bars">
+            <div class="type-row"><div class="tr-label">Bug</div><div class="tr-bar-bg"><div class="tr-fill" style="width:40%;background:#f85149"></div></div><div class="tr-n">19</div></div>
+            <div class="type-row"><div class="tr-label">Feature</div><div class="tr-bar-bg"><div class="tr-fill" style="width:32%;background:#9b72ff"></div></div><div class="tr-n">15</div></div>
+            <div class="type-row"><div class="tr-label">Content</div><div class="tr-bar-bg"><div class="tr-fill" style="width:17%;background:#58e8c1"></div></div><div class="tr-n">8</div></div>
+            <div class="type-row"><div class="tr-label">Question</div><div class="tr-bar-bg"><div class="tr-fill" style="width:11%;background:#f59e0b"></div></div><div class="tr-n">5</div></div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">SLA Performance</div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="sla-table">
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Target</th>
+                <th>Avg Actual</th>
+                <th>Met</th>
+                <th>Missed</th>
+                <th>% Met</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:#f85149;font-weight:700">P0 Critical</td>
+                <td>4h</td><td>3.2h</td>
+                <td class="sla-met">8</td><td>1</td>
+                <td class="sla-met">89%</td>
+              </tr>
+              <tr>
+                <td style="color:#f59e0b;font-weight:700">P1 Major</td>
+                <td>24h</td><td>18h</td>
+                <td class="sla-met">12</td><td>0</td>
+                <td class="sla-met">100%</td>
+              </tr>
+              <tr>
+                <td style="color:#58e8c1;font-weight:700">P2 Moderate</td>
+                <td>72h</td><td>48h</td>
+                <td class="sla-met">10</td><td>1</td>
+                <td class="sla-miss">91%</td>
+              </tr>
+              <tr>
+                <td>P3 Minor</td>
+                <td>7d</td><td>4.2d</td>
+                <td class="sla-met">8</td><td>0</td>
+                <td class="sla-met">100%</td>
+              </tr>
+              <tr>
+                <td style="color:#9b72ff;font-weight:700">Feature</td>
+                <td>Best effort</td><td>—</td>
+                <td>—</td><td>—</td>
+                <td style="color:rgba(255,255,255,.3)">N/A</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sec-hdr">NPS &amp; Satisfaction</div>
+        <div class="card">
+          <div class="card-title">📣 Net Promoter Score — Post-Resolution</div>
+          <div class="nps-display">
+            <div class="nps-ring">
+              <div class="nps-n">+42</div>
+              <div class="nps-l">NPS</div>
+            </div>
+            <div class="nps-breakdown">
+              <div class="nps-row"><div class="nb-label">Promoters (9–10)</div><div class="nb-bar"><div class="nb-fill" style="width:62%;background:#50e890"></div></div><div class="nb-n">62%</div></div>
+              <div class="nps-row"><div class="nb-label">Passives (7–8)</div><div class="nb-bar"><div class="nb-fill" style="width:20%;background:#f59e0b"></div></div><div class="nb-n">20%</div></div>
+              <div class="nps-row"><div class="nb-label">Detractors (0–6)</div><div class="nb-bar"><div class="nb-fill" style="width:18%;background:rgba(248,81,73,.6)"></div></div><div class="nb-n">18%</div></div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:10px">Based on 34 post-resolution surveys (NPS sent 24h after resolution). Suppressed 14d after previous NPS.</div>
+        </div>
+      </div>
+      <div class="sum-side">
+        <div class="side-card">
+          <div class="sc-head">Recent Resolutions</div>
+          <div class="res-row">
+            <div class="rr-icon">✅</div>
+            <div class="rr-body">
+              <div class="rr-title">SSO token expiry — P0 fixed</div>
+              <div class="rr-meta">Riverside Elementary · Hotfix v2.4.8</div>
+            </div>
+            <div class="rr-time">2h ago</div>
+          </div>
+          <div class="res-row">
+            <div class="rr-icon">✅</div>
+            <div class="rr-body">
+              <div class="rr-title">G3 Fractions wrong answer — P1 fixed</div>
+              <div class="rr-meta">Maplewood School · Content patch</div>
+            </div>
+            <div class="rr-time">1d ago</div>
+          </div>
+          <div class="res-row">
+            <div class="rr-icon">🚫</div>
+            <div class="rr-body">
+              <div class="rr-title">Video call feature — Won't Fix</div>
+              <div class="rr-meta">Lincoln Academy · Out of scope</div>
+            </div>
+            <div class="rr-time">2d ago</div>
+          </div>
+          <div class="res-row">
+            <div class="rr-icon">✅</div>
+            <div class="rr-body">
+              <div class="rr-title">Queue badge stale count — P1 fixed</div>
+              <div class="rr-meta">Oak Park Prep · Cache invalidation</div>
+            </div>
+            <div class="rr-time">3d ago</div>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="sc-head">Top Submitting Schools</div>
+          <div class="school-row"><div class="sr-n">1</div><div class="sr-name">Lincoln Academy</div><div class="sr-count">9</div><span class="sr-health sh-attn">Attn</span></div>
+          <div class="school-row"><div class="sr-n">2</div><div class="sr-name">Riverside Elementary</div><div class="sr-count">7</div><span class="sr-health sh-good">Good</span></div>
+          <div class="school-row"><div class="sr-n">3</div><div class="sr-name">Oak Park Prep</div><div class="sr-count">6</div><span class="sr-health sh-good">Good</span></div>
+          <div class="school-row"><div class="sr-n">4</div><div class="sr-name">Maplewood School</div><div class="sr-count">5</div><span class="sr-health sh-good">Good</span></div>
+          <div class="school-row"><div class="sr-n">5</div><div class="sr-name">Cedar Grove</div><div class="sr-count">4</div><span class="sr-health sh-good">Good</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px">High submission count ≠ unhappy. Lincoln has most active teachers; health tracked separately.</div>
+        </div>
+
+        <div class="side-card">
+          <div class="sc-head">Resolution Breakdown</div>
+          <div style="display:flex;gap:3px;height:12px;border-radius:4px;overflow:hidden;margin-bottom:8px">
+            <div style="flex:72;background:#50e890;opacity:.7"></div>
+            <div style="flex:15;background:rgba(255,255,255,.2)"></div>
+            <div style="flex:13;background:#f59e0b;opacity:.6"></div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <div style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:#50e890">■</span> Resolved 72%</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:rgba(255,255,255,.4)">■</span> Won't Fix 15%</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:#f59e0b">■</span> Open 13%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Trends ──────────────────────────────────────────────── -->
+<div id="tab-trends" class="screen">
+  <p class="section-title">Owner feedback summary — 90-day trends</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📊 Feedback Trends</div>
+        <div class="sh-period">
+          <button class="sp-chip sp-i">7d</button>
+          <button class="sp-chip sp-i">30d</button>
+          <button class="sp-chip sp-a">90d</button>
+        </div>
+      </div>
+      <div class="sh-export">↓ Export PDF</div>
+    </div>
+    <div style="padding:24px">
+      <div class="card" style="max-width:740px">
+        <div class="card-title">📈 90-Day Submission Volume (Weekly)</div>
+        <div class="vol-chart" style="height:100px">
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:35px;background:#50e890;opacity:.5"></div><div class="vc-label">W1</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:28px;background:#50e890;opacity:.5"></div><div class="vc-label">W2</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:40px;background:#f85149;opacity:.6"></div><div class="vc-label">W3</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:22px;background:#50e890;opacity:.5"></div><div class="vc-label">W4</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:30px;background:#50e890;opacity:.5"></div><div class="vc-label">W5</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:25px;background:#50e890;opacity:.5"></div><div class="vc-label">W6</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:38px;background:#f59e0b;opacity:.6"></div><div class="vc-label">W7</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:20px;background:#50e890;opacity:.5"></div><div class="vc-label">W8</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:32px;background:#50e890;opacity:.5"></div><div class="vc-label">W9</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:27px;background:#50e890;opacity:.5"></div><div class="vc-label">W10</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:45px;background:#f85149;opacity:.65"></div><div class="vc-label">W11</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:55px;background:#f85149;opacity:.7"></div><div class="vc-label">W12</div></div>
+          <div class="vc-bar-wrap"><div class="vc-bar" style="height:47px;background:#50e890;opacity:.65"></div><div class="vc-label">W13</div></div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px">Spikes at W3 (SSO incident) · W7 (Assignment engine failure) · W11–W12 (Fractions content bug cluster)</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:740px">
+        <div class="card">
+          <div class="card-title">📊 NPS Trend (Monthly)</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;height:60px;margin-bottom:6px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:24px;height:30px;background:#50e890;opacity:.5;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Jan</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:24px;height:34px;background:#50e890;opacity:.55;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Feb</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:24px;height:42px;background:#50e890;opacity:.7;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Mar</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">Jan: +32 → Feb: +37 → Mar: +42</div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚡ Avg Resolution Time</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;height:60px;margin-bottom:6px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:24px;height:50px;background:#f59e0b;opacity:.6;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Jan</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:24px;height:42px;background:#f59e0b;opacity:.55;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Feb</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:24px;height:28px;background:#50e890;opacity:.7;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">Mar</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">Jan: 7.1h → Feb: 5.4h → Mar: 4.2h</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ──────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-feedback-summary-desktop-v3.html<br>
+      <strong>Aggregate feedback analytics.</strong> Distinct from workbench (per-item triage). Period selector: 7d / 30d / 90d. School-level aggregates only.
+    </div>
+    <h2 class="spec-h2">Data Sources</h2>
+    <p class="spec-p">feedback_items table (submissions) + feedback_metrics table (resolution times, SLA) + nps_responses table (post-resolution surveys). All sourced from analytics warehouse — daily snapshots, not real-time. Real-time counts in workbench only.</p>
+    <h2 class="spec-h2">NPS Collection</h2>
+    <p class="spec-p">NPS survey sent automatically 24h after resolution (if owner sent a reply). Suppressed for 14 days after previous NPS from same teacher/school. Response is anonymous — owner sees school-level aggregate only.</p>
+    <h2 class="spec-h2">Top Schools Note</h2>
+    <p class="spec-p">High submission count is NOT a negative health indicator — it often means engaged teachers. School health score is tracked separately in the route health dashboard. The note in the top-schools sidebar panel reinforces this interpretation.</p>
+    <h2 class="spec-h2">Export</h2>
+    <p class="spec-p">CSV export: raw metrics (item counts, resolution times, SLA %). PDF export: formatted 1-page summary suitable for board/investor report (volume chart, SLA table, NPS score).</p>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">No individual teacher names in any chart or table. School names shown (B2B contract relationship). Submission content (feedback body text) not shown in summary — only in workbench item detail.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child World Journey — Mobile v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 480px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 480px;
+    width: 100%;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; }
+  .screen.active { display: flex; justify-content: center; }
+
+  /* Phone frame */
+  .phone {
+    width: 390px;
+    background: #100b2e;
+    border-radius: 40px;
+    border: 2px solid #2a2060;
+    box-shadow: inset 0 0 0 2px #9b72ff22, 0 24px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px 4px;
+    font-size: 11px;
+    color: #9b8ec4;
+    font-weight: 700;
+  }
+
+  /* World header */
+  .world-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #12103a, #1e1470);
+    border-bottom: 1px solid #2a2060;
+  }
+  .world-icon-sm {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #1e1470, #3b28cc);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    border: 2px solid #9b72ff;
+    flex-shrink: 0;
+  }
+  .wh-title { font-size: 16px; font-weight: 900; color: #e8e0ff; }
+  .wh-sub { font-size: 11px; color: #9b8ec4; margin-top: 2px; }
+  .wh-progress { flex: 1; }
+  .wh-prog-bar {
+    height: 6px;
+    background: #1a1540;
+    border-radius: 3px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .wh-prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #9b72ff, #58e8c1);
+    border-radius: 3px;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 0;
+    padding: 10px 20px;
+    background: #12103a;
+    border-bottom: 1px solid #1a1540;
+  }
+  .stat-cell {
+    flex: 1;
+    text-align: center;
+    padding: 4px;
+  }
+  .stat-cell + .stat-cell {
+    border-left: 1px solid #1a1540;
+  }
+  .sc-val { font-size: 15px; font-weight: 900; color: #e8e0ff; }
+  .sc-lbl { font-size: 9px; color: #9b8ec4; margin-top: 2px; }
+
+  /* Map scroll area */
+  .map-scroll {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 480px;
+  }
+  .map-scroll::-webkit-scrollbar { display: none; }
+  .map-scroll { scrollbar-width: none; }
+
+  /* Zone section mobile */
+  .zone-sec {
+    margin-bottom: 20px;
+  }
+  .zone-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .zone-lbl {
+    font-size: 10px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .zone-ln { flex: 1; height: 1px; background: #2a2060; }
+  .zone-st { font-size: 10px; font-weight: 700; flex-shrink: 0; }
+
+  /* Mobile node row: horizontal scroll */
+  .m-node-row {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    gap: 0;
+  }
+  .m-node-row::-webkit-scrollbar { display: none; }
+
+  .m-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .m-node-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    position: relative;
+  }
+  .m-node.done .m-node-circle {
+    background: linear-gradient(135deg, #1a4a2a, #2d6b3d);
+    border: 2px solid #50e890;
+  }
+  .m-node.active .m-node-circle {
+    background: linear-gradient(135deg, #1e1470, #3b28cc);
+    border: 2px solid #9b72ff;
+    animation: node-pulse 2s ease-in-out infinite;
+  }
+  .m-node.locked .m-node-circle {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    opacity: 0.45;
+  }
+  .m-node.boss .m-node-circle {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #2a2010, #5a4200);
+    border: 2px solid #ffd166;
+    font-size: 24px;
+  }
+  @keyframes node-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(155,114,255,0); }
+  }
+  .m-node-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    color: #9b8ec4;
+    text-align: center;
+    max-width: 52px;
+  }
+  .m-node.active .m-node-lbl { color: #c4b0ff; }
+  .m-node.done .m-node-lbl { color: #50e890; }
+  .m-node.boss .m-node-lbl { color: #ffd166; }
+  .m-node-stars { font-size: 8px; letter-spacing: 0.5px; }
+
+  .m-star-badge {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    background: #2a2010;
+    border: 1.5px solid #ffd166;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .m-conn {
+    width: 28px;
+    flex-shrink: 0;
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 22px;
+  }
+  .m-conn.done { background: #50e890; }
+  .m-conn.active { background: linear-gradient(90deg, #50e890, #9b72ff); }
+  .m-conn.locked { background: #2a2060; }
+
+  .active-arrow-m {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    animation: arrow-bob 1s ease-in-out infinite;
+  }
+  @keyframes arrow-bob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
+  }
+
+  /* Active quest card (expanded below active zone) */
+  .active-quest-card {
+    background: #1e1470;
+    border: 2px solid #9b72ff;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .aqc-title {
+    font-size: 11px;
+    font-weight: 900;
+    color: #c4b0ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .aqc-quest {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: #12083a;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .aqc-icon { font-size: 18px; }
+  .aqc-name { font-size: 12px; font-weight: 900; color: #e8e0ff; }
+  .aqc-meta { font-size: 10px; color: #9b8ec4; }
+  .aqc-chip {
+    margin-left: auto;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .aqc-chip.active { background: #2d1f80; color: #c4b0ff; }
+  .aqc-chip.done { background: #1a3a20; color: #50e890; }
+
+  /* Star safe badge */
+  .star-safe-m {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a2a15;
+    border: 1.5px solid #50e890;
+    border-radius: 16px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #50e890;
+    margin: 0 16px 12px;
+  }
+
+  /* Boss card mobile */
+  .boss-card-m {
+    margin: 0 16px 16px;
+    background: linear-gradient(135deg, #1a1500, #2a2010);
+    border: 2px solid #ffd166;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 0 16px rgba(255,209,102,0.12);
+  }
+  .bcm-badge { font-size: 9px; font-weight: 900; color: #ffd166; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .bcm-name { font-size: 18px; font-weight: 900; color: #fff8e0; margin-bottom: 4px; }
+  .bcm-desc { font-size: 12px; color: #c4a840; margin-bottom: 10px; }
+  .bcm-rewards { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .bcm-r { background: #2a2010; border: 1px solid #ffd166; border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: 700; color: #ffd166; }
+  .bcm-cta {
+    width: 100%;
+    background: linear-gradient(135deg, #ffd166, #f0a000);
+    border: none;
+    border-radius: 10px;
+    color: #1a1000;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 11px;
+    cursor: pointer;
+  }
+
+  /* Complete screen */
+  .complete-hero {
+    text-align: center;
+    padding: 30px 20px 20px;
+    background: linear-gradient(180deg, #1a2a10, #12103a);
+    border-bottom: 2px solid #50e890;
+  }
+  .trophy-big-m {
+    font-size: 60px;
+    display: block;
+    margin-bottom: 10px;
+    animation: trophy-bob 2s ease-in-out infinite;
+  }
+  @keyframes trophy-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .complete-title-m { font-size: 22px; font-weight: 900; color: #50e890; margin-bottom: 4px; }
+  .complete-sub-m { font-size: 13px; color: #9b8ec4; margin-bottom: 14px; }
+  .reward-chips-m {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .rc-m {
+    background: #1a1500;
+    border: 2px solid #ffd166;
+    border-radius: 14px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 900;
+    color: #ffd166;
+    animation: chip-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .rc-m:nth-child(1) { animation-delay: 0.1s; }
+  .rc-m:nth-child(2) { animation-delay: 0.2s; border-color: #50e890; color: #50e890; background: #0a1a10; }
+  .rc-m:nth-child(3) { animation-delay: 0.3s; border-color: #9b72ff; color: #9b72ff; background: #120838; }
+  @keyframes chip-pop {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .complete-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 20px 20px;
+    margin-top: 14px;
+  }
+  .c-btn {
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 12px;
+    cursor: pointer;
+  }
+  .c-btn.ghost {
+    background: transparent;
+    border: 2px solid #2a2060;
+    color: #9b8ec4;
+  }
+
+  /* Bottom CTA bar */
+  .bottom-cta {
+    padding: 12px 16px;
+    border-top: 1px solid #1a1540;
+    background: #12103a;
+  }
+  .bottom-cta button {
+    width: 100%;
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 14px;
+    cursor: pointer;
+  }
+
+  /* Spec */
+  .spec-scroll {
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #c4b0ff;
+    max-height: 560px;
+    overflow-y: auto;
+  }
+  .spec-scroll::-webkit-scrollbar { display: none; }
+  .spec-scroll { scrollbar-width: none; }
+  .spec-h { font-size: 13px; font-weight: 900; color: #9b72ff; margin: 12px 0 6px; }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a1540;
+    font-size: 11px;
+  }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-world-journey-mobile-v3.html</strong><br>
+  States: <strong>In-Progress</strong> / <strong>Boss Unlocked</strong> / <strong>World Complete</strong> / <strong>Spec</strong><br>
+  390px phone frame. Zones use horizontal-scroll node rows (scrollbar hidden). Active quest card expands below active zone. Star-safe badge always visible.<br>
+  Boss CTA full-width at bottom of phone. Complete screen: confetti chips animate in. No accuracy %, no timers.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('journey')">In Progress</button>
+  <button class="tab-btn" onclick="showTab('boss')">Boss Node</button>
+  <button class="tab-btn" onclick="showTab('complete')">World Complete</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: JOURNEY ── -->
+<div class="screen active" id="tab-journey">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>K–1 Band</span><span>🔋</span></div>
+
+    <!-- World header -->
+    <div class="world-header">
+      <div class="world-icon-sm">🏰</div>
+      <div class="wh-progress">
+        <div class="wh-title">Cosmic Castle</div>
+        <div class="wh-sub">World 2 of 4 · Node 7 / 12</div>
+        <div class="wh-prog-bar">
+          <div class="wh-prog-fill" style="width:58%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-cell"><div class="sc-val">🌟 18</div><div class="sc-lbl">Stars</div></div>
+      <div class="stat-cell"><div class="sc-val">6</div><div class="sc-lbl">Done</div></div>
+      <div class="stat-cell"><div class="sc-val">5</div><div class="sc-lbl">Left</div></div>
+    </div>
+
+    <div class="star-safe-m">⭐ Your stars are safe!</div>
+
+    <div class="map-scroll">
+      <!-- Foundation zone -->
+      <div class="zone-sec">
+        <div class="zone-hdr">
+          <div class="zone-lbl">Foundation</div>
+          <div class="zone-ln"></div>
+          <div class="zone-st" style="color:#50e890">✓ 4/4</div>
+        </div>
+        <div class="m-node-row">
+          <div class="m-node done">
+            <div class="m-node-circle">🔤<div class="m-star-badge">3⭐</div></div>
+            <div class="m-node-lbl">Letters</div>
+          </div>
+          <div class="m-conn done"></div>
+          <div class="m-node done">
+            <div class="m-node-circle">🔊<div class="m-star-badge">3⭐</div></div>
+            <div class="m-node-lbl">Sounds</div>
+          </div>
+          <div class="m-conn done"></div>
+          <div class="m-node done">
+            <div class="m-node-circle">🔢<div class="m-star-badge">2⭐</div></div>
+            <div class="m-node-lbl">Numbers</div>
+          </div>
+          <div class="m-conn done"></div>
+          <div class="m-node done">
+            <div class="m-node-circle">🖼️<div class="m-star-badge">3⭐</div></div>
+            <div class="m-node-lbl">Shapes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Adventure zone -->
+      <div class="zone-sec">
+        <div class="zone-hdr">
+          <div class="zone-lbl">Adventure</div>
+          <div class="zone-ln"></div>
+          <div class="zone-st" style="color:#c4b0ff">2/4</div>
+        </div>
+        <div class="m-node-row">
+          <div class="m-node done">
+            <div class="m-node-circle">📖<div class="m-star-badge">2⭐</div></div>
+            <div class="m-node-lbl">Word Hunt</div>
+          </div>
+          <div class="m-conn done"></div>
+          <div class="m-node done">
+            <div class="m-node-circle">🧩<div class="m-star-badge">3⭐</div></div>
+            <div class="m-node-lbl">Puzzle Trail</div>
+          </div>
+          <div class="m-conn active"></div>
+          <div class="m-node active">
+            <div class="m-node-circle">🎯<div class="active-arrow-m">▼</div></div>
+            <div class="m-node-lbl">Aim High</div>
+          </div>
+          <div class="m-conn locked"></div>
+          <div class="m-node locked">
+            <div class="m-node-circle">🌊</div>
+            <div class="m-node-lbl">River Rush</div>
+          </div>
+        </div>
+
+        <!-- Active quest card -->
+        <div class="active-quest-card">
+          <div class="aqc-title">🎯 Aim High — Quests</div>
+          <div class="aqc-quest">
+            <div class="aqc-icon">🔤</div>
+            <div>
+              <div class="aqc-name">Rhyme Time</div>
+              <div class="aqc-meta">5 questions</div>
+            </div>
+            <span class="aqc-chip done">✓ Done</span>
+          </div>
+          <div class="aqc-quest">
+            <div class="aqc-icon">📚</div>
+            <div>
+              <div class="aqc-name">Story Builder</div>
+              <div class="aqc-meta">8 questions</div>
+            </div>
+            <span class="aqc-chip active">▶ Play</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Boss (locked) -->
+      <div class="zone-sec">
+        <div class="zone-hdr">
+          <div class="zone-lbl">Final Boss</div>
+          <div class="zone-ln"></div>
+          <div class="zone-st" style="color:#9b8ec4">Locked</div>
+        </div>
+        <div class="m-node-row">
+          <div class="m-conn locked" style="width:32px;margin-bottom:30px;"></div>
+          <div class="m-node boss locked" style="opacity:0.35">
+            <div class="m-node-circle" style="font-size:22px">🐉</div>
+            <div class="m-node-lbl" style="color:#666">Castle King</div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end map-scroll -->
+
+    <div class="bottom-cta">
+      <button>▶ Continue Quest</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: BOSS NODE ── -->
+<div class="screen" id="tab-boss">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>K–1 Band</span><span>🔋</span></div>
+
+    <div class="world-header">
+      <div class="world-icon-sm">🏰</div>
+      <div class="wh-progress">
+        <div class="wh-title">Cosmic Castle</div>
+        <div class="wh-sub">Boss Unlocked! · 92%</div>
+        <div class="wh-prog-bar">
+          <div class="wh-prog-fill" style="width:92%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-cell"><div class="sc-val">🌟 29</div><div class="sc-lbl">Stars</div></div>
+      <div class="stat-cell"><div class="sc-val">11</div><div class="sc-lbl">Done</div></div>
+      <div class="stat-cell"><div class="sc-val">1</div><div class="sc-lbl">Boss</div></div>
+    </div>
+
+    <div class="star-safe-m">⭐ Your stars are safe!</div>
+
+    <div class="map-scroll">
+      <div class="zone-sec">
+        <div class="zone-hdr">
+          <div class="zone-lbl">Foundation</div>
+          <div class="zone-ln"></div>
+          <div class="zone-st" style="color:#50e890">✓ 4/4</div>
+        </div>
+        <div class="m-node-row">
+          <div class="m-node done"><div class="m-node-circle">🔤<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Letters</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🔊<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Sounds</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🔢<div class="m-star-badge">2⭐</div></div><div class="m-node-lbl">Numbers</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🖼️<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Shapes</div></div>
+        </div>
+      </div>
+
+      <div class="zone-sec">
+        <div class="zone-hdr">
+          <div class="zone-lbl">Adventure</div>
+          <div class="zone-ln"></div>
+          <div class="zone-st" style="color:#50e890">✓ 4/4</div>
+        </div>
+        <div class="m-node-row">
+          <div class="m-node done"><div class="m-node-circle">📖<div class="m-star-badge">2⭐</div></div><div class="m-node-lbl">Word Hunt</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🧩<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Puzzle Trail</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🎯<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Aim High</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🌊<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">River Rush</div></div>
+        </div>
+      </div>
+
+      <div class="zone-sec">
+        <div class="zone-hdr">
+          <div class="zone-lbl">Final Boss</div>
+          <div class="zone-ln"></div>
+          <div class="zone-st" style="color:#ffd166">🔓 Unlocked!</div>
+        </div>
+        <div class="m-node-row" style="margin-bottom:12px;">
+          <div class="m-conn active" style="width:32px;margin-bottom:30px;"></div>
+          <div class="m-node boss active">
+            <div class="m-node-circle" style="font-size:22px;animation:node-pulse 2s ease-in-out infinite;border-color:#ffd166;background:linear-gradient(135deg,#2a2010,#5a4200)">🐉<div class="active-arrow-m" style="color:#ffd166">▼</div></div>
+            <div class="m-node-lbl" style="color:#ffd166">Castle King</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="boss-card-m">
+      <div class="bcm-badge">🏆 Final Boss</div>
+      <div class="bcm-name">Castle King</div>
+      <div class="bcm-desc">Use everything you've learned to beat the Castle King and complete Cosmic Castle!</div>
+      <div class="bcm-rewards">
+        <span class="bcm-r">+5⭐</span>
+        <span class="bcm-r">🏆 Gold Trophy</span>
+        <span class="bcm-r">World Badge</span>
+        <span class="bcm-r">🔓 Sky Peaks</span>
+      </div>
+      <button class="bcm-cta">⚔️ Face the Boss!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: WORLD COMPLETE ── -->
+<div class="screen" id="tab-complete">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>K–1 Band</span><span>🔋</span></div>
+
+    <div class="complete-hero">
+      <span class="trophy-big-m">🏆</span>
+      <div class="complete-title-m">Cosmic Castle Complete!</div>
+      <div class="complete-sub-m">You conquered the Castle King 🐉</div>
+      <div class="reward-chips-m">
+        <span class="rc-m">🌟 +34 Stars</span>
+        <span class="rc-m">✓ World Badge</span>
+        <span class="rc-m">🔓 Sky Peaks</span>
+      </div>
+    </div>
+
+    <div class="map-scroll" style="max-height:300px;">
+      <div class="zone-sec">
+        <div class="zone-hdr"><div class="zone-lbl">Foundation</div><div class="zone-ln"></div><div class="zone-st" style="color:#50e890">✓ 4/4</div></div>
+        <div class="m-node-row">
+          <div class="m-node done"><div class="m-node-circle">🔤<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Letters</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🔊<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Sounds</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🔢<div class="m-star-badge">2⭐</div></div><div class="m-node-lbl">Numbers</div></div>
+          <div class="m-conn done"></div>
+          <div class="m-node done"><div class="m-node-circle">🖼️<div class="m-star-badge">3⭐</div></div><div class="m-node-lbl">Shapes</div></div>
+        </div>
+      </div>
+      <div class="zone-sec">
+        <div class="zone-hdr"><div class="zone-lbl">Final Boss</div><div class="zone-ln"></div><div class="zone-st" style="color:#ffd166">🏆 Defeated!</div></div>
+        <div class="m-node-row">
+          <div class="m-conn done" style="width:32px;margin-bottom:30px;"></div>
+          <div class="m-node boss done">
+            <div class="m-node-circle" style="font-size:22px;border-color:#50e890;">🐉<div class="m-star-badge">5⭐</div></div>
+            <div class="m-node-lbl" style="color:#ffd166">Castle King</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="complete-btns">
+      <button class="c-btn">🗺️ Start Sky Peaks →</button>
+      <button class="c-btn ghost">🏠 Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>Spec</span><span>🔋</span></div>
+    <div class="spec-scroll">
+      <div class="spec-h">Component</div>
+      <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-world-journey-mobile-v3.html</div></div>
+      <div class="spec-row"><div class="spec-k">Frame</div><div class="spec-v">390px · border-radius 40px · cosmic bg</div></div>
+      <div class="spec-row"><div class="spec-k">States</div><div class="spec-v">In-Progress · Boss Unlocked · Complete</div></div>
+
+      <div class="spec-h">Node Rows</div>
+      <div class="spec-row"><div class="spec-k">Scroll</div><div class="spec-v">Horizontal · scrollbar hidden</div></div>
+      <div class="spec-row"><div class="spec-k">Node size</div><div class="spec-v">52px default · 60px boss</div></div>
+      <div class="spec-row"><div class="spec-k">Connector</div><div class="spec-v">28px wide · 3px tall · colored per state</div></div>
+
+      <div class="spec-h">Active Quest</div>
+      <div class="spec-row"><div class="spec-k">Trigger</div><div class="spec-v">Shown inline below zone with active node</div></div>
+      <div class="spec-row"><div class="spec-k">States</div><div class="spec-v">done (green chip) / active (play button)</div></div>
+
+      <div class="spec-h">Star Safety</div>
+      <div class="spec-row"><div class="spec-k">Badge</div><div class="spec-v">Always visible below stats row</div></div>
+      <div class="spec-row"><div class="spec-k">Rule</div><div class="spec-v">No accuracy %, no timer, stars only</div></div>
+
+      <div class="spec-h">Boss</div>
+      <div class="spec-row"><div class="spec-k">Card</div><div class="spec-v">Gold border, full-width CTA, reward chips</div></div>
+      <div class="spec-row"><div class="spec-k">CTA color</div><div class="spec-v">gold #ffd166 → #f0a000 gradient, dark text</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

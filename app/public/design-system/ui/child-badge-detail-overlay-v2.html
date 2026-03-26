@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Child Badge Detail Overlay — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; font-weight: 900; background: #100b2e; color: #e8e0ff; min-height: 100vh; width: 375px; margin: 0 auto; }
+.hint-box { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin: 12px; font-size: 11px; color: #ffd166; line-height: 1.6; }
+.hint-box strong { font-size: 12px; }
+.tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 2px solid #2a1f6e; background: #100b2e; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; padding: 10px 14px; font-size: 12px; color: #7a60c0; cursor: pointer; background: #1a1245; border: none; border-bottom: none; font-family: 'Nunito', sans-serif; font-weight: 900; }
+.tab.active { background: #9b72ff; color: #fff; }
+.tab:hover:not(.active) { background: #221852; }
+.panel { display: none; min-height: calc(100vh - 80px); }
+.panel.active { display: block; }
+
+/* Overlay style */
+.overlay-dim { background: #08051a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 0; }
+.overlay-card { background: #1a1245; border-radius: 24px 24px 0 0; padding: 28px 20px 36px; width: 100%; position: relative; }
+.drag-handle { width: 40px; height: 4px; background: #3a2a7e; border-radius: 20px; margin: 0 auto 20px; }
+
+/* Badge circle */
+.badge-circle { width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 44px; position: relative; }
+.badge-glow { box-shadow: 0 0 0 8px #9b72ff30, 0 0 0 16px #9b72ff15; }
+.badge-glow-gold { box-shadow: 0 0 0 8px #ffd16630, 0 0 0 16px #ffd16615; }
+.badge-glow-mint { box-shadow: 0 0 0 8px #58e8c130, 0 0 0 16px #58e8c115; }
+.badge-bg-violet { background: linear-gradient(135deg, #3a206e, #6a40c0); }
+.badge-bg-gold { background: linear-gradient(135deg, #4a3000, #c08000); }
+.badge-bg-mint { background: linear-gradient(135deg, #0a2a20, #20806a); }
+.badge-bg-locked { background: #1a1440; border: 3px dashed #3a2a6e; }
+
+.badge-name { font-size: 22px; color: #e8e0ff; text-align: center; margin-bottom: 6px; }
+.badge-desc { font-size: 14px; color: #9b80d0; text-align: center; margin-bottom: 14px; line-height: 1.5; }
+.earned-story { background: #221852; border-radius: 12px; padding: 14px; margin-bottom: 14px; font-size: 13px; color: #c8b0ff; line-height: 1.6; }
+.earned-date { font-size: 12px; color: #7a60c0; text-align: center; margin-bottom: 18px; }
+.cta-btn { display: block; width: 100%; padding: 14px; border-radius: 14px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 10px; text-align: center; }
+.btn-violet { background: #9b72ff; color: #fff; }
+.btn-mint { background: #58e8c1; color: #100b2e; }
+.btn-ghost { background: transparent; border: 2px solid #3a2a7e; color: #9b72ff; }
+.btn-gold { background: #ffd166; color: #100b2e; }
+
+/* Locked badge */
+.locked-steps { list-style: none; margin-bottom: 20px; }
+.locked-step { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #2a1f6e; font-size: 14px; color: #c8b0ff; }
+.locked-step:last-child { border-bottom: none; }
+.locked-step .emoji { font-size: 22px; }
+.locked-chip { background: #2a1f6e; color: #9b72ff; font-size: 11px; padding: 3px 8px; border-radius: 20px; margin-left: auto; }
+
+/* New badge celebration */
+.celebration-bg { background: linear-gradient(180deg, #1a0a40, #100b2e); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; text-align: center; }
+.confetti-row { font-size: 28px; margin-bottom: 16px; letter-spacing: 4px; animation: pop .6s ease; }
+@keyframes pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.celebrate-title { font-size: 26px; color: #ffd166; margin-bottom: 10px; }
+.celebrate-sub { font-size: 15px; color: #9b80d0; margin-bottom: 24px; line-height: 1.5; }
+.xp-chip { display: inline-block; background: #2a1f00; border: 2px solid #ffd166; color: #ffd166; font-size: 18px; padding: 8px 20px; border-radius: 30px; margin-bottom: 24px; }
+
+/* Share */
+.share-preview { background: #221852; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
+.share-icons { display: flex; gap: 12px; justify-content: center; margin-bottom: 18px; }
+.share-icon-btn { width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; font-size: 24px; background: #2a1f6e; display: flex; align-items: center; justify-content: center; }
+
+.spec-block { background: #1a1245; border-radius: 12px; padding: 18px; border: 1px solid #2a1f6e; line-height: 1.7; margin: 12px; }
+.spec-block h3 { color: #9b72ff; margin-bottom: 8px; font-size: 14px; }
+.spec-block p { font-size: 12px; color: #7a60c0; margin-bottom: 8px; }
+.spec-block ul { margin-left: 16px; font-size: 12px; color: #7a60c0; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>Engineering Routes — child-badge-detail-overlay-v2</strong><br>
+  GET /child/badge/{id} returns { name, emoji, description, story, earned_at, state: 'earned'|'locked', unlock_steps[] }<br>
+  POST /child/badge/{id}/share { channel } · Mobile 375px overlay style · No shame language on locked badges.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('earned',this)">Earned Badge</button>
+  <button class="tab" onclick="show('locked',this)">Locked Badge</button>
+  <button class="tab" onclick="show('share',this)">Badge Share</button>
+  <button class="tab" onclick="show('celebrate',this)">New Badge!</button>
+  <button class="tab" onclick="show('spec',this)">Spec</button>
+</div>
+
+<div id="earned" class="panel active">
+  <div class="overlay-dim">
+    <div class="overlay-card">
+      <div class="drag-handle"></div>
+      <div class="badge-circle badge-bg-violet badge-glow">🌊</div>
+      <div class="badge-name">Ocean Explorer</div>
+      <div class="badge-desc">You dove deep into Ocean World and discovered hidden treasures!</div>
+      <div class="earned-story">
+        You earned this badge by finishing 10 adventures in Ocean World. You sang with fish, counted seashells, and solved the great wave puzzle. That was a big deal!
+      </div>
+      <div class="earned-date">Earned on March 18, 2026</div>
+      <button class="cta-btn btn-violet">Share This Badge</button>
+      <button class="cta-btn btn-ghost">Back to Badges</button>
+    </div>
+  </div>
+</div>
+
+<div id="locked" class="panel">
+  <div class="overlay-dim">
+    <div class="overlay-card">
+      <div class="drag-handle"></div>
+      <div class="badge-circle badge-bg-locked" style="font-size:36px;color:#3a2a6e">🔒</div>
+      <div class="badge-name" style="color:#7a60c0">Star Seeker</div>
+      <div class="badge-desc" style="color:#5a4090">Unlock Star World to discover this badge!</div>
+      <div style="font-size:14px;color:#9b80d0;margin-bottom:12px;text-align:center">Here is how to unlock it:</div>
+      <ul class="locked-steps">
+        <li class="locked-step">
+          <span class="emoji">🌊</span>
+          Finish 5 more Ocean World adventures
+          <span class="locked-chip">9/5 done</span>
+        </li>
+        <li class="locked-step">
+          <span class="emoji">⭐</span>
+          Collect 10 more stars
+          <span class="locked-chip">6/10</span>
+        </li>
+        <li class="locked-step">
+          <span class="emoji">🔥</span>
+          Play in Fire World
+          <span class="locked-chip">Not started</span>
+        </li>
+      </ul>
+      <button class="cta-btn btn-violet">Keep Playing — I got this!</button>
+      <button class="cta-btn btn-ghost">Back to Badges</button>
+    </div>
+  </div>
+</div>
+
+<div id="share" class="panel">
+  <div class="overlay-dim">
+    <div class="overlay-card">
+      <div class="drag-handle"></div>
+      <div class="badge-circle badge-bg-violet badge-glow" style="margin-bottom:16px">🌊</div>
+      <div class="badge-name">Ocean Explorer</div>
+      <div class="badge-desc" style="margin-bottom:20px">I earned this in WonderQuest!</div>
+      <div class="share-preview">
+        <div style="font-size:13px;color:#7a60c0;margin-bottom:12px">Share your badge</div>
+        <div class="share-icons">
+          <button class="share-icon-btn">💌</button>
+          <button class="share-icon-btn">🖼️</button>
+          <button class="share-icon-btn">🔗</button>
+        </div>
+        <div style="font-size:11px;color:#5a4090">Sharing is always optional — badges are yours!</div>
+      </div>
+      <button class="cta-btn btn-mint">Save as Picture</button>
+      <button class="cta-btn btn-ghost">Not Now</button>
+    </div>
+  </div>
+</div>
+
+<div id="celebrate" class="panel">
+  <div class="celebration-bg">
+    <div class="confetti-row">🎉 ✨ 🎊 ✨ 🎉</div>
+    <div class="badge-circle badge-bg-gold badge-glow-gold" style="margin-bottom:20px">🌊</div>
+    <div class="celebrate-title">New Badge Unlocked!</div>
+    <div class="celebrate-sub">You earned the Ocean Explorer badge! That is so exciting — you worked really hard for this one.</div>
+    <div class="xp-chip">+50 XP</div>
+    <button class="cta-btn btn-gold" style="max-width:280px">Collect Badge!</button>
+    <button class="cta-btn btn-ghost" style="max-width:280px;margin-top:8px">Keep Playing</button>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <div class="spec-block">
+    <h3>child-badge-detail-overlay-v2 — Specification</h3>
+    <p><strong>Persona:</strong> Child · Mobile 375px · Nunito 900 · #100b2e bg · overlay card style</p>
+    <p><strong>API:</strong> GET /child/badge/{id} → { name, emoji, description, story, earned_at, state, unlock_steps[] }</p>
+    <p><strong>API:</strong> POST /child/badge/{id}/share { channel }</p>
+    <ul>
+      <li>Earned badge: large glowing badge circle, name, description, how-earned story, date, share CTA</li>
+      <li>Locked badge: emoji steps to unlock, replay motivation, NO shame language ("can't yet" is banned)</li>
+      <li>Locked badge framing: "Here is how to unlock it" not "You haven't done this yet"</li>
+      <li>Share panel: optional — always surfaced as opt-in, never required</li>
+      <li>New badge celebration: confetti emoji, glow animation, XP chip, collect CTA</li>
+      <li>Overlay style: dim background, bottom-sheet rounded card, drag handle</li>
+      <li>No timers, no accuracy %, no grade labels, replay can never lose stars</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

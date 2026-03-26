@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Teacher Gate + Analytics v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Bitter:wght@700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#eef2f7;--bg2:#e2e8f0;
+  --surface:#fff;
+  --ink:#1e2d3d;--ink2:#4a5f72;--ink3:#8fa3b1;
+  --line:rgba(30,45,61,0.09);--line-hi:rgba(30,45,61,0.18);
+  --accent:#2563eb;--accent2:#1d4ed8;--accent-bg:rgba(37,99,235,0.08);
+  --gold:#f59e0b;--gold-bg:rgba(245,158,11,0.10);
+  --mint:#10b981;--mint-bg:rgba(16,185,129,0.10);
+  --coral:#ef4444;--coral-bg:rgba(239,68,68,0.08);
+  --violet:#7c3aed;--violet-bg:rgba(124,58,237,0.08);
+  --sky:#0ea5e9;--sky-bg:rgba(14,165,233,0.08);
+  --fa:'Sora',sans-serif;--fd:'Bitter',serif;
+  --es:cubic-bezier(0.34,1.56,0.64,1);--eo:cubic-bezier(0.16,1,0.3,1);
+  --r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:24px;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 6px 20px rgba(0,0,0,.09);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fa);background:var(--bg);color:var(--ink);min-height:100vh;}
+
+/* PAGE */
+.page{padding:20px;}
+.pg-title{text-align:center;margin-bottom:6px;}
+.pg-title h1{font-family:var(--fd);font-size:21px;color:var(--ink);}
+.pg-title h1 span{color:var(--accent);}
+.pg-title p{font-size:11px;color:var(--ink3);margin-top:3px;}
+
+/* TABS */
+.tab-nav{display:flex;gap:6px;overflow-x:auto;padding:10px 0 14px;scrollbar-width:none;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;background:var(--surface);border:1.5px solid var(--line-hi);font-size:11px;font-weight:700;color:var(--ink3);cursor:pointer;font-family:var(--fa);transition:all 130ms;}
+.tab-btn.active{background:var(--accent-bg);border-color:rgba(37,99,235,.3);color:var(--accent);}
+
+.panels{position:relative;}
+.panel{display:none;animation:up .3s var(--eo) both;}
+.panel.active{display:block;}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* GATE WRAPPER */
+.gate-wrap{max-width:400px;margin:0 auto;}
+.gate-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:28px;box-shadow:var(--shadow-md);}
+.gate-logo{font-family:var(--fd);font-size:22px;color:var(--ink);text-align:center;margin-bottom:4px;}
+.gate-logo span{color:var(--accent);}
+.gate-sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:24px;}
+.gate-icon{font-size:56px;text-align:center;display:block;margin-bottom:16px;}
+
+/* PIN PAD */
+.pin-display{display:flex;gap:10px;justify-content:center;margin-bottom:18px;}
+.pd{width:48px;height:52px;border-radius:var(--r-md);border:2px solid var(--line-hi);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--ink);transition:all 180ms var(--es);}
+.pd.filled{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+.pd.filled::after{content:'●';font-size:16px;}
+.pd.error{background:var(--coral-bg);border-color:var(--coral);animation:shake .4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.n-btn{aspect-ratio:1.3;border-radius:var(--r-md);background:var(--bg2);border:1.5px solid var(--line-hi);font-size:20px;font-weight:700;color:var(--ink);cursor:pointer;font-family:var(--fa);transition:all 120ms var(--es);display:flex;align-items:center;justify-content:center;}
+.n-btn:hover{background:var(--surface);border-color:var(--accent);color:var(--accent);}
+.n-btn:active{transform:scale(0.93);}
+.n-btn.del{font-size:16px;color:var(--ink3);}
+.n-btn.zero{grid-column:2;}
+
+/* FIELD */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.field-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+.field-input{background:var(--bg);border:1.5px solid var(--line-hi);border-radius:var(--r-md);padding:11px 14px;font-size:14px;color:var(--ink);font-family:var(--fa);outline:none;transition:border-color 150ms;}
+.field-input:focus{border-color:var(--accent);}
+.field-hint{font-size:10px;color:var(--ink3);}
+
+/* BTNS */
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;border:none;cursor:pointer;font-family:var(--fa);font-weight:700;transition:all 120ms var(--es);border-radius:var(--r-md);padding:12px 18px;font-size:14px;width:100%;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:var(--accent2);}
+.btn-outline{background:transparent;border:1.5px solid var(--line-hi);color:var(--ink2);}
+.btn:active{transform:scale(0.97);}
+
+/* ERROR STATE */
+.gate-error{background:var(--coral-bg);border:1.5px solid rgba(239,68,68,.2);border-radius:var(--r-lg);padding:12px 14px;display:flex;gap:8px;margin-bottom:14px;}
+.ge-ico{font-size:18px;flex-shrink:0;}
+.ge-msg{font-size:12px;font-weight:700;color:var(--coral);}
+.ge-sub{font-size:10px;color:var(--ink3);margin-top:2px;}
+
+/* SUCCESS GATE */
+.gate-success{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:var(--r-xl);padding:28px;text-align:center;color:#fff;}
+.gs-ico{font-size:56px;display:block;margin-bottom:12px;}
+.gs-title{font-family:var(--fd);font-size:22px;font-weight:700;margin-bottom:6px;}
+.gs-sub{font-size:13px;opacity:.85;margin-bottom:18px;}
+.gs-class{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;margin-bottom:20px;}
+.gs-btn{background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.4);border-radius:var(--r-md);padding:12px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fa);width:100%;text-align:center;margin-bottom:10px;}
+.gs-btn-primary{background:#fff;color:var(--accent);}
+
+/* ── ANALYTICS v2 LAYOUT ── */
+.analytics-layout{display:grid;grid-template-columns:200px 1fr;min-height:80vh;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-md);}
+.al-sidebar{background:var(--bg);border-right:1px solid var(--line);padding:14px 0;}
+.al-logo{padding:0 14px 14px;border-bottom:1px solid var(--line);font-family:var(--fd);font-size:16px;color:var(--ink);}
+.al-logo span{color:var(--accent);}
+.al-class{padding:10px 14px;font-size:11px;color:var(--ink3);border-bottom:1px solid var(--line);}
+.al-class strong{display:block;font-size:13px;font-weight:700;color:var(--ink);}
+.al-nav{padding:10px 8px;display:flex;flex-direction:column;gap:2px;}
+.al-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all 100ms;}
+.al-item:hover{background:var(--surface);}
+.al-item.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.al-item .ico{font-size:14px;width:18px;text-align:center;}
+.al-item .chip{margin-left:auto;font-size:9px;font-weight:800;padding:2px 5px;border-radius:6px;}
+.al-main{padding:18px;overflow-y:auto;}
+.al-topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.al-topbar h3{font-family:var(--fd);font-size:16px;flex:1;}
+.al-btn{padding:6px 12px;border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--fa);}
+.al-primary{background:var(--accent);color:#fff;}
+.al-outline{background:transparent;border:1px solid var(--line-hi);color:var(--ink2);}
+
+/* SKILL DRILLDOWN */
+.skill-drill{display:flex;flex-direction:column;gap:10px;}
+.sd-row{background:var(--bg);border-radius:var(--r-md);padding:12px 14px;}
+.sd-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.sd-name{font-size:13px;font-weight:700;color:var(--ink);flex:1;}
+.sd-avg{font-size:15px;font-weight:800;}
+.sd-trend{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.sd-bar-track{height:8px;background:var(--line);border-radius:4px;overflow:hidden;}
+.sd-bar-fill{height:100%;border-radius:4px;}
+.sd-students{display:flex;gap:3px;margin-top:7px;flex-wrap:wrap;}
+.sd-dot{width:8px;height:8px;border-radius:50%;cursor:pointer;transition:transform 120ms;}
+.sd-dot:hover{transform:scale(1.5);}
+
+/* FILTER CHIPS */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-chip{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--line);background:transparent;color:var(--ink2);font-family:var(--fa);}
+.filter-chip.active{background:var(--accent-bg);border-color:rgba(37,99,235,.3);color:var(--accent);}
+
+/* SUPPORT QUEUE */
+.support-q{display:flex;flex-direction:column;gap:8px;}
+.sq-item{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:var(--r-md);}
+.sq-item.urgent{background:var(--coral-bg);border:1px solid rgba(239,68,68,.18);}
+.sq-item.watch{background:var(--gold-bg);border:1px solid rgba(245,158,11,.18);}
+.sq-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.sq-name{font-size:12px;font-weight:700;color:var(--ink);}
+.sq-skill{font-size:11px;color:var(--ink2);margin-top:1px;}
+.sq-flag{font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px;margin-top:4px;display:inline-block;}
+
+/* INTERVENTION PANEL */
+.intervention{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:16px;margin-bottom:14px;}
+.iv-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.iv-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.iv-name{font-size:14px;font-weight:700;color:var(--ink);}
+.iv-band{font-size:11px;color:var(--ink3);}
+.iv-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.iv-m{background:var(--bg);border-radius:var(--r-sm);padding:8px;text-align:center;}
+.iv-mv{font-size:16px;font-weight:800;color:var(--ink);}
+.iv-ml{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+.iv-skill-flags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.iv-flag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.iv-flag.red{background:var(--coral-bg);color:var(--coral);}
+.iv-flag.amber{background:var(--gold-bg);color:var(--gold);}
+.iv-notes{background:var(--bg);border-radius:var(--r-md);padding:10px;font-size:11px;color:var(--ink2);line-height:1.5;margin-bottom:10px;}
+.iv-actions{display:flex;gap:6px;}
+.iv-action{flex:1;padding:8px;border-radius:var(--r-sm);font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--fa);text-align:center;}
+.iv-action-primary{background:var(--accent);color:#fff;}
+.iv-action-outline{background:var(--bg);border:1px solid var(--line-hi);color:var(--ink2);}
+
+/* HINT */
+.hint{display:flex;align-items:flex-start;gap:7px;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);border-radius:var(--r-sm);padding:10px 12px;margin-top:12px;}
+.hint-ico{font-size:13px;flex-shrink:0;}
+.hint-txt{font-size:11px;color:rgba(37,99,235,.9);line-height:1.5;font-weight:600;}
+
+/* EMPTY ANALYTICS */
+.empty-analytics{text-align:center;padding:40px 20px;}
+.ea-ico{font-size:48px;display:block;margin-bottom:12px;}
+.ea-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.ea-sub{font-size:12px;color:var(--ink3);line-height:1.55;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pg-title">
+    <h1>Wonder<span>Quest</span> — Teacher Gate + Analytics v2</h1>
+    <p>UI Agent Reference · /teacher route · Gate entry + dashboard states</p>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="show(0)">① PIN Entry Gate</button>
+    <button class="tab-btn" onclick="show(1)">② Wrong PIN / Locked</button>
+    <button class="tab-btn" onclick="show(2)">③ Access Granted</button>
+    <button class="tab-btn" onclick="show(3)">④ Dashboard — Empty</button>
+    <button class="tab-btn" onclick="show(4)">⑤ Skill Drilldown</button>
+    <button class="tab-btn" onclick="show(5)">⑥ Support Queue</button>
+    <button class="tab-btn" onclick="show(6)">⑦ Intervention Panel</button>
+    <button class="tab-btn" onclick="show(7)">⑧ Class Filter States</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ① PIN ENTRY GATE -->
+    <div class="panel active">
+      <div class="gate-wrap">
+        <div style="state-tag:inline-flex;font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:block">State 1 · Teacher Gate · /teacher</div>
+        <div class="gate-card">
+          <span class="gate-icon">🎓</span>
+          <div class="gate-logo">Wonder<span>Quest</span></div>
+          <div class="gate-sub">Teacher access — enter your school code</div>
+
+          <div class="field" style="margin-bottom:18px">
+            <label class="field-label">Your name (optional)</label>
+            <input class="field-input" value="Ms. Chen" placeholder="e.g. Ms. Chen"/>
+          </div>
+
+          <div class="field" style="margin-bottom:8px">
+            <label class="field-label">School access code</label>
+          </div>
+          <div class="pin-display">
+            <div class="pd filled"></div>
+            <div class="pd filled"></div>
+            <div class="pd filled"></div>
+            <div class="pd"></div>
+            <div class="pd"></div>
+            <div class="pd"></div>
+          </div>
+          <div class="numpad">
+            <div class="n-btn">1</div><div class="n-btn">2</div><div class="n-btn">3</div>
+            <div class="n-btn">4</div><div class="n-btn">5</div><div class="n-btn">6</div>
+            <div class="n-btn">7</div><div class="n-btn">8</div><div class="n-btn">9</div>
+            <div class="n-btn zero">0</div><div class="n-btn del">⌫</div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--ink3);margin-bottom:14px">6-digit code provided by your school admin</div>
+          <button class="btn btn-outline">Don't have a code? Request one →</button>
+        </div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Teacher gate uses 6-digit school code (not email). Auto-submits when 6th digit entered. "Request a code" CTA for teachers without one. Name field is optional — personalises the dashboard greeting.</span></div>
+      </div>
+    </div>
+
+    <!-- ② WRONG PIN / LOCKED -->
+    <div class="panel">
+      <div class="gate-wrap">
+        <div class="gate-card">
+          <span class="gate-icon" style="display:block;text-align:center;font-size:56px;margin-bottom:12px">🔒</span>
+          <div class="gate-logo">Wonder<span>Quest</span></div>
+          <div class="gate-sub" style="color:var(--coral)">Incorrect code</div>
+
+          <div class="gate-error">
+            <span class="ge-ico">✗</span>
+            <div>
+              <div class="ge-msg">That code didn't work</div>
+              <div class="ge-sub">Check with your school admin — codes are 6 digits and case-sensitive.</div>
+            </div>
+          </div>
+
+          <div class="pin-display">
+            <div class="pd error"></div>
+            <div class="pd error"></div>
+            <div class="pd error"></div>
+            <div class="pd error"></div>
+            <div class="pd error"></div>
+            <div class="pd error"></div>
+          </div>
+          <div class="numpad">
+            <div class="n-btn">1</div><div class="n-btn">2</div><div class="n-btn">3</div>
+            <div class="n-btn">4</div><div class="n-btn">5</div><div class="n-btn">6</div>
+            <div class="n-btn">7</div><div class="n-btn">8</div><div class="n-btn">9</div>
+            <div class="n-btn zero">0</div><div class="n-btn del">⌫</div>
+          </div>
+          <button class="btn btn-outline" style="margin-top:10px">Request a new code →</button>
+        </div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: All 6 PIN dots turn red + shake animation. Error message below code entry. After 5 failed attempts: "Too many tries — contact your admin." No lockout on first 4 attempts — teachers may genuinely misremember.</span></div>
+      </div>
+    </div>
+
+    <!-- ③ ACCESS GRANTED -->
+    <div class="panel">
+      <div class="gate-wrap">
+        <div class="gate-success">
+          <span class="gs-ico">✓</span>
+          <div class="gs-title">Welcome, Ms. Chen!</div>
+          <div class="gs-sub">You're now viewing your class dashboard. Student data is aggregated — no individual comparisons are visible to students.</div>
+          <div class="gs-class"><span>🏫</span> Room 4B · Lincoln Elementary · 24 students</div>
+          <button class="gs-btn gs-btn-primary" style="margin-bottom:10px">📊 Go to class dashboard →</button>
+          <button class="gs-btn">Settings & code management</button>
+        </div>
+        <div class="hint" style="background:rgba(37,99,235,.06);border-color:rgba(37,99,235,.15);margin-top:14px"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Success card is full blue — confident, professional. Class details shown immediately. Privacy reminder on the success card itself ("no individual comparisons visible to students"). Two CTAs: dashboard and settings.</span></div>
+      </div>
+    </div>
+
+    <!-- ④ DASHBOARD EMPTY STATE -->
+    <div class="panel">
+      <div class="analytics-layout">
+        <div class="al-sidebar">
+          <div class="al-logo">Wonder<span>Quest</span></div>
+          <div class="al-class"><strong>Room 4B · Ms. Chen</strong>No students yet</div>
+          <div class="al-nav">
+            <div class="al-item active"><span class="ico">📊</span>Overview</div>
+            <div class="al-item"><span class="ico">👩‍🎓</span>Students</div>
+            <div class="al-item"><span class="ico">⚡</span>Skills</div>
+            <div class="al-item"><span class="ico">💬</span>Support<span class="chip" style="background:var(--coral-bg);color:var(--coral)">0</span></div>
+          </div>
+        </div>
+        <div class="al-main">
+          <div class="al-topbar"><h3>Class Overview</h3></div>
+          <div class="empty-analytics">
+            <span class="ea-ico">🏫</span>
+            <div class="ea-title">Your class is ready — no sessions yet</div>
+            <div class="ea-sub">Once students from your class start playing WonderQuest, their aggregated progress will appear here. No individual student comparisons are ever shown to students.</div>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--r-md);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--fa)">📋 Share class setup guide →</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Empty state is welcoming, not alarming. Explains what data will appear and when. Privacy reminder embedded. CTA is to share a setup guide — teacher's next action. No dummy data — always honest empty states.</span></div>
+    </div>
+
+    <!-- ⑤ SKILL DRILLDOWN -->
+    <div class="panel">
+      <div class="analytics-layout">
+        <div class="al-sidebar">
+          <div class="al-logo">Wonder<span>Quest</span></div>
+          <div class="al-class"><strong>Room 4B · Ms. Chen</strong>24 students active</div>
+          <div class="al-nav">
+            <div class="al-item"><span class="ico">📊</span>Overview</div>
+            <div class="al-item"><span class="ico">👩‍🎓</span>Students</div>
+            <div class="al-item active"><span class="ico">⚡</span>Skills Coverage</div>
+            <div class="al-item"><span class="ico">💬</span>Support<span class="chip" style="background:var(--coral-bg);color:var(--coral)">4</span></div>
+          </div>
+        </div>
+        <div class="al-main">
+          <div class="al-topbar">
+            <h3>Skills Drilldown</h3>
+            <button class="al-btn al-outline">📤 Export</button>
+            <button class="al-btn al-primary">+ Assign focus skill</button>
+          </div>
+          <div class="filter-row">
+            <button class="filter-chip active">All subjects</button>
+            <button class="filter-chip">Math</button>
+            <button class="filter-chip">Reading</button>
+            <button class="filter-chip">Logic</button>
+            <button class="filter-chip">Below 70%</button>
+          </div>
+          <div class="skill-drill">
+            <div class="sd-row">
+              <div class="sd-top">
+                <div class="sd-name">Addition</div>
+                <div class="sd-avg" style="color:var(--mint)">94%</div>
+                <div class="sd-trend" style="background:var(--mint-bg);color:var(--mint)">↑ Class avg</div>
+              </div>
+              <div class="sd-bar-track"><div class="sd-bar-fill" style="width:94%;background:var(--mint)"></div></div>
+              <div class="sd-students">
+                <div class="sd-dot" style="background:var(--mint)" title="19 students: strong"></div>
+                <div class="sd-dot" style="background:var(--mint)"></div>
+                <div class="sd-dot" style="background:var(--mint)"></div>
+                <div class="sd-dot" style="background:var(--gold)" title="4 students: developing"></div>
+                <div class="sd-dot" style="background:var(--gold)"></div>
+                <div class="sd-dot" style="background:var(--coral)" title="1 student: needs support"></div>
+              </div>
+            </div>
+            <div class="sd-row">
+              <div class="sd-top">
+                <div class="sd-name">Multiplication</div>
+                <div class="sd-avg" style="color:var(--mint)">88%</div>
+                <div class="sd-trend" style="background:var(--mint-bg);color:var(--mint)">↑ Strong</div>
+              </div>
+              <div class="sd-bar-track"><div class="sd-bar-fill" style="width:88%;background:var(--mint)"></div></div>
+            </div>
+            <div class="sd-row" style="border-left:3px solid var(--gold)">
+              <div class="sd-top">
+                <div class="sd-name">Division</div>
+                <div class="sd-avg" style="color:var(--gold)">61%</div>
+                <div class="sd-trend" style="background:var(--gold-bg);color:var(--gold)">⚠ Watch</div>
+              </div>
+              <div class="sd-bar-track"><div class="sd-bar-fill" style="width:61%;background:var(--gold)"></div></div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:6px">9 of 24 students below 60% — consider a review session this week.</div>
+            </div>
+            <div class="sd-row" style="border-left:3px solid var(--coral)">
+              <div class="sd-top">
+                <div class="sd-name">Fractions</div>
+                <div class="sd-avg" style="color:var(--coral)">48%</div>
+                <div class="sd-trend" style="background:var(--coral-bg);color:var(--coral)">✗ Class gap</div>
+              </div>
+              <div class="sd-bar-track"><div class="sd-bar-fill" style="width:48%;background:var(--coral)"></div></div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:6px">14 of 24 students below 50% — fractions needs class-wide attention.</div>
+            </div>
+            <div class="sd-row">
+              <div class="sd-top">
+                <div class="sd-name">Reading Comp</div>
+                <div class="sd-avg" style="color:var(--sky)">77%</div>
+                <div class="sd-trend" style="background:var(--sky-bg);color:var(--sky)">→ On track</div>
+              </div>
+              <div class="sd-bar-track"><div class="sd-bar-fill" style="width:77%;background:var(--sky)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Each skill row shows class avg + trend chip + mini student dot row (anonymised colour dots: green=strong, amber=developing, red=needs support). No student names in drilldown. Rows flagged red/amber get left border accent. Tap row to expand detail.</span></div>
+    </div>
+
+    <!-- ⑥ SUPPORT QUEUE -->
+    <div class="panel">
+      <div class="analytics-layout">
+        <div class="al-sidebar">
+          <div class="al-logo">Wonder<span>Quest</span></div>
+          <div class="al-class"><strong>Room 4B</strong>24 students</div>
+          <div class="al-nav">
+            <div class="al-item"><span class="ico">📊</span>Overview</div>
+            <div class="al-item"><span class="ico">⚡</span>Skills</div>
+            <div class="al-item active"><span class="ico">💬</span>Support Queue<span class="chip" style="background:var(--coral-bg);color:var(--coral)">4</span></div>
+          </div>
+        </div>
+        <div class="al-main">
+          <div class="al-topbar"><h3>Support Queue</h3><button class="al-btn al-outline">Mark all reviewed</button></div>
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;padding:10px 12px;background:var(--bg);border-radius:var(--r-md)">4 students flagged for instructional support — no peer comparison data is shared between students.</div>
+          <div class="support-q">
+            <div class="sq-item urgent">
+              <div class="sq-av" style="background:var(--coral-bg)">🐯</div>
+              <div style="flex:1">
+                <div class="sq-name">Student #17 — Marcus</div>
+                <div class="sq-skill">Reading 55% · Fractions 42% · 18 sessions</div>
+                <span class="sq-flag" style="background:var(--coral-bg);color:var(--coral)">Urgent — significant gap</span>
+              </div>
+              <button style="padding:6px 10px;border-radius:var(--r-sm);background:var(--accent);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--fa);flex-shrink:0">View →</button>
+            </div>
+            <div class="sq-item watch">
+              <div class="sq-av" style="background:var(--gold-bg)">🐸</div>
+              <div style="flex:1">
+                <div class="sq-name">Student #08 — Priya</div>
+                <div class="sq-skill">Division 61% — below class average</div>
+                <span class="sq-flag" style="background:var(--gold-bg);color:var(--gold)">Watch — developing</span>
+              </div>
+              <button style="padding:6px 10px;border-radius:var(--r-sm);background:var(--bg2);color:var(--ink2);border:1px solid var(--line-hi);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--fa);flex-shrink:0">View →</button>
+            </div>
+            <div class="sq-item watch">
+              <div class="sq-av" style="background:var(--gold-bg)">🐺</div>
+              <div style="flex:1">
+                <div class="sq-name">Student #22 — Evan</div>
+                <div class="sq-skill">Comprehension 58% — last 3 sessions declining</div>
+                <span class="sq-flag" style="background:var(--gold-bg);color:var(--gold)">Watch — declining trend</span>
+              </div>
+              <button style="padding:6px 10px;border-radius:var(--r-sm);background:var(--bg2);color:var(--ink2);border:1px solid var(--line-hi);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--fa);flex-shrink:0">View →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Support queue never shows performance rankings or compares students to each other — only flags individuals needing attention. Urgent (red) vs Watch (amber). Student IDs visible only in teacher view, never student-facing.</span></div>
+    </div>
+
+    <!-- ⑦ INTERVENTION PANEL -->
+    <div class="panel">
+      <div class="intervention">
+        <div class="iv-header">
+          <div class="iv-av" style="background:var(--coral-bg)">🐯</div>
+          <div><div class="iv-name">Marcus L. · Student #17</div><div class="iv-band">G23 · Space Explorer · 18 sessions total</div></div>
+          <button style="margin-left:auto;padding:6px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:700;background:var(--bg);border:1px solid var(--line-hi);cursor:pointer;color:var(--ink3);font-family:var(--fa)">Mark reviewed</button>
+        </div>
+        <div class="iv-metrics">
+          <div class="iv-m"><div class="iv-mv" style="color:var(--coral)">55%</div><div class="iv-ml">Accuracy</div></div>
+          <div class="iv-m"><div class="iv-mv">Lv.3</div><div class="iv-ml">Level</div></div>
+          <div class="iv-m"><div class="iv-mv">18</div><div class="iv-ml">Sessions</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Flagged skills</div>
+        <div class="iv-skill-flags">
+          <div class="iv-flag red">✗ Reading 55%</div>
+          <div class="iv-flag red">✗ Fractions 42%</div>
+          <div class="iv-flag amber">⚠ Comprehension 60%</div>
+        </div>
+        <div class="iv-notes">
+          <strong style="color:var(--ink)">Observation note (teacher-only):</strong><br/>
+          Marcus struggles most with multi-step problems. Reading comprehension affects his ability to parse word problems. Consider pairing with phonics support. Last 3 sessions show declining trend.
+        </div>
+        <div class="iv-actions">
+          <button class="iv-action iv-action-primary">📋 Add to action plan</button>
+          <button class="iv-action iv-action-outline">💬 Add note</button>
+          <button class="iv-action iv-action-outline">📤 Share with parent</button>
+        </div>
+      </div>
+      <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Intervention panel shows full individual student view — teacher-only. Notes field for private teacher annotations. "Share with parent" triggers a parent notification (opt-in). "Add to action plan" creates a tracked follow-up. Never shows this data to the student.</span></div>
+    </div>
+
+    <!-- ⑧ CLASS FILTER STATES -->
+    <div class="panel">
+      <div class="analytics-layout">
+        <div class="al-sidebar">
+          <div class="al-logo">Wonder<span>Quest</span></div>
+          <div class="al-class"><strong>Room 4B</strong>24 students</div>
+          <div class="al-nav">
+            <div class="al-item active"><span class="ico">📊</span>Overview</div>
+            <div class="al-item"><span class="ico">⚡</span>Skills</div>
+            <div class="al-item"><span class="ico">💬</span>Support<span class="chip" style="background:var(--coral-bg);color:var(--coral)">4</span></div>
+          </div>
+        </div>
+        <div class="al-main">
+          <div class="al-topbar"><h3>Class Overview — Filtered</h3></div>
+          <div class="filter-row">
+            <button class="filter-chip">All students</button>
+            <button class="filter-chip active">On Track ✓</button>
+            <button class="filter-chip">Needs Support ⚠</button>
+            <button class="filter-chip">Top Performers ⭐</button>
+            <button class="filter-chip">Inactive 3+ days</button>
+          </div>
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;padding:8px 12px;background:var(--mint-bg);border-radius:var(--r-sm);border-left:3px solid var(--mint)">
+            Showing 18 students on track this week (75% of class)
+          </div>
+          <!-- Filtered student rows -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md)">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;font-size:14px">🐼</div>
+              <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--ink)">Mia K. · #14</div><div style="font-size:10px;color:var(--ink3)">87% accuracy · Lv.8 · 🔥7 streak</div></div>
+              <div style="background:var(--mint-bg);color:var(--mint);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">✓ On Track</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md)">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(124,58,237,.12);display:flex;align-items:center;justify-content:center;font-size:14px">🦁</div>
+              <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--ink)">James T. · #03</div><div style="font-size:10px;color:var(--ink3)">93% accuracy · Lv.11 · 🔥12 streak</div></div>
+              <div style="background:var(--mint-bg);color:var(--mint);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px">✓ Excelling</div>
+            </div>
+            <div style="text-align:center;padding:12px;font-size:11px;color:var(--ink3)">+ 16 more students on track · <span style="color:var(--accent);cursor:pointer;font-weight:700">Show all →</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Filter chips at top of student table. Active filter shows count in context bar. "Inactive 3+ days" filter helps teacher nudge disengaged students. Filters are AND-able (e.g., "Needs Support" + "Math"). Table always shows anonymised position — no peer rank.</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const tabs=document.querySelectorAll('.tab-btn');
+const panels=document.querySelectorAll('.panel');
+function show(i){tabs.forEach((t,j)=>t.classList.toggle('active',i===j));panels.forEach((p,j)=>p.classList.toggle('active',i===j));}
+</script>
+</body>
+</html>

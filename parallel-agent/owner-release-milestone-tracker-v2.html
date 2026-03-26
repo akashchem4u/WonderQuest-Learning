@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Release Milestone Tracker — WonderQuest v2.6</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;min-height:100vh;padding:24px;color:#f0f6ff}
+
+/* Engineering hint */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.6;color:#4a3800;max-width:1140px}
+
+/* Tab bar */
+.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;max-width:1140px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:system-ui;background:#161b22;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.08);transition:all .18s}
+.tab-btn:hover{color:#f0f6ff;border-color:rgba(255,255,255,.2)}
+.tab-btn.active{background:#50e890;color:#010409;border-color:#50e890}
+
+/* Screens */
+.screen{display:none;max-width:1140px}
+.screen.active{display:block}
+
+/* Shell card */
+.shell{background:#161b22;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:12px}
+.sh-logo{font-size:13px;font-weight:900;color:#f0f6ff}
+.sh-logo span{color:#50e890}
+.sh-divider{width:1px;height:18px;background:rgba(255,255,255,.1)}
+.sh-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.55)}
+.sh-right{display:flex;align-items:center;gap:10px}
+.sh-meta{font-size:11px;color:rgba(255,255,255,.3)}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;padding:3px 10px;border-radius:6px;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+.badge-green{background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
+.badge-amber{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.badge-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.badge-blue{background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3)}
+.badge-muted{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1)}
+.badge-owner{background:rgba(80,232,144,.18);color:#50e890;border:1px solid rgba(80,232,144,.4);font-size:10px;font-weight:900;letter-spacing:.06em}
+
+/* Readiness banner */
+.readiness-banner{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.rb-left{display:flex;align-items:center;gap:16px}
+.rb-score{font-size:32px;font-weight:900;color:#f59e0b;line-height:1}
+.rb-info{}
+.rb-verdict{font-size:14px;font-weight:900;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em}
+.rb-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:3px}
+.rb-bar-wrap{flex:1;min-width:200px;max-width:360px}
+.rb-bar-label{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px}
+.rb-bar-track{height:10px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.rb-bar-fill{height:100%;border-radius:99px;background:#f59e0b;transition:width .4s}
+
+/* Timeline */
+.timeline-wrap{padding:28px 24px}
+.timeline-header{font-size:13px;font-weight:800;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:20px}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:0;position:relative}
+.tl-item:not(:last-child) .tl-line{position:absolute;left:19px;top:38px;width:2px;height:calc(100% - 0px);background:rgba(255,255,255,.08)}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:40px;flex-shrink:0;padding-top:6px}
+.tl-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;z-index:1;border:2px solid transparent;flex-shrink:0}
+.tl-icon-done{background:rgba(80,232,144,.12);border-color:rgba(80,232,144,.3)}
+.tl-icon-progress{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.3);animation:pulse-ring 2s infinite}
+.tl-icon-risk{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);animation:pulse-ring-amber 2s infinite}
+.tl-icon-pending{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1)}
+.tl-icon-ga{background:rgba(80,232,144,.18);border-color:rgba(80,232,144,.5);font-size:18px}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(96,165,250,.3)}50%{box-shadow:0 0 0 6px rgba(96,165,250,0)}}
+@keyframes pulse-ring-amber{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
+.tl-body{padding:6px 0 24px 18px;flex:1}
+.tl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tl-title{font-size:14px;font-weight:700;color:#f0f6ff}
+.tl-title-muted{color:rgba(255,255,255,.45)}
+.tl-date{font-size:11px;color:rgba(255,255,255,.35);margin-top:4px}
+.tl-date strong{color:rgba(255,255,255,.55)}
+
+/* At-risk tooltip */
+.risk-badge{position:relative;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;background:rgba(245,158,11,.18);color:#f59e0b;border:1px solid rgba(245,158,11,.4)}
+.risk-badge .tooltip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1c2128;border:1px solid rgba(245,158,11,.4);color:#f0f6ff;font-size:11px;font-weight:600;padding:8px 12px;border-radius:8px;white-space:nowrap;z-index:10;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.risk-badge:hover .tooltip{display:block}
+.risk-badge .tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1c2128}
+
+/* Divider line */
+.tl-divider{height:1px;background:rgba(255,255,255,.04);margin:0 24px 20px}
+
+/* Tab 2 — Table */
+.section-pad{padding:24px}
+.section-title{font-size:13px;font-weight:800;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+
+/* Filter chips */
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.45);transition:all .18s;font-family:system-ui}
+.chip:hover{color:#f0f6ff;border-color:rgba(255,255,255,.3)}
+.chip.active{background:#50e890;color:#010409;border-color:#50e890}
+
+/* Milestone table */
+.ms-table{width:100%;border-collapse:collapse;font-size:13px}
+.ms-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.06)}
+.ms-table td{padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;color:#f0f6ff}
+.ms-table tr:last-child td{border-bottom:none}
+.ms-table tr:hover td{background:rgba(255,255,255,.02)}
+.ms-table tr.hidden{display:none}
+.ms-num{font-size:11px;font-weight:800;color:rgba(255,255,255,.3)}
+.ms-title-cell{font-weight:600}
+.ms-notes{font-size:11px;color:rgba(255,255,255,.4);max-width:220px}
+.ms-due{font-size:12px;color:rgba(255,255,255,.5)}
+.ms-due.overdue{color:#f85149}
+.ms-due.soon{color:#f59e0b}
+
+/* Decision log */
+.decision-log{border-top:1px solid rgba(255,255,255,.06);padding:24px}
+.dl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.dl-title{font-size:13px;font-weight:800;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;font-family:system-ui;cursor:pointer;border:none;transition:all .18s}
+.btn-outline{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15)}
+.btn-outline:hover{color:#f0f6ff;border-color:rgba(255,255,255,.35)}
+.btn-primary{background:#50e890;color:#010409}
+.btn-primary:hover{background:#6effa3}
+.dl-list{display:flex;flex-direction:column;gap:10px}
+.dl-item{background:#0d1117;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px}
+.dl-dot{width:8px;height:8px;border-radius:50%;background:#50e890;flex-shrink:0;margin-top:4px}
+.dl-body{flex:1}
+.dl-text{font-size:13px;font-weight:600;color:#f0f6ff}
+.dl-meta{font-size:11px;color:rgba(255,255,255,.35);margin-top:4px}
+
+/* Decision modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px;width:480px;max-width:95vw}
+.modal-title{font-size:16px;font-weight:800;color:#f0f6ff;margin-bottom:20px}
+.modal label{display:block;font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.modal textarea{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#f0f6ff;font-family:system-ui;font-size:13px;padding:12px;resize:vertical;min-height:90px}
+.modal textarea:focus{outline:none;border-color:#50e890}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+
+/* Tab 3 — Spec */
+.spec-wrap{padding:28px 24px}
+.spec-section{margin-bottom:32px}
+.spec-section-title{font-size:13px;font-weight:800;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-section-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+.spec-card{background:#0d1117;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:18px 20px}
+.spec-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.spec-row:last-child{border-bottom:none}
+.spec-label{font-weight:700;color:rgba(255,255,255,.4);min-width:160px;flex-shrink:0}
+.spec-value{color:#f0f6ff;line-height:1.5}
+.spec-value code{background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:2px 7px;font-size:12px;color:#50e890;font-family:monospace}
+.spec-value .code-block{background:#0a0c10;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px 16px;font-family:monospace;font-size:12px;color:#a5d6ff;margin-top:8px;line-height:1.7;white-space:pre}
+.spec-crossref{display:inline-flex;align-items:center;gap:6px;background:rgba(80,232,144,.08);border:1px solid rgba(80,232,144,.2);border-radius:7px;padding:4px 12px;font-size:12px;font-weight:700;color:#50e890;cursor:pointer;margin-top:4px}
+.spec-crossref:hover{background:rgba(80,232,144,.15)}
+.notif-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.notif-row:last-child{border-bottom:none}
+.notif-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center}
+.notif-body{}
+.notif-title{font-size:13px;font-weight:700;color:#f0f6ff}
+.notif-desc{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+
+/* Utility */
+.flex-center{display:flex;align-items:center;gap:8px}
+.mt-4{margin-top:4px}
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:#50e890}
+.dot-blue{background:#60a5fa}
+.dot-amber{background:#f59e0b}
+.dot-muted{background:rgba(255,255,255,.25)}
+</style>
+</head>
+<body>
+
+<!-- Engineering Hint -->
+<div class="eng-hint">
+  ITEM 251 &middot; owner-release-milestone-tracker-v2.html &middot; WonderQuest parallel-agent build
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Release Milestone Tracker</button>
+  <button class="tab-btn" onclick="showTab(2)">Milestone Details</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</div>
+
+<!-- ════════════════════════════════════════════ TAB 1 ════════════════════════════════════════════ -->
+<div id="tab1" class="screen active">
+  <div class="shell">
+
+    <!-- Shell Header -->
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Release Tracker — v2.6 Road to GA</div>
+      </div>
+      <div class="sh-right">
+        <div class="sh-meta">24 Mar 2026</div>
+        <span class="badge badge-owner">Owner Only</span>
+      </div>
+    </div>
+
+    <!-- Readiness Banner -->
+    <div class="readiness-banner">
+      <div class="rb-left">
+        <div class="rb-score">78</div>
+        <div class="rb-info">
+          <div class="rb-verdict">NOT READY</div>
+          <div class="rb-sub">3 blockers remaining before GA can proceed</div>
+        </div>
+      </div>
+      <div class="rb-bar-wrap">
+        <div class="rb-bar-label">
+          <span>Release Readiness</span>
+          <span>78 / 100 &mdash; threshold: 90</span>
+        </div>
+        <div class="rb-bar-track">
+          <div class="rb-bar-fill" style="width:78%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-wrap">
+      <div class="timeline-header">Milestone Timeline</div>
+      <div class="timeline">
+
+        <!-- 1 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-done">✅</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title">Content seed batch complete (P0–P2)</span>
+              <span class="badge badge-green">Done</span>
+            </div>
+            <div class="tl-date">Completed <strong>14 Mar</strong></div>
+          </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-done">✅</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title">Beta device checklist pass</span>
+              <span class="badge badge-green">Done</span>
+            </div>
+            <div class="tl-date">Completed <strong>15 Mar</strong></div>
+          </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-done">✅</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title">Privacy &amp; consent flows signed off</span>
+              <span class="badge badge-green">Done</span>
+            </div>
+            <div class="tl-date">Completed <strong>17 Mar</strong></div>
+          </div>
+        </div>
+
+        <!-- 4 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-done">✅</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title">Beta teacher pilot setup</span>
+              <span class="badge badge-green">Done</span>
+            </div>
+            <div class="tl-date">Completed <strong>18 Mar</strong></div>
+          </div>
+        </div>
+
+        <!-- 5 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-progress">🔄</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title">Beta family pilot (Week 3/6)</span>
+              <span class="badge badge-blue">In Progress</span>
+            </div>
+            <div class="tl-date">Due <strong>2 Apr</strong></div>
+          </div>
+        </div>
+
+        <!-- 6 — AT RISK -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-risk">🔄</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title">P3 content density fix</span>
+              <span class="badge badge-blue">In Progress</span>
+              <span class="risk-badge">
+                ⚠ AT RISK
+                <span class="tooltip">Only at 73% of target — 4 days to deadline</span>
+              </span>
+            </div>
+            <div class="tl-date">Due <strong>28 Mar</strong></div>
+          </div>
+        </div>
+
+        <!-- 7 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-pending">⏳</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title tl-title-muted">Benchmark disclaimer update</span>
+              <span class="badge badge-muted">Pending</span>
+            </div>
+            <div class="tl-date">Due <strong>1 Apr</strong></div>
+          </div>
+        </div>
+
+        <!-- 8 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-pending">⏳</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title tl-title-muted">Migration playbook documentation</span>
+              <span class="badge badge-muted">Pending</span>
+            </div>
+            <div class="tl-date">Due <strong>3 Apr</strong></div>
+          </div>
+        </div>
+
+        <!-- 9 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-pending">⏳</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title tl-title-muted">Release gate score ≥90</span>
+              <span class="badge badge-muted">Pending</span>
+            </div>
+            <div class="tl-date">Due <strong>5 Apr</strong></div>
+          </div>
+        </div>
+
+        <!-- 10 -->
+        <div class="tl-item">
+          <div class="tl-line"></div>
+          <div class="tl-left"><div class="tl-icon tl-icon-pending">⏳</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title tl-title-muted">Owner sign-off (3/3)</span>
+              <span class="badge badge-muted">Pending</span>
+            </div>
+            <div class="tl-date">Due <strong>7 Apr</strong></div>
+          </div>
+        </div>
+
+        <!-- 11 — GA -->
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-icon tl-icon-ga">🚀</div></div>
+          <div class="tl-body">
+            <div class="tl-row">
+              <span class="tl-title" style="color:#50e890;font-size:15px;font-weight:900">GA Launch</span>
+              <span class="badge badge-muted">Pending</span>
+            </div>
+            <div class="tl-date">Target <strong style="color:#50e890">10 Apr</strong></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ TAB 2 ════════════════════════════════════════════ -->
+<div id="tab2" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Milestone Details — v2.6</div>
+      </div>
+      <div class="sh-right">
+        <span class="badge badge-owner">Owner Only</span>
+      </div>
+    </div>
+
+    <div class="section-pad">
+      <div class="section-title">All Milestones</div>
+
+      <!-- Filter chips -->
+      <div class="filter-chips">
+        <button class="chip active" onclick="filterMilestones('all', this)">All (11)</button>
+        <button class="chip" onclick="filterMilestones('done', this)">Done (4)</button>
+        <button class="chip" onclick="filterMilestones('in_progress', this)">In Progress (2)</button>
+        <button class="chip" onclick="filterMilestones('at_risk', this)">At Risk (1)</button>
+        <button class="chip" onclick="filterMilestones('pending', this)">Pending (5)</button>
+      </div>
+
+      <table class="ms-table" id="milestoneTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Milestone</th>
+            <th>Owner</th>
+            <th>Status</th>
+            <th>Due</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-status="done">
+            <td class="ms-num">01</td>
+            <td class="ms-title-cell">Content seed batch complete (P0–P2)</td>
+            <td>Owner</td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td class="ms-due">14 Mar</td>
+            <td class="ms-notes">All P0–P2 items seeded and verified</td>
+          </tr>
+          <tr data-status="done">
+            <td class="ms-num">02</td>
+            <td class="ms-title-cell">Beta device checklist pass</td>
+            <td>Owner</td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td class="ms-due">15 Mar</td>
+            <td class="ms-notes">All target devices passing</td>
+          </tr>
+          <tr data-status="done">
+            <td class="ms-num">03</td>
+            <td class="ms-title-cell">Privacy &amp; consent flows signed off</td>
+            <td>Owner</td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td class="ms-due">17 Mar</td>
+            <td class="ms-notes">Legal sign-off received</td>
+          </tr>
+          <tr data-status="done">
+            <td class="ms-num">04</td>
+            <td class="ms-title-cell">Beta teacher pilot setup</td>
+            <td>Owner</td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td class="ms-due">18 Mar</td>
+            <td class="ms-notes">6 teacher cohort enrolled</td>
+          </tr>
+          <tr data-status="in_progress">
+            <td class="ms-num">05</td>
+            <td class="ms-title-cell">Beta family pilot (Week 3/6)</td>
+            <td>Owner</td>
+            <td><span class="badge badge-blue">In Progress</span></td>
+            <td class="ms-due">2 Apr</td>
+            <td class="ms-notes">Week 3 of 6 underway; 14 families active</td>
+          </tr>
+          <tr data-status="at_risk">
+            <td class="ms-num">06</td>
+            <td class="ms-title-cell">P3 content density fix <span class="risk-badge" style="margin-left:6px">⚠ AT RISK<span class="tooltip">Only at 73% of target — 4 days to deadline</span></span></td>
+            <td>Owner</td>
+            <td><span class="badge badge-amber">At Risk</span></td>
+            <td class="ms-due soon">28 Mar</td>
+            <td class="ms-notes">Currently 73% of density target; 4 days remaining</td>
+          </tr>
+          <tr data-status="pending">
+            <td class="ms-num">07</td>
+            <td class="ms-title-cell">Benchmark disclaimer update</td>
+            <td>Owner</td>
+            <td><span class="badge badge-muted">Pending</span></td>
+            <td class="ms-due">1 Apr</td>
+            <td class="ms-notes">Awaiting legal copy approval</td>
+          </tr>
+          <tr data-status="pending">
+            <td class="ms-num">08</td>
+            <td class="ms-title-cell">Migration playbook documentation</td>
+            <td>Owner</td>
+            <td><span class="badge badge-muted">Pending</span></td>
+            <td class="ms-due">3 Apr</td>
+            <td class="ms-notes">Draft in progress by eng lead</td>
+          </tr>
+          <tr data-status="pending">
+            <td class="ms-num">09</td>
+            <td class="ms-title-cell">Release gate score ≥90</td>
+            <td>Owner</td>
+            <td><span class="badge badge-muted">Pending</span></td>
+            <td class="ms-due">5 Apr</td>
+            <td class="ms-notes">Links to beta-release-readiness-board</td>
+          </tr>
+          <tr data-status="pending">
+            <td class="ms-num">10</td>
+            <td class="ms-title-cell">Owner sign-off (3/3)</td>
+            <td>Owner</td>
+            <td><span class="badge badge-muted">Pending</span></td>
+            <td class="ms-due">7 Apr</td>
+            <td class="ms-notes">Requires all 3 owner approvals</td>
+          </tr>
+          <tr data-status="pending">
+            <td class="ms-num">11</td>
+            <td class="ms-title-cell" style="color:#50e890;font-weight:800">GA Launch</td>
+            <td>Owner</td>
+            <td><span class="badge badge-muted">Pending</span></td>
+            <td class="ms-due" style="color:#50e890;font-weight:700">10 Apr</td>
+            <td class="ms-notes">Target GA date — all gates must pass</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Decision Log -->
+    <div class="decision-log">
+      <div class="dl-header">
+        <div class="dl-title">Decision Log</div>
+        <button class="btn btn-outline" onclick="openDecisionModal()">+ Add Decision</button>
+      </div>
+      <div class="dl-list" id="decisionList">
+        <div class="dl-item">
+          <div class="dl-dot"></div>
+          <div class="dl-body">
+            <div class="dl-text">Proceed to family pilot despite P3 density gap</div>
+            <div class="dl-meta">15 Mar 2026 &middot; Owner</div>
+          </div>
+        </div>
+        <div class="dl-item">
+          <div class="dl-dot"></div>
+          <div class="dl-body">
+            <div class="dl-text">Extend beta by 1 week if content gap not resolved</div>
+            <div class="dl-meta">17 Mar 2026 &middot; Owner</div>
+          </div>
+        </div>
+        <div class="dl-item">
+          <div class="dl-dot"></div>
+          <div class="dl-body">
+            <div class="dl-text">Voice mode deferred to v2.7</div>
+            <div class="dl-meta">20 Mar 2026 &middot; Owner</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ TAB 3 ════════════════════════════════════════════ -->
+<div id="tab3" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Spec — owner-release-milestone-tracker-v2</div>
+      </div>
+      <div class="sh-right">
+        <span class="badge badge-owner">Owner Only</span>
+        <span class="badge badge-muted">Item 251</span>
+      </div>
+    </div>
+
+    <div class="spec-wrap">
+
+      <!-- Data Schema -->
+      <div class="spec-section">
+        <div class="spec-section-title">Data Schema</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <div class="spec-label">Primary table</div>
+            <div class="spec-value">
+              <code>release_milestones</code>
+              <div class="code-block">release_milestones(
+  id           UUID PRIMARY KEY,
+  release_id   UUID REFERENCES releases(id),
+  title        TEXT NOT NULL,
+  owner_name   TEXT,
+  status       ENUM('done','in_progress','at_risk','pending','blocked'),
+  due_date     DATE,
+  completed_at TIMESTAMPTZ,
+  notes        TEXT
+)</div>
+            </div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Decision log table</div>
+            <div class="spec-value">
+              <code>release_decisions</code>
+              <div class="code-block">release_decisions(
+  id             UUID PRIMARY KEY,
+  release_id     UUID REFERENCES releases(id),
+  decision_text  TEXT NOT NULL,
+  decided_by     TEXT,
+  decided_at     TIMESTAMPTZ DEFAULT NOW()
+)
+-- Append-only; no UPDATE or DELETE permitted</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- At-Risk Logic -->
+      <div class="spec-section">
+        <div class="spec-section-title">At-Risk Trigger Logic</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <div class="spec-label">Trigger condition</div>
+            <div class="spec-value">
+              <div class="code-block">status = 'in_progress'
+  AND due_date &lt;= NOW() + INTERVAL '3 days'</div>
+              Automatically promotes row display to amber "AT RISK" badge with tooltip. Does not mutate <code>status</code> column — computed at read time.
+            </div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Blocked state</div>
+            <div class="spec-value">Requires explicit <code>status = 'blocked'</code> set by owner. Triggers P1 alert immediately (see Notifications).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cross-references -->
+      <div class="spec-section">
+        <div class="spec-section-title">Cross-References</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <div class="spec-label">Release gate link</div>
+            <div class="spec-value">
+              Milestone #09 "Release gate score ≥90" links directly to the readiness board:
+              <div style="margin-top:8px"><span class="spec-crossref">↗ beta-release-readiness-board-v2.html</span></div>
+            </div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Benchmark disclaimer</div>
+            <div class="spec-value">Milestone #07 cross-references <code>beta-benchmark-disclaimer-card-v2.html</code></div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Device checklist</div>
+            <div class="spec-value">Milestone #02 cross-references <code>beta-device-checklist-v2.html</code></div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Pilot readout</div>
+            <div class="spec-value">Milestones #04–#05 cross-reference <code>beta-owner-pilot-readout-v2.html</code></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="spec-section">
+        <div class="spec-section-title">Milestone Notifications</div>
+        <div class="spec-card">
+          <div class="notif-row">
+            <div class="notif-icon">🔔</div>
+            <div class="notif-body">
+              <div class="notif-title">At-risk daily digest</div>
+              <div class="notif-desc">Any milestone matching the at-risk trigger sends a daily summary notification to the owner. Batched at 08:00 local time.</div>
+            </div>
+          </div>
+          <div class="notif-row">
+            <div class="notif-icon">🚨</div>
+            <div class="notif-body">
+              <div class="notif-title">Blocked milestone — P1 alert</div>
+              <div class="notif-desc">Immediate push + email to owner when any milestone transitions to <code>status = 'blocked'</code>. Bypasses digest batching.</div>
+            </div>
+          </div>
+          <div class="notif-row">
+            <div class="notif-icon">✅</div>
+            <div class="notif-body">
+              <div class="notif-title">Milestone completion</div>
+              <div class="notif-desc">Completion of any milestone triggers readiness score recalculation and updates the release tracker banner in real time.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access Control -->
+      <div class="spec-section">
+        <div class="spec-section-title">Access Control</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <div class="spec-label">Visibility</div>
+            <div class="spec-value">
+              <span class="badge badge-owner" style="margin-right:6px">Owner Only</span>
+              Not visible to teachers, parents, or content team. Requires <code>role = 'owner'</code> claim in JWT.
+            </div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Decision log</div>
+            <div class="spec-value">Append-only. Only owner role may add decisions. No edit or delete operations permitted on historical decisions.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-label">Milestone mutations</div>
+            <div class="spec-value">Status updates, completion marks, and notes edits restricted to owner role. Read-only queries available to internal analytics role.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Decision Modal -->
+<div class="modal-overlay" id="decisionModal">
+  <div class="modal">
+    <div class="modal-title">Add Decision</div>
+    <div>
+      <label>Decision Text</label>
+      <textarea id="decisionText" placeholder="Describe the decision made..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDecisionModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDecision()">Save Decision</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(t) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab' + t).classList.add('active');
+    document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+  }
+
+  function filterMilestones(filter, chipEl) {
+    document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+    chipEl.classList.add('active');
+    const rows = document.querySelectorAll('#milestoneTable tbody tr');
+    rows.forEach(row => {
+      const status = row.getAttribute('data-status');
+      if (filter === 'all') {
+        row.classList.remove('hidden');
+      } else if (filter === 'at_risk') {
+        row.classList.toggle('hidden', status !== 'at_risk');
+      } else if (filter === 'in_progress') {
+        // show both in_progress and at_risk rows for "In Progress" filter
+        row.classList.toggle('hidden', status !== 'in_progress' && status !== 'at_risk');
+      } else {
+        row.classList.toggle('hidden', status !== filter);
+      }
+    });
+  }
+
+  function openDecisionModal() {
+    document.getElementById('decisionModal').classList.add('open');
+    document.getElementById('decisionText').focus();
+  }
+
+  function closeDecisionModal() {
+    document.getElementById('decisionModal').classList.remove('open');
+    document.getElementById('decisionText').value = '';
+  }
+
+  function saveDecision() {
+    const text = document.getElementById('decisionText').value.trim();
+    if (!text) return;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const list = document.getElementById('decisionList');
+    const item = document.createElement('div');
+    item.className = 'dl-item';
+    item.innerHTML = `<div class="dl-dot"></div>
+      <div class="dl-body">
+        <div class="dl-text">${escapeHtml(text)}</div>
+        <div class="dl-meta">${dateStr} &middot; Owner</div>
+      </div>`;
+    list.appendChild(item);
+    closeDecisionModal();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Close modal on overlay click
+  document.getElementById('decisionModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDecisionModal();
+  });
+</script>
+</body>
+</html>

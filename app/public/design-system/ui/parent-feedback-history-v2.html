@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Parent Feedback History v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sora',sans-serif;background:#f5f0e8;color:#2c3e2d;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e8e0d0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-family:'Sora',sans-serif;font-weight:700;font-size:10px;color:#2c7a6e;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#2c7a6e;border-bottom-color:#2c7a6e}
+.screen{display:none;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Nav */
+.nav-bar{background:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8e0d0}
+.nav-back{background:transparent;border:none;color:#2c7a6e;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.nav-title{font-size:16px;font-weight:700;color:#1a2e1e;flex:1}
+
+/* Feedback list */
+.feedback-list{padding:0 16px}
+.feedback-item{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;margin-bottom:10px;overflow:hidden;cursor:pointer;transition:all 0.2s}
+.feedback-item:hover{border-color:#2c7a6e}
+.fi-header{padding:14px}
+.fi-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.fi-date{font-size:11px;color:#a0987e;font-weight:700}
+.fi-type{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.type-bug{background:#fff0ee;color:#c0392b}
+.type-suggestion{background:#eef7f0;color:#2c7a6e}
+.type-question{background:#f0f0ff;color:#5050c0}
+.fi-status{margin-left:auto;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.status-pending{background:#fff8e8;color:#b07020}
+.status-reviewing{background:#e8f0ff;color:#2050a0}
+.status-resolved{background:#eef7f0;color:#1e6040}
+.fi-title{font-size:14px;font-weight:700;color:#1a2e1e;margin-bottom:4px}
+.fi-preview{font-size:12px;color:#6b7a6e;line-height:1.4}
+.fi-expand{padding:12px 14px;background:#faf8f4;border-top:1px solid #f0e8dc;font-size:11px;color:#6b7a6e;display:flex;align-items:center;gap:4px}
+
+/* Feedback detail */
+.detail-pad{padding:16px}
+.detail-header{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:16px;margin-bottom:12px}
+.detail-header .d-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.detail-header .d-title{font-size:17px;font-weight:700;color:#1a2e1e;margin-bottom:6px}
+.detail-header .d-body{font-size:13px;color:#4a5a4e;line-height:1.6}
+.response-card{background:#eef7f0;border:1.5px solid #b8dfc0;border-radius:14px;padding:16px;margin-bottom:12px}
+.response-card .r-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.response-card .r-avatar{width:36px;height:36px;background:#2c7a6e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0}
+.response-card .r-name{font-size:13px;font-weight:700;color:#1a2e1e}
+.response-card .r-date{font-size:11px;color:#6b7a6e}
+.response-card .r-body{font-size:13px;color:#2c3e2d;line-height:1.6}
+.status-timeline{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:16px;margin-bottom:12px}
+.status-timeline h4{font-size:13px;font-weight:700;color:#1a2e1e;margin-bottom:12px}
+.st-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;position:relative}
+.st-item::before{content:'';position:absolute;left:9px;top:22px;bottom:-10px;width:2px;background:#e8e0d0}
+.st-item:last-child::before{display:none}
+.st-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1}
+.st-dot.done{background:#2c7a6e;color:#fff}
+.st-dot.active{background:#ffd166;color:#100b2e}
+.st-dot.pending{background:#e8e0d0;color:#a0987e}
+.st-info .st-label{font-size:12px;font-weight:700;color:#1a2e1e}
+.st-info .st-date{font-size:11px;color:#a0987e}
+
+/* Submit form */
+.form-section{padding:16px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:700;color:#6b7a6e;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;background:#fff;border:1.5px solid #e8e0d0;border-radius:10px;padding:10px 12px;font-family:'Sora',sans-serif;font-size:14px;color:#1a2e1e;font-weight:600;outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:#2c7a6e}
+textarea.form-input{resize:none;line-height:1.5}
+.type-options{display:flex;gap:8px;flex-wrap:wrap}
+.type-opt{padding:7px 14px;border-radius:8px;border:1.5px solid #e8e0d0;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:#6b7a6e;transition:all 0.15s}
+.type-opt.selected{border-color:#2c7a6e;background:#eef7f0;color:#2c7a6e}
+.submit-btn{width:100%;background:#2c7a6e;border:none;border-radius:12px;padding:14px;color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;cursor:pointer}
+
+/* Status explained */
+.status-card{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:16px;margin:0 16px 10px}
+.status-card .sc-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.status-card h4{font-size:14px;font-weight:700;color:#1a2e1e}
+.status-card p{font-size:12px;color:#4a5a4e;line-height:1.6}
+
+/* Spec */
+.spec-section{margin-bottom:20px;padding:0 16px}
+.spec-section h3{font-size:14px;font-weight:700;color:#2c7a6e;margin-bottom:8px;border-bottom:1px solid #e8e0d0;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0e8dc;font-size:12px}
+.spec-row .spec-key{color:#6b7a6e;font-weight:700;flex:0 0 130px}
+.spec-row .spec-val{color:#1a2e1e;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#f0f5f0;border-radius:10px;padding:12px;font-size:11px;color:#6b7a6e;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('list')">Feedback History</button>
+  <button class="tab" onclick="show('detail')">Feedback Detail</button>
+  <button class="tab" onclick="show('submit')">Submit New</button>
+  <button class="tab" onclick="show('statusexp')">Status Explained</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Feedback History List -->
+<div id="list" class="screen active">
+  <div class="hint-box">Route: /parent/feedback — list of submitted feedback items. Date, type chip, status chip. Expandable.</div>
+  <div class="nav-bar">
+    <button class="nav-back">←</button>
+    <span class="nav-title">My Feedback</span>
+  </div>
+  <div style="padding:16px 16px 8px;font-size:12px;color:#6b7a6e;font-weight:700">3 items submitted</div>
+  <div class="feedback-list">
+    <div class="feedback-item" onclick="show('detail')">
+      <div class="fi-header">
+        <div class="fi-top">
+          <span class="fi-date">Mar 18, 2026</span>
+          <span class="fi-type type-bug">Bug</span>
+          <span class="fi-status status-resolved">Resolved</span>
+        </div>
+        <div class="fi-title">Session didn't save after power-off</div>
+        <div class="fi-preview">My daughter completed a session but the stars weren't showing…</div>
+      </div>
+      <div class="fi-expand">✅ Response from WonderQuest team — tap to read</div>
+    </div>
+    <div class="feedback-item">
+      <div class="fi-header">
+        <div class="fi-top">
+          <span class="fi-date">Mar 10, 2026</span>
+          <span class="fi-type type-suggestion">Suggestion</span>
+          <span class="fi-status status-reviewing">In Review</span>
+        </div>
+        <div class="fi-title">Add a "quiet mode" for car trips</div>
+        <div class="fi-preview">It would be great if the voice coach could be turned down separately…</div>
+      </div>
+      <div class="fi-expand">📝 Under review by our product team — tap for updates</div>
+    </div>
+    <div class="feedback-item">
+      <div class="fi-header">
+        <div class="fi-top">
+          <span class="fi-date">Feb 28, 2026</span>
+          <span class="fi-type type-question">Question</span>
+          <span class="fi-status status-pending">Pending</span>
+        </div>
+        <div class="fi-title">How do I change my child's world theme?</div>
+        <div class="fi-preview">I can't find where to switch from Dream World to Ocean World…</div>
+      </div>
+      <div class="fi-expand">⏳ Awaiting response — we'll notify you</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <button style="width:100%;background:#2c7a6e;border:none;border-radius:12px;padding:14px;color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;cursor:pointer">+ Submit New Feedback</button>
+  </div>
+</div>
+
+<!-- TAB 2: Feedback Detail -->
+<div id="detail" class="screen active" style="display:none">
+  <div class="hint-box">Route: /parent/feedback/:id — detail view with response from WonderQuest team and status timeline.</div>
+  <div class="nav-bar">
+    <button class="nav-back" onclick="show('list')">← Back</button>
+    <span class="nav-title">Feedback Detail</span>
+  </div>
+  <div class="detail-pad">
+    <div class="detail-header">
+      <div class="d-meta">
+        <span class="fi-type type-bug">Bug</span>
+        <span class="fi-status status-resolved">Resolved</span>
+        <span style="font-size:11px;color:#a0987e;font-weight:700">Mar 18, 2026</span>
+      </div>
+      <div class="d-title">Session didn't save after power-off</div>
+      <div class="d-body">My daughter completed a full session but when we opened the app again after the iPad turned off, the stars from that session weren't showing in her count. She was upset because she worked really hard. Is there a way to recover them?</div>
+    </div>
+    <div class="response-card">
+      <div class="r-header">
+        <div class="r-avatar">W</div>
+        <div>
+          <div class="r-name">WonderQuest Support</div>
+          <div class="r-date">Mar 19, 2026 at 10:14 AM</div>
+        </div>
+      </div>
+      <div class="r-body">Hi! Thank you so much for letting us know. We were able to identify the session in our logs and have manually credited the stars to your daughter's account — they should appear now! We also pushed a fix for this bug in app version 2.4.1. We're sorry this happened and really appreciate your patience.</div>
+    </div>
+    <div class="status-timeline">
+      <h4>Status Timeline</h4>
+      <div class="st-item">
+        <div class="st-dot done">✓</div>
+        <div class="st-info">
+          <div class="st-label">Submitted</div>
+          <div class="st-date">Mar 18, 2026 at 8:02 PM</div>
+        </div>
+      </div>
+      <div class="st-item">
+        <div class="st-dot done">✓</div>
+        <div class="st-info">
+          <div class="st-label">Received by team</div>
+          <div class="st-date">Mar 18, 2026 at 11:55 PM</div>
+        </div>
+      </div>
+      <div class="st-item">
+        <div class="st-dot done">✓</div>
+        <div class="st-info">
+          <div class="st-label">Under review</div>
+          <div class="st-date">Mar 19, 2026 at 9:30 AM</div>
+        </div>
+      </div>
+      <div class="st-item">
+        <div class="st-dot done">✓</div>
+        <div class="st-info">
+          <div class="st-label">Resolved &amp; responded</div>
+          <div class="st-date">Mar 19, 2026 at 10:14 AM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Submit New Feedback -->
+<div id="submit" class="screen">
+  <div class="hint-box">Route: /parent/feedback/new — form to submit a new feedback item. Type selection, text, optional attachment.</div>
+  <div class="nav-bar">
+    <button class="nav-back">Cancel</button>
+    <span class="nav-title">Submit Feedback</span>
+  </div>
+  <div class="form-section">
+    <div class="form-group">
+      <div class="form-label">What kind of feedback?</div>
+      <div class="type-options">
+        <button class="type-opt selected">🐞 Bug</button>
+        <button class="type-opt">💡 Suggestion</button>
+        <button class="type-opt">❓ Question</button>
+        <button class="type-opt">🙏 Compliment</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Title</div>
+      <input class="form-input" type="text" placeholder="Brief description of the issue">
+    </div>
+    <div class="form-group">
+      <div class="form-label">Tell us more</div>
+      <textarea class="form-input" rows="5" placeholder="Describe what happened, what you expected, and any other details that might help us…"></textarea>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Which child? (Optional)</div>
+      <select class="form-input">
+        <option value="">All children / Not specific</option>
+        <option>Maya (age 5)</option>
+        <option>Liam (age 7)</option>
+      </select>
+    </div>
+    <button class="submit-btn">Submit Feedback →</button>
+    <p style="font-size:11px;color:#a0987e;text-align:center;margin-top:10px;line-height:1.5">We review all feedback and typically respond within 2 business days.</p>
+  </div>
+</div>
+
+<!-- TAB 4: Status Explained -->
+<div id="statusexp" class="screen">
+  <div class="hint-box">Route: /parent/feedback/status-guide — explains what each status chip means so parents understand the process.</div>
+  <div class="nav-bar">
+    <button class="nav-back">←</button>
+    <span class="nav-title">What Do the Statuses Mean?</span>
+  </div>
+  <div style="padding:16px 0">
+    <div class="status-card">
+      <div class="sc-top">
+        <span class="fi-status status-pending" style="margin:0">Pending</span>
+      </div>
+      <h4>Pending</h4>
+      <p>Your feedback has been submitted and is waiting to be picked up by our team. We typically respond within 2 business days.</p>
+    </div>
+    <div class="status-card">
+      <div class="sc-top">
+        <span class="fi-status status-reviewing" style="margin:0">In Review</span>
+      </div>
+      <h4>In Review</h4>
+      <p>A member of our team has read your feedback and is actively looking into it. For bugs, this means our engineers are investigating. For suggestions, it means product is evaluating it.</p>
+    </div>
+    <div class="status-card">
+      <div class="sc-top">
+        <span class="fi-status status-resolved" style="margin:0">Resolved</span>
+      </div>
+      <h4>Resolved</h4>
+      <p>We've addressed your feedback and shared a response. Check the detail view for what we did and any actions taken. Thank you for helping us improve!</p>
+    </div>
+    <div style="padding:0 16px;margin-top:8px">
+      <div style="background:#f0f5f0;border-radius:12px;padding:14px;font-size:12px;color:#4a5a4e;line-height:1.6">All your feedback is important to us. Even if a suggestion isn't implemented right away, it shapes future updates to WonderQuest.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for parent-feedback-history-v2.</div>
+  <div style="padding-top:16px">
+    <div class="spec-section">
+      <h3>Component Identity</h3>
+      <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">parent-feedback-history-v2.html</span></div>
+      <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">Parent</span></div>
+      <div class="spec-row"><span class="spec-key">Route</span><span class="spec-val">/parent/feedback</span></div>
+      <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+      <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Status Chips</h3>
+      <div class="spec-row"><span class="spec-key">Pending</span><span class="spec-val">#fff8e8 bg / #b07020 text</span></div>
+      <div class="spec-row"><span class="spec-key">In Review</span><span class="spec-val">#e8f0ff bg / #2050a0 text</span></div>
+      <div class="spec-row"><span class="spec-key">Resolved</span><span class="spec-val">#eef7f0 bg / #1e6040 text</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Type Chips</h3>
+      <div class="spec-row"><span class="spec-key">Bug</span><span class="spec-val">#fff0ee / #c0392b</span></div>
+      <div class="spec-row"><span class="spec-key">Suggestion</span><span class="spec-val">#eef7f0 / #2c7a6e</span></div>
+      <div class="spec-row"><span class="spec-key">Question</span><span class="spec-val">#f0f0ff / #5050c0</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Rules</h3>
+      <div class="spec-note">NEVER show accuracy % anywhere on parent screens. WonderQuest team response always attributed generically ("WonderQuest Support") — never a specific employee name. Feedback is associated with the parent account, not the child directly. Status timeline is read-only for parents.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).style.display='block';
+  document.getElementById(id).classList.remove('active');
+  const tabs=['list','detail','submit','statusexp','spec'];
+  const idx=tabs.indexOf(id);
+  if(idx>=0)document.querySelectorAll('.tab')[idx].classList.add('active');
+}
+// init
+document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+document.getElementById('list').style.display='block';
+</script>
+</body>
+</html>

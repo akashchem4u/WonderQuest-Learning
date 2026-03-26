@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benchmark Disclaimer Panel — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.7;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;color:#f0f6ff;min-height:100vh;padding:24px}
+
+/* ── Tab chrome ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#161b22;color:#8b949e;border:1px solid rgba(255,255,255,.08);transition:all .18s}
+.tab-btn.active{background:#50e890;color:#0d1117;border-color:#50e890}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,.06);color:#f0f6ff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+
+/* ── Section label ── */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#8b949e;margin-bottom:14px;margin-top:32px}
+.section-label:first-child{margin-top:0}
+
+/* ── Variant wrapper grid ── */
+.variant-stack{display:flex;flex-direction:column;gap:28px}
+
+/* ── Variant header (demo label) ── */
+.variant-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#50e890;margin-bottom:10px}
+
+/* ═══════════════════════════════════════════════════════════════
+   VARIANT 1 — Inline metric disclaimer (smallest)
+═══════════════════════════════════════════════════════════════ */
+.metric-demo-row{display:inline-flex;align-items:center;gap:8px;background:#161b22;border-radius:10px;padding:12px 16px;border:1px solid rgba(255,255,255,.06)}
+.metric-value{font-size:28px;font-weight:900;color:#f0f6ff;line-height:1}
+.metric-sub{font-size:12px;color:#8b949e;margin-top:2px}
+.metric-info-wrap{position:relative;display:inline-flex;align-items:center}
+.metric-info-btn{width:18px;height:18px;border-radius:50%;background:rgba(255,211,102,.15);border:1px solid #ffd166;color:#ffd166;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;line-height:1}
+.metric-info-btn:hover{background:rgba(255,211,102,.28)}
+.metric-tooltip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:240px;background:#21262d;border:1px solid rgba(255,211,102,.4);border-radius:8px;padding:10px 12px;font-size:12px;color:#c9d1d9;line-height:1.5;z-index:10;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.metric-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#21262d}
+.metric-info-wrap:hover .metric-tooltip,
+.metric-info-btn:focus + .metric-tooltip{display:block}
+.metric-info-btn:focus{outline:2px solid #ffd166;outline-offset:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   VARIANT 2 — Card-level disclaimer (standard, amber, collapsible)
+═══════════════════════════════════════════════════════════════ */
+.disc-card{background:#161b22;border-radius:12px;border:2px solid #ffd166;overflow:hidden;max-width:600px}
+.disc-card-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;user-select:none}
+.disc-card-icon{font-size:16px;flex-shrink:0}
+.disc-card-title{font-size:14px;font-weight:700;color:#ffd166;flex:1}
+.disc-card-chevron{color:#ffd166;font-size:13px;transition:transform .2s;flex-shrink:0}
+.disc-card.open .disc-card-chevron{transform:rotate(180deg)}
+.disc-card-preview{font-size:12px;color:#8b949e;padding:0 16px 10px 42px;line-height:1.5}
+.disc-card.open .disc-card-preview{display:none}
+.disc-card-body{padding:0 16px 16px 42px;font-size:13px;color:#c9d1d9;line-height:1.65;display:none}
+.disc-card.open .disc-card-body{display:block}
+.disc-card-body p+p{margin-top:8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   VARIANT 3 — Comparison disclaimer (checkbox required)
+═══════════════════════════════════════════════════════════════ */
+.comp-disc{background:#161b22;border-radius:12px;border:2px solid #ffd166;max-width:600px;overflow:hidden}
+.comp-disc-header{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,209,102,.18)}
+.comp-disc-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:rgba(255,209,102,.15);color:#ffd166;border-radius:4px;padding:3px 8px;flex-shrink:0}
+.comp-disc-title{font-size:14px;font-weight:800;color:#ffd166}
+.comp-disc-body{padding:14px 16px;font-size:13px;color:#c9d1d9;line-height:1.65}
+.comp-disc-body p+p{margin-top:8px}
+.comp-disc-footer{padding:12px 16px;border-top:1px solid rgba(255,209,102,.18);display:flex;flex-direction:column;gap:12px}
+.comp-disc-checkbox-row{display:flex;align-items:flex-start;gap:10px}
+.comp-disc-checkbox-row input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:#ffd166;cursor:pointer;flex-shrink:0}
+.comp-disc-checkbox-row label{font-size:12px;color:#c9d1d9;line-height:1.5;cursor:pointer}
+.comp-disc-continue-btn{align-self:flex-start;padding:8px 20px;border-radius:8px;border:none;font-size:13px;font-weight:700;font-family:system-ui;cursor:pointer;background:#50e890;color:#0d1117;transition:all .18s}
+.comp-disc-continue-btn:disabled{background:rgba(255,255,255,.08);color:#8b949e;cursor:not-allowed}
+.comp-disc-continue-btn:not(:disabled):hover{background:#3dd67a}
+
+/* ═══════════════════════════════════════════════════════════════
+   VARIANT 4 — Learning Effectiveness (strictest, red border)
+═══════════════════════════════════════════════════════════════ */
+.eff-disc{background:#161b22;border-radius:12px;border:2px solid #ff4444;max-width:600px;overflow:hidden}
+.eff-disc-header{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,68,68,.22);background:rgba(255,68,68,.06)}
+.eff-disc-icon{font-size:18px;flex-shrink:0}
+.eff-disc-title{font-size:14px;font-weight:800;color:#ff6b6b}
+.eff-disc-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:rgba(255,68,68,.18);color:#ff4444;border-radius:4px;padding:3px 8px;flex-shrink:0;margin-left:auto}
+.eff-disc-body{padding:14px 16px;font-size:13px;color:#c9d1d9;line-height:1.7}
+.eff-disc-body p+p{margin-top:8px}
+.eff-disc-footer{padding:12px 16px;border-top:1px solid rgba(255,68,68,.18);display:flex;flex-direction:column;gap:12px}
+.eff-disc-checkbox-row{display:flex;align-items:flex-start;gap:10px}
+.eff-disc-checkbox-row input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:#ff4444;cursor:pointer;flex-shrink:0}
+.eff-disc-checkbox-row label{font-size:12px;color:#c9d1d9;line-height:1.5;cursor:pointer}
+.eff-disc-sig-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.eff-disc-sig-input{background:#0d1117;border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#f0f6ff;font-size:13px;padding:7px 10px;font-family:system-ui;outline:none;transition:border-color .15s;min-width:180px;flex:1}
+.eff-disc-sig-input:focus{border-color:#ff6b6b}
+.eff-disc-sig-date{font-size:12px;color:#8b949e;white-space:nowrap}
+.eff-disc-submit-btn{align-self:flex-start;padding:8px 20px;border-radius:8px;border:none;font-size:13px;font-weight:700;font-family:system-ui;cursor:pointer;background:#ff4444;color:#fff;transition:all .18s}
+.eff-disc-submit-btn:disabled{background:rgba(255,255,255,.08);color:#8b949e;cursor:not-allowed}
+.eff-disc-submit-btn:not(:disabled):hover{background:#e03030}
+.eff-disc-logged-note{font-size:11px;color:#8b949e;display:flex;align-items:center;gap:5px}
+
+/* ═══════════════════════════════════════════════════════════════
+   VARIANT 5 — Export / PDF disclaimer
+═══════════════════════════════════════════════════════════════ */
+.pdf-disc-wrapper{background:#fff;border-radius:4px;border:2px solid #1a1a1a;max-width:600px;padding:16px 20px}
+.pdf-disc-title{font-size:13px;font-weight:900;color:#000;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:6px}
+.pdf-disc-body{font-size:12px;color:#111;line-height:1.65}
+.pdf-disc-body p+p{margin-top:6px}
+.pdf-disc-footer{margin-top:10px;font-size:11px;color:#333;font-weight:700;border-top:1px solid #ccc;padding-top:8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB 2 — Keyword Triggers
+═══════════════════════════════════════════════════════════════ */
+.trigger-table-wrap{max-width:700px;background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);overflow:hidden}
+.trigger-table{width:100%;border-collapse:collapse}
+.trigger-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;padding:10px 16px;background:rgba(255,255,255,.04);text-align:left;border-bottom:1px solid rgba(255,255,255,.08)}
+.trigger-table td{font-size:13px;padding:11px 16px;color:#c9d1d9;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.trigger-table tr:last-child td{border-bottom:none}
+.trigger-table tr:hover td{background:rgba(255,255,255,.03)}
+.kw-badge{display:inline-block;font-family:monospace;font-size:12px;background:#0d1117;border-radius:4px;padding:2px 8px;border:1px solid rgba(255,255,255,.1);color:#f0f6ff}
+.type-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;text-transform:uppercase;letter-spacing:.05em}
+.type-standard{background:rgba(255,209,102,.12);color:#ffd166;border:1px solid rgba(255,209,102,.3)}
+.type-comparison{background:rgba(155,114,255,.12);color:#9b72ff;border:1px solid rgba(155,114,255,.3)}
+.type-learning-eff{background:rgba(255,68,68,.12);color:#ff6b6b;border:1px solid rgba(255,68,68,.3)}
+.v-badge{font-size:10px;font-weight:700;background:rgba(80,232,144,.12);color:#50e890;border-radius:4px;padding:2px 6px;border:1px solid rgba(80,232,144,.25)}
+
+.code-block{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 20px;font-family:monospace;font-size:12px;color:#c9d1d9;line-height:1.7;max-width:700px;overflow-x:auto;margin-top:20px;white-space:pre}
+.code-kw{color:#50e890}
+.code-str{color:#ffd166}
+.code-fn{color:#9b72ff}
+.code-cmt{color:#6e7681}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB 3 — Spec
+═══════════════════════════════════════════════════════════════ */
+.spec-card{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:20px 24px;max-width:760px}
+.spec-card+.spec-card{margin-top:16px}
+.spec-h2{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#50e890;margin-bottom:12px}
+.spec-table{width:100%;border-collapse:collapse}
+.spec-table td{font-size:13px;color:#c9d1d9;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.spec-table td:first-child{font-weight:700;color:#f0f6ff;width:44%;padding-right:16px}
+.spec-p{font-size:13px;color:#c9d1d9;line-height:1.65;margin-top:6px}
+.spec-p+.spec-p{margin-top:8px}
+.spec-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.spec-list li{font-size:13px;color:#c9d1d9;line-height:1.5;padding-left:16px;position:relative}
+.spec-list li::before{content:'–';position:absolute;left:0;color:#8b949e}
+.spec-code{font-family:monospace;font-size:12px;background:rgba(255,255,255,.07);border-radius:4px;padding:1px 6px;color:#9b72ff}
+.spec-tag{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:2px 7px;margin:1px 2px 1px 0}
+.spec-tag-green{background:rgba(80,232,144,.12);color:#50e890;border:1px solid rgba(80,232,144,.25)}
+.spec-tag-amber{background:rgba(255,209,102,.12);color:#ffd166;border:1px solid rgba(255,209,102,.25)}
+.spec-tag-red{background:rgba(255,68,68,.12);color:#ff6b6b;border:1px solid rgba(255,68,68,.25)}
+.spec-tag-purple{background:rgba(155,114,255,.12);color:#9b72ff;border:1px solid rgba(155,114,255,.25)}
+</style>
+</head>
+<body>
+
+<div class="eng-hint"><strong>ITEM 258 · benchmark-disclaimer-panel-v2.html · WonderQuest parallel-agent build</strong></div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(0)">Disclaimer Panel Gallery</button>
+  <button class="tab-btn" onclick="showTab(1)">Keyword Triggers</button>
+  <button class="tab-btn" onclick="showTab(2)">Spec</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 0 — Disclaimer Panel Gallery
+════════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-0">
+
+  <div class="variant-stack">
+
+    <!-- Variant 1 -->
+    <div>
+      <div class="section-label">Variant 1 — Inline metric disclaimer (smallest)</div>
+      <div class="variant-label">Used on dashboard metric values</div>
+      <div class="metric-demo-row">
+        <div>
+          <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Exploration Sessions</div>
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <span class="metric-value">142</span>
+            <span class="metric-sub">this month</span>
+          </div>
+        </div>
+        <div class="metric-info-wrap">
+          <button class="metric-info-btn" aria-label="Disclaimer info for this metric" tabindex="0">ⓘ</button>
+          <div class="metric-tooltip" role="tooltip">
+            This metric shows exploration patterns, not test scores.<br>
+            Activity counts reflect time engaged with quests, not academic achievement.
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#6e7681">Hover or focus the ⓘ icon to reveal the tooltip disclaimer.</div>
+    </div>
+
+    <!-- Variant 2 -->
+    <div>
+      <div class="section-label">Variant 2 — Card-level disclaimer (standard, amber, collapsible)</div>
+      <div class="variant-label">Used on dashboard and report cards where learning/progress/improvement keywords appear</div>
+      <div class="disc-card" id="disc-v2">
+        <div class="disc-card-header" onclick="toggleV2()" aria-expanded="false" aria-controls="disc-v2-body" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggleV2()">
+          <span class="disc-card-icon">📊</span>
+          <span class="disc-card-title">About this data</span>
+          <span class="disc-card-chevron" id="disc-v2-chevron">▼</span>
+        </div>
+        <div class="disc-card-preview" id="disc-v2-preview">
+          WonderQuest data reflects engagement and exploration activity only — not academic test scores. ▼ Read more
+        </div>
+        <div class="disc-card-body" id="disc-v2-body">
+          <p>WonderQuest data reflects engagement and exploration activity only — not academic test scores or standardised assessments.</p>
+          <p>Progress metrics measure how often and for how long a child engages with learning quests. They do not indicate mastery of curriculum objectives or predict future academic performance.</p>
+          <p>Improvement trends should be interpreted as increased engagement, not causal evidence of learning gains. Independent peer-reviewed research has not been conducted on WonderQuest outcomes.</p>
+          <p>For academic assessment, please consult your child's school or a qualified educator.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variant 3 -->
+    <div>
+      <div class="section-label">Variant 3 — Comparison disclaimer (shown when comparisons displayed)</div>
+      <div class="variant-label">Triggered by "comparison" or "benchmark" keywords. Checkbox required before continuing.</div>
+      <div class="comp-disc">
+        <div class="comp-disc-header">
+          <span class="comp-disc-badge">Comparison Note</span>
+          <span class="comp-disc-title" style="margin-left:8px">📊 Comparison Note</span>
+        </div>
+        <div class="comp-disc-body">
+          <p>These comparisons are based on engagement and exploration activity only. They do not represent standardised test scores, predicted academic outcomes, or causal learning effectiveness data.</p>
+          <p>Comparison data shows relative activity levels between children or cohorts within the WonderQuest platform. No external benchmark or norm-referenced data is used.</p>
+        </div>
+        <div class="comp-disc-footer">
+          <div class="comp-disc-checkbox-row">
+            <input type="checkbox" id="comp-disc-cb" onchange="updateCompBtn()">
+            <label for="comp-disc-cb">I understand this comparison is exploration-based, not academic assessment</label>
+          </div>
+          <button class="comp-disc-continue-btn" id="comp-disc-btn" disabled onclick="compContinue()">Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variant 4 -->
+    <div>
+      <div class="section-label">Variant 4 — Learning Effectiveness disclaimer (strictest — red border)</div>
+      <div class="variant-label">Triggered by "outcomes" or "efficacy" keywords. Non-dismissible. Requires checkbox + signature. Logged to two tables.</div>
+      <div class="eff-disc" role="alertdialog" aria-labelledby="eff-disc-title" aria-describedby="eff-disc-desc">
+        <div class="eff-disc-header">
+          <span class="eff-disc-icon" aria-hidden="true">⚠</span>
+          <span class="eff-disc-title" id="eff-disc-title">Learning Effectiveness Disclaimer</span>
+          <span class="eff-disc-badge">Non-dismissible</span>
+        </div>
+        <div class="eff-disc-body" id="eff-disc-desc">
+          <p>WonderQuest makes no claims about causal learning outcomes. Data from the beta phase reflects exploration engagement patterns only.</p>
+          <p>Independent peer-reviewed research has not been conducted. Results have not been validated against standardised educational assessments or curriculum frameworks.</p>
+          <p>This data should not be used to make clinical or academic placement decisions, to assess special educational needs, or as evidence in any formal evaluation or reporting process.</p>
+          <p>If you require evidence of academic progress, please use validated assessments provided by your school or a qualified educational professional.</p>
+        </div>
+        <div class="eff-disc-footer">
+          <div class="eff-disc-checkbox-row">
+            <input type="checkbox" id="eff-disc-cb" onchange="updateEffBtn()">
+            <label for="eff-disc-cb">I have read and understood this disclaimer. I will not use this data for clinical or academic placement decisions.</label>
+          </div>
+          <div class="eff-disc-sig-row">
+            <input class="eff-disc-sig-input" type="text" id="eff-disc-sig" placeholder="Your name (signature)" aria-label="Signature: enter your full name" oninput="updateEffBtn()">
+            <span class="eff-disc-sig-date" id="eff-disc-date"></span>
+          </div>
+          <button class="eff-disc-submit-btn" id="eff-disc-btn" disabled onclick="effSubmit()">Acknowledge &amp; Continue</button>
+          <div class="eff-disc-logged-note">
+            <span>🔒</span>
+            <span>Acknowledgment will be logged to <code style="font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px">disclaimer_displays</code> and <code style="font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px">learning_effectiveness_acknowledgments</code></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variant 5 -->
+    <div>
+      <div class="section-label">Variant 5 — Export / PDF disclaimer (always present in documents)</div>
+      <div class="variant-label">Non-removable from exports. Plain white background for PDF rendering. <code style="font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px">include_disclaimer = true</code> hardcoded — cannot be overridden.</div>
+      <div class="pdf-disc-wrapper">
+        <div class="pdf-disc-title">Important Note</div>
+        <div class="pdf-disc-body">
+          <p>IMPORTANT NOTE: This report contains WonderQuest engagement data only. WonderQuest data reflects exploration and engagement activity within the WonderQuest platform.</p>
+          <p>It does not represent standardised test scores, predicted academic outcomes, or causal evidence of learning effectiveness. Independent peer-reviewed research on WonderQuest learning outcomes has not been conducted.</p>
+          <p>This report should not be used to make academic placement, clinical, or special educational needs decisions. For formal academic assessment, please consult your child's school or a qualified educator.</p>
+          <p>WonderQuest makes no warranties, express or implied, regarding the educational effectiveness of its platform. Data is provided for informational purposes only.</p>
+        </div>
+        <div class="pdf-disc-footer">Not for redistribution. WonderQuest Confidential — Beta. Disclaimer v2.1</div>
+      </div>
+    </div>
+
+  </div><!-- /variant-stack -->
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 1 — Keyword Triggers
+════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-1">
+
+  <div class="section-label">Auto-trigger reference table</div>
+  <div class="trigger-table-wrap">
+    <table class="trigger-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Keyword</th>
+          <th>Disclaimer type triggered</th>
+          <th>Variant</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#8b949e">1</td>
+          <td><span class="kw-badge">learning</span></td>
+          <td><span class="type-badge type-standard">Standard</span></td>
+          <td><span class="v-badge">V2</span></td>
+        </tr>
+        <tr>
+          <td style="color:#8b949e">2</td>
+          <td><span class="kw-badge">improvement</span></td>
+          <td><span class="type-badge type-standard">Standard</span></td>
+          <td><span class="v-badge">V2</span></td>
+        </tr>
+        <tr>
+          <td style="color:#8b949e">3</td>
+          <td><span class="kw-badge">outcomes</span></td>
+          <td><span class="type-badge type-learning-eff">Learning Effectiveness</span></td>
+          <td><span class="v-badge">V4</span></td>
+        </tr>
+        <tr>
+          <td style="color:#8b949e">4</td>
+          <td><span class="kw-badge">efficacy</span></td>
+          <td><span class="type-badge type-learning-eff">Learning Effectiveness</span></td>
+          <td><span class="v-badge">V4</span></td>
+        </tr>
+        <tr>
+          <td style="color:#8b949e">5</td>
+          <td><span class="kw-badge">progress</span></td>
+          <td><span class="type-badge type-standard">Standard</span></td>
+          <td><span class="v-badge">V2</span></td>
+        </tr>
+        <tr>
+          <td style="color:#8b949e">6</td>
+          <td><span class="kw-badge">comparison</span></td>
+          <td><span class="type-badge type-comparison">Comparison</span></td>
+          <td><span class="v-badge">V3</span></td>
+        </tr>
+        <tr>
+          <td style="color:#8b949e">7</td>
+          <td><span class="kw-badge">benchmark</span></td>
+          <td><span class="type-badge type-comparison">Comparison</span></td>
+          <td><span class="v-badge">V3</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:28px">Auto-trigger implementation</div>
+  <div class="code-block"><span class="code-kw">const</span> DISCLAIMER_KEYWORDS = {
+  <span class="code-str">outcomes</span>:    <span class="code-str">'learning-effectiveness'</span>,
+  <span class="code-str">efficacy</span>:    <span class="code-str">'learning-effectiveness'</span>,
+  <span class="code-str">comparison</span>:  <span class="code-str">'comparison'</span>,
+  <span class="code-str">benchmark</span>:   <span class="code-str">'comparison'</span>,
+  <span class="code-str">learning</span>:    <span class="code-str">'standard'</span>,
+  <span class="code-str">improvement</span>: <span class="code-str">'standard'</span>,
+  <span class="code-str">progress</span>:    <span class="code-str">'standard'</span>
+};
+
+<span class="code-kw">function</span> <span class="code-fn">checkDisclaimerTrigger</span>(text) {
+  <span class="code-kw">const</span> lower = text.<span class="code-fn">toLowerCase</span>();
+  <span class="code-kw">for</span> (<span class="code-kw">const</span> [keyword, type] <span class="code-kw">of</span> Object.<span class="code-fn">entries</span>(DISCLAIMER_KEYWORDS)) {
+    <span class="code-kw">if</span> (lower.<span class="code-fn">includes</span>(keyword)) <span class="code-kw">return</span> type;
+  }
+  <span class="code-kw">return</span> <span class="code-kw">null</span>;
+}
+
+<span class="code-cmt">// Returns: 'standard' | 'comparison' | 'learning-effectiveness' | null</span>
+<span class="code-cmt">// Evaluation order matches DISCLAIMER_KEYWORDS key order.</span>
+<span class="code-cmt">// First match wins — no cascading.</span></div>
+
+  <div class="section-label" style="margin-top:28px">Trigger scope</div>
+  <div style="background:#161b22;border-radius:10px;border:1px solid rgba(255,255,255,.06);padding:16px 20px;max-width:700px;font-size:13px;color:#c9d1d9;line-height:1.65">
+    The <code style="font-size:12px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px">checkDisclaimerTrigger()</code> function is called against:
+    <ul style="list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:6px">
+      <li style="padding-left:16px;position:relative"><span style="position:absolute;left:0;color:#8b949e">–</span> Dashboard section headings and metric labels</li>
+      <li style="padding-left:16px;position:relative"><span style="position:absolute;left:0;color:#8b949e">–</span> Report card titles and sub-headings</li>
+      <li style="padding-left:16px;position:relative"><span style="position:absolute;left:0;color:#8b949e">–</span> Export / PDF document titles and section headers</li>
+      <li style="padding-left:16px;position:relative"><span style="position:absolute;left:0;color:#8b949e">–</span> Chart axis labels and legend text</li>
+    </ul>
+    <p style="margin-top:10px">Checks run on <strong style="color:#f0f6ff">adult personas only</strong> (parent / teacher / owner / content). Child persona is never shown comparison or benchmark data and does not receive disclaimer overlays.</p>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 2 — Spec
+════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-2">
+
+  <div class="section-label">Variants by context</div>
+  <div class="spec-card">
+    <div class="spec-h2">Context → Variant mapping</div>
+    <table class="spec-table">
+      <tr>
+        <td>Dashboard metric value</td>
+        <td><span class="spec-tag spec-tag-amber">Variant 1</span> Inline tooltip — ⓘ icon next to metric</td>
+      </tr>
+      <tr>
+        <td>Report / dashboard card (learning, progress, improvement keyword)</td>
+        <td><span class="spec-tag spec-tag-amber">Variant 2</span> Standard amber collapsible card</td>
+      </tr>
+      <tr>
+        <td>Comparison card (comparison, benchmark keyword)</td>
+        <td><span class="spec-tag spec-tag-purple">Variant 3</span> Comparison Note — checkbox required before continuing</td>
+      </tr>
+      <tr>
+        <td>Learning effectiveness keyword (outcomes, efficacy)</td>
+        <td><span class="spec-tag spec-tag-red">Variant 4</span> Red border + signature — non-dismissible</td>
+      </tr>
+      <tr>
+        <td>Report export / PDF generation</td>
+        <td><span class="spec-tag spec-tag-green">Variant 5</span> Always-present plain text block — hardcoded</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:24px">Acknowledgment storage</div>
+  <div class="spec-card">
+    <div class="spec-h2">Database schema</div>
+    <table class="spec-table">
+      <tr>
+        <td>Primary table</td>
+        <td><span class="spec-code">disclaimer_displays</span><br>
+          <span style="font-size:12px;color:#8b949e">id, user_id, variant, keyword_trigger, page_context, acknowledged_at, signature_text</span></td>
+      </tr>
+      <tr>
+        <td>Variant 4 additional log</td>
+        <td><span class="spec-code">learning_effectiveness_acknowledgments</span><br>
+          <span style="font-size:12px;color:#8b949e">id, user_id, signature_text, acknowledged_at, context</span></td>
+      </tr>
+      <tr>
+        <td>Both tables written</td>
+        <td>Variant 4 only. All other variants write to <span class="spec-code">disclaimer_displays</span> only.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:24px">Non-removable in exports</div>
+  <div class="spec-card">
+    <div class="spec-h2">PDF / export rules</div>
+    <ul class="spec-list">
+      <li>PDF generation sets <span class="spec-code">include_disclaimer = true</span> as a hardcoded constant — cannot be overridden by user settings, admin flags, or API parameters.</li>
+      <li>Variant 5 block is injected before the first content section and on the final page of every export.</li>
+      <li>Removing the disclaimer block from a PDF template is a build-time error; the CI pipeline checks for disclaimer presence in test exports.</li>
+    </ul>
+  </div>
+
+  <div class="section-label" style="margin-top:24px">Personas</div>
+  <div class="spec-card">
+    <div class="spec-h2">Who sees disclaimers</div>
+    <table class="spec-table">
+      <tr>
+        <td>Adult personas</td>
+        <td>Parent, Teacher, Owner, Content — all disclaimer variants apply.</td>
+      </tr>
+      <tr>
+        <td>Child persona</td>
+        <td>Never shown comparison or benchmark data. No disclaimer overlays rendered. Disclaimer checks are bypassed at the persona level before keyword scanning.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-label" style="margin-top:24px">Version control</div>
+  <div class="spec-card">
+    <div class="spec-h2">Re-acknowledgment on version change</div>
+    <ul class="spec-list">
+      <li>Disclaimer text is versioned via <span class="spec-code">disclaimer_version</span> in app config (currently <span class="spec-code">v2.1</span>).</li>
+      <li>When <span class="spec-code">disclaimer_version</span> is incremented, all existing acknowledgment records are invalidated.</li>
+      <li>Users who previously acknowledged Variant 4 must re-sign with the new version text before accessing learning-effectiveness data again.</li>
+      <li>Version string is stored in <span class="spec-code">disclaimer_displays.disclaimer_version</span> and <span class="spec-code">learning_effectiveness_acknowledgments.disclaimer_version</span>.</li>
+    </ul>
+  </div>
+
+  <div class="section-label" style="margin-top:24px">Accessibility (WCAG)</div>
+  <div class="spec-card">
+    <div class="spec-h2">WCAG compliance notes</div>
+    <table class="spec-table">
+      <tr>
+        <td>Checkboxes (Variants 3 &amp; 4)</td>
+        <td>Each <span class="spec-code">&lt;input type="checkbox"&gt;</span> has a matching <span class="spec-code">&lt;label for="…"&gt;</span> — satisfies WCAG 1.3.1 and 4.1.2.</td>
+      </tr>
+      <tr>
+        <td>Variant 4 signature input</td>
+        <td>Has <span class="spec-code">aria-label="Signature: enter your full name"</span> — satisfies WCAG 4.1.2.</td>
+      </tr>
+      <tr>
+        <td>Variant 4 red border — WCAG 1.4.1 (use of colour)</td>
+        <td>Red border is supplemented by the ⚠ icon and "Learning Effectiveness Disclaimer" text label — colour is not the sole indicator.</td>
+      </tr>
+      <tr>
+        <td>Variant 1 tooltip</td>
+        <td>Accessible via keyboard focus (<span class="spec-code">tabindex="0"</span>) and <span class="spec-code">role="tooltip"</span>. Focus ring uses <span class="spec-code">outline: 2px solid #ffd166</span>.</td>
+      </tr>
+      <tr>
+        <td>Variant 4 dialog role</td>
+        <td>Wrapper uses <span class="spec-code">role="alertdialog"</span> with <span class="spec-code">aria-labelledby</span> and <span class="spec-code">aria-describedby</span>.</td>
+      </tr>
+    </table>
+  </div>
+
+</div><!-- /screen-2 -->
+
+<script>
+/* ── Tab navigation ── */
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach((s, i) => {
+    s.classList.toggle('active', i === t);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === t);
+  });
+}
+
+/* ── Variant 2 collapsible ── */
+function toggleV2() {
+  const card = document.getElementById('disc-v2');
+  const chevron = document.getElementById('disc-v2-chevron');
+  const header = card.querySelector('.disc-card-header');
+  const isOpen = card.classList.toggle('open');
+  chevron.textContent = isOpen ? '▲' : '▼';
+  header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+/* ── Variant 3 — enable Continue when checkbox checked ── */
+function updateCompBtn() {
+  const cb = document.getElementById('comp-disc-cb');
+  const btn = document.getElementById('comp-disc-btn');
+  btn.disabled = !cb.checked;
+}
+function compContinue() {
+  const btn = document.getElementById('comp-disc-btn');
+  btn.textContent = '✓ Acknowledged';
+  btn.style.background = '#50e890';
+  btn.disabled = true;
+}
+
+/* ── Variant 4 — enable Acknowledge when checkbox + name filled ── */
+function updateEffBtn() {
+  const cb = document.getElementById('eff-disc-cb');
+  const sig = document.getElementById('eff-disc-sig');
+  const btn = document.getElementById('eff-disc-btn');
+  btn.disabled = !(cb.checked && sig.value.trim().length > 0);
+}
+function effSubmit() {
+  const btn = document.getElementById('eff-disc-btn');
+  const sig = document.getElementById('eff-disc-sig').value.trim();
+  btn.textContent = '✓ Acknowledgment Logged';
+  btn.style.background = '#50e890';
+  btn.style.color = '#0d1117';
+  btn.disabled = true;
+  // In production: POST to /api/disclaimer/acknowledge
+  // with { variant: 4, signature: sig, tables: ['disclaimer_displays','learning_effectiveness_acknowledgments'] }
+  console.log('[WonderQuest] Learning effectiveness disclaimer acknowledged by:', sig);
+  console.log('[WonderQuest] Logged to: disclaimer_displays, learning_effectiveness_acknowledgments');
+}
+
+/* ── Set today's date on Variant 4 ── */
+(function setDate() {
+  const el = document.getElementById('eff-disc-date');
+  if (!el) return;
+  const now = new Date();
+  const opts = { year: 'numeric', month: 'short', day: 'numeric' };
+  el.textContent = 'Date: ' + now.toLocaleDateString('en-GB', opts);
+})();
+</script>
+</body>
+</html>

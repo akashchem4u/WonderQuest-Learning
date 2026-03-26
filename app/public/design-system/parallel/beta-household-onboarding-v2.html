@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Household Onboarding v2 — WonderQuest</title>
+<style>
+/* ──── ENG HINT ──── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px 18px;font-family:monospace;font-size:12px;line-height:1.7;margin-bottom:20px;color:#5a4000}
+.eng-hint strong{color:#7a5c00}
+
+/* ──── RESET ──── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#0d1117;color:#f0f6ff;min-height:100vh}
+
+/* ──── OUTER PAGE ──── */
+.page-wrap{max-width:900px;margin:0 auto;padding:24px 20px 60px}
+
+/* ──── TAB BAR ──── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#161b22;color:#8b949e;border:1px solid rgba(255,255,255,.06);transition:all .18s}
+.tab-btn:hover{background:#1c2128;color:#f0f6ff}
+.tab-btn.active{background:#f59e0b;color:#0d1117;border-color:#f59e0b}
+.screen{display:none}
+.screen.active{display:block}
+
+/* ──── WIZARD CARD ──── */
+.wiz-card{background:#161b22;border-radius:20px;border:1px solid rgba(255,255,255,.06);padding:36px 40px;max-width:600px;margin:0 auto}
+
+/* ──── PROGRESS BAR ──── */
+.progress-wrap{margin-bottom:32px}
+.progress-track{display:flex;align-items:flex-start;justify-content:space-between;position:relative}
+.progress-track::before{content:'';position:absolute;top:14px;left:0;right:0;height:2px;background:rgba(255,255,255,.07);z-index:0}
+.step-col{display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;flex:1}
+.step-node{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;transition:all .22s;flex-shrink:0}
+.step-node.pending{background:#1c2128;color:#8b949e;border:2px solid rgba(255,255,255,.1)}
+.step-node.active{background:#f59e0b;color:#0d1117;border:2px solid #f59e0b;box-shadow:0 0 12px rgba(245,158,11,.4)}
+.step-node.complete{background:#50e890;color:#0d1117;border:2px solid #50e890}
+.step-lbl{font-size:9px;font-weight:700;margin-top:5px;color:#8b949e;text-align:center;white-space:nowrap;max-width:60px}
+.step-lbl.active-lbl{color:#f59e0b}
+.step-lbl.complete-lbl{color:#50e890}
+.connector-line{position:absolute;top:14px;left:50%;right:-50%;height:2px;z-index:0;transition:background .22s}
+.connector-line.done{background:#50e890}
+.connector-line.todo{background:rgba(255,255,255,.07)}
+
+/* ──── STEP TITLE ──── */
+.step-title{font-size:20px;font-weight:800;color:#f0f6ff;margin-bottom:6px}
+.step-sub{font-size:13px;color:#8b949e;margin-bottom:28px;line-height:1.5}
+
+/* ──── FORM ELEMENTS ──── */
+.form-group{margin-bottom:18px}
+.form-label{font-size:12px;font-weight:700;color:#8b949e;margin-bottom:6px;display:block;letter-spacing:.02em}
+.form-label .req{color:#f59e0b}
+.form-input,.form-select{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#f0f6ff;font-size:14px;font-family:system-ui;padding:10px 12px;transition:border-color .18s;outline:none}
+.form-input:focus,.form-select:focus{border-color:#f59e0b}
+.form-input[readonly]{opacity:.55;cursor:not-allowed}
+.form-select option{background:#161b22}
+
+/* ──── CHIPS ──── */
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:#8b949e;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.chip:hover{border-color:rgba(245,158,11,.5);color:#f0f6ff}
+.chip.selected{border-color:#f59e0b;background:rgba(245,158,11,.12);color:#f59e0b}
+
+/* ──── NAV BUTTONS ──── */
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06)}
+.btn{padding:10px 22px;border-radius:10px;border:none;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer;transition:all .18s}
+.btn-back{background:transparent;color:#8b949e;border:1.5px solid rgba(255,255,255,.1)}
+.btn-back:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25)}
+.btn-next{background:#f59e0b;color:#0d1117;min-width:120px}
+.btn-next:hover{background:#fbbf24;transform:translateY(-1px)}
+.btn-primary-lg{background:#50e890;color:#0d1117;font-size:16px;font-weight:800;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;font-family:system-ui;transition:all .18s;width:100%}
+.btn-primary-lg:hover{background:#6ef5a8;transform:translateY(-2px);box-shadow:0 6px 20px rgba(80,232,144,.3)}
+.btn-ghost-sm{background:transparent;color:#f59e0b;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;text-decoration:underline;padding:0}
+
+/* ──── CHILD CARD ──── */
+.child-card{background:#0d1117;border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:20px;margin-bottom:16px;position:relative}
+.child-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.child-number{font-size:12px;font-weight:700;color:#8b949e}
+.child-remove{background:transparent;border:none;color:#8b949e;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;transition:color .18s}
+.child-remove:hover{color:#f85149}
+
+/* ──── RADIO PAIR ──── */
+.radio-group{display:flex;gap:8px;margin-bottom:10px}
+.radio-opt{flex:1;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;cursor:pointer;text-align:center;font-size:12px;font-weight:700;color:#8b949e;transition:all .18s;user-select:none}
+.radio-opt.sel{border-color:#f59e0b;background:rgba(245,158,11,.1);color:#f59e0b}
+.radio-opt:hover{border-color:rgba(245,158,11,.4);color:#f0f6ff}
+
+/* ──── AVATAR PICKER ──── */
+.avatar-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.avatar-btn{width:44px;height:44px;border-radius:10px;border:2px solid rgba(255,255,255,.07);background:#161b22;font-size:22px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center}
+.avatar-btn:hover{border-color:rgba(245,158,11,.4);background:#1c2128}
+.avatar-btn.sel{border-color:#f59e0b;background:rgba(245,158,11,.12);box-shadow:0 0 8px rgba(245,158,11,.3)}
+
+/* ──── BAND BADGE ──── */
+.band-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-top:10px}
+.band-p0{background:rgba(255,209,102,.12);border:1.5px solid #ffd166;color:#ffd166}
+.band-p1{background:rgba(155,114,255,.12);border:1.5px solid #9b72ff;color:#9b72ff}
+.band-p2{background:rgba(88,232,193,.12);border:1.5px solid #58e8c1;color:#58e8c1}
+.band-p3{background:rgba(255,123,107,.12);border:1.5px solid #ff7b6b;color:#ff7b6b}
+
+/* ──── ADD CHILD BTN ──── */
+.add-child-btn{width:100%;border:2px dashed rgba(255,255,255,.12);border-radius:14px;padding:18px;text-align:center;background:transparent;color:#8b949e;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.add-child-btn:hover{border-color:rgba(80,232,144,.4);color:#50e890;background:rgba(80,232,144,.04)}
+
+/* ──── STEP 3 OVERVIEW ──── */
+.child-overview-card{background:#0d1117;border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:20px;margin-bottom:14px}
+.child-ov-name{font-size:15px;font-weight:800;color:#f0f6ff;margin-bottom:4px}
+.child-ov-desc{font-size:13px;color:#8b949e;margin-top:6px;line-height:1.5}
+
+/* ──── STEP 4 THEME ──── */
+.child-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.child-tab{padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:#8b949e;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.child-tab.active{border-color:#50e890;background:rgba(80,232,144,.1);color:#50e890}
+.theme-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.theme-card{background:#0d1117;border:2px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .18s;position:relative}
+.theme-card:hover{border-color:rgba(80,232,144,.3);background:rgba(80,232,144,.04)}
+.theme-card.sel{border-color:#50e890;background:rgba(80,232,144,.08)}
+.theme-icon{font-size:26px;margin-bottom:6px}
+.theme-name{font-size:11px;font-weight:700;color:#f0f6ff}
+.theme-check{position:absolute;top:6px;right:8px;font-size:14px;color:#50e890;display:none}
+.theme-card.sel .theme-check{display:block}
+.theme-hint{font-size:12px;color:#8b949e;margin-top:2px}
+
+/* ──── STEP 5 AUDIO ──── */
+.audio-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.audio-row:last-child{border-bottom:none}
+.audio-label{font-size:14px;font-weight:700;color:#f0f6ff}
+.audio-sub{font-size:12px;color:#8b949e;margin-top:2px}
+.toggle-group{display:flex;gap:6px}
+.toggle-opt{padding:6px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:#8b949e;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.toggle-opt:hover{border-color:rgba(80,232,144,.4)}
+.toggle-opt.sel{border-color:#50e890;background:rgba(80,232,144,.12);color:#50e890}
+.audio-child-section{margin-bottom:20px;border:1.5px solid rgba(255,255,255,.06);border-radius:12px;padding:16px}
+.audio-child-name{font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:2px}
+
+/* ──── STEP 6 READY ──── */
+.confetti-wrap{text-align:center;padding:10px 0 20px;position:relative;overflow:hidden}
+.confetti-burst{font-size:48px;line-height:1;margin-bottom:8px;display:block}
+.ready-title{font-size:22px;font-weight:900;color:#f0f6ff;margin-bottom:6px}
+.ready-sub{font-size:14px;color:#8b949e;margin-bottom:24px}
+.summary-card{background:#0d1117;border:1.5px solid rgba(255,255,255,.07);border-radius:12px;padding:18px;margin-bottom:16px}
+.summary-child-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.summary-avatar{font-size:26px}
+.summary-child-name{font-size:14px;font-weight:800;color:#f0f6ff}
+.summary-meta{font-size:12px;color:#8b949e;margin-top:2px}
+.beta-reminder{background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.25);border-radius:10px;padding:14px 16px;font-size:13px;color:#fbbf24;margin-bottom:22px;line-height:1.5}
+
+/* ──── CONFETTI ANIMATION ──── */
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(80px) rotate(720deg);opacity:0}}
+.confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;animation:confettiFall 1.6s ease-out forwards}
+
+/* ──── TAB 2 — BAND ASSIGNMENT ──── */
+.band-table-wrap{overflow-x:auto;margin-bottom:24px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#0d1117;color:#8b949e;font-size:11px;font-weight:700;text-align:left;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);letter-spacing:.04em;text-transform:uppercase}
+td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);color:#f0f6ff;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.band-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700}
+
+.info-box{background:#0d1117;border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 18px;margin-bottom:20px;font-size:13px;color:#8b949e;line-height:1.6}
+.info-box strong{color:#f0f6ff}
+
+.override-card{background:#161b22;border:1.5px solid rgba(155,114,255,.2);border-radius:12px;padding:18px;margin-top:20px}
+.override-title{font-size:14px;font-weight:800;color:#9b72ff;margin-bottom:8px}
+.override-body{font-size:13px;color:#8b949e;line-height:1.6}
+.override-body strong{color:#f0f6ff}
+
+/* ──── TAB 3 — SPEC ──── */
+.spec-section{margin-bottom:28px}
+.spec-heading{font-size:13px;font-weight:800;color:#f59e0b;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+.code-block{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:18px 20px;font-family:'Courier New',Courier,monospace;font-size:12px;color:#58e8c1;line-height:1.8;overflow-x:auto;white-space:pre}
+.privacy-rule{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.privacy-rule:last-child{border-bottom:none}
+.pr-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.pr-text{font-size:13px;color:#8b949e;line-height:1.5}
+.pr-text strong{color:#f0f6ff}
+
+/* ──── UTILITY ──── */
+.mt4{margin-top:4px}
+.mt8{margin-top:8px}
+.mt12{margin-top:12px}
+.mt16{margin-top:16px}
+.mt24{margin-top:24px}
+.text-amber{color:#f59e0b}
+.text-green{color:#50e890}
+.section-title{font-size:18px;font-weight:800;color:#f0f6ff;margin-bottom:6px}
+.section-sub{font-size:13px;color:#8b949e;margin-bottom:24px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- ENGINEERING HINT -->
+  <div class="eng-hint">
+    <strong>beta-household-onboarding-v2.html</strong> — Beta household onboarding wizard. Runs after consent, before first play session.
+    Steps: (1) Parent profile, (2) Add children (1–4), (3) Per-child: age/grade → auto-assign band, (4) Theme preferences (child picks favourite themes),
+    (5) Audio settings, (6) Ready! Band auto-assignment: P0=Pre-K/K, P1=Grade 1, P2=Grade 2-3, P3=Grade 4-5.
+    Child's first name only stored (no last name). Parent email + first name required.
+    No performance benchmarks or grade comparisons shown — band is described as 'adventure level' not 'grade level'.
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Onboarding Wizard</button>
+    <button class="tab-btn" onclick="showTab(1)">Band Assignment</button>
+    <button class="tab-btn" onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 0 — ONBOARDING WIZARD
+  ══════════════════════════════════════════ -->
+  <div class="screen active" id="tab-0">
+    <div class="wiz-card">
+
+      <!-- PROGRESS -->
+      <div class="progress-wrap">
+        <div class="progress-track" id="progress-track">
+          <!-- Steps rendered by JS -->
+        </div>
+      </div>
+
+      <!-- STEP PANELS -->
+
+      <!-- ── STEP 1: Parent Profile ── -->
+      <div id="step-1" class="step-panel">
+        <div class="step-title">Tell us about yourself</div>
+        <div class="step-sub">Just the basics — no last name needed!</div>
+
+        <div class="form-group">
+          <label class="form-label">First name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="parent-name" placeholder="e.g. Sarah" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email (from your account)</label>
+          <input class="form-input" type="email" id="parent-email" value="sarah@example.com" readonly />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Preferred language</label>
+          <div class="chip-group" id="lang-chips">
+            <button class="chip selected" onclick="selectChip('lang-chips', this)">English</button>
+            <button class="chip" onclick="selectChip('lang-chips', this)">Spanish</button>
+            <button class="chip" onclick="selectChip('lang-chips', this)">French</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">How did you hear about beta? <span style="color:#8b949e;font-weight:400">(optional)</span></label>
+          <select class="form-select" id="hear-about">
+            <option value="" disabled selected>Select one…</option>
+            <option>Friend or family member</option>
+            <option>Social media</option>
+            <option>School or teacher</option>
+            <option>Online search</option>
+            <option>Email invitation</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="nav-row" style="justify-content:flex-end;border-top:none;margin-top:0">
+          <button class="btn btn-next" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: Add Children ── -->
+      <div id="step-2" class="step-panel" style="display:none">
+        <div class="step-title">Who's going on the adventure?</div>
+        <div class="step-sub">Add 1–4 children. First name only — we'll keep it simple!</div>
+
+        <div id="children-list">
+          <!-- Child cards rendered by JS -->
+        </div>
+
+        <button class="add-child-btn" id="add-child-btn" onclick="addChild()">+ Add another child</button>
+
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Adventure Level Overview ── -->
+      <div id="step-3" class="step-panel" style="display:none">
+        <div class="step-title">Adventure levels assigned!</div>
+        <div class="step-sub">Here's where each child's journey will begin. You can adjust anytime.</div>
+
+        <div id="overview-cards">
+          <!-- Rendered by JS from child data -->
+        </div>
+
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <button class="btn btn-next" onclick="nextStep()">This looks right →</button>
+            <button class="btn-ghost-sm" onclick="goToStep(2)">Change adventure level</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: Theme Preferences ── -->
+      <div id="step-4" class="step-panel" style="display:none">
+        <div class="step-title">What do they love?</div>
+        <div class="step-sub">Pick up to 3 themes per child. We'll use these to make quests more exciting!</div>
+
+        <div class="child-tabs" id="theme-child-tabs">
+          <!-- Child tabs rendered by JS -->
+        </div>
+
+        <div id="theme-picker-area">
+          <!-- Theme grid rendered by JS -->
+        </div>
+
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 5: Audio & Sound ── -->
+      <div id="step-5" class="step-panel" style="display:none">
+        <div class="step-title">Sound settings</div>
+        <div class="step-sub">You can change these anytime in Settings.</div>
+
+        <div id="audio-settings-wrap">
+          <!-- Per-child audio sections rendered by JS -->
+        </div>
+
+        <div class="nav-row">
+          <button class="btn btn-back" onclick="prevStep()">← Back</button>
+          <button class="btn btn-next" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── STEP 6: Ready! ── -->
+      <div id="step-6" class="step-panel" style="display:none">
+        <div class="confetti-wrap" id="confetti-wrap">
+          <span class="confetti-burst">🎉</span>
+          <div class="step-title" style="margin-bottom:4px">You're all set!</div>
+          <div class="step-sub" style="font-size:15px;color:#8b949e">Let the adventure begin! 🚀</div>
+        </div>
+
+        <div class="summary-card" id="ready-summary">
+          <!-- Rendered by JS -->
+        </div>
+
+        <div style="font-size:13px;color:#8b949e;margin-bottom:16px;text-align:center">
+          Your beta testing starts now. Explore at your own pace.
+        </div>
+
+        <div class="beta-reminder">
+          🐛 <strong>Beta reminder:</strong> Help us improve WonderQuest! Use the <strong>🐛 button</strong> in any session to submit feedback. Every report helps us build something amazing for kids.
+        </div>
+
+        <button class="btn-primary-lg" onclick="startExploring()">Start Exploring!</button>
+      </div>
+
+    </div><!-- /wiz-card -->
+  </div><!-- /tab-0 -->
+
+  <!-- ══════════════════════════════════════════
+       TAB 1 — BAND ASSIGNMENT
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="tab-1">
+    <div class="wiz-card" style="max-width:700px">
+      <div class="section-title">Adventure Band Assignment</div>
+      <div class="section-sub">How age and grade automatically map to each child's adventure level. Band labels are always shown with adventure names — never grade comparisons.</div>
+
+      <div class="band-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Age</th>
+              <th>Grade</th>
+              <th>Adventure Band</th>
+              <th>Internal ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>4</td>
+              <td>Pre-K</td>
+              <td><span class="band-pill band-p0">⭐ Starter Explorer</span></td>
+              <td><code style="color:#ffd166;background:rgba(255,209,102,.1);padding:2px 6px;border-radius:4px;font-size:12px">P0</code></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>K</td>
+              <td><span class="band-pill band-p0">⭐ Starter Explorer</span></td>
+              <td><code style="color:#ffd166;background:rgba(255,209,102,.1);padding:2px 6px;border-radius:4px;font-size:12px">P0</code></td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Grade 1</td>
+              <td><span class="band-pill band-p1">⚡ Rising Explorer</span></td>
+              <td><code style="color:#9b72ff;background:rgba(155,114,255,.1);padding:2px 6px;border-radius:4px;font-size:12px">P1</code></td>
+            </tr>
+            <tr>
+              <td>7–8</td>
+              <td>Grade 2–3</td>
+              <td><span class="band-pill band-p2">🎯 Quest Master</span></td>
+              <td><code style="color:#58e8c1;background:rgba(88,232,193,.1);padding:2px 6px;border-radius:4px;font-size:12px">P2</code></td>
+            </tr>
+            <tr>
+              <td>9–11</td>
+              <td>Grade 4–5</td>
+              <td><span class="band-pill band-p3">🏆 Champion Explorer</span></td>
+              <td><code style="color:#ff7b6b;background:rgba(255,123,107,.1);padding:2px 6px;border-radius:4px;font-size:12px">P3</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box">
+        <strong>Important:</strong> Band labels shown to children and parents use <strong>adventure names only</strong> (e.g. "Quest Master", "Rising Explorer"). Internal band IDs (P0–P3) are used in the database and shown only in teacher/owner views — never to families.
+      </div>
+
+      <div class="override-card">
+        <div class="override-title">Manual Override</div>
+        <div class="override-body">
+          A parent can adjust their child's adventure band if the auto-assigned level doesn't feel right.
+          <br><br>
+          <strong>Rules:</strong>
+          <ul style="margin-top:8px;margin-left:18px;line-height:1.8">
+            <li>Override is limited to <strong>1 level up or 1 level down</strong> from the auto-assigned band</li>
+            <li>Override is always framed as "change adventure level" — never as grade adjustment</li>
+            <li>Overrides are logged but not surfaced to the child</li>
+            <li>Parent can revert to auto-assigned band at any time from Settings</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 2 — SPEC
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="tab-2">
+    <div class="wiz-card" style="max-width:700px">
+      <div class="section-title">Data Model & Privacy Spec</div>
+      <div class="section-sub">Schema and rules governing how household data is stored during and after onboarding.</div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Database Schema — children table</div>
+        <div class="code-block">children (
+  id              UUID PRIMARY KEY,
+  parent_id       UUID REFERENCES users(id),
+  first_name      TEXT NOT NULL,      -- first name only, no last name stored
+  age             INT  nullable,
+  grade           TEXT nullable,      -- 'prek','k','1','2','3','4','5'
+  band_id         ENUM('p0','p1','p2','p3') NOT NULL,
+  avatar_key      TEXT,               -- 'bear','fox','owl','rabbit','cat','frog'
+  preferred_themes TEXT[],            -- up to 3 theme_ids
+  audio_readout   BOOLEAN DEFAULT true,
+  audio_music     BOOLEAN DEFAULT true,
+  audio_sfx       BOOLEAN DEFAULT true,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+)</div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Privacy Rules</div>
+        <div style="background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px">
+          <div class="privacy-rule">
+            <span class="pr-icon">🔒</span>
+            <div class="pr-text"><strong>Children: first name only.</strong> No surname, no date of birth — only age or grade range stored. Avatar is selected from a pre-defined set; no photos uploaded.</div>
+          </div>
+          <div class="privacy-rule">
+            <span class="pr-icon">📧</span>
+            <div class="pr-text"><strong>Parent email</strong> is used for account login and beta communications only. Never shared with schools, third parties, or used for marketing without explicit opt-in.</div>
+          </div>
+          <div class="privacy-rule">
+            <span class="pr-icon">🎨</span>
+            <div class="pr-text"><strong>Theme preferences</strong> are stored per child and used exclusively for content personalisation — making quests feel relevant and engaging. Not shared externally.</div>
+          </div>
+          <div class="privacy-rule">
+            <span class="pr-icon">📵</span>
+            <div class="pr-text"><strong>No biometric data, no location data, no uploaded photos.</strong> Avatar selection is always from the fixed set of 6 animal icons.</div>
+          </div>
+          <div class="privacy-rule">
+            <span class="pr-icon">🏷️</span>
+            <div class="pr-text"><strong>Band IDs (P0–P3)</strong> are internal only. Children and parents always see adventure names. No performance benchmarks or grade-level comparisons are ever surfaced to families.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Band Assignment Logic</div>
+        <div class="code-block">function assignBand(grade) {
+  if (['prek', 'k'].includes(grade))  return 'p0';
+  if (grade === '1')                  return 'p1';
+  if (['2', '3'].includes(grade))     return 'p2';
+  if (['4', '5'].includes(grade))     return 'p3';
+  return 'p0'; // fallback for unknown
+}
+
+function assignBandByAge(age) {
+  if (age <= 5)       return 'p0';
+  if (age === 6)      return 'p1';
+  if (age <= 8)       return 'p2';
+  return 'p3';        // age 9–11
+}</div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Onboarding Flow Events</div>
+        <div class="code-block">// Analytics events fired during onboarding
+onboarding_step_completed  { step: 1..6, household_id }
+child_added                { child_index: 0..3, band_id, avatar_key }
+theme_selected             { child_index, theme_id, count: 1..3 }
+audio_preference_set       { child_index, readout, music, sfx }
+onboarding_completed       { children_count, bands: ['p1','p2'], ms_elapsed }</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let currentStep = 1;
+const TOTAL_STEPS = 6;
+
+const STEP_LABELS = ['You', 'Children', 'Adventures', 'Themes', 'Sound', 'Ready!'];
+
+const AVATARS = [
+  { key:'bear', emoji:'🐻' },
+  { key:'fox',  emoji:'🦊' },
+  { key:'owl',  emoji:'🦉' },
+  { key:'rabbit', emoji:'🐰' },
+  { key:'cat',  emoji:'🐱' },
+  { key:'frog', emoji:'🐸' },
+];
+
+const THEMES = [
+  { id:'adventure', icon:'🗺️', name:'Adventure' },
+  { id:'nature',    icon:'🌿', name:'Nature' },
+  { id:'space',     icon:'🚀', name:'Space' },
+  { id:'city',      icon:'🏙️', name:'City Life' },
+  { id:'animals',   icon:'🦁', name:'Animals' },
+  { id:'ocean',     icon:'🌊', name:'Ocean World' },
+];
+
+const BAND_INFO = {
+  p0: { label:'⭐ Starter Explorer', sub:'Pre-K Adventures', class:'band-p0', desc:'will explore letters, numbers, and shapes through playful, bite-sized adventures!' },
+  p1: { label:'⚡ Rising Explorer', sub:'K–1 Adventures',   class:'band-p1', desc:'will discover the world through bite-sized adventures in reading and math!' },
+  p2: { label:'🎯 Quest Master',    sub:'Grade 2–3 Adventures', class:'band-p2', desc:'will explore Science, Math, ELA and more through exciting quests!' },
+  p3: { label:'🏆 Champion Explorer', sub:'Grade 4–5 Adventures', class:'band-p3', desc:'will tackle challenging quests across Science, Math, and ELA!' },
+};
+
+// Default child template
+function newChild(index) {
+  return {
+    id: Date.now() + index,
+    firstName: '',
+    gradeOrAge: 'grade',
+    grade: '',
+    age: '',
+    avatar: '',
+    band: null,
+    themes: [],
+    audio: { readout: true, music: true, sfx: true },
+  };
+}
+
+let children = [newChild(0)];
+let activeThemeChild = 0;
+
+/* ═══════════════════════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════════════════════ */
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach((s, i) => s.classList.toggle('active', i === t));
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === t));
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHIP SINGLE-SELECT
+═══════════════════════════════════════════════════════ */
+function selectChip(groupId, btn) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════════════════════ */
+function renderProgress() {
+  const track = document.getElementById('progress-track');
+  track.innerHTML = '';
+  STEP_LABELS.forEach((lbl, i) => {
+    const stepNum = i + 1;
+    let nodeClass = 'pending';
+    let lblClass = '';
+    if (stepNum < currentStep) { nodeClass = 'complete'; lblClass = 'complete-lbl'; }
+    else if (stepNum === currentStep) { nodeClass = 'active'; lblClass = 'active-lbl'; }
+
+    const col = document.createElement('div');
+    col.className = 'step-col';
+    col.style.position = 'relative';
+
+    // connector line before this step (not on first)
+    if (i > 0) {
+      const line = document.createElement('div');
+      line.className = 'connector-line ' + (stepNum <= currentStep ? 'done' : 'todo');
+      line.style.cssText = 'position:absolute;top:14px;right:50%;left:-50%;height:2px;z-index:0';
+      col.appendChild(line);
+    }
+
+    col.innerHTML += `
+      <div class="step-node ${nodeClass}" style="position:relative;z-index:1">
+        ${stepNum < currentStep ? '✓' : stepNum}
+      </div>
+      <div class="step-lbl ${lblClass}">${lbl}</div>
+    `;
+    track.appendChild(col);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP NAVIGATION
+═══════════════════════════════════════════════════════ */
+function showOnlyStep(n) {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const el = document.getElementById('step-' + i);
+    if (el) el.style.display = (i === n) ? 'block' : 'none';
+  }
+}
+
+function goToStep(n) {
+  currentStep = n;
+  renderProgress();
+  showOnlyStep(n);
+  prepareStep(n);
+}
+
+function nextStep() {
+  if (!validateStep(currentStep)) return;
+  if (currentStep < TOTAL_STEPS) {
+    currentStep++;
+    renderProgress();
+    showOnlyStep(currentStep);
+    prepareStep(currentStep);
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    renderProgress();
+    showOnlyStep(currentStep);
+    prepareStep(currentStep);
+  }
+}
+
+function validateStep(step) {
+  if (step === 1) {
+    const name = document.getElementById('parent-name').value.trim();
+    if (!name) {
+      alert('Please enter your first name to continue.');
+      document.getElementById('parent-name').focus();
+      return false;
+    }
+    return true;
+  }
+  if (step === 2) {
+    for (let i = 0; i < children.length; i++) {
+      const c = children[i];
+      if (!c.firstName.trim()) {
+        alert(`Please enter a first name for child ${i + 1}.`);
+        return false;
+      }
+      if (!c.band) {
+        alert(`Please select an age or grade for ${c.firstName || 'child ' + (i + 1)}.`);
+        return false;
+      }
+    }
+    return true;
+  }
+  return true;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP PREPARATION (render dynamic content)
+═══════════════════════════════════════════════════════ */
+function prepareStep(step) {
+  if (step === 2) renderChildrenStep();
+  if (step === 3) renderOverviewStep();
+  if (step === 4) renderThemeStep();
+  if (step === 5) renderAudioStep();
+  if (step === 6) renderReadyStep();
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP 2 — CHILDREN
+═══════════════════════════════════════════════════════ */
+function renderChildrenStep() {
+  const list = document.getElementById('children-list');
+  list.innerHTML = '';
+  children.forEach((child, idx) => {
+    list.appendChild(buildChildCard(child, idx));
+  });
+  document.getElementById('add-child-btn').style.display = children.length >= 4 ? 'none' : 'block';
+}
+
+function buildChildCard(child, idx) {
+  const card = document.createElement('div');
+  card.className = 'child-card';
+  card.id = 'child-card-' + idx;
+
+  const bandHtml = child.band ? `
+    <div class="band-badge ${BAND_INFO[child.band].class}" style="margin-top:12px">
+      ${BAND_INFO[child.band].label}
+      <span style="font-size:11px;opacity:.7;font-weight:500">— ${BAND_INFO[child.band].sub}</span>
+    </div>` : '';
+
+  // Grade options
+  const gradeOpts = [
+    {val:'prek',label:'Pre-K'},{val:'k',label:'K'},{val:'1',label:'Grade 1'},
+    {val:'2',label:'Grade 2'},{val:'3',label:'Grade 3'},{val:'4',label:'Grade 4'},{val:'5',label:'Grade 5'}
+  ].map(o => `<option value="${o.val}" ${child.grade===o.val?'selected':''}>${o.label}</option>`).join('');
+
+  // Age options 4–11
+  const ageOpts = Array.from({length:8},(_,i)=>4+i)
+    .map(a=>`<option value="${a}" ${child.age==a?'selected':''}>${a} years old</option>`).join('');
+
+  // Avatars
+  const avatarHtml = AVATARS.map(a => `
+    <button class="avatar-btn ${child.avatar===a.key?'sel':''}"
+            title="${a.key}" onclick="selectAvatar(${idx},'${a.key}',this)">${a.emoji}</button>
+  `).join('');
+
+  const gradeTabSel = child.gradeOrAge === 'grade' ? 'sel' : '';
+  const ageTabSel   = child.gradeOrAge === 'age'   ? 'sel' : '';
+  const gradeHidden = child.gradeOrAge === 'age'  ? 'style="display:none"' : '';
+  const ageHidden   = child.gradeOrAge === 'grade' ? 'style="display:none"' : '';
+
+  card.innerHTML = `
+    <div class="child-card-header">
+      <span class="child-number">Child ${idx + 1}</span>
+      ${idx > 0 ? `<button class="child-remove" onclick="removeChild(${idx})">✕</button>` : ''}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">First name <span class="req">*</span></label>
+      <input class="form-input" type="text" placeholder="e.g. Emma"
+             value="${escHtml(child.firstName)}"
+             oninput="updateChildField(${idx},'firstName',this.value)" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Age or Grade <span class="req">*</span></label>
+      <div class="radio-group">
+        <div class="radio-opt ${gradeTabSel}" onclick="switchGradeAge(${idx},'grade')">By Grade</div>
+        <div class="radio-opt ${ageTabSel}" onclick="switchGradeAge(${idx},'age')">By Age</div>
+      </div>
+      <div id="grade-sel-${idx}" ${gradeHidden}>
+        <select class="form-select" onchange="updateChildGrade(${idx},this.value)">
+          <option value="" disabled ${!child.grade?'selected':''}>Select grade…</option>
+          ${gradeOpts}
+        </select>
+      </div>
+      <div id="age-sel-${idx}" ${ageHidden}>
+        <select class="form-select" onchange="updateChildAge(${idx},this.value)">
+          <option value="" disabled ${!child.age?'selected':''}>Select age…</option>
+          ${ageOpts}
+        </select>
+      </div>
+      ${bandHtml}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Choose an avatar</label>
+      <div class="avatar-grid">${avatarHtml}</div>
+    </div>
+  `;
+
+  return card;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addChild() {
+  if (children.length >= 4) return;
+  children.push(newChild(children.length));
+  renderChildrenStep();
+}
+
+function removeChild(idx) {
+  children.splice(idx, 1);
+  renderChildrenStep();
+}
+
+function updateChildField(idx, field, val) {
+  children[idx][field] = val;
+}
+
+function switchGradeAge(idx, mode) {
+  children[idx].gradeOrAge = mode;
+  children[idx].grade = '';
+  children[idx].age = '';
+  children[idx].band = null;
+
+  const card = document.getElementById('child-card-' + idx);
+  card.querySelectorAll('.radio-opt').forEach((o, i) => {
+    o.classList.toggle('sel', (i === 0 && mode === 'grade') || (i === 1 && mode === 'age'));
+  });
+  document.getElementById('grade-sel-' + idx).style.display = mode === 'grade' ? 'block' : 'none';
+  document.getElementById('age-sel-'  + idx).style.display = mode === 'age'   ? 'block' : 'none';
+
+  // Remove any existing band badge
+  const existing = document.querySelector('#child-card-' + idx + ' .band-badge');
+  if (existing) existing.remove();
+}
+
+function updateChildGrade(idx, grade) {
+  children[idx].grade = grade;
+  children[idx].band = assignBand(grade);
+  refreshBandBadge(idx);
+}
+
+function updateChildAge(idx, age) {
+  children[idx].age = parseInt(age);
+  children[idx].band = assignBandByAge(parseInt(age));
+  refreshBandBadge(idx);
+}
+
+function refreshBandBadge(idx) {
+  const band = children[idx].band;
+  const card = document.getElementById('child-card-' + idx);
+
+  // Find the correct parent (form-group containing the grade/age selects)
+  let gradeGroup;
+  const formGroups = card.querySelectorAll('.form-group');
+  // Second form group contains the grade/age selector
+  gradeGroup = formGroups[1];
+
+  let badge = gradeGroup.querySelector('.band-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    gradeGroup.appendChild(badge);
+  }
+  badge.className = 'band-badge ' + BAND_INFO[band].class;
+  badge.innerHTML = `${BAND_INFO[band].label} <span style="font-size:11px;opacity:.7;font-weight:500">— ${BAND_INFO[band].sub}</span>`;
+}
+
+function selectAvatar(idx, key, btn) {
+  children[idx].avatar = key;
+  const card = document.getElementById('child-card-' + idx);
+  card.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+/* ═══════════════════════════════════════════════════════
+   BAND ASSIGNMENT LOGIC
+═══════════════════════════════════════════════════════ */
+function assignBand(grade) {
+  if (['prek','k'].includes(grade)) return 'p0';
+  if (grade === '1') return 'p1';
+  if (['2','3'].includes(grade)) return 'p2';
+  if (['4','5'].includes(grade)) return 'p3';
+  return 'p0';
+}
+
+function assignBandByAge(age) {
+  if (age <= 5) return 'p0';
+  if (age === 6) return 'p1';
+  if (age <= 8) return 'p2';
+  return 'p3';
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP 3 — OVERVIEW
+═══════════════════════════════════════════════════════ */
+function renderOverviewStep() {
+  const wrap = document.getElementById('overview-cards');
+  wrap.innerHTML = '';
+  children.forEach(child => {
+    const band = child.band || 'p0';
+    const info = BAND_INFO[band];
+    const name = child.firstName.trim() || 'Your child';
+    const avatarEmoji = (AVATARS.find(a => a.key === child.avatar) || AVATARS[0]).emoji;
+
+    const card = document.createElement('div');
+    card.className = 'child-overview-card';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="font-size:28px">${avatarEmoji}</span>
+        <div>
+          <div class="child-ov-name">${escHtml(name)}</div>
+          <div class="band-badge ${info.class}" style="margin-top:4px;font-size:12px;padding:5px 10px">
+            ${info.label}
+          </div>
+        </div>
+      </div>
+      <div class="child-ov-desc">${escHtml(name)} ${info.desc}</div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP 4 — THEMES
+═══════════════════════════════════════════════════════ */
+function renderThemeStep() {
+  const tabs = document.getElementById('theme-child-tabs');
+  tabs.innerHTML = '';
+
+  if (children.length > 1) {
+    children.forEach((child, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'child-tab' + (idx === activeThemeChild ? ' active' : '');
+      btn.textContent = (child.firstName.trim() || 'Child ' + (idx + 1));
+      btn.onclick = () => { activeThemeChild = idx; renderThemeStep(); };
+      tabs.appendChild(btn);
+    });
+  }
+
+  renderThemePicker(activeThemeChild);
+}
+
+function renderThemePicker(idx) {
+  const child = children[idx];
+  const name = child.firstName.trim() || 'your child';
+  const area = document.getElementById('theme-picker-area');
+
+  const themeCards = THEMES.map(t => {
+    const isSel = child.themes.includes(t.id);
+    return `
+      <div class="theme-card ${isSel?'sel':''}" onclick="toggleTheme(${idx},'${t.id}',this)">
+        <div class="theme-check">✓</div>
+        <div class="theme-icon">${t.icon}</div>
+        <div class="theme-name">${t.name}</div>
+      </div>
+    `;
+  }).join('');
+
+  area.innerHTML = `
+    <div style="font-size:13px;color:#8b949e;margin-bottom:12px">
+      What does <strong style="color:#f0f6ff">${escHtml(name)}</strong> love? (Pick up to 3)
+    </div>
+    <div class="theme-grid">${themeCards}</div>
+    <div class="theme-hint">We'll use these to make quests feel more exciting for ${escHtml(name)}!</div>
+  `;
+}
+
+function toggleTheme(childIdx, themeId, el) {
+  const child = children[childIdx];
+  const i = child.themes.indexOf(themeId);
+  if (i === -1) {
+    if (child.themes.length >= 3) {
+      el.classList.add('shake');
+      setTimeout(() => el.classList.remove('shake'), 300);
+      return;
+    }
+    child.themes.push(themeId);
+    el.classList.add('sel');
+    el.querySelector('.theme-check').style.display = 'block';
+  } else {
+    child.themes.splice(i, 1);
+    el.classList.remove('sel');
+    el.querySelector('.theme-check').style.display = 'none';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP 5 — AUDIO
+═══════════════════════════════════════════════════════ */
+function renderAudioStep() {
+  const wrap = document.getElementById('audio-settings-wrap');
+  wrap.innerHTML = '';
+
+  children.forEach((child, idx) => {
+    const name = child.firstName.trim() || 'Child ' + (idx + 1);
+    const audio = child.audio;
+
+    const section = document.createElement('div');
+    section.className = 'audio-child-section';
+    if (children.length > 1) {
+      section.innerHTML += `<div class="audio-child-name">${escHtml(name)}</div>`;
+    }
+
+    const rows = [
+      { key:'readout', label:'Questions read aloud', sub:'Recommended for all learners', onLabel:'On (recommended)', offLabel:'Off' },
+      { key:'music',   label:'Background music',     sub:'Gentle instrumental during quests', onLabel:'On', offLabel:'Off' },
+      { key:'sfx',     label:'Sound effects',         sub:'Reward sounds, clicks, transitions', onLabel:'On', offLabel:'Off' },
+    ];
+
+    rows.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'audio-row';
+      rowEl.innerHTML = `
+        <div>
+          <div class="audio-label">${row.label}</div>
+          <div class="audio-sub">${row.sub}</div>
+        </div>
+        <div class="toggle-group">
+          <button class="toggle-opt ${audio[row.key]?'sel':''}"
+                  onclick="setAudio(${idx},'${row.key}',true,this.parentElement)">${row.onLabel}</button>
+          <button class="toggle-opt ${!audio[row.key]?'sel':''}"
+                  onclick="setAudio(${idx},'${row.key}',false,this.parentElement)">${row.offLabel}</button>
+        </div>
+      `;
+      section.appendChild(rowEl);
+    });
+
+    wrap.appendChild(section);
+  });
+}
+
+function setAudio(childIdx, key, val, group) {
+  children[childIdx].audio[key] = val;
+  const btns = group.querySelectorAll('.toggle-opt');
+  btns[0].classList.toggle('sel', val === true);
+  btns[1].classList.toggle('sel', val === false);
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP 6 — READY
+═══════════════════════════════════════════════════════ */
+function renderReadyStep() {
+  const summary = document.getElementById('ready-summary');
+  summary.innerHTML = '';
+
+  children.forEach(child => {
+    const band = child.band || 'p0';
+    const info = BAND_INFO[band];
+    const name = child.firstName.trim() || 'Your child';
+    const avatarEmoji = (AVATARS.find(a => a.key === child.avatar) || AVATARS[0]).emoji;
+    const themeCount = child.themes.length;
+
+    const row = document.createElement('div');
+    row.className = 'summary-child-row';
+    row.innerHTML = `
+      <div class="summary-avatar">${avatarEmoji}</div>
+      <div style="flex:1">
+        <div class="summary-child-name">${escHtml(name)}</div>
+        <div class="summary-meta">
+          <span class="band-badge ${info.class}" style="font-size:11px;padding:3px 8px;margin-right:6px">${info.label}</span>
+          ${themeCount > 0 ? `<span style="color:#8b949e">+ ${themeCount} theme${themeCount>1?'s':''}</span>` : ''}
+        </div>
+      </div>
+    `;
+    summary.appendChild(row);
+  });
+
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const wrap = document.getElementById('confetti-wrap');
+  const colors = ['#f59e0b','#50e890','#9b72ff','#ff7b6b','#58e8c1','#ffd166'];
+  // Clean up old confetti
+  wrap.querySelectorAll('.confetti-piece').forEach(e => e.remove());
+
+  for (let i = 0; i < 22; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `
+      left:${10 + Math.random() * 80}%;
+      top:${Math.random() * 30}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-delay:${Math.random() * 0.8}s;
+      animation-duration:${1.2 + Math.random() * 0.8}s;
+      transform:rotate(${Math.random()*360}deg);
+      width:${6 + Math.random()*6}px;
+      height:${6 + Math.random()*6}px;
+    `;
+    wrap.appendChild(piece);
+  }
+}
+
+function startExploring() {
+  // In production: redirect to first play session
+  alert('🚀 Adventure begins! Redirecting to your WonderQuest dashboard…');
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  renderProgress();
+  showOnlyStep(1);
+  // Initialize children list for step 2 (pre-warm)
+  renderChildrenStep();
+});
+</script>
+</body>
+</html>

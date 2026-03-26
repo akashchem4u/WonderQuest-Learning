@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-next-session-prompt-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-next-session-prompt-v2.html        ║
+     ║                                                              ║
+     ║  Prompt shown after session complete to invite the child     ║
+     ║  to start another session (same day bonus). NOT a streak     ║
+     ║  notification — just a warm invitation to keep going.        ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Same Day Bonus   : "One more?" with bonus star      ║
+     ║  Tab 2 — Daily Limit      : child has done max sessions/day  ║
+     ║  Tab 3 — Tomorrow Teaser  : preview of what's coming next    ║
+     ║  Tab 4 — Spec             : trigger rules, copy rules        ║
+     ║                                                              ║
+     ║  RULES                                                        ║
+     ║  • Never guilt-trip — "See you tomorrow!" is fine            ║
+     ║  • Never auto-navigate — child must tap or wait for dismiss  ║
+     ║  • Bonus star for 2nd session same day is +1 only            ║
+     ║  • Daily limit: 3 sessions max (parent-configurable)         ║
+     ║  • No timer/countdown anywhere in this screen                ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .phone-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 28px 22px 32px; gap: 16px;
+    align-items: center; justify-content: center;
+  }
+
+  /* ── Session summary mini strip (above prompt) ── */
+  .mini-summary {
+    width: 100%; background: #1a1440; border: 1.5px solid #2a2060;
+    border-radius: 14px; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .ms-label { font-size: 0.78rem; font-weight: 700; color: #9080c0; }
+  .ms-stars { font-size: 1rem; font-weight: 900; color: #ffd166; }
+
+  /* ── Prompt card ── */
+  .prompt-card {
+    width: 100%; background: linear-gradient(180deg, #1a1040 0%, #221960 100%);
+    border: 2px solid #9b72ff55; border-radius: 20px;
+    padding: 24px 20px; display: flex; flex-direction: column;
+    align-items: center; gap: 14px; text-align: center;
+    flex-shrink: 0;
+  }
+  .prompt-emoji { font-size: 3.5rem; }
+  .prompt-headline { font-size: 1.4rem; font-weight: 900; color: #fff; line-height: 1.2; }
+  .prompt-sub { font-size: 0.88rem; font-weight: 700; color: #b0a0e0; line-height: 1.5; }
+
+  /* Bonus chip */
+  .bonus-chip {
+    background: linear-gradient(135deg, #ffd166, #f0a000);
+    border-radius: 20px; padding: 6px 16px;
+    font-size: 0.88rem; font-weight: 900; color: #1a0c00;
+    display: flex; align-items: center; gap: 6px;
+    animation: chip-pop 0.4s 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes chip-pop { from{transform:scale(0.4);opacity:0;} 60%{transform:scale(1.15);} to{transform:scale(1);opacity:1;} }
+
+  /* CTAs */
+  .btn-primary {
+    width: 100%; height: 54px; border-radius: 27px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-secondary {
+    width: 100%; font-size: 0.84rem; font-weight: 700; color: #6050a0;
+    background: none; border: none; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── Tomorrow teaser ── */
+  .teaser-card {
+    width: 100%; background: #14102a; border: 1.5px solid #2a2050;
+    border-radius: 16px; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0;
+  }
+  .teaser-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #6050a0; }
+  .teaser-row { display: flex; align-items: center; gap: 12px; }
+  .teaser-icon { font-size: 2.4rem; flex-shrink: 0; }
+  .teaser-text { font-size: 0.88rem; font-weight: 700; color: #b0a0e0; line-height: 1.4; }
+  .teaser-text strong { color: #fff; }
+
+  /* ── Daily limit card ── */
+  .limit-card {
+    width: 100%; background: linear-gradient(180deg, #1a1040 0%, #14102a 100%);
+    border: 2px solid #9b72ff33; border-radius: 20px;
+    padding: 24px 20px; display: flex; flex-direction: column;
+    align-items: center; gap: 14px; text-align: center; flex-shrink: 0;
+  }
+
+  /* Star safe message */
+  .star-safe-note {
+    width: 100%; background: #1a2a15; border: 1.5px solid #50e89044;
+    border-radius: 12px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 9px; flex-shrink: 0;
+  }
+  .ssn-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .ssn-text { font-size: 0.78rem; font-weight: 700; color: #90e890; line-height: 1.4; }
+
+  /* Coach row */
+  .coach-row {
+    width: 100%; display: flex; align-items: flex-start; gap: 10px;
+    background: #1a1440; border: 1.5px solid #9b72ff33; border-radius: 12px;
+    padding: 11px 13px; flex-shrink: 0;
+  }
+  .coach-av { font-size: 1.4rem; flex-shrink: 0; }
+  .coach-txt { font-size: 0.8rem; font-weight: 700; color: #c8bef0; line-height: 1.4; }
+  .coach-name { font-size: 0.66rem; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-next-session-prompt-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Same Day Bonus</button>
+  <button class="tab-btn" onclick="showTab('t2')">Daily Limit</button>
+  <button class="tab-btn" onclick="showTab('t3')">Tomorrow Teaser</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Same Day Bonus ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Same Day Bonus — "One more session today?"</h4>
+    Warm invitation after session 1 of the day. Gold bonus chip: "+1 ⭐ for playing again today!".
+    Two options: "Play another!" (primary) / "See you tomorrow!" (text link).
+    Star count from last session shown in mini summary strip above.
+    No guilt language, no time pressure.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="mini-summary">
+        <div class="ms-label">⭐ Stars earned this session</div>
+        <div class="ms-stars">+7 ⭐</div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-emoji">🚀</div>
+        <div class="prompt-headline">Want to keep going?</div>
+        <div class="prompt-sub">There's more to learn — and a bonus star waiting for you!</div>
+        <div class="bonus-chip">⭐ +1 Bonus for playing again today!</div>
+      </div>
+
+      <div class="coach-row">
+        <div class="coach-av">🦁</div>
+        <div class="coach-txt">
+          <div class="coach-name">Coach Leo</div>
+          You're on a roll! One more session and I'll have a surprise for you!
+        </div>
+      </div>
+
+      <button class="btn-primary">Play another session! 🎉</button>
+      <button class="btn-secondary">See you tomorrow!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Daily Limit ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Daily Limit — 3 Sessions Reached</h4>
+    Child has hit their daily session limit (default: 3, parent-configurable).
+    No shame — warm close. Stars safe message + tomorrow teaser.
+    Only CTA: "See you tomorrow!" — no option to play more.
+    "Your parent has set a limit" — never says "limit" negatively.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="mini-summary">
+        <div class="ms-label">Total stars today</div>
+        <div class="ms-stars">⭐ 21</div>
+      </div>
+
+      <div class="limit-card">
+        <div class="prompt-emoji">🌙</div>
+        <div class="prompt-headline">Amazing session! 🌟</div>
+        <div class="prompt-sub">You've played 3 sessions today — that's your adventure goal! Come back tomorrow for more!</div>
+      </div>
+
+      <div class="star-safe-note">
+        <div class="ssn-icon">🛡</div>
+        <div class="ssn-text">Your ⭐ 21 stars are saved and waiting for you tomorrow!</div>
+      </div>
+
+      <div class="coach-row">
+        <div class="coach-av">🦁</div>
+        <div class="coach-txt">
+          <div class="coach-name">Coach Leo</div>
+          That was an incredible day of learning! Rest up and I'll see you tomorrow!
+        </div>
+      </div>
+
+      <button class="btn-primary" style="background:linear-gradient(135deg,#58e8c1,#30b090);color:#051a14;">See you tomorrow! 👋</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Tomorrow Teaser ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Tomorrow Teaser — Preview of What's Coming</h4>
+    Shown as child leaves (either after daily limit or choosing "See you tomorrow!").
+    Teaser card previews next session's skill with emoji + short line.
+    Builds curiosity without spoiling. "Tomorrow you'll explore…"
+    No urgency, no FOMO language.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="prompt-card" style="gap:12px;">
+        <div class="prompt-emoji">👋</div>
+        <div class="prompt-headline">See you tomorrow!</div>
+        <div class="prompt-sub">Your stars are safe and ready for tomorrow's adventure!</div>
+        <div class="star-safe-note" style="width:100%;margin-top:0;">
+          <div class="ssn-icon">🛡</div>
+          <div class="ssn-text">⭐ 7 stars saved — they'll be here when you return!</div>
+        </div>
+      </div>
+
+      <div class="teaser-card">
+        <div class="teaser-label">👀 Coming up tomorrow</div>
+        <div class="teaser-row">
+          <div class="teaser-icon">📚</div>
+          <div class="teaser-text">
+            <strong>Sight Words!</strong><br>
+            You'll learn to read words like "jump", "play", and "make" super fast!
+          </div>
+        </div>
+      </div>
+
+      <div class="coach-row">
+        <div class="coach-av">🦁</div>
+        <div class="coach-txt">
+          <div class="coach-name">Coach Leo</div>
+          Tomorrow is going to be so fun — I can't wait to see you!
+        </div>
+      </div>
+
+      <button class="btn-primary" style="background:#1a1440;border:1.5px solid #2a1f60;color:#b89eff;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Trigger Rules</h4>
+      <ul>
+        <li>Same Day Bonus: sessions_today === 1 (first complete of day)</li>
+        <li>Daily Limit: sessions_today >= max_sessions_per_day</li>
+        <li>Default max: 3 sessions/day (parent override in settings)</li>
+        <li>Tomorrow Teaser: always shown when child chooses "See you tomorrow" OR hits limit</li>
+        <li class="dont">❌ Never show "Want to keep going?" after daily limit reached</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Language Rules</h4>
+      <ul>
+        <li class="do">✅ "Want to keep going?" — curious, not pushy</li>
+        <li class="do">✅ "See you tomorrow!" — warm, no guilt</li>
+        <li class="do">✅ "Your adventure goal!" — frames limit positively</li>
+        <li class="dont">❌ Never "You can't play anymore today"</li>
+        <li class="dont">❌ Never "You've reached your limit"</li>
+        <li class="dont">❌ Never countdown to next available session</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Bonus Star</h4>
+      <ul>
+        <li>Same-day bonus: +1 ⭐ awarded at START of 2nd session</li>
+        <li>Gold chip: "+1 Bonus for playing again today!"</li>
+        <li>Not shown on 3rd session (only 2nd session gets bonus)</li>
+        <li>Not shown if child already at daily limit</li>
+        <li class="dont">❌ Never show bonus as a reason to play (enticement rule)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Tomorrow Teaser Content</h4>
+      <ul>
+        <li>Teaser: next skill in curriculum sequence</li>
+        <li>Copy: "Tomorrow you'll explore [skill]!" + 1 example</li>
+        <li>Icon: subject-specific emoji (📚 reading, 🔢 math, etc.)</li>
+        <li>If next skill unknown: generic "more adventures await!"</li>
+        <li>Star-safe message always shown at close</li>
+        <li>No skill revealed if parent has "surprise mode" enabled</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

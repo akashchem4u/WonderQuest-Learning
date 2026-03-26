@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Child Streak Comeback / Return Flow v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #ffffff;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+/* ── Tab nav ── */
+.tab-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 24px;
+  max-width: 900px;
+  width: 100%;
+}
+.tab-btn {
+  background: #f3f0ff;
+  color: #5b3faa;
+  border: 1.5px solid #c4b0f0;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all .18s;
+  white-space: nowrap;
+}
+.tab-btn.active {
+  background: #9b72ff;
+  color: #fff;
+  border-color: #9b72ff;
+  box-shadow: 0 2px 12px rgba(155,114,255,.35);
+}
+.tab-btn:hover:not(.active) { background: #e8e0ff; }
+
+/* ── Hint box ── */
+.hint-box {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  padding: 14px 18px;
+  max-width: 780px;
+  width: 100%;
+  margin: 0 auto 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 12.5px;
+  color: #5a4000;
+  line-height: 1.7;
+}
+.hint-box strong { color: #b06000; }
+
+/* ── Tab panels ── */
+.tab { display: none; width: 100%; max-width: 900px; flex-direction: column; align-items: center; }
+.tab.active { display: flex; }
+
+/* ── Phone frame ── */
+.phone {
+  width: 375px;
+  min-height: 812px;
+  background: #100b2e;
+  border-radius: 40px;
+  border: 3px solid #2e1f6e;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.55), 0 0 0 8px #f0eeff, 0 0 0 9px #d8ccff;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.status-bar {
+  background: #0d0820;
+  padding: 14px 24px 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b5f90;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.status-bar .gold { color: #ffd166; }
+
+/* ── Shared screen helpers ── */
+.screen { flex: 1; overflow-y: auto; padding-bottom: 24px; }
+.stars-field {
+  position: relative;
+  overflow: hidden;
+}
+.stars-field::before {
+  content: '· ✦ · ✧ · ✦ · ✧ · ✦ · ✧ · ✦ ·';
+  position: absolute;
+  top: 6px; left: 0; right: 0;
+  font-size: 9px;
+  color: #2a1f55;
+  letter-spacing: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ── Animations ── */
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes float-slow {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(8deg); }
+}
+@keyframes spin-float {
+  0% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(180deg) translateY(-8px); }
+  100% { transform: rotate(360deg) translateY(0); }
+}
+@keyframes star-burst {
+  0%,100% { opacity: .15; transform: scale(1); }
+  50% { opacity: .35; transform: scale(1.15); }
+}
+@keyframes fire-bounce {
+  0%,100% { transform: scale(1) translateY(0); }
+  30% { transform: scale(1.18) translateY(-6px); }
+  60% { transform: scale(0.95) translateY(2px); }
+}
+@keyframes bounce-in {
+  0% { transform: scale(.5); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes glow-pulse {
+  0%,100% { box-shadow: 0 0 12px rgba(255,209,102,.35); }
+  50% { box-shadow: 0 0 28px rgba(255,209,102,.75); }
+}
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Hero sections ── */
+.return-hero {
+  padding: 36px 24px 24px;
+  text-align: center;
+  position: relative;
+}
+.hero-emoji {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 14px;
+}
+.hero-emoji.float { animation: float 3s ease-in-out infinite; }
+.hero-emoji.float-slow { animation: float-slow 4s ease-in-out infinite; }
+.hero-emoji.spin-float { animation: spin-float 6s linear infinite; }
+.hero-emoji.fire-bounce { animation: fire-bounce 1.4s ease-in-out infinite; }
+
+.hero-star-burst {
+  position: absolute;
+  top: 20px; left: 50%;
+  transform: translateX(-50%);
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(155,114,255,.18) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: star-burst 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.return-hero > * { position: relative; z-index: 1; }
+
+.hero-headline {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.hero-sub {
+  font-size: 15px;
+  color: #b0a0e0;
+  line-height: 1.5;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+/* ── Cards ── */
+.card {
+  margin: 0 14px 14px;
+  border-radius: 20px;
+  padding: 16px;
+  animation: slide-up .35s ease both;
+}
+.card-violet { background: linear-gradient(135deg, #1e1650, #2a1a70); border: 1.5px solid #3a2880; }
+.card-gold { background: linear-gradient(135deg, #1e1400, #2a1e04); border: 2px solid #ffd166; }
+.card-soft { background: #1a1248; border: 1.5px solid #2e235a; }
+.card-green { background: linear-gradient(135deg, #0e2018, #162a1e); border: 1.5px solid #2a6040; }
+
+.card-label {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+.card-label-violet { color: #9b72ff; }
+.card-label-gold { color: #ffd166; }
+.card-label-green { color: #5ad88a; }
+
+/* ── Streak status ── */
+.streak-status-card {}
+.streak-main-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.streak-flame { font-size: 36px; flex-shrink: 0; }
+.streak-info { flex: 1; }
+.streak-count-text {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffd166;
+}
+.streak-note {
+  font-size: 12px;
+  color: #c8b8f0;
+  margin-top: 3px;
+}
+.streak-safe-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #0e2818;
+  border: 1.5px solid #3ad870;
+  border-radius: 12px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #5ad88a;
+  margin-top: 10px;
+}
+
+/* ── Last-played card ── */
+.last-played-card .lp-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lp-world-emoji { font-size: 32px; flex-shrink: 0; }
+.lp-info { flex: 1; }
+.lp-world-name { font-size: 14px; font-weight: 900; color: #e0d0ff; }
+.lp-win { font-size: 12px; color: #c8b8f0; margin-top: 3px; }
+
+/* ── World pick chips ── */
+.world-pick-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 14px 14px;
+}
+.world-chip {
+  background: #1e1650;
+  border: 1.5px solid #3a2880;
+  border-radius: 16px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #c8b0ff;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.world-chip:hover { background: #2a1a70; border-color: #9b72ff; color: #fff; }
+.world-chip.gold-chip {
+  background: #1e1400;
+  border-color: #ffd166;
+  color: #ffd166;
+}
+
+/* ── CTA buttons ── */
+.cta-area {
+  padding: 8px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.btn {
+  border: none;
+  border-radius: 28px;
+  padding: 16px 24px;
+  font-size: 17px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  cursor: pointer;
+  width: 100%;
+  transition: transform .12s, box-shadow .12s;
+}
+.btn:active { transform: scale(.97); }
+.btn-violet {
+  background: linear-gradient(135deg, #9b72ff, #c080ff);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(155,114,255,.45);
+}
+.btn-violet:hover { box-shadow: 0 6px 28px rgba(155,114,255,.6); }
+.btn-gold {
+  background: linear-gradient(135deg, #ffd166, #ffb830);
+  color: #1a0d00;
+  box-shadow: 0 4px 16px rgba(255,209,102,.4);
+}
+.btn-gold:hover { box-shadow: 0 6px 22px rgba(255,209,102,.55); }
+
+/* ── Reward chips ── */
+.reward-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.reward-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 14px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+.reward-chip-star { background: #2a1e04; border: 1.5px solid #ffd166; color: #ffd166; }
+.reward-chip-xp { background: #0e1830; border: 1.5px solid #72b8ff; color: #72b8ff; }
+.reward-chip-badge { background: #1e0e2e; border: 1.5px solid #d87bff; color: #d87bff; }
+.reward-chip-green { background: #0e2018; border: 1.5px solid #5ad88a; color: #5ad88a; }
+
+.reward-gift-msg {
+  font-size: 13px;
+  color: #e8d0a0;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+/* ── Progress dots ── */
+.dot-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.day-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.dot-lit {
+  background: linear-gradient(135deg, #ffd166, #ffb830);
+  color: #1a0d00;
+  box-shadow: 0 0 10px rgba(255,209,102,.5);
+}
+.dot-empty {
+  background: #1e1650;
+  border: 1.5px dashed #3a2880;
+  color: #4a3880;
+}
+
+/* ── Skills reminder ── */
+.skills-reminder-card .sr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sr-emoji { font-size: 28px; flex-shrink: 0; }
+.sr-info { flex: 1; }
+.sr-label { font-size: 11px; font-weight: 900; color: #7b6fa0; text-transform: uppercase; letter-spacing: .06em; }
+.sr-world { font-size: 14px; font-weight: 900; color: #e0d0ff; margin-top: 3px; }
+.sr-skill { font-size: 12px; color: #b0a0e0; }
+
+/* ── New-quest world chips ── */
+.new-world-chip {
+  position: relative;
+  background: #1e1650;
+  border: 1.5px solid #3a2880;
+  border-radius: 16px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #c8b0ff;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.new-badge-overlay {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #5ad88a;
+  color: #0a1e10;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ── Gentle restart card ── */
+.gentle-restart-card .gr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gr-star { font-size: 36px; flex-shrink: 0; }
+.gr-info { flex: 1; }
+.gr-headline { font-size: 16px; font-weight: 900; color: #e0d0ff; }
+.gr-sub { font-size: 12px; color: #9988cc; margin-top: 3px; }
+
+/* ── Tab 4 celebration ── */
+.restore-hero {
+  padding: 32px 24px 20px;
+  text-align: center;
+  background: radial-gradient(ellipse at center, #1e0a3a 0%, #100b2e 70%);
+  position: relative;
+  overflow: hidden;
+}
+.restore-hero-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255,209,102,.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.restore-hero-headline {
+  font-size: 28px;
+  font-weight: 900;
+  color: #ffd166;
+  text-shadow: 0 0 20px rgba(255,209,102,.6);
+  margin-bottom: 6px;
+  position: relative; z-index: 1;
+}
+.restore-hero-sub {
+  font-size: 14px;
+  color: #c8b8f0;
+  position: relative; z-index: 1;
+}
+
+/* ── Before → After comparison ── */
+.before-after {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.ba-side {
+  flex: 1;
+  text-align: center;
+  background: #1e1650;
+  border-radius: 14px;
+  padding: 12px 8px;
+  border: 1.5px solid #3a2880;
+}
+.ba-side.after {
+  background: linear-gradient(135deg, #2a1e04, #1e1400);
+  border-color: #ffd166;
+  box-shadow: 0 0 16px rgba(255,209,102,.25);
+}
+.ba-num {
+  font-size: 26px;
+  font-weight: 900;
+  color: #6a5a90;
+  text-decoration: line-through;
+  text-decoration-color: #5ad88a;
+}
+.ba-num.new { color: #ffd166; text-decoration: none; text-shadow: 0 0 12px rgba(255,209,102,.55); }
+.ba-label { font-size: 10px; color: #7b6fa0; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+.ba-label.new { color: #ffd166; }
+.ba-arrow { font-size: 22px; color: #9b72ff; flex-shrink: 0; }
+.ba-caption { font-size: 12px; color: #b0a0e0; text-align: center; margin-top: 10px; font-style: italic; }
+
+/* ── Reward summary row ── */
+.reward-summary-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 14px 14px;
+}
+
+/* ── Next milestone card ── */
+.next-milestone-card {}
+.nm-progress { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.nm-bar-bg { flex: 1; height: 8px; background: #2a1a70; border-radius: 6px; overflow: hidden; }
+.nm-bar-fill { height: 100%; background: linear-gradient(90deg, #9b72ff, #ffd166); border-radius: 6px; width: 33%; }
+.nm-label { font-size: 11px; color: #9b72ff; font-weight: 900; white-space: nowrap; }
+
+/* ── Spec table ── */
+.spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+.spec-table th { background: #f0c040; color: #3a2000; padding: 6px 10px; text-align: left; font-weight: 900; }
+.spec-table td { padding: 6px 10px; border-bottom: 1px solid #e8d880; color: #5a4000; vertical-align: top; }
+.spec-table tr:nth-child(even) td { background: #fffde0; }
+
+.spec-section { margin-top: 14px; }
+.spec-section strong { display: block; color: #8a5800; margin-bottom: 4px; font-size: 12.5px; }
+.spec-route { font-family: 'Courier New', monospace; background: #fef6c0; border: 1px solid #e8c840; border-radius: 4px; padding: 2px 6px; font-size: 11.5px; color: #5a3000; display: inline-block; margin: 2px 0; }
+.spec-rule { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0; font-size: 12px; color: #5a4000; }
+.spec-rule::before { content: '▸'; color: #b06000; flex-shrink: 0; margin-top: 1px; }
+
+</style>
+</head>
+<body>
+
+<!-- Tab navigation -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="show(1)">Tab 1 · 2-Day Return</button>
+  <button class="tab-btn" onclick="show(2)">Tab 2 · 7-Day Return</button>
+  <button class="tab-btn" onclick="show(3)">Tab 3 · 30-Day Return</button>
+  <button class="tab-btn" onclick="show(4)">Tab 4 · Streak Restored</button>
+  <button class="tab-btn" onclick="show(5)">Tab 5 · Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 1 — 2-Day Return (Short Gap) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="tab active" id="tab-1">
+  <div class="hint-box">
+    <strong>⚙ TAB 1 — 2-Day Return (Short Gap · 2–6 days away)</strong><br>
+    Streak is <strong>preserved</strong>. No streak reset, no shame. Warm "welcome back" framing.<br>
+    Show last session recap, current streak count, STREAK SAFE badge, and world-pick shortcuts.<br>
+    API: <code>GET /player/return-state</code> → <code>{ gap_days: 2, streak: 5, last_session: { world, stars } }</code>
+  </div>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="gold">⭐ 42 XP</span>
+      <span>🔋 100%</span>
+    </div>
+
+    <div class="screen">
+      <!-- Return hero -->
+      <div class="return-hero stars-field">
+        <span class="hero-emoji float">🌠</span>
+        <h1 class="hero-headline">Welcome back! 🌟</h1>
+        <p class="hero-sub">It's been 2 days — ready for your next quest?</p>
+      </div>
+
+      <!-- Streak status card -->
+      <div class="card card-violet streak-status-card">
+        <div class="card-label card-label-gold">⚡ Your Streak</div>
+        <div class="streak-main-row">
+          <span class="streak-flame">🔥</span>
+          <div class="streak-info">
+            <div class="streak-count-text">5 day streak!</div>
+            <div class="streak-note">Your streak is waiting for you ✨</div>
+          </div>
+        </div>
+        <div class="streak-safe-badge">
+          ✅ STREAK SAFE
+        </div>
+      </div>
+
+      <!-- Last played card -->
+      <div class="card card-soft last-played-card">
+        <div class="card-label card-label-violet">🕹 Last Session</div>
+        <div class="lp-row">
+          <span class="lp-world-emoji">🌊</span>
+          <div class="lp-info">
+            <div class="lp-world-name">Ocean World</div>
+            <div class="lp-win">You earned 2 stars in Ocean World! 🌊</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-area">
+        <button class="btn btn-violet">Jump Back In! 🚀</button>
+      </div>
+
+      <!-- World pick row -->
+      <div style="padding: 0 14px 6px;">
+        <div style="font-size: 11px; font-weight: 900; color: #7b6fa0; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px;">Pick a world</div>
+      </div>
+      <div class="world-pick-row">
+        <div class="world-chip">🌙 Dream World</div>
+        <div class="world-chip">🌊 Ocean World</div>
+        <div class="world-chip">🔥 Fire World</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 2 — 7-Day Return (Week Gap) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="tab" id="tab-2">
+  <div class="hint-box">
+    <strong>⚙ TAB 2 — 7-Day Return (Week Gap · 7–29 days away)</strong><br>
+    Streak resets to <strong>Day 1</strong> — never framed as "lost." Grant comeback reward (+1 star, +30 XP).<br>
+    Language: "A new streak begins!" NOT "You lost your streak." Show progress dots, Day 1 lit.<br>
+    API: <code>GET /player/return-state</code> → <code>{ gap_days: 7, streak_reset: true, comeback_reward: { stars: 1, xp: 30 } }</code>
+  </div>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="gold">⭐ 42 XP</span>
+      <span>🔋 100%</span>
+    </div>
+
+    <div class="screen">
+      <!-- Return hero -->
+      <div class="return-hero stars-field">
+        <span class="hero-emoji float">🌈</span>
+        <h1 class="hero-headline">A whole week — welcome back! 🎉</h1>
+        <p class="hero-sub">Your worlds missed you! Let's explore.</p>
+      </div>
+
+      <!-- Comeback reward card -->
+      <div class="card card-gold comeback-reward-card">
+        <div class="card-label card-label-gold">🎁 Return Reward</div>
+        <div class="reward-chips">
+          <span class="reward-chip reward-chip-star">+1 ⭐ Comeback Star</span>
+          <span class="reward-chip reward-chip-xp">+30 XP Welcome Back</span>
+        </div>
+        <div class="reward-gift-msg">A little gift for coming back! 💫</div>
+      </div>
+
+      <!-- Streak restart card -->
+      <div class="card card-violet streak-restart-card">
+        <div class="card-label card-label-violet">🌱 New Streak Begins</div>
+        <div class="streak-main-row">
+          <span class="streak-flame">🔥</span>
+          <div class="streak-info">
+            <div class="streak-count-text">A new streak begins!</div>
+            <div class="streak-note">Starting fresh — Day 1! 🌱</div>
+          </div>
+        </div>
+        <div class="dot-row">
+          <div class="day-dot dot-lit">1</div>
+          <div class="day-dot dot-empty">2</div>
+          <div class="day-dot dot-empty">3</div>
+          <div class="day-dot dot-empty">4</div>
+          <div class="day-dot dot-empty">5</div>
+          <div class="day-dot dot-empty">6</div>
+          <div class="day-dot dot-empty">7</div>
+        </div>
+      </div>
+
+      <!-- Skills reminder card -->
+      <div class="card card-soft skills-reminder-card">
+        <div class="card-label card-label-violet">📍 Here's where you were</div>
+        <div class="sr-row">
+          <span class="sr-emoji">🌊</span>
+          <div class="sr-info">
+            <div class="sr-world">Ocean World</div>
+            <div class="sr-skill">🔤 Letter Sounds · Level 3</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="cta-area">
+        <button class="btn btn-violet">Start Day 1! 🌱</button>
+        <button class="btn btn-gold">Pick a World 🗺️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 3 — Long Gap Return (30+ Days) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="tab" id="tab-3">
+  <div class="hint-box">
+    <strong>⚙ TAB 3 — Long Gap Return (30+ days away)</strong><br>
+    Biggest celebration. Streak resets to 0 — shown with <strong>star icon</strong> (not flame = neutral, not punitive).<br>
+    Grant big comeback reward (+2 stars, +100 XP, Return Badge). Show "NEW" world chips. Forward-looking only.<br>
+    API: <code>GET /player/return-state</code> → <code>{ gap_days: 34, big_comeback: true, reward: { stars: 2, xp: 100, badge: "Return Explorer" } }</code>
+  </div>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="gold">⭐ 42 XP</span>
+      <span>🔋 100%</span>
+    </div>
+
+    <div class="screen">
+      <!-- Return hero -->
+      <div class="return-hero stars-field">
+        <div class="hero-star-burst"></div>
+        <span class="hero-emoji spin-float">🌌</span>
+        <h1 class="hero-headline">You're back! The stars are celebrating! ✨</h1>
+      </div>
+
+      <!-- Big comeback card -->
+      <div class="card card-gold big-comeback-card" style="animation-delay:.1s">
+        <div class="card-label card-label-gold">🚀 Big Comeback Reward!</div>
+        <div class="reward-chips">
+          <span class="reward-chip reward-chip-star">+2 ⭐ Explorer Stars</span>
+          <span class="reward-chip reward-chip-xp">+100 XP</span>
+          <span class="reward-chip reward-chip-badge">🏅 Return Badge</span>
+        </div>
+        <div class="reward-gift-msg">You're an explorer who always comes back! 🚀</div>
+      </div>
+
+      <!-- Worlds refreshed card -->
+      <div class="card card-soft worlds-refreshed-card" style="animation-delay:.2s">
+        <div class="card-label card-label-violet">🗺️ Your worlds have new quests!</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+          <div class="new-world-chip">🌙 Dream World <span class="new-badge-overlay">NEW</span></div>
+          <div class="new-world-chip">🌊 Ocean World <span class="new-badge-overlay">NEW</span></div>
+          <div class="new-world-chip">🔥 Fire World <span class="new-badge-overlay">NEW</span></div>
+        </div>
+      </div>
+
+      <!-- Gentle restart card -->
+      <div class="card card-violet gentle-restart-card" style="animation-delay:.3s">
+        <div class="card-label card-label-violet">⭐ Your Adventure Continues!</div>
+        <div class="gr-row">
+          <span class="gr-star">⭐</span>
+          <div class="gr-info">
+            <div class="gr-headline">Your adventure continues!</div>
+            <div class="gr-sub">Starting fresh — every explorer does! 🌱</div>
+          </div>
+        </div>
+        <div class="dot-row" style="margin-top: 12px;">
+          <div class="day-dot dot-lit">1</div>
+          <div class="day-dot dot-empty">2</div>
+          <div class="day-dot dot-empty">3</div>
+          <div class="day-dot dot-empty">4</div>
+          <div class="day-dot dot-empty">5</div>
+          <div class="day-dot dot-empty">6</div>
+          <div class="day-dot dot-empty">7</div>
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="cta-area">
+        <button class="btn btn-violet" style="font-size: 16px;">Explore What's New! 🌌</button>
+        <button class="btn btn-gold">See My Badges 🏅</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 4 — Streak Restore Complete -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="tab" id="tab-4">
+  <div class="hint-box">
+    <strong>⚙ TAB 4 — Streak Restore Complete (shown after first session back)</strong><br>
+    Triggered by: <code>POST /player/session-start</code> → gap detected → session completes → this screen.<br>
+    Before → After comparison (old streak greyed + checkmark, new Day 1 in gold glow). All positive reinforcement.<br>
+    Next-milestone teaser to encourage continued play. "Keep the Streak!" as primary CTA.
+  </div>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="gold">⭐ 44 XP</span>
+      <span>🔋 100%</span>
+    </div>
+
+    <div class="screen">
+      <!-- Restore hero -->
+      <div class="restore-hero">
+        <div class="restore-hero-glow"></div>
+        <span class="hero-emoji fire-bounce" style="font-size:72px; position:relative; z-index:1;">🔥</span>
+        <h1 class="restore-hero-headline">Streak Restored! 🔥</h1>
+        <p class="restore-hero-sub">You came back and played — amazing!</p>
+      </div>
+
+      <!-- Streak restored card -->
+      <div class="card card-gold streak-restored-card">
+        <div class="card-label card-label-gold">✨ Before → After</div>
+        <div class="before-after">
+          <div class="ba-side">
+            <div class="ba-num">5 ✓</div>
+            <div class="ba-label">Old streak</div>
+          </div>
+          <div class="ba-arrow">→</div>
+          <div class="ba-side after">
+            <div class="ba-num new">Day 1 🔥</div>
+            <div class="ba-label new">Fresh start!</div>
+          </div>
+        </div>
+        <div class="ba-caption">Every streak starts with Day 1 💫</div>
+      </div>
+
+      <!-- Reward summary -->
+      <div style="padding: 0 14px 6px;">
+        <div class="card-label card-label-violet" style="font-size:10px; text-transform: uppercase; letter-spacing:.07em;">🏆 This session's rewards</div>
+      </div>
+      <div class="reward-summary-row">
+        <span class="reward-chip reward-chip-star">+1 ⭐ Star</span>
+        <span class="reward-chip reward-chip-xp">+20 XP</span>
+        <span class="reward-chip reward-chip-badge">🏅 Comeback Badge</span>
+        <span class="reward-chip reward-chip-green">🔥 Day 1 Complete!</span>
+      </div>
+
+      <!-- Next milestone card -->
+      <div class="card card-violet next-milestone-card">
+        <div class="card-label card-label-violet">🎯 Next Milestone</div>
+        <div style="font-size: 14px; font-weight: 900; color: #e0d0ff;">Play 3 days in a row for a bonus!</div>
+        <div class="nm-progress">
+          <div class="nm-bar-bg"><div class="nm-bar-fill"></div></div>
+          <span class="nm-label">1 / 3 days</span>
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="cta-area">
+        <button class="btn btn-gold" style="font-size: 18px;">Keep the Streak! 🔥</button>
+        <button class="btn btn-violet">World Map 🗺️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 5 — Spec -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="tab" id="tab-5">
+  <div class="hint-box" style="max-width: 780px;">
+    <strong>⚙ TAB 5 — Engineering Spec: Child Streak Comeback / Return Flow</strong>
+
+    <div class="spec-section">
+      <strong>API Routes</strong>
+      <div><span class="spec-route">GET /player/return-state</span> → returns gap_days, streak, last_session, comeback_reward if applicable</div>
+      <div><span class="spec-route">POST /player/session-start</span> → triggers gap detection; response includes return_flow flag + flow_type</div>
+      <div><span class="spec-route">GET /player/streak</span> → current streak count, last_played_at, streak_safe (bool)</div>
+    </div>
+
+    <div class="spec-section">
+      <strong>Gap Detection Logic</strong>
+      <table class="spec-table">
+        <tr><th>Gap (days since last session)</th><th>Flow shown</th><th>Streak action</th><th>Reward granted</th></tr>
+        <tr><td>0 – 1 days</td><td>None — normal play, no return flow</td><td>Streak continues as-is</td><td>None</td></tr>
+        <tr><td>2 – 6 days</td><td>Tab 1 — Short Gap return flow</td><td>Streak preserved (STREAK SAFE)</td><td>None</td></tr>
+        <tr><td>7 – 29 days</td><td>Tab 2 — Week Gap return flow</td><td>Streak resets to Day 1</td><td>+1 ⭐ Comeback Star · +30 XP</td></tr>
+        <tr><td>30+ days</td><td>Tab 3 — Long Gap return flow</td><td>Streak resets to 0, shown as fresh start</td><td>+2 ⭐ Explorer Stars · +100 XP · 🏅 Return Badge</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <strong>Streak-Safe Language Rules</strong>
+      <div class="spec-rule">NEVER use "lost your streak", "broken streak", "streak at risk", "you missed", "you failed"</div>
+      <div class="spec-rule">NEVER show countdown timers or urgency pressure ("only X hours left")</div>
+      <div class="spec-rule">Always use: "fresh start", "new streak begins", "comeback", "starting fresh", "adventure continues"</div>
+      <div class="spec-rule">Streak reset is framed as a celebration event — reward, not punishment</div>
+      <div class="spec-rule">Flame emoji 🔥 used for active streak; star ⭐ used for neutral restart (30d+ gap) — avoids punitive flame-extinguish imagery</div>
+      <div class="spec-rule">All gap handling flows end with a forward-looking CTA — never backward-looking recap of absence</div>
+    </div>
+
+    <div class="spec-section">
+      <strong>Return Reward Table</strong>
+      <table class="spec-table">
+        <tr><th>Gap Type</th><th>Stars</th><th>XP</th><th>Badge</th></tr>
+        <tr><td>2–6 days (short)</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>7–29 days (week)</td><td>+1 ⭐ Comeback Star</td><td>+30 XP</td><td>—</td></tr>
+        <tr><td>30+ days (long)</td><td>+2 ⭐ Explorer Stars</td><td>+100 XP</td><td>🏅 Return Badge</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <strong>Post-Session Streak Restore (Tab 4)</strong>
+      <div class="spec-rule">Triggered after first completed session following any gap flow (Tab 1/2/3)</div>
+      <div class="spec-rule">Shows Before → After comparison — old count with checkmark ✓, new Day 1 in gold</div>
+      <div class="spec-rule">Aggregate all session rewards (base play reward + comeback reward) in single summary row</div>
+      <div class="spec-rule">Next milestone teaser: show days-in-a-row needed for next bonus (3-day, 7-day, 14-day milestones)</div>
+    </div>
+
+    <div class="spec-section">
+      <strong>Child Safety Rules</strong>
+      <div class="spec-rule">Zero shame framing — child is never made to feel bad for time away</div>
+      <div class="spec-rule">All return flows are <em>celebratory</em>: returning is rewarded, not just normalized</div>
+      <div class="spec-rule">No dark patterns: no countdown timers, no guilt messaging, no streak insurance mechanics targeting anxiety</div>
+      <div class="spec-rule">Calm, warm tone throughout — ages 5–10 audience, Nunito 900, emoji-forward</div>
+    </div>
+
+    <div class="spec-section">
+      <strong>Design Tokens</strong>
+      <div class="spec-rule">Background: <code>#100b2e</code> (dark cosmic)</div>
+      <div class="spec-rule">Primary accent: <code>#9b72ff</code> (violet)</div>
+      <div class="spec-rule">Gold / reward: <code>#ffd166</code></div>
+      <div class="spec-rule">Font: Nunito 900 (Google Fonts) — all child-facing text</div>
+      <div class="spec-rule">Phone frame: 375px wide, min-height 812px, border-radius 40px</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(n) {
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + n).classList.add('active');
+  document.querySelectorAll('.tab-btn')[n - 1].classList.add('active');
+}
+</script>
+</body>
+</html>

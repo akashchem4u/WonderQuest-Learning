@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Roadmap Priority Board — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-quarter{display:flex;gap:6px}
+.sqc{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.sqc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.sqc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.sh-add{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Kanban board */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:20px 24px}
+.k-col{background:#161b22;border-radius:10px;min-height:400px;border:1px solid rgba(255,255,255,.05)}
+.k-col-hdr{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+.kch-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5)}
+.kch-count{font-size:11px;font-weight:800;color:rgba(255,255,255,.3);background:rgba(255,255,255,.07);padding:1px 7px;border-radius:10px}
+.k-col-body{padding:10px}
+.roadmap-card{background:#0d1117;border-radius:8px;padding:10px 12px;margin-bottom:7px;border:1px solid rgba(255,255,255,.06);cursor:grab}
+.roadmap-card.now{border-color:rgba(80,232,144,.2)}
+.roadmap-card.next{border-color:rgba(88,232,193,.15)}
+.rc-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:4px}
+.rc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+.rct{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.rt-teacher{background:rgba(37,99,235,.15);color:#60a5fa}
+.rt-parent{background:rgba(155,114,255,.12);color:#9b72ff}
+.rt-child{background:rgba(255,209,102,.1);color:#ffd166}
+.rt-owner{background:rgba(80,232,144,.1);color:#50e890}
+.rt-infra{background:rgba(245,158,11,.1);color:#f59e0b}
+.rt-content{background:rgba(88,232,193,.1);color:#58e8c1}
+.rc-meta{display:flex;align-items:center;gap:6px;margin-top:4px}
+.rcm-effort{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px}
+.rcm-source{font-size:9px;color:rgba(255,255,255,.25)}
+.rcm-dot{width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-left:auto}
+
+/* Evidence count */
+.evidence-bar{height:2px;border-radius:1px;margin-top:5px;background:rgba(255,255,255,.06)}
+.evidence-fill{height:2px;border-radius:1px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-roadmap-priority-board-v3.html</strong><br>
+  Product roadmap kanban board for the owner. 4 columns: Now (this quarter) / Next (next quarter) / Later (backlog) / Won't Build.<br>
+  <strong>Cards:</strong> Each item has title + persona tags + effort estimate + evidence count (feedback items linked). Draggable between columns (drag-and-drop in production).<br>
+  <strong>Evidence count:</strong> Number of feedback/feature requests linked to this item. Higher evidence = stronger user signal.<br>
+  <strong>Quarters:</strong> Q1 / Q2 / Q3 / Q4 — period selector filters view to a quarter's planned items.<br>
+  <strong>Privacy:</strong> Roadmap items reference school-level patterns, not individual teacher requests. No teacher names on cards.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('board')">Roadmap Board</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Roadmap Board ────────────────────────────────────────── -->
+<div id="tab-board" class="screen active">
+  <p class="section-title">Owner roadmap priority board — Q2 2026</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">🗺 Roadmap</div>
+        <div class="sh-quarter">
+          <button class="sqc sqc-i">Q1</button>
+          <button class="sqc sqc-a">Q2</button>
+          <button class="sqc sqc-i">Q3</button>
+          <button class="sqc sqc-i">Q4</button>
+        </div>
+      </div>
+      <div class="sh-add">+ Add Item</div>
+    </div>
+    <div class="kanban">
+      <!-- NOW -->
+      <div class="k-col">
+        <div class="k-col-hdr">
+          <div class="kch-title" style="color:#50e890">Now</div>
+          <span class="kch-count">4</span>
+        </div>
+        <div class="k-col-body">
+          <div class="roadmap-card now">
+            <div class="rc-title">Bulk assignment tool for teachers</div>
+            <div class="rc-tags"><span class="rct rt-teacher">Teacher</span><span class="rct rt-infra">Backend</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">23 feedback requests</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:92%;background:#50e890"></div></div>
+          </div>
+          <div class="roadmap-card now">
+            <div class="rc-title">Parent weekly report PDF export</div>
+            <div class="rc-tags"><span class="rct rt-parent">Parent</span></div>
+            <div class="rc-meta"><span class="rcm-effort">S</span><span class="rcm-source">17 requests</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:68%;background:#50e890"></div></div>
+          </div>
+          <div class="roadmap-card now">
+            <div class="rc-title">P3 G4–5 content expansion (+40 skills)</div>
+            <div class="rc-tags"><span class="rct rt-child">Child</span><span class="rct rt-content">Content</span></div>
+            <div class="rc-meta"><span class="rcm-effort">L</span><span class="rcm-source">Internal: retention data</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:80%;background:#58e8c1"></div></div>
+          </div>
+          <div class="roadmap-card now">
+            <div class="rc-title">Class-level assignment analytics for teachers</div>
+            <div class="rc-tags"><span class="rct rt-teacher">Teacher</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">11 requests</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:44%;background:#50e890"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEXT -->
+      <div class="k-col">
+        <div class="k-col-hdr">
+          <div class="kch-title" style="color:#58e8c1">Next</div>
+          <span class="kch-count">5</span>
+        </div>
+        <div class="k-col-body">
+          <div class="roadmap-card next">
+            <div class="rc-title">Calendar integration (parent-teacher scheduling)</div>
+            <div class="rc-tags"><span class="rct rt-parent">Parent</span><span class="rct rt-teacher">Teacher</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">19 requests</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:76%;background:#58e8c1"></div></div>
+          </div>
+          <div class="roadmap-card next">
+            <div class="rc-title">District-level admin dashboard</div>
+            <div class="rc-tags"><span class="rct rt-owner">Owner</span><span class="rct rt-teacher">Admin</span></div>
+            <div class="rc-meta"><span class="rcm-effort">L</span><span class="rcm-source">4 district prospects</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:40%;background:#50e890"></div></div>
+          </div>
+          <div class="roadmap-card next">
+            <div class="rc-title">Adaptive engine difficulty personalisation V2</div>
+            <div class="rc-tags"><span class="rct rt-child">Child</span><span class="rct rt-infra">Backend</span></div>
+            <div class="rc-meta"><span class="rcm-effort">XL</span><span class="rcm-source">Retention metric gap</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:60%;background:#9b72ff"></div></div>
+          </div>
+          <div class="roadmap-card next">
+            <div class="rc-title">Push notification for parent inactivity alerts</div>
+            <div class="rc-tags"><span class="rct rt-parent">Parent</span></div>
+            <div class="rc-meta"><span class="rcm-effort">S</span><span class="rcm-source">8 requests</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:32%;background:#9b72ff"></div></div>
+          </div>
+          <div class="roadmap-card next">
+            <div class="rc-title">Content error self-service for curriculum team</div>
+            <div class="rc-tags"><span class="rct rt-content">Content</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">Internal ops</span></div>
+            <div class="evidence-bar"><div class="evidence-fill" style="width:50%;background:#58e8c1"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LATER -->
+      <div class="k-col">
+        <div class="k-col-hdr">
+          <div class="kch-title" style="color:rgba(255,255,255,.4)">Later</div>
+          <span class="kch-count">6</span>
+        </div>
+        <div class="k-col-body">
+          <div class="roadmap-card">
+            <div class="rc-title">Interactive achievement showcase for students</div>
+            <div class="rc-tags"><span class="rct rt-child">Child</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">6 requests</span></div>
+          </div>
+          <div class="roadmap-card">
+            <div class="rc-title">Teacher-to-teacher resource sharing</div>
+            <div class="rc-tags"><span class="rct rt-teacher">Teacher</span></div>
+            <div class="rc-meta"><span class="rcm-effort">L</span><span class="rcm-source">4 requests</span></div>
+          </div>
+          <div class="roadmap-card">
+            <div class="rc-title">Offline mode for tablets (schools with poor WiFi)</div>
+            <div class="rc-tags"><span class="rct rt-child">Child</span><span class="rct rt-infra">Infra</span></div>
+            <div class="rc-meta"><span class="rcm-effort">XL</span><span class="rcm-source">3 school requests</span></div>
+          </div>
+          <div class="roadmap-card">
+            <div class="rc-title">Multi-language content (Spanish pilot)</div>
+            <div class="rc-tags"><span class="rct rt-content">Content</span><span class="rct rt-child">Child</span></div>
+            <div class="rc-meta"><span class="rcm-effort">XL</span><span class="rcm-source">Market research</span></div>
+          </div>
+          <div class="roadmap-card">
+            <div class="rc-title">API for SIS integration (Clever/ClassLink)</div>
+            <div class="rc-tags"><span class="rct rt-infra">Infra</span><span class="rct rt-teacher">Admin</span></div>
+            <div class="rc-meta"><span class="rcm-effort">L</span><span class="rcm-source">5 district asks</span></div>
+          </div>
+          <div class="roadmap-card">
+            <div class="rc-title">Subscription gifting / family referral program</div>
+            <div class="rc-tags"><span class="rct rt-parent">Parent</span></div>
+            <div class="rc-meta"><span class="rcm-effort">S</span><span class="rcm-source">Growth strategy</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WON'T BUILD -->
+      <div class="k-col">
+        <div class="k-col-hdr">
+          <div class="kch-title" style="color:rgba(255,255,255,.2)">Won't Build</div>
+          <span class="kch-count">3</span>
+        </div>
+        <div class="k-col-body">
+          <div class="roadmap-card" style="opacity:.6">
+            <div class="rc-title">Built-in video calling (teacher-parent)</div>
+            <div class="rc-tags"><span class="rct rt-teacher">Teacher</span><span class="rct rt-parent">Parent</span></div>
+            <div class="rc-meta"><span class="rcm-effort">XL</span><span class="rcm-source">COPPA/FERPA complexity</span></div>
+          </div>
+          <div class="roadmap-card" style="opacity:.6">
+            <div class="rc-title">Social leaderboards (student vs student)</div>
+            <div class="rc-tags"><span class="rct rt-child">Child</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">Not aligned with mission</span></div>
+          </div>
+          <div class="roadmap-card" style="opacity:.6">
+            <div class="rc-title">In-app purchases for cosmetic items</div>
+            <div class="rc-tags"><span class="rct rt-child">Child</span></div>
+            <div class="rc-meta"><span class="rcm-effort">M</span><span class="rcm-source">COPPA: under-13 purchases</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-roadmap-priority-board-v3.html<br>
+      <strong>Product roadmap kanban.</strong> 4 columns: Now / Next / Later / Won't Build. Quarter selector. Drag-and-drop in production. Evidence count links to feedback items.
+    </div>
+    <h2 class="spec-h2">Evidence Count</h2>
+    <p class="spec-p">Each card shows a count of feedback/feature requests linked to that roadmap item. Feedback items are linked via a roadmap_item_id foreign key when an owner marks a feature request as "Add to Roadmap". This count is the primary signal for prioritisation discussions.</p>
+    <h2 class="spec-h2">Won't Build Column</h2>
+    <p class="spec-p">Items in Won't Build are not deleted — they remain visible with 60% opacity so the team remembers what was considered and why it was rejected. "Won't Fix" feedback replies reference these items by description. Won't Build items can be reopened to Later if context changes.</p>
+    <h2 class="spec-h2">Effort Estimates</h2>
+    <p class="spec-p">S = 1 sprint, M = 2–3 sprints, L = 1 quarter, XL = multi-quarter. These are rough estimates — not commitments. Engineering provides refined estimates during sprint planning.</p>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">Roadmap items reference aggregate patterns ("23 feedback requests" not individual names). No individual teacher or school names on cards. Internal strategic notes (if any) visible to owner only.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Error State Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f8f9fa; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #343a40; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 150px; padding: 13px 12px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.gallery { max-width: 900px; margin: 0 auto; padding: 24px; }
+.gallery-title { font-size: 22px; font-weight: 700; color: #1a2e3b; margin-bottom: 6px; }
+.gallery-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+
+/* Error cards */
+.error-card { background: #fff; border: 1px solid #e8edf0; border-radius: 20px; padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.error-illus { font-size: 56px; }
+.error-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 10px; border-radius: 20px; }
+.tag-network { background: #fef3c7; color: #92400e; }
+.tag-server { background: #fee2e2; color: #991b1b; }
+.tag-notfound { background: #ede9fe; color: #4c1d95; }
+.tag-perm { background: #fce7f3; color: #9d174d; }
+.tag-session { background: #d1fae5; color: #065f46; }
+.tag-maint { background: #dbeafe; color: #1e3a8a; }
+
+.error-heading { font-size: 16px; font-weight: 700; color: #1a2e3b; }
+.error-sub { font-size: 13px; color: #6b7280; line-height: 1.6; }
+.error-code { font-size: 11px; color: #9ca3af; font-family: monospace; background: #f3f4f6; padding: 3px 8px; border-radius: 6px; }
+.error-cta { display: inline-block; margin-top: 8px; padding: 10px 20px; border-radius: 50px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; font-family: 'Sora', sans-serif; }
+.cta-retry { background: #343a40; color: #fff; }
+.cta-home { background: #e9ecef; color: #343a40; }
+.cta-signin { background: #2c7a6e; color: #fff; }
+.cta-support { background: #fff; color: #2a5080; border: 2px solid #2a5080; }
+
+/* Child error cards — friendly tone */
+.child-error-card { background: #100b2e; border: 2px solid #2d2060; border-radius: 20px; padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.child-error-heading { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 18px; color: #ffd166; }
+.child-error-sub { font-size: 13px; color: #b8a8e8; line-height: 1.6; }
+.cta-child-error { background: linear-gradient(135deg, #ffd166, #ff9f43); color: #100b2e; padding: 10px 20px; border-radius: 50px; font-weight: 900; font-size: 13px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; margin-top: 6px; }
+
+/* Owner dark */
+.owner-error-card { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.owner-error-heading { font-size: 16px; font-weight: 700; color: #e6edf3; }
+.owner-error-sub { font-size: 13px; color: #8b949e; line-height: 1.6; }
+.owner-error-code { font-size: 11px; color: #58a6ff; font-family: monospace; background: #0d1117; padding: 3px 8px; border-radius: 6px; }
+
+/* Recovery actions panel */
+.recovery-panel { background: #fff; border: 1px solid #e8edf0; border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+.recovery-title { font-size: 16px; font-weight: 700; color: #1a2e3b; margin-bottom: 4px; }
+.recovery-sub { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+.recovery-step { display: flex; align-items: flex-start; gap: 12px; margin: 10px 0; }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: #343a40; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-text { font-size: 13px; color: #374151; line-height: 1.5; }
+.step-action { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; border: 1px solid #e8edf0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #343a40; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('child-errors')">Child Error States</button>
+  <button onclick="show('parent-errors')">Parent Error States</button>
+  <button onclick="show('teacher-owner')">Teacher/Owner States</button>
+  <button onclick="show('recovery')">Recovery Actions</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- CHILD ERROR STATES -->
+<div id="child-errors" class="tab-content active">
+  <div class="hint">Child error states — zero technical jargon. Friendly owl, encouraging tone, always a clear "Try Again" path. No blame, no error codes shown.</div>
+  <div class="gallery">
+    <div class="gallery-title">Child Error States</div>
+    <div class="gallery-sub">Child surface · Nunito 900 · Dark magic theme · NO technical jargon · Always show a safe path</div>
+    <div class="card-grid">
+
+      <div class="child-error-card">
+        <div class="error-illus">🦉</div>
+        <div class="child-error-heading">Oops! No Connection</div>
+        <div class="child-error-sub">Looks like the magic got unplugged! Check your internet and we'll be right back.</div>
+        <button class="cta-child-error">Try Again ✨</button>
+      </div>
+
+      <div class="child-error-card">
+        <div class="error-illus">🌩️</div>
+        <div class="child-error-heading">Something Went Wobbly</div>
+        <div class="child-error-sub">Our magic world had a little hiccup. It's not your fault — we're fixing it!</div>
+        <button class="cta-child-error">Try Again 🪄</button>
+      </div>
+
+      <div class="child-error-card">
+        <div class="error-illus">🗺️</div>
+        <div class="child-error-heading">Lost in the World?</div>
+        <div class="child-error-sub">We can't find this page! Don't worry — let's go back to your home base.</div>
+        <button class="cta-child-error">Go Home 🏠</button>
+      </div>
+
+      <div class="child-error-card">
+        <div class="error-illus">🔒</div>
+        <div class="child-error-heading">This Area is Locked</div>
+        <div class="child-error-sub">This part is for grown-ups. Ask a parent or teacher if you need help!</div>
+        <button class="cta-child-error">Back to My World</button>
+      </div>
+
+      <div class="child-error-card">
+        <div class="error-illus">💤</div>
+        <div class="child-error-heading">You Went Away!</div>
+        <div class="child-error-sub">Your session fell asleep. That's okay — just tap to start fresh!</div>
+        <button class="cta-child-error">Wake Up! 🌟</button>
+      </div>
+
+      <div class="child-error-card">
+        <div class="error-illus">🔧</div>
+        <div class="child-error-heading">We're Tidying Up</div>
+        <div class="child-error-sub">WonderQuest is getting even more magical! Come back in a little while.</div>
+        <button class="cta-child-error">I'll Come Back Later</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PARENT ERROR STATES -->
+<div id="parent-errors" class="tab-content">
+  <div class="hint">Parent error states — informative, calm. Shows enough technical context to understand, but no raw error codes. Always offers a retry or support path.</div>
+  <div class="gallery">
+    <div class="gallery-title">Parent Error States</div>
+    <div class="gallery-sub">Parent hub surface · Sora · Warm background · Informative, no accuracy %, no harsh technical language</div>
+    <div class="card-grid">
+
+      <div class="error-card">
+        <span class="error-tag tag-network">Network Error</span>
+        <div class="error-illus">📡</div>
+        <div class="error-heading">Connection Problem</div>
+        <div class="error-sub">We can't reach WonderQuest right now. Check your internet connection and try again.</div>
+        <button class="error-cta cta-retry">Try Again</button>
+      </div>
+
+      <div class="error-card">
+        <span class="error-tag tag-server">Server Error</span>
+        <div class="error-illus">⚙️</div>
+        <div class="error-heading">Something Went Wrong</div>
+        <div class="error-sub">Our servers hit a snag. This is on our end — your data is safe. Please try again in a moment.</div>
+        <button class="error-cta cta-retry">Try Again</button>
+      </div>
+
+      <div class="error-card">
+        <span class="error-tag tag-notfound">Not Found</span>
+        <div class="error-illus">🔍</div>
+        <div class="error-heading">Page Not Found</div>
+        <div class="error-sub">This page doesn't exist or may have moved. Return to your dashboard to continue.</div>
+        <button class="error-cta cta-home">Go to Dashboard</button>
+      </div>
+
+      <div class="error-card">
+        <span class="error-tag tag-perm">No Access</span>
+        <div class="error-illus">🚫</div>
+        <div class="error-heading">You Don't Have Access</div>
+        <div class="error-sub">This section is only available to certain account types. Contact support if you think this is a mistake.</div>
+        <button class="error-cta cta-support">Contact Support</button>
+      </div>
+
+      <div class="error-card">
+        <span class="error-tag tag-session">Session Expired</span>
+        <div class="error-illus">🔑</div>
+        <div class="error-heading">Session Expired</div>
+        <div class="error-sub">You've been inactive for a while, so we signed you out for security. Sign back in to continue.</div>
+        <button class="error-cta cta-signin">Sign Back In</button>
+      </div>
+
+      <div class="error-card">
+        <span class="error-tag tag-maint">Maintenance</span>
+        <div class="error-illus">🛠️</div>
+        <div class="error-heading">Scheduled Maintenance</div>
+        <div class="error-sub">WonderQuest is briefly offline for scheduled improvements. We'll be back shortly.</div>
+        <button class="error-cta cta-home">Check Status Page</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER / OWNER STATES -->
+<div id="teacher-owner" class="tab-content">
+  <div class="hint">Teacher and Owner error states — professional, precise. Owner gets dark theme with error codes; teacher gets lighter treatment, still no raw stack traces.</div>
+  <div class="gallery">
+    <div class="gallery-title">Teacher & Owner Error States</div>
+    <div class="gallery-sub">Teacher (light) and Owner (dark) surfaces · Technical precision where appropriate</div>
+
+    <div style="font-size:14px;font-weight:700;color:#2a5080;margin-bottom:12px">Teacher Surface</div>
+    <div class="card-grid" style="margin-bottom:32px">
+
+      <div class="error-card" style="border-color:#dbeafe">
+        <span class="error-tag tag-network">Network</span>
+        <div class="error-illus">📡</div>
+        <div class="error-heading">Connection Lost</div>
+        <div class="error-sub">Your session lost connection. Any unsaved roster changes may need to be re-entered.</div>
+        <button class="error-cta cta-retry">Reconnect</button>
+      </div>
+
+      <div class="error-card" style="border-color:#dbeafe">
+        <span class="error-tag tag-server">Server 500</span>
+        <div class="error-illus">⚠️</div>
+        <div class="error-heading">Report Unavailable</div>
+        <div class="error-sub">Class report failed to load. Your student data is safe. Try refreshing or wait 2 minutes.</div>
+        <button class="error-cta cta-retry">Refresh Report</button>
+      </div>
+
+      <div class="error-card" style="border-color:#dbeafe">
+        <span class="error-tag tag-session">Session Expired</span>
+        <div class="error-illus">⏱️</div>
+        <div class="error-heading">Session Timed Out</div>
+        <div class="error-sub">Teacher sessions expire after 8 hours of inactivity. Sign back in to continue.</div>
+        <button class="error-cta cta-signin">Sign In Again</button>
+      </div>
+
+    </div>
+
+    <div style="font-size:14px;font-weight:700;color:#ffd166;margin-bottom:12px;background:#0d1117;padding:12px 16px;border-radius:8px">Owner Console Surface</div>
+    <div class="card-grid" style="background:#0d1117;padding:20px;border-radius:16px">
+
+      <div class="owner-error-card">
+        <span class="error-tag" style="background:#2d1b1b;color:#f85149">HTTP 503</span>
+        <div class="error-illus">🔴</div>
+        <div class="owner-error-heading">Service Unavailable</div>
+        <div class="owner-error-sub">One or more backend services are not responding. Check the health dashboard for details.</div>
+        <div class="owner-error-code">ERR_SERVICE_UNAVAILABLE · 10:34:22 UTC</div>
+        <button style="background:#ffd166;color:#0d1117;border:none;border-radius:50px;padding:9px 20px;font-weight:700;font-size:13px;cursor:pointer;margin-top:6px">View Health Dashboard</button>
+      </div>
+
+      <div class="owner-error-card">
+        <span class="error-tag" style="background:#0e1f2d;color:#58a6ff">HTTP 504</span>
+        <div class="error-illus">⏳</div>
+        <div class="owner-error-heading">Gateway Timeout</div>
+        <div class="owner-error-sub">Report query exceeded 30s timeout. Try a narrower date range or smaller cohort filter.</div>
+        <div class="owner-error-code">TIMEOUT · query_id: a9f3d · 30.1s</div>
+        <button style="background:#ffd166;color:#0d1117;border:none;border-radius:50px;padding:9px 20px;font-weight:700;font-size:13px;cursor:pointer;margin-top:6px">Narrow Query</button>
+      </div>
+
+      <div class="owner-error-card">
+        <span class="error-tag" style="background:#2d2000;color:#f59e0b">HTTP 429</span>
+        <div class="error-illus">🚦</div>
+        <div class="owner-error-heading">Rate Limited</div>
+        <div class="owner-error-sub">Too many requests from this session. Rate limit resets in 47 seconds.</div>
+        <div class="owner-error-code">RATE_LIMIT · resets: 10:35:09 UTC</div>
+        <button style="background:#ffd166;color:#0d1117;border:none;border-radius:50px;padding:9px 20px;font-weight:700;font-size:13px;cursor:pointer;margin-top:6px">Wait & Retry</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- RECOVERY ACTIONS -->
+<div id="recovery" class="tab-content">
+  <div class="hint">Recovery action patterns — shows the decision tree for each error type. Defines which CTA appears, when to show support, when to auto-retry.</div>
+  <div class="gallery">
+    <div class="gallery-title">Recovery Action Patterns</div>
+    <div class="gallery-sub">Decision tree for error CTAs by type and audience</div>
+
+    <div class="recovery-panel">
+      <div class="recovery-title">🌐 Network Error Recovery</div>
+      <div class="recovery-sub">Applied to: all audiences when offline or connection fails</div>
+      <div class="recovery-step"><div class="step-num">1</div><div><div class="step-text">Auto-retry once after 3 seconds silently</div><div class="step-action">User sees "Reconnecting…" indicator</div></div></div>
+      <div class="recovery-step"><div class="step-num">2</div><div><div class="step-text">Show error state if auto-retry fails</div><div class="step-action">CTA: "Try Again" button</div></div></div>
+      <div class="recovery-step"><div class="step-num">3</div><div><div class="step-text">If 3 manual retries fail, show support path</div><div class="step-action">CTA: "Get Help" → support form</div></div></div>
+    </div>
+
+    <div class="recovery-panel">
+      <div class="recovery-title">💥 Server Error Recovery</div>
+      <div class="recovery-sub">Applied to: 500/502/503 responses from WQ API</div>
+      <div class="recovery-step"><div class="step-num">1</div><div><div class="step-text">Show friendly error, never raw status code to child/parent</div><div class="step-action">Child: "Something went wobbly" · Parent: "Something went wrong"</div></div></div>
+      <div class="recovery-step"><div class="step-num">2</div><div><div class="step-text">Teacher/Owner sees HTTP status code in subdued text</div><div class="step-action">Never stack trace, never database errors</div></div></div>
+      <div class="recovery-step"><div class="step-num">3</div><div><div class="step-text">Log error to monitoring automatically</div><div class="step-action">Sentry / DataDog event created</div></div></div>
+    </div>
+
+    <div class="recovery-panel">
+      <div class="recovery-title">🔑 Session Expired Recovery</div>
+      <div class="recovery-sub">Applied to: all audiences when auth token expires</div>
+      <div class="recovery-step"><div class="step-num">1</div><div><div class="step-text">Save current page state to local storage before redirecting</div><div class="step-action">User returns to same page after sign-in</div></div></div>
+      <div class="recovery-step"><div class="step-num">2</div><div><div class="step-text">Show session expired message, not auth error code</div><div class="step-action">CTA: "Sign Back In" → auth screen</div></div></div>
+      <div class="recovery-step"><div class="step-num">3</div><div><div class="step-text">Child: show parent hand-off message instead</div><div class="step-action">"Ask a grown-up to sign you back in"</div></div></div>
+    </div>
+
+    <div class="recovery-panel">
+      <div class="recovery-title">🚫 Permission Denied Recovery</div>
+      <div class="recovery-sub">Applied to: wrong role access or expired subscription</div>
+      <div class="recovery-step"><div class="step-num">1</div><div><div class="step-text">Explain what type of account is needed, not why access was denied</div><div class="step-action">"This is for teachers — you have a parent account"</div></div></div>
+      <div class="recovery-step"><div class="step-num">2</div><div><div class="step-text">Provide clear path back to the correct surface</div><div class="step-action">CTA: "Go to My Dashboard"</div></div></div>
+      <div class="recovery-step"><div class="step-num">3</div><div><div class="step-text">Never tell users they were blocked or flagged</div><div class="step-action">Neutral language only</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for global-error-state-gallery-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Error Types Covered (6)</div>
+    <div class="spec-row"><span class="spec-key">Network Error</span><span class="spec-val">Offline / connection lost</span></div>
+    <div class="spec-row"><span class="spec-key">Server Error</span><span class="spec-val">500/502/503 from API</span></div>
+    <div class="spec-row"><span class="spec-key">Not Found</span><span class="spec-val">404 — missing page or resource</span></div>
+    <div class="spec-row"><span class="spec-key">Permission Denied</span><span class="spec-val">403 — wrong role or expired</span></div>
+    <div class="spec-row"><span class="spec-key">Session Expired</span><span class="spec-val">Auth token timeout</span></div>
+    <div class="spec-row"><span class="spec-key">Maintenance</span><span class="spec-val">Scheduled or emergency downtime</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Language Rules by Audience</div>
+    <div class="spec-row"><span class="spec-key">Child</span><span class="spec-val">Zero jargon, friendly, no blame, always Try Again</span></div>
+    <div class="spec-row"><span class="spec-key">Parent</span><span class="spec-val">Plain English, no HTTP codes, always retry path</span></div>
+    <div class="spec-row"><span class="spec-key">Teacher</span><span class="spec-val">Informative, HTTP status okay, no stack traces</span></div>
+    <div class="spec-row"><span class="spec-key">Owner</span><span class="spec-val">Full error codes, timestamps, no stack traces</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Auto-Retry Rules</div>
+    <div class="spec-note">Network errors: auto-retry 1x after 3s<br>Server errors: show error immediately, no auto-retry<br>Session expiry: redirect to sign-in after 5s countdown<br>Rate limits: show countdown to reset time</div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

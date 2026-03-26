@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Session Resume Overlay v2 — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', 'Segoe UI', sans-serif; background: #f4f0ff; color: #e0d8f8; min-height: 100vh; }
+
+  /* ── Top-level tab nav ──────────────────────────────────────────────── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #0e0c1e; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1a1630; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; color: #776aaa; transition: background 0.2s, color 0.2s; }
+  .tab.active { background: #100b2e; color: #e0d8f8; }
+  .tab:hover:not(.active) { background: #201840; color: #c0b0f0; }
+
+  .panel { display: none; padding: 24px 24px 48px; background: #100b2e; min-height: 600px; }
+  .panel.active { display: block; }
+
+  /* ── Engineering hint box ───────────────────────────────────────────── */
+  .hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; font-size: 12px; color: #7a5e00; line-height: 1.7; font-family: 'Segoe UI', monospace; }
+  .hint strong { color: #b08000; display: block; margin-bottom: 4px; font-size: 13px; }
+  .hint code { background: #fff3c0; padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #6a4800; }
+
+  /* ── Phone frame ────────────────────────────────────────────────────── */
+  .canvas { display: flex; justify-content: center; align-items: flex-start; padding: 32px 16px 40px; }
+  .phone { width: 375px; min-height: 812px; background: #100b2e; border-radius: 40px; border: 8px solid #2a2050; box-shadow: 0 16px 56px rgba(0,0,0,0.7), 0 0 80px rgba(155,114,255,0.18), inset 0 0 0 1px rgba(155,114,255,0.12); overflow: hidden; flex-shrink: 0; font-family: 'Nunito', sans-serif; position: relative; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #665599; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-family: 'Segoe UI', sans-serif; }
+
+  /* ── Status bar ─────────────────────────────────────────────────────── */
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 22px 6px; font-size: 11px; font-weight: 800; color: #6657a0; background: #100b2e; position: relative; z-index: 5; }
+
+  /* ── Phone bottom tab bar ───────────────────────────────────────────── */
+  .phone-tab-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: rgba(16,11,46,0.96); backdrop-filter: blur(10px); border-top: 1px solid #2a2060; display: flex; align-items: center; justify-content: space-around; z-index: 20; border-radius: 0 0 32px 32px; }
+  .phone-tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 10px; border-radius: 10px; }
+  .phone-tab-item .ti { font-size: 20px; line-height: 1; }
+  .phone-tab-item .tl { font-size: 9px; font-weight: 800; color: #5548a0; text-transform: uppercase; letter-spacing: 0.04em; }
+  .phone-tab-item.active .tl { color: #9b72ff; }
+  .phone-tab-item.active .ti { filter: drop-shadow(0 0 6px rgba(155,114,255,0.8)); }
+
+  /* ── Shared animations ──────────────────────────────────────────────── */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); box-shadow: 0 6px 24px rgba(255,209,102,0.45); }
+    50% { transform: scale(1.04); box-shadow: 0 10px 36px rgba(255,209,102,0.72); }
+  }
+  @keyframes spin-bounce {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(15deg) scale(1.12); }
+    50% { transform: rotate(-10deg) scale(1.06); }
+    75% { transform: rotate(6deg) scale(1.1); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.6) translateY(16px); opacity: 0; }
+    80% { transform: scale(1.05) translateY(-2px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+  @keyframes comet {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    33% { transform: translateY(-8px) translateX(4px); }
+    66% { transform: translateY(-4px) translateX(-4px); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TAB 1 — Resume Overlay (Mid-Session Return)
+  ═══════════════════════════════════════════════════════════════════ */
+
+  /* Simulated blurred play surface behind overlay */
+  .play-surface {
+    position: relative;
+    width: 100%;
+    height: 812px;
+    background: linear-gradient(160deg, #0e1a3a 0%, #1a0e40 60%, #0d1520 100%);
+    overflow: hidden;
+  }
+  .play-surface-stars {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px),
+      radial-gradient(circle, rgba(155,114,255,0.3) 1.5px, transparent 1.5px);
+    background-size: 40px 40px, 80px 80px;
+    background-position: 0 0, 20px 20px;
+    opacity: 0.4;
+  }
+  /* Faint ghosted question cards peeking behind overlay */
+  .ghost-card {
+    position: absolute;
+    background: rgba(30,22,80,0.5);
+    border: 1px solid rgba(155,114,255,0.18);
+    border-radius: 16px;
+    filter: blur(3px);
+  }
+  .ghost-card-1 { width: 260px; height: 100px; top: 90px; left: 50%; transform: translateX(-50%); }
+  .ghost-card-2 { width: 200px; height: 60px; top: 210px; left: 50%; transform: translateX(-50%); }
+  .ghost-card-3 { width: 220px; height: 54px; top: 285px; left: 50%; transform: translateX(-50%); }
+  .ghost-card-4 { width: 220px; height: 54px; top: 352px; left: 50%; transform: translateX(-50%); }
+  .ghost-bar { position: absolute; bottom: 80px; left: 24px; right: 24px; height: 8px; background: rgba(155,114,255,0.12); border-radius: 8px; filter: blur(2px); }
+  .ghost-bar-fill { width: 55%; height: 100%; background: rgba(155,114,255,0.25); border-radius: 8px; }
+
+  /* Dark overlay layer */
+  .resume-overlay {
+    position: absolute; inset: 0;
+    background: rgba(16,11,46,0.92);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+
+  /* Resume card */
+  .resume-card {
+    width: 320px;
+    background: linear-gradient(160deg, #1e1650 0%, #14103a 100%);
+    border: 1.5px solid rgba(155,114,255,0.4);
+    border-radius: 28px;
+    padding: 28px 24px 24px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(155,114,255,0.15);
+    animation: popIn 0.4s ease;
+  }
+  .resume-world-emoji { font-size: 60px; display: block; margin-bottom: 10px; animation: float 3s ease-in-out infinite; line-height: 1; }
+  .resume-heading { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 12px; line-height: 1.2; }
+  .resume-position-chip { display: inline-block; background: rgba(155,114,255,0.18); border: 1px solid rgba(155,114,255,0.4); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 800; color: #c8b0ff; margin-bottom: 16px; }
+
+  /* Progress dots */
+  .progress-dots { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(155,114,255,0.25); border: 2px solid rgba(155,114,255,0.35); }
+  .dot.filled { background: #9b72ff; border-color: #9b72ff; box-shadow: 0 0 8px rgba(155,114,255,0.6); }
+
+  /* Rewards preview row */
+  .rewards-preview-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+  .reward-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.35); border-radius: 20px; padding: 6px 12px; font-size: 13px; font-weight: 800; color: #ffd166; }
+  .reward-chip.violet { background: rgba(155,114,255,0.12); border-color: rgba(155,114,255,0.35); color: #c8b0ff; }
+
+  /* Big CTA */
+  .resume-cta { width: 100%; background: linear-gradient(135deg, #ffd166, #f0b800); color: #1a1400; border: none; border-radius: 20px; padding: 16px 24px; font-size: 20px; font-weight: 900; font-family: 'Nunito', sans-serif; cursor: pointer; animation: breathe 2.2s ease-in-out infinite; margin-bottom: 14px; letter-spacing: 0.01em; }
+
+  /* Fresh start link (text only, not a button visually) */
+  .fresh-start-link { font-size: 13px; font-weight: 700; color: #7766aa; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; background: none; border: none; font-family: 'Nunito', sans-serif; transition: color 0.15s; }
+  .fresh-start-link:hover { color: #c8b0ff; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TAB 2 — Fresh Start (Optional)
+  ═══════════════════════════════════════════════════════════════════ */
+  .tab2-body { padding: 20px 16px 80px; min-height: 812px; background: #100b2e; }
+  .fresh-start-card { text-align: center; padding: 28px 20px 20px; }
+  .fresh-star-emoji { font-size: 64px; display: block; margin-bottom: 12px; animation: float 3.5s ease-in-out infinite; line-height: 1; }
+  .fresh-heading { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+  .fresh-sub { font-size: 14px; font-weight: 700; color: #b0a0e0; line-height: 1.5; margin-bottom: 24px; max-width: 260px; margin-left: auto; margin-right: auto; }
+
+  /* Option cards */
+  .option-card { border-radius: 20px; padding: 16px 18px; margin-bottom: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; text-align: left; display: flex; align-items: center; gap: 14px; }
+  .option-card:hover { transform: translateY(-2px); }
+  .option-card.resume-opt { background: linear-gradient(135deg, #1e1650, #281d6a); border: 2px solid #9b72ff; box-shadow: 0 4px 24px rgba(155,114,255,0.25); }
+  .option-card.restart-node { background: transparent; border: 2px solid #3a2f60; }
+  .option-icon { font-size: 36px; flex-shrink: 0; }
+  .option-content { flex: 1; }
+  .option-title { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+  .option-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mini-chip { display: inline-block; border-radius: 12px; padding: 3px 9px; font-size: 11px; font-weight: 800; }
+  .mini-chip.world { background: rgba(155,114,255,0.2); color: #c8b0ff; border: 1px solid rgba(155,114,255,0.3); }
+  .mini-chip.reward { background: rgba(255,209,102,0.15); color: #ffd166; border: 1px solid rgba(255,209,102,0.3); }
+  .mini-chip.neutral { background: rgba(255,255,255,0.07); color: #9988cc; border: 1px solid rgba(255,255,255,0.1); }
+  .option-sub { font-size: 12px; color: #7766aa; margin-top: 4px; font-weight: 700; }
+
+  /* Key message */
+  .key-message { background: rgba(255,209,102,0.1); border: 1.5px solid rgba(255,209,102,0.4); border-radius: 16px; padding: 14px 18px; margin-top: 8px; font-size: 15px; font-weight: 900; color: #ffd166; text-align: center; animation: shimmer 2.5s ease infinite; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TAB 3 — Session Complete Return
+  ═══════════════════════════════════════════════════════════════════ */
+  .tab3-body { padding: 0 0 80px; min-height: 812px; background: #100b2e; }
+  .complete-return-card { padding: 24px 20px 20px; text-align: center; }
+  .trophy-emoji { font-size: 72px; display: block; margin-bottom: 10px; animation: spin-bounce 3s ease-in-out infinite; line-height: 1; }
+  .complete-heading { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+  .complete-sub { font-size: 13px; color: #9988cc; margin-bottom: 18px; font-weight: 700; }
+
+  /* Reward summary chips */
+  .reward-summary { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .reward-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 16px; padding: 8px 14px; font-size: 14px; font-weight: 900; }
+  .reward-badge.stars { background: rgba(255,209,102,0.15); border: 1.5px solid rgba(255,209,102,0.4); color: #ffd166; }
+  .reward-badge.xp { background: rgba(88,232,193,0.12); border: 1.5px solid rgba(88,232,193,0.35); color: #58e8c1; }
+  .reward-badge.badge-earned { background: rgba(155,114,255,0.12); border: 1.5px solid rgba(155,114,255,0.35); color: #c8b0ff; }
+
+  /* Streak card */
+  .streak-card { margin: 0 16px 16px; background: linear-gradient(135deg, #2a1800, #1a1000); border: 1.5px solid rgba(255,209,102,0.4); border-radius: 20px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+  .streak-fire { font-size: 36px; animation: shimmer 1.8s ease infinite; }
+  .streak-info { flex: 1; }
+  .streak-title { font-size: 15px; font-weight: 900; color: #ffd166; }
+  .streak-sub { font-size: 12px; color: #aa8844; margin-top: 2px; font-weight: 700; }
+  .streak-count { text-align: center; }
+  .streak-num { font-size: 34px; font-weight: 900; color: #ffd166; line-height: 1; }
+  .streak-lbl { font-size: 9px; color: #aa8844; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 800; }
+
+  /* Next card */
+  .next-card { margin: 0 16px 16px; background: #1e1650; border: 1.5px solid rgba(155,114,255,0.35); border-radius: 20px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+  .next-world-emoji { font-size: 36px; flex-shrink: 0; animation: float 3s ease-in-out infinite; }
+  .next-info { flex: 1; }
+  .next-label { font-size: 10px; font-weight: 800; color: #7766aa; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+  .next-name { font-size: 15px; font-weight: 900; color: #fff; }
+  .next-cta-btn { background: #9b72ff; color: #fff; border: none; border-radius: 14px; padding: 10px 16px; font-size: 14px; font-weight: 900; font-family: 'Nunito', sans-serif; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+  .next-cta-btn:hover { background: #b490ff; }
+
+  .explore-link { display: block; text-align: center; font-size: 14px; font-weight: 800; color: #7766aa; cursor: pointer; padding: 8px; transition: color 0.15s; }
+  .explore-link:hover { color: #c8b0ff; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TAB 4 — Long-Absence Return
+  ═══════════════════════════════════════════════════════════════════ */
+  .tab4-body { padding: 0 0 80px; min-height: 812px; background: #100b2e; }
+  .return-card { padding: 28px 20px 20px; text-align: center; }
+  .comet-emoji { font-size: 68px; display: block; margin-bottom: 10px; animation: comet 4s ease-in-out infinite; line-height: 1; }
+  .return-heading { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+  .return-sub { font-size: 14px; color: #b0a0e0; margin-bottom: 22px; font-weight: 700; }
+
+  /* Saved progress card */
+  .saved-progress-card { margin: 0 16px 16px; background: linear-gradient(135deg, #1e1650, #181040); border: 1.5px solid rgba(155,114,255,0.3); border-radius: 20px; padding: 16px 18px; }
+  .saved-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .saved-world-emoji { font-size: 40px; flex-shrink: 0; }
+  .saved-info { flex: 1; }
+  .saved-world-name { font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 3px; }
+  .saved-node { font-size: 12px; color: #9988cc; font-weight: 700; }
+  .saved-stars { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3); border-radius: 12px; padding: 4px 10px; font-size: 13px; font-weight: 900; color: #ffd166; flex-shrink: 0; }
+  .saved-message { font-size: 12px; color: #9988cc; font-weight: 700; text-align: center; border-top: 1px solid rgba(155,114,255,0.15); padding-top: 10px; }
+
+  /* Continue CTA */
+  .continue-cta { display: block; width: calc(100% - 32px); margin: 0 16px 16px; background: linear-gradient(135deg, #ffd166, #f0b800); color: #1a1400; border: none; border-radius: 20px; padding: 18px 24px; font-size: 20px; font-weight: 900; font-family: 'Nunito', sans-serif; cursor: pointer; animation: breathe 2.5s ease-in-out infinite; letter-spacing: 0.01em; }
+
+  /* World selector chips */
+  .world-selector { margin: 0 16px; }
+  .world-selector-label { font-size: 10px; font-weight: 800; color: #6655a0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .world-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .world-chip { display: inline-flex; align-items: center; gap: 6px; background: #1e1650; border: 1.5px solid rgba(155,114,255,0.3); border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 800; color: #c8b0ff; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .world-chip:hover { border-color: #9b72ff; background: rgba(155,114,255,0.15); }
+  .world-chip.current { border-color: #9b72ff; background: rgba(155,114,255,0.15); }
+  .world-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: #9b72ff; flex-shrink: 0; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TAB 5 — Spec
+  ═══════════════════════════════════════════════════════════════════ */
+  .spec-section { margin-bottom: 24px; }
+  .spec-heading { font-size: 14px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'Segoe UI', monospace; }
+  .spec-table th { background: #1a1440; padding: 8px 12px; text-align: left; font-weight: 800; font-size: 11px; color: #7766aa; border-bottom: 2px solid #2e2460; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #1e1840; color: #c8b8f0; vertical-align: top; line-height: 1.5; }
+  .spec-table tr:hover td { background: rgba(155,114,255,0.05); }
+  .spec-table code { background: #1a1440; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #58e8c1; font-size: 11px; }
+  .no-guilt-list { list-style: none; }
+  .no-guilt-list li { padding: 6px 0; border-bottom: 1px solid #1e1840; font-size: 12px; color: #c8b8f0; font-family: 'Segoe UI', sans-serif; display: flex; gap: 8px; align-items: flex-start; }
+  .no-guilt-list li::before { content: "✗"; color: #ff6b6b; font-weight: 900; flex-shrink: 0; }
+  .token-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .token-swatch { border-radius: 10px; padding: 10px 14px; font-size: 12px; font-weight: 800; font-family: monospace; display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
+  .token-name { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+
+<!-- ── Top-level tab navigation ─────────────────────────────────────────── -->
+<div class="tabs">
+  <button class="tab active" onclick="show(1)">1 · Resume Overlay</button>
+  <button class="tab" onclick="show(2)">2 · Fresh Start</button>
+  <button class="tab" onclick="show(3)">3 · Session Complete</button>
+  <button class="tab" onclick="show(4)">4 · Long Absence</button>
+  <button class="tab" onclick="show(5)">5 · Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PANEL 1 — Resume Overlay (Mid-Session Return)
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="panel active" id="panel-1">
+  <div class="hint">
+    <strong>⚙ Engineering Hint — Tab 1: Resume Overlay (Mid-Session Return)</strong>
+    <strong>Trigger:</strong> <code>session_state === "in_progress"</code> when child re-enters app.<br>
+    <strong>Route:</strong> <code>GET /player/session-state</code> → returns <code>{ state, world, node, q_index, q_total, rewards_pending }</code><br>
+    <strong>On "Keep Going":</strong> <code>POST /session/resume</code> → resumes from current <code>q_index</code>.<br>
+    <strong>On "Start fresh instead":</strong> navigates to Tab 2 (Fresh Start overlay).<br>
+    <strong>Progress dots:</strong> purely visual — count of filled dots = <code>q_index</code>, total dots = <code>q_total</code>. No numeric text rendered.<br>
+    <strong>Rewards preview:</strong> pull from <code>rewards_pending</code> array — show star delta + streak status chip. Never show loss framing.
+  </div>
+
+  <div class="canvas">
+    <div>
+      <div class="phone-label">375 × 812 · mid-session return</div>
+      <div class="phone">
+
+        <!-- Simulated play surface (blurred behind overlay) -->
+        <div class="play-surface">
+          <div class="play-surface-stars"></div>
+          <div class="ghost-card ghost-card-1"></div>
+          <div class="ghost-card ghost-card-2"></div>
+          <div class="ghost-card ghost-card-3"></div>
+          <div class="ghost-card ghost-card-4"></div>
+          <div class="ghost-bar"><div class="ghost-bar-fill"></div></div>
+
+          <!-- Dark overlay with resume card -->
+          <div class="resume-overlay">
+            <div class="resume-card">
+              <span class="resume-world-emoji">🌊</span>
+              <div class="resume-heading">Welcome back! 🌟</div>
+              <div class="resume-position-chip">Ocean World · Node 4</div>
+
+              <!-- Progress dots: Q2 of 3 done (2 filled, 1 empty) — no text -->
+              <div class="progress-dots">
+                <div class="dot filled"></div>
+                <div class="dot filled"></div>
+                <div class="dot"></div>
+              </div>
+
+              <!-- Rewards preview: warm, forward-looking -->
+              <div class="rewards-preview-row">
+                <div class="reward-chip">⭐ +2 stars waiting!</div>
+                <div class="reward-chip violet">🔥 Streak alive!</div>
+              </div>
+
+              <!-- Big CTA — gold, breathe pulse -->
+              <button class="resume-cta">Keep Going! ▶</button>
+
+              <!-- Fresh start: text link only, zero shame framing -->
+              <button class="fresh-start-link" onclick="show(2)">Start fresh instead</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phone bottom tab bar -->
+        <div class="phone-tab-bar">
+          <div class="phone-tab-item active"><span class="ti">🏠</span><span class="tl">Home</span></div>
+          <div class="phone-tab-item"><span class="ti">🗺️</span><span class="tl">Map</span></div>
+          <div class="phone-tab-item"><span class="ti">⭐</span><span class="tl">Stars</span></div>
+          <div class="phone-tab-item"><span class="ti">🏆</span><span class="tl">Badges</span></div>
+          <div class="phone-tab-item"><span class="ti">👤</span><span class="tl">Me</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PANEL 2 — Fresh Start (Optional)
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-2">
+  <div class="hint">
+    <strong>⚙ Engineering Hint — Tab 2: Fresh Start (Optional)</strong>
+    <strong>Trigger:</strong> Child taps "Start fresh instead" from the Tab 1 overlay.<br>
+    <strong>Resume option:</strong> <code>POST /session/resume</code> — continues from saved <code>q_index</code>. No star change.<br>
+    <strong>Restart option:</strong> <code>POST /session/restart</code> with body <code>{ node_id, preserve_stars: true }</code> — resets to Q1 but ALL earned stars are preserved.<br>
+    <strong>Key rule:</strong> Both choices result in positive outcomes. Neither option loses stars or XP.<br>
+    <strong>Never show:</strong> "You'll lose your progress", "Are you sure?", or any guilt/warning language.
+  </div>
+
+  <div class="canvas">
+    <div>
+      <div class="phone-label">375 × 812 · fresh start choice</div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>🔋 ▶</span></div>
+        <div class="tab2-body">
+
+          <div class="fresh-start-card">
+            <span class="fresh-star-emoji">😴</span>
+            <div class="fresh-heading">No worries! 💫</div>
+            <div class="fresh-sub">Your stars are saved! Pick up where you want.</div>
+          </div>
+
+          <!-- Option 1: Resume (primary — violet border) -->
+          <div class="option-card resume-opt" style="margin: 0 16px 12px;">
+            <span class="option-icon">🌊</span>
+            <div class="option-content">
+              <div class="option-title">Resume Node 4</div>
+              <div class="option-chips">
+                <span class="mini-chip world">Ocean World</span>
+                <span class="mini-chip reward">⭐ +2 waiting</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 2: Restart node (secondary — outline) -->
+          <div class="option-card restart-node" style="margin: 0 16px 16px;">
+            <span class="option-icon">🔄</span>
+            <div class="option-content">
+              <div class="option-title">Restart Node 4</div>
+              <div class="option-sub">Start from the beginning</div>
+              <div class="option-chips" style="margin-top: 6px;">
+                <span class="mini-chip neutral">Stars stay ✨</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Key message: prominent gold -->
+          <div style="margin: 0 16px;">
+            <div class="key-message">All your stars stay no matter what! ⭐</div>
+          </div>
+
+        </div>
+
+        <div class="phone-tab-bar">
+          <div class="phone-tab-item active"><span class="ti">🏠</span><span class="tl">Home</span></div>
+          <div class="phone-tab-item"><span class="ti">🗺️</span><span class="tl">Map</span></div>
+          <div class="phone-tab-item"><span class="ti">⭐</span><span class="tl">Stars</span></div>
+          <div class="phone-tab-item"><span class="ti">🏆</span><span class="tl">Badges</span></div>
+          <div class="phone-tab-item"><span class="ti">👤</span><span class="tl">Me</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PANEL 3 — Session Complete Return
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-3">
+  <div class="hint">
+    <strong>⚙ Engineering Hint — Tab 3: Session Complete Return</strong>
+    <strong>Trigger:</strong> <code>session_state === "complete"</code> when child re-enters the app hub.<br>
+    <strong>Route:</strong> <code>GET /player/session-state</code> → <code>{ state: "complete", last_session: { stars, xp, badge? }, streak, next_node }</code><br>
+    <strong>Reward summary:</strong> pull from <code>last_session</code> — show stars earned, XP earned, badge (if <code>badge</code> key present).<br>
+    <strong>Next node CTA:</strong> pulls <code>next_node { world_emoji, node_name, node_id }</code> — triggers <code>POST /session/resume</code> for next node.<br>
+    <strong>Explore link:</strong> navigates to World Picker screen — pure navigation, no API call needed.
+  </div>
+
+  <div class="canvas">
+    <div>
+      <div class="phone-label">375 × 812 · session complete return</div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>🔋 ▶</span></div>
+        <div class="tab3-body">
+
+          <!-- Celebration hero -->
+          <div class="complete-return-card">
+            <span class="trophy-emoji">🏆</span>
+            <div class="complete-heading">Session complete! 🎉</div>
+            <div class="complete-sub">Last session · Ocean World · Node 4</div>
+            <!-- Reward summary chips -->
+            <div class="reward-summary">
+              <div class="reward-badge stars">⭐ +12 stars</div>
+              <div class="reward-badge xp">✨ +80 XP</div>
+              <div class="reward-badge badge-earned">🎖️ Wave Rider</div>
+            </div>
+          </div>
+
+          <!-- Streak card -->
+          <div class="streak-card">
+            <span class="streak-fire">🔥</span>
+            <div class="streak-info">
+              <div class="streak-title">You're on a roll! 🔥</div>
+              <div class="streak-sub">Days in a row</div>
+            </div>
+            <div class="streak-count">
+              <div class="streak-num">7</div>
+              <div class="streak-lbl">Streak</div>
+            </div>
+          </div>
+
+          <!-- Next node card -->
+          <div class="next-card">
+            <span class="next-world-emoji">🌋</span>
+            <div class="next-info">
+              <div class="next-label">Up next</div>
+              <div class="next-name">Volcano World · Node 5</div>
+            </div>
+            <button class="next-cta-btn">Play next! →</button>
+          </div>
+
+          <!-- Secondary explore link -->
+          <span class="explore-link">Explore more worlds 🗺️</span>
+
+        </div>
+
+        <div class="phone-tab-bar">
+          <div class="phone-tab-item active"><span class="ti">🏠</span><span class="tl">Home</span></div>
+          <div class="phone-tab-item"><span class="ti">🗺️</span><span class="tl">Map</span></div>
+          <div class="phone-tab-item"><span class="ti">⭐</span><span class="tl">Stars</span></div>
+          <div class="phone-tab-item"><span class="ti">🏆</span><span class="tl">Badges</span></div>
+          <div class="phone-tab-item"><span class="ti">👤</span><span class="tl">Me</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PANEL 4 — Long-Absence Return (Hours/Days, Not Streak Gap)
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-4">
+  <div class="hint">
+    <strong>⚙ Engineering Hint — Tab 4: Long-Absence Return</strong>
+    <strong>Trigger:</strong> <code>hours_since_last_session &gt; N</code> (configurable threshold, e.g. N=4). Not a streak break — just normal time passage.<br>
+    <strong>Route:</strong> <code>GET /player/session-state</code> → <code>{ state, world, node, q_index, stars_total, recently_visited_worlds[] }</code><br>
+    <strong>"Jump back in" CTA:</strong> <code>POST /session/resume</code> — continues saved world + node + <code>q_index</code>.<br>
+    <strong>World chips:</strong> render <code>recently_visited_worlds[0..2]</code> — tapping a chip navigates to that world's node map (pure navigation, no API call).<br>
+    <strong>Zero-pressure framing:</strong> never mention time away. Everything is forward-looking and warm.
+  </div>
+
+  <div class="canvas">
+    <div>
+      <div class="phone-label">375 × 812 · long-absence return</div>
+      <div class="phone">
+        <div class="status-bar"><span>9:41</span><span>🔋 ▶</span></div>
+        <div class="tab4-body">
+
+          <!-- Hero -->
+          <div class="return-card">
+            <span class="comet-emoji">🌠</span>
+            <div class="return-heading">Your adventure is waiting! 🌟</div>
+            <div class="return-sub">Ready when you are ✨</div>
+          </div>
+
+          <!-- Saved progress card -->
+          <div class="saved-progress-card">
+            <div class="saved-row">
+              <span class="saved-world-emoji">🌊</span>
+              <div class="saved-info">
+                <div class="saved-world-name">Ocean World</div>
+                <div class="saved-node">Node 4 · Question 2</div>
+              </div>
+              <div class="saved-stars">⭐ 142</div>
+            </div>
+            <div class="saved-message">Everything's exactly where you left it ✨</div>
+          </div>
+
+          <!-- Continue CTA: gold, breathe pulse -->
+          <button class="continue-cta">Jump back in! 🚀</button>
+
+          <!-- Quick world selector: 3 chips (current + recently visited) -->
+          <div class="world-selector">
+            <div class="world-selector-label">Your worlds</div>
+            <div class="world-chips">
+              <div class="world-chip current"><div class="chip-dot"></div>🌊 Ocean World</div>
+              <div class="world-chip">🌋 Volcano World</div>
+              <div class="world-chip">🌿 Jungle World</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="phone-tab-bar">
+          <div class="phone-tab-item active"><span class="ti">🏠</span><span class="tl">Home</span></div>
+          <div class="phone-tab-item"><span class="ti">🗺️</span><span class="tl">Map</span></div>
+          <div class="phone-tab-item"><span class="ti">⭐</span><span class="tl">Stars</span></div>
+          <div class="phone-tab-item"><span class="ti">🏆</span><span class="tl">Badges</span></div>
+          <div class="phone-tab-item"><span class="ti">👤</span><span class="tl">Me</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PANEL 5 — Spec
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="panel" id="panel-5">
+  <div class="hint">
+    <strong>⚙ Engineering Hint — Tab 5: Full Spec Reference</strong>
+    Routes, routing decision logic, no-guilt language rules, reward preservation guarantees, fresh-start behavior, and design tokens for the entire session resume overlay system.
+  </div>
+
+  <!-- Routes -->
+  <div class="spec-section">
+    <div class="spec-heading">API Routes</div>
+    <table class="spec-table">
+      <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+      <tr>
+        <td><code>GET</code></td>
+        <td><code>/player/session-state</code></td>
+        <td>Returns current session state, world, node, question index, rewards pending, streak data, recently visited worlds</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/session/resume</code></td>
+        <td>Continues session from saved <code>q_index</code>. No star change. Used for mid-session resume and next-node start.</td>
+      </tr>
+      <tr>
+        <td><code>POST</code></td>
+        <td><code>/session/restart</code></td>
+        <td>Resets node to Q1. Body: <code>{ node_id, preserve_stars: true }</code>. Stars from all prior attempts are always kept.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Routing logic -->
+  <div class="spec-section">
+    <div class="spec-heading">Resume Routing Logic</div>
+    <table class="spec-table">
+      <tr><th>Condition</th><th>Show</th></tr>
+      <tr><td><code>session_state === "in_progress"</code></td><td>Tab 1 — Resume Overlay (mid-session)</td></tr>
+      <tr><td><code>session_state === "complete"</code></td><td>Tab 3 — Session Complete Return</td></tr>
+      <tr><td><code>hours_since_last_session &gt; N</code> (configurable)</td><td>Tab 4 — Long-Absence Return</td></tr>
+      <tr><td>Child taps "Start fresh instead" (Tab 1)</td><td>Tab 2 — Fresh Start overlay</td></tr>
+    </table>
+  </div>
+
+  <!-- No-guilt rules -->
+  <div class="spec-section">
+    <div class="spec-heading">No-Guilt Rules — Banned Language</div>
+    <ul class="no-guilt-list">
+      <li>"you left" — never reference the child's departure</li>
+      <li>"you abandoned" — implies negative intent, never use</li>
+      <li>"you missed" — implies failure, never use</li>
+      <li>"you failed to complete" — never frame incompletion as failure</li>
+      <li>Timers, countdowns, or urgency language — zero pressure allowed</li>
+      <li>"you'll lose" / "you lost" — stars are always safe, never threaten loss</li>
+    </ul>
+  </div>
+
+  <!-- Rewards preservation -->
+  <div class="spec-section">
+    <div class="spec-heading">Rewards Preservation Rules</div>
+    <table class="spec-table">
+      <tr><th>Scenario</th><th>Stars / XP Outcome</th></tr>
+      <tr><td>Child exits mid-session (e.g. Q2 of 3)</td><td>All stars from completed questions banked immediately. Q3 stars remain pending until played.</td></tr>
+      <tr><td>Child resumes mid-session</td><td>Continues from saved <code>q_index</code>. Previously-earned stars already in account balance.</td></tr>
+      <tr><td>Child restarts node (Tab 2 option)</td><td><code>preserve_stars: true</code> — all stars from previous attempt are kept. No penalty of any kind.</td></tr>
+      <tr><td>Child switches worlds (Tab 4 chip)</td><td>Previous world session state preserved. Can return to saved position at any time.</td></tr>
+    </table>
+  </div>
+
+  <!-- Fresh start rule -->
+  <div class="spec-section">
+    <div class="spec-heading">Fresh Start Rule</div>
+    <table class="spec-table">
+      <tr><th>Action</th><th>Behavior</th></tr>
+      <tr><td>Restart a node</td><td>Session resets to Q1. Stars earned from any prior play of this node remain in the player's balance. No deduction.</td></tr>
+      <tr><td>Resume a node</td><td>Picks up exactly at last <code>q_index</code>. Pending reward chips shown.</td></tr>
+    </table>
+  </div>
+
+  <!-- Design tokens -->
+  <div class="spec-section">
+    <div class="spec-heading">Design Tokens</div>
+    <div class="token-grid" style="margin-bottom: 14px;">
+      <div class="token-swatch" style="background:#100b2e; color:#fff;">
+        <span class="token-name" style="color:rgba(255,255,255,0.4);">bg</span>#100b2e
+      </div>
+      <div class="token-swatch" style="background:#9b72ff; color:#fff;">
+        <span class="token-name" style="color:rgba(255,255,255,0.5);">violet</span>#9b72ff
+      </div>
+      <div class="token-swatch" style="background:#ffd166; color:#1a1400;">
+        <span class="token-name">gold</span>#ffd166
+      </div>
+      <div class="token-swatch" style="background:#58e8c1; color:#0a2a1a;">
+        <span class="token-name">mint</span>#58e8c1
+      </div>
+      <div class="token-swatch" style="background:#1e1650; color:#c8b0ff;">
+        <span class="token-name" style="color:rgba(200,176,255,0.4);">card-bg</span>#1e1650
+      </div>
+    </div>
+    <table class="spec-table">
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td><code>font-family</code></td><td>Nunito 900</td><td>All headings, CTAs, chips, emoji labels</td></tr>
+      <tr><td><code>phone-width</code></td><td>375px</td><td>Phone frame width</td></tr>
+      <tr><td><code>phone-min-height</code></td><td>812px</td><td>iPhone X viewport height reference</td></tr>
+      <tr><td><code>phone-border-radius</code></td><td>40px</td><td>Phone frame corners</td></tr>
+      <tr><td><code>card-border-radius</code></td><td>20–28px</td><td>Cards, resume card, option cards</td></tr>
+      <tr><td><code>chip-border-radius</code></td><td>16–20px</td><td>Position chips, reward chips, world chips</td></tr>
+      <tr><td><code>overlay-bg</code></td><td>rgba(16,11,46,0.92)</td><td>Tab 1 dark overlay on play surface</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+  function show(n) {
+    document.querySelectorAll('.tab').forEach(function(t, i) {
+      t.classList.toggle('active', i + 1 === n);
+    });
+    document.querySelectorAll('.panel').forEach(function(p, i) {
+      p.classList.toggle('active', i + 1 === n);
+    });
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Resume Session Modal — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 900px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 900px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* Backdrop */
+  .backdrop {
+    background: rgba(10, 8, 32, 0.85);
+    border-radius: 16px;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 320px;
+    justify-content: center;
+  }
+
+  /* Modal */
+  .modal {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+    animation: modal-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes modal-enter {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Modal header */
+  .modal-header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .modal-avatar {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #1e1470, #3b28cc);
+    border-radius: 14px;
+    border: 2px solid #9b72ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+  .modal-heading { flex: 1; }
+  .modal-tag {
+    display: inline-block;
+    background: #1e1470;
+    border: 1px solid #9b72ff;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #c4b0ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+  .modal-title { font-size: 20px; font-weight: 900; color: #e8e0ff; line-height: 1.2; }
+  .modal-close {
+    background: transparent;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { border-color: #9b72ff; color: #e8e0ff; }
+
+  /* Progress section */
+  .modal-progress {
+    padding: 16px 20px;
+    background: #0e0c2a;
+    margin: 16px 0 0;
+  }
+  .mp-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .mp-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .mp-bar {
+    flex: 1;
+    height: 8px;
+    background: #1a1540;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .mp-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #9b72ff, #58e8c1);
+  }
+  .mp-pct { font-size: 12px; font-weight: 700; color: #c4b0ff; flex-shrink: 0; }
+
+  .mp-node-info {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .mp-info-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #9b8ec4;
+  }
+  .mp-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .mp-dot.violet { background: #9b72ff; }
+  .mp-dot.green { background: #50e890; }
+
+  /* Last session strip */
+  .last-session {
+    padding: 12px 20px;
+    background: #1a1540;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ls-icon { font-size: 18px; }
+  .ls-text { flex: 1; font-size: 12px; color: #9b8ec4; }
+  .ls-text strong { color: #c4b0ff; }
+  .ls-chip {
+    background: #1e1470;
+    border: 1px solid #9b72ff;
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b0ff;
+  }
+
+  /* Star safe row */
+  .modal-star-safe {
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a2a15;
+    border: 1.5px solid #50e890;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #50e890;
+    margin-top: 14px;
+  }
+
+  /* Actions */
+  .modal-actions {
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ma-btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 13px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .ma-btn:hover { transform: scale(1.01); }
+  .ma-btn.primary {
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    color: #fff;
+  }
+  .ma-btn.secondary {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    color: #9b8ec4;
+  }
+  .ma-btn.secondary:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .ma-btn.danger {
+    background: transparent;
+    border: 2px solid #ff7b6b44;
+    color: #ff7b6b;
+    font-size: 13px;
+    padding: 9px;
+  }
+
+  /* Quest preview chip */
+  .quest-preview {
+    margin: 0 20px 0;
+    background: #1e1470;
+    border: 2px solid #9b72ff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .qp-icon { font-size: 22px; }
+  .qp-info { flex: 1; }
+  .qp-name { font-size: 13px; font-weight: 900; color: #e8e0ff; margin-bottom: 2px; }
+  .qp-meta { font-size: 11px; color: #9b8ec4; }
+  .qp-badge {
+    background: #2d1f80;
+    border: 1px solid #9b72ff;
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b0ff;
+  }
+
+  /* ── TIMER state special elements ── */
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    padding: 12px 20px 0;
+  }
+  .pd {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2a2060;
+  }
+  .pd.done { background: #50e890; }
+  .pd.active { background: #9b72ff; animation: pd-pulse 1.5s ease-in-out infinite; }
+  @keyframes pd-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Spec */
+  .spec-table {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 20px;
+    font-size: 13px;
+    line-height: 2;
+  }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 8px; margin-top: 16px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+
+  /* Mobile preview note */
+  .both-views {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+  }
+  .view-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* Mobile modal version */
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .phone-frame {
+    width: 360px;
+    background: #100b2e;
+    border-radius: 36px;
+    border: 2px solid #2a2060;
+    box-shadow: inset 0 0 0 2px #9b72ff22;
+    overflow: hidden;
+    padding-bottom: 20px;
+  }
+  .phone-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 18px 4px;
+    font-size: 10px;
+    color: #9b8ec4;
+    font-weight: 700;
+  }
+  .phone-modal {
+    margin: 12px 14px;
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-resume-session-modal-v2.html</strong><br>
+  States: <strong>Resume (same quest)</strong> / <strong>Resume (new quest)</strong> / <strong>Mid-Quest (progress dots)</strong> / <strong>Spec</strong><br>
+  Modal overlay pattern. Desktop: centered 440px card on backdrop. Mobile column also shown for reference.<br>
+  Dismiss: ✕ top-right. Primary CTA = Resume. Secondary = Start Fresh (but stars kept). Star-safe badge inside modal.<br>
+  Route: shown after session timeout on <code>/child/play</code>. Also shown on app reopen if session was interrupted.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('resume-same')">Resume (Same Quest)</button>
+  <button class="tab-btn" onclick="showTab('resume-new')">Resume (New Quest)</button>
+  <button class="tab-btn" onclick="showTab('midquest')">Mid-Quest (Interrupted)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: RESUME SAME QUEST ── -->
+<div class="screen active" id="tab-resume-same">
+  <div class="both-views">
+    <!-- Desktop -->
+    <div>
+      <div class="view-label">Desktop Modal</div>
+      <div class="backdrop">
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-avatar">🦁</div>
+            <div class="modal-heading">
+              <div class="modal-tag">▶ Resume</div>
+              <div class="modal-title">Pick up where you left off?</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+
+          <div class="modal-progress">
+            <div class="mp-label">Cosmic Castle · Node 7</div>
+            <div class="mp-bar-wrap">
+              <div class="mp-bar"><div class="mp-fill" style="width:58%"></div></div>
+              <div class="mp-pct">58%</div>
+            </div>
+            <div class="mp-node-info">
+              <div class="mp-info-item"><div class="mp-dot violet"></div>Current node: Aim High</div>
+              <div class="mp-info-item"><div class="mp-dot green"></div>6 nodes done</div>
+            </div>
+          </div>
+
+          <div class="last-session">
+            <div class="ls-icon">⏰</div>
+            <div class="ls-text">Last played <strong>2 hours ago</strong> — Story Builder quest</div>
+            <div class="ls-chip">Q2 of 3</div>
+          </div>
+
+          <div class="quest-preview">
+            <div class="qp-icon">📚</div>
+            <div class="qp-info">
+              <div class="qp-name">Story Builder</div>
+              <div class="qp-meta">Aim High · 8 questions · Question 4</div>
+            </div>
+            <div class="qp-badge">Resume</div>
+          </div>
+
+          <div class="modal-star-safe">⭐ Your stars are safe — exactly where you left them!</div>
+
+          <div class="modal-actions">
+            <button class="ma-btn primary">▶ Resume Story Builder</button>
+            <button class="ma-btn secondary">🏠 Go to Home Instead</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile preview -->
+    <div class="phone-wrap">
+      <div class="view-label" style="text-align:center">Mobile Modal</div>
+      <div class="phone-frame">
+        <div class="phone-status"><span>9:41</span><span>🔋</span></div>
+        <div style="padding:8px 0 0;background:rgba(10,8,32,0.7)">
+          <div class="phone-modal">
+            <div style="padding:14px 14px 0;display:flex;align-items:center;gap:10px;">
+              <div style="width:38px;height:38px;background:linear-gradient(135deg,#1e1470,#3b28cc);border-radius:10px;border:2px solid #9b72ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🦁</div>
+              <div style="flex:1">
+                <div style="font-size:9px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">▶ Resume</div>
+                <div style="font-size:14px;font-weight:900;color:#e8e0ff;line-height:1.2">Pick up where you left off?</div>
+              </div>
+              <button style="background:transparent;border:1.5px solid #2a2060;border-radius:6px;color:#9b8ec4;width:26px;height:26px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center">✕</button>
+            </div>
+            <div style="padding:10px 14px;background:#0e0c2a;margin:10px 0 0">
+              <div style="font-size:9px;font-weight:700;color:#9b8ec4;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Cosmic Castle · Node 7</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <div style="flex:1;height:6px;background:#1a1540;border-radius:3px;overflow:hidden"><div style="width:58%;height:100%;background:linear-gradient(90deg,#9b72ff,#58e8c1)"></div></div>
+                <span style="font-size:11px;font-weight:700;color:#c4b0ff">58%</span>
+              </div>
+              <div style="font-size:10px;color:#9b8ec4">Current: Aim High · 6 nodes done</div>
+            </div>
+            <div style="padding:8px 14px;background:#1a1540;display:flex;align-items:center;gap:8px">
+              <span style="font-size:14px">📚</span>
+              <div style="flex:1">
+                <div style="font-size:11px;font-weight:900;color:#e8e0ff">Story Builder</div>
+                <div style="font-size:9px;color:#9b8ec4">Q4 of 8 · 2 hours ago</div>
+              </div>
+              <span style="font-size:9px;font-weight:700;background:#2d1f80;border:1px solid #9b72ff;border-radius:6px;padding:2px 6px;color:#c4b0ff">Q2 of 3</span>
+            </div>
+            <div style="padding:0 14px;margin-top:8px">
+              <div style="background:#1a2a15;border:1.5px solid #50e890;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;color:#50e890">⭐ Your stars are safe!</div>
+            </div>
+            <div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px">
+              <button style="width:100%;background:linear-gradient(135deg,#9b72ff,#7c4dff);border:none;border-radius:10px;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;padding:11px;cursor:pointer">▶ Resume Story Builder</button>
+              <button style="width:100%;background:transparent;border:1.5px solid #2a2060;border-radius:10px;color:#9b8ec4;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;padding:9px;cursor:pointer">🏠 Go to Home</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: RESUME NEW QUEST ── -->
+<div class="screen" id="tab-resume-new">
+  <div class="backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-avatar">🦁</div>
+        <div class="modal-heading">
+          <div class="modal-tag">🎉 New Quest Unlocked!</div>
+          <div class="modal-title">Ready for your next adventure?</div>
+        </div>
+        <button class="modal-close">✕</button>
+      </div>
+
+      <div class="modal-progress">
+        <div class="mp-label">Cosmic Castle · Node 8 Unlocked</div>
+        <div class="mp-bar-wrap">
+          <div class="mp-bar"><div class="mp-fill" style="width:67%"></div></div>
+          <div class="mp-pct">67%</div>
+        </div>
+        <div class="mp-node-info">
+          <div class="mp-info-item"><div class="mp-dot green"></div>7 nodes done</div>
+          <div class="mp-info-item" style="color:#50e890;font-size:12px">✓ Aim High completed last time!</div>
+        </div>
+      </div>
+
+      <div class="last-session">
+        <div class="ls-icon">🌟</div>
+        <div class="ls-text">You earned <strong>3 stars</strong> on Aim High last session</div>
+        <div class="ls-chip">⭐⭐⭐</div>
+      </div>
+
+      <div class="quest-preview" style="border-color:#50e890;background:#1a3a20;">
+        <div class="qp-icon">🌊</div>
+        <div class="qp-info">
+          <div class="qp-name">River Rush</div>
+          <div class="qp-meta">Node 8 · 3 quests · Brand new node!</div>
+        </div>
+        <div class="qp-badge" style="background:#1a3a20;border-color:#50e890;color:#50e890">🆕 New</div>
+      </div>
+
+      <div class="modal-star-safe">⭐ Your 21 stars from last time are all here!</div>
+
+      <div class="modal-actions">
+        <button class="ma-btn primary">🌊 Start River Rush!</button>
+        <button class="ma-btn secondary">🗺️ View Journey Map</button>
+        <button class="ma-btn danger">🏠 Maybe later</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: MID-QUEST INTERRUPTED ── -->
+<div class="screen" id="tab-midquest">
+  <div class="backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-avatar" style="font-size:24px">😮</div>
+        <div class="modal-heading">
+          <div class="modal-tag" style="background:#1a1000;border-color:#ffd166;color:#ffd166">⚠ Interrupted</div>
+          <div class="modal-title">You were mid-quest!</div>
+        </div>
+        <button class="modal-close">✕</button>
+      </div>
+
+      <!-- Progress dots (mid-quest position) -->
+      <div class="progress-dots">
+        <div class="pd done"></div>
+        <div class="pd done"></div>
+        <div class="pd done"></div>
+        <div class="pd active"></div>
+        <div class="pd"></div>
+        <div class="pd"></div>
+        <div class="pd"></div>
+        <div class="pd"></div>
+      </div>
+
+      <div class="modal-progress" style="margin-top:10px">
+        <div class="mp-label">Story Builder · Question 4 of 8</div>
+        <div class="mp-bar-wrap">
+          <div class="mp-bar"><div class="mp-fill" style="width:37.5%"></div></div>
+          <div class="mp-pct">Q4/8</div>
+        </div>
+        <div class="mp-node-info">
+          <div class="mp-info-item"><div class="mp-dot green"></div>3 questions answered</div>
+          <div class="mp-info-item"><div class="mp-dot violet"></div>Question 4 waiting</div>
+        </div>
+      </div>
+
+      <div class="last-session">
+        <div class="ls-icon">💾</div>
+        <div class="ls-text">Session saved automatically — <strong>no progress lost!</strong></div>
+        <div class="ls-chip" style="background:#1a2a15;border-color:#50e890;color:#50e890">Saved ✓</div>
+      </div>
+
+      <div class="quest-preview">
+        <div class="qp-icon">📚</div>
+        <div class="qp-info">
+          <div class="qp-name">Story Builder</div>
+          <div class="qp-meta">Resume at question 4 · About 3 min left</div>
+        </div>
+        <div class="qp-badge">Continue</div>
+      </div>
+
+      <div class="modal-star-safe">⭐ Stars from your 3 answered questions are saved!</div>
+
+      <div class="modal-actions">
+        <button class="ma-btn primary">▶ Continue from Question 4</button>
+        <button class="ma-btn secondary">🔄 Restart Quest (keep stars)</button>
+        <button class="ma-btn danger">🏠 Leave for now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-resume-session-modal-v2.html</div></div>
+    <div class="spec-row"><div class="spec-k">Route trigger</div><div class="spec-v">App reopen after interrupted session · session timeout on /child/play</div></div>
+    <div class="spec-row"><div class="spec-k">States</div><div class="spec-v">Resume Same Quest · Resume New Quest · Mid-Quest Interrupted</div></div>
+    <div class="spec-row"><div class="spec-k">Entry animation</div><div class="spec-v">modal-enter keyframe: scale 0.92→1 + translateY 12px→0, 0.3s cubic-bezier spring</div></div>
+
+    <h3>Modal Structure</h3>
+    <div class="spec-row"><div class="spec-k">Header</div><div class="spec-v">Avatar (52px) + tag chip + title + ✕ dismiss</div></div>
+    <div class="spec-row"><div class="spec-k">Progress section</div><div class="spec-v">World/node label, progress bar, node info dots</div></div>
+    <div class="spec-row"><div class="spec-k">Last session strip</div><div class="spec-v">Time ago + session chip · bg #1a1540</div></div>
+    <div class="spec-row"><div class="spec-k">Quest preview</div><div class="spec-v">Icon + quest name + meta + status badge</div></div>
+    <div class="spec-row"><div class="spec-k">Star-safe badge</div><div class="spec-v">Always shown · green border · custom message per state</div></div>
+    <div class="spec-row"><div class="spec-k">Actions</div><div class="spec-v">Primary (violet) → resume CTA · Secondary → home/map · Ghost danger → leave</div></div>
+
+    <h3>Star-Safety Rules</h3>
+    <div class="spec-row"><div class="spec-k">Mid-quest interrupt</div><div class="spec-v">"Stars from your X answered questions are saved!" — partial stars kept</div></div>
+    <div class="spec-row"><div class="spec-k">New quest state</div><div class="spec-v">Shows total stars from last session explicitly ("Your 21 stars are all here!")</div></div>
+    <div class="spec-row"><div class="spec-k">Restart action</div><div class="spec-v">Label must say "keep stars" — stars never at risk from restart</div></div>
+
+    <h3>Mid-Quest Progress Dots</h3>
+    <div class="spec-row"><div class="spec-k">Style</div><div class="spec-v">Horizontal row of 8 dots · done=green / active=violet pulse / pending=dim</div></div>
+    <div class="spec-row"><div class="spec-k">Animation</div><div class="spec-v">pd-pulse: opacity 1→0.4 loop on active dot</div></div>
+
+    <h3>Layout</h3>
+    <div class="spec-row"><div class="spec-k">Desktop</div><div class="spec-v">440px modal centered on backdrop · backdrop bg: rgba(10,8,32,0.85)</div></div>
+    <div class="spec-row"><div class="spec-k">Mobile</div><div class="spec-v">Full-width bottom sheet (max 440px) · same content hierarchy</div></div>
+    <div class="spec-row"><div class="spec-k">Z-index</div><div class="spec-v">Modal on top of all play UI · dismiss closes, does NOT navigate away</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Support Trend Chart — WonderQuest Item 245</title>
+<style>
+/* ── Engineering hint ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.6;max-width:960px}
+
+/* ── Reset & base ────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;color:#f0f6ff;min-height:100vh;padding:24px}
+
+/* ── Tab bar ─────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;max-width:960px}
+.tab-btn{padding:9px 20px;border-radius:20px;border:1.5px solid rgba(255,255,255,.12);cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:transparent;color:#a0aab8;transition:all .18s}
+.tab-btn:hover{border-color:rgba(255,255,255,.25);color:#f0f6ff}
+.tab-btn.active{background:#a78bfa;border-color:#a78bfa;color:#fff}
+
+/* ── Screen shells ───────────────────────────────────────────── */
+.screen{display:none;max-width:960px;animation:fadeIn .18s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.card{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:24px;margin-bottom:20px}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#a78bfa}
+.card-title{font-size:18px;font-weight:800;color:#f0f6ff;margin-bottom:4px}
+.card-subtitle{font-size:13px;color:#8a9ab8;line-height:1.5}
+
+/* ── Chart container ─────────────────────────────────────────── */
+.chart-wrap{margin:24px 0 8px;position:relative}
+.chart-wrap svg{display:block;width:100%;overflow:visible}
+
+/* ── Y-axis labels ───────────────────────────────────────────── */
+.y-label{font-size:11px;fill:#8a9ab8;font-family:system-ui,-apple-system,sans-serif}
+.x-label{font-size:11px;fill:#8a9ab8;font-family:system-ui,-apple-system,sans-serif}
+.grid-line{stroke:rgba(255,255,255,.06);stroke-width:1}
+.axis-line{stroke:rgba(255,255,255,.12);stroke-width:1.5}
+
+/* ── Chart legend ────────────────────────────────────────────── */
+.chart-legend{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#a0aab8}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── Summary chips ───────────────────────────────────────────── */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid}
+.chip-gold{background:rgba(255,209,102,.1);border-color:rgba(255,209,102,.35);color:#ffd166}
+.chip-violet{background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.35);color:#a78bfa}
+
+/* ── Explorer note ───────────────────────────────────────────── */
+.explorer-note{background:rgba(80,232,144,.07);border:1px solid rgba(80,232,144,.18);border-radius:10px;padding:12px 16px;font-size:13px;color:#9de8c0;line-height:1.6;margin-bottom:20px}
+.explorer-note strong{color:#50e890}
+
+/* ── Activity suggestions ────────────────────────────────────── */
+.activities-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8a9ab8;margin-bottom:12px}
+.activity-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.activity-row:last-child{border-bottom:none;padding-bottom:0}
+.activity-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(255,255,255,.05)}
+.activity-name{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:3px}
+.activity-desc{font-size:12px;color:#8a9ab8;line-height:1.5}
+
+/* ── Support detail cards ────────────────────────────────────── */
+.subject-card{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:22px;margin-bottom:16px}
+.subject-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.subject-name{font-size:16px;font-weight:800;color:#f0f6ff}
+.subject-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-building{background:rgba(255,209,102,.12);color:#ffd166;border:1px solid rgba(255,209,102,.3)}
+.badge-starting{background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.3)}
+
+.detail-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:11px}
+.detail-row:last-child{margin-bottom:0}
+.detail-bullet{width:6px;height:6px;border-radius:50%;background:#a78bfa;flex-shrink:0;margin-top:6px}
+.detail-text{font-size:13px;color:#a0aab8;line-height:1.55}
+.detail-text strong{color:#f0f6ff;font-weight:700}
+.detail-text em{color:#50e890;font-style:normal;font-weight:600}
+
+.convo-starter{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:13px;color:#c4b5fd;line-height:1.5}
+.convo-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#a78bfa;margin-bottom:5px}
+
+.coming-soon-box{background:rgba(80,232,144,.06);border:1px dashed rgba(80,232,144,.25);border-radius:10px;padding:14px 16px;text-align:center;margin-top:14px}
+.coming-soon-icon{font-size:28px;margin-bottom:8px}
+.coming-soon-text{font-size:13px;color:#9de8c0;line-height:1.55}
+
+/* ── Spec styles ─────────────────────────────────────────────── */
+.spec-card{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:28px;max-width:960px}
+.spec-h2{font-size:14px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em;margin:22px 0 10px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.65;color:#a0aab8;margin-bottom:10px}
+.spec-p strong{color:#f0f6ff}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:rgba(255,255,255,.04);padding:8px 12px;text-align:left;font-weight:700;color:#8a9ab8;border-bottom:1.5px solid rgba(255,255,255,.08)}
+.spec-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:#a0aab8;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:rgba(80,232,144,.12);color:#50e890}
+.tag-violet{background:rgba(167,139,250,.12);color:#a78bfa}
+.tag-gold{background:rgba(255,209,102,.12);color:#ffd166}
+.tag-red{background:rgba(255,123,107,.12);color:#ff7b6b}
+.tag-gray{background:rgba(255,255,255,.06);color:#8a9ab8}
+
+.spec-code{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:12px;color:#c9d1d9;line-height:1.7;margin-bottom:14px;white-space:pre-wrap;word-break:break-all}
+
+/* ── SR-only ─────────────────────────────────────────────────── */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){
+  .screen.active{animation:none}
+  .chart-line{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">ITEM 245 · parent-support-trend-chart-v2.html · WonderQuest parallel-agent build</div>
+
+<!-- Tab bar -->
+<div class="tab-bar" role="tablist" aria-label="Support trend sections">
+  <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-chart"   id="btn-chart"   onclick="showTab('chart')">Support Trend Chart</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-details" id="btn-details" onclick="showTab('details')">Support Details</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-spec"    id="btn-spec"    onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 1 — SUPPORT TREND CHART
+═══════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="tab-chart" role="tabpanel" aria-labelledby="btn-chart">
+
+  <div class="card">
+    <div class="card-label">Emma's Learning Journey</div>
+    <div class="card-title">Areas Emma is Exploring 🌱</div>
+    <div class="card-subtitle">These are subjects where Emma is building her confidence over the past 8 weeks. Every explorer starts somewhere!</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">8-Week Progress</div>
+    <div class="card-title" style="font-size:15px;margin-bottom:16px">Social Studies &amp; Arts — Exploring → Building</div>
+
+    <!-- Legend -->
+    <div class="chart-legend" aria-hidden="true">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ffd166"></div>
+        Social Studies
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#9b72ff"></div>
+        Arts
+      </div>
+    </div>
+
+    <!-- SVG Chart -->
+    <div class="chart-wrap">
+      <!-- Screen-reader accessible table for the chart data -->
+      <table class="sr-only" aria-label="Emma's support area progress over 8 weeks">
+        <caption>Weekly progress for Social Studies and Arts — scale: 1=Exploring, 2=Building, 3=Growing</caption>
+        <thead>
+          <tr>
+            <th scope="col">Week</th>
+            <th scope="col">Social Studies</th>
+            <th scope="col">Arts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Week 1</td><td>Exploring</td><td>Exploring</td></tr>
+          <tr><td>Week 2</td><td>Exploring</td><td>Exploring</td></tr>
+          <tr><td>Week 3</td><td>Exploring</td><td>Exploring</td></tr>
+          <tr><td>Week 4</td><td>Building</td><td>Exploring</td></tr>
+          <tr><td>Week 5</td><td>Building</td><td>Exploring</td></tr>
+          <tr><td>Week 6</td><td>Building</td><td>Exploring</td></tr>
+          <tr><td>Week 7</td><td>Building</td><td>Building</td></tr>
+          <tr><td>Week 8</td><td>Building</td><td>Building</td></tr>
+        </tbody>
+      </table>
+
+      <svg viewBox="0 0 640 260" role="img" aria-label="Line chart showing Emma's support area progress over 8 weeks. Social Studies moves from Exploring to Building by week 4. Arts moves from Exploring to Building by week 7."
+           xmlns="http://www.w3.org/2000/svg" style="max-height:280px">
+
+        <!-- Defs: gradients & glow filters -->
+        <defs>
+          <linearGradient id="gradGold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffd166" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#ffd166" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="gradViolet" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#9b72ff" stop-opacity=".2"/>
+            <stop offset="100%" stop-color="#9b72ff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="glow-gold">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glow-violet">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+
+        <!-- Chart area: left=80, right=620, top=20, bottom=220 -->
+        <!-- Y: 3 levels mapped: Growing=20, Building=120, Exploring=220 -->
+        <!-- X: 8 weeks, step=(620-80)/7=77.1 per week -->
+
+        <!-- Grid lines (horizontal) -->
+        <line x1="80" y1="20"  x2="620" y2="20"  class="grid-line"/>
+        <line x1="80" y1="120" x2="620" y2="120" class="grid-line"/>
+        <line x1="80" y1="220" x2="620" y2="220" class="grid-line"/>
+
+        <!-- Grid lines (vertical, per week) -->
+        <line x1="80"  y1="20" x2="80"  y2="220" class="grid-line" stroke-opacity=".4"/>
+        <line x1="157" y1="20" x2="157" y2="220" class="grid-line"/>
+        <line x1="234" y1="20" x2="234" y2="220" class="grid-line"/>
+        <line x1="311" y1="20" x2="311" y2="220" class="grid-line"/>
+        <line x1="388" y1="20" x2="388" y2="220" class="grid-line"/>
+        <line x1="465" y1="20" x2="465" y2="220" class="grid-line"/>
+        <line x1="542" y1="20" x2="542" y2="220" class="grid-line"/>
+        <line x1="620" y1="20" x2="620" y2="220" class="grid-line" stroke-opacity=".4"/>
+
+        <!-- Y-axis labels -->
+        <text x="72" y="24"  class="y-label" text-anchor="end">Growing</text>
+        <text x="72" y="124" class="y-label" text-anchor="end">Building</text>
+        <text x="72" y="224" class="y-label" text-anchor="end">Exploring</text>
+
+        <!-- X-axis labels -->
+        <text x="80"  y="240" class="x-label" text-anchor="middle">W1</text>
+        <text x="157" y="240" class="x-label" text-anchor="middle">W2</text>
+        <text x="234" y="240" class="x-label" text-anchor="middle">W3</text>
+        <text x="311" y="240" class="x-label" text-anchor="middle">W4</text>
+        <text x="388" y="240" class="x-label" text-anchor="middle">W5</text>
+        <text x="465" y="240" class="x-label" text-anchor="middle">W6</text>
+        <text x="542" y="240" class="x-label" text-anchor="middle">W7</text>
+        <text x="620" y="240" class="x-label" text-anchor="middle">W8</text>
+
+        <!-- Axis lines -->
+        <line x1="78" y1="18" x2="78" y2="222" class="axis-line"/>
+        <line x1="78" y1="222" x2="622" y2="222" class="axis-line"/>
+
+        <!--
+          Social Studies data points (gold):
+          W1=Exploring(220), W2=Exploring(220), W3=Exploring(220),
+          W4=Building(120), W5=Building(120), W6=Building(120),
+          W7=Building(120), W8=Building(120)
+          Slow positive trend with gentle curve at transition
+        -->
+
+        <!-- Social Studies fill area -->
+        <polygon
+          points="80,220 157,220 234,220 311,120 388,120 465,120 542,120 620,120 620,250 80,250"
+          fill="url(#gradGold)" opacity=".7"/>
+
+        <!-- Social Studies line -->
+        <polyline
+          points="80,220 157,220 234,220 311,120 388,120 465,120 542,120 620,120"
+          fill="none" stroke="#ffd166" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+          filter="url(#glow-gold)" class="chart-line"/>
+
+        <!-- Social Studies data dots -->
+        <circle cx="80"  cy="220" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <circle cx="157" cy="220" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <circle cx="234" cy="220" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <circle cx="311" cy="120" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <circle cx="388" cy="120" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <circle cx="465" cy="120" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <circle cx="542" cy="120" r="4.5" fill="#ffd166" stroke="#161b22" stroke-width="2"/>
+        <!-- W8 end dot (larger, highlighted) -->
+        <circle cx="620" cy="120" r="6"   fill="#ffd166" stroke="#161b22" stroke-width="2.5"/>
+
+        <!-- "Building!" label at end -->
+        <rect x="570" y="96" width="66" height="18" rx="5" fill="rgba(255,209,102,.15)" stroke="rgba(255,209,102,.4)" stroke-width="1"/>
+        <text x="603" y="109" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="700" fill="#ffd166" text-anchor="middle">Building!</text>
+
+        <!--
+          Arts data points (violet):
+          W1–W6=Exploring(220), W7=Building(120), W8=Building(120)
+          Slower progress — still very positive framing
+        -->
+
+        <!-- Arts fill area -->
+        <polygon
+          points="80,220 157,220 234,220 311,220 388,220 465,220 542,120 620,120 620,250 80,250"
+          fill="url(#gradViolet)" opacity=".6"/>
+
+        <!-- Arts line -->
+        <polyline
+          points="80,220 157,220 234,220 311,220 388,220 465,220 542,120 620,120"
+          fill="none" stroke="#9b72ff" stroke-width="2.5" stroke-dasharray="6,3" stroke-linejoin="round" stroke-linecap="round"
+          filter="url(#glow-violet)" class="chart-line"/>
+
+        <!-- Arts data dots -->
+        <circle cx="80"  cy="220" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="157" cy="220" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="234" cy="220" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="311" cy="220" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="388" cy="220" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="465" cy="220" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="542" cy="120" r="4.5" fill="#9b72ff" stroke="#161b22" stroke-width="2"/>
+        <circle cx="620" cy="120" r="6"   fill="#9b72ff" stroke="#161b22" stroke-width="2.5"/>
+
+        <!-- "Building!" label for Arts -->
+        <rect x="570" y="104" width="0" height="0" rx="0"/>
+        <rect x="570" y="126" width="66" height="18" rx="5" fill="rgba(155,114,255,.15)" stroke="rgba(155,114,255,.4)" stroke-width="1"/>
+        <text x="603" y="139" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="700" fill="#9b72ff" text-anchor="middle">Building!</text>
+
+        <!-- Positive trend annotation -->
+        <text x="200" y="200" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="rgba(80,232,144,.6)" transform="rotate(-6,200,200)">Emma's on the move ↗</text>
+
+      </svg>
+    </div><!-- /chart-wrap -->
+
+    <!-- Summary chips -->
+    <div class="chips" aria-label="Summary status chips">
+      <span class="chip chip-gold">🌱 Social Studies — Building</span>
+      <span class="chip chip-violet">🌱 Arts — Just Getting Started</span>
+    </div>
+
+    <!-- Explorer note -->
+    <div class="explorer-note">
+      <strong>Every explorer starts somewhere!</strong> These are areas where Emma is just beginning her adventure. The chart above shows her progress over the past 8 weeks — and both lines are heading up. 🚀
+    </div>
+
+    <!-- Suggested activities -->
+    <div class="activities-title">Suggested activities for you &amp; Emma</div>
+    <div class="activity-row">
+      <div class="activity-icon">🏘️</div>
+      <div>
+        <div class="activity-name">Social Studies</div>
+        <div class="activity-desc">Try exploring WonderQuest's <strong style="color:#ffd166">'Community Helpers'</strong> quest together — it's a great way to spark conversations about the world around Emma.</div>
+      </div>
+    </div>
+    <div class="activity-row">
+      <div class="activity-icon">🎨</div>
+      <div>
+        <div class="activity-name">Arts</div>
+        <div class="activity-desc">Arts activities are coming in a future WonderQuest update! In the meantime, grab some crayons and create together at home — free play is wonderful too.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-chart -->
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 2 — SUPPORT DETAILS
+═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab-details" role="tabpanel" aria-labelledby="btn-details">
+
+  <!-- Social Studies card -->
+  <div class="subject-card">
+    <div class="subject-header">
+      <div class="subject-name">🏘️ Social Studies</div>
+      <div class="subject-badge badge-building">🌱 Building</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#ffd166"></div>
+      <div class="detail-text">Emma has explored <strong>2 Social Studies skills</strong> this term and is <em>building confidence</em> in this area. She's just getting started on this adventure!</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#ffd166"></div>
+      <div class="detail-text">We think Emma would enjoy: <strong>'Our Neighbourhood'</strong> and <strong>'People Who Help Us'</strong> — two quests that match where she is right now.</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#ffd166"></div>
+      <div class="detail-text"><strong>At home:</strong> Next time you're out together, point out community helpers — the postal worker, the firefighter, the bus driver. Emma is working on connecting the world she sees to the ideas she's exploring in WonderQuest.</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#ffd166"></div>
+      <div class="detail-text"><strong>Keep it playful:</strong> No worksheets needed — just curiosity and conversation. Even a short chat in the car counts!</div>
+    </div>
+
+    <div class="convo-starter">
+      <div class="convo-label">💬 Conversation starter</div>
+      "What job would you like to try for a day, Emma? Why?"
+    </div>
+  </div>
+
+  <!-- Arts card -->
+  <div class="subject-card">
+    <div class="subject-header">
+      <div class="subject-name">🎨 Arts</div>
+      <div class="subject-badge badge-starting">🌱 Just Getting Started</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#9b72ff"></div>
+      <div class="detail-text">Arts content is growing in WonderQuest! Emma hasn't explored much Arts yet — and that's completely fine. There simply aren't many Arts quests available in this term's content.</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#9b72ff"></div>
+      <div class="detail-text">This is a <strong>content gap in the system</strong>, not a reflection of Emma's abilities or interests. She's ready to explore whenever the adventures arrive!</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-bullet" style="background:#9b72ff"></div>
+      <div class="detail-text"><strong>In the meantime:</strong> Arts is all around us. Music, drawing, storytelling, building with blocks — Emma is probably already being creative in her own way.</div>
+    </div>
+
+    <div class="coming-soon-box">
+      <div class="coming-soon-icon">🎨</div>
+      <div class="coming-soon-text">
+        <strong style="color:#50e890">Art adventures are coming soon to WonderQuest!</strong><br>
+        New Arts quests are on the roadmap — watch this space. Emma will be the first to explore them.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-details -->
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB 3 — SPEC
+═══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+  <div class="spec-card">
+
+    <div class="spec-h2">"Support Area" Definition</div>
+    <div class="spec-p">A subject is classified as a <strong>support area</strong> when <code>mastery_status = 'Exploring'</code> across ≥2 sessions in the current period, OR when a child has 0 sessions in a subject in the current period. Support areas are <strong>NOT</strong> defined by low accuracy — accuracy data is never surfaced to parents.</div>
+
+    <div class="spec-h2">DB Schema</div>
+    <div class="spec-code">child_support_trends (
+  child_id         UUID        NOT NULL,
+  subject_id       UUID        NOT NULL,
+  week_number      INT         NOT NULL,   -- 1-indexed per academic year
+  engagement_level ENUM(
+    'exploring',   -- just getting started / needs most encouragement
+    'building',    -- gaining momentum
+    'growing'      -- strong progress (would exit support view)
+  )                NOT NULL,
+  sessions_count   INT         NOT NULL DEFAULT 0,
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (child_id, subject_id, week_number)
+)
+-- Parallel table to child_strength_trends
+-- No accuracy columns. No question-level data.</div>
+
+    <div class="spec-h2">Chart Spec</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Chart type</td><td>SVG polyline (same family as strength chart, item 244)</td></tr>
+        <tr><td>X axis</td><td>8 weeks (week_number rolling window)</td></tr>
+        <tr><td>Y axis</td><td>Exploring (bottom) → Building → Growing (top)</td></tr>
+        <tr><td>Lines</td><td>Social Studies <span class="tag tag-gold">gold #ffd166</span> · Arts <span class="tag tag-violet">violet #9b72ff</span></td></tr>
+        <tr><td>Accessibility</td><td><code>role="img"</code> + <code>aria-label</code> + hidden <code>&lt;table&gt;</code> for screen readers</td></tr>
+        <tr><td>Reduced motion</td><td><code>@media(prefers-reduced-motion:reduce)</code> — static render, no transitions</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spec-h2">Language Rules — Mandatory</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Never use</th>
+          <th>Use instead</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="tag tag-red">weak</span></td><td>"still exploring" / "just getting started with"</td></tr>
+        <tr><td><span class="tag tag-red">struggling</span></td><td>"building confidence in"</td></tr>
+        <tr><td><span class="tag tag-red">failed</span></td><td>"working on"</td></tr>
+        <tr><td><span class="tag tag-red">incorrect</span></td><td>omit entirely — no accuracy framing</td></tr>
+        <tr><td><span class="tag tag-red">behind</span></td><td>"just getting started"</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spec-h2">Privacy Rules</div>
+    <div class="spec-p">
+      <strong>No accuracy %</strong> — parent view never shows question-level accuracy or "Emma got this wrong".<br>
+      <strong>No question-level data</strong> — only subject-level engagement levels are surfaced.<br>
+      <strong>Content gaps framed as system limitation</strong>, not child limitation. If a subject has low data due to limited CMS content, surface it as "coming soon", not "Emma hasn't done this".
+    </div>
+
+    <div class="spec-h2">Suggested Activities Source</div>
+    <div class="spec-p">All suggested parent activities are sourced from <code>cms_content</code> (updateable by content team). Activities are <strong>generic and playful</strong> — never prescriptive homework. Language avoids "practice", "worksheet", "test".</div>
+
+    <div class="spec-h2">Teacher Visibility</div>
+    <div class="spec-p">Teacher sees <strong>class-level</strong> support areas (aggregated view). Individual child support data is <strong>not</strong> in the teacher view per se — teachers have their own separate intervention flow. This chart is parent-only.</div>
+
+    <div class="spec-h2">Band Accents (Design Tokens)</div>
+    <table class="spec-table">
+      <thead>
+        <tr><th>Band</th><th>Token</th><th>Use</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>P0</td><td><span class="tag tag-gold">#ffd166</span></td><td>Social Studies line / chips</td></tr>
+        <tr><td>P1</td><td><span class="tag tag-violet">#9b72ff</span></td><td>Arts line / chips</td></tr>
+        <tr><td>P2</td><td><span class="tag tag-green">#58e8c1</span></td><td>Positive accent (notes, CTAs)</td></tr>
+        <tr><td>P3</td><td><span class="tag tag-red">#ff7b6b</span></td><td>Reserved (not used in support view — positive framing only)</td></tr>
+        <tr><td>Parent persona</td><td><span class="tag tag-violet">#a78bfa</span></td><td>Tab active, labels, badges</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spec-h2">Companion Items</div>
+    <div class="spec-p">
+      <strong>Item 244</strong> — parent-strength-trend-chart-v2.html (strengths companion)<br>
+      <strong>Item 243</strong> — parent-support-areas-card-v2.html (card surface)<br>
+      Same SVG polyline pattern used in both trend charts for visual consistency.
+    </div>
+
+  </div>
+</div><!-- /tab-spec -->
+
+
+<script>
+  function showTab(t) {
+    // Hide all screens
+    document.querySelectorAll('.screen').forEach(function(s) {
+      s.classList.remove('active');
+    });
+    // Deactivate all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    // Show target screen
+    var screen = document.getElementById('tab-' + t);
+    if (screen) screen.classList.add('active');
+    // Activate target button
+    var btn = document.getElementById('btn-' + t);
+    if (btn) {
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
+  }
+</script>
+
+</body>
+</html>

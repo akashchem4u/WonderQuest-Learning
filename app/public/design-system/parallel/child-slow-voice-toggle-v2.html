@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 225 · child-slow-voice-toggle-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Engineering hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #1a1a1a;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #50e890;
+      letter-spacing: 0.3px;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    /* ── Tab switcher ── */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 9px 22px;
+      border-radius: 99px;
+      border: 1.5px solid rgba(255,255,255,.12);
+      background: #161b22;
+      color: #8b949e;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+      user-select: none;
+    }
+    .tab-btn:hover { border-color: rgba(255,255,255,.25); color: #f0f6ff; }
+    .tab-btn.active {
+      background: #50e890;
+      color: #0d1117;
+      border-color: #50e890;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    /* ── Phone frames ── */
+    .frames-row {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .phone-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: #8b949e;
+    }
+    .phone-label.active-label { color: #ffd166; }
+
+    .phone-frame {
+      width: 375px;
+      height: 667px;
+      background: #161b22;
+      border-radius: 44px;
+      border: 2px solid rgba(255,255,255,.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,.45), 0 0 0 6px #0d1117;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* phone notch */
+    .phone-notch {
+      height: 28px;
+      background: #0d1117;
+      border-radius: 0 0 16px 16px;
+      width: 120px;
+      margin: 0 auto;
+      flex-shrink: 0;
+    }
+
+    .phone-body {
+      flex: 1;
+      padding: 16px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    /* top bar */
+    .phone-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      letter-spacing: .5px;
+    }
+    .speed-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: #1c2230;
+      color: #f0f6ff;
+      cursor: pointer;
+      transition: all .18s;
+      user-select: none;
+    }
+    .speed-pill.slow-active {
+      background: rgba(255,209,102,.12);
+      border-color: #ffd166;
+      color: #ffd166;
+      box-shadow: 0 0 10px rgba(255,209,102,.18);
+    }
+
+    /* question card */
+    .question-card {
+      background: #1c2230;
+      border-radius: 16px;
+      padding: 18px 16px;
+      border: 1.5px solid rgba(255,255,255,.06);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .question-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #50e890;
+    }
+    .question-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0f6ff;
+      line-height: 1.35;
+    }
+
+    /* waveform */
+    .waveform-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .speaker-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 28px;
+    }
+    .waveform.slow-spacing { gap: 6px; }
+
+    .wave-bar {
+      width: 4px;
+      border-radius: 2px;
+      background: #50e890;
+      animation: wavePulse 1.2s ease-in-out infinite;
+    }
+    .slow-spacing .wave-bar {
+      animation-duration: 1.9s;
+    }
+    .wave-bar:nth-child(1) { height: 12px; animation-delay: 0s; }
+    .wave-bar:nth-child(2) { height: 22px; animation-delay: .15s; }
+    .wave-bar:nth-child(3) { height: 28px; animation-delay: .30s; }
+    .wave-bar:nth-child(4) { height: 20px; animation-delay: .45s; }
+    .wave-bar:nth-child(5) { height: 14px; animation-delay: .60s; }
+
+    @keyframes wavePulse {
+      0%, 100% { opacity: .4; transform: scaleY(.7); }
+      50%       { opacity: 1;  transform: scaleY(1); }
+    }
+
+    .speed-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 800;
+      color: #f0f6ff;
+      background: rgba(255,255,255,.08);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+    .speed-badge.slow-badge {
+      background: rgba(255,209,102,.15);
+      color: #ffd166;
+    }
+
+    .reading-indicator {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .reading-indicator.slow-reading { color: #ffd166; }
+
+    /* speed icon row (tortoise/rabbit) */
+    .speed-icon-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .speed-icon-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 99px;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04);
+      font-size: 13px;
+      cursor: pointer;
+      color: #8b949e;
+      font-weight: 600;
+      transition: all .15s;
+      user-select: none;
+    }
+    .speed-icon-btn.selected {
+      background: rgba(80,232,144,.12);
+      border-color: #50e890;
+      color: #50e890;
+    }
+    .speed-icon-btn.selected.slow-selected {
+      background: rgba(255,209,102,.12);
+      border-color: #ffd166;
+      color: #ffd166;
+    }
+
+    /* slow-on chip */
+    .slow-on-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,209,102,.12);
+      border: 1.5px solid #ffd166;
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffd166;
+      align-self: flex-start;
+      margin-top: -4px;
+    }
+    .slow-on-chip span.x-btn {
+      cursor: pointer;
+      opacity: .7;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    /* answer buttons */
+    .answers-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .answer-btn {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,.08);
+      background: #1c2230;
+      color: #f0f6ff;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .answer-btn:hover {
+      border-color: rgba(80,232,144,.4);
+      background: rgba(80,232,144,.06);
+    }
+    .answer-letter {
+      font-size: 11px;
+      font-weight: 800;
+      color: #50e890;
+      background: rgba(80,232,144,.12);
+      border-radius: 6px;
+      padding: 2px 7px;
+      flex-shrink: 0;
+    }
+
+    /* child-control note */
+    .child-control-note {
+      background: rgba(80,232,144,.07);
+      border: 1.5px solid rgba(80,232,144,.2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #a0f0c0;
+      line-height: 1.5;
+      text-align: center;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .child-control-note strong { color: #50e890; }
+
+    /* ── Tab 2: Speed Controls ── */
+    .t2-layout {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .demo-play-screen {
+      background: #161b22;
+      border: 1.5px solid rgba(255,255,255,.06);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .demo-play-header {
+      background: #1c2230;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .demo-play-header .title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #8b949e;
+      letter-spacing: .5px;
+    }
+    .demo-play-body {
+      padding: 24px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .speed-toggle-pill {
+      display: inline-flex;
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: #1c2230;
+    }
+    .stp-option {
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      color: #8b949e;
+      transition: all .15s;
+    }
+    .stp-option.selected {
+      background: #ffd166;
+      color: #0d1117;
+    }
+    .stp-option:first-child { border-radius: 99px 0 0 99px; }
+    .stp-option:last-child  { border-radius: 0 99px 99px 0; }
+
+    .locked-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,123,107,.08);
+      border: 1.5px solid rgba(255,123,107,.2);
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 12px;
+      color: #ffb0a5;
+    }
+    .locked-note .lock-icon { font-size: 16px; }
+
+    .persist-note {
+      font-size: 12px;
+      color: #8b949e;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .persist-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #58e8c1;
+      flex-shrink: 0;
+    }
+
+    /* parent settings card */
+    .parent-card {
+      background: #161b22;
+      border: 1.5px solid rgba(255,255,255,.06);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .parent-card-header {
+      background: #1c2230;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .parent-card-header .lock-chip {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: rgba(155,114,255,.15);
+      color: #9b72ff;
+      border-radius: 99px;
+      padding: 3px 9px;
+    }
+    .parent-card-header .title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+    .parent-card-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .setting-info .setting-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6ff;
+      margin-bottom: 4px;
+    }
+    .setting-info .setting-helper {
+      font-size: 12px;
+      color: #8b949e;
+      line-height: 1.5;
+      max-width: 420px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.1);
+      border-radius: 99px;
+      transition: .2s;
+    }
+    .toggle-slider::after {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #f0f6ff;
+      border-radius: 50%;
+      transition: .2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #9b72ff; }
+    .toggle-switch input:checked + .toggle-slider::after { transform: translateX(20px); }
+
+    /* DB schema card */
+    .schema-card {
+      background: #161b22;
+      border: 1.5px solid rgba(255,255,255,.06);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .schema-card-header {
+      background: #1c2230;
+      padding: 12px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #58e8c1;
+      letter-spacing: .5px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .schema-card-body {
+      padding: 0;
+    }
+    pre.code-block {
+      padding: 18px 20px;
+      font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 0;
+    }
+    pre.code-block .kw  { color: #ff7b6b; }
+    pre.code-block .ty  { color: #9b72ff; }
+    pre.code-block .cm  { color: #8b949e; }
+    pre.code-block .st  { color: #58e8c1; }
+    pre.code-block .nm  { color: #ffd166; }
+
+    /* ── Tab 3: Spec ── */
+    .spec-layout {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .spec-card {
+      background: #161b22;
+      border: 1.5px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .spec-card-header {
+      background: #1c2230;
+      padding: 11px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #50e890;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .spec-card-header.violet  { color: #9b72ff; }
+    .spec-card-header.gold    { color: #ffd166; }
+    .spec-card-header.coral   { color: #ff7b6b; }
+    .spec-card-header.mint    { color: #58e8c1; }
+    .spec-card-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .spec-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    .spec-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .spec-key {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      line-height: 1.5;
+    }
+    .spec-val {
+      font-size: 12px;
+      color: #c9d1d9;
+      line-height: 1.5;
+    }
+    .spec-val code {
+      font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+      font-size: 11px;
+      background: rgba(255,255,255,.06);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #58e8c1;
+    }
+    .band-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    .band-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .band-chip {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 99px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .band-chip.p0 { background: rgba(255,209,102,.15); color: #ffd166; }
+    .band-chip.p1 { background: rgba(155,114,255,.15); color: #9b72ff; }
+    .band-chip.p2 { background: rgba(88,232,193,.15); color: #58e8c1; }
+    .band-chip.p3 { background: rgba(255,123,107,.15); color: #ff7b6b; }
+    .band-note { font-size: 12px; color: #c9d1d9; line-height: 1.5; }
+    .wcag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.25);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #50e890;
+      font-weight: 600;
+    }
+
+    @media (max-width: 820px) {
+      .frames-row { flex-direction: column; align-items: center; }
+      .phone-frame { width: 340px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 225 &middot; child-slow-voice-toggle-v2.html &middot; WonderQuest parallel-agent build
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <h1>Child Slow Voice Toggle</h1>
+    <p>Audio speed accessibility &mdash; child-controlled reading pace</p>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Slow Voice Toggle</button>
+    <button class="tab-btn" onclick="showTab(1)">Speed Controls</button>
+    <button class="tab-btn" onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       TAB 1 — Slow Voice Toggle
+  ════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-0">
+
+    <p class="section-label">Phone frames &mdash; Normal vs Slow reading speed</p>
+
+    <div class="frames-row">
+
+      <!-- Frame 1: Normal Speed -->
+      <div class="phone-wrap">
+        <div class="phone-label">Normal Speed (1×)</div>
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-body">
+
+            <div class="phone-topbar">
+              <span class="topbar-title">Adventure Quest</span>
+              <div class="speed-pill" onclick="void 0" title="Normal speed active">
+                🐇 Normal
+              </div>
+            </div>
+
+            <div class="question-card">
+              <div class="question-tag">Shape Challenge</div>
+              <div class="question-text">What shape has 4 equal sides?</div>
+
+              <div class="waveform-row">
+                <span class="speaker-icon">🔊</span>
+                <div class="waveform">
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                </div>
+                <span class="speed-badge">1×</span>
+              </div>
+
+              <div class="reading-indicator">
+                <span>🔊</span> Reading at normal speed
+              </div>
+
+              <div class="speed-icon-row">
+                <div class="speed-icon-btn">🐢 Slow</div>
+                <div class="speed-icon-btn selected">🐇 Normal</div>
+              </div>
+            </div>
+
+            <div class="answers-grid">
+              <button class="answer-btn"><span class="answer-letter">A</span>Square</button>
+              <button class="answer-btn"><span class="answer-letter">B</span>Circle</button>
+              <button class="answer-btn"><span class="answer-letter">C</span>Triangle</button>
+              <button class="answer-btn"><span class="answer-letter">D</span>Rectangle</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 2: Slow Speed -->
+      <div class="phone-wrap">
+        <div class="phone-label active-label">Slow Speed (0.75×) — active</div>
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-body">
+
+            <div class="phone-topbar">
+              <span class="topbar-title">Adventure Quest</span>
+              <div class="speed-pill slow-active" onclick="void 0" title="Slow speed active">
+                🐢 Slow
+              </div>
+            </div>
+
+            <div class="question-card">
+              <div class="question-tag">Shape Challenge</div>
+              <div class="question-text">What shape has 4 equal sides?</div>
+
+              <div class="waveform-row">
+                <span class="speaker-icon">🔊</span>
+                <div class="waveform slow-spacing">
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                </div>
+                <span class="speed-badge slow-badge">0.75×</span>
+              </div>
+
+              <div class="reading-indicator slow-reading">
+                🐢 Reading slowly
+              </div>
+
+              <div class="speed-icon-row">
+                <div class="speed-icon-btn selected slow-selected">🐢 Slow</div>
+                <div class="speed-icon-btn">🐇 Normal</div>
+              </div>
+
+              <div class="slow-on-chip">
+                🐢 Slow reading on <span class="x-btn" title="Turn off slow reading">×</span>
+              </div>
+            </div>
+
+            <div class="answers-grid">
+              <button class="answer-btn"><span class="answer-letter">A</span>Square</button>
+              <button class="answer-btn"><span class="answer-letter">B</span>Circle</button>
+              <button class="answer-btn"><span class="answer-letter">C</span>Triangle</button>
+              <button class="answer-btn"><span class="answer-letter">D</span>Rectangle</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /frames-row -->
+
+    <!-- child-control note -->
+    <div style="margin-top:28px;">
+      <div class="child-control-note">
+        <strong>Child-controlled setting:</strong> The slow voice toggle is the <strong>one audio accessibility setting children can control directly</strong> during play.
+        Audio on/off is managed by a parent. Speed (Normal vs Slow) is the child's choice &mdash; they can flip it at any time using the 🐢/🐇 buttons or the pill in the top-right of the play screen.
+        If a parent has locked the speed to Slow, the toggle is hidden and the child always hears the slower pace.
+      </div>
+    </div>
+
+  </div><!-- /screen-0 -->
+
+
+  <!-- ════════════════════════════════════════════
+       TAB 2 — Speed Controls
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-1">
+    <div class="t2-layout">
+
+      <!-- Demo play screen -->
+      <p class="section-label">During-play speed control &mdash; child-accessible</p>
+
+      <div class="demo-play-screen">
+        <div class="demo-play-header">
+          <span class="title">Play Screen — Speed Toggle Demo</span>
+          <!-- interactive toggle -->
+          <div class="speed-toggle-pill" id="speedTogglePill">
+            <div class="stp-option selected" id="stp-slow" onclick="setSpeed('slow')">🐢 Slow</div>
+            <div class="stp-option" id="stp-normal" onclick="setSpeed('normal')">▶ Normal</div>
+          </div>
+        </div>
+        <div class="demo-play-body">
+
+          <div style="font-size:13px; color:#8b949e; line-height:1.6; max-width:580px;">
+            The toggle pill lives in the top-right corner of every play screen. Only two states: <strong style="color:#ffd166;">🐢 Slow</strong> and <strong style="color:#f0f6ff;">▶ Normal</strong>. No 0.5×, no 2×. Tap once to switch &mdash; it stays that way for the whole session.
+          </div>
+
+          <div class="persist-note">
+            <div class="persist-dot"></div>
+            Speed persists across questions within the session &mdash; resets to Normal at next session start (unless parent-locked to Slow).
+          </div>
+
+          <div class="persist-note">
+            <div class="persist-dot" style="background:#ffd166;"></div>
+            Default: Normal speed. Parent can override default to Slow via settings.
+          </div>
+
+          <!-- locked state example -->
+          <div class="locked-note">
+            <span class="lock-icon">🔒</span>
+            <div>
+              <strong>Parent-locked state:</strong> When a parent has enabled "Lock voice to slow speed," the speed pill is <em>not shown</em> to the child. The question is always read at 0.75× rate silently in the background. The child sees no speed button and experiences smooth, slow narration by default.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Parent settings card -->
+      <p class="section-label">Parent settings override</p>
+
+      <div class="parent-card">
+        <div class="parent-card-header">
+          <span class="lock-chip">Parent Only</span>
+          <span class="title">Voice Speed Settings</span>
+        </div>
+        <div class="parent-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Lock voice reading to slow speed</div>
+              <div class="setting-helper">When on, your child will always hear questions read at the slower pace. They won't see a speed button.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="lockToggle" onchange="handleLockToggle(this)" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="lockFeedback" style="display:none; font-size:12px; color:#9b72ff; padding:8px 12px; background:rgba(155,114,255,.08); border-radius:8px; border:1px solid rgba(155,114,255,.2);">
+            Slow speed is now locked for this child. The speed toggle will be hidden during play.
+          </div>
+        </div>
+      </div>
+
+      <!-- DB schema card -->
+      <p class="section-label">DB schema</p>
+
+      <div class="schema-card">
+        <div class="schema-card-header">child_audio_prefs &mdash; relevant columns</div>
+        <div class="schema-card-body">
+          <pre class="code-block"><span class="kw">CREATE TABLE</span> <span class="nm">child_audio_prefs</span> (
+  <span class="nm">child_id</span>                    <span class="ty">UUID</span>    <span class="kw">PRIMARY KEY</span>,
+  <span class="nm">voice_speed</span>                 <span class="ty">ENUM</span>(<span class="st">'normal'</span>, <span class="st">'slow'</span>)  <span class="kw">DEFAULT</span> <span class="st">'normal'</span>,
+  <span class="nm">voice_speed_locked_by_parent</span> <span class="ty">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="st">false</span>,
+  <span class="cm">-- audio_enabled managed separately by parent</span>
+  <span class="nm">updated_at</span>                  <span class="ty">TIMESTAMPTZ</span> <span class="kw">DEFAULT</span> <span class="nm">now</span>()
+);</pre>
+        </div>
+      </div>
+
+      <!-- Web Speech API card -->
+      <div class="schema-card">
+        <div class="schema-card-header" style="color:#ffd166;">Web Speech API — readAloud() implementation</div>
+        <div class="schema-card-body">
+          <pre class="code-block"><span class="kw">function</span> <span class="nm">readAloud</span>(text, speed = <span class="st">'normal'</span>) {
+  <span class="kw">const</span> utterance = <span class="kw">new</span> <span class="ty">SpeechSynthesisUtterance</span>(text);
+  utterance.rate  = speed === <span class="st">'slow'</span> ? <span class="nm">0.75</span> : <span class="nm">0.9</span>;
+  utterance.pitch = <span class="nm">1.0</span>;
+  speechSynthesis.speak(utterance);
+}</pre>
+        </div>
+      </div>
+
+    </div><!-- /t2-layout -->
+  </div><!-- /screen-1 -->
+
+
+  <!-- ════════════════════════════════════════════
+       TAB 3 — Spec
+  ════════════════════════════════════════════ -->
+  <div class="screen" id="screen-2">
+    <div class="spec-layout">
+
+      <!-- Who can toggle -->
+      <div class="spec-card">
+        <div class="spec-card-header">Access &amp; Control</div>
+        <div class="spec-card-body">
+          <div class="spec-row">
+            <div class="spec-key">Who can toggle</div>
+            <div class="spec-val">Child (during play), unless parent-locked. Parent can always change via Settings.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">When parent-locked</div>
+            <div class="spec-val">Speed pill is hidden from child. Always reads at slow rate. Child cannot override.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">Default state</div>
+            <div class="spec-val">Normal speed (<code>rate: 0.9</code>) unless parent has locked to Slow.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speed values -->
+      <div class="spec-card">
+        <div class="spec-card-header violet">Speed Values — SpeechSynthesis API</div>
+        <div class="spec-card-body">
+          <div class="spec-row">
+            <div class="spec-key">Normal</div>
+            <div class="spec-val"><code>utterance.rate = 0.9</code> &mdash; slightly below browser default (1.0) for child clarity</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">Slow</div>
+            <div class="spec-val"><code>utterance.rate = 0.75</code> &mdash; deliberate pace, supports emerging readers</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">Not available</div>
+            <div class="spec-val">0.5×, 1.25×, 2× &mdash; intentionally excluded. Two states only: Normal and Slow.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">Pitch</div>
+            <div class="spec-val"><code>utterance.pitch = 1.0</code> &mdash; natural voice pitch, not modified by speed change</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pre-recorded assets -->
+      <div class="spec-card">
+        <div class="spec-card-header gold">Pre-recorded Audio Fallback</div>
+        <div class="spec-card-body">
+          <div class="spec-row">
+            <div class="spec-key">Pre-recorded files</div>
+            <div class="spec-val">If using static audio assets, slow speed is <strong>not available</strong> via time-stretching. Falls back automatically to Web Speech API TTS for slow mode.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">Fallback UX</div>
+            <div class="spec-val">Child sees no difference in the toggle UI. System silently uses TTS when slow is requested and a pre-recorded file exists for that content.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timing / persistence -->
+      <div class="spec-card">
+        <div class="spec-card-header mint">Timing &amp; Persistence</div>
+        <div class="spec-card-body">
+          <div class="spec-row">
+            <div class="spec-key">Timer during readout</div>
+            <div class="spec-val">No timer. Answers never auto-advance. The child answers when ready, after listening at their own pace.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">Persistence scope</div>
+            <div class="spec-val"><code>voice_speed</code> stored in <code>child_audio_prefs</code>. Session caches it. Does <em>not</em> reset per question. Resets to Normal at next session start (unless locked).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accessibility -->
+      <div class="spec-card">
+        <div class="spec-card-header">Accessibility Benefit</div>
+        <div class="spec-card-body">
+          <div class="spec-row">
+            <div class="spec-key">Supports</div>
+            <div class="spec-val">Emerging readers, English Language Learners (ELL), auditory processing differences, younger children in P0 Starters band.</div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-key">WCAG 1.4.2</div>
+            <div class="spec-val">
+              <span class="wcag-badge">WCAG 1.4.2 Audio Control</span>
+              <span style="margin-left:10px;">User can pause/stop audio. Speed toggle satisfies user control requirement. Slow speed as default (when locked) reduces cognitive load without removing control.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Band considerations -->
+      <div class="spec-card">
+        <div class="spec-card-header coral">Band Considerations</div>
+        <div class="spec-card-body" style="gap:12px;">
+          <div class="band-row">
+            <span class="band-chip p0">P0</span>
+            <div class="band-note"><strong>Starters</strong> &mdash; Short words, simple sentences. Slow reading strongly recommended as default. Parent-lock to Slow encouraged during setup for youngest readers.</div>
+          </div>
+          <div class="band-row">
+            <span class="band-chip p1">P1</span>
+            <div class="band-note"><strong>Explorers</strong> &mdash; Default Normal. Child can self-select Slow if needed. Most will toggle off after a few sessions as confidence grows.</div>
+          </div>
+          <div class="band-row">
+            <span class="band-chip p2">P2</span>
+            <div class="band-note"><strong>Adventurers</strong> &mdash; Default Normal. Slow rarely needed but kept available for multi-syllable vocabulary questions.</div>
+          </div>
+          <div class="band-row">
+            <span class="band-chip p3">P3</span>
+            <div class="band-note"><strong>Champions</strong> &mdash; Default Normal. Speed toggle still accessible but content is designed for fluent readers; slow mode rarely invoked.</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /spec-layout -->
+  </div><!-- /screen-2 -->
+
+  <script>
+    /* ── Tab switcher ── */
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.screen').forEach((s, i) => {
+        s.classList.toggle('active', i === t);
+      });
+    }
+
+    /* ── Tab 2: interactive speed pill ── */
+    function setSpeed(speed) {
+      const slow   = document.getElementById('stp-slow');
+      const normal = document.getElementById('stp-normal');
+      if (speed === 'slow') {
+        slow.classList.add('selected');
+        normal.classList.remove('selected');
+      } else {
+        normal.classList.add('selected');
+        slow.classList.remove('selected');
+      }
+    }
+
+    /* ── Tab 2: parent lock toggle ── */
+    function handleLockToggle(checkbox) {
+      const feedback = document.getElementById('lockFeedback');
+      feedback.style.display = checkbox.checked ? 'block' : 'none';
+    }
+  </script>
+
+</body>
+</html>

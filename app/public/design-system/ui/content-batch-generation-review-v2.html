@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch Generation Review v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8edf2;min-width:900px}
+.topbar{background:#0a0f16;border-bottom:1px solid #1e2a38;padding:16px 32px;display:flex;align-items:center;gap:16px}
+.topbar h1{font-size:18px;font-weight:700;color:#58c8f0}
+.tabs{display:flex;gap:0;border-bottom:2px solid #1e2a38;padding:0 32px;background:#0d141c}
+.tab{padding:14px 22px;font-size:13px;font-weight:600;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#58c8f0;border-bottom-color:#58c8f0}
+.tab:hover:not(.active){color:#a0b8cc}
+.pane{display:none;padding:32px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#ffd166;line-height:1.6}
+.hint-box strong{color:#ffe08a}
+.batch-list{display:flex;flex-direction:column;gap:12px}
+.batch-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:20px;cursor:pointer;transition:border-color .15s}
+.batch-card:hover{border-color:#58c8f044}
+.batch-card.selected{border-color:#58c8f0}
+.batch-header{display:flex;align-items:center;gap:14px}
+.batch-id{font-size:14px;font-weight:700;color:#58c8f0;flex:1}
+.batch-date{font-size:12px;color:#6b8099}
+.batch-badges{display:flex;gap:8px;margin-top:10px}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-pass{background:#58e8c122;color:#58e8c1;border:1px solid #58e8c133}
+.badge-warn{background:#ffd16622;color:#ffd166;border:1px solid #ffd16633}
+.badge-fail{background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b33}
+.badge-pending{background:#58c8f022;color:#58c8f0;border:1px solid #58c8f033}
+.batch-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid #1e2a38}
+.btn-approve{background:#58e8c1;color:#0a0f16;border:none;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-approve:hover{background:#3dd4ad}
+.btn-reject{background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b44;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-reject:hover{background:#ff6b6b33}
+.btn-qa{background:#58c8f022;color:#58c8f0;border:1px solid #58c8f044;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-qa:hover{background:#58c8f033}
+.btn-secondary{background:#1e2a38;border:1px solid #2a3a4e;color:#a0b8cc;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-secondary:hover{background:#2a3a4e}
+.detail-section{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px;margin-bottom:20px}
+.detail-section h3{font-size:15px;font-weight:700;color:#e8edf2;margin-bottom:16px}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:20px}
+.stat-box{background:#0a0f16;border:1px solid #1e2a38;border-radius:8px;padding:16px;text-align:center}
+.stat-box .num{font-size:24px;font-weight:700}
+.stat-box .lbl{font-size:11px;color:#6b8099;text-transform:uppercase;margin-top:4px}
+.q-list{display:flex;flex-direction:column;gap:10px;max-height:500px;overflow-y:auto}
+.q-item{background:#0d141c;border:1px solid #1e2a38;border-radius:8px;overflow:hidden}
+.q-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.q-header:hover{background:#131c27}
+.q-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-pass{background:#58e8c1}
+.dot-warn{background:#ffd166}
+.dot-fail{background:#ff6b6b}
+.q-preview{font-size:13px;color:#e8edf2;flex:1}
+.q-meta{font-size:11px;color:#6b8099}
+.q-detail{padding:16px;border-top:1px solid #1e2a38;background:#060d14;display:none}
+.q-detail.open{display:block}
+.q-detail .answer-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.answer-opt{padding:8px 12px;border-radius:6px;font-size:12px;border:1px solid #1e2a38}
+.answer-opt.correct{background:#58e8c122;border-color:#58e8c144;color:#58e8c1}
+.answer-opt.wrong{background:#1e2a38;color:#6b8099}
+.q-flag{background:#ffd16611;border:1px solid #ffd16633;border-radius:6px;padding:8px 12px;font-size:12px;color:#ffd166;margin-top:10px}
+.approve-reject-section{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px}
+.selection-info{background:#0a0f16;border:1px solid #2a3a4e;border-radius:8px;padding:16px;margin-bottom:20px;font-size:13px;color:#a0b8cc}
+.bulk-actions{display:flex;gap:10px;flex-wrap:wrap}
+.checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #1e2a38;font-size:13px;color:#a0b8cc}
+.checkbox-row:last-child{border-bottom:none}
+.checkbox-row input[type=checkbox]{accent-color:#58c8f0;width:16px;height:16px}
+.spec-section{margin-bottom:28px}
+.spec-section h3{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e2a38}
+.spec-section p,.spec-section li{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:6px}
+.spec-section ul{padding-left:18px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-size:20px">🏭</span>
+  <h1>Batch Generation Review</h1>
+  <div style="flex:1"></div>
+  <span style="font-size:12px;color:#4a6078">4 pending batches</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('batch-list')">Batch List</div>
+  <div class="tab" onclick="show('batch-detail')">Batch Detail</div>
+  <div class="tab" onclick="show('q-review')">Question Review</div>
+  <div class="tab" onclick="show('approve-reject')">Approve/Reject</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- BATCH LIST -->
+<div id="batch-list" class="pane active">
+  <div class="hint-box">
+    <strong>Review generated question batches.</strong> Each batch shows pass/fail/warning counts. Select a batch to review individual questions. Approve all or reject selected before publishing.
+  </div>
+  <div class="batch-list">
+    <div class="batch-card selected" onclick="show('batch-detail')">
+      <div class="batch-header">
+        <div class="batch-id">batch_2026-03-21_animals_p0</div>
+        <div class="batch-date">Mar 21, 2026 · 14:32</div>
+        <span class="badge badge-pending">Pending Review</span>
+      </div>
+      <div class="batch-badges">
+        <span class="badge badge-pass">✓ 18 Pass</span>
+        <span class="badge badge-warn">⚠ 4 Warn</span>
+        <span class="badge badge-fail">✗ 2 Fail</span>
+      </div>
+      <div style="font-size:12px;color:#6b8099;margin-top:8px">24 questions • sci.life.animals P0–P2</div>
+      <div class="batch-actions">
+        <button class="btn-approve" onclick="event.stopPropagation();alert('Batch approved!')">✓ Approve All</button>
+        <button class="btn-qa" onclick="event.stopPropagation()">→ Send to QA</button>
+        <button class="btn-reject" onclick="event.stopPropagation();alert('Batch rejected')">✗ Reject Batch</button>
+      </div>
+    </div>
+
+    <div class="batch-card" onclick="show('batch-detail')">
+      <div class="batch-header">
+        <div class="batch-id">batch_2026-03-20_subtraction_p1</div>
+        <div class="batch-date">Mar 20, 2026 · 09:15</div>
+        <span class="badge badge-pending">Pending Review</span>
+      </div>
+      <div class="batch-badges">
+        <span class="badge badge-pass">✓ 22 Pass</span>
+        <span class="badge badge-warn">⚠ 1 Warn</span>
+        <span class="badge badge-fail">✗ 0 Fail</span>
+      </div>
+      <div style="font-size:12px;color:#6b8099;margin-top:8px">23 questions • math.sub.intro P0–P2</div>
+      <div class="batch-actions">
+        <button class="btn-approve" onclick="event.stopPropagation();alert('Batch approved!')">✓ Approve All</button>
+        <button class="btn-qa" onclick="event.stopPropagation()">→ Send to QA</button>
+        <button class="btn-reject" onclick="event.stopPropagation()">✗ Reject</button>
+      </div>
+    </div>
+
+    <div class="batch-card" onclick="show('batch-detail')">
+      <div class="batch-header">
+        <div class="batch-id">batch_2026-03-19_phonics_blends</div>
+        <div class="batch-date">Mar 19, 2026 · 16:44</div>
+        <span style="background:#58e8c122;color:#58e8c1;border:1px solid #58e8c133;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">Approved</span>
+      </div>
+      <div class="batch-badges">
+        <span class="badge badge-pass">✓ 30 Pass</span>
+        <span class="badge badge-warn">⚠ 2 Warn</span>
+      </div>
+      <div style="font-size:12px;color:#6b8099;margin-top:8px">32 questions • ela.phonics.blends P0–P3</div>
+      <div class="batch-actions">
+        <button class="btn-secondary" onclick="event.stopPropagation()">View Details</button>
+      </div>
+    </div>
+
+    <div class="batch-card" onclick="show('batch-detail')">
+      <div class="batch-header">
+        <div class="batch-id">batch_2026-03-18_letters_p0</div>
+        <div class="batch-date">Mar 18, 2026 · 11:20</div>
+        <span style="background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b33;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">Rejected</span>
+      </div>
+      <div class="batch-badges">
+        <span class="badge badge-pass">✓ 8 Pass</span>
+        <span class="badge badge-fail">✗ 12 Fail</span>
+      </div>
+      <div style="font-size:12px;color:#6b8099;margin-top:8px">20 questions • ela.alpha.recog P0 — too many hard blocks</div>
+      <div class="batch-actions">
+        <button class="btn-secondary" onclick="event.stopPropagation()">View Details</button>
+        <button class="btn-qa" onclick="event.stopPropagation();alert('Re-queued for generation')">↺ Re-generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH DETAIL -->
+<div id="batch-detail" class="pane">
+  <div class="hint-box">
+    <strong>batch_2026-03-21_animals_p0</strong> — 24 questions generated for Animals / Living Things P0–P2. Review individual questions below.
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="num" style="color:#e8edf2">24</div><div class="lbl">Total Q</div></div>
+    <div class="stat-box"><div class="num" style="color:#58e8c1">18</div><div class="lbl">Pass</div></div>
+    <div class="stat-box"><div class="num" style="color:#ffd166">4</div><div class="lbl">Warn</div></div>
+    <div class="stat-box"><div class="num" style="color:#ff6b6b">2</div><div class="lbl">Fail</div></div>
+    <div class="stat-box"><div class="num" style="color:#9b72ff">Mar 21</div><div class="lbl">Generated</div></div>
+  </div>
+  <div class="detail-section">
+    <h3>Batch Actions</h3>
+    <div class="bulk-actions">
+      <button class="btn-approve" onclick="alert('All 18 passing questions approved')">✓ Approve All Passing (18)</button>
+      <button class="btn-qa" onclick="alert('Sent to QA queue')">→ Send Warnings to QA (4)</button>
+      <button class="btn-reject" onclick="alert('2 failed questions rejected')">✗ Reject Failed (2)</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUESTION REVIEW -->
+<div id="q-review" class="pane">
+  <div class="hint-box">
+    <strong>Review individual questions.</strong> Expand any question to see options, explainer, and QA flags. Approve or reject per-question.
+  </div>
+  <div class="q-list">
+    <div class="q-item">
+      <div class="q-header" onclick="toggleQ(this)">
+        <div class="q-status-dot dot-pass"></div>
+        <div class="q-preview">Q1: "Which of these is a living thing?"</div>
+        <div class="q-meta">sci.life.animals • P0</div>
+        <span style="font-size:11px;color:#58e8c1;font-weight:700">PASS</span>
+      </div>
+      <div class="q-detail">
+        <div class="answer-list">
+          <div class="answer-opt correct">✓ A dog</div>
+          <div class="answer-opt wrong">A rock</div>
+          <div class="answer-opt wrong">A cloud</div>
+          <div class="answer-opt wrong">A spoon</div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#6b8099">Explainer: Dogs are living things because they breathe, eat, and grow.</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-approve" style="padding:6px 12px;font-size:11px">✓ Approve</button>
+          <button class="btn-reject" style="padding:6px 12px;font-size:11px">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+    <div class="q-item">
+      <div class="q-header" onclick="toggleQ(this)">
+        <div class="q-status-dot dot-pass"></div>
+        <div class="q-preview">Q2: "Which animal lives in water?"</div>
+        <div class="q-meta">sci.life.animals • P0</div>
+        <span style="font-size:11px;color:#58e8c1;font-weight:700">PASS</span>
+      </div>
+      <div class="q-detail">
+        <div class="answer-list">
+          <div class="answer-opt correct">✓ A fish</div>
+          <div class="answer-opt wrong">A cat</div>
+          <div class="answer-opt wrong">A horse</div>
+          <div class="answer-opt wrong">A bird</div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#6b8099">Explainer: Fish live in water and breathe through gills.</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-approve" style="padding:6px 12px;font-size:11px">✓ Approve</button>
+          <button class="btn-reject" style="padding:6px 12px;font-size:11px">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+    <div class="q-item">
+      <div class="q-header" onclick="toggleQ(this)">
+        <div class="q-status-dot dot-warn"></div>
+        <div class="q-preview">Q3: "What do plants need to grow?"</div>
+        <div class="q-meta">sci.life.plants • P1</div>
+        <span style="font-size:11px;color:#ffd166;font-weight:700">WARN</span>
+      </div>
+      <div class="q-detail">
+        <div class="answer-list">
+          <div class="answer-opt correct">✓ Sunlight and water</div>
+          <div class="answer-opt wrong">Only darkness</div>
+          <div class="answer-opt wrong">Sand only</div>
+          <div class="answer-opt wrong">Nothing at all</div>
+        </div>
+        <div class="q-flag">⚠ Warning: Distractor "Nothing at all" may be confusing for early learners — consider revising.</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-approve" style="padding:6px 12px;font-size:11px">✓ Approve Anyway</button>
+          <button class="btn-qa" style="padding:6px 12px;font-size:11px">→ Send to QA</button>
+          <button class="btn-reject" style="padding:6px 12px;font-size:11px">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+    <div class="q-item">
+      <div class="q-header" onclick="toggleQ(this)">
+        <div class="q-status-dot dot-fail"></div>
+        <div class="q-preview">Q4: "Name a mammal" — hard block detected</div>
+        <div class="q-meta">sci.life.mammal • P1</div>
+        <span style="font-size:11px;color:#ff6b6b;font-weight:700">FAIL</span>
+      </div>
+      <div class="q-detail">
+        <div style="padding:12px;background:#ff4d4d11;border:1px solid #ff4d4d33;border-radius:6px;font-size:12px;color:#ff7777">
+          Hard block: No correct answer marked. This question cannot be approved until fixed.
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-qa" style="padding:6px 12px;font-size:11px" onclick="alert('Sent to editor')">✏ Fix in Editor</button>
+          <button class="btn-reject" style="padding:6px 12px;font-size:11px">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE/REJECT -->
+<div id="approve-reject" class="pane">
+  <div class="hint-box">
+    <strong>Bulk approve or reject.</strong> Select questions to reject individually, or approve all passing at once. Rejected questions can be re-generated.
+  </div>
+  <div class="approve-reject-section">
+    <h3>Select Questions to Reject</h3>
+    <div class="selection-info">Checking a box marks that question for rejection. Unchecked passing questions will be approved on submit.</div>
+    <div style="max-height:300px;overflow-y:auto">
+      <div class="checkbox-row"><input type="checkbox" checked><span>Q3: "What do plants need to grow?" — WARN</span><span style="margin-left:auto;color:#ffd166;font-size:11px">⚠ Warning</span></div>
+      <div class="checkbox-row"><input type="checkbox" checked><span>Q4: "Name a mammal" — FAIL (hard block)</span><span style="margin-left:auto;color:#ff6b6b;font-size:11px">✗ Fail</span></div>
+      <div class="checkbox-row"><input type="checkbox"><span>Q1: "Which of these is a living thing?"</span><span style="margin-left:auto;color:#58e8c1;font-size:11px">✓ Pass</span></div>
+      <div class="checkbox-row"><input type="checkbox"><span>Q2: "Which animal lives in water?"</span><span style="margin-left:auto;color:#58e8c1;font-size:11px">✓ Pass</span></div>
+      <div class="checkbox-row"><input type="checkbox"><span>Q5: "Which is bigger: elephant or mouse?"</span><span style="margin-left:auto;color:#58e8c1;font-size:11px">✓ Pass</span></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #1e2a38">
+      <button class="btn-approve" onclick="alert('22 questions approved, 2 rejected')">✓ Approve Selected + Publish</button>
+      <button class="btn-reject" onclick="alert('Batch rejected')">✗ Reject Entire Batch</button>
+      <button class="btn-qa" onclick="alert('Warnings sent to QA queue')">→ Send Warnings to QA</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="pane">
+  <div class="hint-box"><strong>Batch Generation Review spec.</strong> Review board for AI-generated question batches.</div>
+  <div class="spec-section">
+    <h3>Batch Statuses</h3>
+    <ul>
+      <li>Pending Review — awaiting admin action</li>
+      <li>Approved — all Q approved, ready to publish</li>
+      <li>In QA — sent to quality assurance queue</li>
+      <li>Rejected — batch rejected, re-generation available</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Question Statuses</h3>
+    <ul>
+      <li>Pass — no QA flags detected</li>
+      <li>Warn — soft issue flagged, reviewable</li>
+      <li>Fail — hard block present (no correct answer, duplicate)</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Bulk Actions</h3>
+    <p>Approve all passing, send warnings to QA, reject failed. Per-question approve/reject also available in Question Review tab.</p>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['batch-list','batch-detail','q-review','approve-reject','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+function toggleQ(el){
+  const detail=el.nextElementSibling;
+  detail.classList.toggle('open');
+}
+</script>
+</body>
+</html>

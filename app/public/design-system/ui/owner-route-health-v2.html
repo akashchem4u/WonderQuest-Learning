@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Route Health v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Desktop frame */
+  .desktop-frame { background: #0d1117; border-radius: 12px; border: 1px solid #2a3040; overflow: hidden; }
+  .desktop-topbar { background: #141a26; border-bottom: 1px solid #2a3040; padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+  .desktop-title { font-size: 18px; font-weight: 800; color: #e0e6f0; }
+  .desktop-meta { font-size: 13px; color: #667; }
+  .desktop-actions { margin-left: auto; display: flex; gap: 10px; }
+  .desktop-btn { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .desktop-btn.primary { background: #ffd166; color: #1a1400; border-color: #ffd166; }
+
+  /* KPI strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #2a3040; margin-bottom: 0; }
+  .kpi-cell { background: #141a26; padding: 16px 20px; }
+  .kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #556; margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 800; }
+  .kpi-delta { font-size: 11px; margin-top: 4px; }
+  .kpi-green { color: #4ecca3; }
+  .kpi-red { color: #ff6b6b; }
+  .kpi-amber { color: #ffd166; }
+  .kpi-neutral { color: #e0e6f0; }
+  .delta-up { color: #4ecca3; }
+  .delta-down { color: #ff6b6b; }
+  .delta-neutral { color: #667; }
+
+  /* Route health grid */
+  .route-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
+  .route-card { background: #141a26; border-radius: 12px; border: 1px solid #2a3040; padding: 16px; }
+  .route-card.critical { border-color: #ff6b6b; background: #1a0e0e; }
+  .route-card.warning { border-color: #ffd166; background: #1a1500; }
+  .route-card.healthy { border-color: #4ecca3; }
+  .route-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .route-path { font-size: 13px; font-weight: 700; color: #a8c4e8; font-family: 'Courier New', monospace; }
+  .route-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-critical { background: #3a0a0a; color: #ff6b6b; border: 1px solid #ff6b6b44; }
+  .badge-warning { background: #2a1e00; color: #ffd166; border: 1px solid #ffd16644; }
+  .badge-healthy { background: #0a2a1e; color: #4ecca3; border: 1px solid #4ecca344; }
+  .route-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .metric-cell { background: #0d1117; border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .metric-val { font-size: 18px; font-weight: 800; }
+  .metric-lbl { font-size: 10px; color: #556; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .sparkline { height: 32px; display: flex; align-items: flex-end; gap: 3px; }
+  .spark-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 4px; }
+  .spark-green { background: #4ecca3; }
+  .spark-amber { background: #ffd166; }
+  .spark-red { background: #ff6b6b; }
+  .route-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #2a3040; }
+  .route-last { font-size: 11px; color: #556; }
+  .route-action { font-size: 11px; font-weight: 700; color: #ffd166; cursor: pointer; }
+
+  /* Alert bar */
+  .alert-bar { background: #2a0a0a; border-bottom: 2px solid #ff6b6b; padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .alert-icon { font-size: 16px; }
+  .alert-text { font-size: 13px; color: #ff9999; flex: 1; }
+  .alert-cta { background: #ff6b6b; color: #fff; border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; min-height: 820px; background: #0d1117; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.5); overflow: hidden; flex-shrink: 0; }
+  .phone-inner { height: 100%; overflow-y: auto; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #667; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #a0a8b8; background: #0d1117; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #0d1117; border-bottom: 1px solid #2a3040; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: #e0e6f0; }
+  .topbar-subtitle { font-size: 12px; color: #667; margin-top: 1px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; }
+  .topbar-btn { background: #1e2a3a; color: #a8c4e8; border: 1px solid #2a3a50; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #556; padding: 0 16px; margin: 16px 0 8px; }
+
+  /* Mobile route row */
+  .route-row { margin: 0 16px 10px; background: #141a26; border-radius: 12px; padding: 14px; border: 1px solid #2a3040; }
+  .route-row.critical { border-color: #ff6b6b55; background: #1a0e0e; }
+  .route-row.warning { border-color: #ffd16655; background: #1a1500; }
+  .route-row.healthy { border-color: #4ecca355; }
+  .rr-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .rr-path { font-size: 13px; font-weight: 700; color: #a8c4e8; font-family: 'Courier New', monospace; }
+  .rr-metrics { display: flex; gap: 12px; }
+  .rr-metric { text-align: center; }
+  .rr-val { font-size: 16px; font-weight: 800; }
+  .rr-lbl { font-size: 10px; color: #556; text-transform: uppercase; }
+  .rr-sparkline { height: 24px; display: flex; align-items: flex-end; gap: 2px; flex: 1; }
+  .rr-spark { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .spec-table th { background: #141a26; padding: 8px 12px; text-align: left; font-weight: 700; font-size: 12px; color: #667; border-bottom: 2px solid #2a3040; color: #a0b0c0; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #1e2433; vertical-align: top; line-height: 1.5; color: #c0ccd8; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-green { background: #0a2a1e; color: #4ecca3; }
+  .pill-red { background: #2a0a0a; color: #ff6b6b; }
+  .pill-amber { background: #2a1e00; color: #ffd166; }
+  .pill-blue { background: #0a1a2a; color: #5599ee; }
+
+  h2 { font-size: 18px; font-weight: 800; color: #e0e6f0; margin-bottom: 6px; }
+  h3 { font-size: 14px; font-weight: 700; color: #a0b0c0; margin: 20px 0 8px; }
+  p { font-size: 13px; color: #778899; line-height: 1.6; margin-bottom: 12px; }
+  ul { font-size: 13px; color: #778899; line-height: 1.7; padding-left: 18px; margin-bottom: 12px; }
+  code { background: #1e2433; color: #a8c4e8; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('desktop-grid')">Desktop — Route Grid</button>
+  <button class="tab" onclick="show('desktop-detail')">Desktop — Route Detail</button>
+  <button class="tab" onclick="show('mobile-list')">Mobile — Route List</button>
+  <button class="tab" onclick="show('alert-states')">Alert States</button>
+  <button class="tab" onclick="show('spec')">Spec Notes</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 1 -->
+<div id="desktop-grid" class="panel active">
+  <div class="hint"><strong>Panel 1 — Desktop Route Health Grid:</strong> Owner dashboard /owner/route-health. Top KPI strip (4 cells: total routes / critical / avg p95 latency / error rate). Below: 3-column card grid per route. Each card shows: route path, health badge (critical/warning/healthy), 3 key metrics, 7-day sparkline, last-checked timestamp. Owner theme: dark ops #0d1117, Sora, gold accent #ffd166.</div>
+
+  <div class="desktop-frame">
+    <!-- Alert bar (critical) -->
+    <div class="alert-bar">
+      <span class="alert-icon">🔴</span>
+      <span class="alert-text"><strong>/play</strong> — p95 latency spiked to 3.2s (threshold 800ms). Affecting K–1 sessions. Active since 9:14 AM.</span>
+      <div class="alert-cta">View /play</div>
+    </div>
+
+    <!-- Desktop topbar -->
+    <div class="desktop-topbar">
+      <div>
+        <div class="desktop-title">Route Health</div>
+        <div class="desktop-meta">All routes · Last sync 2 min ago · Auto-refresh 60s</div>
+      </div>
+      <div class="desktop-actions">
+        <div class="desktop-btn">Export</div>
+        <div class="desktop-btn">Alerts</div>
+        <div class="desktop-btn primary">⟳ Refresh</div>
+      </div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi-cell">
+        <div class="kpi-label">Total Routes</div>
+        <div class="kpi-value kpi-neutral">6</div>
+        <div class="kpi-delta delta-neutral">All monitored</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Critical</div>
+        <div class="kpi-value kpi-red">1</div>
+        <div class="kpi-delta delta-down">▲ +1 since yesterday</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Avg p95 Latency</div>
+        <div class="kpi-value kpi-amber">1.1s</div>
+        <div class="kpi-delta delta-down">▲ +380ms vs 7-day avg</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Error Rate</div>
+        <div class="kpi-value kpi-green">0.4%</div>
+        <div class="kpi-delta delta-up">▼ −0.1% vs yesterday</div>
+      </div>
+    </div>
+
+    <!-- Route grid -->
+    <div class="route-grid">
+
+      <!-- /play — CRITICAL -->
+      <div class="route-card critical">
+        <div class="route-header">
+          <span class="route-path">/play</span>
+          <span class="route-badge badge-critical">⚠ Critical</span>
+        </div>
+        <div class="route-metrics">
+          <div class="metric-cell">
+            <div class="metric-val kpi-red">3.2s</div>
+            <div class="metric-lbl">p95 Lat</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-amber">1.2%</div>
+            <div class="metric-lbl">Err Rate</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">98.1%</div>
+            <div class="metric-lbl">Uptime</div>
+          </div>
+        </div>
+        <div class="sparkline">
+          <div class="spark-bar spark-green" style="height:60%"></div>
+          <div class="spark-bar spark-green" style="height:55%"></div>
+          <div class="spark-bar spark-amber" style="height:70%"></div>
+          <div class="spark-bar spark-amber" style="height:65%"></div>
+          <div class="spark-bar spark-amber" style="height:72%"></div>
+          <div class="spark-bar spark-red" style="height:88%"></div>
+          <div class="spark-bar spark-red" style="height:100%"></div>
+        </div>
+        <div class="route-footer">
+          <span class="route-last">Checked 2 min ago</span>
+          <span class="route-action">Investigate →</span>
+        </div>
+      </div>
+
+      <!-- /parent — WARNING -->
+      <div class="route-card warning">
+        <div class="route-header">
+          <span class="route-path">/parent</span>
+          <span class="route-badge badge-warning">⚡ Warning</span>
+        </div>
+        <div class="route-metrics">
+          <div class="metric-cell">
+            <div class="metric-val kpi-amber">920ms</div>
+            <div class="metric-lbl">p95 Lat</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">0.3%</div>
+            <div class="metric-lbl">Err Rate</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">99.7%</div>
+            <div class="metric-lbl">Uptime</div>
+          </div>
+        </div>
+        <div class="sparkline">
+          <div class="spark-bar spark-green" style="height:40%"></div>
+          <div class="spark-bar spark-green" style="height:45%"></div>
+          <div class="spark-bar spark-green" style="height:42%"></div>
+          <div class="spark-bar spark-green" style="height:50%"></div>
+          <div class="spark-bar spark-amber" style="height:65%"></div>
+          <div class="spark-bar spark-amber" style="height:72%"></div>
+          <div class="spark-bar spark-amber" style="height:80%"></div>
+        </div>
+        <div class="route-footer">
+          <span class="route-last">Checked 2 min ago</span>
+          <span class="route-action">View →</span>
+        </div>
+      </div>
+
+      <!-- / (home) — HEALTHY -->
+      <div class="route-card healthy">
+        <div class="route-header">
+          <span class="route-path">/</span>
+          <span class="route-badge badge-healthy">✓ Healthy</span>
+        </div>
+        <div class="route-metrics">
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">320ms</div>
+            <div class="metric-lbl">p95 Lat</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">0.1%</div>
+            <div class="metric-lbl">Err Rate</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">100%</div>
+            <div class="metric-lbl">Uptime</div>
+          </div>
+        </div>
+        <div class="sparkline">
+          <div class="spark-bar spark-green" style="height:35%"></div>
+          <div class="spark-bar spark-green" style="height:30%"></div>
+          <div class="spark-bar spark-green" style="height:38%"></div>
+          <div class="spark-bar spark-green" style="height:33%"></div>
+          <div class="spark-bar spark-green" style="height:36%"></div>
+          <div class="spark-bar spark-green" style="height:32%"></div>
+          <div class="spark-bar spark-green" style="height:34%"></div>
+        </div>
+        <div class="route-footer">
+          <span class="route-last">Checked 2 min ago</span>
+          <span class="route-action">View →</span>
+        </div>
+      </div>
+
+      <!-- /teacher — HEALTHY -->
+      <div class="route-card healthy">
+        <div class="route-header">
+          <span class="route-path">/teacher</span>
+          <span class="route-badge badge-healthy">✓ Healthy</span>
+        </div>
+        <div class="route-metrics">
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">480ms</div>
+            <div class="metric-lbl">p95 Lat</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">0.2%</div>
+            <div class="metric-lbl">Err Rate</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">99.9%</div>
+            <div class="metric-lbl">Uptime</div>
+          </div>
+        </div>
+        <div class="sparkline">
+          <div class="spark-bar spark-green" style="height:50%"></div>
+          <div class="spark-bar spark-green" style="height:48%"></div>
+          <div class="spark-bar spark-green" style="height:52%"></div>
+          <div class="spark-bar spark-green" style="height:46%"></div>
+          <div class="spark-bar spark-green" style="height:54%"></div>
+          <div class="spark-bar spark-green" style="height:49%"></div>
+          <div class="spark-bar spark-green" style="height:51%"></div>
+        </div>
+        <div class="route-footer">
+          <span class="route-last">Checked 2 min ago</span>
+          <span class="route-action">View →</span>
+        </div>
+      </div>
+
+      <!-- /owner — HEALTHY -->
+      <div class="route-card healthy">
+        <div class="route-header">
+          <span class="route-path">/owner</span>
+          <span class="route-badge badge-healthy">✓ Healthy</span>
+        </div>
+        <div class="route-metrics">
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">210ms</div>
+            <div class="metric-lbl">p95 Lat</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">0.0%</div>
+            <div class="metric-lbl">Err Rate</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">100%</div>
+            <div class="metric-lbl">Uptime</div>
+          </div>
+        </div>
+        <div class="sparkline">
+          <div class="spark-bar spark-green" style="height:25%"></div>
+          <div class="spark-bar spark-green" style="height:22%"></div>
+          <div class="spark-bar spark-green" style="height:28%"></div>
+          <div class="spark-bar spark-green" style="height:24%"></div>
+          <div class="spark-bar spark-green" style="height:26%"></div>
+          <div class="spark-bar spark-green" style="height:21%"></div>
+          <div class="spark-bar spark-green" style="height:24%"></div>
+        </div>
+        <div class="route-footer">
+          <span class="route-last">Checked 2 min ago</span>
+          <span class="route-action">View →</span>
+        </div>
+      </div>
+
+      <!-- /content — HEALTHY -->
+      <div class="route-card healthy">
+        <div class="route-header">
+          <span class="route-path">/content</span>
+          <span class="route-badge badge-healthy">✓ Healthy</span>
+        </div>
+        <div class="route-metrics">
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">560ms</div>
+            <div class="metric-lbl">p95 Lat</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">0.3%</div>
+            <div class="metric-lbl">Err Rate</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val kpi-green">99.8%</div>
+            <div class="metric-lbl">Uptime</div>
+          </div>
+        </div>
+        <div class="sparkline">
+          <div class="spark-bar spark-green" style="height:55%"></div>
+          <div class="spark-bar spark-green" style="height:58%"></div>
+          <div class="spark-bar spark-green" style="height:53%"></div>
+          <div class="spark-bar spark-green" style="height:57%"></div>
+          <div class="spark-bar spark-green" style="height:54%"></div>
+          <div class="spark-bar spark-green" style="height:56%"></div>
+          <div class="spark-bar spark-green" style="height:55%"></div>
+        </div>
+        <div class="route-footer">
+          <span class="route-last">Checked 2 min ago</span>
+          <span class="route-action">View →</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 2 -->
+<div id="desktop-detail" class="panel">
+  <div class="hint"><strong>Panel 2 — Desktop Route Detail:</strong> Click a route card → right panel (or full page) shows: route meta, latency histogram (p50/p95/p99), error breakdown by type, recent incidents, and action row. Shown for /play (critical state).</div>
+
+  <div class="desktop-frame">
+    <div class="alert-bar">
+      <span class="alert-icon">🔴</span>
+      <span class="alert-text"><strong>/play</strong> p95 latency 3.2s — threshold 800ms. Since 9:14 AM.</span>
+      <div class="alert-cta">Acknowledge</div>
+    </div>
+    <div class="desktop-topbar">
+      <div style="font-size:14px; color:#667; cursor:pointer;">← Route Health</div>
+      <div style="margin-left:16px;">
+        <div class="desktop-title">/play — Route Detail</div>
+        <div class="desktop-meta">Child play sessions · K–1 Violet, G2–3 Mint, G4–5 Coral</div>
+      </div>
+      <div class="desktop-actions">
+        <div class="desktop-btn">Incident log</div>
+        <div class="desktop-btn primary">Page on-call</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:0;">
+      <!-- Left: latency + errors -->
+      <div style="flex:1; padding:20px; border-right:1px solid #2a3040;">
+
+        <!-- Latency percentiles -->
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#556; margin-bottom:12px;">Latency Percentiles — Last 24h</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
+          <div style="background:#141a26; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px; font-weight:800; color:#4ecca3;">680ms</div>
+            <div style="font-size:11px; color:#556; text-transform:uppercase; margin-top:4px;">p50 (median)</div>
+          </div>
+          <div style="background:#1a0e0e; border-radius:10px; padding:14px; text-align:center; border:1px solid #ff6b6b44;">
+            <div style="font-size:24px; font-weight:800; color:#ff6b6b;">3.2s</div>
+            <div style="font-size:11px; color:#556; text-transform:uppercase; margin-top:4px;">p95 ⚠ Above threshold</div>
+          </div>
+          <div style="background:#1a0e0e; border-radius:10px; padding:14px; text-align:center; border:1px solid #ff6b6b44;">
+            <div style="font-size:24px; font-weight:800; color:#ff6b6b;">5.8s</div>
+            <div style="font-size:11px; color:#556; text-transform:uppercase; margin-top:4px;">p99</div>
+          </div>
+        </div>
+
+        <!-- Latency histogram mock -->
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#556; margin-bottom:10px;">Latency distribution — 7 day</div>
+        <div style="display:flex; align-items:flex-end; gap:4px; height:80px; background:#141a26; border-radius:10px; padding:10px 12px;">
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#4ecca3; height:30%;"></div>
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#4ecca3; height:55%;"></div>
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#4ecca3; height:80%;"></div>
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#4ecca3; height:90%;"></div>
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#ffd166; height:65%;"></div>
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#ffd166; height:50%;"></div>
+          <div style="flex:1; border-radius:2px 2px 0 0; background:#ff6b6b; height:100%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:#445; margin-top:4px; padding:0 4px;">
+          <span>Mar 16</span><span>Mar 17</span><span>Mar 18</span><span>Mar 19</span><span>Mar 20</span><span>Mar 21</span><span>Mar 22</span>
+        </div>
+
+        <!-- Error breakdown -->
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#556; margin:20px 0 10px;">Error Breakdown — Last 1h</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:12px; background:#141a26; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:13px; font-weight:700; color:#ff6b6b; width:60px;">504</div>
+            <div style="font-size:13px; color:#a0b0c0; flex:1;">Gateway timeout — content asset CDN</div>
+            <div style="font-size:12px; color:#556;">42 req</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:#141a26; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:13px; font-weight:700; color:#ffd166; width:60px;">429</div>
+            <div style="font-size:13px; color:#a0b0c0; flex:1;">Rate limit — question fetch endpoint</div>
+            <div style="font-size:12px; color:#556;">8 req</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; background:#141a26; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:13px; font-weight:700; color:#667; width:60px;">500</div>
+            <div style="font-size:13px; color:#a0b0c0; flex:1;">Internal — session state write</div>
+            <div style="font-size:12px; color:#556;">3 req</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: incidents + actions -->
+      <div style="width:320px; padding:20px;">
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#556; margin-bottom:12px;">Recent Incidents</div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+          <div style="background:#1a0e0e; border-radius:10px; padding:12px; border:1px solid #ff6b6b33;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:700; color:#ff6b6b;">ACTIVE</span>
+              <span style="font-size:11px; color:#556;">Since 9:14 AM</span>
+            </div>
+            <div style="font-size:13px; color:#e0e6f0; margin-bottom:4px;">/play p95 latency spike</div>
+            <div style="font-size:12px; color:#778;">CDN timeout — content assets. 50 requests affected.</div>
+          </div>
+          <div style="background:#141a26; border-radius:10px; padding:12px; border:1px solid #2a3040;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:700; color:#4ecca3;">RESOLVED</span>
+              <span style="font-size:11px; color:#556;">Mar 20</span>
+            </div>
+            <div style="font-size:13px; color:#a0b0c0; margin-bottom:4px;">/play auth token expiry</div>
+            <div style="font-size:12px; color:#667;">Token refresh race condition. Fixed in deploy 1.4.2.</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#556; margin-bottom:12px;">Actions</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="background:#ffd166; color:#1a1400; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; text-align:center;">🔔 Page on-call engineer</div>
+          <div style="background:#1e2a3a; color:#a8c4e8; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; text-align:center;">📋 Create incident report</div>
+          <div style="background:#1e2a3a; color:#a8c4e8; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; text-align:center;">📊 Open full metrics</div>
+          <div style="background:#2a0a0a; color:#ff9999; border: 1px solid #ff6b6b44; border-radius:10px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; text-align:center;">⏸ Pause /play route traffic</div>
+        </div>
+
+        <div style="margin-top:20px; background:#141a26; border-radius:10px; padding:12px; font-size:12px; color:#667; line-height:1.6;">
+          <strong style="color:#a0b0c0;">Thresholds for /play</strong><br>
+          p95 warning: 500ms<br>
+          p95 critical: 800ms<br>
+          Error rate warning: 1%<br>
+          Error rate critical: 3%<br>
+          Uptime critical: &lt;99%
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 3 -->
+<div id="mobile-list" class="panel">
+  <div class="hint"><strong>Panel 3 — Mobile Route List:</strong> Owner's 390px view of route health. Scrollable list with rows sorted: critical first, then warning, then healthy. Tap row → push to route detail screen (same data as desktop detail, vertically stacked).</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Mobile — Route List</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;">
+              <div class="topbar-title">Route Health</div>
+              <div class="topbar-subtitle">6 routes · 1 critical · Updated 2m ago</div>
+            </div>
+            <div class="topbar-actions"><div class="topbar-btn">⟳</div></div>
+          </div>
+
+          <!-- Alert strip -->
+          <div style="margin:8px 16px; background:#2a0a0a; border:1px solid #ff6b6b55; border-radius:10px; padding:10px 12px; display:flex; gap:8px; align-items:center;">
+            <span style="color:#ff6b6b;">🔴</span>
+            <div style="font-size:12px; color:#ff9999; flex:1;"><strong>/play</strong> p95 latency critical — 3.2s</div>
+            <span style="color:#ff6b6b; font-size:12px; font-weight:700;">View →</span>
+          </div>
+
+          <!-- KPI mini strip -->
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:#2a3040; margin:0 16px 16px; border-radius:10px; overflow:hidden;">
+            <div style="background:#141a26; padding:10px; text-align:center;">
+              <div style="font-size:18px; font-weight:800; color:#ff6b6b;">1</div>
+              <div style="font-size:10px; color:#556; text-transform:uppercase;">Critical</div>
+            </div>
+            <div style="background:#141a26; padding:10px; text-align:center;">
+              <div style="font-size:18px; font-weight:800; color:#ffd166;">1.1s</div>
+              <div style="font-size:10px; color:#556; text-transform:uppercase;">Avg p95</div>
+            </div>
+            <div style="background:#141a26; padding:10px; text-align:center;">
+              <div style="font-size:18px; font-weight:800; color:#4ecca3;">0.4%</div>
+              <div style="font-size:10px; color:#556; text-transform:uppercase;">Err Rate</div>
+            </div>
+          </div>
+
+          <div class="section-label">Routes</div>
+
+          <!-- /play — critical -->
+          <div class="route-row critical">
+            <div class="rr-header">
+              <span class="rr-path">/play</span>
+              <span class="route-badge badge-critical">⚠ Critical</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <div class="rr-metrics">
+                <div class="rr-metric"><div class="rr-val" style="color:#ff6b6b;">3.2s</div><div class="rr-lbl">p95</div></div>
+                <div class="rr-metric"><div class="rr-val" style="color:#ffd166;">1.2%</div><div class="rr-lbl">Err</div></div>
+              </div>
+              <div class="rr-sparkline">
+                <div class="rr-spark spark-green" style="height:14px;"></div>
+                <div class="rr-spark spark-green" style="height:12px;"></div>
+                <div class="rr-spark spark-amber" style="height:18px;"></div>
+                <div class="rr-spark spark-red" style="height:24px;"></div>
+                <div class="rr-spark spark-red" style="height:24px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- /parent — warning -->
+          <div class="route-row warning">
+            <div class="rr-header">
+              <span class="rr-path">/parent</span>
+              <span class="route-badge badge-warning">⚡ Warning</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <div class="rr-metrics">
+                <div class="rr-metric"><div class="rr-val" style="color:#ffd166;">920ms</div><div class="rr-lbl">p95</div></div>
+                <div class="rr-metric"><div class="rr-val" style="color:#4ecca3;">0.3%</div><div class="rr-lbl">Err</div></div>
+              </div>
+              <div class="rr-sparkline">
+                <div class="rr-spark spark-green" style="height:10px;"></div>
+                <div class="rr-spark spark-green" style="height:11px;"></div>
+                <div class="rr-spark spark-amber" style="height:16px;"></div>
+                <div class="rr-spark spark-amber" style="height:18px;"></div>
+                <div class="rr-spark spark-amber" style="height:20px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- / — healthy -->
+          <div class="route-row healthy">
+            <div class="rr-header">
+              <span class="rr-path">/</span>
+              <span class="route-badge badge-healthy">✓ Healthy</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <div class="rr-metrics">
+                <div class="rr-metric"><div class="rr-val" style="color:#4ecca3;">320ms</div><div class="rr-lbl">p95</div></div>
+                <div class="rr-metric"><div class="rr-val" style="color:#4ecca3;">0.1%</div><div class="rr-lbl">Err</div></div>
+              </div>
+              <div class="rr-sparkline">
+                <div class="rr-spark spark-green" style="height:8px;"></div>
+                <div class="rr-spark spark-green" style="height:9px;"></div>
+                <div class="rr-spark spark-green" style="height:8px;"></div>
+                <div class="rr-spark spark-green" style="height:8px;"></div>
+                <div class="rr-spark spark-green" style="height:9px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- /teacher, /owner, /content — healthy -->
+          <div class="route-row healthy"><div class="rr-header"><span class="rr-path">/teacher</span><span class="route-badge badge-healthy">✓ Healthy</span></div><div style="font-size:12px; color:#4ecca3; margin-top:4px;">480ms p95 · 0.2% err</div></div>
+          <div class="route-row healthy"><div class="rr-header"><span class="rr-path">/owner</span><span class="route-badge badge-healthy">✓ Healthy</span></div><div style="font-size:12px; color:#4ecca3; margin-top:4px;">210ms p95 · 0.0% err</div></div>
+          <div class="route-row healthy"><div class="rr-header"><span class="rr-path">/content</span><span class="route-badge badge-healthy">✓ Healthy</span></div><div style="font-size:12px; color:#4ecca3; margin-top:4px;">560ms p95 · 0.3% err</div></div>
+
+          <div style="height:80px;"></div>
+          <!-- Bottom nav -->
+          <div style="position:sticky; bottom:0; display:flex; background:#141a26; border-top:1px solid #2a3040; padding:8px 0 18px;">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:#556; padding:4px 0;"><span style="font-size:20px;">📊</span>Dashboard</div>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:#ffd166; padding:4px 0;"><span style="font-size:20px;">🛣️</span>Routes</div>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:#556; padding:4px 0;"><span style="font-size:20px;">📦</span>Content</div>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:#556; padding:4px 0;"><span style="font-size:20px;">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All clear state -->
+    <div>
+      <div class="phone-label">All-clear state</div>
+      <div class="phone" style="min-height:500px;">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>●●● ▶ 🔋</span></div>
+          <div class="topbar">
+            <div style="flex:1;"><div class="topbar-title">Route Health</div><div class="topbar-subtitle">6 routes · All healthy</div></div>
+            <div class="topbar-actions"><div class="topbar-btn">⟳</div></div>
+          </div>
+          <div style="margin:20px 16px; background:#0a2a1e; border:1px solid #4ecca355; border-radius:14px; padding:24px 16px; text-align:center;">
+            <div style="font-size:40px; margin-bottom:10px;">✅</div>
+            <div style="font-size:16px; font-weight:800; color:#4ecca3; margin-bottom:6px;">All routes healthy</div>
+            <div style="font-size:13px; color:#778; line-height:1.6;">No critical or warning conditions. All p95 latencies within thresholds.</div>
+          </div>
+          <div class="section-label">Routes (all healthy)</div>
+          <div class="route-row healthy"><div class="rr-header"><span class="rr-path">/play</span><span class="route-badge badge-healthy">✓ 480ms</span></div></div>
+          <div class="route-row healthy"><div class="rr-header"><span class="rr-path">/parent</span><span class="route-badge badge-healthy">✓ 320ms</span></div></div>
+          <div class="route-row healthy"><div class="rr-header"><span class="rr-path">/</span><span class="route-badge badge-healthy">✓ 200ms</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 4 -->
+<div id="alert-states" class="panel">
+  <div class="hint"><strong>Panel 4 — Alert States:</strong> Three alert severity levels at top of screen. Critical (red, non-dismissible until resolved), Warning (amber, dismissible), Info (blue, dismissible). Alert rules: critical → push notification if unacked for 15min. Shows all three alert bar variants.</div>
+
+  <div style="display:flex; flex-direction:column; gap:16px; max-width:800px;">
+    <!-- Critical -->
+    <div>
+      <div style="font-size:12px; font-weight:700; color:#667; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;">Critical Alert (non-dismissible)</div>
+      <div style="background:#2a0a0a; border:2px solid #ff6b6b; border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:20px;">🔴</span>
+        <div style="flex:1;">
+          <div style="font-size:13px; font-weight:700; color:#ff6b6b; margin-bottom:2px;">/play — p95 latency critical</div>
+          <div style="font-size:12px; color:#cc8888;">3.2s measured — threshold 800ms. Affecting K–1 sessions. Active since 9:14 AM (28 min).</div>
+        </div>
+        <div style="background:#ff6b6b; color:#fff; border-radius:8px; padding:6px 14px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">Investigate</div>
+      </div>
+      <div style="font-size:11px; color:#445; margin-top:6px; padding-left:4px;">❌ No dismiss button — must investigate to clear. Auto-pages on-call after 15 min unacked.</div>
+    </div>
+
+    <!-- Warning -->
+    <div>
+      <div style="font-size:12px; font-weight:700; color:#667; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;">Warning Alert (dismissible)</div>
+      <div style="background:#1a1500; border:1.5px solid #ffd166; border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:20px;">⚡</span>
+        <div style="flex:1;">
+          <div style="font-size:13px; font-weight:700; color:#ffd166; margin-bottom:2px;">/parent — p95 latency elevated</div>
+          <div style="font-size:12px; color:#aa8844;">920ms measured — warning threshold 500ms. Monitor closely.</div>
+        </div>
+        <div style="background:#ffd16622; color:#ffd166; border:1px solid #ffd16644; border-radius:8px; padding:6px 14px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">Dismiss</div>
+      </div>
+      <div style="font-size:11px; color:#445; margin-top:6px; padding-left:4px;">✓ Dismissible — re-alerts if condition persists after 1h.</div>
+    </div>
+
+    <!-- Info -->
+    <div>
+      <div style="font-size:12px; font-weight:700; color:#667; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;">Info Alert (dismissible)</div>
+      <div style="background:#0a1a2a; border:1.5px solid #5599ee; border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:20px;">ℹ️</span>
+        <div style="flex:1;">
+          <div style="font-size:13px; font-weight:700; color:#5599ee; margin-bottom:2px;">Scheduled maintenance — /content</div>
+          <div style="font-size:12px; color:#4466aa;">CDN cache flush scheduled for tonight 11pm–1am. /content may show elevated latency.</div>
+        </div>
+        <div style="background:#5599ee22; color:#5599ee; border:1px solid #5599ee44; border-radius:8px; padding:6px 14px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">Got it</div>
+      </div>
+    </div>
+
+    <!-- Multi-alert stacking -->
+    <div>
+      <div style="font-size:12px; font-weight:700; color:#667; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;">Multi-alert (stacked, max 3 shown)</div>
+      <div style="background:#2a0a0a; border:2px solid #ff6b6b; border-radius:10px 10px 0 0; padding:10px 16px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:16px;">🔴</span>
+        <span style="font-size:13px; color:#ff9999; flex:1;"><strong>/play</strong> p95 latency critical — 3.2s</span>
+        <span style="color:#ff6b6b; font-size:13px; font-weight:700; cursor:pointer;">View</span>
+      </div>
+      <div style="background:#1a1500; border:1.5px solid #ffd166; border-top:none; border-radius:0; padding:8px 16px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:16px;">⚡</span>
+        <span style="font-size:13px; color:#ccaa44; flex:1;"><strong>/parent</strong> p95 warning — 920ms</span>
+        <span style="color:#ffd166; font-size:12px; font-weight:700; cursor:pointer;">Dismiss</span>
+      </div>
+      <div style="background:#0a1a2a; border:1.5px solid #5599ee; border-top:none; border-radius:0 0 10px 10px; padding:8px 16px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:16px;">ℹ️</span>
+        <span style="font-size:13px; color:#4466aa; flex:1;">Maintenance scheduled — /content</span>
+        <span style="color:#5599ee; font-size:12px; font-weight:700; cursor:pointer;">Got it</span>
+      </div>
+      <div style="font-size:11px; color:#445; margin-top:6px; padding-left:4px;">Max 3 alerts shown stacked. Overflow → "View all N alerts" link.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 5 -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Panel 5 — Spec Notes:</strong> Canonical spec for /owner/route-health. This page is the system operations health hub — latency, errors, uptime per route. Owner-only access.</div>
+
+  <h2>Owner Route Health — Spec</h2>
+
+  <h3>Routes monitored</h3>
+  <table class="spec-table">
+    <tr><th>Route</th><th>Primary audience</th><th>Critical if p95 &gt;</th><th>Warning if p95 &gt;</th></tr>
+    <tr><td><code>/</code></td><td>All (landing)</td><td>1s</td><td>500ms</td></tr>
+    <tr><td><code>/play</code></td><td>Child</td><td>800ms</td><td>500ms</td></tr>
+    <tr><td><code>/parent</code></td><td>Parent</td><td>1.5s</td><td>800ms</td></tr>
+    <tr><td><code>/teacher</code></td><td>Teacher</td><td>1.5s</td><td>800ms</td></tr>
+    <tr><td><code>/owner</code></td><td>Owner</td><td>2s</td><td>1s</td></tr>
+    <tr><td><code>/content</code></td><td>Owner/admin</td><td>2s</td><td>1s</td></tr>
+  </table>
+
+  <h3>Route card anatomy</h3>
+  <table class="spec-table">
+    <tr><th>Field</th><th>Notes</th></tr>
+    <tr><td>Route path</td><td>Monospace, teal color</td></tr>
+    <tr><td>Health badge</td><td>Critical (red) / Warning (amber) / Healthy (green)</td></tr>
+    <tr><td>p95 latency</td><td>Primary signal — colored by threshold state</td></tr>
+    <tr><td>Error rate</td><td>% of 5xx + 4xx over last 1h</td></tr>
+    <tr><td>Uptime</td><td>30-day rolling uptime %</td></tr>
+    <tr><td>7-day sparkline</td><td>Bar per day, colored by daily p95 health state</td></tr>
+    <tr><td>Last checked</td><td>Relative time — "X min ago"</td></tr>
+  </table>
+
+  <h3>Alert rules</h3>
+  <table class="spec-table">
+    <tr><th>Level</th><th>Color</th><th>Dismissible?</th><th>Push notification?</th></tr>
+    <tr><td><span class="pill pill-red">Critical</span></td><td>#ff6b6b</td><td>No — must investigate</td><td>Yes — after 15 min unacked</td></tr>
+    <tr><td><span class="pill pill-amber">Warning</span></td><td>#ffd166</td><td>Yes — re-alerts after 1h</td><td>No</td></tr>
+    <tr><td><span class="pill pill-blue">Info</span></td><td>#5599ee</td><td>Yes</td><td>No</td></tr>
+  </table>
+
+  <h3>KPI strip values</h3>
+  <table class="spec-table">
+    <tr><th>KPI</th><th>Calculation</th><th>Green if</th><th>Amber if</th><th>Red if</th></tr>
+    <tr><td>Total routes</td><td>Count of monitored routes</td><td>Always neutral</td><td>—</td><td>—</td></tr>
+    <tr><td>Critical</td><td>Count in critical state</td><td>= 0</td><td>—</td><td>&gt; 0</td></tr>
+    <tr><td>Avg p95 latency</td><td>Mean across all routes</td><td>&lt; 500ms</td><td>500ms–1s</td><td>&gt; 1s</td></tr>
+    <tr><td>Error rate</td><td>Weighted avg across routes</td><td>&lt; 0.5%</td><td>0.5–2%</td><td>&gt; 2%</td></tr>
+  </table>
+
+  <h3>Sort order</h3>
+  <ul>
+    <li>Critical routes first, then warning, then healthy</li>
+    <li>Within same status: sorted by p95 latency descending (worst first)</li>
+    <li>All-clear state: sorted by route traffic volume (highest first)</li>
+  </ul>
+
+  <h3>Design tokens</h3>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+    <tr><td>bg</td><td>#0d1117</td><td>Owner dark ops background</td></tr>
+    <tr><td>surface</td><td>#141a26</td><td>Cards, topbar</td></tr>
+    <tr><td>accent</td><td>#ffd166</td><td>Gold — primary action buttons, today line</td></tr>
+    <tr><td>healthy</td><td>#4ecca3</td><td>Green — passing metrics, healthy badge</td></tr>
+    <tr><td>warning</td><td>#ffd166</td><td>Amber — warning state</td></tr>
+    <tr><td>critical</td><td>#ff6b6b</td><td>Red — critical alerts, failing metrics</td></tr>
+    <tr><td>font</td><td>Sora</td><td>All text; monospace for route paths</td></tr>
+  </table>
+
+  <div class="hint"><strong>Single source of truth:</strong> This file is canonical for /owner/route-health. Supersedes all prior route health monitor mocks.</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

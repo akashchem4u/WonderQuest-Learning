@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Question Card Grid v3 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#1a1240;border-bottom:2px solid #2a1f5e;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:10px;color:#9b72ff;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#ffd166;border-bottom-color:#ffd166}
+.screen{display:none;padding:16px;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Question header */
+.question-header{background:linear-gradient(135deg,#1a1240,#221a50);border-radius:18px;padding:18px;text-align:center;margin-bottom:16px;border:1.5px solid #2a1f5e}
+.q-band{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px}
+.q-text{font-size:20px;font-weight:900;color:#fff;line-height:1.4}
+.q-image{font-size:48px;margin-bottom:8px}
+
+/* 2x2 grid */
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.answer-card{background:#1a1240;border:2.5px solid #2a1f5e;border-radius:18px;padding:18px 12px;text-align:center;cursor:pointer;transition:all 0.22s;position:relative;overflow:hidden}
+.answer-card::before{content:'';position:absolute;inset:0;border-radius:18px;opacity:0;transition:opacity 0.2s}
+.answer-card:hover{border-color:#9b72ff;background:#221a50;transform:translateY(-2px);box-shadow:0 6px 20px rgba(155,114,255,0.25)}
+.answer-card:active{transform:scale(0.96)}
+.answer-card.selected{border-color:#ffd166;background:#2a1f00;box-shadow:0 0 20px rgba(255,209,102,0.35)}
+.answer-card.selected::before{background:radial-gradient(circle at 50% 50%,rgba(255,209,102,0.1),transparent 70%);opacity:1}
+.answer-card.correct-answer{border-color:#58e8c1;background:#0a2e25;box-shadow:0 0 20px rgba(88,232,193,0.4);animation:correct-pop 0.4s ease-out}
+@keyframes correct-pop{0%{transform:scale(0.95)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+.answer-card.wrong-answer{border-color:#ff7b6b;background:#2e0a0a;animation:wrong-shake 0.4s ease-out}
+@keyframes wrong-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.answer-card.disabled{opacity:0.35;pointer-events:none;cursor:default}
+.answer-card .card-emoji{font-size:36px;margin-bottom:8px;display:block}
+.answer-card .card-text{font-size:16px;font-weight:900;color:#fff}
+.answer-card .band-accent{position:absolute;bottom:0;left:0;right:0;height:4px;border-radius:0 0 16px 16px}
+.correct-check{position:absolute;top:8px;right:10px;font-size:16px}
+.wrong-x{position:absolute;top:8px;right:10px;font-size:16px}
+
+/* Coach strip */
+.coach-strip{display:flex;align-items:center;gap:10px;background:#1a1240;border-radius:14px;padding:12px;margin-bottom:14px;border:1.5px solid #2a1f5e}
+.coach-face{font-size:28px;flex-shrink:0;background:#221a50;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1.5px solid #9b72ff}
+.coach-speech p{font-size:13px;color:#fff;font-weight:700;line-height:1.4}
+
+/* Result feedback strip */
+.result-strip{border-radius:12px;padding:14px;text-align:center;margin-bottom:14px;font-size:16px;font-weight:900}
+.result-strip.correct-strip{background:#0a2e25;border:1.5px solid #58e8c1;color:#58e8c1}
+.result-strip.wrong-strip{background:#1a0808;border:1.5px solid #2a1f5e;color:#c8b8f0}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2a1f5e;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1a1240;font-size:12px}
+.spec-row .spec-key{color:#9b8ec4;font-weight:700;flex:0 0 130px}
+.spec-row .spec-val{color:#e0d8ff;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#1a1240;border-radius:10px;padding:12px;font-size:11px;color:#9b8ec4;line-height:1.6;margin-top:8px}
+.color-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('default')">Default Grid</button>
+  <button class="tab" onclick="show('selected')">Selected State</button>
+  <button class="tab" onclick="show('correct')">Correct Answer</button>
+  <button class="tab" onclick="show('wrong')">Wrong Answer</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Default Grid -->
+<div id="default" class="screen active">
+  <div class="hint-box">Route: /play/session — standard 2x2 answer card grid. Emoji + text, clean idle state. <span>Tap to select.</span></div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>Which of these is a fruit? Tap your answer!</p></div>
+  </div>
+  <div class="question-header">
+    <div class="q-band" style="color:#ffd166">Question 3</div>
+    <div class="q-text">Which one is a fruit?</div>
+  </div>
+  <div class="card-grid">
+    <div class="answer-card">
+      <span class="card-emoji">🍎</span>
+      <div class="card-text">Apple</div>
+    </div>
+    <div class="answer-card">
+      <span class="card-emoji">🥕</span>
+      <div class="card-text">Carrot</div>
+    </div>
+    <div class="answer-card">
+      <span class="card-emoji">🥦</span>
+      <div class="card-text">Broccoli</div>
+    </div>
+    <div class="answer-card">
+      <span class="card-emoji">🥔</span>
+      <div class="card-text">Potato</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Selected State -->
+<div id="selected" class="screen">
+  <div class="hint-box">Route: /play/session — child has tapped Apple. Gold glow selected state. <span>Can deselect before confirming.</span></div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>You picked Apple! Is that your final answer?</p></div>
+  </div>
+  <div class="question-header">
+    <div class="q-band" style="color:#ffd166">Question 3</div>
+    <div class="q-text">Which one is a fruit?</div>
+  </div>
+  <div class="card-grid">
+    <div class="answer-card selected">
+      <span class="card-emoji">🍎</span>
+      <div class="card-text">Apple</div>
+    </div>
+    <div class="answer-card">
+      <span class="card-emoji">🥕</span>
+      <div class="card-text">Carrot</div>
+    </div>
+    <div class="answer-card">
+      <span class="card-emoji">🥦</span>
+      <div class="card-text">Broccoli</div>
+    </div>
+    <div class="answer-card">
+      <span class="card-emoji">🥔</span>
+      <div class="card-text">Potato</div>
+    </div>
+  </div>
+  <button style="width:100%;background:linear-gradient(135deg,#ffd166,#ffb300);border:none;border-radius:14px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer">Lock in my answer! 🔒</button>
+</div>
+
+<!-- TAB 3: Correct Answer -->
+<div id="correct" class="screen">
+  <div class="hint-box">Route: /play/session/result — correct answer revealed. Mint band accent on correct card, others disabled. Stars burst.</div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>An apple IS a fruit! They grow on trees. Wonderful! ⭐</p></div>
+  </div>
+  <div class="question-header">
+    <div class="q-band" style="color:#58e8c1">Correct!</div>
+    <div class="q-text">Which one is a fruit?</div>
+  </div>
+  <div class="result-strip correct-strip">✅ Apple is a fruit! +1 ⭐</div>
+  <div class="card-grid">
+    <div class="answer-card correct-answer">
+      <span class="card-emoji">🍎</span>
+      <div class="card-text">Apple</div>
+      <span class="correct-check">✅</span>
+      <div class="band-accent" style="background:#58e8c1"></div>
+    </div>
+    <div class="answer-card disabled">
+      <span class="card-emoji">🥕</span>
+      <div class="card-text">Carrot</div>
+    </div>
+    <div class="answer-card disabled">
+      <span class="card-emoji">🥦</span>
+      <div class="card-text">Broccoli</div>
+    </div>
+    <div class="answer-card disabled">
+      <span class="card-emoji">🥔</span>
+      <div class="card-text">Potato</div>
+    </div>
+  </div>
+  <button style="width:100%;background:linear-gradient(135deg,#58e8c1,#2abf9d);border:none;border-radius:14px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer;margin-top:8px">Next Question! →</button>
+</div>
+
+<!-- TAB 4: Wrong Answer -->
+<div id="wrong" class="screen">
+  <div class="hint-box">Route: /play/session/result — wrong answer. Selected card gets coral border + shake. Correct card highlighted. No star loss, no shame text.</div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>A carrot is actually a vegetable! The apple is the fruit. Let's keep going!</p></div>
+  </div>
+  <div class="question-header">
+    <div class="q-band" style="color:#9b72ff">Keep Going!</div>
+    <div class="q-text">Which one is a fruit?</div>
+  </div>
+  <div class="result-strip wrong-strip" style="background:#1a0808;border-color:#ff7b6b;color:#c8b8f0">A carrot is a vegetable — the apple is a fruit! 🍎</div>
+  <div class="card-grid">
+    <div class="answer-card correct-answer">
+      <span class="card-emoji">🍎</span>
+      <div class="card-text">Apple</div>
+      <span class="correct-check">✅</span>
+      <div class="band-accent" style="background:#58e8c1"></div>
+    </div>
+    <div class="answer-card wrong-answer disabled">
+      <span class="card-emoji">🥕</span>
+      <div class="card-text">Carrot</div>
+      <span class="wrong-x">✗</span>
+      <div class="band-accent" style="background:#ff7b6b"></div>
+    </div>
+    <div class="answer-card disabled">
+      <span class="card-emoji">🥦</span>
+      <div class="card-text">Broccoli</div>
+    </div>
+    <div class="answer-card disabled">
+      <span class="card-emoji">🥔</span>
+      <div class="card-text">Potato</div>
+    </div>
+  </div>
+  <button style="width:100%;background:#221a50;border:1.5px solid #9b72ff;border-radius:14px;padding:14px;color:#9b72ff;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;cursor:pointer;margin-top:8px">Next Question →</button>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for play-question-card-grid-v3.</div>
+  <div class="spec-section">
+    <h3>Component Identity</h3>
+    <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">play-question-card-grid-v3.html</span></div>
+    <div class="spec-row"><span class="spec-key">Version</span><span class="spec-val">v3 (refined from v2)</span></div>
+    <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+    <div class="spec-row"><span class="spec-key">Grid</span><span class="spec-val">2x2, equal columns</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Card States</h3>
+    <div class="spec-row"><span class="spec-key">Default</span><span class="spec-val">#1a1240 bg, #2a1f5e border</span></div>
+    <div class="spec-row"><span class="spec-key">Hover/tap</span><span class="spec-val">#221a50 bg, violet border</span></div>
+    <div class="spec-row"><span class="spec-key">Selected</span><span class="spec-val">#2a1f00 bg, gold border + glow</span></div>
+    <div class="spec-row"><span class="spec-key">Correct</span><span class="spec-val">#0a2e25 bg, mint border + pop anim</span></div>
+    <div class="spec-row"><span class="spec-key">Wrong</span><span class="spec-val">#2e0a0a bg, coral border + shake anim</span></div>
+    <div class="spec-row"><span class="spec-key">Disabled</span><span class="spec-val">opacity 35%, pointer-events none</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Rules</h3>
+    <div class="spec-note">Band accent (4px bottom border) matches skill band color on correct card only. Wrong answer: shake animation 400ms, then disabled state. No "X" or "wrong" text beyond icon. No star penalty visible on wrong answer. Cards lock (disabled) after any answer submitted — no re-selection. Correct card always revealed after submission regardless of selection.</div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['default','selected','correct','wrong','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

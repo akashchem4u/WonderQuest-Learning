@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Session Complete Map Overlay v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', 'Segoe UI', sans-serif; background: #1a1630; color: #e0d8f8; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #0e0c1e; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1a1630; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; color: #776aaa; }
+  .tab.active { background: #100b2e; color: #e0d8f8; }
+  .panel { display: none; padding: 20px 16px 40px; background: #100b2e; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; font-family: 'Segoe UI', sans-serif; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 780px; background: #100b2e; border-radius: 40px; border: 8px solid #2a2050; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 60px rgba(155,114,255,0.15); overflow: hidden; flex-shrink: 0; font-family: 'Nunito', sans-serif; position: relative; }
+  .phone-inner { height: 100%; overflow-y: auto; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #665599; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-family: 'Segoe UI', sans-serif; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #8878c0; background: #100b2e; }
+
+  /* Celebration overlay */
+  .overlay { position: relative; background: #100b2e; }
+  .confetti-row { display: flex; justify-content: center; gap: 8px; padding: 8px 0; font-size: 18px; animation: fall 2s ease infinite; }
+  @keyframes fall { 0%{transform:translateY(-10px);opacity:0} 20%{opacity:1} 100%{transform:translateY(10px);opacity:0.6} }
+  @keyframes bounceIn { 0%{transform:scale(0.4);opacity:0} 70%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  @keyframes starPop { 0%{transform:scale(0) rotate(-20deg)} 60%{transform:scale(1.2) rotate(5deg)} 100%{transform:scale(1) rotate(0deg)} }
+  @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes glowPulse { 0%,100%{box-shadow:0 0 10px rgba(88,232,193,0.4)} 50%{box-shadow:0 0 30px rgba(88,232,193,0.8)} }
+  @keyframes shimmer { 0%{opacity:0.6} 50%{opacity:1} 100%{opacity:0.6} }
+  @keyframes burst { 0%{transform:scale(0)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+
+  /* Map container */
+  .map-container { padding: 12px 16px; }
+  .map-title { font-size: 12px; font-weight: 800; color: #7766aa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+
+  /* Node trail */
+  .node-trail { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .node-row { display: flex; align-items: center; gap: 0; width: 100%; justify-content: center; margin-bottom: 4px; }
+  .node { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; position: relative; flex-shrink: 0; }
+  .node.done { background: #1a3020; border: 3px solid #58e8c1; }
+  .node.done .checkmark { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; background: #58e8c1; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; color: #0a2a1a; font-weight: 900; }
+  .node.just-completed { background: linear-gradient(135deg, #1a3020, #0d2018); border: 3px solid #58e8c1; animation: glowPulse 1.5s ease infinite; }
+  .node.just-completed .checkmark { background: #ffd166; color: #1a1400; animation: burst 0.5s ease; }
+  .node.current { background: #1e1650; border: 3px solid #9b72ff; animation: glowPulse 2s ease infinite; }
+  .node.locked { background: #16122a; border: 2px dashed #3a2f60; opacity: 0.5; }
+  .node-connector { width: 2px; height: 24px; background: linear-gradient(180deg, #2a4030, #1e1650); margin: 0 auto; }
+  .node-connector.done { background: linear-gradient(180deg, #58e8c1, #2ec49a); }
+
+  /* "Just completed" label */
+  .just-done-label { position: absolute; right: -72px; top: 50%; transform: translateY(-50%); background: #58e8c1; color: #0a2a1a; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 900; white-space: nowrap; }
+
+  /* Session results card */
+  .results-card { margin: 0 16px 16px; background: linear-gradient(135deg, #1a3020, #0e2018); border-radius: 20px; padding: 20px; border: 2px solid #58e8c1; }
+  .results-title { font-size: 22px; font-weight: 900; color: #58e8c1; text-align: center; margin-bottom: 4px; }
+  .results-sub { font-size: 14px; color: #2a8060; text-align: center; margin-bottom: 16px; }
+  .results-stats { display: flex; justify-content: space-around; }
+  .stat-cell { text-align: center; }
+  .stat-val { font-size: 28px; font-weight: 900; }
+  .stat-lbl { font-size: 11px; color: #2a6040; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 2px; }
+
+  /* Badge earned */
+  .badge-earned { margin: 0 16px 16px; background: linear-gradient(135deg, #2a1a00, #1a1200); border-radius: 20px; padding: 16px; border: 2px solid #ffd166; display: flex; gap: 14px; align-items: center; }
+  .badge-icon { font-size: 48px; animation: starPop 0.6s ease; flex-shrink: 0; }
+  .badge-title { font-size: 15px; font-weight: 900; color: #ffd166; margin-bottom: 4px; }
+  .badge-desc { font-size: 12px; color: #aa8844; line-height: 1.5; }
+  .badge-new { display: inline-block; background: #ffd16622; color: #ffd166; border: 1px solid #ffd16644; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 900; margin-top: 4px; }
+
+  /* Next node teaser */
+  .next-teaser { margin: 0 16px 16px; background: #1e1650; border-radius: 16px; padding: 14px 16px; border: 1px solid #3a2880; }
+  .next-label { font-size: 11px; font-weight: 800; color: #7766aa; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .next-skill { font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .next-sub { font-size: 12px; color: #9988cc; }
+
+  /* CTA buttons */
+  .cta-row { margin: 0 16px 12px; display: flex; gap: 10px; }
+  .cta-primary { flex: 1; background: linear-gradient(135deg, #58e8c1, #2ec49a); color: #0a2a1a; border-radius: 16px; padding: 14px; text-align: center; font-size: 16px; font-weight: 900; cursor: pointer; }
+  .cta-secondary { background: #1e1650; color: #9b72ff; border: 2px solid #3a2880; border-radius: 16px; padding: 14px 16px; font-size: 14px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; font-family: 'Segoe UI', sans-serif; }
+  .spec-table th { background: #1e1650; padding: 8px 12px; text-align: left; font-weight: 700; font-size: 12px; color: #9988cc; border-bottom: 2px solid #2e2460; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #1e1a38; vertical-align: top; line-height: 1.5; color: #c0b0e0; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-mint { background: #0a2a1e; color: #58e8c1; }
+  .pill-gold { background: #2a1e00; color: #ffd166; }
+  .pill-violet { background: #1e1040; color: #c8a8ff; }
+
+  h2 { font-size: 18px; font-weight: 900; color: #e0d8f8; margin-bottom: 6px; font-family: 'Nunito', sans-serif; }
+  h3 { font-size: 14px; font-weight: 800; color: #a090d0; margin: 20px 0 8px; font-family: 'Nunito', sans-serif; }
+  p { font-size: 13px; color: #8878c0; line-height: 1.6; margin-bottom: 12px; font-family: 'Segoe UI', sans-serif; }
+  ul { font-size: 13px; color: #8878c0; line-height: 1.7; padding-left: 18px; margin-bottom: 12px; font-family: 'Segoe UI', sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('mid-skill')">Mid-Skill Complete</button>
+  <button class="tab" onclick="show('skill-mastered')">Skill Mastered!</button>
+  <button class="tab" onclick="show('band-complete')">Band Complete 🏆</button>
+  <button class="tab" onclick="show('overlay-anim')">Overlay Animation States</button>
+  <button class="tab" onclick="show('spec')">Spec Notes</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 1 -->
+<div id="mid-skill" class="panel active">
+  <div class="hint"><strong>Panel 1 — Mid-Skill Node Complete:</strong> Child finishes one node in a multi-node skill. Map overlay slides up showing progress trail. Node just completed = glowing mint ring + gold star check. Next node = pulsing violet. Celebration is warm but not over-the-top (save the big fireworks for skill mastery). 375px phone frame.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Node 3 of 5 complete</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <!-- Confetti -->
+          <div class="confetti-row">⭐ 🌟 ✨ ⭐ 🌟 ✨ ⭐</div>
+
+          <!-- Results card -->
+          <div class="results-card">
+            <div class="results-title">Nice work! ⭐</div>
+            <div class="results-sub">Node 3 complete — you're halfway!</div>
+            <div class="results-stats">
+              <div class="stat-cell">
+                <div class="stat-val" style="color:#58e8c1;">3</div>
+                <div class="stat-lbl">Nodes done</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-val" style="color:#ffd166;">2</div>
+                <div class="stat-lbl">To go</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-val" style="color:#9b72ff;">🔥 7</div>
+                <div class="stat-lbl">Day streak</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress map -->
+          <div class="map-container">
+            <div class="map-title">🌌 Number Galaxy — Comparing Numbers</div>
+            <div class="node-trail">
+              <!-- Node 1 done -->
+              <div style="display:flex; justify-content:center; position:relative;">
+                <div class="node done" style="left:30px;">
+                  🔢
+                  <div class="checkmark">✓</div>
+                </div>
+              </div>
+              <div class="node-connector done"></div>
+              <!-- Node 2 done -->
+              <div style="display:flex; justify-content:center; position:relative;">
+                <div class="node done" style="right:20px;">
+                  🎯
+                  <div class="checkmark">✓</div>
+                </div>
+              </div>
+              <div class="node-connector done"></div>
+              <!-- Node 3 just completed -->
+              <div style="display:flex; justify-content:center; position:relative; width:100%;">
+                <div class="node just-completed" style="left:24px; position:relative;">
+                  ⭐
+                  <div class="checkmark">✓</div>
+                  <div class="just-done-label">Just done!</div>
+                </div>
+              </div>
+              <div class="node-connector"></div>
+              <!-- Node 4 current -->
+              <div style="display:flex; justify-content:center; position:relative;">
+                <div class="node current" style="right:16px;">
+                  🔮
+                </div>
+              </div>
+              <div class="node-connector"></div>
+              <!-- Node 5 locked -->
+              <div style="display:flex; justify-content:center;">
+                <div class="node locked">
+                  🔒
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next node teaser -->
+          <div class="next-teaser">
+            <div class="next-label">Up next</div>
+            <div class="next-skill">Node 4 — Picture comparisons</div>
+            <div class="next-sub">Compare groups shown as pictures, not just numbers.</div>
+          </div>
+
+          <!-- CTAs -->
+          <div class="cta-row">
+            <div class="cta-primary">▶ Keep going!</div>
+            <div class="cta-secondary">🗺️</div>
+          </div>
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">take a break</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Node 4 of 5 — so close callout</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+          <div class="confetti-row">⭐ ✨ 🌟 ✨ ⭐ ✨ 🌟</div>
+
+          <div class="results-card">
+            <div class="results-title">Almost there! ⚡</div>
+            <div class="results-sub">Just one node left to master this skill!</div>
+            <div class="results-stats">
+              <div class="stat-cell"><div class="stat-val" style="color:#58e8c1;">4</div><div class="stat-lbl">Done</div></div>
+              <div class="stat-cell"><div class="stat-val" style="color:#ffd166; animation:shimmer 1.5s ease infinite;">1</div><div class="stat-lbl">To go!</div></div>
+              <div class="stat-cell"><div class="stat-val" style="color:#9b72ff;">🔥 7</div><div class="stat-lbl">Streak</div></div>
+            </div>
+          </div>
+
+          <!-- So close banner -->
+          <div style="margin:0 16px 14px; background:linear-gradient(135deg,#2a1e00,#1a1400); border:2px solid #ffd166; border-radius:16px; padding:12px 14px; display:flex; gap:10px; align-items:center;">
+            <span style="font-size:24px; animation:floatY 2s ease infinite;">🏆</span>
+            <div>
+              <div style="font-size:14px; font-weight:900; color:#ffd166;">One more to unlock the trophy!</div>
+              <div style="font-size:12px; color:#aa8844; margin-top:2px;">Finish node 5 to earn the Comparing Numbers badge!</div>
+            </div>
+          </div>
+
+          <div class="map-container">
+            <div class="map-title">🌌 Number Galaxy — Comparing Numbers</div>
+            <div class="node-trail">
+              <div style="display:flex; justify-content:center; position:relative;"><div class="node done" style="left:20px;">🔢<div class="checkmark">✓</div></div></div>
+              <div class="node-connector done"></div>
+              <div style="display:flex; justify-content:center;"><div class="node done" style="right:16px;">🎯<div class="checkmark">✓</div></div></div>
+              <div class="node-connector done"></div>
+              <div style="display:flex; justify-content:center;"><div class="node done" style="left:24px;">⭐<div class="checkmark">✓</div></div></div>
+              <div class="node-connector done"></div>
+              <div style="display:flex; justify-content:center; position:relative; width:100%;">
+                <div class="node just-completed" style="right:20px; position:relative;">🔮<div class="checkmark">✓</div><div class="just-done-label">Just done!</div></div>
+              </div>
+              <div class="node-connector"></div>
+              <div style="display:flex; justify-content:center;"><div class="node current" style="left:16px;">🏆</div></div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <div class="cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0b800); color:#1a1400;">🏆 Finish the skill!</div>
+            <div class="cta-secondary">🗺️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 2 -->
+<div id="skill-mastered" class="panel">
+  <div class="hint"><strong>Panel 2 — Skill Mastered:</strong> Child completes all nodes in a skill. Full celebration overlay: large burst animation, badge earned card, skill marked complete on map, next skill teaser. This is a bigger moment than mid-skill complete.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Skill mastered — badge earned</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <!-- Big confetti moment -->
+          <div style="background:linear-gradient(180deg,#1a3020 0%,#100b2e 60%); padding:24px 16px 16px; text-align:center;">
+            <div style="font-size:72px; animation:burst 0.8s ease, floatY 3s ease 0.8s infinite;">🏆</div>
+            <div style="font-size:26px; font-weight:900; color:#ffd166; margin-top:8px; line-height:1.2;">Skill mastered!<br>You did it! 🎉</div>
+            <div style="font-size:14px; color:#58e8c1; margin-top:8px;">Comparing Numbers — COMPLETE!</div>
+            <div class="confetti-row" style="animation:fall 1s ease infinite;">🌟 ⭐ ✨ 🌟 ⭐ ✨ 🌟</div>
+          </div>
+
+          <!-- Badge earned -->
+          <div class="badge-earned">
+            <div class="badge-icon">🥇</div>
+            <div>
+              <div class="badge-title">Badge earned!</div>
+              <div class="badge-desc">"Number Ninja" — you mastered Comparing Numbers in K–1 Violet band!</div>
+              <div class="badge-new">New badge!</div>
+            </div>
+          </div>
+
+          <!-- Map — all done -->
+          <div class="map-container">
+            <div class="map-title">🌌 Number Galaxy — All complete!</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <div class="node done" style="width:44px;height:44px;font-size:16px;">🔢<div class="checkmark">✓</div></div>
+              <div style="width:16px; height:2px; background:#58e8c1;"></div>
+              <div class="node done" style="width:44px;height:44px;font-size:16px;">🎯<div class="checkmark">✓</div></div>
+              <div style="width:16px; height:2px; background:#58e8c1;"></div>
+              <div class="node done" style="width:44px;height:44px;font-size:16px;">⭐<div class="checkmark">✓</div></div>
+              <div style="width:16px; height:2px; background:#58e8c1;"></div>
+              <div class="node done" style="width:44px;height:44px;font-size:16px;">🔮<div class="checkmark">✓</div></div>
+              <div style="width:16px; height:2px; background:#58e8c1;"></div>
+              <div class="node done" style="width:44px;height:44px;font-size:16px;">🏆<div class="checkmark">✓</div></div>
+            </div>
+          </div>
+
+          <!-- Next skill teaser -->
+          <div class="next-teaser">
+            <div class="next-label">✦ Your next quest awaits</div>
+            <div class="next-skill">Skip Counting — Number Galaxy</div>
+            <div class="next-sub">Count by 2s, 5s, and 10s — a new adventure in the same world!</div>
+          </div>
+
+          <div class="cta-row">
+            <div class="cta-primary" style="background:linear-gradient(135deg,#9b72ff,#6b48c8);">✨ Start next quest</div>
+            <div class="cta-secondary">🗺️</div>
+          </div>
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">see my full badge collection</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 3 -->
+<div id="band-complete" class="panel">
+  <div class="hint"><strong>Panel 3 — Band Complete:</strong> Child completes ALL skills in their current band (e.g., all K–1 Violet skills). Biggest possible celebration. Full-screen overlay with trophy shelf preview. Teases the next band. Shows all skills completed on a mini map. Very special moment — max confetti, max celebration.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">K–1 Violet Band — ALL complete!</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <!-- Full screen celebration -->
+          <div style="background:linear-gradient(180deg,#2a0a60 0%,#1a0050 40%,#100b2e 100%); padding:24px 20px; text-align:center; min-height:320px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div class="confetti-row" style="font-size:22px;">🌟 🏆 🌟 🏆 🌟 🏆 🌟</div>
+            <div style="font-size:64px; animation:burst 0.8s ease, floatY 4s ease 1s infinite; margin:8px 0;">👑</div>
+            <div style="font-size:28px; font-weight:900; color:#ffd166; line-height:1.2; margin-bottom:8px;">BAND COMPLETE!<br>K–1 Violet! 🎊</div>
+            <div style="font-size:15px; color:#c8a8ff; margin-bottom:12px;">Maya — you mastered every single skill!</div>
+            <div class="confetti-row" style="font-size:22px;">✨ ⭐ ✨ ⭐ ✨ ⭐ ✨</div>
+          </div>
+
+          <!-- All skills done mini list -->
+          <div style="margin:16px; background:#1a1040; border-radius:16px; padding:14px; border:2px solid #9b72ff;">
+            <div style="font-size:12px; font-weight:800; color:#7766aa; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:10px;">K–1 Violet — All mastered ✓</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; align-items:center; gap:8px;"><div style="color:#58e8c1; font-size:14px;">✓</div><div style="font-size:13px; color:#e0d8f8; font-weight:700;">Counting to 20</div><div style="margin-left:auto; font-size:16px;">🥇</div></div>
+              <div style="display:flex; align-items:center; gap:8px;"><div style="color:#58e8c1; font-size:14px;">✓</div><div style="font-size:13px; color:#e0d8f8; font-weight:700;">Comparing Numbers</div><div style="margin-left:auto; font-size:16px;">🥇</div></div>
+              <div style="display:flex; align-items:center; gap:8px;"><div style="color:#58e8c1; font-size:14px;">✓</div><div style="font-size:13px; color:#e0d8f8; font-weight:700;">Skip Counting</div><div style="margin-left:auto; font-size:16px;">🥇</div></div>
+              <div style="display:flex; align-items:center; gap:8px;"><div style="color:#58e8c1; font-size:14px;">✓</div><div style="font-size:13px; color:#e0d8f8; font-weight:700;">Addition Basics</div><div style="margin-left:auto; font-size:16px;">🥇</div></div>
+            </div>
+          </div>
+
+          <!-- Band trophy -->
+          <div class="badge-earned" style="border-color:#ffd166; background:linear-gradient(135deg,#2a1e00,#1a1400);">
+            <div class="badge-icon" style="font-size:56px;">🌟</div>
+            <div>
+              <div class="badge-title" style="font-size:16px;">Band Trophy Earned!</div>
+              <div class="badge-desc">"Violet Explorer" — You completed the entire K–1 Violet band. Incredible!</div>
+              <div class="badge-new" style="font-size:11px; padding:3px 10px;">Legendary badge</div>
+            </div>
+          </div>
+
+          <!-- Next band teaser -->
+          <div style="margin:0 16px 16px; background:linear-gradient(135deg,#0a2a1e,#0d1a14); border:2px solid #58e8c1; border-radius:20px; padding:16px; text-align:center;">
+            <div style="font-size:20px; margin-bottom:8px;">🌿</div>
+            <div style="font-size:16px; font-weight:900; color:#58e8c1; margin-bottom:6px;">G2–3 Mint Band awaits!</div>
+            <div style="font-size:13px; color:#2a6040; line-height:1.5;">New worlds, bigger adventures — your next journey starts now!</div>
+          </div>
+
+          <div class="cta-row">
+            <div class="cta-primary">🌿 Enter G2–3 Band!</div>
+          </div>
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">see my trophy shelf</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 4 -->
+<div id="overlay-anim" class="panel">
+  <div class="hint"><strong>Panel 4 — Overlay Animation States:</strong> The map overlay slides up from below after the last answer is confirmed. Three animation phases: (1) answer correct + lock-in → 300ms delay → (2) overlay slides up (translateY 100%→0, 400ms ease-out) → (3) just-completed node glows, confetti falls. Phone shows before + after overlay states.</div>
+
+  <div class="phone-wrap">
+    <!-- Before overlay -->
+    <div>
+      <div class="phone-label">State A — Play screen (overlay hidden)</div>
+      <div class="phone" style="min-height:600px;">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <!-- Play bar -->
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; background:#100b2e; border-bottom:1px solid #2a2050;">
+            <div style="flex:1; background:#1e1650; border-radius:8px; height:8px; overflow:hidden;">
+              <div style="width:80%; height:100%; background:linear-gradient(90deg,#9b72ff,#c8a8ff); border-radius:8px;"></div>
+            </div>
+            <div style="font-size:12px; color:#9b72ff; font-weight:800;">4/5</div>
+            <div style="font-size:18px;">🔥</div>
+            <div style="font-size:13px; color:#ffd166; font-weight:800;">7</div>
+          </div>
+
+          <!-- Question card -->
+          <div style="margin:16px; background:#1e1650; border-radius:20px; padding:20px; border:1px solid #3a2880; text-align:center;">
+            <div style="font-size:14px; color:#9988cc; margin-bottom:12px; font-weight:700;">Which group has MORE?</div>
+            <div style="font-size:48px; margin-bottom:8px;">🍎🍎🍎 vs 🍊🍊🍊🍊🍊</div>
+          </div>
+
+          <!-- Answer grid -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 16px;">
+            <div style="background:#2a1a50; border:2px solid #ffd166; border-radius:16px; padding:16px; text-align:center;">
+              <div style="font-size:22px; margin-bottom:6px;">🍎</div>
+              <div style="font-size:14px; font-weight:900; color:#ffd166;">Apples</div>
+            </div>
+            <div style="background:#1e1650; border:2px solid #3a2880; border-radius:16px; padding:16px; text-align:center;">
+              <div style="font-size:22px; margin-bottom:6px;">🍊</div>
+              <div style="font-size:14px; font-weight:900; color:#e0d8f8;">Oranges</div>
+            </div>
+            <div style="background:#1e1650; border:2px solid #3a2880; border-radius:16px; padding:16px; text-align:center;">
+              <div style="font-size:22px; margin-bottom:6px;">🤝</div>
+              <div style="font-size:14px; font-weight:900; color:#e0d8f8;">Same</div>
+            </div>
+            <div style="background:#1e1650; border:2px solid #3a2880; border-radius:16px; padding:16px; text-align:center;">
+              <div style="font-size:22px; margin-bottom:6px;">🤷</div>
+              <div style="font-size:14px; font-weight:900; color:#e0d8f8;">Not sure</div>
+            </div>
+          </div>
+
+          <div style="margin:16px; background:#9b72ff; border-radius:16px; padding:14px; text-align:center; font-size:16px; font-weight:900; color:#fff;">Check my answer ✓</div>
+
+          <div style="margin:6px 16px; background:#1e3020; border:1px solid #58e8c144; border-radius:12px; padding:10px 14px; font-size:12px; color:#58e8c1; text-align:center; font-weight:700;">Overlay appears here after last answer ↓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay sliding up -->
+    <div>
+      <div class="phone-label">State B — Map overlay (slide-up complete)</div>
+      <div class="phone" style="min-height:600px; position:relative; overflow:hidden;">
+        <!-- Blurred play screen behind -->
+        <div style="position:absolute; inset:0; filter:blur(2px); opacity:0.3; background:#100b2e; display:flex; align-items:flex-start; padding-top:60px; justify-content:center;">
+          <div style="font-size:40px;">🍎🍎🍎</div>
+        </div>
+        <!-- Overlay panel -->
+        <div style="position:absolute; bottom:0; left:0; right:0; background:#100b2e; border-radius:28px 28px 0 0; border-top:2px solid #58e8c1; padding:16px; box-shadow:0 -8px 40px rgba(88,232,193,0.3);">
+          <div style="width:40px; height:4px; background:#2a2050; border-radius:2px; margin:0 auto 14px;"></div>
+          <div class="confetti-row">⭐ ✨ 🌟 ✨ ⭐ ✨</div>
+
+          <div style="text-align:center; margin-bottom:14px;">
+            <div style="font-size:22px; font-weight:900; color:#58e8c1;">Nice work! ⭐</div>
+            <div style="font-size:13px; color:#2a8060;">Node 4 of 5 complete</div>
+          </div>
+
+          <!-- Mini map -->
+          <div style="display:flex; gap:6px; align-items:center; justify-content:center; margin-bottom:16px;">
+            <div class="node done" style="width:40px;height:40px;font-size:14px;">🔢<div class="checkmark" style="width:14px;height:14px;font-size:8px;">✓</div></div>
+            <div style="width:12px; height:2px; background:#58e8c1;"></div>
+            <div class="node done" style="width:40px;height:40px;font-size:14px;">🎯<div class="checkmark" style="width:14px;height:14px;font-size:8px;">✓</div></div>
+            <div style="width:12px; height:2px; background:#58e8c1;"></div>
+            <div class="node done" style="width:40px;height:40px;font-size:14px;">⭐<div class="checkmark" style="width:14px;height:14px;font-size:8px;">✓</div></div>
+            <div style="width:12px; height:2px; background:#58e8c1;"></div>
+            <div class="node just-completed" style="width:40px;height:40px;font-size:14px;">🔮<div class="checkmark" style="width:14px;height:14px;font-size:8px;">✓</div></div>
+            <div style="width:12px; height:2px; background:#2a2050;"></div>
+            <div class="node current" style="width:40px;height:40px;font-size:14px;">🏆</div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#2a1e00,#1a1400); border:1.5px solid #ffd166; border-radius:14px; padding:10px 12px; display:flex; gap:10px; align-items:center; margin-bottom:14px;">
+            <span style="font-size:22px;">🏆</span>
+            <div style="font-size:13px; color:#ffd166; font-weight:800;">1 more node to master this skill!</div>
+          </div>
+
+          <div class="cta-row" style="margin:0 0 8px;">
+            <div class="cta-primary" style="font-size:15px;">▶ Keep going!</div>
+            <div class="cta-secondary" style="font-size:13px;">🗺️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animation spec -->
+  <h3 style="color:#a090d0; font-family:'Nunito',sans-serif; margin-top:24px;">Overlay animation sequence</h3>
+  <table class="spec-table">
+    <tr><th>Step</th><th>Timing</th><th>What happens</th></tr>
+    <tr><td>1. Answer confirmed correct</td><td>0ms</td><td>Answer card flips to correct state (green border + ✓ icon)</td></tr>
+    <tr><td>2. Brief pause</td><td>+300ms</td><td>Hold correct state so child sees the feedback</td></tr>
+    <tr><td>3. Overlay slides up</td><td>+400ms ease-out</td><td>Panel translateY(100%) → translateY(0), background blurs behind</td></tr>
+    <tr><td>4. Just-completed node glows</td><td>+100ms after overlay</td><td>Node border pulses mint, checkmark bursts in (scale 0→1)</td></tr>
+    <tr><td>5. Confetti falls</td><td>+200ms after glow</td><td>3–5 emoji confetti items animate fall</td></tr>
+    <tr><td>6. "Keep going" CTA appears</td><td>+400ms after confetti</td><td>Primary CTA fades in, ready to tap</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 5 -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Panel 5 — Spec Notes:</strong> Canonical spec for child session complete map overlay. Triggered after every node completion during a play session. Scale of celebration varies by completion type.</div>
+
+  <h2>Session Complete Map Overlay — Spec</h2>
+
+  <h3>Celebration scale by completion type</h3>
+  <table class="spec-table">
+    <tr><th>Type</th><th>Scale</th><th>Node state</th><th>Badge earned?</th></tr>
+    <tr><td><span class="pill pill-violet">Node complete (mid-skill)</span></td><td>Warm — star emoji, "Nice work!"</td><td>Mint ring + gold checkmark</td><td>No</td></tr>
+    <tr><td><span class="pill pill-violet">Last node (so close)</span></td><td>Higher energy — "Almost there!"</td><td>Gold pulsing CTA</td><td>No</td></tr>
+    <tr><td><span class="pill pill-mint">Skill mastered</span></td><td>Big — 🏆 burst, full badge card</td><td>All nodes mint rings</td><td>Yes</td></tr>
+    <tr><td><span class="pill pill-gold">Band complete</span></td><td>Max — full overlay, band trophy</td><td>Full map all-done view</td><td>Yes — band trophy</td></tr>
+  </table>
+
+  <h3>Map node states</h3>
+  <table class="spec-table">
+    <tr><th>State</th><th>Visual</th><th>Animation</th></tr>
+    <tr><td>Done (previous)</td><td>Mint border #58e8c1, ✓ checkmark</td><td>Static</td></tr>
+    <tr><td>Just completed</td><td>Mint border + gold checkmark, glow pulse</td><td>glowPulse 1.5s, burst on checkmark</td></tr>
+    <tr><td>Current (next)</td><td>Violet border #9b72ff, pulsing</td><td>glowPulse 2s</td></tr>
+    <tr><td>Locked</td><td>Dashed dark border, 50% opacity</td><td>None</td></tr>
+  </table>
+
+  <h3>Map layout on overlay</h3>
+  <ul>
+    <li>Mid-skill: vertical node trail (up to 5 nodes tall, scroll if needed)</li>
+    <li>Skill mastered: horizontal mini-map (all nodes in a row) — more compact, less emphasis on trail</li>
+    <li>Band complete: mini skill list (names + ✓ + badge icon) — no node trail needed</li>
+  </ul>
+
+  <h3>Never show on overlay</h3>
+  <ul>
+    <li>Accuracy % (correct out of total)</li>
+    <li>"X wrong answers" or any error count</li>
+    <li>Time taken</li>
+    <li>Comparison to other sessions ("better than last time")</li>
+  </ul>
+
+  <h3>Design tokens</h3>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>bg</td><td>#100b2e — child dark cosmic</td></tr>
+    <tr><td>overlay-surface</td><td>#100b2e with border-top #58e8c1</td></tr>
+    <tr><td>node-done</td><td>border #58e8c1, check bg #58e8c1</td></tr>
+    <tr><td>node-just-completed</td><td>border #58e8c1 + glowPulse, check bg #ffd166</td></tr>
+    <tr><td>node-current</td><td>border #9b72ff + glowPulse</td></tr>
+    <tr><td>badge-earned</td><td>border #ffd166, gradient #2a1a00→#1a1200</td></tr>
+    <tr><td>font</td><td>Nunito 900</td></tr>
+  </table>
+
+  <div class="hint"><strong>Single source of truth:</strong> This file is canonical for the session complete / map overlay experience. Triggered after every node completion. Supersedes all prior celebration/complete screen mocks.</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

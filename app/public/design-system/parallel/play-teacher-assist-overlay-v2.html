@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 230 · play-teacher-assist-overlay-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* Engineering hint box */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* Tab nav */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: #8b95a8;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      position: relative;
+      transition: color .2s, background .2s;
+    }
+
+    .tab-btn:hover {
+      color: #f0f6ff;
+      background: rgba(255,255,255,.04);
+    }
+
+    .tab-btn.active {
+      color: #38bdf8;
+      background: rgba(56,189,248,.08);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0; right: 0;
+      height: 2px;
+      background: #38bdf8;
+      border-radius: 2px 2px 0 0;
+    }
+
+    /* Screens */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── TAB 1: Overlay States ── */
+    .states-grid {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .state-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .state-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #8b95a8;
+      text-align: center;
+      max-width: 380px;
+    }
+
+    /* Phone frame */
+    .phone-frame {
+      width: 375px;
+      height: 667px;
+      background: #161b22;
+      border: 3px solid rgba(255,255,255,.12);
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    /* Phone notch */
+    .phone-notch {
+      width: 100%;
+      height: 36px;
+      background: #0d1117;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .notch-pill {
+      width: 100px;
+      height: 18px;
+      background: #0d1117;
+      border-radius: 0 0 12px 12px;
+      border: 2px solid rgba(255,255,255,.08);
+      border-top: none;
+    }
+
+    /* Play screen internals */
+    .play-screen {
+      flex: 1;
+      background: linear-gradient(160deg, #0f1a2e 0%, #1a1040 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Adventure top bar */
+    .play-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .xp-badge {
+      background: rgba(255,209,102,.15);
+      border: 1px solid rgba(255,209,102,.3);
+      color: #ffd166;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .band-badge {
+      background: rgba(155,114,255,.15);
+      border: 1px solid rgba(155,114,255,.3);
+      color: #9b72ff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .skill-tag {
+      background: rgba(88,232,193,.1);
+      border: 1px solid rgba(88,232,193,.25);
+      color: #58e8c1;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Question card */
+    .question-card {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .question-icon {
+      font-size: 38px;
+      margin-bottom: 10px;
+    }
+
+    .question-text {
+      font-size: 17px;
+      font-weight: 600;
+      color: #f0f6ff;
+      line-height: 1.4;
+    }
+
+    .question-letter {
+      font-size: 56px;
+      font-weight: 800;
+      color: #ffd166;
+      margin-top: 8px;
+      display: block;
+      text-shadow: 0 0 30px rgba(255,209,102,.4);
+    }
+
+    /* Phonics answer grid */
+    .answer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .answer-btn {
+      background: rgba(255,255,255,.07);
+      border: 2px solid rgba(255,255,255,.1);
+      border-radius: 14px;
+      padding: 14px 8px;
+      color: #f0f6ff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background .2s, border-color .2s, transform .15s;
+    }
+
+    .answer-btn:hover {
+      background: rgba(255,255,255,.13);
+      border-color: rgba(80,232,144,.5);
+      transform: scale(1.03);
+    }
+
+    .answer-sub {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      color: #8b95a8;
+      margin-top: 2px;
+    }
+
+    /* Teacher chip — visible only in teacher's monitoring interface, not on child's play screen */
+    .teacher-chip-wrapper {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .teacher-chip {
+      background: rgba(56,189,248,.12);
+      border: 1px solid rgba(56,189,248,.3);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .teacher-chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      animation: pulse-blue 1.8s infinite;
+    }
+
+    @keyframes pulse-blue {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+
+    /* ── State B: Teacher Assist Panel (teacher's own dashboard, not child's device) ── */
+    .teacher-panel-frame {
+      width: 400px;
+      background: #161b22;
+      border: 2px solid rgba(56,189,248,.25);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(56,189,248,.1);
+    }
+
+    .teacher-panel-header {
+      background: linear-gradient(135deg, rgba(56,189,248,.18) 0%, rgba(56,189,248,.06) 100%);
+      border-bottom: 1px solid rgba(56,189,248,.2);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .teacher-panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .end-assist-btn {
+      background: rgba(255,123,107,.12);
+      border: 1px solid rgba(255,123,107,.3);
+      color: #ff7b6b;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .end-assist-btn:hover {
+      background: rgba(255,123,107,.22);
+    }
+
+    .teacher-panel-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .live-view-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #8b95a8;
+      margin-bottom: 6px;
+    }
+
+    .live-preview-card {
+      background: rgba(255,255,255,.04);
+      border: 1px dashed rgba(56,189,248,.2);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .live-preview-q {
+      font-size: 14px;
+      color: #c9d5e8;
+      margin-bottom: 8px;
+    }
+
+    .live-preview-letter {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffd166;
+    }
+
+    .live-preview-opts {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .live-opt-chip {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #8b95a8;
+    }
+
+    /* Assist action buttons */
+    .assist-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .assist-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: background .2s, border-color .2s;
+      width: 100%;
+    }
+
+    .assist-action-btn:hover {
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.15);
+    }
+
+    .assist-action-btn.encourage { border-color: rgba(80,232,144,.2); }
+    .assist-action-btn.encourage:hover { background: rgba(80,232,144,.08); border-color: rgba(80,232,144,.35); }
+    .assist-action-btn.hint { border-color: rgba(255,209,102,.2); }
+    .assist-action-btn.hint:hover { background: rgba(255,209,102,.08); border-color: rgba(255,209,102,.35); }
+    .assist-action-btn.skip { border-color: rgba(155,114,255,.2); }
+    .assist-action-btn.skip:hover { background: rgba(155,114,255,.08); border-color: rgba(155,114,255,.35); }
+
+    .action-emoji { font-size: 20px; flex-shrink: 0; }
+
+    .action-text { flex: 1; }
+    .action-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6ff;
+      display: block;
+    }
+    .action-desc {
+      font-size: 11px;
+      color: #8b95a8;
+      margin-top: 2px;
+      display: block;
+    }
+
+    .action-arrow {
+      color: #8b95a8;
+      font-size: 16px;
+    }
+
+    .privacy-note {
+      background: rgba(56,189,248,.07);
+      border: 1px solid rgba(56,189,248,.15);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #38bdf8;
+      line-height: 1.5;
+    }
+
+    /* ── State C: Encouragement banner on child screen ── */
+    .encourage-banner {
+      position: absolute;
+      top: 44px;
+      left: 12px;
+      right: 12px;
+      background: linear-gradient(135deg, #50e890 0%, #38bdf8 100%);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      z-index: 10;
+      box-shadow: 0 8px 24px rgba(80,232,144,.3);
+      animation: slideDown .4s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-60px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .banner-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+    .banner-text-block { flex: 1; }
+    .banner-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,.5);
+      margin-bottom: 2px;
+    }
+    .banner-body {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0d1117;
+      line-height: 1.4;
+    }
+
+    .banner-dismiss {
+      font-size: 10px;
+      color: rgba(0,0,0,.4);
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-style: italic;
+    }
+
+    .banner-aria-note {
+      font-size: 11px;
+      color: #8b95a8;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .aria-code {
+      font-family: monospace;
+      font-size: 11px;
+      color: #58e8c1;
+      background: rgba(88,232,193,.1);
+      border: 1px solid rgba(88,232,193,.2);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    /* ── TAB 2: Teacher Dashboard ── */
+    .dashboard-wrap {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      min-height: 560px;
+    }
+
+    /* Left: roster */
+    .roster-panel {
+      width: 280px;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .roster-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .roster-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #8b95a8;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .session-badge {
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.25);
+      color: #50e890;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .roster-list { padding: 8px 0; flex: 1; }
+
+    .roster-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background .15s;
+      border-left: 3px solid transparent;
+    }
+
+    .roster-row:hover { background: rgba(255,255,255,.04); }
+
+    .roster-row.selected {
+      background: rgba(56,189,248,.08);
+      border-left-color: #38bdf8;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.active {
+      background: #50e890;
+      box-shadow: 0 0 6px rgba(80,232,144,.6);
+    }
+
+    .status-dot.idle { background: #444c5c; }
+
+    .roster-info { flex: 1; min-width: 0; }
+
+    .roster-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f6ff;
+    }
+
+    .roster-skill {
+      font-size: 11px;
+      color: #8b95a8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    .roster-band {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .band-p0 { background: rgba(255,209,102,.15); color: #ffd166; }
+    .band-p1 { background: rgba(155,114,255,.15); color: #9b72ff; }
+    .band-p2 { background: rgba(88,232,193,.15); color: #58e8c1; }
+    .band-p3 { background: rgba(255,123,107,.15); color: #ff7b6b; }
+
+    /* Right: student assist panel */
+    .student-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .student-panel-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .student-name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .student-name-heading {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+
+    .status-pill-active {
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.3);
+      color: #50e890;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .student-panel-body {
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: #8b95a8;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f0f6ff;
+    }
+
+    .stat-value.xp { color: #ffd166; }
+    .stat-value.band { color: #9b72ff; }
+
+    /* Current Q preview */
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: #8b95a8;
+      margin-bottom: 10px;
+    }
+
+    .q-preview-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .q-preview-icon { font-size: 24px; }
+    .q-preview-text {
+      font-size: 14px;
+      color: #c9d5e8;
+      flex: 1;
+    }
+    .q-preview-skill {
+      font-size: 11px;
+      color: #8b95a8;
+      margin-top: 2px;
+    }
+
+    /* Assist actions (dashboard) */
+    .dash-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .dash-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px;
+      padding: 11px 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: background .2s, border-color .2s;
+      width: 100%;
+    }
+
+    .dash-action-btn:hover { background: rgba(255,255,255,.08); }
+    .dash-action-btn.encourage { border-color: rgba(80,232,144,.18); }
+    .dash-action-btn.encourage:hover { background: rgba(80,232,144,.07); border-color: rgba(80,232,144,.35); }
+    .dash-action-btn.hint { border-color: rgba(255,209,102,.18); }
+    .dash-action-btn.hint:hover { background: rgba(255,209,102,.07); border-color: rgba(255,209,102,.35); }
+    .dash-action-btn.skip { border-color: rgba(155,114,255,.18); }
+    .dash-action-btn.skip:hover { background: rgba(155,114,255,.07); border-color: rgba(155,114,255,.35); }
+
+    .dash-action-emoji { font-size: 18px; flex-shrink: 0; }
+    .dash-action-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f6ff;
+      flex: 1;
+    }
+    .dash-action-sub {
+      font-size: 11px;
+      color: #8b95a8;
+      margin-top: 1px;
+      display: block;
+    }
+
+    /* Private note field */
+    .note-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: #8b95a8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .note-private-badge {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      color: #8b95a8;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      letter-spacing: .05em;
+    }
+
+    .note-textarea {
+      width: 100%;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #f0f6ff;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 72px;
+      transition: border-color .2s;
+    }
+
+    .note-textarea::placeholder { color: #444c5c; }
+    .note-textarea:focus {
+      outline: none;
+      border-color: rgba(56,189,248,.35);
+      background: rgba(255,255,255,.06);
+    }
+
+    .note-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .note-hint {
+      font-size: 11px;
+      color: #444c5c;
+    }
+
+    .note-save-btn {
+      background: rgba(56,189,248,.12);
+      border: 1px solid rgba(56,189,248,.3);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .note-save-btn:hover { background: rgba(56,189,248,.22); }
+
+    .dash-privacy-notice {
+      background: rgba(56,189,248,.06);
+      border: 1px solid rgba(56,189,248,.12);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #38bdf8;
+      line-height: 1.55;
+    }
+
+    /* ── TAB 3: Spec ── */
+    .spec-wrap {
+      max-width: 760px;
+    }
+
+    .spec-section {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    .spec-heading {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spec-heading::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 14px;
+      background: #38bdf8;
+      border-radius: 2px;
+    }
+
+    .spec-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .spec-list li {
+      font-size: 13px;
+      color: #c9d5e8;
+      line-height: 1.55;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .spec-list li::before {
+      content: '\00b7';
+      position: absolute;
+      left: 0;
+      color: #8b95a8;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .spec-list li strong { color: #f0f6ff; }
+    .spec-list li code {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #58e8c1;
+    }
+
+    .spec-note-box {
+      background: rgba(255,209,102,.07);
+      border: 1px solid rgba(255,209,102,.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #ffd166;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    .db-schema-block {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-top: 12px;
+      overflow-x: auto;
+    }
+
+    .db-schema-block pre {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #58e8c1;
+      line-height: 1.6;
+      white-space: pre;
+    }
+
+    .safety-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .safety-card {
+      background: rgba(255,123,107,.06);
+      border: 1px solid rgba(255,123,107,.18);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .safety-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #ff7b6b;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .safety-card-body {
+      font-size: 12px;
+      color: #c9d5e8;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 230 &middot; play-teacher-assist-overlay-v2.html &middot; WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab(0)">Overlay States</button>
+    <button class="tab-btn" onclick="showTab(1)">Teacher Dashboard View</button>
+    <button class="tab-btn" onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 1 — Overlay States
+  ══════════════════════════════════════════ -->
+  <div class="screen active" id="screen-0">
+    <div class="states-grid">
+
+      <!-- State A: Classroom play screen (baseline) -->
+      <div class="state-block">
+        <div class="state-label">State A &mdash; Child's play screen (classroom, baseline)</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="notch-pill"></div></div>
+          <div class="play-screen">
+            <div class="play-topbar">
+              <div class="xp-badge">&#11088; 340 XP</div>
+              <div class="skill-tag">Phonics &middot; P1</div>
+              <div class="band-badge">Band P1</div>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">&#128292;</div>
+              <div class="question-text">What sound does this letter make?</div>
+              <span class="question-letter">B</span>
+            </div>
+            <div class="answer-grid">
+              <button class="answer-btn">&#128029; /b/<span class="answer-sub">like "bee"</span></button>
+              <button class="answer-btn">&#128031; /f/<span class="answer-sub">like "fish"</span></button>
+              <button class="answer-btn">&#127795; /t/<span class="answer-sub">like "tree"</span></button>
+              <button class="answer-btn">&#128013; /s/<span class="answer-sub">like "snake"</span></button>
+            </div>
+            <!-- Teacher monitoring chip: appears in teacher's interface only, not on child's screen -->
+            <div class="teacher-chip-wrapper">
+              <div class="teacher-chip">
+                <div class="teacher-chip-dot"></div>
+                &#128105;&#8205;&#127979; Teacher View (monitor only)
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="banner-aria-note">Child plays normally &mdash; teacher monitors via their own dashboard</div>
+      </div>
+
+      <!-- State B: Teacher Assist Panel (teacher's own dashboard, not on child's device) -->
+      <div class="state-block">
+        <div class="state-label">State B &mdash; Teacher assist panel (teacher's dashboard &mdash; not on child's device)</div>
+        <div class="teacher-panel-frame">
+          <div class="teacher-panel-header">
+            <div class="teacher-panel-title">
+              &#128105;&#8205;&#127979; Assist: Emma's Session
+            </div>
+            <button class="end-assist-btn">End assist</button>
+          </div>
+          <div class="teacher-panel-body">
+
+            <!-- Live view of what Emma is currently seeing -->
+            <div>
+              <div class="live-view-label">Live view &mdash; what Emma is currently seeing</div>
+              <div class="live-preview-card">
+                <div class="live-preview-q">&#128292; What sound does this letter make?</div>
+                <div class="live-preview-letter">B</div>
+                <div class="live-preview-opts">
+                  <span class="live-opt-chip">&#128029; /b/</span>
+                  <span class="live-opt-chip">&#128031; /f/</span>
+                  <span class="live-opt-chip">&#127795; /t/</span>
+                  <span class="live-opt-chip">&#128013; /s/</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Teacher actions -->
+            <div class="assist-actions">
+              <button class="assist-action-btn encourage">
+                <span class="action-emoji">&#128226;</span>
+                <span class="action-text">
+                  <span class="action-title">Send encouragement</span>
+                  <span class="action-desc">Sends a positive banner to Emma's play screen</span>
+                </span>
+                <span class="action-arrow">&#8250;</span>
+              </button>
+              <button class="assist-action-btn hint">
+                <span class="action-emoji">&#128161;</span>
+                <span class="action-text">
+                  <span class="action-title">Unlock hint</span>
+                  <span class="action-desc">Remotely reveals hint on Emma's current question</span>
+                </span>
+                <span class="action-arrow">&#8250;</span>
+              </button>
+              <button class="assist-action-btn skip">
+                <span class="action-emoji">&#9197;</span>
+                <span class="action-text">
+                  <span class="action-title">Move to next skill</span>
+                  <span class="action-desc">Skips current question cluster &middot; XP not deducted</span>
+                </span>
+                <span class="action-arrow">&#8250;</span>
+              </button>
+            </div>
+
+            <div class="privacy-note">
+              &#128274; Emma does not see this panel &mdash; she sees her normal play screen. Actions are delivered silently as events.
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- State C: Child sees encouragement banner -->
+      <div class="state-block">
+        <div class="state-label">State C &mdash; Child's screen receives encouragement banner</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="notch-pill"></div></div>
+          <div class="play-screen">
+            <!-- Encouragement banner: role=status aria-live=polite per WCAG -->
+            <div class="encourage-banner" role="status" aria-live="polite">
+              <span class="banner-icon">&#128172;</span>
+              <div class="banner-text-block">
+                <div class="banner-label">Your teacher says</div>
+                <div class="banner-body">Keep going, you're doing great! &#11088;</div>
+              </div>
+              <span class="banner-dismiss">auto-dismiss 5s</span>
+            </div>
+
+            <div class="play-topbar" style="margin-top: 8px;">
+              <div class="xp-badge">&#11088; 340 XP</div>
+              <div class="skill-tag">Phonics &middot; P1</div>
+              <div class="band-badge">Band P1</div>
+            </div>
+            <div class="question-card">
+              <div class="question-icon">&#128292;</div>
+              <div class="question-text">What sound does this letter make?</div>
+              <span class="question-letter">B</span>
+            </div>
+            <div class="answer-grid">
+              <button class="answer-btn">&#128029; /b/<span class="answer-sub">like "bee"</span></button>
+              <button class="answer-btn">&#128031; /f/<span class="answer-sub">like "fish"</span></button>
+              <button class="answer-btn">&#127795; /t/<span class="answer-sub">like "tree"</span></button>
+              <button class="answer-btn">&#128013; /s/<span class="answer-sub">like "snake"</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="banner-aria-note">
+          Banner: <span class="aria-code">role="status"</span> <span class="aria-code">aria-live="polite"</span> &middot; play continues uninterrupted
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 2 — Teacher Dashboard View
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-1">
+    <div class="dashboard-wrap">
+
+      <!-- Left: Roster -->
+      <div class="roster-panel">
+        <div class="roster-header">
+          <div class="roster-title">Class Roster</div>
+          <div class="session-badge">&#9679; Live</div>
+        </div>
+        <div class="roster-list">
+
+          <div class="roster-row selected" onclick="selectStudent(this, 'Emma', 'Phonics \u00b7 Letter Sounds', 'P1', 'band-p1', 340, 12, 'active', 'What sound does this letter make? \u2014 B')">
+            <div class="status-dot active"></div>
+            <div class="roster-info">
+              <div class="roster-name">Emma</div>
+              <div class="roster-skill">Phonics &middot; Letter Sounds</div>
+            </div>
+            <div class="roster-band band-p1">P1</div>
+          </div>
+
+          <div class="roster-row" onclick="selectStudent(this, 'Liam', 'Sight Words \u00b7 Set A', 'P0', 'band-p0', 520, 18, 'active', 'Which word is &quot;the&quot;? \u2014 four options')">
+            <div class="status-dot active"></div>
+            <div class="roster-info">
+              <div class="roster-name">Liam</div>
+              <div class="roster-skill">Sight Words &middot; Set A</div>
+            </div>
+            <div class="roster-band band-p0">P0</div>
+          </div>
+
+          <div class="roster-row" onclick="selectStudent(this, 'Sofia', 'Number Bonds \u00b7 1\u20135', 'P2', 'band-p2', 210, 8, 'idle', 'How many dots make 5? \u2014 dot cards')">
+            <div class="status-dot idle"></div>
+            <div class="roster-info">
+              <div class="roster-name">Sofia</div>
+              <div class="roster-skill">Number Bonds &middot; 1&ndash;5</div>
+            </div>
+            <div class="roster-band band-p2">P2</div>
+          </div>
+
+          <div class="roster-row" onclick="selectStudent(this, 'Marcus', 'Rhyming \u00b7 Pattern Match', 'P3', 'band-p3', 480, 15, 'active', 'Which word rhymes with &quot;cat&quot;? \u2014 4 words')">
+            <div class="status-dot active"></div>
+            <div class="roster-info">
+              <div class="roster-name">Marcus</div>
+              <div class="roster-skill">Rhyming &middot; Pattern Match</div>
+            </div>
+            <div class="roster-band band-p3">P3</div>
+          </div>
+
+          <div class="roster-row" onclick="selectStudent(this, 'Ava', 'Blending \u00b7 CVC Words', 'P1', 'band-p1', 90, 3, 'idle', 'Blend the sounds: /d/ /o/ /g/')">
+            <div class="status-dot idle"></div>
+            <div class="roster-info">
+              <div class="roster-name">Ava</div>
+              <div class="roster-skill">Blending &middot; CVC Words</div>
+            </div>
+            <div class="roster-band band-p1">P1</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: Student assist panel -->
+      <div class="student-panel">
+        <div class="student-panel-header">
+          <div class="student-name-row">
+            <div class="student-name-heading" id="dash-student-name">Emma</div>
+            <div class="status-pill-active" id="dash-status-pill">&#9679; Active</div>
+          </div>
+          <div class="teacher-chip" style="font-size:11px; padding:5px 12px;">
+            <div class="teacher-chip-dot"></div>
+            Session live
+          </div>
+        </div>
+
+        <div class="student-panel-body">
+
+          <!-- Stats -->
+          <div>
+            <div class="section-title">Session stats</div>
+            <div class="stats-row">
+              <div class="stat-card">
+                <div class="stat-label">Questions attempted</div>
+                <div class="stat-value" id="dash-stat-attempts">12</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">XP earned</div>
+                <div class="stat-value xp" id="dash-stat-xp">&#11088; 340</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Band</div>
+                <div class="stat-value band" id="dash-stat-band">P1</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current question preview -->
+          <div>
+            <div class="section-title">Current question</div>
+            <div class="q-preview-card">
+              <span class="q-preview-icon">&#128292;</span>
+              <div>
+                <div class="q-preview-text" id="dash-current-q">What sound does this letter make? &mdash; B</div>
+                <div class="q-preview-skill" id="dash-current-skill">Phonics &middot; Letter Sounds</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assist actions -->
+          <div>
+            <div class="section-title">Assist actions</div>
+            <div class="dash-actions">
+              <button class="dash-action-btn encourage">
+                <span class="dash-action-emoji">&#128226;</span>
+                <div>
+                  <span class="dash-action-label">Send encouragement</span>
+                  <span class="dash-action-sub">Positive message &middot; banner on child's screen &middot; max 80 chars</span>
+                </div>
+              </button>
+              <button class="dash-action-btn hint">
+                <span class="dash-action-emoji">&#128161;</span>
+                <div>
+                  <span class="dash-action-label">Unlock hint</span>
+                  <span class="dash-action-sub">Sets hint_unlocked=true on active attempt &middot; same as child-requested hint</span>
+                </div>
+              </button>
+              <button class="dash-action-btn skip">
+                <span class="dash-action-emoji">&#9197;</span>
+                <div>
+                  <span class="dash-action-label">Move to next skill</span>
+                  <span class="dash-action-sub">skip_reason='teacher_assist' &middot; XP not deducted &middot; logged to play_assist_actions</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Private note -->
+          <div>
+            <div class="note-label">
+              Session note
+              <span class="note-private-badge">PRIVATE &mdash; TEACHER ONLY</span>
+            </div>
+            <textarea class="note-textarea" placeholder="Add a private note about this session&#8230; (not visible to child or parent)"></textarea>
+            <div class="note-footer">
+              <span class="note-hint">Stored per class_id &middot; FERPA education record &middot; teacher of record + school admin only</span>
+              <button class="note-save-btn">Save note</button>
+            </div>
+          </div>
+
+          <!-- Privacy notice -->
+          <div class="dash-privacy-notice">
+            <strong style="color:#38bdf8;">Teacher sees:</strong> first name, current skill, band, XP, questions attempted.<br>
+            <strong style="color:#ff7b6b;">Teacher does NOT see:</strong> per-question accuracy, individual attempt counts, or which specific questions were answered.
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB 3 — Spec
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-2">
+    <div class="spec-wrap">
+
+      <div class="spec-section">
+        <div class="spec-heading">Access &amp; Scope</div>
+        <ul class="spec-list">
+          <li><strong>Who can use:</strong> Teacher persona only, during active classroom sessions</li>
+          <li><strong>Activation:</strong> Teacher opens assist panel from their own dashboard &mdash; not from or on any child device</li>
+          <li><strong>Availability:</strong> Only while a class session is live (<code>session.status = 'active'</code>)</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Child Privacy</div>
+        <ul class="spec-list">
+          <li>Teacher sees: first name, current skill name, band, XP total, questions attempted (not answered correctly)</li>
+          <li>Teacher does <strong>NOT</strong> see: per-question accuracy, individual attempt counts, or specific questions answered</li>
+          <li>Session notes are private to teacher only &mdash; not visible in parent dashboard, not exported in parent reports</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Encouragement Messages</div>
+        <ul class="spec-list">
+          <li>Free-text entered by teacher; max 80 characters; auto-profanity-filtered before delivery</li>
+          <li>Stored in <code>teacher_messages</code> table; platform-routed only &mdash; never email or SMS</li>
+          <li>Child sees as play banner only; cannot reply; banner is non-blocking</li>
+          <li>WCAG: <code>role="status"</code> <code>aria-live="polite"</code>; auto-dismisses after 5 seconds</li>
+          <li>Positive framing only &mdash; no "you got that wrong"-type language; enforced by profanity + sentiment filter</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Hint Unlock</div>
+        <ul class="spec-list">
+          <li>Sets <code>hint_unlocked=true</code> on the active question attempt record</li>
+          <li>Identical outcome to child-requested hint &mdash; no additional data stored, no XP adjustment</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Skip Skill</div>
+        <ul class="spec-list">
+          <li><code>skip_reason='teacher_assist'</code>; XP not deducted; event logged to <code>play_assist_actions</code></li>
+          <li>Escalation-level action &mdash; not intended for routine use</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Session Notes</div>
+        <ul class="spec-list">
+          <li>Private to teacher only; stored as FERPA education record per <code>class_id</code></li>
+          <li>Accessible only to teacher of record + school admin</li>
+          <li>Never visible in parent dashboard; never exported in parent-facing reports</li>
+        </ul>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">DB Schema</div>
+        <div class="db-schema-block">
+          <pre>play_assist_actions (
+  id           UUID,
+  session_id   UUID,
+  question_id  UUID,
+  action_type  ENUM('encouragement','hint_unlock','skip_skill'),
+  triggered_by UUID,  -- teacher_id
+  student_id   UUID,
+  created_at   TIMESTAMPTZ
+)
+
+teacher_messages (
+  id              UUID,
+  from_teacher_id UUID,
+  to_child_id     UUID,
+  body            TEXT CHECK (length(body) &lt;= 80),
+  delivered_at    TIMESTAMPTZ,
+  seen_at         TIMESTAMPTZ,
+  channel         ENUM('play_banner','notification') DEFAULT 'play_banner'
+)</pre>
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">Child Safety Rules</div>
+        <div class="safety-grid">
+          <div class="safety-card">
+            <div class="safety-card-title">No timers</div>
+            <div class="safety-card-body">No countdown or time pressure anywhere in the assist flow or child play screen.</div>
+          </div>
+          <div class="safety-card">
+            <div class="safety-card-title">No accuracy %</div>
+            <div class="safety-card-body">Teacher stats show attempts only &mdash; never accuracy percentages or pass/fail indicators.</div>
+          </div>
+          <div class="safety-card">
+            <div class="safety-card-title">Positive framing only</div>
+            <div class="safety-card-body">Teacher messages must be encouraging. Auto-filter blocks negative-framing language before delivery.</div>
+          </div>
+          <div class="safety-card">
+            <div class="safety-card-title">No names in parent messages</div>
+            <div class="safety-card-body">Individual student first names never appear in parent-facing reports or notifications.</div>
+          </div>
+        </div>
+        <div class="spec-note-box">
+          Adventure language throughout &mdash; all assist actions described as "helping on the quest," not corrections or failures.
+        </div>
+      </div>
+
+      <div class="spec-section">
+        <div class="spec-heading">FERPA &amp; WCAG</div>
+        <ul class="spec-list">
+          <li><strong>FERPA:</strong> Session notes = education record; stored per <code>class_id</code>; accessible only to teacher of record + school admin</li>
+          <li><strong>WCAG:</strong> Encouragement banner uses <code>role="status"</code> and <code>aria-live="polite"</code> &mdash; announced to screen readers without interrupting play flow; auto-dismisses (not blocking)</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+        b.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.screen').forEach(function(s, i) {
+        s.classList.toggle('active', i === t);
+      });
+    }
+
+    var studentData = {
+      'Emma':   { skill: 'Phonics \u00b7 Letter Sounds',    band: 'P1', bandClass: 'band-p1', xp: 340,  attempts: 12, status: 'active', q: 'What sound does this letter make? \u2014 B' },
+      'Liam':   { skill: 'Sight Words \u00b7 Set A',        band: 'P0', bandClass: 'band-p0', xp: 520,  attempts: 18, status: 'active', q: 'Which word is "the"? \u2014 four options' },
+      'Sofia':  { skill: 'Number Bonds \u00b7 1\u20135',    band: 'P2', bandClass: 'band-p2', xp: 210,  attempts: 8,  status: 'idle',   q: 'How many dots make 5? \u2014 dot cards' },
+      'Marcus': { skill: 'Rhyming \u00b7 Pattern Match',    band: 'P3', bandClass: 'band-p3', xp: 480,  attempts: 15, status: 'active', q: 'Which word rhymes with "cat"? \u2014 4 words' },
+      'Ava':    { skill: 'Blending \u00b7 CVC Words',       band: 'P1', bandClass: 'band-p1', xp: 90,   attempts: 3,  status: 'idle',   q: 'Blend the sounds: /d/ /o/ /g/' }
+    };
+
+    function selectStudent(row, name) {
+      document.querySelectorAll('.roster-row').forEach(function(r) {
+        r.classList.remove('selected');
+      });
+      row.classList.add('selected');
+
+      var d = studentData[name];
+      if (!d) return;
+
+      document.getElementById('dash-student-name').textContent = name;
+      document.getElementById('dash-stat-attempts').textContent = d.attempts;
+      document.getElementById('dash-stat-xp').textContent = '\u2B50 ' + d.xp;
+      document.getElementById('dash-stat-band').textContent = d.band;
+      document.getElementById('dash-current-q').textContent = d.q;
+      document.getElementById('dash-current-skill').textContent = d.skill;
+
+      var pill = document.getElementById('dash-status-pill');
+      if (d.status === 'active') {
+        pill.textContent = '\u25CF Active';
+        pill.style.background = 'rgba(80,232,144,.12)';
+        pill.style.borderColor = 'rgba(80,232,144,.3)';
+        pill.style.color = '#50e890';
+      } else {
+        pill.textContent = '\u25CB Idle';
+        pill.style.background = 'rgba(139,149,168,.1)';
+        pill.style.borderColor = 'rgba(139,149,168,.2)';
+        pill.style.color = '#8b95a8';
+      }
+    }
+  </script>
+
+</body>
+</html>

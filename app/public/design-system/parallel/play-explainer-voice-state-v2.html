@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-explainer-voice-state-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-explainer-voice-state-v2.html      ║
+     ║                                                              ║
+     ║  Explainer panel variant where the coach reads the           ║
+     ║  explanation aloud via TTS. No video clip required.          ║
+     ║  Used when video asset is absent OR on low-bandwidth.        ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Idle          : coach ready, tap to hear            ║
+     ║  Tab 2 — Speaking      : TTS playing, wave bars animated     ║
+     ║  Tab 3 — Done          : speech ended, "Got it!" active      ║
+     ║  Tab 4 — Audio Blocked : browser blocked autoplay, tap cue   ║
+     ║  Tab 5 — Spec          : rules + integration notes           ║
+     ║                                                              ║
+     ║  VOICE RULES                                                  ║
+     ║  • TTS via Web Speech API or cloud TTS (same interface)      ║
+     ║  • Coach reads text panel steps in sequence                  ║
+     ║  • Highlight each step as coach reads it                     ║
+     ║  • "Got it!" unlocks after speech ends OR manual skip        ║
+     ║  • Replay available in Done state                            ║
+     ║  • If TTS fails: fall back to silent text panel              ║
+     ║  • No timer, no accuracy %, no pressure                      ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+
+  .q-area {
+    position: absolute; top: 0; left: 0; right: 0; height: 100%;
+    display: flex; flex-direction: column; padding: 20px 16px 16px; gap: 16px;
+  }
+  .topbar { display: flex; align-items: center; justify-content: space-between; }
+  .progress-segs { display: flex; gap: 4px; flex: 1; }
+  .seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .seg.filled { background: #9b72ff; }
+  .star-badge {
+    background: #1a1440; border: 1.5px solid #9b72ff55; border-radius: 20px;
+    padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px;
+  }
+  .q-hero {
+    background: #1a1440; border: 2px solid #9b72ff44; border-radius: 16px; padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; color: #c0a8ff; font-weight: 700;
+  }
+  .q-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  .q-choice {
+    background: #1a1440; border: 2px solid #2a1f60; border-radius: 14px;
+    height: 80px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; font-size: 2.2rem; font-weight: 900; color: #e8e0ff;
+  }
+  .q-choice .phoneme { font-size: 0.72rem; font-weight: 700; color: #9080c0; }
+
+  .scrim {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(8,5,20,0.55); backdrop-filter: blur(1.5px); z-index: 5;
+  }
+
+  /* Bottom sheet */
+  .ex-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    border-radius: 24px 24px 0 0;
+    background: linear-gradient(180deg, #1a1040 0%, #100b2e 100%);
+    border-top: 2px solid #9b72ff55;
+    box-shadow: 0 -8px 32px #00000066;
+    z-index: 10; display: flex; flex-direction: column;
+  }
+  .ex-sheet::before {
+    content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); margin: 10px auto 0; flex-shrink: 0;
+  }
+  .ex-body { padding: 14px 20px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+  .ex-type-label { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #9b72ff; opacity: 0.8; }
+  .ex-title { font-size: 1.2rem; font-weight: 900; color: #fff; }
+
+  /* Coach row */
+  .coach-row {
+    display: flex; align-items: center; gap: 12px;
+    background: #221960; border: 1.5px solid #9b72ff44;
+    border-radius: 16px; padding: 12px 14px;
+  }
+  .coach-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #1a1040; border: 2px solid #9b72ff66;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; flex-shrink: 0; position: relative;
+  }
+  .coach-avatar .ring {
+    position: absolute; inset: -4px; border-radius: 50%;
+    border: 2px solid transparent; border-top-color: #9b72ff;
+    animation: coach-spin 1.2s linear infinite;
+  }
+  @keyframes coach-spin { to { transform: rotate(360deg); } }
+
+  /* Idle pulse ring (not spinning) */
+  .coach-avatar .idle-ring {
+    position: absolute; inset: -5px; border-radius: 50%;
+    border: 2px solid #9b72ff44;
+    animation: idle-pulse 2s ease-in-out infinite;
+  }
+  @keyframes idle-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+
+  .coach-bubble {
+    flex: 1; display: flex; flex-direction: column; gap: 4px;
+  }
+  .coach-name { font-size: 0.7rem; font-weight: 900; color: #9b72ff; letter-spacing: 0.05em; text-transform: uppercase; }
+  .coach-speech { font-size: 0.85rem; font-weight: 700; color: #d0c8f8; line-height: 1.4; }
+
+  /* Wave bars */
+  .wave-row {
+    display: flex; align-items: flex-end; gap: 3px; height: 22px;
+  }
+  .wave-bar {
+    width: 4px; border-radius: 2px; background: #9b72ff;
+    animation: wave-dance 0.55s ease-in-out infinite alternate;
+  }
+  .wave-bar:nth-child(1) { --max-h: 10px; animation-delay: 0s; }
+  .wave-bar:nth-child(2) { --max-h: 18px; animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { --max-h: 14px; animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { --max-h: 22px; animation-delay: 0.05s; }
+  .wave-bar:nth-child(5) { --max-h: 12px; animation-delay: 0.15s; }
+  @keyframes wave-dance {
+    from { height: 4px; }
+    to { height: var(--max-h, 12px); }
+  }
+
+  /* Steps list with highlight */
+  .ex-steps { display: flex; flex-direction: column; gap: 8px; }
+  .ex-step {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 6px 10px; border-radius: 10px; transition: background 0.2s;
+  }
+  .ex-step.active-step {
+    background: #2a1f60;
+    border: 1px solid #9b72ff55;
+  }
+  .ex-step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #1a1440; border: 1.5px solid #2a1f60;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 900; color: #9080c0; flex-shrink: 0; margin-top: 1px;
+  }
+  .ex-step.active-step .ex-step-num { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .ex-step-text { font-size: 0.85rem; font-weight: 700; color: #8070b0; line-height: 1.4; padding-top: 2px; }
+  .ex-step.active-step .ex-step-text { color: #d8ceff; }
+
+  /* Done state: all steps checked */
+  .ex-step.done-step .ex-step-num { background: #50e890; border-color: #50e890; color: #051a10; }
+  .ex-step.done-step .ex-step-text { color: #a0d8b0; }
+
+  /* CTA */
+  .ex-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+  .btn-skip { font-size: 0.78rem; font-weight: 700; color: #6050a0; background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .btn-gotit {
+    flex: 1; height: 52px; border-radius: 26px; border: none;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+  }
+  .btn-replay-small {
+    height: 40px; padding: 0 14px; border-radius: 20px;
+    background: #221960; border: 1.5px solid #9b72ff44;
+    color: #b89eff; font-size: 0.8rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  /* Audio blocked banner */
+  .blocked-banner {
+    background: #2a1a00; border: 1.5px solid #f0a02055;
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .blocked-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .blocked-text { font-size: 0.82rem; font-weight: 700; color: #f0c060; line-height: 1.4; }
+  .blocked-text .blocked-cta { color: #f0a020; text-decoration: underline; cursor: pointer; }
+
+  /* Tap-to-play button */
+  .btn-tap-play {
+    width: 100%; height: 52px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+  .spec-card code { background: #f0e090; border-radius: 4px; padding: 1px 4px; font-size: 0.74rem; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-explainer-voice-state-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Idle</button>
+  <button class="tab-btn" onclick="showTab('t2')">Speaking</button>
+  <button class="tab-btn" onclick="showTab('t3')">Done</button>
+  <button class="tab-btn" onclick="showTab('t4')">Audio Blocked</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Idle ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Idle — Coach Ready, Tap to Hear</h4>
+    Panel opened. Coach avatar has idle pulse ring (not spinning yet).
+    Speech bubble shows preview: "Tap me to hear the tip!"
+    Steps shown but not highlighted. "Got it!" disabled.
+    TTS fires automatically on panel open if browser allows.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero">
+        <div style="font-size:2.5rem">🐝</div>
+        <div>What letter starts "bee"?</div>
+      </div>
+      <div class="q-choices">
+        <div class="q-choice">B <span class="phoneme">buh</span></div>
+        <div class="q-choice">S <span class="phoneme">sss</span></div>
+        <div class="q-choice">D <span class="phoneme">duh</span></div>
+        <div class="q-choice">R <span class="phoneme">rrr</span></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label">✨ New Question Type</div>
+        <div class="ex-title">Beginning Sounds</div>
+
+        <div class="coach-row">
+          <div class="coach-avatar">
+            🦁
+            <div class="idle-ring"></div>
+          </div>
+          <div class="coach-bubble">
+            <div class="coach-name">Coach Leo</div>
+            <div class="coach-speech">Tap me to hear how it works! 🎵</div>
+          </div>
+        </div>
+
+        <div class="ex-steps">
+          <div class="ex-step">
+            <div class="ex-step-num">1</div>
+            <div class="ex-step-text">🔊 Listen to the word</div>
+          </div>
+          <div class="ex-step">
+            <div class="ex-step-num">2</div>
+            <div class="ex-step-text">Say it slowly — what sound do you hear first?</div>
+          </div>
+          <div class="ex-step">
+            <div class="ex-step-num">3</div>
+            <div class="ex-step-text">Tap the letter that makes that sound!</div>
+          </div>
+        </div>
+
+        <div class="ex-actions">
+          <button class="btn-skip">Skip</button>
+          <button class="btn-gotit" style="opacity:0.45;pointer-events:none;">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Speaking ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Speaking — TTS Active, Step 2 Highlighted</h4>
+    Coach avatar has spinning ring during speech.
+    Wave bars animate in speech bubble area.
+    Currently-speaking step gets <code>.active-step</code> class (violet bg, bright text).
+    Previous steps already read get <code>.done-step</code> (green checkmark num).
+    "Got it!" remains disabled during speech.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero">
+        <div style="font-size:2.5rem">🐝</div>
+        <div>What letter starts "bee"?</div>
+      </div>
+      <div class="q-choices">
+        <div class="q-choice">B <span class="phoneme">buh</span></div>
+        <div class="q-choice">S <span class="phoneme">sss</span></div>
+        <div class="q-choice">D <span class="phoneme">duh</span></div>
+        <div class="q-choice">R <span class="phoneme">rrr</span></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label" style="color:#9b72ff;">▶ Coach Leo is speaking…</div>
+        <div class="ex-title">Beginning Sounds</div>
+
+        <div class="coach-row">
+          <div class="coach-avatar" style="border-color:#9b72ff;">
+            🦁
+            <div class="ring"></div>
+          </div>
+          <div class="coach-bubble">
+            <div class="coach-name">Coach Leo</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="coach-speech">"Say it slowly…"</div>
+              <div class="wave-row">
+                <div class="wave-bar"></div><div class="wave-bar"></div>
+                <div class="wave-bar"></div><div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ex-steps">
+          <!-- Step 1: already done -->
+          <div class="ex-step done-step">
+            <div class="ex-step-num">✓</div>
+            <div class="ex-step-text">🔊 Listen to the word</div>
+          </div>
+          <!-- Step 2: currently speaking -->
+          <div class="ex-step active-step">
+            <div class="ex-step-num">2</div>
+            <div class="ex-step-text">Say it slowly — what sound do you hear first?</div>
+          </div>
+          <!-- Step 3: upcoming -->
+          <div class="ex-step">
+            <div class="ex-step-num">3</div>
+            <div class="ex-step-text">Tap the letter that makes that sound!</div>
+          </div>
+        </div>
+
+        <div class="ex-actions">
+          <button class="btn-skip">Skip</button>
+          <button class="btn-gotit" style="opacity:0.45;pointer-events:none;">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Done ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Done — Speech Ended, "Got it!" Active</h4>
+    All steps show done-step green checkmark. Coach speech changes to sign-off.
+    Wave bars stop. "Got it! Let's go →" fully enabled. "Hear again" small button appears.
+    Spinning ring stops; idle-ring resumes (subtle).
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero">
+        <div style="font-size:2.5rem">🐝</div>
+        <div>What letter starts "bee"?</div>
+      </div>
+      <div class="q-choices">
+        <div class="q-choice">B <span class="phoneme">buh</span></div>
+        <div class="q-choice">S <span class="phoneme">sss</span></div>
+        <div class="q-choice">D <span class="phoneme">duh</span></div>
+        <div class="q-choice">R <span class="phoneme">rrr</span></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label" style="color:#50e890;">✓ All done!</div>
+        <div class="ex-title">Beginning Sounds</div>
+
+        <div class="coach-row" style="border-color:#50e89033;background:#0d2018;">
+          <div class="coach-avatar" style="border-color:#50e89066;">
+            🦁
+            <div class="idle-ring" style="border-color:#50e89044;"></div>
+          </div>
+          <div class="coach-bubble">
+            <div class="coach-name" style="color:#50e890;">Coach Leo</div>
+            <div class="coach-speech" style="color:#a0e8b8;">"You've got this! Let's go play!"</div>
+          </div>
+        </div>
+
+        <div class="ex-steps">
+          <div class="ex-step done-step">
+            <div class="ex-step-num">✓</div>
+            <div class="ex-step-text">🔊 Listen to the word</div>
+          </div>
+          <div class="ex-step done-step">
+            <div class="ex-step-num">✓</div>
+            <div class="ex-step-text">Say it slowly — what sound do you hear first?</div>
+          </div>
+          <div class="ex-step done-step">
+            <div class="ex-step-num">✓</div>
+            <div class="ex-step-text">Tap the letter that makes that sound!</div>
+          </div>
+        </div>
+
+        <div class="ex-actions">
+          <button class="btn-replay-small">🔊 Hear again</button>
+          <button class="btn-gotit">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Audio Blocked ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Audio Blocked — Browser Autoplay Policy</h4>
+    Browser blocked TTS before user interaction. Amber banner explains.
+    "Tap here to hear the tip!" replaces coach speech bubble.
+    Steps shown but not highlighted. Child can tap banner/button to start speech.
+    Uses amber (#f0a020) — not red; this is minor/recoverable.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero">
+        <div style="font-size:2.5rem">🐝</div>
+        <div>What letter starts "bee"?</div>
+      </div>
+      <div class="q-choices">
+        <div class="q-choice">B <span class="phoneme">buh</span></div>
+        <div class="q-choice">S <span class="phoneme">sss</span></div>
+        <div class="q-choice">D <span class="phoneme">duh</span></div>
+        <div class="q-choice">R <span class="phoneme">rrr</span></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label">✨ New Question Type</div>
+        <div class="ex-title">Beginning Sounds</div>
+
+        <!-- Amber blocked banner -->
+        <div class="blocked-banner">
+          <div class="blocked-icon">🔇</div>
+          <div class="blocked-text">
+            Sound is ready! <span class="blocked-cta">Tap the button below</span> to hear Coach Leo.
+          </div>
+        </div>
+
+        <!-- Tap-to-play button -->
+        <button class="btn-tap-play">🔊 Tap to hear the tip!</button>
+
+        <div class="ex-steps">
+          <div class="ex-step">
+            <div class="ex-step-num">1</div>
+            <div class="ex-step-text">🔊 Listen to the word</div>
+          </div>
+          <div class="ex-step">
+            <div class="ex-step-num">2</div>
+            <div class="ex-step-text">Say it slowly — what sound do you hear first?</div>
+          </div>
+          <div class="ex-step">
+            <div class="ex-step-num">3</div>
+            <div class="ex-step-text">Tap the letter that makes that sound!</div>
+          </div>
+        </div>
+
+        <div class="ex-actions">
+          <button class="btn-skip">Skip</button>
+          <button class="btn-gotit" style="opacity:0.45;pointer-events:none;">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>TTS Integration</h4>
+      <ul>
+        <li>Use <code>SpeechSynthesisUtterance</code> (Web Speech API) or cloud TTS</li>
+        <li>Start speech on panel open if user has previously interacted</li>
+        <li>If blocked: show Audio Blocked state, wait for tap</li>
+        <li>Step highlight: track by character offset or sentence index</li>
+        <li>Fire <code>boundary</code> event on <code>utterance</code> to advance highlight</li>
+        <li class="dont">❌ Never start TTS without at least one prior user tap this session</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Step Highlighting</h4>
+      <ul>
+        <li>Previous steps: <code>.done-step</code> (green num + faded text)</li>
+        <li>Current step: <code>.active-step</code> (violet bg, bright text, violet num)</li>
+        <li>Upcoming steps: default dim style</li>
+        <li>All steps done → Done state (all <code>.done-step</code>)</li>
+        <li>On "Hear again": reset to Idle, replay from step 1</li>
+        <li class="do">✅ Steps highlighted in sync, not all at once</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Coach Avatar States</h4>
+      <ul>
+        <li>Idle: <code>idle-ring</code> gentle pulse (2s ease-in-out)</li>
+        <li>Speaking: <code>ring</code> spinning 360° (1.2s linear infinite)</li>
+        <li>Done: <code>idle-ring</code> green tint (<code>#50e89044</code>)</li>
+        <li>Wave bars: visible during Speaking only</li>
+        <li>Coach speech text changes per state</li>
+        <li>4 personas: Leo 🦁 / Buddy 🐧 / Whisper 🦉 / Zap 🤖</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Audio Blocked Handling</h4>
+      <ul>
+        <li>Detect: <code>speechSynthesis.speak()</code> + check <code>speaking === false</code></li>
+        <li>Amber banner: <code>#f0a020</code> — NOT red (minor issue)</li>
+        <li>Tap-to-play button triggers <code>speechSynthesis.resume()</code></li>
+        <li>After tap: transitions to Speaking state</li>
+        <li class="dont">❌ Never show technical error text to child</li>
+        <li class="do">✅ Child always sees clear, action-oriented tap target</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>"Got it!" Gating</h4>
+      <ul>
+        <li>Disabled (opacity 0.45) during Idle + Speaking + Blocked</li>
+        <li>Enabled after: speech ends (<code>utterance.onend</code>) OR Skip</li>
+        <li>Skip always enabled — never gated</li>
+        <li>"Hear again" only in Done state</li>
+        <li class="dont">❌ Never auto-advance after TTS ends</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Fallback Chain</h4>
+      <ul>
+        <li>1st choice: Video explainer (if asset exists)</li>
+        <li>2nd choice: Voice explainer (TTS, this file)</li>
+        <li>3rd choice: Silent text panel (<code>play-explainer-panel-v3.html</code>)</li>
+        <li>4th: Abbreviated panel (returning child, 2nd–3rd session)</li>
+        <li>5th: No panel (4th+ session — child knows this type)</li>
+        <li>All fallbacks use same bottom sheet layout</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

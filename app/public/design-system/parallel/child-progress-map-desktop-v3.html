@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Progress Map Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #100b2e; min-height: 100vh; font-family: 'Nunito', sans-serif; color: #fff; }
+.eng-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 16px 16px; }
+.tab-btn { padding: 8px 14px; background: #1e1a40; border: 2px solid #2e2a50; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px; }
+.page-title { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #b8a0e8; font-weight: 700; margin-bottom: 28px; }
+
+/* ── World row ── */
+.world-row {
+  margin-bottom: 32px;
+}
+.world-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px;
+}
+.wh-emoji { font-size: 28px; }
+.wh-name { font-size: 20px; font-weight: 900; color: #fff; }
+.wh-progress { font-size: 12px; font-weight: 700; color: #9b72ff; margin-left: auto; }
+.wh-status-done { font-size: 11px; font-weight: 900; color: #50e890; padding: 4px 10px; background: #0a2a15; border-radius: 20px; border: 1px solid #50e890; }
+.wh-status-current { font-size: 11px; font-weight: 900; color: #9b72ff; padding: 4px 10px; background: #1a1060; border-radius: 20px; border: 1px solid #9b72ff; }
+.wh-status-locked { font-size: 11px; font-weight: 900; color: #5a4080; padding: 4px 10px; background: #1a1060; border-radius: 20px; border: 1px solid #2a2060; }
+
+/* ── Node path ── */
+.node-path {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 0;
+}
+.node-connector {
+  width: 24px; height: 4px;
+  background: #2a2060;
+  flex-shrink: 0;
+}
+.node-connector.done { background: #50e890; }
+.node-connector.active-conn { background: linear-gradient(90deg, #50e890, #9b72ff); }
+
+.node {
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 26px;
+  border: 3px solid #2a2060;
+  background: #1a1060;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.node:hover { transform: scale(1.06); }
+.node.done { border-color: #50e890; background: #0a2a20; }
+.node.active { border-color: #9b72ff; background: #2a1880; animation: nd-pulse 1.5s ease-in-out infinite; }
+.node.locked { opacity: 0.3; cursor: default; }
+.node.locked:hover { transform: none; }
+@keyframes nd-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); }
+  50% { box-shadow: 0 0 0 10px rgba(155,114,255,0); }
+}
+.node .n-check {
+  position: absolute; top: -5px; right: -5px;
+  width: 20px; height: 20px; background: #50e890;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #0a2a15; font-weight: 900;
+}
+.node .n-stars {
+  position: absolute; bottom: -16px;
+  display: flex; gap: 1px;
+}
+.n-star { font-size: 10px; }
+.node .n-label {
+  font-size: 9px; font-weight: 700; color: #7a6090;
+  position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* divider */
+.world-divider { height: 1px; background: #1a1060; margin: 12px 0 24px; }
+
+/* Stats bar */
+.stats-bar {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-bottom: 28px;
+}
+.stat-item { background: #1a1060; border: 1px solid #2a2060; border-radius: 14px; padding: 14px; text-align: center; }
+.si-val { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; }
+.si-label { font-size: 11px; color: #7a6090; font-weight: 700; margin-top: 4px; }
+
+/* Spec */
+.spec-outer { max-width: 900px; margin: 0 auto; padding: 20px; }
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-progress-map-desktop-v3.html</strong><br>
+  Desktop 1100px • 3 tabs: Progress Map / Stats Overview / Spec<br>
+  Node path: horizontal chain per world row (node + connector + node…)<br>
+  Node states: done (green) / active (violet pulse) / locked (30% opacity)<br>
+  Done nodes show star count below (1–3 ⭐) and ✓ checkmark badge<br>
+  Worlds stack vertically; world header shows name + done/current/locked status chip<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('map')">Progress Map</button>
+  <button class="tab-btn" onclick="showTab('stats')">Stats Overview</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- PROGRESS MAP -->
+<div id="screen-map" class="screen active">
+  <div class="page-wrap">
+    <div class="page-title">Your Journey Map 🗺️</div>
+    <div class="page-sub">See every world you've explored — and everything still ahead!</div>
+
+    <!-- World 1: Done -->
+    <div class="world-row">
+      <div class="world-header">
+        <span class="wh-emoji">🌲</span>
+        <span class="wh-name">Enchanted Forest</span>
+        <span class="wh-status-done">✓ Complete!</span>
+        <span class="wh-progress">12/12 nodes</span>
+      </div>
+      <div class="node-path" style="padding-bottom:36px">
+        <div class="node done">🌱<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div><div class="n-label">Start</div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🌿<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🦋<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🌸<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🍄<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🌺<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done" style="border-color:#ffd166;background:#1a1408">🏆<div class="n-check" style="background:#ffd166;color:#1a1000">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div><div class="n-label">Boss!</div></div>
+      </div>
+    </div>
+    <div class="world-divider"></div>
+
+    <!-- World 2: Done -->
+    <div class="world-row">
+      <div class="world-header">
+        <span class="wh-emoji">🌊</span>
+        <span class="wh-name">Ocean Kingdom</span>
+        <span class="wh-status-done">✓ Complete!</span>
+        <span class="wh-progress">12/12 nodes</span>
+      </div>
+      <div class="node-path" style="padding-bottom:36px">
+        <div class="node done">🐠<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div><div class="n-label">Start</div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🐚<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🦀<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🐬<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🐙<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🦈<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done" style="border-color:#ffd166;background:#1a1408">🏆<div class="n-check" style="background:#ffd166;color:#1a1000">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div><div class="n-label">Boss!</div></div>
+      </div>
+    </div>
+    <div class="world-divider"></div>
+
+    <!-- World 3: Current (58%) -->
+    <div class="world-row">
+      <div class="world-header">
+        <span class="wh-emoji">💎</span>
+        <span class="wh-name">Crystal Caverns</span>
+        <span class="wh-status-current">Current</span>
+        <span class="wh-progress">7/12 nodes</span>
+      </div>
+      <div class="node-path" style="padding-bottom:36px">
+        <div class="node done">💎<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div><div class="n-label">Start</div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🔮<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🗝️<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🌈<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">🔥<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector done"></div>
+        <div class="node done">⚡<div class="n-check">✓</div><div class="n-stars"><span class="n-star">⭐</span><span class="n-star">⭐</span><span class="n-star">⭐</span></div></div>
+        <div class="node-connector active-conn"></div>
+        <div class="node active">🏔️<div class="n-label">You!</div></div>
+        <div class="node-connector"></div>
+        <div class="node locked">🌙</div>
+        <div class="node-connector"></div>
+        <div class="node locked">⭐</div>
+        <div class="node-connector"></div>
+        <div class="node locked">🌌</div>
+        <div class="node-connector"></div>
+        <div class="node locked">👑</div>
+        <div class="node-connector"></div>
+        <div class="node locked" style="border-style:dashed">🏆</div>
+      </div>
+    </div>
+    <div class="world-divider"></div>
+
+    <!-- World 4: Not started -->
+    <div class="world-row">
+      <div class="world-header">
+        <span class="wh-emoji" style="opacity:0.4">🌋</span>
+        <span class="wh-name" style="color:#5a4080">Volcano Island</span>
+        <span class="wh-status-locked">🔒 Finish Crystal Caverns first</span>
+      </div>
+      <div class="node-path" style="opacity:0.3">
+        <div class="node locked">🌋</div>
+        <div class="node-connector"></div>
+        <div class="node locked">🔴</div>
+        <div class="node-connector"></div>
+        <div class="node locked">🟠</div>
+        <div class="node-connector"></div>
+        <div class="node locked">🌡️</div>
+        <div class="node-connector"></div>
+        <div class="node locked">🏔️</div>
+        <div class="node-connector"></div>
+        <div class="node locked">🏆</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS OVERVIEW -->
+<div id="screen-stats" class="screen">
+  <div class="page-wrap">
+    <div class="page-title">Zara's Journey 🌟</div>
+    <div class="page-sub">Everything you've collected on your adventure</div>
+    <div class="stats-bar">
+      <div class="stat-item"><div class="si-val">⭐ 42</div><div class="si-label">Stars collected</div></div>
+      <div class="stat-item"><div class="si-val">31</div><div class="si-label">Nodes explored</div></div>
+      <div class="stat-item"><div class="si-val">3</div><div class="si-label">Badges earned</div></div>
+      <div class="stat-item"><div class="si-val">🔥 5</div><div class="si-label">Day streak</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:#1a1060;border:1px solid #2a2060;border-radius:16px;padding:18px">
+        <div style="font-size:12px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Worlds</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">🌲</span><div style="flex:1"><div style="font-size:14px;font-weight:900;color:#fff">Enchanted Forest</div><div style="height:6px;background:#0a2a15;border-radius:4px;overflow:hidden;margin-top:4px"><div style="height:100%;width:100%;background:#50e890;border-radius:4px"></div></div></div><span style="font-size:12px;font-weight:700;color:#50e890">100%</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">🌊</span><div style="flex:1"><div style="font-size:14px;font-weight:900;color:#fff">Ocean Kingdom</div><div style="height:6px;background:#0a2a15;border-radius:4px;overflow:hidden;margin-top:4px"><div style="height:100%;width:100%;background:#50e890;border-radius:4px"></div></div></div><span style="font-size:12px;font-weight:700;color:#50e890">100%</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">💎</span><div style="flex:1"><div style="font-size:14px;font-weight:900;color:#fff">Crystal Caverns</div><div style="height:6px;background:#2a2060;border-radius:4px;overflow:hidden;margin-top:4px"><div style="height:100%;width:58%;background:#9b72ff;border-radius:4px"></div></div></div><span style="font-size:12px;font-weight:700;color:#9b72ff">58%</span></div>
+          <div style="display:flex;align-items:center;gap:10px;opacity:0.4"><span style="font-size:20px">🌋</span><div style="flex:1"><div style="font-size:14px;font-weight:900;color:#fff">Volcano Island</div><div style="height:6px;background:#2a2060;border-radius:4px;overflow:hidden;margin-top:4px"><div style="height:100%;width:0%;background:#9b72ff;border-radius:4px"></div></div></div><span style="font-size:11px;font-weight:700;color:#5a4080">🔒</span></div>
+        </div>
+      </div>
+      <div style="background:#1a1060;border:1px solid #2a2060;border-radius:16px;padding:18px">
+        <div style="font-size:12px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Recent Wins</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c4a0ff"><span style="font-size:18px">⭐</span>Earned 3 stars · Word Builders<span style="margin-left:auto;font-size:10px;color:#5a4080">today</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c4a0ff"><span style="font-size:18px">🏅</span>Crystal Explorer badge<span style="margin-left:auto;font-size:10px;color:#5a4080">today</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c4a0ff"><span style="font-size:18px">🔥</span>5-day streak!<span style="margin-left:auto;font-size:10px;color:#5a4080">today</span></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c4a0ff"><span style="font-size:18px">🌊</span>Ocean Kingdom complete<span style="margin-left:auto;font-size:10px;color:#5a4080">4d ago</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="screen-spec" class="screen">
+  <div class="spec-outer">
+    <div class="spec-section">
+      <div class="spec-title">Node Path</div>
+      <div class="spec-row"><span class="spec-key">Layout</span><span class="spec-val">Horizontal chain: node + connector + node…</span></div>
+      <div class="spec-row"><span class="spec-key">Connector done</span><span class="spec-val">#50e890 green fill</span></div>
+      <div class="spec-row"><span class="spec-key">Connector active</span><span class="spec-val">Gradient: green → violet</span></div>
+      <div class="spec-row"><span class="spec-key">Node active</span><span class="spec-val">Violet border + pulse animation</span></div>
+      <div class="spec-row"><span class="spec-key">Node done</span><span class="spec-val">Green border + ✓ checkmark badge + star row below</span></div>
+      <div class="spec-row"><span class="spec-key">Node locked</span><span class="spec-val">30% opacity, no hover effect</span></div>
+      <div class="spec-row"><span class="spec-key">Boss node</span><span class="spec-val">Gold border + gold checkmark when complete</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Stars under nodes</div>
+      <div class="spec-row"><span class="spec-key">Range</span><span class="spec-val">1–3 ⭐ shown below each done node</span></div>
+      <div class="spec-row"><span class="spec-key">Accuracy</span><span class="spec-val">Never shown — stars only</span></div>
+      <div class="spec-row"><span class="spec-key">Decrease</span><span class="spec-val">Never — replay can't lose stars</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Grade labels</span><span class="spec-val">None — world names only</span></div>
+      <div class="spec-row"><span class="spec-key">Locked worlds</span><span class="spec-val">"Finish X first" — never "not ready"</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

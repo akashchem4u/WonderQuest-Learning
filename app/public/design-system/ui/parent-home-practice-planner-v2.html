@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>parent-home-practice-planner-v2 · WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a2e;font-family:'Sora',sans-serif;display:flex;flex-direction:column;align-items:center;padding:24px 16px;min-height:100vh}
+.hint-box{background:#1a2a1a;border:1px solid #58e8c1;border-radius:8px;padding:12px 16px;max-width:440px;width:100%;margin-bottom:16px;font-size:12px;color:#58e8c1;line-height:1.5}
+.hint-box strong{display:block;margin-bottom:4px;font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;max-width:440px;width:100%;margin-bottom:16px}
+.tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #333;background:#1a1a2e;color:#888;font-family:'Sora',sans-serif;transition:all .2s}
+.tab.active{background:#2c7a6e;border-color:#2c7a6e;color:#fff}
+.screen{display:none;max-width:375px;width:100%}
+.screen.active{display:block}
+.phone{background:#f5f0e8;border-radius:32px;border:3px solid #d4c8b0;overflow:hidden;min-height:720px;display:flex;flex-direction:column}
+.nav{background:#2c7a6e;padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nav-title{font-size:15px;font-weight:700;color:#fff}
+.nav-sub{font-size:11px;color:#a8d8d0}
+.body{padding:20px;flex:1;overflow-y:auto}
+/* Planner hero */
+.planner-hero{background:linear-gradient(135deg,#2c7a6e,#1a5a50);border-radius:16px;padding:20px;margin-bottom:16px;color:#fff;text-align:center}
+.hero-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.hero-sub{font-size:12px;opacity:.8;margin-bottom:12px}
+.hero-child-chip{background:rgba(255,255,255,.15);border-radius:20px;padding:6px 14px;display:inline-block;font-size:12px;font-weight:600;margin-bottom:12px}
+.hero-stat-row{display:flex;gap:10px;justify-content:center}
+.hero-stat{background:rgba(255,255,255,.15);border-radius:10px;padding:8px 14px;text-align:center}
+.hero-stat .hs-val{font-size:18px;font-weight:700}
+.hero-stat .hs-label{font-size:10px;opacity:.7}
+/* Practice cards */
+.practice-card{background:#fff;border-radius:16px;border:1px solid #ddd8cc;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.pc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pc-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pc-title{font-size:14px;font-weight:700;color:#1a2a26}
+.pc-time{font-size:11px;color:#8a7a6a;display:flex;align-items:center;gap:4px;margin-top:2px}
+.pc-steps{list-style:none;margin-bottom:12px}
+.pc-steps li{padding:5px 0;font-size:12px;color:#3a3028;border-bottom:1px solid #f0ece4;display:flex;align-items:flex-start;gap:8px}
+.pc-steps li:last-child{border-bottom:none}
+.step-num{background:#2c7a6e;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.pc-why{background:#f0f9f7;border-radius:8px;padding:8px 12px;font-size:11px;color:#2c7a6e;font-weight:600;border-left:3px solid #2c7a6e}
+.pc-cta{display:block;background:#2c7a6e;color:#fff;border:none;border-radius:10px;padding:10px;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:100%;text-align:center;margin-top:10px}
+/* Reminder setup */
+.reminder-section{background:#fff;border-radius:16px;border:1px solid #ddd8cc;padding:18px;margin-bottom:12px}
+.rs-title{font-size:14px;font-weight:700;color:#1a2a26;margin-bottom:12px}
+.reminder-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0ece4}
+.reminder-row:last-of-type{border-bottom:none}
+.rr-left{display:flex;align-items:center;gap:10px}
+.rr-icon{font-size:20px}
+.rr-label{font-size:13px;color:#3a3028;font-weight:600}
+.rr-sub{font-size:11px;color:#8a7a6a}
+.toggle{width:42px;height:24px;border-radius:12px;background:#ccc;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#2c7a6e}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.toggle.on::after{left:21px}
+.time-picker{background:#f5f0e8;border:1px solid #d4c8b0;border-radius:8px;padding:6px 12px;font-family:'Sora',sans-serif;font-size:12px;color:#3a3028;cursor:pointer}
+/* Skill progress note */
+.skill-note{background:#fff;border-radius:16px;border:1px solid #ddd8cc;padding:18px;margin-bottom:12px}
+.sn-title{font-size:14px;font-weight:700;color:#1a2a26;margin-bottom:12px}
+.skill-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0ece4}
+.skill-row:last-child{border-bottom:none}
+.skill-emoji{font-size:18px}
+.skill-info{flex:1}
+.skill-name{font-size:12px;font-weight:700;color:#2a2018}
+.skill-note-text{font-size:11px;color:#6a5a4a;margin-top:2px}
+.tier-label{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.tier-strength{background:#e0f5ee;color:#1a5a40}
+.tier-progress{background:#e8f0f8;color:#1a3a6a}
+.tier-support{background:#fff0e0;color:#8a4a00}
+/* Save note */
+.save-note-card{background:#fff;border-radius:16px;border:1px solid #ddd8cc;padding:18px;margin-bottom:12px}
+.note-textarea{width:100%;background:#f5f0e8;border:1px solid #d4c8b0;border-radius:10px;padding:12px;font-family:'Sora',sans-serif;font-size:13px;color:#2a2018;resize:none;min-height:80px;margin:10px 0}
+.save-btn{display:block;background:#2c7a6e;color:#fff;border:none;border-radius:12px;padding:12px;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;cursor:pointer;width:100%;text-align:center}
+/* Spec */
+.spec{padding:20px;color:#3a3028}
+.spec h3{font-size:14px;color:#2c7a6e;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px;font-weight:700}
+.spec h3:first-child{margin-top:0}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
+th{background:#e0f5ee;color:#2c7a6e;text-align:left;padding:6px 8px;font-size:11px}
+td{border-top:1px solid #e8e0d0;padding:6px 8px;color:#3a3028;vertical-align:top}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.pill-g{background:#e0f5ee;color:#1a5a40}
+.pill-r{background:#ffeeee;color:#8a1010}
+</style>
+</head>
+<body>
+<div class="hint-box">
+  <strong>Engineering Hint -- parent-home-practice-planner-v2</strong>
+  Route: GET /parent/practice-plan/{child_id} returns 3 activity suggestions based on current support-tier skills.
+  Reminder settings: POST /parent/reminders/save. Note save: POST /parent/notes/add.
+  Parent language rules enforced: no accuracy %, no missed-day framing, forward-looking growth language only.
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="show('planner-home')">Planner Home</button>
+  <button class="tab" onclick="show('activity-detail')">Activity Detail</button>
+  <button class="tab" onclick="show('reminder-setup')">Reminder Setup</button>
+  <button class="tab" onclick="show('progress-note')">Progress Note</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- PLANNER HOME -->
+<div id="planner-home" class="screen active">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Home Practice Plan</div>
+        <div class="nav-sub">Week of Mar 22</div>
+      </div>
+      <div style="font-size:20px;cursor:pointer;color:#a8d8d0">&#9881;</div>
+    </div>
+    <div class="body">
+      <div class="planner-hero">
+        <div class="hero-child-chip">&#128100; Mia, Age 5</div>
+        <div class="hero-title">This week's plan for Mia</div>
+        <div class="hero-sub">3 short activities, 5-10 min each</div>
+        <div class="hero-stat-row">
+          <div class="hero-stat"><div class="hs-val">3</div><div class="hs-label">Activities</div></div>
+          <div class="hero-stat"><div class="hs-val">5 min</div><div class="hs-label">Each</div></div>
+          <div class="hero-stat"><div class="hs-val">2</div><div class="hs-label">Focus Areas</div></div>
+        </div>
+      </div>
+      <div class="practice-card">
+        <div class="pc-header">
+          <div class="pc-icon" style="background:#fff0d0">&#128218;</div>
+          <div>
+            <div class="pc-title">Sound Matching Game</div>
+            <div class="pc-time">&#128336; 5 min &nbsp;&#183;&nbsp; Letter Sounds</div>
+          </div>
+        </div>
+        <ul class="pc-steps">
+          <li><span class="step-num">1</span>Pick 3 objects from around the house</li>
+          <li><span class="step-num">2</span>Say the name, ask Mia what sound it starts with</li>
+          <li><span class="step-num">3</span>Celebrate every correct sound together!</li>
+        </ul>
+        <div class="pc-why">Why this? Mia is building letter-sound connections this week.</div>
+        <button class="pc-cta">Mark as Done</button>
+      </div>
+      <div class="practice-card">
+        <div class="pc-header">
+          <div class="pc-icon" style="background:#d0f0e0">&#129518;</div>
+          <div>
+            <div class="pc-title">Counting Walk</div>
+            <div class="pc-time">&#128336; 5-7 min &nbsp;&#183;&nbsp; Counting to 10</div>
+          </div>
+        </div>
+        <ul class="pc-steps">
+          <li><span class="step-num">1</span>Go for a short walk (inside or outside)</li>
+          <li><span class="step-num">2</span>Count things you spot: steps, trees, windows</li>
+          <li><span class="step-num">3</span>Let Mia lead the counting whenever she wants</li>
+        </ul>
+        <div class="pc-why">Why this? Counting in real life builds number confidence.</div>
+        <button class="pc-cta">Mark as Done</button>
+      </div>
+      <div class="practice-card">
+        <div class="pc-header">
+          <div class="pc-icon" style="background:#f0d0f0">&#128640;</div>
+          <div>
+            <div class="pc-title">Story Time Word Hunt</div>
+            <div class="pc-time">&#128336; 7 min &nbsp;&#183;&nbsp; Sight Words</div>
+          </div>
+        </div>
+        <ul class="pc-steps">
+          <li><span class="step-num">1</span>Read a short book together</li>
+          <li><span class="step-num">2</span>Ask Mia to spot the words: "the", "is", "and"</li>
+          <li><span class="step-num">3</span>Each find gets a celebration clap!</li>
+        </ul>
+        <div class="pc-why">Why this? Sight word recognition is growing fast for Mia.</div>
+        <button class="pc-cta">Mark as Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVITY DETAIL -->
+<div id="activity-detail" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Activity Detail</div>
+        <div class="nav-sub">Sound Matching Game</div>
+      </div>
+      <div style="font-size:13px;color:#a8d8d0;cursor:pointer">Back</div>
+    </div>
+    <div class="body">
+      <div style="background:linear-gradient(135deg,#2c7a6e,#1a5a50);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center;color:#fff">
+        <div style="font-size:48px;margin-bottom:8px">&#128218;</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:4px">Sound Matching Game</div>
+        <div style="font-size:12px;opacity:.8">Letter Sounds &nbsp;&#183;&nbsp; 5 min &nbsp;&#183;&nbsp; Ages 4-6</div>
+      </div>
+      <div class="practice-card">
+        <div style="font-size:13px;font-weight:700;color:#2a2018;margin-bottom:10px">What you'll need</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="background:#f5f0e8;border-radius:8px;padding:5px 10px;font-size:12px;color:#3a3028;border:1px solid #d4c8b0">&#127968; Household objects</div>
+          <div style="background:#f5f0e8;border-radius:8px;padding:5px 10px;font-size:12px;color:#3a3028;border:1px solid #d4c8b0">&#128064; 5 minutes</div>
+          <div style="background:#f5f0e8;border-radius:8px;padding:5px 10px;font-size:12px;color:#3a3028;border:1px solid #d4c8b0">&#127774; Good energy</div>
+        </div>
+      </div>
+      <div class="practice-card">
+        <div style="font-size:13px;font-weight:700;color:#2a2018;margin-bottom:10px">Steps</div>
+        <ul class="pc-steps">
+          <li><span class="step-num">1</span>Gather 3-5 objects (cup, book, ball, spoon...)</li>
+          <li><span class="step-num">2</span>Hold up each one and say its name clearly</li>
+          <li><span class="step-num">3</span>Ask: "What sound does cup start with?"</li>
+          <li><span class="step-num">4</span>If they struggle, say the sound together slowly</li>
+          <li><span class="step-num">5</span>Celebrate every try, correct or not!</li>
+        </ul>
+      </div>
+      <div class="practice-card">
+        <div style="font-size:13px;font-weight:700;color:#2c7a6e;margin-bottom:6px">Why this helps Mia</div>
+        <div style="font-size:12px;color:#3a3028;line-height:1.5">Mia is building letter-sound connections this week. Real-world practice helps this click faster and makes reading feel fun and natural.</div>
+      </div>
+      <button style="display:block;background:#2c7a6e;color:#fff;border:none;border-radius:14px;padding:14px;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;cursor:pointer;width:100%;text-align:center">&#10003; Mark as Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMINDER SETUP -->
+<div id="reminder-setup" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Practice Reminders</div>
+        <div class="nav-sub">Optional &nbsp;&#183;&nbsp; Mia</div>
+      </div>
+    </div>
+    <div class="body">
+      <div style="background:#e8f5f0;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#2c7a6e;line-height:1.5;border:1px solid #b8ddd6">
+        Reminders are optional and totally up to you. We'll only send them when you want.
+      </div>
+      <div class="reminder-section">
+        <div class="rs-title">Daily Reminder</div>
+        <div class="reminder-row">
+          <div class="rr-left">
+            <span class="rr-icon">&#128276;</span>
+            <div>
+              <div class="rr-label">Practice reminder</div>
+              <div class="rr-sub">Once a day nudge</div>
+            </div>
+          </div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="reminder-row">
+          <div class="rr-left">
+            <span class="rr-icon">&#128336;</span>
+            <div>
+              <div class="rr-label">Reminder time</div>
+              <div class="rr-sub">Best time for your family</div>
+            </div>
+          </div>
+          <select class="time-picker"><option>4:00 PM</option><option>5:00 PM</option><option>6:00 PM</option><option>7:00 PM</option></select>
+        </div>
+        <div class="reminder-row">
+          <div class="rr-left">
+            <span class="rr-icon">&#128197;</span>
+            <div>
+              <div class="rr-label">Weekdays only</div>
+              <div class="rr-sub">Skip weekends</div>
+            </div>
+          </div>
+          <div class="toggle on"></div>
+        </div>
+      </div>
+      <div class="reminder-section">
+        <div class="rs-title">Weekly Summary</div>
+        <div class="reminder-row">
+          <div class="rr-left">
+            <span class="rr-icon">&#128200;</span>
+            <div>
+              <div class="rr-label">Weekly progress update</div>
+              <div class="rr-sub">Sunday evening</div>
+            </div>
+          </div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="reminder-row">
+          <div class="rr-left">
+            <span class="rr-icon">&#128233;</span>
+            <div>
+              <div class="rr-label">Send via email</div>
+              <div class="rr-sub">In addition to push</div>
+            </div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+      <button class="save-btn">Save Reminder Preferences</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS NOTE -->
+<div id="progress-note" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Skill Snapshot</div>
+        <div class="nav-sub">Mia &nbsp;&#183;&nbsp; This Week</div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="skill-note">
+        <div class="sn-title">Where Mia is growing</div>
+        <div class="skill-row">
+          <span class="skill-emoji">&#128218;</span>
+          <div class="skill-info">
+            <div class="skill-name">Letter Sounds</div>
+            <div class="skill-note-text">Building momentum -- great focus area right now</div>
+          </div>
+          <span class="tier-label tier-progress">Growing</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-emoji">&#129518;</span>
+          <div class="skill-info">
+            <div class="skill-name">Counting to 10</div>
+            <div class="skill-note-text">Showing strong understanding</div>
+          </div>
+          <span class="tier-label tier-strength">Strength</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-emoji">&#128064;</span>
+          <div class="skill-info">
+            <div class="skill-name">Sight Words</div>
+            <div class="skill-note-text">Good opportunity to practice at home</div>
+          </div>
+          <span class="tier-label tier-support">Opportunity</span>
+        </div>
+      </div>
+      <div class="save-note-card">
+        <div style="font-size:13px;font-weight:700;color:#2a2018;margin-bottom:4px">Add a family note</div>
+        <div style="font-size:11px;color:#8a7a6a;margin-bottom:8px">Share how home practice went (optional)</div>
+        <textarea class="note-textarea" placeholder="e.g., Mia loved the counting walk today! She wanted to count everything..."></textarea>
+        <button class="save-btn">Save Note</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="screen">
+  <div class="phone">
+    <div class="spec">
+      <h3>Routes</h3>
+      <table><tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+      <tr><td>GET</td><td>/parent/practice-plan/{child_id}</td><td>3 activity suggestions by support skills</td></tr>
+      <tr><td>POST</td><td>/parent/practice/complete</td><td>Mark activity done</td></tr>
+      <tr><td>POST</td><td>/parent/reminders/save</td><td>Save reminder preferences</td></tr>
+      <tr><td>POST</td><td>/parent/notes/add</td><td>Append family note</td></tr></table>
+      <h3>Parent Language Rules</h3>
+      <table><tr><th>Rule</th><th>Value</th></tr>
+      <tr><td>No accuracy %</td><td><span class="pill pill-r">NEVER</span></td></tr>
+      <tr><td>No missed-day framing</td><td><span class="pill pill-r">NEVER</span></td></tr>
+      <tr><td>Forward-looking growth language</td><td><span class="pill pill-g">required</span></td></tr>
+      <tr><td>Tier labels: Opportunity / Growing / Strength</td><td><span class="pill pill-g">required</span></td></tr>
+      <tr><td>Reminders always optional</td><td><span class="pill pill-g">required</span></td></tr></table>
+      <h3>Activity Generation Rules</h3>
+      <table><tr><th>Rule</th><th>Value</th></tr>
+      <tr><td>Always 3 activities</td><td>Fixed</td></tr>
+      <tr><td>Max 5-10 min each</td><td>Enforced in copy</td></tr>
+      <tr><td>Child-specific suggestions</td><td>From support-tier skills</td></tr>
+      <tr><td>No materials required</td><td>Household items only</td></tr></table>
+      <h3>Design Tokens</h3>
+      <table><tr><th>Token</th><th>Value</th></tr>
+      <tr><td>Parent bg</td><td>#f5f0e8</td></tr>
+      <tr><td>Nav</td><td>#2c7a6e</td></tr>
+      <tr><td>Font</td><td>Sora / 375px mobile</td></tr></table>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Returning Player Mobile v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a1a2e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 40px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.eng-hint {
+  width: 100%; max-width: 700px;
+  background: #fffbea; border: 2px solid #f0c040;
+  border-radius: 8px; padding: 12px 16px;
+  font-family: monospace; font-size: 12px; color: #333;
+  margin-bottom: 16px; line-height: 1.5;
+}
+.eng-hint strong { color: #b45309; }
+
+.tab-bar {
+  width: 100%; max-width: 700px;
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.tab-btn {
+  flex: 1; min-width: 80px; padding: 8px 8px;
+  background: #1e1e3a; border: 2px solid #2e2e4e;
+  border-radius: 8px; color: #aaa;
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700;
+  cursor: pointer; text-align: center; transition: all 0.2s;
+}
+.tab-btn:hover { background: #2a2a4e; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+.phone-frame {
+  width: 390px; min-height: 844px;
+  background: #100b2e; border-radius: 40px;
+  overflow: hidden; position: relative;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 0 0 2px #2a2060;
+}
+
+.status-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 20px 6px; font-size: 12px; font-weight: 700; color: #9b72ff;
+}
+.status-bar .time { font-size: 14px; color: #e0d4ff; font-weight: 900; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.scroll-body { padding: 16px 20px 90px; }
+
+/* Mascot + greeting */
+.mascot-greeting {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 18px;
+}
+.mascot-bubble {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(155,114,255,0.3);
+  animation: float 2.5s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.greeting-text .g-title { font-size: 18px; font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 3px; }
+.greeting-text .g-sub { font-size: 12px; color: #b8a0e8; font-weight: 700; }
+
+/* World card */
+.world-card {
+  background: linear-gradient(135deg, #1a1060, #2a1880);
+  border: 2px solid #4a30b0; border-radius: 18px;
+  padding: 16px; margin-bottom: 14px;
+  position: relative; overflow: hidden;
+}
+.world-card::after {
+  content: '💎'; position: absolute;
+  top: -6px; right: -2px; font-size: 60px; opacity: 0.12;
+}
+.wc-label { font-size: 10px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.wc-name { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 10px; }
+.wc-prog { height: 10px; background: #2a1880; border-radius: 6px; overflow: hidden; margin-bottom: 5px; }
+.wc-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #9b72ff, #c4a0ff); }
+.wc-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #9b72ff; margin-bottom: 13px; }
+.wc-btn {
+  width: 100%; padding: 13px; border-radius: 13px; border: none;
+  background: linear-gradient(135deg, #9b72ff, #7c4ddb); color: #fff;
+  font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900;
+  cursor: pointer; box-shadow: 0 5px 16px rgba(155,114,255,0.4);
+}
+.wc-btn:active { transform: scale(0.97); }
+
+/* Star safe badge */
+.star-safe {
+  display: flex; align-items: center; gap: 8px;
+  background: #1a2a15; border: 2px solid #50e890;
+  border-radius: 12px; padding: 10px 14px; margin-bottom: 12px;
+}
+.star-safe .ss-icon { font-size: 18px; }
+.star-safe .ss-text { font-size: 12px; font-weight: 700; color: #50e890; }
+
+/* Bonus chips */
+.bonus-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.bchip {
+  display: flex; align-items: center; gap: 5px;
+  border-radius: 18px; padding: 7px 12px;
+  font-size: 13px; font-weight: 900;
+  animation: chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes chip-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.bchip.gold { background: #2a2010; border: 2px solid #ffd166; color: #ffd166; }
+.bchip.green { background: #0a2a15; border: 2px solid #50e890; color: #50e890; }
+.bchip.violet { background: #1a1060; border: 2px solid #9b72ff; color: #c4a0ff; }
+.bchip:nth-child(1) { animation-delay: 0.1s; }
+.bchip:nth-child(2) { animation-delay: 0.2s; }
+.bchip:nth-child(3) { animation-delay: 0.3s; }
+
+/* Streak card */
+.streak-card {
+  background: #1a1060; border: 1px solid #2a2060;
+  border-radius: 14px; padding: 14px; margin-bottom: 12px;
+}
+.sc-title { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.sc-row { display: flex; align-items: center; gap: 10px; }
+.sc-flame { font-size: 30px; }
+.sc-num { font-size: 28px; font-weight: 900; color: #ffd166; line-height: 1; }
+.sc-label { font-size: 11px; color: #b8a0e8; font-weight: 700; }
+.sc-dots { display: flex; gap: 5px; margin-top: 8px; }
+.sdot { width: 10px; height: 10px; border-radius: 50%; background: #2a2060; }
+.sdot.lit { background: #ffd166; box-shadow: 0 0 5px #ffd166; }
+
+/* Week bar */
+.week-bar { display: flex; gap: 4px; margin-top: 10px; }
+.wday { flex: 1; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; }
+.wday.played { background: #1a2a15; border: 1px solid #50e890; color: #50e890; }
+.wday.gap { background: #1e1a40; border: 1px dashed #4a30b0; color: #5a4080; }
+.wday.today { background: #2a1880; border: 1px solid #9b72ff; color: #c4a0ff; animation: glow 1.5s ease-in-out infinite; }
+@keyframes glow { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 8px rgba(155,114,255,0.4); } }
+
+/* Node strip */
+.node-strip {
+  display: flex; gap: 7px; overflow-x: auto;
+  padding-bottom: 6px; margin-bottom: 12px;
+  scrollbar-width: none;
+}
+.node-strip::-webkit-scrollbar { display: none; }
+.snode {
+  flex-shrink: 0; width: 48px; height: 48px;
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; border: 2px solid #2a2060; background: #1a1060;
+  position: relative;
+}
+.snode.done { border-color: #50e890; background: #0a2a15; }
+.snode.active { border-color: #9b72ff; background: #2a1880; animation: nd-pulse 1.5s ease-in-out infinite; }
+.snode.locked { opacity: 0.35; }
+@keyframes nd-pulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 6px rgba(155,114,255,0); } }
+.snode .sc { position: absolute; top: -3px; right: -3px; width: 14px; height: 14px; background: #50e890; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #0a2a15; font-weight: 900; }
+
+/* Alt btn */
+.alt-btn {
+  width: 100%; padding: 11px; border-radius: 12px;
+  border: 2px solid #2a2060; background: #1a1060;
+  color: #9b72ff; font-family: 'Nunito', sans-serif;
+  font-size: 13px; font-weight: 900; cursor: pointer; margin-bottom: 12px;
+}
+
+/* Comeback banner */
+.comeback-banner {
+  background: linear-gradient(135deg, #2a2010, #1a1060);
+  border: 2px solid #ffd166; border-radius: 18px;
+  padding: 18px; margin-bottom: 14px; text-align: center;
+}
+.cb-trophy { font-size: 64px; display: block; margin-bottom: 10px; animation: trophy-pop 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes trophy-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.cb-title { font-size: 20px; font-weight: 900; color: #ffd166; margin-bottom: 4px; }
+.cb-sub { font-size: 12px; color: #b8a0a0; font-weight: 700; margin-bottom: 14px; }
+.cb-btn {
+  width: 100%; padding: 13px; border-radius: 13px; border: none;
+  background: linear-gradient(135deg, #ffd166, #e09000); color: #1a1000;
+  font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 5px 16px rgba(255,209,102,0.35);
+}
+
+/* Wins list */
+.wins-list { display: flex; flex-direction: column; gap: 6px; }
+.win-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; background: #1a1060;
+  border-radius: 10px; font-size: 13px; font-weight: 700; color: #c4a0ff;
+}
+.win-row .wt { margin-left: auto; font-size: 10px; color: #5a4080; }
+
+/* Spec */
+.spec-section { margin-bottom: 12px; background: #1a1060; border-radius: 12px; padding: 12px; }
+.spec-title { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 11px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 58%; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-returning-player-mobile-v3.html</strong><br>
+  Phone 390px • 5 tabs: Same-day / 2-day gap / 7-day (streak restore) / 30-day comeback / Spec<br>
+  Stacked single-column layout • Node strip horizontal scroll • Comeback banner full-width above world card<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code> • Star-safe badge on all gap states • No timers, no accuracy %
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('same-day')">Same Day</button>
+  <button class="tab-btn" onclick="showTab('two-day')">2-Day Gap</button>
+  <button class="tab-btn" onclick="showTab('seven-day')">7-Day Gap</button>
+  <button class="tab-btn" onclick="showTab('comeback')">30-Day</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span>⭐ 42</span>
+    <span>🔋 94%</span>
+  </div>
+
+  <!-- SAME DAY -->
+  <div id="screen-same-day" class="screen active">
+    <div class="scroll-body">
+      <div class="mascot-greeting">
+        <div class="mascot-bubble" style="background:radial-gradient(circle at 35% 35%,#c4a0ff,#9b72ff)">🦋</div>
+        <div class="greeting-text">
+          <div class="g-title">Welcome back, Zara! ✨</div>
+          <div class="g-sub">You were just here — keep going!</div>
+        </div>
+      </div>
+
+      <div class="world-card">
+        <div class="wc-label">Continue Your Adventure</div>
+        <div class="wc-name">Crystal Caverns 💎</div>
+        <div class="wc-prog"><div class="wc-fill" style="width:58%"></div></div>
+        <div class="wc-meta"><span>Node 7 of 12</span><span>58% explored</span></div>
+        <button class="wc-btn">▶ Continue Adventure</button>
+      </div>
+
+      <div style="font-size:11px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Today's Nodes</div>
+      <div class="node-strip">
+        <div class="snode done">🌟<div class="sc">✓</div></div>
+        <div class="snode done">🔮<div class="sc">✓</div></div>
+        <div class="snode done">💎<div class="sc">✓</div></div>
+        <div class="snode done">🗝️<div class="sc">✓</div></div>
+        <div class="snode done">🌈<div class="sc">✓</div></div>
+        <div class="snode done">🔥<div class="sc">✓</div></div>
+        <div class="snode active">🏔️</div>
+        <div class="snode locked">🌙</div>
+        <div class="snode locked">⚡</div>
+      </div>
+
+      <div class="streak-card">
+        <div class="sc-title">Quest Streak 🔥</div>
+        <div class="sc-row">
+          <span class="sc-flame">🔥</span>
+          <div><div class="sc-num">5</div><div class="sc-label">days strong!</div></div>
+        </div>
+        <div class="sc-dots">
+          <div class="sdot lit"></div><div class="sdot lit"></div><div class="sdot lit"></div>
+          <div class="sdot lit"></div><div class="sdot lit"></div><div class="sdot"></div><div class="sdot"></div>
+        </div>
+      </div>
+
+      <button class="alt-btn">Try a Different World 🌍</button>
+    </div>
+  </div>
+
+  <!-- 2-DAY GAP -->
+  <div id="screen-two-day" class="screen">
+    <div class="scroll-body">
+      <div class="mascot-greeting">
+        <div class="mascot-bubble" style="background:radial-gradient(circle at 35% 35%,#ffb060,#ff8020)">🦁</div>
+        <div class="greeting-text">
+          <div class="g-title">Zara is back! 🚀</div>
+          <div class="g-sub">Your world is waiting for you</div>
+        </div>
+      </div>
+
+      <div class="star-safe">
+        <span class="ss-icon">⭐</span>
+        <span class="ss-text">Your 42 stars are safe — they never go away!</span>
+      </div>
+
+      <div class="world-card">
+        <div class="wc-label">Right Where You Left Off</div>
+        <div class="wc-name">Crystal Caverns 💎</div>
+        <div class="wc-prog"><div class="wc-fill" style="width:58%"></div></div>
+        <div class="wc-meta"><span>Node 7 — still yours</span><span>58%</span></div>
+        <button class="wc-btn">⚡ Jump Back In</button>
+      </div>
+
+      <div class="streak-card">
+        <div class="sc-title">Your Week</div>
+        <div class="week-bar">
+          <div class="wday played">Mon<br>✓</div>
+          <div class="wday played">Tue<br>✓</div>
+          <div class="wday gap">Wed<br>—</div>
+          <div class="wday gap">Thu<br>—</div>
+          <div class="wday today">Fri<br>NOW</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#9b72ff;margin-top:8px">Play today to keep going!</div>
+      </div>
+
+      <button class="alt-btn">Explore a New World 🌍</button>
+    </div>
+  </div>
+
+  <!-- 7-DAY GAP -->
+  <div id="screen-seven-day" class="screen">
+    <div class="scroll-body">
+      <div class="mascot-greeting">
+        <div class="mascot-bubble" style="background:radial-gradient(circle at 35% 35%,#80d0ff,#2080c0)">🐉</div>
+        <div class="greeting-text">
+          <div class="g-title">Zara returns! 🐉</div>
+          <div class="g-sub">Streak restored — great news!</div>
+        </div>
+      </div>
+
+      <div class="bonus-row">
+        <div class="bchip gold">⭐ +1 star</div>
+        <div class="bchip green">✨ +30 XP</div>
+        <div class="bchip violet">🎉 Restored!</div>
+      </div>
+
+      <div class="star-safe">
+        <span class="ss-icon">⭐</span>
+        <span class="ss-text">All 42 stars safe while you were away!</span>
+      </div>
+
+      <div class="world-card">
+        <div class="wc-label">Still Right Here For You</div>
+        <div class="wc-name">Crystal Caverns 💎</div>
+        <div class="wc-prog"><div class="wc-fill" style="width:58%"></div></div>
+        <div class="wc-meta"><span>Node 7 — unchanged</span><span>58%</span></div>
+        <button class="wc-btn">🔥 Start New Streak</button>
+      </div>
+
+      <div class="streak-card">
+        <div class="sc-title">Fresh Streak Start 🔥</div>
+        <div class="sc-row">
+          <span class="sc-flame">🔥</span>
+          <div><div class="sc-num">Day 1</div><div class="sc-label">brand new streak!</div></div>
+        </div>
+        <div class="sc-dots">
+          <div class="sdot lit"></div><div class="sdot"></div><div class="sdot"></div>
+          <div class="sdot"></div><div class="sdot"></div><div class="sdot"></div><div class="sdot"></div>
+        </div>
+      </div>
+
+      <button class="alt-btn">Start Fresh in a New World 🌍</button>
+
+      <div style="font-size:11px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:4px">Recent Wins</div>
+      <div class="wins-list">
+        <div class="win-row">⭐ Stars: 42 → 43 (+1 bonus)<span class="wt">now</span></div>
+        <div class="win-row">🏅 3 badges — all safe<span class="wt">always</span></div>
+        <div class="win-row">💎 Node 7 waiting<span class="wt">ready</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 30-DAY COMEBACK -->
+  <div id="screen-comeback" class="screen">
+    <div class="scroll-body">
+      <div class="comeback-banner">
+        <span class="cb-trophy">🏆</span>
+        <div class="cb-title">LEGENDARY COMEBACK!</div>
+        <div class="cb-sub">+2 stars · +100 XP · Legend Badge — just for coming back!</div>
+        <button class="cb-btn" onclick="burstConfetti()">I'm Back! 🚀</button>
+      </div>
+
+      <div class="bonus-row">
+        <div class="bchip gold">⭐ +2 stars</div>
+        <div class="bchip green">✨ +100 XP</div>
+        <div class="bchip violet">🏅 Legend</div>
+      </div>
+
+      <div class="star-safe">
+        <span class="ss-icon">⭐</span>
+        <span class="ss-text">Every star you earned is still here — 42 stars waiting!</span>
+      </div>
+
+      <div class="world-card" style="border-color:#ffd166;background:linear-gradient(135deg,#2a2010,#1a1060)">
+        <div class="wc-label" style="color:#ffd166">Your World Is Still Here</div>
+        <div class="wc-name">Crystal Caverns 💎</div>
+        <div class="wc-prog"><div class="wc-fill" style="width:58%;background:linear-gradient(90deg,#ffd166,#ffb020)"></div></div>
+        <div class="wc-meta" style="color:#ffd166"><span>Node 7 — untouched</span><span>58%</span></div>
+        <button class="wc-btn" style="background:linear-gradient(135deg,#ffd166,#e09000);color:#1a1000;box-shadow:0 5px 16px rgba(255,209,102,0.35)">Continue Legendary Quest 🏆</button>
+      </div>
+
+      <button class="alt-btn">Want a Fresh World? 🌍</button>
+
+      <div style="font-size:11px;font-weight:900;color:#ffd166;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Legend Status</div>
+      <div class="wins-list">
+        <div class="win-row" style="color:#ffd166">🏅 Legend Badge earned<span class="wt">now</span></div>
+        <div class="win-row">⭐ Stars: 42 → 44<span class="wt">+2</span></div>
+        <div class="win-row">✨ XP boost +100<span class="wt">now</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPEC -->
+  <div id="screen-spec" class="screen">
+    <div class="scroll-body">
+      <div class="spec-section">
+        <div class="spec-title">States</div>
+        <div class="spec-row"><span class="spec-key">Same-day</span><span class="spec-val">Direct resume, node strip, streak</span></div>
+        <div class="spec-row"><span class="spec-key">2-day gap</span><span class="spec-val">Star-safe badge, week bar, nudge</span></div>
+        <div class="spec-row"><span class="spec-key">7-day gap</span><span class="spec-val">Streak restore, +1⭐ +30XP chips</span></div>
+        <div class="spec-row"><span class="spec-key">30-day</span><span class="spec-val">Gold banner, +2⭐ +100XP + legend</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Rules</div>
+        <div class="spec-row"><span class="spec-key">Stars</span><span class="spec-val">Never decrease — star-safe on all gaps</span></div>
+        <div class="spec-row"><span class="spec-key">Language</span><span class="spec-val">Forward-only — no "missed" framing</span></div>
+        <div class="spec-row"><span class="spec-key">World progress</span><span class="spec-val">58% / Node 7 preserved always</span></div>
+        <div class="spec-row"><span class="spec-key">Timers</span><span class="spec-val">None ever</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Thresholds</div>
+        <div class="spec-row"><span class="spec-key">Same-day</span><span class="spec-val">0–3 hours</span></div>
+        <div class="spec-row"><span class="spec-key">2-day</span><span class="spec-val">1–3 days</span></div>
+        <div class="spec-row"><span class="spec-key">7-day</span><span class="spec-val">4–13 days</span></div>
+        <div class="spec-row"><span class="spec-key">30-day</span><span class="spec-val">14+ days</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- phone-frame -->
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  if (tab === 'comeback') setTimeout(burstConfetti, 400);
+}
+
+function burstConfetti() {
+  const frame = document.querySelector('.phone-frame');
+  const old = document.getElementById('confetti-layer');
+  if (old) old.remove();
+  const layer = document.createElement('div');
+  layer.id = 'confetti-layer';
+  layer.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;z-index:99';
+  const colors = ['#9b72ff','#ffd166','#58e8c1','#ff7b6b','#c4a0ff','#50e890'];
+  for (let i = 0; i < 14; i++) {
+    const d = document.createElement('div');
+    const angle = (i / 14) * Math.PI * 2;
+    const dist = 70 + Math.random() * 100;
+    const tx = Math.cos(angle) * dist, ty = Math.sin(angle) * dist - 50;
+    d.style.cssText = `position:absolute;width:8px;height:8px;border-radius:50%;
+      background:${colors[i%colors.length]};top:35%;left:50%;
+      animation:cflyout 1s ease-out ${i*0.05}s both;
+      --tx:${tx}px;--ty:${ty}px`;
+    layer.appendChild(d);
+  }
+  frame.appendChild(layer);
+  const style = document.createElement('style');
+  style.textContent = '@keyframes cflyout{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--tx),var(--ty)) scale(0.2);opacity:0}}';
+  document.head.appendChild(style);
+}
+</script>
+</body>
+</html>

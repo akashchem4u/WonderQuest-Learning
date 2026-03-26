@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Question Template Editor — WonderQuest Design System #298</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --accent: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --muted: #8b949e;
+      --amber: #f0a500;
+      --amber-bg: rgba(240,165,0,.12);
+      --amber-border: rgba(240,165,0,.35);
+      --red: #f85149;
+      --red-bg: rgba(248,81,73,.1);
+      --green-bg: rgba(80,232,144,.1);
+      --green-border: rgba(80,232,144,.3);
+      --card2: #1c2230;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    /* Engineering hint box */
+    .eng-hint {
+      background: #2b2200;
+      border: 1.5px solid #f0a500;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      font-size: 12px;
+      color: #f0d080;
+      line-height: 1.7;
+    }
+    .eng-hint strong {
+      color: #f0a500;
+      font-size: 13px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .eng-hint code {
+      background: rgba(240,165,0,.15);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 11.5px;
+      color: #ffd966;
+    }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: 28px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .page-header p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 99px;
+      background: var(--green-bg);
+      color: var(--accent);
+      border: 1px solid var(--green-border);
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* Tab nav */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      border-radius: 6px 6px 0 0;
+      transition: color .15s, border-color .15s, background .15s;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--border); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Tab panels */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 16px;
+    }
+
+    /* Form elements */
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    label .req { color: var(--red); margin-left: 2px; }
+    label .hint-label { font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 12px; }
+
+    input[type="text"],
+    input[type="email"],
+    textarea,
+    select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+    }
+    textarea { resize: vertical; min-height: 90px; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-child { margin-bottom: 0; }
+
+    /* Char counter */
+    .field-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .char-counter {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .char-counter.warn { color: var(--amber); }
+
+    /* Safety alert */
+    .safety-alert {
+      display: none;
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--amber);
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .safety-alert.visible { display: flex; }
+    .safety-alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* Answer options */
+    .answer-options { display: flex; flex-direction: column; gap: 12px; }
+    .answer-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .answer-option .option-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      width: 24px;
+      flex-shrink: 0;
+      text-align: center;
+    }
+    .answer-option input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .answer-option input[type="text"] { flex: 1; }
+    .btn-remove {
+      background: none;
+      border: 1px solid rgba(248,81,73,.35);
+      color: var(--red);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background .15s;
+      white-space: nowrap;
+      min-height: 36px;
+    }
+    .btn-remove:hover { background: var(--red-bg); }
+    .answer-options-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    /* Correct answer note */
+    .correct-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 10px;
+      min-height: 44px;
+      padding: 0 22px;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #0d1117; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-secondary {
+      background: var(--card2);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,.25); }
+    .btn-sm {
+      font-size: 13px;
+      min-height: 36px;
+      padding: 0 14px;
+      border-radius: 8px;
+    }
+    .btn-approve { background: var(--green-bg); color: var(--accent); border: 1px solid var(--green-border); }
+    .btn-approve:hover { background: rgba(80,232,144,.2); }
+    .btn-changes { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .btn-changes:hover { background: rgba(240,165,0,.2); }
+
+    .actions-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    /* Checkbox */
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checkbox-row .cb-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .checkbox-row .cb-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Live preview */
+    .preview-panel {
+      background: linear-gradient(145deg, #1a2640, #0f1d30);
+      border: 1px solid rgba(80,232,144,.18);
+      border-radius: 14px;
+      padding: 28px 24px;
+    }
+    .preview-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      opacity: .7;
+    }
+    .preview-adventure-banner {
+      background: rgba(80,232,144,.08);
+      border: 1px solid rgba(80,232,144,.2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .preview-question {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .preview-options { display: flex; flex-direction: column; gap: 10px; }
+    .preview-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+      transition: border-color .15s;
+      cursor: pointer;
+    }
+    .preview-option:hover { border-color: rgba(80,232,144,.35); }
+    .preview-option .opt-key {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(80,232,144,.15);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .preview-hint {
+      margin-top: 16px;
+      background: rgba(240,165,0,.08);
+      border: 1px dashed rgba(240,165,0,.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #ffd966;
+    }
+    .preview-hint strong { display: block; margin-bottom: 2px; font-size: 12px; opacity: .7; }
+    .preview-empty {
+      color: var(--muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* Review queue */
+    .review-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+    .review-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .review-card-question {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .safety-flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--red-bg);
+      border: 1px solid rgba(248,81,73,.3);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--red);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .review-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .meta-chip {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+    .meta-band { background: rgba(80,232,144,.1); color: var(--accent); border: 1px solid var(--green-border); }
+    .meta-subject { background: rgba(255,255,255,.05); color: var(--muted); border: 1px solid var(--border); }
+    .meta-type { background: rgba(80,130,255,.1); color: #7faaff; border: 1px solid rgba(80,130,255,.25); }
+    .meta-days { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .review-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .submitted-by { font-size: 12px; color: var(--muted); }
+    .submitted-by span { color: var(--text); font-weight: 500; }
+    .review-actions { display: flex; gap: 8px; }
+
+    /* Spec tab */
+    .spec-section { margin-bottom: 28px; }
+    .spec-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .spec-table th { color: var(--muted); font-weight: 500; background: rgba(255,255,255,.02); width: 38%; }
+    .spec-table td { color: var(--text); }
+    .spec-table code {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,.06);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--accent);
+    }
+    .mono-block {
+      background: #0a0e14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+      line-height: 1.8;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .mono-kw { color: #ff7b72; }
+    .mono-field { color: #79c0ff; }
+    .mono-type { color: #d2a8ff; }
+    .mono-str { color: #a5d6ff; }
+    .mono-comment { color: var(--muted); }
+
+    .rule-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .rule-list li {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .rule-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(80,232,144,.15);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .lifecycle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .lifecycle-node {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .lifecycle-node.start { border-color: rgba(80,232,144,.35); color: var(--accent); }
+    .lifecycle-node.end { border-color: rgba(80,130,255,.35); color: #7faaff; }
+    .lifecycle-arrow { color: var(--muted); font-size: 18px; }
+
+    .prohibited-table { width: 100%; border-collapse: collapse; }
+    .prohibited-table th, .prohibited-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .prohibited-table th { color: var(--muted); font-weight: 500; }
+    .prohibited-word { color: var(--red); font-weight: 600; font-family: monospace; }
+    .replacement-word { color: var(--accent); font-weight: 500; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .form-row { grid-template-columns: 1fr; }
+      .actions-row { flex-direction: column; }
+      .btn { width: 100%; }
+      .preview-panel { padding: 20px 16px; }
+      .review-card-header { flex-direction: column; }
+    }
+
+    /* Two-column layout for editor + preview */
+    .editor-preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .editor-preview-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Status pill */
+    .status-pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .status-draft { background: rgba(139,148,158,.15); color: var(--muted); border: 1px solid rgba(139,148,158,.25); }
+    .status-in_review { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .status-approved { background: var(--green-bg); color: var(--accent); border: 1px solid var(--green-border); }
+    .status-published { background: rgba(80,130,255,.1); color: #7faaff; border: 1px solid rgba(80,130,255,.25); }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Engineering Hint Box -->
+  <div class="eng-hint" role="note" aria-label="Engineering hint">
+    <strong>Engineering hint — content-question-template-editor-v2</strong>
+    <strong style="font-size:12px;display:inline;color:#f0d080;">Persona:</strong> Content Team &nbsp;|&nbsp;
+    <strong style="font-size:12px;display:inline;color:#f0d080;">Route:</strong> <code>/content/questions/[question_id]/edit</code><br /><br />
+    <strong style="font-size:12px;display:inline;color:#f0d080;">DB Table:</strong> <code>question_templates</code><br />
+    <code>id</code>, <code>quest_id</code>, <code>question_text TEXT</code>, <code>question_type ENUM('multiple_choice','drag_drop','voice_response','tap_correct')</code>, <code>answer_options JSONB</code>, <code>correct_answer_key TEXT</code>, <code>hint_text TEXT</code>, <code>explainer_text TEXT</code>, <code>band ENUM('P0','P1','P2','P3')</code>, <code>subject TEXT</code>, <code>status ENUM('draft','in_review','approved','published')</code>, <code>child_safety_approved BOOLEAN</code>, <code>reviewed_by TEXT</code>, <code>created_at</code>, <code>updated_at</code><br /><br />
+    <strong style="font-size:12px;display:inline;color:#f0d080;">Privacy:</strong> No child PII in question content; question text must be age-appropriate and positively framed.<br />
+    <strong style="font-size:12px;display:inline;color:#f0d080;">Child Safety:</strong> <code>hint_text</code> and <code>explainer_text</code> must never say <code>'wrong'</code> or <code>'incorrect'</code> — must use <code>'Try again! 🌟'</code> style positive framing.
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Content Question Template Editor <span class="badge">Design System #298</span></h1>
+    <p>Create and edit question templates for WonderQuest quests — with child safety review and live preview.</p>
+  </div>
+
+  <!-- Tab Nav -->
+  <nav class="tab-nav" role="tablist" aria-label="Editor sections">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-editor" id="btn-editor" onclick="showTab('editor')">Editor</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-review" id="btn-review" onclick="showTab('review')">Review Queue <span style="background:rgba(240,165,0,.2);color:#f0a500;font-size:11px;padding:1px 7px;border-radius:99px;margin-left:6px;font-weight:700;">5</span></button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-spec" id="btn-spec" onclick="showTab('spec')">Spec</button>
+  </nav>
+
+  <!-- TAB 1: EDITOR -->
+  <div class="tab-panel active" id="tab-editor" role="tabpanel" aria-labelledby="btn-editor">
+    <div class="editor-preview-grid">
+
+      <!-- LEFT: Editor form -->
+      <div>
+
+        <!-- Metadata row -->
+        <div class="card">
+          <div class="card-title">Question Metadata</div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label for="band">Band <span class="req">*</span></label>
+              <select id="band" onchange="updatePreview()" aria-required="true">
+                <option value="">Select band</option>
+                <option value="P0">P0 — Foundation</option>
+                <option value="P1">P1 — Developing</option>
+                <option value="P2" selected>P2 — Expanding</option>
+                <option value="P3">P3 — Advanced</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label for="subject">Subject <span class="req">*</span></label>
+              <select id="subject" onchange="updatePreview()" aria-required="true">
+                <option value="">Select subject</option>
+                <option value="Reading" selected>Reading</option>
+                <option value="Maths">Maths</option>
+                <option value="Science">Science</option>
+                <option value="Social Studies">Social Studies</option>
+                <option value="Arts">Arts</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label for="question-type">Question Type <span class="req">*</span></label>
+              <select id="question-type" onchange="handleTypeChange(); updatePreview();" aria-required="true">
+                <option value="multiple_choice" selected>Multiple Choice</option>
+                <option value="drag_drop">Drag &amp; Drop</option>
+                <option value="voice_response">Voice Response</option>
+                <option value="tap_correct">Tap Correct</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question text -->
+        <div class="card">
+          <div class="card-title">Question Text</div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="question-text">Question <span class="req">*</span> <span class="hint-label">Age-appropriate, positively framed</span></label>
+            <textarea id="question-text" rows="3" maxlength="280" placeholder="e.g. Which animal lives in the ocean? 🌊" oninput="updateCharCounter('question-text','qtext-counter',280); updatePreview();" aria-required="true" aria-describedby="qtext-counter"></textarea>
+            <div class="field-footer">
+              <span></span>
+              <span class="char-counter" id="qtext-counter">0 / 280</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answer options -->
+        <div class="card" id="answer-options-card">
+          <div class="card-title">Answer Options <span style="font-size:11px;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">(select radio to mark correct answer)</span></div>
+          <fieldset style="border:none;padding:0;" aria-label="Answer options">
+            <legend class="sr-only">Answer options — select the radio button to mark the correct answer</legend>
+            <div class="answer-options" id="answer-options-list"></div>
+          </fieldset>
+          <p class="correct-note" id="correct-note"></p>
+          <div class="answer-options-actions">
+            <button class="btn btn-secondary btn-sm" onclick="addOption()" aria-label="Add answer option">+ Add Option</button>
+          </div>
+        </div>
+
+        <!-- Hint text -->
+        <div class="card">
+          <div class="card-title">Hint Text</div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="hint-text">Hint <span class="hint-label">Shown when child struggles — must be encouraging</span></label>
+            <textarea id="hint-text" rows="2" maxlength="200" placeholder='e.g. "Think about where fish swim! 🐟"' oninput="checkSafety('hint-text','hint-safety','hint-counter',200); updatePreview();" aria-describedby="hint-safety hint-counter"></textarea>
+            <div class="field-footer">
+              <span></span>
+              <span class="char-counter" id="hint-counter">0 / 200</span>
+            </div>
+            <div class="safety-alert" id="hint-safety" role="alert" aria-live="polite">
+              <span class="safety-alert-icon">⚠️</span>
+              <span>Child safety: replace flagged word(s) with positive framing — e.g. <strong>"Try again! 🌟"</strong> instead of "wrong" or "incorrect".</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explainer text -->
+        <div class="card">
+          <div class="card-title">Explainer Text</div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="explainer-text">Explainer <span class="hint-label">Shown after question completes — reinforce learning</span></label>
+            <textarea id="explainer-text" rows="2" maxlength="300" placeholder='e.g. "Great job! 🌟 Fish, dolphins and sharks all live in the ocean."' oninput="checkSafety('explainer-text','explainer-safety','explainer-counter',300); updatePreview();" aria-describedby="explainer-safety explainer-counter"></textarea>
+            <div class="field-footer">
+              <span></span>
+              <span class="char-counter" id="explainer-counter">0 / 300</span>
+            </div>
+            <div class="safety-alert" id="explainer-safety" role="alert" aria-live="polite">
+              <span class="safety-alert-icon">⚠️</span>
+              <span>Child safety: replace flagged word(s) with positive framing — e.g. <strong>"Try again! 🌟"</strong> instead of "wrong" or "incorrect".</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status & approval -->
+        <div class="card">
+          <div class="card-title">Status &amp; Approval</div>
+          <div class="form-row" style="margin-bottom:20px;">
+            <div class="form-group" style="margin-bottom:0">
+              <label for="status">Status</label>
+              <select id="status" onchange="handleStatusChange()">
+                <option value="draft" selected>Draft</option>
+                <option value="in_review">In Review</option>
+                <option value="approved">Approved</option>
+                <option value="published">Published</option>
+              </select>
+            </div>
+          </div>
+          <label class="checkbox-row" for="child-safety-approved" id="safety-checkbox-row">
+            <input type="checkbox" id="child-safety-approved" aria-required="true" onchange="handleSafetyCheckbox()" />
+            <div>
+              <div class="cb-label">Child Safety Approved</div>
+              <div class="cb-sub">Required before status can be set to Published</div>
+            </div>
+          </label>
+          <p id="publish-warning" style="display:none;font-size:12px;color:var(--red);margin-top:10px;" role="alert">
+            Child Safety Approved must be checked before publishing.
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-row">
+          <button class="btn btn-secondary" onclick="saveDraft()" aria-label="Save as draft">Save Draft</button>
+          <button class="btn btn-primary" onclick="submitForReview()" aria-label="Submit for content review">Submit for Review</button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Live preview -->
+      <div>
+        <div class="card-title" style="padding-left:4px;">Live Preview — Child View</div>
+        <div class="preview-panel" role="region" aria-label="Live preview of question as seen by child" aria-live="polite">
+          <span class="preview-tag">Adventure Quest Preview</span>
+          <div class="preview-adventure-banner" id="preview-banner">
+            Reading Quest &nbsp;·&nbsp; Band P2 &nbsp;·&nbsp; Multiple Choice
+          </div>
+          <div class="preview-question" id="preview-question">
+            <span class="preview-empty">Your question will appear here…</span>
+          </div>
+          <div class="preview-options" id="preview-options"></div>
+          <div class="preview-hint" id="preview-hint" style="display:none;">
+            <strong>Hint 💡</strong>
+            <span id="preview-hint-text"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB 2: REVIEW QUEUE -->
+  <div class="tab-panel" id="tab-review" role="tabpanel" aria-labelledby="btn-review">
+    <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h2 style="font-size:17px;font-weight:700;">Review Queue</h2>
+        <p style="font-size:13px;color:var(--muted);margin-top:2px;">5 questions awaiting content review</p>
+      </div>
+    </div>
+    <div id="review-queue"></div>
+  </div>
+
+  <!-- TAB 3: SPEC -->
+  <div class="tab-panel" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+
+    <div class="card">
+      <div class="spec-section">
+        <h3>Component</h3>
+        <table class="spec-table" aria-label="Component specification">
+          <tbody>
+            <tr><th scope="row">Component</th><td><code>QuestionTemplateEditor</code></td></tr>
+            <tr><th scope="row">Route</th><td><code>/content/questions/[question_id]/edit</code></td></tr>
+            <tr><th scope="row">Auth</th><td>Content Team role required — redirect to login if unauthenticated</td></tr>
+            <tr><th scope="row">Props</th><td><code>questionId: string</code>, <code>questId: string</code>, <code>initialData?: QuestionTemplate</code></td></tr>
+            <tr><th scope="row">Design System</th><td>WonderQuest Design System — Item #298</td></tr>
+            <tr><th scope="row">Min Touch Target</th><td>44px (WCAG 2.1 AA)</td></tr>
+            <tr><th scope="row">Accessibility</th><td>WCAG 2.1 AA — ARIA roles, live regions, keyboard navigable</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="spec-section">
+        <h3>Database Schema — question_templates</h3>
+        <div class="mono-block" role="region" aria-label="Database schema"><span class="mono-kw">TABLE</span> <span class="mono-field">question_templates</span> {
+  <span class="mono-field">id</span>                   <span class="mono-type">UUID</span>           <span class="mono-comment">-- primary key</span>
+  <span class="mono-field">quest_id</span>             <span class="mono-type">UUID</span>           <span class="mono-comment">-- FK → quests.id</span>
+  <span class="mono-field">question_text</span>        <span class="mono-type">TEXT</span>           <span class="mono-comment">-- age-appropriate, positively framed</span>
+  <span class="mono-field">question_type</span>        <span class="mono-type">ENUM</span>(<span class="mono-str">'multiple_choice'</span>,<span class="mono-str">'drag_drop'</span>,
+                              <span class="mono-str">'voice_response'</span>,<span class="mono-str">'tap_correct'</span>)
+  <span class="mono-field">answer_options</span>       <span class="mono-type">JSONB</span>          <span class="mono-comment">-- [{ key, text, isCorrect }]</span>
+  <span class="mono-field">correct_answer_key</span>   <span class="mono-type">TEXT</span>           <span class="mono-comment">-- e.g. "A", "B", "C", "D"</span>
+  <span class="mono-field">hint_text</span>            <span class="mono-type">TEXT</span>           <span class="mono-comment">-- must pass child safety check</span>
+  <span class="mono-field">explainer_text</span>       <span class="mono-type">TEXT</span>           <span class="mono-comment">-- must pass child safety check</span>
+  <span class="mono-field">band</span>                 <span class="mono-type">ENUM</span>(<span class="mono-str">'P0'</span>,<span class="mono-str">'P1'</span>,<span class="mono-str">'P2'</span>,<span class="mono-str">'P3'</span>)
+  <span class="mono-field">subject</span>              <span class="mono-type">TEXT</span>           <span class="mono-comment">-- Reading | Maths | Science | Social Studies | Arts</span>
+  <span class="mono-field">status</span>               <span class="mono-type">ENUM</span>(<span class="mono-str">'draft'</span>,<span class="mono-str">'in_review'</span>,<span class="mono-str">'approved'</span>,<span class="mono-str">'published'</span>)
+  <span class="mono-field">child_safety_approved</span> <span class="mono-type">BOOLEAN</span>        <span class="mono-comment">-- required = true before published</span>
+  <span class="mono-field">reviewed_by</span>          <span class="mono-type">TEXT</span>           <span class="mono-comment">-- reviewer user ID</span>
+  <span class="mono-field">created_at</span>           <span class="mono-type">TIMESTAMPTZ</span>    <span class="mono-comment">-- auto-set on insert</span>
+  <span class="mono-field">updated_at</span>           <span class="mono-type">TIMESTAMPTZ</span>    <span class="mono-comment">-- auto-updated on change</span>
+}</div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="spec-section">
+        <h3>Child Safety Rules</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">The following words are prohibited in <code>hint_text</code> and <code>explainer_text</code>. The UI must surface an amber warning if any are detected (case-insensitive).</p>
+        <table class="prohibited-table" aria-label="Prohibited words and required replacements">
+          <thead>
+            <tr>
+              <th scope="col">Prohibited Word</th>
+              <th scope="col">Required Replacement Style</th>
+              <th scope="col">Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="prohibited-word">wrong</span></td><td><span class="replacement-word">Try again! 🌟</span></td><td>"That's not quite right — try again! 🌟"</td></tr>
+            <tr><td><span class="prohibited-word">incorrect</span></td><td><span class="replacement-word">Almost there! 🌟</span></td><td>"Almost there! 🌟 Look at the picture for a clue."</td></tr>
+            <tr><td><span class="prohibited-word">mistake</span></td><td><span class="replacement-word">Good effort! 💫</span></td><td>"Good effort! 💫 Let's think about this together."</td></tr>
+            <tr><td><span class="prohibited-word">failed</span></td><td><span class="replacement-word">Keep going! 🚀</span></td><td>"Keep going! 🚀 You're learning something new."</td></tr>
+            <tr><td><span class="prohibited-word">bad</span></td><td><span class="replacement-word">You've got this! ⭐</span></td><td>"You've got this! ⭐ Try one more time."</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="spec-section">
+        <h3>Status Lifecycle</h3>
+        <div class="lifecycle-row" role="img" aria-label="Status lifecycle: draft to in_review to approved to published">
+          <div class="lifecycle-node start">draft</div>
+          <span class="lifecycle-arrow" aria-hidden="true">→</span>
+          <div class="lifecycle-node">in_review</div>
+          <span class="lifecycle-arrow" aria-hidden="true">→</span>
+          <div class="lifecycle-node">approved</div>
+          <span class="lifecycle-arrow" aria-hidden="true">→</span>
+          <div class="lifecycle-node end">published</div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px;">Transitions are unidirectional except approved → in_review (reviewer requested changes). Published questions cannot revert. child_safety_approved must be true at approved → published transition.</p>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="spec-section">
+        <h3>Business Rules</h3>
+        <ul class="rule-list" role="list">
+          <li><span class="rule-num" aria-hidden="true">1</span><span><strong>Child Safety Gate:</strong> <code>child_safety_approved</code> must be <code>true</code> before status can transition to <code>published</code>. The API must enforce this server-side, not UI-only.</span></li>
+          <li><span class="rule-num" aria-hidden="true">2</span><span><strong>Prohibited Words:</strong> The save/submit API must reject <code>hint_text</code> or <code>explainer_text</code> containing: wrong, incorrect, mistake, failed, bad — returning HTTP 422 with field-level error messages.</span></li>
+          <li><span class="rule-num" aria-hidden="true">3</span><span><strong>No Child PII:</strong> Question content fields (<code>question_text</code>, <code>hint_text</code>, <code>explainer_text</code>, <code>answer_options</code>) must not contain child names, IDs, or any PII. Content team training must reinforce this.</span></li>
+          <li><span class="rule-num" aria-hidden="true">4</span><span><strong>Multiple Choice Minimum:</strong> <code>multiple_choice</code> questions must have at least 2 and at most 4 answer options, with exactly one marked as correct.</span></li>
+          <li><span class="rule-num" aria-hidden="true">5</span><span><strong>Audit Trail:</strong> All status transitions must be logged with <code>reviewed_by</code> (user ID), timestamp, and previous/new status. This log is retained for 7 years.</span></li>
+          <li><span class="rule-num" aria-hidden="true">6</span><span><strong>Band–Subject Validation:</strong> Every published question must have a non-null <code>band</code> and <code>subject</code>. The Quest engine uses these to personalise question delivery per child's learning profile.</span></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // ─── Tab system ──────────────────────────────────────────────────────────────
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+    document.getElementById('tab-' + t).classList.add('active');
+    const btn = document.getElementById('btn-' + t);
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+  }
+
+  // ─── Char counter ─────────────────────────────────────────────────────────────
+  function updateCharCounter(fieldId, counterId, max) {
+    const field = document.getElementById(fieldId);
+    const counter = document.getElementById(counterId);
+    const len = field.value.length;
+    counter.textContent = len + ' / ' + max;
+    counter.classList.toggle('warn', len > max * 0.85);
+  }
+
+  // ─── Child safety check ───────────────────────────────────────────────────────
+  const PROHIBITED = ['wrong','incorrect','mistake','failed','bad'];
+  function containsProhibited(text) {
+    const lower = text.toLowerCase();
+    return PROHIBITED.some(w => {
+      const re = new RegExp('\\b' + w + '\\b', 'i');
+      return re.test(lower);
+    });
+  }
+  function checkSafety(fieldId, alertId, counterId, max) {
+    updateCharCounter(fieldId, counterId, max);
+    const val = document.getElementById(fieldId).value;
+    const alert = document.getElementById(alertId);
+    if (val.length > 0 && containsProhibited(val)) {
+      alert.classList.add('visible');
+    } else {
+      alert.classList.remove('visible');
+    }
+    updatePreview();
+  }
+
+  // ─── Answer options ───────────────────────────────────────────────────────────
+  const LABELS = ['A','B','C','D'];
+  let options = [
+    { text: '', correct: true },
+    { text: '', correct: false },
+    { text: '', correct: false },
+    { text: '', correct: false }
+  ];
+
+  function renderOptions() {
+    const list = document.getElementById('answer-options-list');
+    list.innerHTML = '';
+    options.forEach((opt, i) => {
+      const row = document.createElement('div');
+      row.className = 'answer-option';
+      row.innerHTML = `
+        <span class="option-label" aria-hidden="true">${LABELS[i] || String.fromCharCode(65+i)}</span>
+        <input type="radio" name="correct-answer" id="radio-opt-${i}"
+               aria-label="Mark option ${LABELS[i] || i+1} as correct answer"
+               ${opt.correct ? 'checked' : ''}
+               onchange="setCorrect(${i})" />
+        <input type="text" placeholder="Option ${LABELS[i] || i+1}" value="${escHtml(opt.text)}"
+               aria-label="Option ${LABELS[i] || i+1} text"
+               oninput="options[${i}].text = this.value; updatePreview();" />
+        ${options.length > 2 ? `<button class="btn-remove" onclick="removeOption(${i})" aria-label="Remove option ${LABELS[i] || i+1}">Remove</button>` : ''}
+      `;
+      list.appendChild(row);
+    });
+    updateCorrectNote();
+    updatePreview();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function setCorrect(idx) {
+    options.forEach((o,i) => o.correct = (i === idx));
+    updateCorrectNote();
+    updatePreview();
+  }
+
+  function updateCorrectNote() {
+    const ci = options.findIndex(o => o.correct);
+    const note = document.getElementById('correct-note');
+    if (ci >= 0) {
+      note.textContent = 'Correct answer: Option ' + (LABELS[ci] || ci+1);
+      note.style.color = 'var(--accent)';
+    } else {
+      note.textContent = 'No correct answer selected.';
+      note.style.color = 'var(--red)';
+    }
+  }
+
+  function addOption() {
+    if (options.length >= 4) return;
+    options.push({ text: '', correct: false });
+    renderOptions();
+  }
+
+  function removeOption(idx) {
+    if (options.length <= 2) return;
+    const wasCorrect = options[idx].correct;
+    options.splice(idx, 1);
+    if (wasCorrect && options.length > 0) options[0].correct = true;
+    renderOptions();
+  }
+
+  // ─── Question type toggle ─────────────────────────────────────────────────────
+  function handleTypeChange() {
+    const type = document.getElementById('question-type').value;
+    const card = document.getElementById('answer-options-card');
+    card.style.display = (type === 'multiple_choice' || type === 'tap_correct') ? '' : 'none';
+  }
+
+  // ─── Status / safety checkbox ─────────────────────────────────────────────────
+  function handleStatusChange() {
+    const status = document.getElementById('status').value;
+    const checked = document.getElementById('child-safety-approved').checked;
+    const warn = document.getElementById('publish-warning');
+    if (status === 'published' && !checked) {
+      warn.style.display = 'block';
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+
+  function handleSafetyCheckbox() {
+    handleStatusChange();
+  }
+
+  // ─── Live preview ─────────────────────────────────────────────────────────────
+  function updatePreview() {
+    const band = document.getElementById('band').value;
+    const subject = document.getElementById('subject').value;
+    const type = document.getElementById('question-type').value;
+    const qtext = document.getElementById('question-text').value.trim();
+    const hint = document.getElementById('hint-text').value.trim();
+
+    // banner
+    const bannerParts = [];
+    if (subject) bannerParts.push(subject + ' Quest');
+    if (band) bannerParts.push('Band ' + band);
+    bannerParts.push(typeLabel(type));
+    document.getElementById('preview-banner').textContent = bannerParts.join(' · ');
+
+    // question
+    const qEl = document.getElementById('preview-question');
+    if (qtext) {
+      qEl.textContent = qtext;
+    } else {
+      qEl.innerHTML = '<span class="preview-empty">Your question will appear here…</span>';
+    }
+
+    // options
+    const optsEl = document.getElementById('preview-options');
+    optsEl.innerHTML = '';
+    if (type === 'multiple_choice' || type === 'tap_correct') {
+      options.forEach((opt, i) => {
+        if (!opt.text) return;
+        const div = document.createElement('div');
+        div.className = 'preview-option';
+        div.setAttribute('role','button');
+        div.setAttribute('tabindex','0');
+        div.setAttribute('aria-label', 'Option ' + (LABELS[i] || i+1) + ': ' + opt.text);
+        div.innerHTML = `<span class="opt-key">${LABELS[i] || i+1}</span><span>${escHtml(opt.text)}</span>`;
+        optsEl.appendChild(div);
+      });
+    } else if (type === 'drag_drop') {
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:13px;color:var(--muted);font-style:italic;padding:12px 0;';
+      note.textContent = 'Drag & drop interaction rendered by child app engine.';
+      optsEl.appendChild(note);
+    } else if (type === 'voice_response') {
+      const note = document.createElement('div');
+      note.style.cssText = 'display:flex;align-items:center;gap:10px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--muted);';
+      note.innerHTML = '<span style="font-size:22px;">🎤</span><span>Tap the microphone to record your answer</span>';
+      optsEl.appendChild(note);
+    }
+
+    // hint
+    const hintEl = document.getElementById('preview-hint');
+    const hintText = document.getElementById('preview-hint-text');
+    if (hint) {
+      hintEl.style.display = '';
+      hintText.textContent = hint;
+    } else {
+      hintEl.style.display = 'none';
+    }
+  }
+
+  function typeLabel(type) {
+    const map = { multiple_choice: 'Multiple Choice', drag_drop: 'Drag & Drop', voice_response: 'Voice Response', tap_correct: 'Tap Correct' };
+    return map[type] || type;
+  }
+
+  // ─── Save / Submit ────────────────────────────────────────────────────────────
+  function saveDraft() {
+    const qtext = document.getElementById('question-text').value.trim();
+    if (!qtext) { alert('Please enter a question before saving.'); return; }
+    document.getElementById('status').value = 'draft';
+    showToast('Draft saved successfully!', 'var(--accent)');
+  }
+
+  function submitForReview() {
+    const qtext = document.getElementById('question-text').value.trim();
+    const hint = document.getElementById('hint-text').value;
+    const explainer = document.getElementById('explainer-text').value;
+    if (!qtext) { alert('Please enter a question before submitting.'); return; }
+    if (containsProhibited(hint) || containsProhibited(explainer)) {
+      alert('Child safety check failed: remove prohibited words from hint or explainer text before submitting.');
+      return;
+    }
+    document.getElementById('status').value = 'in_review';
+    showToast('Submitted for review!', 'var(--amber)');
+  }
+
+  function showToast(msg, color) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `position:fixed;bottom:28px;right:24px;background:${color};color:#0d1117;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .4s;`;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2000);
+  }
+
+  // ─── Review Queue ─────────────────────────────────────────────────────────────
+  const REVIEW_ITEMS = [
+    {
+      id: 'q001',
+      question: 'Which word rhymes with "cat"? 🐱',
+      band: 'P1', subject: 'Reading', type: 'multiple_choice',
+      submittedBy: 'sarah.chen', daysInReview: 3,
+      safetyFlag: false
+    },
+    {
+      id: 'q002',
+      question: 'Count the apples — how many are there? 🍎🍎🍎',
+      band: 'P0', subject: 'Maths', type: 'tap_correct',
+      submittedBy: 'marcus.obi', daysInReview: 7,
+      safetyFlag: false
+    },
+    {
+      id: 'q003',
+      question: 'What do plants need to grow? 🌱',
+      band: 'P2', subject: 'Science', type: 'multiple_choice',
+      submittedBy: 'priya.nair', daysInReview: 1,
+      safetyFlag: true,
+      safetyReason: 'hint_text contains "incorrect"'
+    },
+    {
+      id: 'q004',
+      question: 'Drag the word to match its picture: dog, cat, bird.',
+      band: 'P1', subject: 'Reading', type: 'drag_drop',
+      submittedBy: 'james.wu', daysInReview: 5,
+      safetyFlag: false
+    },
+    {
+      id: 'q005',
+      question: 'Say the name of this colour out loud! 🎨',
+      band: 'P0', subject: 'Arts', type: 'voice_response',
+      submittedBy: 'amara.diallo', daysInReview: 2,
+      safetyFlag: true,
+      safetyReason: 'explainer_text contains "wrong"'
+    }
+  ];
+
+  function renderReviewQueue() {
+    const container = document.getElementById('review-queue');
+    container.innerHTML = '';
+    REVIEW_ITEMS.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'review-card';
+      card.setAttribute('role', 'article');
+      card.setAttribute('aria-label', 'Question review card');
+      card.innerHTML = `
+        <div class="review-card-header">
+          <div class="review-card-question">${escHtml(item.question)}</div>
+          ${item.safetyFlag ? `<div class="safety-flag" title="${escHtml(item.safetyReason || 'Safety flag')}">⚠️ Safety Flag</div>` : ''}
+        </div>
+        <div class="review-meta" aria-label="Question metadata">
+          <span class="meta-chip meta-band" title="Band">Band ${escHtml(item.band)}</span>
+          <span class="meta-chip meta-subject" title="Subject">${escHtml(item.subject)}</span>
+          <span class="meta-chip meta-type" title="Question type">${escHtml(typeLabel(item.type))}</span>
+          <span class="meta-chip meta-days" title="Days in review">⏱ ${item.daysInReview}d in review</span>
+        </div>
+        ${item.safetyFlag ? `<div style="background:var(--red-bg);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--red);margin-bottom:12px;">⚠️ Child safety: <strong>${escHtml(item.safetyReason || '')}</strong> — must be corrected before approval.</div>` : ''}
+        <div class="review-footer">
+          <div class="submitted-by">Submitted by <span>${escHtml(item.submittedBy)}</span></div>
+          <div class="review-actions">
+            <button class="btn btn-sm btn-changes" onclick="requestChanges('${item.id}')" aria-label="Request changes for this question" ${item.safetyFlag ? '' : ''}>Request Changes</button>
+            <button class="btn btn-sm btn-approve" onclick="approveQuestion('${item.id}')" aria-label="Approve this question" ${item.safetyFlag ? 'disabled style="opacity:.4;cursor:not-allowed;" title="Resolve safety flags before approving"' : ''}>Approve</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function approveQuestion(id) {
+    const item = REVIEW_ITEMS.find(q => q.id === id);
+    if (!item) return;
+    if (item.safetyFlag) { alert('Resolve child safety flags before approving.'); return; }
+    showToast('Question approved! ✓', 'var(--accent)');
+    item._approved = true;
+  }
+
+  function requestChanges(id) {
+    showToast('Changes requested — author notified.', 'var(--amber)');
+  }
+
+  // ─── Init ────────────────────────────────────────────────────────────────────
+  renderOptions();
+  updateCharCounter('question-text','qtext-counter',280);
+  updateCharCounter('hint-text','hint-counter',200);
+  updateCharCounter('explainer-text','explainer-counter',300);
+  updatePreview();
+  renderReviewQueue();
+</script>
+</body>
+</html>

@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>quest-progress-visuals-v2 · WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d1117;
+  font-family: 'Nunito', system-ui, sans-serif;
+  color: #f0f6ff;
+  min-height: 100vh;
+  padding: 24px 16px 60px;
+}
+
+/* ── Engineering hint ── */
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #333;
+  margin: 0 auto 20px;
+  max-width: 860px;
+  line-height: 1.6;
+}
+.eng-hint strong { color: #92400e; }
+
+/* ── Tab navigation ── */
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0 auto 28px;
+  max-width: 860px;
+}
+.tab-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,.12);
+  background: #161b22;
+  color: #8b949e;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.tab-btn:hover { background: #21262d; color: #f0f6ff; }
+.tab-btn.active { background: #50e890; border-color: #50e890; color: #0d1117; }
+
+/* ── Screens ── */
+.screen { display: none; max-width: 860px; margin: 0 auto; }
+.screen.active { display: block; }
+
+/* ── Section labels ── */
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #8b949e;
+  margin-bottom: 12px;
+  margin-top: 28px;
+}
+.section-label:first-child { margin-top: 0; }
+
+/* ── Card ── */
+.card {
+  background: #161b22;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+/* ══════════════════════════════════════════
+   TAB 1 — Star & Rating Visuals
+══════════════════════════════════════════ */
+
+/* Star row */
+.star-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.star {
+  font-size: 32px;
+  line-height: 1;
+  transition: transform .15s;
+}
+.star.gold { color: #ffd166; }
+.star.outline { color: rgba(255,255,255,.18); }
+.star.violet { color: #9b72ff; }
+.star.mint { color: #58e8c1; }
+.star.coral { color: #ff7b6b; }
+
+/* Animated 3-star pop */
+@keyframes star-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.star-pop-1 { animation: star-pop .35s ease forwards; animation-delay: 0ms;   opacity: 0; }
+.star-pop-2 { animation: star-pop .35s ease forwards; animation-delay: 150ms; opacity: 0; }
+.star-pop-3 { animation: star-pop .35s ease forwards; animation-delay: 300ms; opacity: 0; }
+
+.star-variants-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.star-row-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.star-row-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8b949e;
+  min-width: 60px;
+}
+
+/* Phone frame */
+.phone-frame {
+  width: 260px;
+  min-height: 480px;
+  background: #0d1117;
+  border: 2.5px solid rgba(255,255,255,.15);
+  border-radius: 36px;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.phone-frame::before {
+  content: '';
+  width: 70px; height: 6px;
+  background: rgba(255,255,255,.12);
+  border-radius: 3px;
+  position: absolute;
+  top: 10px; left: 50%; transform: translateX(-50%);
+}
+
+/* Post-answer star reveal */
+.result-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 10px;
+  width: 100%;
+  flex: 1;
+}
+.result-msg {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #f0f6ff;
+  text-align: center;
+}
+.result-sub {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8b949e;
+  text-align: center;
+}
+
+/* Confetti dots */
+@keyframes confetti-float {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-80px) rotate(360deg); opacity: 0; }
+}
+.confetti-wrap { position: relative; width: 100%; height: 60px; }
+.confetti-dot {
+  position: absolute;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  animation: confetti-float 1.2s ease-out forwards infinite;
+}
+
+/* Band star row */
+.band-stars-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.band-star-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.band-star-block .band-label {
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Replay button */
+.replay-btn {
+  margin-top: 8px;
+  padding: 6px 18px;
+  background: #50e890;
+  color: #0d1117;
+  border: none;
+  border-radius: 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════
+   TAB 2 — Quest Path Map
+══════════════════════════════════════════ */
+
+.path-frames-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.path-phone {
+  width: 200px;
+  min-height: 520px;
+  background: #0d1117;
+  border: 2.5px solid rgba(255,255,255,.15);
+  border-radius: 36px;
+  padding: 20px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.path-phone::before {
+  content: '';
+  width: 60px; height: 5px;
+  background: rgba(255,255,255,.12);
+  border-radius: 3px;
+  position: absolute;
+  top: 9px; left: 50%; transform: translateX(-50%);
+}
+.path-phone-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  margin-top: 4px;
+}
+
+/* Quest nodes */
+.quest-path {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 0 8px;
+}
+.node-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  margin: 4px 0;
+}
+.node-row.left  { justify-content: flex-start; padding-left: 14px; }
+.node-row.right { justify-content: flex-end;  padding-right: 14px; }
+
+/* connector line */
+.connector {
+  position: absolute;
+  width: 2px;
+  background: rgba(255,255,255,.12);
+  z-index: 0;
+}
+.connector.dashed {
+  background: repeating-linear-gradient(to bottom,
+    rgba(255,255,255,.12) 0px, rgba(255,255,255,.12) 5px,
+    transparent 5px, transparent 10px);
+}
+
+.node-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+}
+
+.node-circle {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  position: relative;
+}
+.node-circle.completed {
+  background: #1a4d2e;
+  border: 2.5px solid #50e890;
+  color: #50e890;
+}
+.node-circle.active-node {
+  width: 72px; height: 72px;
+  background: #132a1f;
+  border: 3px solid #50e890;
+  color: #50e890;
+  box-shadow: 0 0 0 0 rgba(80,232,144,.5);
+  animation: pulse-ring 1.8s ease-in-out infinite;
+}
+.node-circle.locked {
+  background: #161b22;
+  border: 2px dashed rgba(255,255,255,.15);
+  color: #8b949e;
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(80,232,144,.5); }
+  50%  { box-shadow: 0 0 0 10px rgba(80,232,144,0); }
+  100% { box-shadow: 0 0 0 0 rgba(80,232,144,0); }
+}
+
+.node-stars {
+  display: flex; gap: 2px;
+}
+.node-star { font-size: 14px; }
+.node-star.gold { color: #ffd166; }
+.node-star.grey { color: rgba(255,255,255,.15); }
+
+.play-btn {
+  background: #50e890;
+  color: #0d1117;
+  border: none;
+  border-radius: 16px;
+  padding: 4px 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+/* Curved path SVG connector */
+.path-svg {
+  width: 100%;
+  height: 40px;
+  overflow: visible;
+}
+
+/* ══════════════════════════════════════════
+   TAB 3 — XP & Level Bar
+══════════════════════════════════════════ */
+
+.xp-bar-wrap {
+  margin-bottom: 8px;
+}
+.xp-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.xp-label-left, .xp-label-right {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8b949e;
+}
+.xp-label-left span, .xp-label-right span {
+  color: #f0f6ff;
+  font-weight: 900;
+}
+.xp-track {
+  background: rgba(255,255,255,.08);
+  border-radius: 8px;
+  height: 16px;
+  position: relative;
+  overflow: visible;
+}
+.xp-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #50e890, #58e8c1);
+  position: relative;
+  transition: width .6s ease;
+}
+
+@keyframes xp-fill-anim {
+  from { width: 0%; }
+}
+
+.xp-fill.animate { animation: xp-fill-anim .9s ease forwards; }
+
+/* Milestone ticks */
+.milestone-tick {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 24px;
+  background: rgba(255,255,255,.25);
+  border-radius: 1px;
+  z-index: 2;
+}
+.milestone-label-below {
+  position: absolute;
+  top: 22px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.3);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.xp-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.level-badge {
+  background: #21262d;
+  border: 1.5px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #f0f6ff;
+}
+
+/* Level-up flash */
+@keyframes level-flash {
+  0%   { background: linear-gradient(90deg,#50e890,#58e8c1); }
+  40%  { background: linear-gradient(90deg,#ffd166,#ffb700); filter: brightness(1.3); }
+  70%  { background: linear-gradient(90deg,#ffd166,#ffb700); filter: brightness(1.1); }
+  100% { background: linear-gradient(90deg,#50e890,#58e8c1); width: 8% !important; }
+}
+.xp-fill.level-up { animation: level-flash 1.6s ease forwards; }
+
+@keyframes level-num-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.4); color: #ffd166; }
+  100% { transform: scale(1); }
+}
+.level-badge.pop { animation: level-num-pop .5s ease forwards; }
+
+/* Mini XP bars */
+.mini-bars-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.mini-bar-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+.mini-bar-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #8b949e;
+  text-align: right;
+}
+.mini-track {
+  background: rgba(255,255,255,.08);
+  border-radius: 4px;
+  height: 6px;
+  overflow: hidden;
+}
+.mini-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg,#50e890,#58e8c1);
+}
+
+/* Band XP bars */
+.band-xp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.band-xp-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.band-xp-header {
+  display: flex;
+  justify-content: space-between;
+}
+.band-xp-name {
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.band-xp-val {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8b949e;
+}
+
+/* ══════════════════════════════════════════
+   TAB 4 — Streak & Daily Visual
+══════════════════════════════════════════ */
+
+/* Streak flame display */
+.streak-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.streak-display.sm { font-size: 16px; }
+.streak-display.md { font-size: 24px; }
+.streak-display.lg { font-size: 40px; }
+.streak-flame { line-height: 1; }
+.streak-number { font-weight: 900; line-height: 1; }
+.streak-label { font-weight: 700; color: #8b949e; }
+.streak-display.sm .streak-label { display: none; }
+.streak-display.md .streak-label { font-size: 0.8rem; }
+.streak-display.lg .streak-label { font-size: 1rem; color: #f0f6ff; }
+
+.streak-display.record {
+  box-shadow: 0 0 20px rgba(255,209,102,.4);
+  background: rgba(255,209,102,.06);
+  border-radius: 12px;
+  padding: 6px 14px;
+}
+
+.streak-display.at-risk .streak-flame { filter: grayscale(.5); }
+.streak-display.at-risk .streak-number { color: #ffc107; }
+.streak-at-risk-msg {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffc107;
+  margin-top: 6px;
+}
+
+.streak-zero .streak-flame { filter: grayscale(1); opacity: .5; }
+.streak-zero-msg {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8b949e;
+  margin-top: 6px;
+}
+
+.streak-sizes-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* Weekly dots */
+.weekly-grid {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.day-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.day-dot-wrap {
+  position: relative;
+  width: 36px; height: 36px;
+}
+.day-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.day-dot.done-day {
+  background: #1a4d2e;
+  border: 2px solid #50e890;
+  color: #50e890;
+  font-size: 18px;
+}
+.day-dot.today-done {
+  background: #1a4d2e;
+  border: 2.5px solid #50e890;
+  color: #50e890;
+  font-size: 18px;
+}
+.day-dot.today-pending {
+  background: rgba(255,193,7,.1);
+  border: 2.5px solid #ffc107;
+  animation: pulse-ring-amber 1.8s ease-in-out infinite;
+}
+@keyframes pulse-ring-amber {
+  0%   { box-shadow: 0 0 0 0 rgba(255,193,7,.5); }
+  50%  { box-shadow: 0 0 0 8px rgba(255,193,7,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+}
+.day-dot.future-day {
+  background: #161b22;
+  border: 2px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.15);
+}
+.star-overlay {
+  position: absolute;
+  top: -5px; right: -5px;
+  font-size: 13px;
+  z-index: 2;
+}
+.day-name {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #8b949e;
+  text-transform: uppercase;
+}
+
+.weekly-grids-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.weekly-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.weekly-block-label {
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Perfect week celebration */
+.perfect-banner {
+  background: linear-gradient(135deg, rgba(80,232,144,.15), rgba(88,232,193,.08));
+  border: 1.5px solid #50e890;
+  border-radius: 12px;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #50e890;
+  margin-top: 8px;
+}
+
+/* Streak milestone badges */
+.milestone-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.milestone-badge {
+  background: #161b22;
+  border: 1.5px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.milestone-badge.unlocked {
+  background: linear-gradient(135deg, #1a2a1e, #1a1f2e);
+  border-color: #50e890;
+}
+.milestone-badge.unlocked-gold {
+  background: linear-gradient(135deg, #2a2010, #1a2010);
+  border-color: #ffd166;
+}
+.milestone-badge.locked-badge {
+  opacity: .5;
+  filter: grayscale(.6);
+}
+.badge-emoji { font-size: 2rem; line-height: 1; }
+.badge-name {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #f0f6ff;
+}
+.badge-days {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8b949e;
+}
+.badge-lock-icon {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,.2);
+}
+.badge-unlocked-chip {
+  background: #50e890;
+  color: #0d1117;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.badge-unlocked-chip.gold {
+  background: #ffd166;
+}
+
+/* Misc layout helpers */
+.row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint" style="background:#fffbea;border:2px solid #f0c040;padding:12px;margin-bottom:20px">
+  <strong>quest-progress-visuals-v2.html</strong> — Quest progress visual components. A quest = a skill path with N questions/challenges. Progress tracked as: stars earned (0–3 per level), questions completed, XP accumulated, streak. Visual components: (1) Star Rating (0–3 stars per question/level), (2) Quest Progress Path (node map showing completed/active/locked nodes), (3) XP Progress Bar (total XP with level milestones), (4) Streak Flame (consecutive-day streak). No timer anywhere. No accuracy %. Stars are purely celebratory — never used punitively.
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">⭐ Star &amp; Rating Visuals</button>
+  <button class="tab-btn" onclick="showTab(2)">🗺️ Quest Path Map</button>
+  <button class="tab-btn" onclick="showTab(3)">✨ XP &amp; Level Bar</button>
+  <button class="tab-btn" onclick="showTab(4)">🔥 Streak &amp; Daily</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — Star & Rating Visuals
+══════════════════════════════════════════ -->
+<div class="screen active" id="screen-1">
+
+  <!-- Star row variants -->
+  <div class="card">
+    <div class="card-title">Star Row Variants — 0 to 3 Stars</div>
+    <div class="star-variants-grid">
+
+      <div class="star-row-item">
+        <div class="star-row-label">0 stars</div>
+        <div class="star-row">
+          <span class="star outline">☆</span>
+          <span class="star outline">☆</span>
+          <span class="star outline">☆</span>
+        </div>
+      </div>
+
+      <div class="star-row-item">
+        <div class="star-row-label">1 star</div>
+        <div class="star-row">
+          <span class="star gold">★</span>
+          <span class="star outline">☆</span>
+          <span class="star outline">☆</span>
+        </div>
+      </div>
+
+      <div class="star-row-item">
+        <div class="star-row-label">2 stars</div>
+        <div class="star-row">
+          <span class="star gold">★</span>
+          <span class="star gold">★</span>
+          <span class="star outline">☆</span>
+        </div>
+      </div>
+
+      <div class="star-row-item">
+        <div class="star-row-label">3 stars ✨</div>
+        <div class="star-row" id="three-star-row">
+          <span class="star gold star-pop-1">★</span>
+          <span class="star gold star-pop-2">★</span>
+          <span class="star gold star-pop-3">★</span>
+        </div>
+        <button class="replay-btn" onclick="replayStars()">Replay ▶</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Post-answer reveal screens -->
+  <div class="section-label">Post-Answer Star Reveal — Phone Frames</div>
+  <div class="row" style="justify-content:center; gap:20px; align-items:flex-start;">
+
+    <!-- 3-star result -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame">
+        <!-- confetti -->
+        <div class="confetti-wrap">
+          <div class="confetti-dot" style="background:#ffd166;left:15%;animation-delay:0s;animation-duration:1.1s;"></div>
+          <div class="confetti-dot" style="background:#50e890;left:30%;animation-delay:.2s;animation-duration:1.3s;"></div>
+          <div class="confetti-dot" style="background:#9b72ff;left:50%;animation-delay:.1s;animation-duration:1.0s;"></div>
+          <div class="confetti-dot" style="background:#ff7b6b;left:65%;animation-delay:.3s;animation-duration:1.4s;"></div>
+          <div class="confetti-dot" style="background:#58e8c1;left:80%;animation-delay:.05s;animation-duration:1.2s;"></div>
+          <div class="confetti-dot" style="background:#ffd166;left:42%;animation-delay:.25s;animation-duration:1.15s;"></div>
+        </div>
+        <div class="result-screen">
+          <div style="font-size:2.2rem;">🎉</div>
+          <div class="result-msg">Amazing!</div>
+          <div class="star-row" style="gap:8px;">
+            <span class="star gold star-pop-1" style="font-size:38px;">★</span>
+            <span class="star gold star-pop-2" style="font-size:38px;">★</span>
+            <span class="star gold star-pop-3" style="font-size:38px;">★</span>
+          </div>
+          <div class="result-sub">You got 3 stars!</div>
+        </div>
+      </div>
+      <div style="font-size:0.7rem;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;">3-star result</div>
+    </div>
+
+    <!-- 2-star result -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame">
+        <div class="result-screen">
+          <div style="font-size:2rem;">😊</div>
+          <div class="result-msg">Great job!</div>
+          <div class="star-row" style="gap:8px;">
+            <span class="star gold" style="font-size:38px;">★</span>
+            <span class="star gold" style="font-size:38px;">★</span>
+            <span class="star outline" style="font-size:38px;">☆</span>
+          </div>
+          <div class="result-sub">2 stars — keep it up!</div>
+        </div>
+      </div>
+      <div style="font-size:0.7rem;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;">2-star result</div>
+    </div>
+
+    <!-- 1-star result -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame">
+        <div class="result-screen">
+          <div style="font-size:2rem;">💪</div>
+          <div class="result-msg">Good try! ⭐</div>
+          <div class="star-row" style="gap:8px;">
+            <span class="star gold" style="font-size:38px;">★</span>
+            <span class="star outline" style="font-size:38px;">☆</span>
+            <span class="star outline" style="font-size:38px;">☆</span>
+          </div>
+          <div class="result-sub" style="max-width:180px;">You can do even better next time!</div>
+        </div>
+      </div>
+      <div style="font-size:0.7rem;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;">1-star result</div>
+    </div>
+
+  </div>
+
+  <!-- Band star variants -->
+  <div class="section-label" style="margin-top:28px;">Band-Specific Star Colors — All 3 Stars Earned</div>
+  <div class="card">
+    <div class="band-stars-grid">
+
+      <div class="band-star-block">
+        <div class="star-row">
+          <span class="star gold star-pop-1">★</span>
+          <span class="star gold star-pop-2">★</span>
+          <span class="star gold star-pop-3">★</span>
+        </div>
+        <div class="band-label" style="color:#ffd166;">P0 Gold</div>
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;">Pre-K / K</div>
+      </div>
+
+      <div class="band-star-block">
+        <div class="star-row">
+          <span class="star violet star-pop-1">★</span>
+          <span class="star violet star-pop-2">★</span>
+          <span class="star violet star-pop-3">★</span>
+        </div>
+        <div class="band-label" style="color:#9b72ff;">P1 Violet</div>
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;">Grade K–1</div>
+      </div>
+
+      <div class="band-star-block">
+        <div class="star-row">
+          <span class="star mint star-pop-1">★</span>
+          <span class="star mint star-pop-2">★</span>
+          <span class="star mint star-pop-3">★</span>
+        </div>
+        <div class="band-label" style="color:#58e8c1;">P2 Mint</div>
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;">Grade 2–3</div>
+      </div>
+
+      <div class="band-star-block">
+        <div class="star-row">
+          <span class="star coral star-pop-1">★</span>
+          <span class="star coral star-pop-2">★</span>
+          <span class="star coral star-pop-3">★</span>
+        </div>
+        <div class="band-label" style="color:#ff7b6b;">P3 Coral</div>
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;">Grade 4–5</div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /screen-1 -->
+
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — Quest Path Map
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-2">
+
+  <div class="section-label">Quest Path Map — 3 States Side by Side</div>
+
+  <div class="path-frames-row">
+
+    <!-- ── State A: All complete ── -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="path-phone">
+        <div class="path-phone-label">All Complete</div>
+        <div class="quest-path">
+
+          <!-- Node 1 — left, completed -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none" stroke-dasharray="none"/>
+          </svg>
+
+          <!-- Node 2 — right, completed -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star grey">☆</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M140,0 Q100,20 60,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 3 — left, completed -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 4 — right, completed -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star grey">☆</span>
+                <span class="node-star grey">☆</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M140,0 Q100,20 60,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 5 — left, completed -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star grey">☆</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 6 — right, ACTIVE -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle active-node" style="width:68px;height:68px;">🎯</div>
+              <button class="play-btn">Play!</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── State B: In Progress ── -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="path-phone">
+        <div class="path-phone-label">In Progress</div>
+        <div class="quest-path">
+
+          <!-- Node 1 — left, completed -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 2 — right, completed -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star grey">☆</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M140,0 Q100,20 60,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 3 — left, completed -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle completed">✓</div>
+              <div class="node-stars">
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+                <span class="node-star gold">★</span>
+              </div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(80,232,144,.35)" stroke-width="2.5" fill="none"/>
+          </svg>
+
+          <!-- Node 4 — right, ACTIVE -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle active-node">⚡</div>
+              <button class="play-btn">Play!</button>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M140,0 Q100,20 60,40" stroke="rgba(255,255,255,.1)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 5 — left, locked -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 6 — right, locked -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── State C: Just Started ── -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="path-phone">
+        <div class="path-phone-label">Just Started</div>
+        <div class="quest-path">
+
+          <!-- Node 1 — left, ACTIVE -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle active-node">🌟</div>
+              <button class="play-btn">Play!</button>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 2 — right, locked -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M140,0 Q100,20 60,40" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 3 — left, locked -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 4 — right, locked -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M140,0 Q100,20 60,40" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 5 — left, locked -->
+          <div class="node-row left">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+          <svg class="path-svg" viewBox="0 0 200 40" preserveAspectRatio="none" style="width:100%">
+            <path d="M60,0 Q100,20 140,40" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none" stroke-dasharray="6,5"/>
+          </svg>
+
+          <!-- Node 6 — right, locked -->
+          <div class="node-row right">
+            <div class="node-wrap">
+              <div class="node-circle locked">🔒</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /path-frames-row -->
+
+  <!-- Node legend -->
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title">Node Legend</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#1a4d2e;border:2.5px solid #50e890;display:flex;align-items:center;justify-content:center;color:#50e890;font-size:1.1rem;">✓</div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:900;color:#f0f6ff;">Completed</div>
+          <div style="font-size:0.7rem;color:#8b949e;">Stars shown below</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#132a1f;border:3px solid #50e890;display:flex;align-items:center;justify-content:center;color:#50e890;font-size:1.1rem;animation:pulse-ring 1.8s ease-in-out infinite;">⚡</div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:900;color:#f0f6ff;">Active / Current</div>
+          <div style="font-size:0.7rem;color:#8b949e;">Pulse ring + Play! button</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#161b22;border:2px dashed rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🔒</div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:900;color:#f0f6ff;">Locked</div>
+          <div style="font-size:0.7rem;color:#8b949e;">Dashed connector above</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screen-2 -->
+
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — XP & Level Bar
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-3">
+
+  <!-- Main XP bar -->
+  <div class="card">
+    <div class="card-title">XP Progress Bar — Level 6 → 7</div>
+    <div class="xp-bar-wrap">
+      <div class="xp-bar-header">
+        <div class="xp-label-left">Level 6 &nbsp;<span>1,240 XP</span></div>
+        <div class="xp-label-right"><span>1,500 XP</span>&nbsp; Level 7</div>
+      </div>
+      <div class="xp-track" id="main-xp-track">
+        <!-- milestone ticks -->
+        <div class="milestone-tick" style="left:0%;"></div>
+        <div class="milestone-tick" style="left:25%;">
+          <div class="milestone-label-below">L6.25</div>
+        </div>
+        <div class="milestone-tick" style="left:50%;">
+          <div class="milestone-label-below">L6.5</div>
+        </div>
+        <div class="milestone-tick" style="left:75%;">
+          <div class="milestone-label-below">L6.75</div>
+        </div>
+        <div class="milestone-tick" style="left:100%;"></div>
+        <div class="xp-fill animate" id="main-xp-fill" style="width:82.7%;"></div>
+      </div>
+      <div class="xp-footer">
+        <div class="level-badge" id="level-badge-main">Level 6</div>
+        <div style="font-size:0.75rem;font-weight:700;color:#8b949e;">260 XP to go</div>
+        <div class="level-badge">Level 7</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <button onclick="triggerLevelUp()" style="background:#50e890;color:#0d1117;border:none;border-radius:20px;padding:8px 20px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:900;cursor:pointer;">
+        Simulate Level-Up ✨
+      </button>
+    </div>
+  </div>
+
+  <!-- Mini XP bars -->
+  <div class="card">
+    <div class="card-title">Mini XP Bar — Compact (6px height) — 4 Fill States</div>
+    <div class="mini-bars-row">
+      <div class="mini-bar-block">
+        <div class="mini-bar-label">20%</div>
+        <div class="mini-track" style="width:120px;">
+          <div class="mini-fill" style="width:20%;"></div>
+        </div>
+      </div>
+      <div class="mini-bar-block">
+        <div class="mini-bar-label">45%</div>
+        <div class="mini-track" style="width:120px;">
+          <div class="mini-fill" style="width:45%;"></div>
+        </div>
+      </div>
+      <div class="mini-bar-block">
+        <div class="mini-bar-label">78%</div>
+        <div class="mini-track" style="width:120px;">
+          <div class="mini-fill" style="width:78%;"></div>
+        </div>
+      </div>
+      <div class="mini-bar-block">
+        <div class="mini-bar-label">100% 🎉</div>
+        <div class="mini-track" style="width:120px;">
+          <div class="mini-fill" style="width:100%;background:linear-gradient(90deg,#ffd166,#ffb700);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Band-specific XP bar colours -->
+  <div class="card">
+    <div class="card-title">Band-Specific XP Bar Colours</div>
+    <div class="band-xp-row">
+
+      <div class="band-xp-item">
+        <div class="band-xp-header">
+          <div class="band-xp-name" style="color:#ffd166;">P0 — Pre-K / K</div>
+          <div class="band-xp-val">680 / 1,000 XP</div>
+        </div>
+        <div class="xp-track">
+          <div class="xp-fill" style="width:68%;background:linear-gradient(90deg,#ffd166,#ffb700);"></div>
+        </div>
+      </div>
+
+      <div class="band-xp-item">
+        <div class="band-xp-header">
+          <div class="band-xp-name" style="color:#9b72ff;">P1 — Grade K–1</div>
+          <div class="band-xp-val">1,240 / 1,500 XP</div>
+        </div>
+        <div class="xp-track">
+          <div class="xp-fill" style="width:82.7%;background:linear-gradient(90deg,#9b72ff,#b794ff);"></div>
+        </div>
+      </div>
+
+      <div class="band-xp-item">
+        <div class="band-xp-header">
+          <div class="band-xp-name" style="color:#58e8c1;">P2 — Grade 2–3</div>
+          <div class="band-xp-val">320 / 2,000 XP</div>
+        </div>
+        <div class="xp-track">
+          <div class="xp-fill" style="width:16%;background:linear-gradient(90deg,#58e8c1,#50e890);"></div>
+        </div>
+      </div>
+
+      <div class="band-xp-item">
+        <div class="band-xp-header">
+          <div class="band-xp-name" style="color:#ff7b6b;">P3 — Grade 4–5</div>
+          <div class="band-xp-val">1,890 / 2,500 XP</div>
+        </div>
+        <div class="xp-track">
+          <div class="xp-fill" style="width:75.6%;background:linear-gradient(90deg,#ff7b6b,#ff9d8a);"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Level-up moment spec card -->
+  <div class="card" style="border-color:rgba(255,209,102,.2);">
+    <div class="card-title">Level-Up Moment — Spec</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:0.8rem;color:#8b949e;line-height:1.7;">
+      <div>1. Bar reaches <strong style="color:#f0f6ff;">100%</strong> → <code style="background:#21262d;padding:2px 6px;border-radius:4px;font-size:0.75rem;">@keyframes level-flash</code> fires — bar turns gold briefly</div>
+      <div>2. Bar resets to <strong style="color:#f0f6ff;">0%</strong> for the new level</div>
+      <div>3. Level counter badge increments with <code style="background:#21262d;padding:2px 6px;border-radius:4px;font-size:0.75rem;">@keyframes level-num-pop</code></div>
+      <div>4. "Simulate Level-Up" button above demonstrates this sequence</div>
+      <div style="color:#ffd166;">No timer, no accuracy percentage — XP and stars only</div>
+    </div>
+  </div>
+
+</div><!-- /screen-3 -->
+
+
+<!-- ══════════════════════════════════════════
+     TAB 4 — Streak & Daily Visual
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-4">
+
+  <!-- Streak sizes -->
+  <div class="card">
+    <div class="card-title">Streak Flame — Size Variants (sm / md / lg)</div>
+    <div class="streak-sizes-row">
+
+      <!-- sm -->
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center;">
+        <div class="streak-display sm">
+          <span class="streak-flame">🔥</span>
+          <span class="streak-number" style="color:#ffd166;">14</span>
+        </div>
+        <div style="font-size:0.65rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">sm</div>
+      </div>
+
+      <!-- md -->
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center;">
+        <div class="streak-display md">
+          <span class="streak-flame">🔥</span>
+          <span class="streak-number" style="color:#ffd166;">14</span>
+          <span class="streak-label">day streak!</span>
+        </div>
+        <div style="font-size:0.65rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">md</div>
+      </div>
+
+      <!-- lg -->
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center;">
+        <div class="streak-display lg">
+          <span class="streak-flame">🔥</span>
+          <span class="streak-number" style="color:#ffd166;">14</span>
+          <span class="streak-label">day streak!</span>
+        </div>
+        <div style="font-size:0.65rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">lg</div>
+      </div>
+
+      <!-- New record -->
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center;">
+        <div class="streak-display lg record">
+          <span class="streak-flame">🔥</span>
+          <span class="streak-number" style="color:#ffd166;">30</span>
+          <span class="streak-label" style="color:#ffd166;">New record!</span>
+        </div>
+        <div style="font-size:0.65rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">lg · record glow</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Edge states -->
+  <div class="card">
+    <div class="card-title">Streak Edge States</div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;">
+
+      <!-- Streak 0 -->
+      <div class="col">
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Streak 0</div>
+        <div class="streak-display lg streak-zero">
+          <span class="streak-flame">🔥</span>
+          <span class="streak-number" style="color:#8b949e;">0</span>
+          <span class="streak-label">day streak</span>
+        </div>
+        <div class="streak-zero-msg">Start a new streak today!</div>
+      </div>
+
+      <!-- At risk -->
+      <div class="col">
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">At Risk (not played today)</div>
+        <div class="streak-display lg at-risk">
+          <span class="streak-flame" style="filter:none;">⚠️</span>
+          <span class="streak-number" style="color:#ffc107;">7</span>
+          <span class="streak-label" style="color:#ffc107;">day streak</span>
+        </div>
+        <div class="streak-at-risk-msg">Play today to keep your streak!</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Weekly activity dots -->
+  <div class="section-label">Weekly Activity Dots — 3 States</div>
+
+  <div class="card">
+    <div class="weekly-grids-row">
+
+      <!-- Early week: Mon–Wed done -->
+      <div class="weekly-block">
+        <div class="weekly-block-label">Early Week</div>
+        <div class="weekly-grid">
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Mon</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Tue</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Wed</div>
+          </div>
+          <div class="day-col">
+            <!-- today, not yet done -->
+            <div class="day-dot-wrap"><div class="day-dot today-pending" style="color:#ffc107;font-size:14px;font-weight:900;">?</div></div>
+            <div class="day-name" style="color:#ffc107;">Thu</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot future-day">·</div></div>
+            <div class="day-name">Fri</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot future-day">·</div></div>
+            <div class="day-name">Sat</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot future-day">·</div></div>
+            <div class="day-name">Sun</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mid week: Mon–Fri done, today done -->
+      <div class="weekly-block">
+        <div class="weekly-block-label">Mid Week</div>
+        <div class="weekly-grid">
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Mon</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Tue</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Wed</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Thu</div>
+          </div>
+          <div class="day-col">
+            <!-- today, done -->
+            <div class="day-dot-wrap">
+              <div class="day-dot today-done">✓</div>
+              <span class="star-overlay">⭐</span>
+            </div>
+            <div class="day-name" style="color:#50e890;">Fri</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot future-day">·</div></div>
+            <div class="day-name">Sat</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot future-day">·</div></div>
+            <div class="day-name">Sun</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Perfect week: all done -->
+      <div class="weekly-block">
+        <div class="weekly-block-label">Perfect Week 🎉</div>
+        <div class="weekly-grid">
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Mon</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Tue</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Wed</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Thu</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Fri</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap"><div class="day-dot done-day">✓</div></div>
+            <div class="day-name">Sat</div>
+          </div>
+          <div class="day-col">
+            <div class="day-dot-wrap">
+              <div class="day-dot today-done">✓</div>
+              <span class="star-overlay">⭐</span>
+            </div>
+            <div class="day-name" style="color:#50e890;">Sun</div>
+          </div>
+        </div>
+        <div class="perfect-banner">🏆 Perfect Week! Amazing work!</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Streak milestone badges -->
+  <div class="section-label">Streak Milestone Badges — Locked / Unlocked</div>
+  <div class="card">
+    <div class="milestone-badges-grid">
+
+      <!-- 3-day: unlocked -->
+      <div class="milestone-badge unlocked">
+        <div class="badge-emoji">🔥</div>
+        <div class="badge-name">3-Day Streak!</div>
+        <div class="badge-days">3 days in a row</div>
+        <div class="badge-unlocked-chip">Earned</div>
+      </div>
+
+      <!-- 7-day: unlocked -->
+      <div class="milestone-badge unlocked">
+        <div class="badge-emoji">🔥</div>
+        <div class="badge-name">Week Warrior!</div>
+        <div class="badge-days">7 days in a row</div>
+        <div class="badge-unlocked-chip">Earned</div>
+      </div>
+
+      <!-- 14-day: locked -->
+      <div class="milestone-badge locked-badge">
+        <div class="badge-lock-icon">🔒</div>
+        <div class="badge-emoji" style="filter:grayscale(.5);">⚡</div>
+        <div class="badge-name" style="color:#8b949e;">Fortnight Champion!</div>
+        <div class="badge-days">14 days in a row</div>
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;">7 more days to unlock</div>
+      </div>
+
+      <!-- 30-day: locked -->
+      <div class="milestone-badge locked-badge">
+        <div class="badge-lock-icon">🔒</div>
+        <div class="badge-emoji" style="filter:grayscale(.7);">🏆</div>
+        <div class="badge-name" style="color:#8b949e;">Monthly Legend!</div>
+        <div class="badge-days">30 days in a row</div>
+        <div style="font-size:0.68rem;color:#8b949e;font-weight:700;">23 more days to unlock</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Unlocked gold variant example -->
+  <div class="card" style="border-color:rgba(255,209,102,.2);">
+    <div class="card-title">Gold Record Milestone (30-day Unlocked)</div>
+    <div class="milestone-badges-grid" style="grid-template-columns:minmax(160px,240px);">
+      <div class="milestone-badge unlocked-gold">
+        <div class="badge-emoji">🏆</div>
+        <div class="badge-name" style="color:#ffd166;">Monthly Legend!</div>
+        <div class="badge-days" style="color:#b07d1a;">30 days in a row</div>
+        <div class="badge-unlocked-chip gold">New Record!</div>
+        <div style="position:absolute;inset:0;border-radius:14px;box-shadow:0 0 24px rgba(255,209,102,.25);pointer-events:none;"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screen-4 -->
+
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+
+  // Re-trigger XP bar fill animation on tab 3
+  if (t === 3) {
+    const fill = document.getElementById('main-xp-fill');
+    if (fill) {
+      fill.classList.remove('animate');
+      void fill.offsetWidth; // reflow
+      fill.classList.add('animate');
+    }
+  }
+}
+
+// Replay star pop animation
+function replayStars() {
+  const row = document.getElementById('three-star-row');
+  const stars = row.querySelectorAll('.star');
+  stars.forEach(s => {
+    s.classList.remove('star-pop-1','star-pop-2','star-pop-3');
+    void s.offsetWidth;
+  });
+  stars[0].classList.add('star-pop-1');
+  stars[1].classList.add('star-pop-2');
+  stars[2].classList.add('star-pop-3');
+}
+
+// Level-up simulation
+function triggerLevelUp() {
+  const fill = document.getElementById('main-xp-fill');
+  const badge = document.getElementById('level-badge-main');
+  if (!fill || !badge) return;
+
+  // First animate to 100%
+  fill.style.transition = 'width .6s ease';
+  fill.style.width = '100%';
+
+  setTimeout(() => {
+    fill.classList.add('level-up');
+    fill.style.transition = 'none';
+  }, 700);
+
+  setTimeout(() => {
+    fill.classList.remove('level-up');
+    fill.style.width = '8%';
+    fill.style.background = 'linear-gradient(90deg,#50e890,#58e8c1)';
+    badge.textContent = 'Level 7';
+    badge.classList.add('pop');
+    setTimeout(() => badge.classList.remove('pop'), 600);
+    // reset for repeat
+    setTimeout(() => {
+      fill.style.transition = 'width .6s ease';
+      fill.style.width = '82.7%';
+      badge.textContent = 'Level 6';
+    }, 3000);
+  }, 2400);
+}
+</script>
+</body>
+</html>

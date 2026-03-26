@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A/B Variant Comparison — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #e8edf3; min-height: 100vh; }
+  .tab-bar { display: flex; background: #161e28; border-bottom: 1px solid #1e2d3d; }
+  .tab-btn { flex: 1; padding: 14px 10px; background: none; border: none; color: #6a8aa0; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+  .page-title { font-size: 22px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #6a8aa0; margin-bottom: 24px; }
+
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; }
+  .hint-label { font-size: 11px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .hint-box p { font-size: 13px; color: #e8c84a; line-height: 1.5; }
+
+  /* Comparison View */
+  .variant-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .variant-box { background: #161e28; border: 1.5px solid #1e2d3d; border-radius: 14px; overflow: hidden; }
+  .variant-box.winner { border-color: #6cc96c; }
+  .variant-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e2d3d; }
+  .variant-label { font-size: 13px; font-weight: 700; color: #e8edf3; display: flex; align-items: center; gap: 8px; }
+  .variant-badge { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+  .badge-a { background: rgba(88,200,240,0.15); color: #58c8f0; }
+  .badge-b { background: rgba(255,209,102,0.15); color: #ffd166; }
+  .winner-tag { display: flex; align-items: center; gap: 4px; background: rgba(108,201,108,0.12); border: 1px solid rgba(108,201,108,0.3); border-radius: 12px; padding: 3px 10px; font-size: 10px; font-weight: 700; color: #6cc96c; }
+  .screenshot-placeholder { height: 280px; background: linear-gradient(135deg, #1a2535 0%, #1e3045 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; position: relative; }
+  .ph-icon { font-size: 36px; opacity: 0.4; }
+  .ph-text { font-size: 12px; color: #3a5568; font-weight: 500; }
+  .ph-label { position: absolute; top: 12px; left: 12px; background: rgba(88,200,240,0.15); border: 1px solid rgba(88,200,240,0.3); border-radius: 6px; padding: 4px 10px; font-size: 10px; font-weight: 700; color: #58c8f0; }
+  .ph-label-b { background: rgba(255,209,102,0.12); border-color: rgba(255,209,102,0.3); color: #ffd166; }
+  .variant-desc { padding: 16px 20px; font-size: 12px; color: #8aa8c0; line-height: 1.5; }
+
+  /* Metrics Table */
+  .metrics-table { width: 100%; border-collapse: collapse; }
+  .metrics-table th { text-align: left; font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; padding: 12px 16px; border-bottom: 1px solid #1e2d3d; background: #161e28; }
+  .metrics-table td { padding: 14px 16px; font-size: 13px; color: #c8d8e8; border-bottom: 1px solid #161e28; }
+  .metrics-table tr:hover td { background: rgba(88,200,240,0.03); }
+  .metric-name { font-weight: 600; color: #e8edf3; }
+  .metric-val { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; }
+  .val-a { color: #58c8f0; }
+  .val-b { color: #ffd166; }
+  .diff-pos { color: #6cc96c; }
+  .diff-neg { color: #ff5e5e; }
+  .winner-cell { display: flex; align-items: center; gap: 6px; }
+  .win-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .win-a { background: #58c8f0; }
+  .win-b { background: #ffd166; }
+  .win-tie { background: #6a8aa0; }
+  .sig-chip { padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+  .sig-high { background: rgba(108,201,108,0.12); color: #6cc96c; }
+  .sig-med { background: rgba(255,209,102,0.12); color: #ffd166; }
+  .sig-low { background: rgba(106,138,160,0.15); color: #6a8aa0; }
+
+  .mt-wrapper { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
+  .mt-header { padding: 18px 20px; border-bottom: 1px solid #1e2d3d; font-size: 14px; font-weight: 600; color: #e8edf3; }
+
+  /* Recommendation */
+  .rec-card { background: linear-gradient(135deg, rgba(108,201,108,0.08) 0%, rgba(88,200,240,0.05) 100%); border: 1.5px solid rgba(108,201,108,0.3); border-radius: 16px; padding: 28px; margin-bottom: 20px; }
+  .rec-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .rec-icon { width: 48px; height: 48px; border-radius: 14px; background: rgba(108,201,108,0.15); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .rec-title { font-size: 20px; font-weight: 700; color: #6cc96c; }
+  .rec-sub { font-size: 13px; color: #6a8aa0; margin-top: 3px; }
+  .rec-body { font-size: 13px; color: #c8d8e8; line-height: 1.7; margin-bottom: 16px; }
+  .rec-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
+  .rec-metric { background: rgba(108,201,108,0.08); border: 1px solid rgba(108,201,108,0.2); border-radius: 10px; padding: 12px 16px; }
+  .rec-metric-val { font-size: 20px; font-weight: 700; color: #6cc96c; }
+  .rec-metric-label { font-size: 11px; color: #6a8aa0; margin-top: 2px; }
+  .action-btn { background: linear-gradient(135deg, #6cc96c, #4aa84a); border: none; border-radius: 12px; padding: 14px 28px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #0d1f0d; cursor: pointer; }
+
+  /* Detail views */
+  .detail-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; padding: 24px; margin-bottom: 16px; }
+  .detail-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .detail-sub { font-size: 13px; color: #6a8aa0; margin-bottom: 16px; }
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stat-box { background: #10161e; border: 1px solid #1e2d3d; border-radius: 10px; padding: 16px 20px; flex: 1; min-width: 100px; }
+  .sb-val { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .sb-label { font-size: 11px; color: #6a8aa0; }
+  .section-label { font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; margin: 20px 0 10px; }
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .feature-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #c8d8e8; line-height: 1.5; }
+  .feat-bullet { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+
+  /* Spec */
+  .spec-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 14px; }
+  .spec-block h3 { font-size: 13px; font-weight: 600; color: #58c8f0; margin-bottom: 10px; }
+  .spec-block p, .spec-block li { font-size: 13px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('compare')">Comparison View</button>
+  <button class="tab-btn" onclick="show('vara')">Variant A Detail</button>
+  <button class="tab-btn" onclick="show('varb')">Variant B Detail</button>
+  <button class="tab-btn" onclick="show('rec')">Recommendation</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- COMPARISON VIEW -->
+<div id="compare" class="tab-panel active">
+  <div class="container">
+    <div class="page-title">A/B Variant Comparison</div>
+    <div class="page-sub">Test: Badge Unlock Screen Redesign · Cohort: 240 sessions · Mar 10–22, 2026</div>
+
+    <div class="hint-box">
+      <div class="hint-label">Test Context</div>
+      <p>This test compares two designs for the badge unlock celebration screen. Variant A is the current design; Variant B introduces a full-screen animation with sound and a "Show Parent" CTA.</p>
+    </div>
+
+    <div class="variant-row">
+      <div class="variant-box">
+        <div class="variant-header">
+          <div class="variant-label"><div class="variant-badge badge-a">A</div>Current Design</div>
+          <span style="font-size:11px;color:#6a8aa0">n = 118</span>
+        </div>
+        <div class="screenshot-placeholder">
+          <div class="ph-label">Variant A</div>
+          <div class="ph-icon">🏅</div>
+          <div class="ph-text">Badge Unlock · Overlay Sheet</div>
+        </div>
+        <div class="variant-desc">Small overlay sheet slides up from bottom. Shows badge icon, name, and "View Trophy Room" button. Animation: 1.2s fade-in. No sound.</div>
+      </div>
+
+      <div class="variant-box winner">
+        <div class="variant-header">
+          <div class="variant-label"><div class="variant-badge badge-b">B</div>New Design</div>
+          <div class="winner-tag">✓ Winner</div>
+        </div>
+        <div class="screenshot-placeholder" style="background:linear-gradient(135deg, #1a2535 0%, #1e3540 100%)">
+          <div class="ph-label ph-label-b">Variant B</div>
+          <div class="ph-icon">🎉</div>
+          <div class="ph-text">Badge Unlock · Full Screen</div>
+        </div>
+        <div class="variant-desc">Full-screen takeover with confetti animation (2.5s), badge hero image, sound effect (opt-out available), and "Show Parent" + "Continue" CTAs.</div>
+      </div>
+    </div>
+
+    <div class="mt-wrapper">
+      <div class="mt-header">Metric Comparison</div>
+      <table class="metrics-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Variant A</th>
+            <th>Variant B</th>
+            <th>Δ Diff</th>
+            <th>Winner</th>
+            <th>Significance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="metric-name">Engagement Rate</div><div style="font-size:11px;color:#6a8aa0">Interacted with badge screen</div></td>
+            <td><div class="metric-val val-a">34%</div></td>
+            <td><div class="metric-val val-b">71%</div></td>
+            <td><div class="diff-pos">+37pp</div></td>
+            <td><div class="winner-cell"><div class="win-dot win-b"></div>B</div></td>
+            <td><span class="sig-chip sig-high">High</span></td>
+          </tr>
+          <tr>
+            <td><div class="metric-name">Completion Rate</div><div style="font-size:11px;color:#6a8aa0">Session to next session</div></td>
+            <td><div class="metric-val val-a">62%</div></td>
+            <td><div class="metric-val val-b">74%</div></td>
+            <td><div class="diff-pos">+12pp</div></td>
+            <td><div class="winner-cell"><div class="win-dot win-b"></div>B</div></td>
+            <td><span class="sig-chip sig-high">High</span></td>
+          </tr>
+          <tr>
+            <td><div class="metric-name">Skip Rate</div><div style="font-size:11px;color:#6a8aa0">Dismissed without interacting</div></td>
+            <td><div class="metric-val val-a">66%</div></td>
+            <td><div class="metric-val val-b">29%</div></td>
+            <td><div class="diff-pos">−37pp</div></td>
+            <td><div class="winner-cell"><div class="win-dot win-b"></div>B</div></td>
+            <td><span class="sig-chip sig-high">High</span></td>
+          </tr>
+          <tr>
+            <td><div class="metric-name">Satisfaction (1–5)</div><div style="font-size:11px;color:#6a8aa0">Post-session rating</div></td>
+            <td><div class="metric-val val-a">3.8</div></td>
+            <td><div class="metric-val val-b">4.6</div></td>
+            <td><div class="diff-pos">+0.8</div></td>
+            <td><div class="winner-cell"><div class="win-dot win-b"></div>B</div></td>
+            <td><span class="sig-chip sig-med">Medium</span></td>
+          </tr>
+          <tr>
+            <td><div class="metric-name">Avg Time on Screen</div><div style="font-size:11px;color:#6a8aa0">Seconds before continuing</div></td>
+            <td><div class="metric-val val-a">2.1s</div></td>
+            <td><div class="metric-val val-b">8.4s</div></td>
+            <td><div class="diff-pos">+6.3s</div></td>
+            <td><div class="winner-cell"><div class="win-dot win-b"></div>B</div></td>
+            <td><span class="sig-chip sig-high">High</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- VARIANT A DETAIL -->
+<div id="vara" class="tab-panel">
+  <div class="container" style="max-width:760px">
+    <div class="detail-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div class="variant-badge badge-a">A</div>
+        <div>
+          <div class="detail-title" style="color:#58c8f0">Variant A — Current Design</div>
+          <div class="detail-sub" style="margin-bottom:0">Overlay sheet · No sound · n = 118 sessions</div>
+        </div>
+      </div>
+      <div style="height:200px;background:linear-gradient(135deg,#1a2535,#1e3045);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:16px">🏅</div>
+      <div class="section-label">Key Features</div>
+      <ul class="feature-list">
+        <li><div class="feat-bullet" style="background:#58c8f0"></div>Bottom sheet overlay (60% screen height)</li>
+        <li><div class="feat-bullet" style="background:#58c8f0"></div>Badge icon at 64px with name label</li>
+        <li><div class="feat-bullet" style="background:#58c8f0"></div>1.2s fade-in animation</li>
+        <li><div class="feat-bullet" style="background:#58c8f0"></div>Single CTA: "View Trophy Room"</li>
+        <li><div class="feat-bullet" style="background:#58c8f0"></div>No audio cue</li>
+      </ul>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="sb-val" style="color:#58c8f0">34%</div><div class="sb-label">Engagement</div></div>
+      <div class="stat-box"><div class="sb-val" style="color:#58c8f0">66%</div><div class="sb-label">Skip Rate</div></div>
+      <div class="stat-box"><div class="sb-val" style="color:#58c8f0">2.1s</div><div class="sb-label">Avg Time</div></div>
+      <div class="stat-box"><div class="sb-val" style="color:#58c8f0">3.8</div><div class="sb-label">Satisfaction</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- VARIANT B DETAIL -->
+<div id="varb" class="tab-panel">
+  <div class="container" style="max-width:760px">
+    <div class="detail-card" style="border-color:rgba(108,201,108,0.3)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div class="variant-badge badge-b">B</div>
+        <div>
+          <div class="detail-title" style="color:#ffd166">Variant B — New Design</div>
+          <div class="detail-sub" style="margin-bottom:0">Full screen · Sound + confetti · n = 122 sessions</div>
+        </div>
+        <div class="winner-tag" style="margin-left:auto">✓ Winner</div>
+      </div>
+      <div style="height:200px;background:linear-gradient(135deg,#1a2535,#1e3540);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:16px">🎉</div>
+      <div class="section-label">Key Features</div>
+      <ul class="feature-list">
+        <li><div class="feat-bullet" style="background:#ffd166"></div>Full-screen takeover (100% viewport)</li>
+        <li><div class="feat-bullet" style="background:#ffd166"></div>Badge hero at 120px with animated ring</li>
+        <li><div class="feat-bullet" style="background:#ffd166"></div>2.5s confetti particle animation</li>
+        <li><div class="feat-bullet" style="background:#ffd166"></div>Sound effect (with opt-out toggle)</li>
+        <li><div class="feat-bullet" style="background:#ffd166"></div>Dual CTA: "Show Parent" + "Continue"</li>
+      </ul>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="sb-val" style="color:#6cc96c">71%</div><div class="sb-label">Engagement</div></div>
+      <div class="stat-box"><div class="sb-val" style="color:#6cc96c">29%</div><div class="sb-label">Skip Rate</div></div>
+      <div class="stat-box"><div class="sb-val" style="color:#6cc96c">8.4s</div><div class="sb-label">Avg Time</div></div>
+      <div class="stat-box"><div class="sb-val" style="color:#6cc96c">4.6</div><div class="sb-label">Satisfaction</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- RECOMMENDATION -->
+<div id="rec" class="tab-panel">
+  <div class="container" style="max-width:760px">
+    <div class="page-title">Recommendation</div>
+    <div class="page-sub" style="margin-bottom:24px">Test: Badge Unlock Screen · Confidence: High</div>
+
+    <div class="rec-card">
+      <div class="rec-header">
+        <div class="rec-icon">🏆</div>
+        <div>
+          <div class="rec-title">Ship Variant B</div>
+          <div class="rec-sub">Full-screen celebration with confetti &amp; sound</div>
+        </div>
+      </div>
+      <div class="rec-body">Variant B outperforms on every measured metric with high statistical significance. The 37pp improvement in engagement rate and 37pp reduction in skip rate represent a meaningful uplift in the product's core reward loop. The "Show Parent" CTA is a standout addition — 42% of Variant B sessions saw a parent CTA tap, indicating this feature drives cross-persona engagement. Ship Variant B to 100% of users. Monitor satisfaction score and session-to-session retention for 2 weeks post-launch.</div>
+      <div class="rec-metrics">
+        <div class="rec-metric"><div class="rec-metric-val">+37pp</div><div class="rec-metric-label">Engagement Lift</div></div>
+        <div class="rec-metric"><div class="rec-metric-val">+12pp</div><div class="rec-metric-label">Completion Lift</div></div>
+        <div class="rec-metric"><div class="rec-metric-val">+0.8</div><div class="rec-metric-label">Satisfaction Delta</div></div>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Caveat</div>
+      <p>Ensure sound opt-out is accessible and defaults to off in silent mode. Monitor audio complaint rate in the first week post-launch. If complaint rate exceeds 5%, default to sound-off globally.</p>
+    </div>
+
+    <button class="action-btn">Mark for Production Shipping</button>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="container">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>a-b-variant-comparison-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Visual A/B comparison sheet showing side-by-side variant screenshots, metric comparison table with significance levels, and winner recommendation card.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #10161e · Accent: #58c8f0</li>
+        <li>Viewport: Desktop 900px+ · Hint box: #2a1f00 / #ffd166</li>
+        <li>Winner accent: #6cc96c (green)</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Tabs</h3>
+      <ul>
+        <li>Comparison View — side-by-side with metrics table</li>
+        <li>Variant A Detail — current design feature breakdown</li>
+        <li>Variant B Detail — new design feature breakdown</li>
+        <li>Recommendation — winner card with rationale and action</li>
+        <li>Spec — this document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['compare','vara','varb','rec','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

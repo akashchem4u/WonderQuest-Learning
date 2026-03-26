@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child PIN Wrong State v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 40px; font-family: 'Nunito', sans-serif; }
+.eng-hint { width: 100%; max-width: 700px; background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin-bottom: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { width: 100%; max-width: 700px; display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tab-btn { flex: 1; min-width: 80px; padding: 8px 10px; background: #1e1e3a; border: 2px solid #2e2e4e; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2a4e; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.phone-frame { width: 390px; min-height: 780px; background: #100b2e; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 0 0 2px #2a2060; }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 6px; font-size: 12px; font-weight: 700; color: #9b72ff; }
+.status-bar .time { font-size: 14px; color: #e0d4ff; font-weight: 900; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.pin-body { display: flex; flex-direction: column; align-items: center; padding: 24px 28px 32px; }
+
+/* Shake animation for wrong PIN */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  30% { transform: translateX(8px); }
+  45% { transform: translateX(-6px); }
+  60% { transform: translateX(6px); }
+  75% { transform: translateX(-3px); }
+  90% { transform: translateX(3px); }
+}
+.shake { animation: shake 0.5s ease-in-out; }
+
+/* Wrong pulse */
+@keyframes wrong-flash {
+  0%,100% { background: #2a1010; }
+  50% { background: #3a0808; }
+}
+
+.mascot { font-size: 52px; margin-bottom: 12px; }
+.mascot.sad { animation: mascot-sad 0.6s ease-in-out; }
+@keyframes mascot-sad { 0% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } 100% { transform: rotate(0); } }
+
+.pin-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 4px; text-align: center; }
+.pin-sub-wrong { font-size: 14px; font-weight: 900; color: #ff7b6b; text-align: center; margin-bottom: 6px; }
+.pin-attempts { font-size: 12px; font-weight: 700; color: #7a6090; text-align: center; margin-bottom: 24px; }
+
+/* Error dots */
+.pin-dots { display: flex; gap: 14px; margin-bottom: 24px; }
+.pdot { width: 22px; height: 22px; border-radius: 50%; transition: all 0.2s; }
+.pdot.wrong { background: #ff7b6b; border: 2px solid #ff4040; animation: shake 0.5s ease-in-out; }
+.pdot.empty { background: #2a2060; border: 2px solid #4a30b0; }
+
+/* Error banner */
+.error-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #2a0c0c; border: 2px solid #ff4040;
+  border-radius: 14px; padding: 12px 16px;
+  margin-bottom: 20px; width: 100%;
+}
+.error-banner .eb-icon { font-size: 22px; flex-shrink: 0; }
+.error-banner .eb-text { font-size: 13px; font-weight: 700; color: #ff9090; line-height: 1.3; }
+
+/* Numpad */
+.numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 280px; }
+.num-btn { aspect-ratio: 1; border-radius: 20px; background: #1a1460; border: 2px solid #2a2060; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; }
+.num-btn:hover { background: #2a1880; border-color: #9b72ff; transform: scale(1.04); }
+.num-btn:active { transform: scale(0.94); }
+.num-btn.empty { background: transparent; border-color: transparent; cursor: default; }
+.num-btn.empty:hover { transform: none; }
+.num-btn.backspace { background: #1a1060; }
+.nb-digit { font-size: 28px; font-weight: 900; color: #fff; }
+.nb-letters { font-size: 9px; font-weight: 700; color: #6a5090; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+
+/* Help link */
+.help-link { font-size: 12px; font-weight: 700; color: #6a5090; text-align: center; margin-top: 20px; cursor: pointer; text-decoration: underline; }
+
+/* Spec */
+.spec-body { padding: 14px 20px; }
+.spec-section { margin-bottom: 12px; background: #1a1060; border-radius: 12px; padding: 12px; }
+.spec-title { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 11px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 58%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-pin-wrong-state-v3.html</strong><br>
+  Phone 390px • 4 tabs: First wrong / Second wrong / Third wrong (warning) / Spec<br>
+  Dots shake red on wrong entry • Error banner appears below dots<br>
+  Attempts counter increments (1 wrong, 2 wrong, 1 more before timeout)<br>
+  Mascot shows sad wobble animation • PIN dots clear and reset after shake<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code> • Error red <code>#ff7b6b</code>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('first')">1st Wrong</button>
+  <button class="tab-btn" onclick="showTab('second')">2nd Wrong</button>
+  <button class="tab-btn" onclick="showTab('third')">3rd Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span>WonderQuest</span>
+    <span>🔋 94%</span>
+  </div>
+
+  <!-- FIRST WRONG -->
+  <div id="screen-first" class="screen active">
+    <div class="pin-body">
+      <div class="mascot sad">😕</div>
+      <div class="pin-title">Hi, Zara! 👋</div>
+      <div class="pin-sub-wrong">Hmm, that wasn't it!</div>
+      <div class="pin-attempts">Try again</div>
+      <div class="pin-dots shake">
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+      </div>
+      <div class="error-banner">
+        <span class="eb-icon">🔑</span>
+        <span class="eb-text">That code didn't work — give it another try!</span>
+      </div>
+      <div class="numpad">
+        <div class="num-btn"><span class="nb-digit">1</span></div>
+        <div class="num-btn"><span class="nb-digit">2</span><span class="nb-letters">ABC</span></div>
+        <div class="num-btn"><span class="nb-digit">3</span><span class="nb-letters">DEF</span></div>
+        <div class="num-btn"><span class="nb-digit">4</span><span class="nb-letters">GHI</span></div>
+        <div class="num-btn"><span class="nb-digit">5</span><span class="nb-letters">JKL</span></div>
+        <div class="num-btn"><span class="nb-digit">6</span><span class="nb-letters">MNO</span></div>
+        <div class="num-btn"><span class="nb-digit">7</span><span class="nb-letters">PQRS</span></div>
+        <div class="num-btn"><span class="nb-digit">8</span><span class="nb-letters">TUV</span></div>
+        <div class="num-btn"><span class="nb-digit">9</span><span class="nb-letters">WXYZ</span></div>
+        <div class="num-btn empty"></div>
+        <div class="num-btn"><span class="nb-digit">0</span></div>
+        <div class="num-btn backspace"><span class="nb-digit" style="font-size:22px">⌫</span></div>
+      </div>
+      <div class="help-link">Forgot your code? Ask a parent 💙</div>
+    </div>
+  </div>
+
+  <!-- SECOND WRONG -->
+  <div id="screen-second" class="screen">
+    <div class="pin-body">
+      <div class="mascot">😟</div>
+      <div class="pin-title">Hi, Zara! 👋</div>
+      <div class="pin-sub-wrong">Still not quite right…</div>
+      <div class="pin-attempts" style="color:#f0a030">2 tries — 1 more before a short pause</div>
+      <div class="pin-dots shake">
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+      </div>
+      <div class="error-banner" style="border-color:#f0a030;background:#2a1800">
+        <span class="eb-icon">⚠️</span>
+        <span class="eb-text" style="color:#f0c070">Two tries used — one more left before a short cooldown!</span>
+      </div>
+      <div class="numpad">
+        <div class="num-btn"><span class="nb-digit">1</span></div>
+        <div class="num-btn"><span class="nb-digit">2</span><span class="nb-letters">ABC</span></div>
+        <div class="num-btn"><span class="nb-digit">3</span><span class="nb-letters">DEF</span></div>
+        <div class="num-btn"><span class="nb-digit">4</span><span class="nb-letters">GHI</span></div>
+        <div class="num-btn"><span class="nb-digit">5</span><span class="nb-letters">JKL</span></div>
+        <div class="num-btn"><span class="nb-digit">6</span><span class="nb-letters">MNO</span></div>
+        <div class="num-btn"><span class="nb-digit">7</span><span class="nb-letters">PQRS</span></div>
+        <div class="num-btn"><span class="nb-digit">8</span><span class="nb-letters">TUV</span></div>
+        <div class="num-btn"><span class="nb-digit">9</span><span class="nb-letters">WXYZ</span></div>
+        <div class="num-btn empty"></div>
+        <div class="num-btn"><span class="nb-digit">0</span></div>
+        <div class="num-btn backspace"><span class="nb-digit" style="font-size:22px">⌫</span></div>
+      </div>
+      <div class="help-link">Forgot your code? Ask a parent 💙</div>
+    </div>
+  </div>
+
+  <!-- THIRD WRONG (about to lock) -->
+  <div id="screen-third" class="screen">
+    <div class="pin-body">
+      <div class="mascot">😰</div>
+      <div class="pin-title">Hi, Zara! 👋</div>
+      <div class="pin-sub-wrong">Oh no — last try!</div>
+      <div class="pin-attempts" style="color:#ff4040;font-weight:900">After this — short cooldown!</div>
+      <div class="pin-dots shake">
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+        <div class="pdot wrong"></div>
+      </div>
+      <div class="error-banner" style="border-color:#ff4040;background:#2a0808">
+        <span class="eb-icon">🔒</span>
+        <span class="eb-text">3 tries used — this is the last one! Ask a parent if you need help.</span>
+      </div>
+      <div class="numpad">
+        <div class="num-btn"><span class="nb-digit">1</span></div>
+        <div class="num-btn"><span class="nb-digit">2</span><span class="nb-letters">ABC</span></div>
+        <div class="num-btn"><span class="nb-digit">3</span><span class="nb-letters">DEF</span></div>
+        <div class="num-btn"><span class="nb-digit">4</span><span class="nb-letters">GHI</span></div>
+        <div class="num-btn"><span class="nb-digit">5</span><span class="nb-letters">JKL</span></div>
+        <div class="num-btn"><span class="nb-digit">6</span><span class="nb-letters">MNO</span></div>
+        <div class="num-btn"><span class="nb-digit">7</span><span class="nb-letters">PQRS</span></div>
+        <div class="num-btn"><span class="nb-digit">8</span><span class="nb-letters">TUV</span></div>
+        <div class="num-btn"><span class="nb-digit">9</span><span class="nb-letters">WXYZ</span></div>
+        <div class="num-btn empty"></div>
+        <div class="num-btn"><span class="nb-digit">0</span></div>
+        <div class="num-btn backspace"><span class="nb-digit" style="font-size:22px">⌫</span></div>
+      </div>
+      <div class="help-link" style="color:#ff9090">Forgot your code? Ask a parent — they can reset it 💙</div>
+    </div>
+  </div>
+
+  <!-- SPEC -->
+  <div id="screen-spec" class="screen">
+    <div class="spec-body">
+      <div class="spec-section">
+        <div class="spec-title">Error States</div>
+        <div class="spec-row"><span class="spec-key">1st wrong</span><span class="spec-val">Red shake + "try again" — no counter shown</span></div>
+        <div class="spec-row"><span class="spec-key">2nd wrong</span><span class="spec-val">Amber warning — "1 more before cooldown"</span></div>
+        <div class="spec-row"><span class="spec-key">3rd wrong</span><span class="spec-val">Red warning — "last try, cooldown next"</span></div>
+        <div class="spec-row"><span class="spec-key">4th wrong</span><span class="spec-val">See child-pin-lockout-state-v2.html</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Animations</div>
+        <div class="spec-row"><span class="spec-key">Dots</span><span class="spec-val">Turn red + shake left-right keyframe (0.5s)</span></div>
+        <div class="spec-row"><span class="spec-key">Mascot</span><span class="spec-val">Sad wobble rotation (−10° / +10°)</span></div>
+        <div class="spec-row"><span class="spec-key">After shake</span><span class="spec-val">Dots reset to empty — re-enter fresh</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Tone rules</div>
+        <div class="spec-row"><span class="spec-key">Language</span><span class="spec-val">Friendly — "that wasn't it", no blame</span></div>
+        <div class="spec-row"><span class="spec-key">Shame</span><span class="spec-val">None — never say "wrong" or "failed"</span></div>
+        <div class="spec-row"><span class="spec-key">Help link</span><span class="spec-val">Always visible — routes parent to reset</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

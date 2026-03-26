@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Strengths Card — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Card shell ─────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:420px;display:inline-block;vertical-align:top}
+.card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff;margin-bottom:14px}
+
+/* ── Skill row ───────────────────────────────────────────────────── */
+.skill-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f0ff}
+.skill-row:last-child{border-bottom:none;padding-bottom:0}
+.skill-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.skill-icon-mint{background:#e6fef8}
+.skill-icon-violet{background:#f0ebff}
+.skill-icon-gold{background:#fffbf0}
+.skill-name{font-size:14px;font-weight:700;color:#1a1440;margin-bottom:2px}
+.skill-subject{font-size:11px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.skill-right{margin-left:auto;text-align:right}
+.skill-stars{font-size:13px;font-weight:700;color:#1a1440}
+.skill-delta{font-size:11px;font-weight:600;margin-top:2px}
+.delta-up{color:#22c55e}
+.delta-same{color:#aaa}
+.strong-badge{display:inline-flex;align-items:center;gap:4px;background:#ebfff3;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#15803d;margin-top:3px}
+
+/* ── Mastery bar ─────────────────────────────────────────────────── */
+.mastery-bar-wrap{flex:1;max-width:80px}
+.mastery-bar{height:6px;border-radius:3px;background:#e8e3d8;overflow:hidden}
+.mastery-fill{height:100%;border-radius:3px;background:#58e8c1}
+
+/* ── Subject breakdown pills ─────────────────────────────────────── */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.pill-mint{background:#e6fef8;color:#0e7360}
+.pill-violet{background:#f0ebff;color:#7c3aed}
+.pill-gold{background:#fffbf0;color:#a06000}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:24px 16px;color:#aaa}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty-text{font-size:13px;line-height:1.5}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-violet{background:#f0ebff;color:#7c3aed}
+.tag-gray{background:#f0f0f0;color:#555}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-strengths-card-v2.html</strong><br>
+  Shows the child's top 3 strongest skills based on mastery score this week.<br>
+  <strong>Strength criteria:</strong> mastery_score >= 70 AND sessions_this_week >= 2 AND score_delta >= 0 (not declining).<br>
+  <strong>Never show accuracy %</strong> — framing is "Strong at X" and "⭐ N stars this week", not "X% correct".<br>
+  Stars shown in this context are the child's earned stars on that skill, not accuracy. Always positive framing.<br>
+  Max 3 skills shown. If fewer than 3 qualify, show available strengths (or empty state if none qualify yet).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('standard')">Standard (3 strengths)</button>
+  <button class="tab-btn" onclick="showTab('one')">One strength</button>
+  <button class="tab-btn" onclick="showTab('empty')">Empty state</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Standard ───────────────────────────────────────────────────── -->
+<div id="tab-standard" class="screen active">
+  <p class="section-title">Standard — 3 qualifying strengths</p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div class="card">
+      <div class="card-label">💪 Strengths this week</div>
+      <div class="pills">
+        <span class="pill pill-mint">🌿 Reading</span>
+        <span class="pill pill-violet">➗ Math</span>
+      </div>
+
+      <div class="skill-row">
+        <div class="skill-icon skill-icon-mint">📖</div>
+        <div>
+          <div class="skill-name">Sight words</div>
+          <div class="skill-subject">Reading</div>
+          <div class="strong-badge">⭐ Strong</div>
+        </div>
+        <div class="mastery-bar-wrap">
+          <div class="mastery-bar"><div class="mastery-fill" style="width:88%"></div></div>
+          <div style="font-size:10px;color:#aaa;text-align:right;margin-top:3px">88/100</div>
+        </div>
+        <div class="skill-right">
+          <div class="skill-stars">⭐ 18</div>
+          <div class="skill-delta delta-up">+6 this wk</div>
+        </div>
+      </div>
+
+      <div class="skill-row">
+        <div class="skill-icon skill-icon-violet">➕</div>
+        <div>
+          <div class="skill-name">Addition facts</div>
+          <div class="skill-subject">Math</div>
+          <div class="strong-badge">⭐ Strong</div>
+        </div>
+        <div class="mastery-bar-wrap">
+          <div class="mastery-bar"><div class="mastery-fill" style="width:82%"></div></div>
+          <div style="font-size:10px;color:#aaa;text-align:right;margin-top:3px">82/100</div>
+        </div>
+        <div class="skill-right">
+          <div class="skill-stars">⭐ 14</div>
+          <div class="skill-delta delta-up">+4 this wk</div>
+        </div>
+      </div>
+
+      <div class="skill-row">
+        <div class="skill-icon skill-icon-gold">✏️</div>
+        <div>
+          <div class="skill-name">CVC spelling</div>
+          <div class="skill-subject">Spelling</div>
+          <div class="strong-badge">⭐ Strong</div>
+        </div>
+        <div class="mastery-bar-wrap">
+          <div class="mastery-bar"><div class="mastery-fill" style="width:76%"></div></div>
+          <div style="font-size:10px;color:#aaa;text-align:right;margin-top:3px">76/100</div>
+        </div>
+        <div class="skill-right">
+          <div class="skill-stars">⭐ 12</div>
+          <div class="skill-delta delta-same">→ steady</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact version (dashboard widget) -->
+    <div class="card" style="max-width:280px">
+      <div class="card-label">💪 Top strengths</div>
+      <div class="skill-row">
+        <div class="skill-icon skill-icon-mint" style="width:28px;height:28px;font-size:14px">📖</div>
+        <div><div class="skill-name" style="font-size:13px">Sight words</div><div class="skill-subject">Reading</div></div>
+        <div class="skill-right"><div class="skill-stars" style="font-size:12px">⭐ 18</div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-icon skill-icon-violet" style="width:28px;height:28px;font-size:14px">➕</div>
+        <div><div class="skill-name" style="font-size:13px">Addition facts</div><div class="skill-subject">Math</div></div>
+        <div class="skill-right"><div class="skill-stars" style="font-size:12px">⭐ 14</div></div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-icon skill-icon-gold" style="width:28px;height:28px;font-size:14px">✏️</div>
+        <div><div class="skill-name" style="font-size:13px">CVC spelling</div><div class="skill-subject">Spelling</div></div>
+        <div class="skill-right"><div class="skill-stars" style="font-size:12px">⭐ 12</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <a href="#" style="font-size:12px;color:#9b72ff;font-weight:700;text-decoration:none">See full skills report →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── One Strength ────────────────────────────────────────────────── -->
+<div id="tab-one" class="screen">
+  <p class="section-title">One qualifying strength (new or quiet week)</p>
+  <div class="card">
+    <div class="card-label">💪 Strengths this week</div>
+    <div class="skill-row">
+      <div class="skill-icon skill-icon-mint">📖</div>
+      <div>
+        <div class="skill-name">Sight words</div>
+        <div class="skill-subject">Reading</div>
+        <div class="strong-badge">⭐ Strong</div>
+      </div>
+      <div class="mastery-bar-wrap">
+        <div class="mastery-bar"><div class="mastery-fill" style="width:80%"></div></div>
+        <div style="font-size:10px;color:#aaa;text-align:right;margin-top:3px">80/100</div>
+      </div>
+      <div class="skill-right">
+        <div class="skill-stars">⭐ 9</div>
+        <div class="skill-delta delta-up">+3 this wk</div>
+      </div>
+    </div>
+
+    <!-- Gentle note -->
+    <div style="background:#f5f0ff;border-radius:10px;padding:12px 14px;font-size:12px;color:#6d28d9;margin-top:12px;line-height:1.5">
+      Maya is building toward more strengths — keep up the sessions and more will appear here next week.
+    </div>
+  </div>
+</div>
+
+<!-- ── Empty State ────────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">Empty state — not enough data yet</p>
+  <div class="card">
+    <div class="card-label">💪 Strengths this week</div>
+    <div class="empty-state">
+      <div class="empty-icon">🌱</div>
+      <div class="empty-text">Strengths appear after Maya completes<br>a few sessions in the same skill area.<br><strong style="color:#1a1440">Check back after a few more sessions!</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-strengths-card-v2.html<br>
+      <strong>Qualification:</strong> mastery_score >= 70 AND sessions_count >= 2 AND delta >= 0. Max 3 shown, sorted by mastery_score desc.
+    </div>
+    <h2 class="spec-h2">Strength Thresholds</h2>
+    <table class="spec-table">
+      <tr><th>mastery_score</th><th>Label</th><th>Bar colour</th></tr>
+      <tr><td>85–100</td><td>⭐ Strong</td><td>Mint #58e8c1</td></tr>
+      <tr><td>70–84</td><td>⭐ Strong</td><td>Mint (slightly lighter)</td></tr>
+      <tr><td>< 70</td><td>Not shown as strength</td><td>—</td></tr>
+    </table>
+    <h2 class="spec-h2">What is never shown</h2>
+    <table class="spec-table">
+      <tr><th>Item</th><th>Reason</th></tr>
+      <tr><td>Accuracy %</td><td>mastery_score is internal metric — parent sees stars and bar only</td></tr>
+      <tr><td>Skills with delta < 0</td><td>Declining skills appear in support-areas-card, not here</td></tr>
+      <tr><td>Raw session count</td><td>Shown only in weekly report detail</td></tr>
+    </table>
+    <h2 class="spec-h2">Framing Rules</h2>
+    <p class="spec-p">Stars shown = child's earned stars on that skill this week. Stars are child-language; parents understand stars = reward/progress. Never say "X% correct". Never say "mastery score". Use "Strong at X" and star counts.</p>
+    <p class="spec-p">If only 1 strength: add an encouraging note — "Building toward more strengths next week."</p>
+    <p class="spec-p">If 0 strengths: empty state with 🌱 icon. Copy: "Strengths appear after a few sessions in the same skill area." Never say "no strengths found" or anything negative.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

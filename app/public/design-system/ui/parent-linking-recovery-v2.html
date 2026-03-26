@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Linking Recovery v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: #fff;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+  }
+
+  /* ── Top tab switcher ── */
+  .top-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 24px;
+    max-width: 700px;
+    width: 100%;
+  }
+  .top-tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    background: #e8e3da;
+    color: #2c7a6e;
+    transition: background .2s, color .2s;
+    white-space: nowrap;
+  }
+  .top-tab.active { background: #2c7a6e; color: #fff; }
+  .top-tab:hover:not(.active) { background: #d6cfc4; }
+
+  /* ── Panel ── */
+  .panel { display: none; width: 100%; max-width: 420px; }
+  .panel.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ── Engineering hint ── */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #5a4000;
+    width: 375px;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #3a2800; display: block; margin-bottom: 4px; font-size: 12px; }
+
+  /* ── Phone frame ── */
+  .phone {
+    width: 375px;
+    min-height: 812px;
+    background: #f5f0e8;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 20px 70px rgba(0,0,0,.18), 0 0 0 2px #d6cfc4;
+    flex-shrink: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    height: 44px;
+    background: #f0ebe0;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .status-time { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .status-icons { font-size: 12px; color: #6a6a7e; display: flex; gap: 6px; align-items: center; }
+
+  /* ── Nav header ── */
+  .nav-header {
+    background: #2c7a6e;
+    color: #fff;
+    padding: 14px 20px 18px;
+    flex-shrink: 0;
+  }
+  .nav-back { font-size: 12px; color: rgba(255,255,255,.65); font-weight: 600; margin-bottom: 3px; }
+  .nav-title { font-size: 20px; font-weight: 700; }
+  .nav-sub { font-size: 13px; color: rgba(255,255,255,.72); margin-top: 2px; }
+
+  /* ── Scroll body ── */
+  .scroll-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ── Bottom tab bar ── */
+  .bottom-bar {
+    height: 70px;
+    background: #fff;
+    border-top: 1px solid #e8e3da;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+  .bb-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #a8a8be;
+    cursor: default;
+    padding: 0 6px;
+    text-align: center;
+  }
+  .bb-tab.active { color: #2c7a6e; }
+  .bb-icon { font-size: 20px; line-height: 1; }
+
+  /* ── Shared card base ── */
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+
+  /* ── Amber warning hero (calm, not alarming) ── */
+  .error-hero {
+    background: #fffbf0;
+    border: 2px solid #f0c040;
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+  }
+  .error-hero-icon { font-size: 38px; margin-bottom: 10px; }
+  .error-hero h2 { font-size: 18px; font-weight: 700; color: #7a5200; margin-bottom: 6px; }
+  .error-hero p { font-size: 13px; color: #9a6800; line-height: 1.5; }
+
+  /* ── Linked child card ── */
+  .linked-child-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+  .lcc-question {
+    font-size: 13px;
+    font-weight: 700;
+    color: #5a5a7e;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .child-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f5f0e8;
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+  .child-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #2c7a6e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .child-avatar.alt1 { background: #3a8f7f; }
+  .child-avatar.alt2 { background: #4ea89c; }
+  .child-avatar.alt3 { background: #236858; }
+  .child-info-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+  .child-world-chip {
+    display: inline-block;
+    background: #e6f5f2;
+    color: #2c7a6e;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 3px;
+  }
+  .cta-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-teal {
+    flex: 1;
+    padding: 12px 16px;
+    background: #2c7a6e;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-teal:hover { background: #236858; }
+  .btn-outline {
+    flex: 1;
+    padding: 12px 16px;
+    background: transparent;
+    color: #2c7a6e;
+    border: 2px solid #2c7a6e;
+    border-radius: 12px;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-outline:hover { background: #e6f5f2; }
+  .btn-text {
+    background: none;
+    border: none;
+    color: #2c7a6e;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: center;
+  }
+
+  /* ── Fix steps card ── */
+  .fix-steps-card {
+    background: #f5fff8;
+    border: 2px solid #b6e8d6;
+    border-radius: 18px;
+    padding: 16px;
+    display: none;
+  }
+  .fix-steps-card.visible { display: block; }
+  .fix-steps-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a6b5a;
+    margin-bottom: 12px;
+  }
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #2c7a6e;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-text { font-size: 13px; color: #1a4a40; line-height: 1.4; }
+
+  /* ── Privacy note chip ── */
+  .privacy-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #e6f5f2;
+    color: #1a6b5a;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 20px;
+    align-self: center;
+  }
+
+  /* ── Flow / progress dots ── */
+  .flow-header {
+    background: #fff;
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+  .flow-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6a7a76;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 10px;
+  }
+  .progress-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d6cfc4;
+  }
+  .dot.active { background: #2c7a6e; width: 28px; border-radius: 6px; }
+  .dot.done { background: #2c7a6e; }
+  .dot-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-left: 6px;
+  }
+
+  /* ── Unlink confirm card ── */
+  .unlink-confirm-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+  .unlink-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+  }
+  .unlink-reassure {
+    font-size: 13px;
+    color: #2c7a6e;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .what-next-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6a7a76;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 12px 0 8px;
+  }
+  .what-next-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .what-next-list li {
+    font-size: 13px;
+    color: #3a4a48;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .what-next-list li::before {
+    content: '•';
+    color: #2c7a6e;
+    font-size: 16px;
+    line-height: 1.2;
+    flex-shrink: 0;
+  }
+
+  /* ── Code input ── */
+  .code-entry-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+    display: none;
+  }
+  .code-entry-card.visible { display: block; }
+  .code-entry-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 10px;
+  }
+  .code-input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid #d6cfc4;
+    font-family: 'Sora', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a2e;
+    text-align: center;
+    letter-spacing: .14em;
+    background: #fafaf6;
+    transition: border-color .2s;
+    outline: none;
+  }
+  .code-input:focus { border-color: #2c7a6e; background: #fff; }
+  .code-hint {
+    font-size: 12px;
+    color: #8a8a9e;
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  /* ── Success card ── */
+  .success-card {
+    background: #f0faf7;
+    border: 2px solid #a0dfc8;
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+    display: none;
+  }
+  .success-card.visible { display: block; }
+  .success-icon { font-size: 40px; margin-bottom: 10px; }
+  .success-title { font-size: 18px; font-weight: 700; color: #1a6b5a; margin-bottom: 6px; }
+  .success-sub { font-size: 13px; color: #2a7a64; line-height: 1.5; }
+
+  /* ── Empty state hero ── */
+  .empty-hero {
+    text-align: center;
+    padding: 24px 16px 8px;
+  }
+  .empty-wave {
+    font-size: 52px;
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .empty-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 10px 0 8px;
+  }
+  .empty-sub {
+    font-size: 13px;
+    color: #6a6a7e;
+    line-height: 1.55;
+  }
+
+  /* ── Link options card ── */
+  .link-options-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+  .option-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6a7a76;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+  .divider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: #e8e3da;
+  }
+  .divider-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #a8a8be;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .option-outline-btn {
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 12px;
+    border: 2px solid #2c7a6e;
+    background: transparent;
+    color: #2c7a6e;
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .option-outline-btn:hover { background: #e6f5f2; }
+
+  /* ── Privacy reassurance card ── */
+  .privacy-reassurance-card {
+    background: #e6f5f2;
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .privacy-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a6b5a;
+    margin-bottom: 10px;
+  }
+  .privacy-card-title .lock-icon { font-size: 18px; }
+  .privacy-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .privacy-bullets li {
+    font-size: 12px;
+    color: #1a5a4a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .privacy-bullets li::before {
+    content: '✓';
+    color: #2c7a6e;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ── How it works collapsible ── */
+  .how-collapsible {
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  }
+  .how-toggle {
+    width: 100%;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #2c7a6e;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .how-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid #f0ece6;
+  }
+  .how-body.open { display: block; }
+  .how-step-row {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f0e8;
+  }
+  .how-step-row:last-child { border-bottom: none; }
+  .how-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e6f5f2;
+    color: #2c7a6e;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .how-step-content h4 { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  .how-step-content p { font-size: 12px; color: #6a6a7e; margin-top: 2px; }
+
+  /* ── Family management ── */
+  .family-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .family-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+  .count-chip {
+    background: #e6f5f2;
+    color: #2c7a6e;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  /* ── Child switcher strip ── */
+  .switcher-strip {
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .switcher-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a8a9e;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    white-space: nowrap;
+  }
+  .switcher-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .switcher-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 2px solid #d6cfc4;
+    background: #f5f0e8;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6a7a76;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .switcher-chip.active-chip {
+    background: #2c7a6e;
+    border-color: #2c7a6e;
+    color: #fff;
+  }
+  .chip-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Multi-child list cards ── */
+  .child-list-card {
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 3px 14px rgba(0,0,0,.07);
+    border: 2px solid transparent;
+    transition: border-color .2s;
+  }
+  .child-list-card.active-child { border-color: #2c7a6e; }
+  .clc-top {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .clc-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .clc-info { flex: 1; }
+  .clc-name { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .clc-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .world-chip {
+    background: #e6f5f2;
+    color: #2c7a6e;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+  .streak-chip {
+    background: #fff3e0;
+    color: #c07800;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+  .expand-arrow { font-size: 18px; color: #a8a8be; transition: transform .2s; }
+  .expand-arrow.open { transform: rotate(180deg); }
+  .clc-expand-body {
+    display: none;
+    border-top: 1px solid #f0ece6;
+    padding: 12px 16px;
+    background: #fafaf8;
+  }
+  .clc-expand-body.open { display: block; }
+  .wins-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a8a9e;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 7px;
+  }
+  .win-item {
+    font-size: 13px;
+    color: #2a4a44;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .win-item::before {
+    content: '⭐';
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .clc-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #f0ece6;
+  }
+  .clc-act-btn {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: background .15s;
+  }
+  .clc-act-view {
+    background: #e6f5f2;
+    color: #2c7a6e;
+    border: none;
+  }
+  .clc-act-view:hover { background: #c8e9e2; }
+  .clc-act-unlink {
+    background: #fff8ee;
+    color: #c07800;
+    border: 1.5px solid #f0c040;
+  }
+  .clc-act-unlink:hover { background: #feefd6; }
+
+  /* ── Add child dashed card ── */
+  .add-child-dashed {
+    border: 2.5px dashed rgba(44,122,110,.35);
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: background .15s;
+  }
+  .add-child-dashed:hover { background: rgba(44,122,110,.04); }
+  .add-plus-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(44,122,110,.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: #2c7a6e;
+    flex-shrink: 0;
+  }
+  .add-text { text-align: left; }
+  .add-text h4 { font-size: 14px; font-weight: 700; color: #2c7a6e; }
+  .add-text p { font-size: 12px; color: #8a8a9e; margin-top: 2px; }
+
+  /* ── Family privacy note ── */
+  .family-privacy-note {
+    text-align: center;
+    font-size: 12px;
+    color: #5a7a76;
+    font-weight: 600;
+    padding: 4px 0;
+  }
+
+  /* ── Spec tab ── */
+  .spec-block {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .spec-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3a2800;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-family: 'Courier New', monospace;
+  }
+  .spec-item {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #5a4000;
+    margin-bottom: 5px;
+    line-height: 1.5;
+    padding-left: 8px;
+    border-left: 2px solid #f0c040;
+  }
+  .spec-divider { height: 1px; background: rgba(240,192,64,.4); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- Top tab switcher -->
+<div class="top-tabs">
+  <button class="top-tab active" onclick="show(1)">1 · Wrong Child</button>
+  <button class="top-tab" onclick="show(2)">2 · Unlink &amp; Relink</button>
+  <button class="top-tab" onclick="show(3)">3 · No Child Linked</button>
+  <button class="top-tab" onclick="show(4)">4 · Family Management</button>
+  <button class="top-tab" onclick="show(5)">5 · Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — Wrong Child Linked (Error Recovery)
+     ══════════════════════════════════════════ -->
+<div class="panel active" id="panel-1">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">← Account</div>
+      <div class="nav-title">Let's Fix This</div>
+      <div class="nav-sub">We'll get everything sorted quickly</div>
+    </div>
+    <div class="scroll-body">
+
+      <!-- Amber warning hero — calm, not alarming -->
+      <div class="error-hero">
+        <div class="error-hero-icon">🔄</div>
+        <h2>Looks like there's a mix-up</h2>
+        <p>The child linked to your account might not be correct. Let's fix it.</p>
+      </div>
+
+      <!-- Currently linked child card -->
+      <div class="linked-child-card">
+        <div class="lcc-question">Is this your child?</div>
+        <div class="child-row">
+          <div class="child-avatar">🌊</div>
+          <div>
+            <div class="child-info-name">Alex</div>
+            <div class="child-world-chip">🌊 Ocean World Explorer</div>
+          </div>
+        </div>
+        <div class="cta-row">
+          <button class="btn-teal" onclick="confirmCorrect()">Yes, that's right ✓</button>
+          <button class="btn-outline" onclick="revealFixSteps()">No, this isn't right →</button>
+        </div>
+      </div>
+
+      <!-- Fix steps card — revealed on "No" tap -->
+      <div class="fix-steps-card" id="fix-steps">
+        <div class="fix-steps-title">Here's how we'll fix it:</div>
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-text">We'll unlink this profile safely</div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-text">Your child's progress stays safe</div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-text">Link the right child with their code</div>
+        </div>
+        <button class="btn-teal" style="margin-top:8px;width:100%" onclick="show(2)">Start Fix →</button>
+      </div>
+
+      <!-- Privacy note -->
+      <div class="privacy-note">🔒 Child data is always protected</div>
+
+    </div>
+    <div class="bottom-bar">
+      <div class="bb-tab"><div class="bb-icon">🏠</div><div>Home</div></div>
+      <div class="bb-tab"><div class="bb-icon">👧</div><div>Children</div></div>
+      <div class="bb-tab active"><div class="bb-icon">🔗</div><div>Linking</div></div>
+      <div class="bb-tab"><div class="bb-icon">📊</div><div>Progress</div></div>
+      <div class="bb-tab"><div class="bb-icon">⚙️</div><div>Settings</div></div>
+    </div>
+  </div>
+
+  <div class="eng-hint">
+    <strong>⚙ Tab 1 — Wrong Child Linked (Engineering Notes)</strong>
+    Trigger: mismatch detected via teacher/school confirmation OR parent manual report.<br>
+    State: <code>linkedChild.status === "mismatch"</code><br>
+    UI: amber warning card (never red — tone is calm). 🔄 icon, not ❌.<br>
+    "Yes, that's right" → dismisses alert, marks confirmed. "No" → expands fix steps inline.<br>
+    "Start Fix →" navigates to unlink flow (Tab 2). Progress preserved on child account throughout.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — Unlink / Relink Flow
+     ══════════════════════════════════════════ -->
+<div class="panel" id="panel-2">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">← Linking Recovery</div>
+      <div class="nav-title" id="flow-nav-title">Unlink Child</div>
+      <div class="nav-sub" id="flow-nav-sub">We're keeping everything safe</div>
+    </div>
+    <div class="scroll-body">
+
+      <!-- Step progress indicator -->
+      <div class="flow-header" id="flow-progress">
+        <div class="flow-label">Your progress</div>
+        <div class="progress-dots" id="flow-dots">
+          <div class="dot active" id="d1"></div>
+          <div class="dot" id="d2"></div>
+          <div class="dot" id="d3"></div>
+          <span class="dot-label" id="dot-label">Step 1 of 3 — Unlink</span>
+        </div>
+      </div>
+
+      <!-- STEP 1: Unlink confirm -->
+      <div class="unlink-confirm-card" id="step1-card">
+        <div class="unlink-title">Unlinking Alex from your account</div>
+        <div class="unlink-reassure">Alex's progress and badges are completely safe ✅</div>
+        <div class="child-row">
+          <div class="child-avatar">🌊</div>
+          <div>
+            <div class="child-info-name">Alex</div>
+            <div class="child-world-chip">🌊 Ocean World Explorer</div>
+          </div>
+        </div>
+        <div class="what-next-label">What happens next:</div>
+        <ul class="what-next-list">
+          <li>Alex will no longer appear in your parent view</li>
+          <li>All of Alex's stars and badges are saved</li>
+          <li>You can relink Alex any time using their code</li>
+        </ul>
+        <div class="privacy-note" style="margin-bottom:12px">🔒 Child data is always protected</div>
+        <button class="btn-teal" style="width:100%;margin-bottom:10px" onclick="advanceToStep2()">Confirm Unlink</button>
+        <div style="text-align:center">
+          <button class="btn-text" onclick="show(1)">← Go Back</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Relink — code entry -->
+      <div class="code-entry-card" id="step2-card">
+        <div class="code-entry-label">Now link your child</div>
+        <div style="margin-bottom:12px; font-size:13px; color:#5a5a7e; line-height:1.4">Enter your child's WonderQuest code to link their account to yours.</div>
+        <input class="code-input" type="text" maxlength="7" placeholder="WQ-A3F7" id="code-field" oninput="formatCode(this)">
+        <div class="code-hint">Get the code from your child's teacher or school</div>
+        <button class="btn-teal" style="width:100%;margin-top:14px" onclick="advanceToStep3()">Link Child →</button>
+        <div style="text-align:center;margin-top:10px">
+          <button class="btn-text" onclick="backToStep1()">← Back to previous step</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Confirmation -->
+      <div class="success-card" id="step3-card">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Emma is now linked!</div>
+        <div class="success-sub" style="margin-bottom:14px">Welcome, Emma! You can now see her progress, celebrate her wins, and support her learning journey.</div>
+        <div class="child-row" style="text-align:left; background:#e6f5f2; border-radius:14px; margin-bottom:14px">
+          <div class="child-avatar" style="background:#3a8f7f">🦋</div>
+          <div>
+            <div class="child-info-name">Emma</div>
+            <div class="child-world-chip">🦋 Butterfly Meadow</div>
+          </div>
+        </div>
+        <button class="btn-teal" style="width:100%" onclick="show(4)">View Emma's Progress →</button>
+      </div>
+
+      <div class="privacy-note">🔒 Child data is always protected</div>
+
+    </div>
+    <div class="bottom-bar">
+      <div class="bb-tab"><div class="bb-icon">🏠</div><div>Home</div></div>
+      <div class="bb-tab"><div class="bb-icon">👧</div><div>Children</div></div>
+      <div class="bb-tab active"><div class="bb-icon">🔗</div><div>Linking</div></div>
+      <div class="bb-tab"><div class="bb-icon">📊</div><div>Progress</div></div>
+      <div class="bb-tab"><div class="bb-icon">⚙️</div><div>Settings</div></div>
+    </div>
+  </div>
+
+  <div class="eng-hint">
+    <strong>⚙ Tab 2 — Unlink / Relink Flow (Engineering Notes)</strong>
+    Step 1: <code>DELETE /parent/unlink-child/:id</code> — confirm unlink, retain all child data.<br>
+    Step 2: <code>GET /parent/verify-code/:code</code> + <code>POST /parent/link-child</code> — validate 6-char code "WQ-XXXX".<br>
+    Step 3: success confirmation with new child card shown.<br>
+    Trust cues: lock icon + "data is safe" on every step. Tone: calm reassurance, zero blame.<br>
+    Back button always available. Code input: 6-char alphanumeric, auto-uppercase, "WQ-" prefix format.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — No Linked Child (Empty State)
+     ══════════════════════════════════════════ -->
+<div class="panel" id="panel-3">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">← Home</div>
+      <div class="nav-title">Link a Child</div>
+      <div class="nav-sub">Connect your child's account to get started</div>
+    </div>
+    <div class="scroll-body">
+
+      <!-- Empty state hero -->
+      <div class="empty-hero">
+        <div class="empty-wave">👋</div>
+        <div class="empty-title">Welcome to WonderQuest! 👋</div>
+        <div class="empty-sub">Link your child's account to see their progress and celebrate their wins.</div>
+      </div>
+
+      <!-- Link options card -->
+      <div class="link-options-card">
+        <div class="option-label">I have a code</div>
+        <input class="code-input" type="text" maxlength="7" placeholder="WQ-A3F7" oninput="formatCode(this)" style="margin-bottom:10px">
+        <div class="code-hint" style="margin-bottom:12px">Your child's unique code — find it in their WonderQuest app or ask their teacher</div>
+        <button class="btn-teal" style="width:100%">Link Child →</button>
+
+        <div class="divider-row">
+          <div class="divider-line"></div>
+          <div class="divider-text">or</div>
+          <div class="divider-line"></div>
+        </div>
+
+        <div class="option-label">My child's school uses WonderQuest</div>
+        <button class="option-outline-btn" style="margin-bottom:12px">Find My School →</button>
+
+        <div style="text-align:center">
+          <button class="btn-text">Need help? Contact Support →</button>
+        </div>
+      </div>
+
+      <!-- Privacy reassurance card -->
+      <div class="privacy-reassurance-card">
+        <div class="privacy-card-title">
+          <span class="lock-icon">🔒</span>
+          Your privacy matters
+        </div>
+        <ul class="privacy-bullets">
+          <li>We never share your data with third parties</li>
+          <li>Child progress is private to your family only</li>
+          <li>You control everything you see and share</li>
+        </ul>
+      </div>
+
+      <!-- How it works collapsible -->
+      <div class="how-collapsible">
+        <button class="how-toggle" onclick="toggleHow()">
+          <span>How does linking work?</span>
+          <span id="how-arrow">▼</span>
+        </button>
+        <div class="how-body" id="how-body">
+          <div class="how-step-row">
+            <div class="how-step-num">1</div>
+            <div class="how-step-content">
+              <h4>Get your child's code</h4>
+              <p>Ask their teacher or find it in your child's WonderQuest profile.</p>
+            </div>
+          </div>
+          <div class="how-step-row">
+            <div class="how-step-num">2</div>
+            <div class="how-step-content">
+              <h4>Enter the code above</h4>
+              <p>Type in the 6-character code to connect the accounts.</p>
+            </div>
+          </div>
+          <div class="how-step-row">
+            <div class="how-step-num">3</div>
+            <div class="how-step-content">
+              <h4>See their progress instantly</h4>
+              <p>You'll see their stars, streaks, and recent wins right away.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="bottom-bar">
+      <div class="bb-tab"><div class="bb-icon">🏠</div><div>Home</div></div>
+      <div class="bb-tab active"><div class="bb-icon">👧</div><div>Children</div></div>
+      <div class="bb-tab"><div class="bb-icon">🔗</div><div>Linking</div></div>
+      <div class="bb-tab"><div class="bb-icon">📊</div><div>Progress</div></div>
+      <div class="bb-tab"><div class="bb-icon">⚙️</div><div>Settings</div></div>
+    </div>
+  </div>
+
+  <div class="eng-hint">
+    <strong>⚙ Tab 3 — No Linked Child / Empty State (Engineering Notes)</strong>
+    Shown when: <code>GET /parent/linked-children</code> returns empty array.<br>
+    Option A: code entry → <code>GET /parent/verify-code/:code</code> validates format → <code>POST /parent/link-child</code>.<br>
+    Option B: school lookup flow (separate screen). Option C: support deeplink.<br>
+    Privacy card always visible — never behind a toggle. Floating wave animation on hero emoji.<br>
+    "How does linking work?" collapsible — closed by default to reduce cognitive load.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4 — Multiple-Child Family Management
+     ══════════════════════════════════════════ -->
+<div class="panel" id="panel-4">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">← Home</div>
+      <div class="nav-title">Your Family 👨‍👩‍👧‍👦</div>
+      <div class="nav-sub">Manage all your children in one place</div>
+    </div>
+    <div class="scroll-body">
+
+      <!-- Family header + count -->
+      <div style="display:flex; align-items:center; justify-content:space-between">
+        <div style="font-size:14px; font-weight:700; color:#5a6a66">Linked children</div>
+        <div class="count-chip">2 children</div>
+      </div>
+
+      <!-- Child switcher strip -->
+      <div class="switcher-strip">
+        <div class="switcher-label">Active</div>
+        <div class="switcher-chips">
+          <button class="switcher-chip active-chip" onclick="switchChild('alex', this)">
+            <div class="chip-dot" style="background:rgba(255,255,255,.3)">🌊</div>
+            Alex
+          </button>
+          <button class="switcher-chip" onclick="switchChild('emma', this)">
+            <div class="chip-dot" style="background:rgba(44,122,110,.15)">🦋</div>
+            Emma
+          </button>
+        </div>
+      </div>
+
+      <!-- Child card: Alex -->
+      <div class="child-list-card active-child" id="clc-alex">
+        <div class="clc-top" onclick="toggleChildCard('alex-body', 'alex-arrow')">
+          <div class="clc-avatar" style="background:#2c7a6e">🌊</div>
+          <div class="clc-info">
+            <div class="clc-name">Alex</div>
+            <div class="clc-chips">
+              <span class="world-chip">🌊 Ocean World</span>
+              <span class="streak-chip">🔥 12</span>
+            </div>
+          </div>
+          <span class="expand-arrow open" id="alex-arrow">▲</span>
+        </div>
+        <div class="clc-expand-body open" id="alex-body">
+          <div class="wins-label">Recent wins</div>
+          <div class="win-item">Earned the Deep Dive badge after 5 ocean quests</div>
+          <div class="win-item">Completed 3 bonus challenges this week</div>
+          <div class="clc-actions">
+            <button class="clc-act-btn clc-act-view">View Progress →</button>
+            <button class="clc-act-btn clc-act-unlink" onclick="show(2)">Unlink</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Child card: Emma -->
+      <div class="child-list-card" id="clc-emma">
+        <div class="clc-top" onclick="toggleChildCard('emma-body', 'emma-arrow')">
+          <div class="clc-avatar" style="background:#3a8f7f">🦋</div>
+          <div class="clc-info">
+            <div class="clc-name">Emma</div>
+            <div class="clc-chips">
+              <span class="world-chip">🦋 Butterfly Meadow</span>
+              <span class="streak-chip">🔥 7</span>
+            </div>
+          </div>
+          <span class="expand-arrow" id="emma-arrow">▼</span>
+        </div>
+        <div class="clc-expand-body" id="emma-body">
+          <div class="wins-label">Recent wins</div>
+          <div class="win-item">Finished the Spring Garden story collection</div>
+          <div class="win-item">New personal best: 8 questions in one session</div>
+          <div class="clc-actions">
+            <button class="clc-act-btn clc-act-view">View Progress →</button>
+            <button class="clc-act-btn clc-act-unlink" onclick="show(2)">Unlink</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add another child -->
+      <div class="add-child-dashed" onclick="show(3)">
+        <div class="add-plus-circle">+</div>
+        <div class="add-text">
+          <h4>Add Another Child</h4>
+          <p>Link up to 5 children to your account</p>
+        </div>
+      </div>
+
+      <!-- Family privacy note -->
+      <div class="family-privacy-note">Each child's progress is separate and private 🔒</div>
+
+    </div>
+    <div class="bottom-bar">
+      <div class="bb-tab"><div class="bb-icon">🏠</div><div>Home</div></div>
+      <div class="bb-tab active"><div class="bb-icon">👧</div><div>Children</div></div>
+      <div class="bb-tab"><div class="bb-icon">🔗</div><div>Linking</div></div>
+      <div class="bb-tab"><div class="bb-icon">📊</div><div>Progress</div></div>
+      <div class="bb-tab"><div class="bb-icon">⚙️</div><div>Settings</div></div>
+    </div>
+  </div>
+
+  <div class="eng-hint">
+    <strong>⚙ Tab 4 — Multiple-Child Family Management (Engineering Notes)</strong>
+    Data: <code>GET /parent/linked-children</code> → array of child objects (max 5).<br>
+    Switcher strip: active child drives visible progress context (separate state per child).<br>
+    Child card expand: inline recent wins from <code>child.recentActivity[]</code> (2 items).<br>
+    Unlink action per card → navigates to Tab 2 unlink flow with that child pre-filled.<br>
+    Add Another Child → navigates to Tab 3 link flow. Max 5 children: show "limit reached" state at 5.<br>
+    Privacy: each child's data scoped separately — switching child does not expose sibling data cross-view.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5 — Spec
+     ══════════════════════════════════════════ -->
+<div class="panel" id="panel-5">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">← Dev Reference</div>
+      <div class="nav-title">Spec &amp; Design Tokens</div>
+      <div class="nav-sub">Parent Linking Recovery v2</div>
+    </div>
+    <div class="scroll-body">
+
+      <div class="spec-block">
+
+        <div class="spec-section-title">API Routes</div>
+        <div class="spec-item">GET /parent/linked-children</div>
+        <div class="spec-item">POST /parent/link-child</div>
+        <div class="spec-item">DELETE /parent/unlink-child/:id</div>
+        <div class="spec-item">GET /parent/verify-code/:code</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Child Code Format</div>
+        <div class="spec-item">6-character alphanumeric (e.g. "WQ-A3F7")</div>
+        <div class="spec-item">Auto-uppercase on input; "WQ-" prefix display only</div>
+        <div class="spec-item">Verified server-side before linking proceeds</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Privacy Rules</div>
+        <div class="spec-item">Child profile (name, progress) visible only to linked parent</div>
+        <div class="spec-item">Unlink: removes parent access, preserves all child data</div>
+        <div class="spec-item">Each child's data is scoped independently per parent</div>
+        <div class="spec-item">No cross-sibling data leakage in multi-child view</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Wrong-Link Detection</div>
+        <div class="spec-item">Triggered by: teacher/school confirmation mismatch</div>
+        <div class="spec-item">Triggered by: parent manual report via "No, this isn't right"</div>
+        <div class="spec-item">Alert state: linkedChild.status === "mismatch"</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Unlink Flow</div>
+        <div class="spec-item">Step 1: Confirm → DELETE /parent/unlink-child/:id</div>
+        <div class="spec-item">Step 2: Data retained for child account (nothing lost)</div>
+        <div class="spec-item">Step 3: Parent access removed → relink option shown</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Multi-Child</div>
+        <div class="spec-item">Max 5 children per parent account</div>
+        <div class="spec-item">Each child: independent progress view</div>
+        <div class="spec-item">Switcher chip at top when 2+ children linked</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Trust &amp; Privacy Cues</div>
+        <div class="spec-item">Lock icon + "data is safe" on every unlink/relink step</div>
+        <div class="spec-item">Privacy card always visible on empty state (Tab 3)</div>
+        <div class="spec-item">Warning tone: amber only — never red for parent-facing errors</div>
+
+        <div class="spec-divider"></div>
+
+        <div class="spec-section-title">Design Tokens</div>
+        <div class="spec-item">Background: #f5f0e8 (warm parchment)</div>
+        <div class="spec-item">Nav / Primary: #2c7a6e (teal)</div>
+        <div class="spec-item">Warning: amber #f0c040 (never red)</div>
+        <div class="spec-item">Font: Sora (Google Fonts), weights 400/600/700</div>
+        <div class="spec-item">Phone frame: 375px wide, border-radius 40px</div>
+        <div class="spec-item">Canvas: white (#fff) — phone centered on page</div>
+
+      </div>
+
+    </div>
+    <div class="bottom-bar">
+      <div class="bb-tab"><div class="bb-icon">🏠</div><div>Home</div></div>
+      <div class="bb-tab"><div class="bb-icon">👧</div><div>Children</div></div>
+      <div class="bb-tab"><div class="bb-icon">🔗</div><div>Linking</div></div>
+      <div class="bb-tab"><div class="bb-icon">📊</div><div>Progress</div></div>
+      <div class="bb-tab active"><div class="bb-icon">📋</div><div>Spec</div></div>
+    </div>
+  </div>
+
+  <div class="eng-hint">
+    <strong>⚙ Tab 5 — Spec Summary</strong>
+    This tab consolidates all API routes, data contracts, privacy rules, and design tokens for the parent linking recovery flows. Share with backend and QA teams. Amber-only error palette is a product decision — never use red for parent-facing error states. Child data must always be preserved on unlink; only parent access is removed.
+  </div>
+</div>
+
+<script>
+  // ── Tab switcher ──────────────────────────────────────────────
+  function show(n) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + n).classList.add('active');
+    document.querySelectorAll('.top-tab')[n - 1].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Tab 1 interactions ────────────────────────────────────────
+  function revealFixSteps() {
+    const card = document.getElementById('fix-steps');
+    card.classList.add('visible');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function confirmCorrect() {
+    alert('Great! Your account is confirmed correct. Returning to your home view.');
+  }
+
+  // ── Tab 2 — unlink/relink flow ────────────────────────────────
+  let currentFlowStep = 1;
+
+  function advanceToStep2() {
+    currentFlowStep = 2;
+    document.getElementById('step1-card').style.display = 'none';
+    document.getElementById('step2-card').classList.add('visible');
+    updateFlowProgress(2);
+    document.getElementById('flow-nav-title').textContent = 'Link Your Child';
+    document.getElementById('flow-nav-sub').textContent = 'Enter the code from their teacher or school';
+  }
+
+  function advanceToStep3() {
+    const code = document.getElementById('code-field').value.trim();
+    if (code.length < 4) {
+      document.getElementById('code-field').style.borderColor = '#f0c040';
+      document.getElementById('code-field').placeholder = 'Please enter a code first';
+      return;
+    }
+    currentFlowStep = 3;
+    document.getElementById('step2-card').style.display = 'none';
+    document.getElementById('step3-card').classList.add('visible');
+    updateFlowProgress(3);
+    document.getElementById('flow-nav-title').textContent = 'All Done! ✅';
+    document.getElementById('flow-nav-sub').textContent = 'Emma is now linked to your account';
+  }
+
+  function backToStep1() {
+    currentFlowStep = 1;
+    document.getElementById('step2-card').style.display = '';
+    document.getElementById('step2-card').classList.remove('visible');
+    document.getElementById('step1-card').style.display = '';
+    updateFlowProgress(1);
+    document.getElementById('flow-nav-title').textContent = 'Unlink Child';
+    document.getElementById('flow-nav-sub').textContent = "We're keeping everything safe";
+  }
+
+  function updateFlowProgress(step) {
+    const labels = [
+      'Step 1 of 3 — Unlink',
+      'Step 2 of 3 — Link New Child',
+      'Step 3 of 3 — Done!'
+    ];
+    document.getElementById('dot-label').textContent = labels[step - 1];
+    const d1 = document.getElementById('d1');
+    const d2 = document.getElementById('d2');
+    const d3 = document.getElementById('d3');
+    d1.className = 'dot ' + (step >= 1 ? (step > 1 ? 'done' : 'active') : '');
+    d2.className = 'dot ' + (step >= 2 ? (step > 2 ? 'done' : 'active') : '');
+    d3.className = 'dot ' + (step >= 3 ? 'active' : '');
+  }
+
+  // ── Tab 2 — code input formatter ─────────────────────────────
+  function formatCode(input) {
+    let val = input.value.toUpperCase().replace(/[^A-Z0-9\-]/g, '');
+    // Auto-insert "WQ-" prefix if user types without it
+    if (val.length >= 2 && !val.startsWith('WQ')) {
+      val = 'WQ-' + val.replace(/^WQ-?/, '');
+    }
+    if (val.startsWith('WQ') && val.length === 2) {
+      val = 'WQ-';
+    }
+    input.value = val;
+    input.style.borderColor = '#d6cfc4';
+  }
+
+  // ── Tab 3 — how it works toggle ───────────────────────────────
+  function toggleHow() {
+    const body = document.getElementById('how-body');
+    const arrow = document.getElementById('how-arrow');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    arrow.textContent = isOpen ? '▼' : '▲';
+  }
+
+  // ── Tab 4 — child card expand/collapse ───────────────────────
+  function toggleChildCard(bodyId, arrowId) {
+    const body = document.getElementById(bodyId);
+    const arrow = document.getElementById(arrowId);
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    arrow.classList.toggle('open', !isOpen);
+    arrow.textContent = isOpen ? '▼' : '▲';
+  }
+
+  // ── Tab 4 — child switcher ───────────────────────────────────
+  function switchChild(childKey, chipEl) {
+    document.querySelectorAll('.switcher-chip').forEach(c => c.classList.remove('active-chip'));
+    chipEl.classList.add('active-chip');
+
+    document.querySelectorAll('.child-list-card').forEach(c => c.classList.remove('active-child'));
+    const target = document.getElementById('clc-' + childKey);
+    if (target) {
+      target.classList.add('active-child');
+      // Auto-expand the active child's card
+      const body = target.querySelector('.clc-expand-body');
+      const arrow = target.querySelector('.expand-arrow');
+      if (body && !body.classList.contains('open')) {
+        body.classList.add('open');
+        if (arrow) { arrow.classList.add('open'); arrow.textContent = '▲'; }
+      }
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-reward-pulse-overlay-v2 · WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a2e;font-family:'Nunito',sans-serif;display:flex;flex-direction:column;align-items:center;padding:24px 16px;min-height:100vh}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;max-width:440px;width:100%;margin-bottom:16px;font-size:12px;color:#ffd166;line-height:1.5}
+.hint-box strong{display:block;margin-bottom:4px;font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;max-width:440px;width:100%;margin-bottom:16px}
+.tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #333;background:#1a1a2e;color:#888;font-family:'Nunito',sans-serif;transition:all .2s}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.screen{display:none;max-width:375px;width:100%}
+.screen.active{display:block}
+.phone{background:#100b2e;border-radius:32px;border:3px solid #2a1f5a;overflow:hidden;min-height:720px;position:relative}
+/* Dimmed bg simulating the question behind */
+.bg-dim{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,6,30,0.7);z-index:0}
+/* Overlay cards */
+.overlay-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:calc(100% - 40px);background:#16103a;border-radius:24px;padding:28px 20px;text-align:center;animation:pop-in .4s cubic-bezier(.17,.89,.32,1.28) both}
+@keyframes pop-in{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+/* Badge earned */
+.badge-circle{width:100px;height:100px;border-radius:50%;border:4px solid #ffd166;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:52px;background:#0e0929;animation:glow-badge 1.5s ease-in-out infinite}
+@keyframes glow-badge{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.4)}50%{box-shadow:0 0 0 20px rgba(255,209,102,0)}}
+.oc-title{font-size:24px;font-weight:900;color:#fff;margin-bottom:6px}
+.oc-sub{font-size:14px;color:#b8a0e0;margin-bottom:20px;line-height:1.4}
+.xp-chips{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.xp-chip{background:#1e1650;border-radius:12px;padding:6px 14px;font-size:13px;font-weight:900;color:#ffd166}
+.oc-cta{display:block;background:linear-gradient(135deg,#ffd166,#ffb830);border-radius:16px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:17px;border:none;cursor:pointer;width:100%}
+/* Streak saved */
+.streak-saved-card{background:linear-gradient(135deg,#0e2a1e,#0d3a28);border-radius:24px;padding:28px 20px;text-align:center;animation:pop-in .4s cubic-bezier(.17,.89,.32,1.28) both}
+.streak-flame{font-size:64px;display:block;animation:flame-bounce .6s ease-in-out infinite alternate;margin-bottom:10px}
+@keyframes flame-bounce{0%{transform:scale(1) rotate(-3deg)}100%{transform:scale(1.08) rotate(3deg)}}
+/* Level up */
+.level-up-card{background:linear-gradient(135deg,#1e0e60,#3a1a80);border-radius:24px;padding:28px 20px;text-align:center;animation:pop-in .4s cubic-bezier(.17,.89,.32,1.28) both;border:3px solid #9b72ff}
+.level-badge{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#9b72ff,#ffd166);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:42px;animation:spin-bounce .8s ease-out}
+@keyframes spin-bounce{0%{transform:rotate(-20deg) scale(.6)}60%{transform:rotate(5deg) scale(1.1)}100%{transform:rotate(0deg) scale(1)}}
+/* World node unlocked */
+.node-unlock-card{background:linear-gradient(135deg,#0e1a30,#0d2a40);border-radius:24px;padding:28px 20px;text-align:center;animation:pop-in .4s cubic-bezier(.17,.89,.32,1.28) both;border:3px solid #58e8c1}
+.node-world-label{font-size:11px;color:#58e8c1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.node-path{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
+.node-dot{width:24px;height:24px;border-radius:50%;background:#2a3a5a;display:flex;align-items:center;justify-content:center;font-size:12px}
+.node-dot.done{background:#58e8c1}
+.node-dot.new{background:#ffd166;animation:glow-node .8s ease-in-out infinite}
+.node-connector{width:20px;height:3px;background:#2a3a5a;border-radius:2px}
+.node-connector.done{background:#58e8c1}
+@keyframes glow-node{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.6)}50%{box-shadow:0 0 0 8px rgba(255,209,102,0)}}
+/* Session complete */
+.session-complete-card{background:linear-gradient(135deg,#0e0929,#1a1060);border-radius:24px;padding:28px 20px;text-align:center;animation:pop-in .4s cubic-bezier(.17,.89,.32,1.28) both}
+.star-row{display:flex;justify-content:center;gap:6px;margin:12px 0}
+.big-star{font-size:32px;animation:star-pop .3s ease-out both}
+.big-star:nth-child(1){animation-delay:.1s}
+.big-star:nth-child(2){animation-delay:.2s}
+.big-star:nth-child(3){animation-delay:.3s}
+.big-star:nth-child(4){animation-delay:.4s}
+.big-star:nth-child(5){animation-delay:.5s}
+@keyframes star-pop{0%{transform:scale(0) rotate(-30deg)}70%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+.session-stats{display:flex;gap:10px;justify-content:center;margin-bottom:18px}
+.ss-chip{background:#1e1650;border-radius:12px;padding:8px 14px;text-align:center}
+.ss-val{font-size:18px;font-weight:900;color:#ffd166}
+.ss-label{font-size:10px;color:#b8a0e0}
+</style>
+</head>
+<body>
+<div class="hint-box">
+  <strong>Engineering Hint -- play-reward-pulse-overlay-v2</strong>
+  All reward overlays are transient -- dismiss on CTA tap or auto-dismiss after 3-4s. No overlay blocks play permanently.
+  Badge earned: triggered by POST /child/badge/award. Level up: POST /child/level/update. Node unlock: POST /child/node/complete.
+  Session complete: triggered at end of POST /play/session/end. All overlays: z-index above question, backdrop blur, pop-in animation.
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="show('badge-earned')">Badge Earned</button>
+  <button class="tab" onclick="show('streak-saved')">Streak Saved</button>
+  <button class="tab" onclick="show('level-up')">Level Up</button>
+  <button class="tab" onclick="show('node-unlock')">Node Unlocked</button>
+  <button class="tab" onclick="show('session-complete')">Session Complete</button>
+</div>
+
+<!-- BADGE EARNED -->
+<div id="badge-earned" class="screen active">
+  <div class="phone">
+    <div class="bg-dim"></div>
+    <div class="overlay-card">
+      <div class="badge-circle">&#127942;</div>
+      <div class="oc-title">New Badge!</div>
+      <div class="oc-sub">Ocean Explorer earned! You completed all of Ocean World!</div>
+      <div class="xp-chips">
+        <div class="xp-chip">+200 XP</div>
+        <div class="xp-chip">&#11088; +5 Stars</div>
+      </div>
+      <button class="oc-cta">Awesome!</button>
+    </div>
+  </div>
+</div>
+
+<!-- STREAK SAVED -->
+<div id="streak-saved" class="screen">
+  <div class="phone">
+    <div class="bg-dim"></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:calc(100% - 40px)">
+      <div class="streak-saved-card">
+        <span class="streak-flame">&#128293;</span>
+        <div class="oc-title" style="color:#58e8c1">Streak Saved!</div>
+        <div class="oc-sub" style="color:#88c8a8">You came back! Your 9-day streak is safe.</div>
+        <div class="xp-chips">
+          <div class="xp-chip" style="background:#1a3a28;color:#58e8c1">9 Days &#128293;</div>
+          <div class="xp-chip" style="background:#1a3a28;color:#58e8c1">Keep it going!</div>
+        </div>
+        <button class="oc-cta" style="background:linear-gradient(135deg,#58e8c1,#38c8a1);color:#0a2010">Let's Go!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEVEL UP -->
+<div id="level-up" class="screen">
+  <div class="phone">
+    <div class="bg-dim"></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:calc(100% - 40px)">
+      <div class="level-up-card">
+        <div class="level-badge">&#11088;</div>
+        <div class="oc-title">Level Up!</div>
+        <div style="font-size:13px;color:#c8a0ff;margin-bottom:8px">Luna reached Level 6!</div>
+        <div class="oc-sub">New worlds and harder challenges are unlocked!</div>
+        <div class="xp-chips">
+          <div class="xp-chip" style="background:#2a1a60;color:#9b72ff">Lv 5 &#8594; Lv 6</div>
+          <div class="xp-chip" style="background:#2a1a60;color:#ffd166">+3 New Worlds!</div>
+        </div>
+        <button class="oc-cta" style="background:linear-gradient(135deg,#9b72ff,#7a52e0);color:#fff">Explore!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NODE UNLOCKED -->
+<div id="node-unlock" class="screen">
+  <div class="phone">
+    <div class="bg-dim"></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:calc(100% - 40px)">
+      <div class="node-unlock-card">
+        <div class="node-world-label">&#127760; Ocean World</div>
+        <div class="oc-title">Node Unlocked!</div>
+        <div style="font-size:13px;color:#88c8c8;margin-bottom:14px">Counting to 10 complete! Next stop: Numbers to 20!</div>
+        <div class="node-path">
+          <div class="node-dot done">&#10003;</div>
+          <div class="node-connector done"></div>
+          <div class="node-dot done">&#10003;</div>
+          <div class="node-connector done"></div>
+          <div class="node-dot done">&#10003;</div>
+          <div class="node-connector"></div>
+          <div class="node-dot new">&#11088;</div>
+          <div class="node-connector"></div>
+          <div class="node-dot">4</div>
+        </div>
+        <div class="xp-chips">
+          <div class="xp-chip" style="background:#0e2a28;color:#58e8c1">+150 XP</div>
+          <div class="xp-chip" style="background:#0e2a28;color:#ffd166">Node 4 open!</div>
+        </div>
+        <button class="oc-cta" style="background:linear-gradient(135deg,#58e8c1,#38c8a1);color:#0a2010">Go to Node 4!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SESSION COMPLETE -->
+<div id="session-complete" class="screen">
+  <div class="phone">
+    <div class="bg-dim"></div>
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:calc(100% - 40px)">
+      <div class="session-complete-card">
+        <div style="font-size:13px;color:#9b72ff;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Session Complete!</div>
+        <div class="oc-title" style="margin-bottom:4px">Amazing work, Luna!</div>
+        <div class="star-row">
+          <span class="big-star">&#11088;</span><span class="big-star">&#11088;</span><span class="big-star">&#11088;</span><span class="big-star">&#11088;</span><span class="big-star">&#11088;</span>
+        </div>
+        <div class="session-stats">
+          <div class="ss-chip"><div class="ss-val">5</div><div class="ss-label">Stars</div></div>
+          <div class="ss-chip"><div class="ss-val">+180</div><div class="ss-label">XP</div></div>
+          <div class="ss-chip"><div class="ss-val">8</div><div class="ss-label">Day Streak</div></div>
+        </div>
+        <button class="oc-cta" style="margin-bottom:10px">Play Again!</button>
+        <button style="display:block;background:transparent;border:none;color:#9b72ff;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;width:100%;text-align:center;padding:8px">See Badges</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

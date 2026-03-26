@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Replay Board — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #e8edf3; min-height: 100vh; }
+  .tab-bar { display: flex; background: #161e28; border-bottom: 1px solid #1e2d3d; }
+  .tab-btn { flex: 1; padding: 14px 10px; background: none; border: none; color: #6a8aa0; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+  .page-title { font-size: 22px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #6a8aa0; margin-bottom: 24px; }
+
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; }
+  .hint-label { font-size: 11px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .hint-box p { font-size: 13px; color: #e8c84a; line-height: 1.5; }
+
+  /* Session Board */
+  .session-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .session-card { background: #161e28; border: 1.5px solid #1e2d3d; border-radius: 14px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+  .session-card:hover, .session-card.active { border-color: #58c8f0; background: rgba(88,200,240,0.04); }
+  .session-id { font-size: 11px; font-weight: 700; color: #58c8f0; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .session-participant { font-size: 14px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .session-meta { font-size: 11px; color: #6a8aa0; margin-bottom: 14px; }
+  .session-stats { display: flex; gap: 12px; margin-bottom: 14px; }
+  .stat-mini { text-align: center; }
+  .stat-mini-val { font-size: 18px; font-weight: 700; color: #e8edf3; }
+  .stat-mini-label { font-size: 9px; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .flag-count { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,94,94,0.1); border: 1px solid rgba(255,94,94,0.3); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #ff5e5e; }
+  .highlight-count { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.3); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #ffd166; margin-left: 8px; }
+  .view-btn { width: 100%; background: none; border: 1.5px solid #1e2d3d; border-radius: 8px; padding: 10px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; color: #6a8aa0; cursor: pointer; margin-top: 12px; transition: all 0.2s; }
+  .view-btn:hover { border-color: #58c8f0; color: #58c8f0; }
+
+  /* Session Detail */
+  .detail-header { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; padding: 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .dh-left { }
+  .dh-id { font-size: 12px; font-weight: 700; color: #58c8f0; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .dh-participant { font-size: 22px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .dh-meta { font-size: 13px; color: #6a8aa0; }
+  .dh-right { text-align: right; }
+  .dh-duration { font-size: 32px; font-weight: 700; color: #58c8f0; }
+  .dh-duration-label { font-size: 11px; color: #6a8aa0; margin-top: 4px; }
+
+  .detail-section { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; padding: 24px; margin-bottom: 16px; }
+  .ds-title { font-size: 13px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 16px; }
+
+  /* Flagged Moments */
+  .flagged-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid #1e2d3d; }
+  .flagged-item:last-child { border-bottom: none; }
+  .flag-ts { min-width: 64px; font-size: 13px; font-weight: 700; color: #ff5e5e; font-family: 'Courier New', monospace; }
+  .flag-text { font-size: 13px; color: #c8d8e8; line-height: 1.5; flex: 1; }
+  .flag-tag { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; margin-top: 6px; display: inline-block; }
+  .ft-friction { background: rgba(255,94,94,0.1); color: #ff5e5e; }
+  .ft-confusion { background: rgba(255,140,66,0.1); color: #ff8c42; }
+  .ft-ux { background: rgba(88,200,240,0.1); color: #58c8f0; }
+
+  /* Highlight Reel */
+  .highlight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .highlight-clip { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+  .highlight-clip:hover { border-color: #ffd166; }
+  .clip-thumb { height: 100px; background: linear-gradient(135deg, #1a2535 0%, #1e3045 100%); display: flex; align-items: center; justify-content: center; position: relative; }
+  .clip-play { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,209,102,0.15); border: 2px solid #ffd166; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .clip-duration { position: absolute; bottom: 8px; right: 10px; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.7); }
+  .clip-info { padding: 12px; }
+  .clip-title { font-size: 12px; font-weight: 600; color: #e8edf3; margin-bottom: 3px; }
+  .clip-sub { font-size: 11px; color: #6a8aa0; }
+
+  /* Spec */
+  .spec-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 14px; }
+  .spec-block h3 { font-size: 13px; font-weight: 600; color: #58c8f0; margin-bottom: 10px; }
+  .spec-block p, .spec-block li { font-size: 13px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('board')">Session Board</button>
+  <button class="tab-btn" onclick="show('detail')">Session Detail</button>
+  <button class="tab-btn" onclick="show('flagged')">Flagged Moments</button>
+  <button class="tab-btn" onclick="show('highlights')">Highlight Reel</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- SESSION BOARD -->
+<div id="board" class="tab-panel active">
+  <div class="container">
+    <div class="page-title">Research Replay Board</div>
+    <div class="page-sub">Session archive — Beta Week 12 · 6 sessions recorded</div>
+    <div class="hint-box">
+      <div class="hint-label">Replay Protocol</div>
+      <p>Sessions are archived for 90 days. Flag moments using the timestamp tool during replay. Highlight clips auto-generate from flagged moments with 10s pre/post buffer.</p>
+    </div>
+    <div class="session-grid">
+      <div class="session-card active" onclick="show('detail')">
+        <div class="session-id">WQ-S-2026-0234</div>
+        <div class="session-participant">P-07 · Child, Age 7</div>
+        <div class="session-meta">Mar 22, 2026 · 2:15 PM · iPad Pro</div>
+        <div class="session-stats">
+          <div class="stat-mini"><div class="stat-mini-val">34</div><div class="stat-mini-label">Min</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">5</div><div class="stat-mini-label">Scenarios</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">12</div><div class="stat-mini-label">Obs</div></div>
+        </div>
+        <div>
+          <span class="flag-count">🚩 4 Flagged</span>
+          <span class="highlight-count">⭐ 2 Highlights</span>
+        </div>
+        <button class="view-btn" onclick="event.stopPropagation(); show('detail')">View Session →</button>
+      </div>
+
+      <div class="session-card" onclick="show('detail')">
+        <div class="session-id">WQ-S-2026-0233</div>
+        <div class="session-participant">P-06 · Parent</div>
+        <div class="session-meta">Mar 21, 2026 · 10:30 AM · iPhone 15</div>
+        <div class="session-stats">
+          <div class="stat-mini"><div class="stat-mini-val">22</div><div class="stat-mini-label">Min</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">3</div><div class="stat-mini-label">Scenarios</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">8</div><div class="stat-mini-label">Obs</div></div>
+        </div>
+        <div>
+          <span class="flag-count">🚩 6 Flagged</span>
+          <span class="highlight-count">⭐ 1 Highlight</span>
+        </div>
+        <button class="view-btn" onclick="event.stopPropagation(); show('detail')">View Session →</button>
+      </div>
+
+      <div class="session-card" onclick="show('detail')">
+        <div class="session-id">WQ-S-2026-0232</div>
+        <div class="session-participant">P-05 · Child, Age 9</div>
+        <div class="session-meta">Mar 20, 2026 · 4:45 PM · Pixel 8</div>
+        <div class="session-stats">
+          <div class="stat-mini"><div class="stat-mini-val">28</div><div class="stat-mini-label">Min</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">4</div><div class="stat-mini-label">Scenarios</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">10</div><div class="stat-mini-label">Obs</div></div>
+        </div>
+        <div>
+          <span class="flag-count">🚩 2 Flagged</span>
+          <span class="highlight-count">⭐ 3 Highlights</span>
+        </div>
+        <button class="view-btn" onclick="event.stopPropagation(); show('detail')">View Session →</button>
+      </div>
+
+      <div class="session-card" onclick="show('detail')">
+        <div class="session-id">WQ-S-2026-0231</div>
+        <div class="session-participant">P-04 · Teacher</div>
+        <div class="session-meta">Mar 19, 2026 · 9:00 AM · MacBook</div>
+        <div class="session-stats">
+          <div class="stat-mini"><div class="stat-mini-val">45</div><div class="stat-mini-label">Min</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">4</div><div class="stat-mini-label">Scenarios</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">16</div><div class="stat-mini-label">Obs</div></div>
+        </div>
+        <div>
+          <span class="flag-count">🚩 5 Flagged</span>
+          <span class="highlight-count">⭐ 4 Highlights</span>
+        </div>
+        <button class="view-btn" onclick="event.stopPropagation(); show('detail')">View Session →</button>
+      </div>
+
+      <div class="session-card" onclick="show('detail')">
+        <div class="session-id">WQ-S-2026-0230</div>
+        <div class="session-participant">P-03 · Child, Age 5</div>
+        <div class="session-meta">Mar 18, 2026 · 3:20 PM · iPad Mini</div>
+        <div class="session-stats">
+          <div class="stat-mini"><div class="stat-mini-val">18</div><div class="stat-mini-label">Min</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">2</div><div class="stat-mini-label">Scenarios</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">6</div><div class="stat-mini-label">Obs</div></div>
+        </div>
+        <div>
+          <span class="flag-count">🚩 3 Flagged</span>
+          <span class="highlight-count">⭐ 1 Highlight</span>
+        </div>
+        <button class="view-btn" onclick="event.stopPropagation(); show('detail')">View Session →</button>
+      </div>
+
+      <div class="session-card" onclick="show('detail')">
+        <div class="session-id">WQ-S-2026-0229</div>
+        <div class="session-participant">P-02 · Parent</div>
+        <div class="session-meta">Mar 17, 2026 · 7:30 PM · Samsung S24</div>
+        <div class="session-stats">
+          <div class="stat-mini"><div class="stat-mini-val">26</div><div class="stat-mini-label">Min</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">3</div><div class="stat-mini-label">Scenarios</div></div>
+          <div class="stat-mini"><div class="stat-mini-val">9</div><div class="stat-mini-label">Obs</div></div>
+        </div>
+        <div>
+          <span class="flag-count">🚩 2 Flagged</span>
+          <span class="highlight-count">⭐ 2 Highlights</span>
+        </div>
+        <button class="view-btn" onclick="event.stopPropagation(); show('detail')">View Session →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SESSION DETAIL -->
+<div id="detail" class="tab-panel">
+  <div class="container">
+    <div class="detail-header">
+      <div class="dh-left">
+        <div class="dh-id">WQ-S-2026-0234</div>
+        <div class="dh-participant">P-07 · Child, Age 7</div>
+        <div class="dh-meta">Mar 22, 2026 · 2:15 PM · iPad Pro · Moderator: R. Kwan</div>
+      </div>
+      <div class="dh-right">
+        <div class="dh-duration">34:12</div>
+        <div class="dh-duration-label">Session Duration</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="ds-title">Session Summary</div>
+      <p style="font-size:13px;color:#c8d8e8;line-height:1.7">Child completed all 5 scenarios. Strong performance on play flow — answered questions confidently and with minimal hesitation. Badge unlock triggered genuine excitement. Navigation between screens generally smooth with one notable confusion at the world map. Streak saver was dismissed without reading — key observation for copy revision. Total correct: 18/22.</p>
+    </div>
+
+    <div class="detail-section">
+      <div class="ds-title">Scenario Completion</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">Scenario</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">Duration</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0;border-bottom:1px solid #1e2d3d">First Session</td>
+            <td style="font-size:13px;color:#6a8aa0;padding:10px 0;border-bottom:1px solid #1e2d3d">8:34</td>
+            <td style="padding:10px 0;border-bottom:1px solid #1e2d3d"><span style="background:rgba(108,201,108,0.1);color:#6cc96c;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">Completed</span></td>
+          </tr>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0;border-bottom:1px solid #1e2d3d">Badge Unlock</td>
+            <td style="font-size:13px;color:#6a8aa0;padding:10px 0;border-bottom:1px solid #1e2d3d">6:20</td>
+            <td style="padding:10px 0;border-bottom:1px solid #1e2d3d"><span style="background:rgba(108,201,108,0.1);color:#6cc96c;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">Completed</span></td>
+          </tr>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0;border-bottom:1px solid #1e2d3d">Streak Saver</td>
+            <td style="font-size:13px;color:#6a8aa0;padding:10px 0;border-bottom:1px solid #1e2d3d">4:12</td>
+            <td style="padding:10px 0;border-bottom:1px solid #1e2d3d"><span style="background:rgba(255,140,66,0.1);color:#ff8c42;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">Partial</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FLAGGED MOMENTS -->
+<div id="flagged" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Flagged Moments</div>
+    <div class="page-sub">Session WQ-S-2026-0234 · P-07 · 4 flagged moments</div>
+
+    <div class="detail-section">
+      <div class="flagged-item">
+        <div class="flag-ts">02:14</div>
+        <div>
+          <div class="flag-text">Child tapped the world map background repeatedly (5x in 8s) — expected it to be interactive. No response from the UI. Eventually found the Play button via trial and error.</div>
+          <span class="flag-tag ft-confusion">Confusion</span>
+          <span class="flag-tag ft-ux" style="margin-left:6px">Navigation</span>
+        </div>
+      </div>
+      <div class="flagged-item">
+        <div class="flag-ts">14:38</div>
+        <div>
+          <div class="flag-text">Badge unlock animation played — child reacted with "I got a star!" Immediately tried to replay the animation by tapping badge (4x). Animation does not replay. No affordance for trophy room visible at this point.</div>
+          <span class="flag-tag ft-friction">Friction</span>
+        </div>
+      </div>
+      <div class="flagged-item">
+        <div class="flag-ts">22:07</div>
+        <div>
+          <div class="flag-text">Streak saver overlay appeared. Child glanced at it, dismissed with a swipe, and continued. When asked afterward: "I don't know what that was." Copy not landing with this age group.</div>
+          <span class="flag-tag ft-confusion">Confusion</span>
+          <span class="flag-tag ft-friction" style="margin-left:6px">Friction</span>
+        </div>
+      </div>
+      <div class="flagged-item">
+        <div class="flag-ts">28:55</div>
+        <div>
+          <div class="flag-text">Voice guide played at significantly higher volume than question text audio. Child pulled device away from ear. Did not continue with voice guide for remainder of session.</div>
+          <span class="flag-tag ft-friction">Friction</span>
+          <span class="flag-tag ft-ux" style="margin-left:6px">Audio</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HIGHLIGHT REEL -->
+<div id="highlights" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Highlight Reel</div>
+    <div class="page-sub">Auto-generated from flagged delight moments across all sessions · 8 clips</div>
+    <div class="hint-box">
+      <div class="hint-label">About Highlights</div>
+      <p>Highlight clips are generated from delight-tagged observations with 10-second pre/post buffer. Use these for stakeholder demos and sprint review presentations.</p>
+    </div>
+    <div class="highlight-grid">
+      <div class="highlight-clip">
+        <div class="clip-thumb">
+          <div class="clip-play">▶</div>
+          <div class="clip-duration">0:22</div>
+        </div>
+        <div class="clip-info">
+          <div class="clip-title">P-07 · Badge "I got a star!"</div>
+          <div class="clip-sub">Mar 22 · 14:38 · Child reaction</div>
+        </div>
+      </div>
+      <div class="highlight-clip">
+        <div class="clip-thumb" style="background:linear-gradient(135deg, #1a2535 0%, #1e3a30 100%)">
+          <div class="clip-play">▶</div>
+          <div class="clip-duration">0:18</div>
+        </div>
+        <div class="clip-info">
+          <div class="clip-title">P-05 · Session complete "Yes!"</div>
+          <div class="clip-sub">Mar 20 · 13:54 · Verbal reaction</div>
+        </div>
+      </div>
+      <div class="highlight-clip">
+        <div class="clip-thumb" style="background:linear-gradient(135deg, #1a2535 0%, #2a1a35 100%)">
+          <div class="clip-play">▶</div>
+          <div class="clip-duration">0:31</div>
+        </div>
+        <div class="clip-info">
+          <div class="clip-title">P-07 · 2-tap nav to Badge Room</div>
+          <div class="clip-sub">Mar 22 · 14:31 · Wayfinding success</div>
+        </div>
+      </div>
+      <div class="highlight-clip">
+        <div class="clip-thumb" style="background:linear-gradient(135deg, #1a2535 0%, #1e3545 100%)">
+          <div class="clip-play">▶</div>
+          <div class="clip-duration">0:45</div>
+        </div>
+        <div class="clip-info">
+          <div class="clip-title">P-04 · Parent report scan</div>
+          <div class="clip-sub">Mar 19 · 13:28 · 20s to key insight</div>
+        </div>
+      </div>
+      <div class="highlight-clip">
+        <div class="clip-thumb" style="background:linear-gradient(135deg, #1a3025 0%, #1a2535 100%)">
+          <div class="clip-play">▶</div>
+          <div class="clip-duration">0:14</div>
+        </div>
+        <div class="clip-info">
+          <div class="clip-title">P-03 · PreK shape recognition</div>
+          <div class="clip-sub">Mar 18 · 09:12 · First success</div>
+        </div>
+      </div>
+      <div class="highlight-clip">
+        <div class="clip-thumb" style="background:linear-gradient(135deg, #251a1a 0%, #1a2535 100%)">
+          <div class="clip-play">▶</div>
+          <div class="clip-duration">0:28</div>
+        </div>
+        <div class="clip-info">
+          <div class="clip-title">P-06 · Parent streak pride</div>
+          <div class="clip-sub">Mar 21 · 11:05 · Positive mention</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="container">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>research-replay-board-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Session replay and notes board for research team. Shows session cards with participant metadata, duration, flagged moments, and highlight reel clips.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #10161e · Accent: #58c8f0</li>
+        <li>Viewport: Desktop 900px+ · Hint box: #2a1f00 / #ffd166</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Tabs</h3>
+      <ul>
+        <li>Session Board — grid of all recorded sessions with metadata</li>
+        <li>Session Detail — scenario completion table and session summary</li>
+        <li>Flagged Moments — timestamped critical observations</li>
+        <li>Highlight Reel — delight moment clips for stakeholder sharing</li>
+        <li>Spec — this document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['board','detail','flagged','highlights','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

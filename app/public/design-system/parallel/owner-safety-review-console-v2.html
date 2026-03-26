@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Safety Review Console · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --card:      #161b22;
+      --green:     #50e890;
+      --text:      #f0f6ff;
+      --border:    rgba(255,255,255,.06);
+      --p0:        #ffd166;
+      --p1:        #9b72ff;
+      --p2:        #58e8c1;
+      --p3:        #ff7b6b;
+      --owner:     #50e890;
+      --muted:     #8b949e;
+      --sky:       #58b4ff;
+      --amber:     #f0a020;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* ── layout wrapper ── */
+    .page-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* ── tab bar ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px 6px 0 0;
+      transition: color .15s, border-color .15s;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+
+    .tab-btn.active {
+      color: var(--owner);
+      border-bottom-color: var(--owner);
+      background: rgba(80,232,144,.06);
+    }
+
+    /* ── screens ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── console header ── */
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .console-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .console-header .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .owner-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.35);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--owner);
+      letter-spacing: .3px;
+    }
+
+    .last-reviewed {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-align: right;
+    }
+
+    /* ── section ── */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── stat row ── */
+    .stat-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 160px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tag-green  { background: rgba(80,232,144,.15); color: var(--green); }
+    .tag-amber  { background: rgba(240,160,32,.15);  color: var(--amber); }
+    .tag-sky    { background: rgba(88,180,255,.15);  color: var(--sky);   }
+    .tag-violet { background: rgba(155,114,255,.15); color: var(--p1);    }
+    .tag-coral  { background: rgba(255,123,107,.15); color: var(--p3);    }
+
+    /* ── table ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    .data-table thead tr {
+      background: rgba(255,255,255,.04);
+    }
+
+    .data-table th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .data-table td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .data-table tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    /* ── severity badges ── */
+    .sev {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .sev-p0      { background: rgba(255,70,70,.18);   color: #ff5f5f; border: 1px solid rgba(255,70,70,.35); }
+    .sev-p1      { background: rgba(155,114,255,.18); color: var(--p1); border: 1px solid rgba(155,114,255,.35); }
+    .sev-privacy { background: rgba(88,180,255,.18);  color: var(--sky); border: 1px solid rgba(88,180,255,.35); }
+    .sev-info    { background: rgba(240,246,255,.08); color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── action buttons ── */
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: opacity .15s;
+    }
+
+    .btn:hover { opacity: .8; }
+
+    .btn-review  { background: rgba(80,232,144,.15); color: var(--green); border-color: rgba(80,232,144,.35); }
+    .btn-block   { background: rgba(255,95,95,.15);  color: #ff5f5f;     border-color: rgba(255,95,95,.35);  }
+    .btn-delete  { background: rgba(255,95,95,.15);  color: #ff5f5f;     border-color: rgba(255,95,95,.35);  }
+    .btn-dismiss { background: rgba(255,255,255,.06); color: var(--muted); border-color: var(--border); }
+    .btn-view    { background: rgba(88,180,255,.15); color: var(--sky);   border-color: rgba(88,180,255,.35); }
+    .btn-primary { background: var(--green); color: #0d1117; font-weight: 700; border: none; padding: 8px 18px; border-radius: 8px; }
+    .btn-resolve { background: rgba(80,232,144,.12); color: var(--green); border: 1px solid rgba(80,232,144,.3); }
+
+    /* ── privacy section ── */
+    .privacy-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .priv-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .priv-stat .ps-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .priv-stat .ps-value { font-size: 15px; font-weight: 600; color: var(--text); }
+
+    .link-inline {
+      color: var(--sky);
+      text-decoration: none;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .link-inline:hover { text-decoration: underline; }
+
+    /* ── bar chart ── */
+    .bar-chart {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .bar-row:last-child { margin-bottom: 0; }
+
+    .bar-label { width: 160px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+    .bar-track { flex: 1; height: 10px; background: rgba(255,255,255,.06); border-radius: 5px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 5px; transition: width .4s ease; }
+    .bar-count { width: 28px; text-align: right; font-size: 13px; font-weight: 700; color: var(--text); }
+
+    .zero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.3);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      margin-top: 16px;
+    }
+
+    /* ── privacy alerts panel ── */
+    .alert-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+    .alert-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .alert-body { flex: 1; }
+    .alert-desc { font-size: 13px; color: var(--text); margin: 4px 0; }
+    .alert-meta { font-size: 11px; color: var(--muted); }
+
+    /* ── spec screen ── */
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+
+    .spec-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--owner);
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-card ul {
+      padding-left: 18px;
+    }
+
+    .spec-card li {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .spec-card li strong { color: var(--text); }
+
+    .spec-card p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    pre.sql-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #b8d0ff;
+      overflow-x: auto;
+      margin-top: 12px;
+      font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    }
+
+    /* ── deletion job table ── */
+    .del-table-wrap {
+      overflow-x: auto;
+    }
+
+    /* ── pill row ── */
+    .pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+
+    .pill {
+      padding: 3px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .pill-pii      { background: rgba(255,209,102,.15); color: var(--p0); border: 1px solid rgba(255,209,102,.3); }
+    .pill-name     { background: rgba(88,180,255,.15); color: var(--sky); border: 1px solid rgba(88,180,255,.3); }
+    .pill-retain   { background: rgba(255,123,107,.15); color: var(--p3); border: 1px solid rgba(255,123,107,.3); }
+    .pill-consent  { background: rgba(155,114,255,.15); color: var(--p1); border: 1px solid rgba(155,114,255,.3); }
+    .pill-anon     { background: rgba(88,232,193,.15); color: var(--p2); border: 1px solid rgba(88,232,193,.3); }
+
+    .status-pending  { color: var(--amber); font-weight: 600; }
+    .status-running  { color: var(--sky);   font-weight: 600; }
+    .status-complete { color: var(--green); font-weight: 600; }
+
+    code { background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #b8d0ff; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+
+    <!-- hint box -->
+    <div class="hint-box">
+      ITEM 234 · owner-safety-review-console-v2.html · WonderQuest parallel-agent build
+    </div>
+
+    <!-- tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab(0)">Safety Review Console</button>
+      <button class="tab-btn"        onclick="showTab(1)">Privacy Alerts</button>
+      <button class="tab-btn"        onclick="showTab(2)">Spec</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 1 — SAFETY REVIEW CONSOLE
+    ══════════════════════════════════════════════════ -->
+    <div class="screen active" id="tab-0">
+
+      <!-- header -->
+      <div class="console-header">
+        <div>
+          <h1>Safety Review Console</h1>
+          <div class="subtitle">Content, privacy, and child safety monitoring</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="owner-badge">🔒 Owner Access Only</span>
+          <div class="last-reviewed">Last reviewed: 2026-03-24 at 09:14 UTC</div>
+        </div>
+      </div>
+
+      <!-- section 1: stat row -->
+      <div class="section">
+        <div class="section-title">Active Safety Flags</div>
+        <div class="stat-row">
+
+          <div class="stat-card" style="border-top: 3px solid #ff5f5f;">
+            <div class="stat-label">🔴 P0 Safety Flags</div>
+            <div class="stat-value" style="color:#ff5f5f;">0</div>
+            <span class="stat-tag tag-green">All clear</span>
+          </div>
+
+          <div class="stat-card" style="border-top: 3px solid var(--p1);">
+            <div class="stat-label">🟡 P1 Content Flags</div>
+            <div class="stat-value" style="color:var(--p1);">2</div>
+            <span class="stat-tag tag-amber">Needs review</span>
+          </div>
+
+          <div class="stat-card" style="border-top: 3px solid var(--sky);">
+            <div class="stat-label">🔵 Privacy Alerts</div>
+            <div class="stat-value" style="color:var(--sky);">1</div>
+            <span class="stat-tag tag-sky">Active</span>
+          </div>
+
+          <div class="stat-card" style="border-top: 3px solid var(--amber);">
+            <div class="stat-label">🟢 WCAG Violations</div>
+            <div class="stat-value" style="color:var(--amber);">3</div>
+            <span class="stat-tag tag-amber">Needs fix</span>
+          </div>
+
+          <div class="stat-card" style="border-top: 3px solid var(--muted);">
+            <div class="stat-label">📋 Pending Reviews</div>
+            <div class="stat-value" style="color:var(--text);">5</div>
+            <span class="stat-tag tag-violet">In queue</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- section 2: content safety queue -->
+      <div class="section">
+        <div class="section-title">Content Safety Queue</div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Item</th>
+                <th>Flag Description</th>
+                <th>Reporter</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <tr>
+                <td><span class="sev sev-p1">⚠️ P1</span></td>
+                <td>
+                  <div style="font-weight:600; color:var(--text);">Counting Money</div>
+                  <div style="font-size:11px; color:var(--muted);">Skill content</div>
+                </td>
+                <td style="max-width:280px;">Anxiety language detected — <em>"You failed"</em></td>
+                <td><code>Auto (safe-language checker)</code></td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-review"  onclick="action('review','Counting Money')">Review</button>
+                    <button class="btn btn-block"   onclick="action('block','Counting Money')">Block</button>
+                    <button class="btn btn-dismiss" onclick="action('dismiss','Counting Money')">Dismiss</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td><span class="sev sev-p1">⚠️ P1</span></td>
+                <td>
+                  <div style="font-weight:600; color:var(--text);">Reading Shapes</div>
+                  <div style="font-size:11px; color:var(--muted);">Skill content</div>
+                </td>
+                <td>Missing alt-text on 3 images</td>
+                <td><code>WCAG auto-scan</code></td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-review"  onclick="action('review','Reading Shapes')">Review</button>
+                    <button class="btn btn-block"   onclick="action('block','Reading Shapes')">Block</button>
+                    <button class="btn btn-dismiss" onclick="action('dismiss','Reading Shapes')">Dismiss</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td><span class="sev sev-privacy">🔵 Privacy</span></td>
+                <td>
+                  <div style="font-weight:600; color:var(--text);">Teacher Message</div>
+                  <div style="font-size:11px; color:var(--muted);">Communication</div>
+                </td>
+                <td>Message contains possible student surname</td>
+                <td><code>Auto (PII scan)</code></td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-review"  onclick="action('review','Teacher Message')">Review</button>
+                    <button class="btn btn-delete"  onclick="action('delete','Teacher Message')">Delete</button>
+                    <button class="btn btn-dismiss" onclick="action('dismiss','Teacher Message')">Dismiss</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td><span class="sev sev-p1">⚠️ P1</span></td>
+                <td>
+                  <div style="font-weight:600; color:var(--text);">Animal Sounds</div>
+                  <div style="font-size:11px; color:var(--muted);">Skill content</div>
+                </td>
+                <td>Skip rate 73% — above 60% threshold</td>
+                <td><code>Auto</code></td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-review"  onclick="action('review','Animal Sounds')">Review</button>
+                    <button class="btn btn-block"   onclick="action('block','Animal Sounds')">Block</button>
+                    <button class="btn btn-dismiss" onclick="action('dismiss','Animal Sounds')">Dismiss</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td><span class="sev sev-info">ℹ️ Info</span></td>
+                <td>
+                  <div style="font-weight:600; color:var(--text);">Q3 WCAG Audit</div>
+                  <div style="font-size:11px; color:var(--muted);">CI/CD report</div>
+                </td>
+                <td>3 touch targets below 44px on legacy route</td>
+                <td><code>CI/CD</code></td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-view"    onclick="action('view-report','Q3 WCAG Audit')">View Report</button>
+                    <button class="btn btn-dismiss" onclick="action('dismiss','Q3 WCAG Audit')">Dismiss</button>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- section 3: privacy monitoring -->
+      <div class="section">
+        <div class="section-title">Privacy Monitoring</div>
+        <div class="privacy-stats">
+
+          <div class="priv-stat">
+            <div class="ps-label">Data deletion jobs</div>
+            <div class="ps-value">2 pending &nbsp;<a class="link-inline" onclick="showTab(1)">View →</a></div>
+          </div>
+
+          <div class="priv-stat">
+            <div class="ps-label">Consent records</div>
+            <div class="ps-value">847 active &nbsp;<span style="color:var(--green); font-size:12px;">0 expired</span></div>
+          </div>
+
+          <div class="priv-stat">
+            <div class="ps-label">Children under COPPA (&lt;13)</div>
+            <div class="ps-value">612 &nbsp;<span style="color:var(--green); font-size:12px;">All have valid parental consent ✓</span></div>
+          </div>
+
+          <div class="priv-stat">
+            <div class="ps-label">FERPA schools</div>
+            <div class="ps-value">14 active agreements</div>
+          </div>
+
+        </div>
+        <button class="btn btn-primary" onclick="runAudit()">Run data audit</button>
+      </div>
+
+      <!-- section 4: safe language summary -->
+      <div class="section">
+        <div class="section-title">Safe Language Summary — Last 7 Days</div>
+        <div class="bar-chart">
+
+          <div class="bar-row">
+            <div class="bar-label">Anxiety / Pressure</div>
+            <div class="bar-track"><div class="bar-fill" style="width:40%; background:var(--p3);"></div></div>
+            <div class="bar-count" style="color:var(--p3);">2</div>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-label">Timer Language</div>
+            <div class="bar-track"><div class="bar-fill" style="width:0%; background:var(--green);"></div></div>
+            <div class="bar-count" style="color:var(--green);">0</div>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-label">Shame Language</div>
+            <div class="bar-track"><div class="bar-fill" style="width:20%; background:var(--p1);"></div></div>
+            <div class="bar-count" style="color:var(--p1);">1</div>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-label">Complex Vocab</div>
+            <div class="bar-track"><div class="bar-fill" style="width:80%; background:var(--p0);"></div></div>
+            <div class="bar-count" style="color:var(--p0);">4</div>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-label">PII Detected</div>
+            <div class="bar-track"><div class="bar-fill" style="width:20%; background:var(--sky);"></div></div>
+            <div class="bar-count" style="color:var(--sky);">1</div>
+          </div>
+
+          <div class="zero-badge">✓ 0 timer references detected — critical metric clear</div>
+        </div>
+      </div>
+
+    </div><!-- /tab-0 -->
+
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 2 — PRIVACY ALERTS
+    ══════════════════════════════════════════════════ -->
+    <div class="screen" id="tab-1">
+
+      <div class="console-header">
+        <div>
+          <h1>Privacy Alert Management</h1>
+          <div class="subtitle">Dedicated privacy and PII monitoring panel</div>
+        </div>
+        <span class="owner-badge">🔒 Owner Access Only</span>
+      </div>
+
+      <!-- alert list -->
+      <div class="section">
+        <div class="section-title">Open Privacy Alerts</div>
+        <div class="alert-list">
+
+          <!-- 1: PII in content -->
+          <div class="alert-item">
+            <div class="alert-body">
+              <div class="pill-row"><span class="pill pill-pii">PII in content</span></div>
+              <div class="alert-desc">Possible name, date of birth, or personal identifier detected in question or explainer text within skill <strong>"Reading Numbers"</strong>.</div>
+              <div class="alert-meta">Created: 2026-03-24 07:42 UTC · Source: PII scan (real-time)</div>
+            </div>
+            <button class="btn btn-resolve" onclick="resolveAlert(this)">Mark Resolved</button>
+          </div>
+
+          <!-- 2: teacher message surname -->
+          <div class="alert-item">
+            <div class="alert-body">
+              <div class="pill-row"><span class="pill pill-name">Teacher message — surname</span></div>
+              <div class="alert-desc">Auto-detection flagged a possible full name in teacher message to parent. Message ID: <code>msg_7fa3…b82c</code>.</div>
+              <div class="alert-meta">Created: 2026-03-24 09:01 UTC · Source: PII scan (on message save)</div>
+            </div>
+            <button class="btn btn-resolve" onclick="resolveAlert(this)">Mark Resolved</button>
+          </div>
+
+          <!-- 3: data retention overdue -->
+          <div class="alert-item">
+            <div class="alert-body">
+              <div class="pill-row"><span class="pill pill-retain">Data retention overdue</span></div>
+              <div class="alert-desc">Student record exceeded configured retention period with no deletion job scheduled. Record type: <code>child_progress_snapshot</code>.</div>
+              <div class="alert-meta">Created: 2026-03-23 22:00 UTC · Source: Retention job scheduler (nightly)</div>
+            </div>
+            <button class="btn btn-resolve" onclick="resolveAlert(this)">Mark Resolved</button>
+          </div>
+
+          <!-- 4: consent expiry -->
+          <div class="alert-item">
+            <div class="alert-body">
+              <div class="pill-row"><span class="pill pill-consent">Consent expiry</span></div>
+              <div class="alert-desc">Parental consent policy version updated (v2.4 → v2.5). <strong>12 accounts</strong> require re-consent before next session.</div>
+              <div class="alert-meta">Created: 2026-03-22 14:00 UTC · Source: Consent version change event</div>
+            </div>
+            <button class="btn btn-resolve" onclick="resolveAlert(this)">Mark Resolved</button>
+          </div>
+
+          <!-- 5: beta observation anonymisation -->
+          <div class="alert-item">
+            <div class="alert-body">
+              <div class="pill-row"><span class="pill pill-anon">Beta observation anonymisation overdue</span></div>
+              <div class="alert-desc"><strong>3 beta observation records</strong> have not been anonymised within the 90-day window. Records created during Dec 2025 pilot.</div>
+              <div class="alert-meta">Created: 2026-03-21 06:00 UTC · Source: Anonymisation schedule check</div>
+            </div>
+            <button class="btn btn-resolve" onclick="resolveAlert(this)">Mark Resolved</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- deletion job queue -->
+      <div class="section">
+        <div class="section-title">Deletion Job Queue</div>
+        <div class="del-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Child ID (partial)</th>
+                <th>Deletion Type</th>
+                <th>Scheduled At</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <tr>
+                <td><code>a3f82b1c</code><span style="color:var(--muted);">…</span></td>
+                <td><span class="sev sev-privacy">Full deletion</span></td>
+                <td style="color:var(--muted);">2026-03-25 02:00 UTC</td>
+                <td><span class="status-pending">Pending</span></td>
+                <td><button class="btn btn-view" onclick="action('view-job','a3f82b1c')">View</button></td>
+              </tr>
+
+              <tr>
+                <td><code>7d94e2a0</code><span style="color:var(--muted);">…</span></td>
+                <td><span class="sev sev-info">Anonymise</span></td>
+                <td style="color:var(--muted);">2026-03-24 23:00 UTC</td>
+                <td><span class="status-pending">Pending</span></td>
+                <td><button class="btn btn-view" onclick="action('view-job','7d94e2a0')">View</button></td>
+              </tr>
+
+              <tr>
+                <td><code>c1b05f3d</code><span style="color:var(--muted);">…</span></td>
+                <td><span class="sev sev-info">Anonymise</span></td>
+                <td style="color:var(--muted);">2026-03-20 02:00 UTC</td>
+                <td><span class="status-complete">Complete</span></td>
+                <td><button class="btn btn-view" onclick="action('view-job','c1b05f3d')">View</button></td>
+              </tr>
+
+              <tr>
+                <td><code>8ea71c90</code><span style="color:var(--muted);">…</span></td>
+                <td><span class="sev sev-privacy">Full deletion</span></td>
+                <td style="color:var(--muted);">2026-03-24 10:15 UTC</td>
+                <td><span class="status-running">Running</span></td>
+                <td><button class="btn btn-view" onclick="action('view-job','8ea71c90')">View</button></td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /tab-1 -->
+
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 3 — SPEC
+    ══════════════════════════════════════════════════ -->
+    <div class="screen" id="tab-2">
+
+      <div class="console-header">
+        <div>
+          <h1>Specification</h1>
+          <div class="subtitle">owner-safety-review-console-v2 · Item 234</div>
+        </div>
+        <span class="owner-badge">🔒 Owner Access Only</span>
+      </div>
+
+      <div class="spec-card">
+        <h3>Access Control</h3>
+        <ul>
+          <li><strong>Visibility:</strong> <code>is_owner=true</code> only. Not visible to teachers, parents, or content team.</li>
+          <li><strong>All owner actions are logged</strong> to <code>governance_log</code> and <code>privacy_audit_log</code> — dismiss, block, delete, resolve.</li>
+        </ul>
+      </div>
+
+      <div class="spec-card">
+        <h3>Auto-Flag Sources</h3>
+        <ul>
+          <li><strong>Safe language checker</strong> — nightly batch scan across all active skill content</li>
+          <li><strong>WCAG scanner</strong> — triggered on each CI/CD deploy; results posted to safety_flags</li>
+          <li><strong>PII scan</strong> — real-time on message save and content publish</li>
+          <li><strong>Skip rate threshold</strong> — daily aggregate; flags skills where skip rate exceeds 60%</li>
+          <li><strong>Retention job scheduler</strong> — nightly check for overdue deletion or anonymisation jobs</li>
+        </ul>
+      </div>
+
+      <div class="spec-card">
+        <h3>P0 Safety Flag Behaviour</h3>
+        <ul>
+          <li>Immediately sets <code>delivery_locked=true</code> on the affected item — no child can access it.</li>
+          <li>Pages on-call via configured alerting channel.</li>
+          <li>Non-dismissible owner banner persists until the flag is resolved.</li>
+          <li>P0 flags must be resolved before the next production deploy is permitted.</li>
+        </ul>
+      </div>
+
+      <div class="spec-card">
+        <h3>COPPA Compliance Check</h3>
+        <ul>
+          <li>Daily job: verifies every child record where <code>age_years &lt; 13</code> has <code>parental_consent_at IS NOT NULL</code>.</li>
+          <li>Any violation generates a <strong>P0 privacy alert</strong> — not dismissible until consent is confirmed.</li>
+          <li>Counter shown in console is a count only; no individual child data surfaced here.</li>
+        </ul>
+      </div>
+
+      <div class="spec-card">
+        <h3>No Student Data in View</h3>
+        <p>
+          The console displays counts and aggregates only. No individual child records are shown.
+          The deletion job table surfaces UUID partial (first 8 chars) solely for operator identification of the job.
+        </p>
+      </div>
+
+      <div class="spec-card">
+        <h3>DB Schema Overview</h3>
+        <pre class="sql-block">safety_flags (
+  id                UUID,
+  type              ENUM,
+  severity          ENUM(p0, p1, info),
+  source            TEXT,
+  description       TEXT,
+  item_type         TEXT,
+  item_id           UUID,
+  status            ENUM(open, resolved, dismissed),
+  created_at        TIMESTAMPTZ,
+  resolved_by       UUID,
+  resolved_at       TIMESTAMPTZ
+)
+
+privacy_alerts (
+  id                    UUID,
+  alert_type            TEXT,
+  description           TEXT,
+  affected_record_type  TEXT,
+  affected_record_id    UUID,
+  status                ENUM(open, resolved),
+  created_at            TIMESTAMPTZ,
+  resolved_by           UUID,
+  resolved_at           TIMESTAMPTZ
+)</pre>
+      </div>
+
+    </div><!-- /tab-2 -->
+
+  </div><!-- /page-wrap -->
+
+  <!-- toast -->
+  <div id="toast" style="
+    position:fixed; bottom:28px; right:28px;
+    background:#1c2333; border:1px solid var(--border);
+    color:var(--text); padding:12px 20px; border-radius:10px;
+    font-size:13px; font-weight:500;
+    box-shadow:0 4px 24px rgba(0,0,0,.5);
+    opacity:0; transition:opacity .25s;
+    pointer-events:none; z-index:999;
+    max-width:320px;
+  "></div>
+
+  <script>
+    /* tab switcher */
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.screen').forEach((s, i) => {
+        s.classList.toggle('active', i === t);
+      });
+    }
+
+    /* toast helper */
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.style.opacity = '0'; }, 2800);
+    }
+
+    /* action handler */
+    function action(type, item) {
+      const labels = {
+        'review':      'Opened review for',
+        'block':       'Blocked delivery of',
+        'dismiss':     'Dismissed flag for',
+        'delete':      'Deletion queued for',
+        'view-report': 'Viewing report:',
+        'view-job':    'Opening deletion job:',
+      };
+      const verb = labels[type] || type;
+      toast(`${verb} "${item}" — logged to governance_log`);
+    }
+
+    /* run audit */
+    function runAudit() {
+      toast('Data audit job queued — results available in ~5 min');
+    }
+
+    /* resolve privacy alert */
+    function resolveAlert(btn) {
+      const item = btn.closest('.alert-item');
+      item.style.opacity = '0.4';
+      item.style.pointerEvents = 'none';
+      btn.textContent = 'Resolved';
+      btn.style.background = 'rgba(80,232,144,.08)';
+      btn.style.color = 'var(--green)';
+      toast('Alert marked resolved — logged to privacy_audit_log');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usability Metrics Strip — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #e8edf3; min-height: 100vh; }
+  .tab-bar { display: flex; background: #161e28; border-bottom: 1px solid #1e2d3d; }
+  .tab-btn { flex: 1; padding: 14px 10px; background: none; border: none; color: #6a8aa0; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+  .page-title { font-size: 22px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #6a8aa0; margin-bottom: 24px; }
+
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; }
+  .hint-label { font-size: 11px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .hint-box p { font-size: 13px; color: #e8c84a; line-height: 1.5; }
+
+  /* Compact Strip */
+  .compact-strip { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; padding: 0; overflow: hidden; margin-bottom: 20px; }
+  .strip-inner { display: flex; gap: 0; }
+  .strip-metric { flex: 1; padding: 20px 18px; border-right: 1px solid #1e2d3d; position: relative; }
+  .strip-metric:last-child { border-right: none; }
+  .sm-label { font-size: 10px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
+  .sm-val { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .sm-sub { font-size: 11px; color: #6a8aa0; }
+  .sm-bar { height: 3px; background: #1e2d3d; border-radius: 2px; margin-top: 12px; }
+  .sm-fill { height: 100%; border-radius: 2px; }
+  .strip-expand { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: #10161e; border-top: 1px solid #1e2d3d; cursor: pointer; }
+  .expand-label { font-size: 12px; font-weight: 600; color: #58c8f0; }
+  .expand-arrow { font-size: 12px; color: #58c8f0; transition: transform 0.2s; }
+
+  /* Expanded full metrics */
+  .full-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+  .full-metric-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 20px; }
+  .fmc-label { font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 12px; }
+  .fmc-val { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .fmc-sub { font-size: 12px; color: #6a8aa0; line-height: 1.4; margin-bottom: 12px; }
+  .fmc-bar { height: 6px; background: #1e2d3d; border-radius: 3px; margin-bottom: 8px; }
+  .fmc-fill { height: 100%; border-radius: 3px; }
+  .fmc-bench { font-size: 10px; color: #3a5568; }
+  .bench-val { color: #6a8aa0; font-weight: 600; }
+
+  /* Emoji scale */
+  .emoji-scale { display: flex; gap: 6px; margin-top: 4px; }
+  .emoji-item { width: 32px; height: 32px; border-radius: 8px; background: #10161e; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 1.5px solid #1e2d3d; cursor: pointer; transition: all 0.2s; }
+  .emoji-item.active { border-color: #ffd166; background: rgba(255,209,102,0.1); }
+
+  /* SUS gauge */
+  .sus-gauge { position: relative; margin: 12px 0; }
+  .sus-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #ff5e5e 0%, #ffd166 40%, #6cc96c 70%, #58c8f0 100%); }
+  .sus-needle { position: absolute; top: -4px; width: 4px; height: 20px; background: #e8edf3; border-radius: 2px; transform: translateX(-50%); }
+  .sus-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+  .sus-lbl { font-size: 9px; color: #3a5568; }
+
+  /* By Persona */
+  .persona-table { width: 100%; border-collapse: collapse; }
+  .persona-table th { text-align: left; font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; padding: 12px 16px; border-bottom: 1px solid #1e2d3d; background: #161e28; }
+  .persona-table td { padding: 14px 16px; font-size: 13px; color: #c8d8e8; border-bottom: 1px solid #161e28; }
+  .persona-table tr:last-child td { border-bottom: none; }
+  .persona-name { display: flex; align-items: center; gap: 10px; }
+  .persona-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .av-child { background: rgba(88,200,240,0.15); }
+  .av-parent { background: rgba(255,209,102,0.12); }
+  .av-teacher { background: rgba(108,201,108,0.12); }
+  .av-owner { background: rgba(255,140,66,0.12); }
+  .mini-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .mini-bar { height: 6px; border-radius: 3px; background: #1e2d3d; flex: 1; }
+  .mini-fill { height: 100%; border-radius: 3px; }
+  .score-val { font-size: 12px; font-weight: 700; min-width: 36px; text-align: right; }
+
+  .pt-wrapper { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
+  .pt-header { padding: 18px 20px; border-bottom: 1px solid #1e2d3d; display: flex; justify-content: space-between; align-items: center; }
+  .pt-title { font-size: 14px; font-weight: 600; color: #e8edf3; }
+  .pt-meta { font-size: 12px; color: #6a8aa0; }
+
+  /* Trend View */
+  .trend-chart { background: #161e28; border: 1px solid #1e2d3d; border-radius: 14px; padding: 24px; margin-bottom: 16px; }
+  .trend-title { font-size: 14px; font-weight: 600; color: #e8edf3; margin-bottom: 20px; }
+  .sparkline-row { display: flex; align-items: flex-end; gap: 4px; height: 60px; margin-bottom: 8px; }
+  .spark-bar { flex: 1; border-radius: 3px 3px 0 0; transition: all 0.3s; }
+  .spark-labels { display: flex; gap: 4px; }
+  .spark-label { flex: 1; text-align: center; font-size: 9px; color: #3a5568; }
+  .trend-metric-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .trend-mini { background: #10161e; border: 1px solid #1e2d3d; border-radius: 10px; padding: 14px; text-align: center; }
+  .tm-val { font-size: 20px; font-weight: 700; }
+  .tm-delta { font-size: 11px; margin-top: 3px; }
+  .tm-label { font-size: 10px; color: #6a8aa0; margin-top: 4px; }
+  .delta-pos { color: #6cc96c; }
+  .delta-neg { color: #ff5e5e; }
+
+  /* Spec */
+  .spec-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 14px; }
+  .spec-block h3 { font-size: 13px; font-weight: 600; color: #58c8f0; margin-bottom: 10px; }
+  .spec-block p, .spec-block li { font-size: 13px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('compact')">Compact Strip</button>
+  <button class="tab-btn" onclick="show('full')">Full Metrics</button>
+  <button class="tab-btn" onclick="show('persona')">By Persona</button>
+  <button class="tab-btn" onclick="show('trend')">Trend View</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- COMPACT STRIP -->
+<div id="compact" class="tab-panel active">
+  <div class="container">
+    <div class="page-title">Usability Metrics</div>
+    <div class="page-sub">Beta Week 12 · Mar 17–22, 2026 · 14 sessions · 6 participants</div>
+
+    <div class="compact-strip">
+      <div class="strip-inner">
+        <div class="strip-metric">
+          <div class="sm-label">Task Completion</div>
+          <div class="sm-val" style="color:#6cc96c">84%</div>
+          <div class="sm-sub">+6pp vs last week</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:84%;background:#6cc96c"></div></div>
+        </div>
+        <div class="strip-metric">
+          <div class="sm-label">Avg Time on Task</div>
+          <div class="sm-val" style="color:#58c8f0">2:34</div>
+          <div class="sm-sub">−12s vs last week</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:60%;background:#58c8f0"></div></div>
+        </div>
+        <div class="strip-metric">
+          <div class="sm-label">Error Rate</div>
+          <div class="sm-val" style="color:#ffd166">8.2%</div>
+          <div class="sm-sub">−2.1pp vs last week</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:8%;background:#ffd166"></div></div>
+        </div>
+        <div class="strip-metric">
+          <div class="sm-label">Satisfaction</div>
+          <div class="sm-val" style="color:#ffd166">4.2 / 5</div>
+          <div class="sm-sub">😊 😊 😊 😊</div>
+        </div>
+        <div class="strip-metric">
+          <div class="sm-label">SUS Score</div>
+          <div class="sm-val" style="color:#6cc96c">76</div>
+          <div class="sm-sub">Acceptable+</div>
+          <div class="sm-bar"><div class="sm-fill" style="width:76%;background:#6cc96c"></div></div>
+        </div>
+      </div>
+      <div class="strip-expand" onclick="show('full')">
+        <span class="expand-label">Expand to Full Metrics Table</span>
+        <span class="expand-arrow">↓</span>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Benchmark Reference</div>
+      <p>Industry benchmark for children's edtech apps: Task Completion 75%, SUS 68+. WonderQuest is currently tracking above baseline on both key metrics. Error rate target is sub-10%.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FULL METRICS -->
+<div id="full" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Full Usability Metrics</div>
+    <div class="page-sub">Beta Week 12 · All metrics with benchmark comparison</div>
+
+    <div class="full-grid">
+      <div class="full-metric-card">
+        <div class="fmc-label">Task Completion</div>
+        <div class="fmc-val" style="color:#6cc96c">84%</div>
+        <div class="fmc-sub">Tasks completed without moderator assistance or failure</div>
+        <div class="fmc-bar"><div class="fmc-fill" style="width:84%;background:#6cc96c"></div></div>
+        <div class="fmc-bench">Benchmark: <span class="bench-val">75%</span></div>
+      </div>
+      <div class="full-metric-card">
+        <div class="fmc-label">Avg Time on Task</div>
+        <div class="fmc-val" style="color:#58c8f0">2:34</div>
+        <div class="fmc-sub">Average minutes:seconds per assigned task across all scenarios</div>
+        <div class="fmc-bar"><div class="fmc-fill" style="width:55%;background:#58c8f0"></div></div>
+        <div class="fmc-bench">Target: <span class="bench-val">&lt; 3:00</span></div>
+      </div>
+      <div class="full-metric-card">
+        <div class="fmc-label">Error Rate</div>
+        <div class="fmc-val" style="color:#ffd166">8.2%</div>
+        <div class="fmc-sub">Percentage of task steps resulting in incorrect or unintended action</div>
+        <div class="fmc-bar"><div class="fmc-fill" style="width:8%;background:#ffd166"></div></div>
+        <div class="fmc-bench">Target: <span class="bench-val">&lt; 10%</span></div>
+      </div>
+      <div class="full-metric-card">
+        <div class="fmc-label">Satisfaction</div>
+        <div class="fmc-val" style="color:#ffd166">4.2</div>
+        <div class="fmc-sub">Post-session 1–5 rating averaged across all participants</div>
+        <div class="emoji-scale">
+          <div class="emoji-item">😞</div>
+          <div class="emoji-item">😕</div>
+          <div class="emoji-item">😐</div>
+          <div class="emoji-item active">😊</div>
+          <div class="emoji-item">😄</div>
+        </div>
+      </div>
+      <div class="full-metric-card">
+        <div class="fmc-label">SUS Score</div>
+        <div class="fmc-val" style="color:#6cc96c">76</div>
+        <div class="fmc-sub">System Usability Scale (0–100). Acceptable = 68, Good = 80+</div>
+        <div class="sus-gauge">
+          <div class="sus-track"></div>
+          <div class="sus-needle" style="left:76%"></div>
+          <div class="sus-labels">
+            <span class="sus-lbl">0</span>
+            <span class="sus-lbl">Poor</span>
+            <span class="sus-lbl">OK</span>
+            <span class="sus-lbl">Good</span>
+            <span class="sus-lbl">100</span>
+          </div>
+        </div>
+        <div class="fmc-bench">Benchmark: <span class="bench-val">68</span></div>
+      </div>
+    </div>
+
+    <div style="background:#161e28;border:1px solid #1e2d3d;border-radius:14px;padding:24px">
+      <div style="font-size:14px;font-weight:600;color:#e8edf3;margin-bottom:16px">Additional Metrics</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="text-align:left;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">Metric</th>
+            <th style="text-align:right;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">This Week</th>
+            <th style="text-align:right;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">Last Week</th>
+            <th style="text-align:right;font-size:11px;font-weight:600;color:#6a8aa0;text-transform:uppercase;letter-spacing:0.7px;padding:0 0 12px">Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0;border-bottom:1px solid #1e2d3d">Learnability (first-use success)</td>
+            <td style="text-align:right;font-size:13px;font-weight:700;color:#58c8f0;border-bottom:1px solid #1e2d3d">72%</td>
+            <td style="text-align:right;font-size:13px;color:#6a8aa0;border-bottom:1px solid #1e2d3d">65%</td>
+            <td style="text-align:right;font-size:13px;color:#6cc96c;border-bottom:1px solid #1e2d3d">+7pp</td>
+          </tr>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0;border-bottom:1px solid #1e2d3d">Help-seeking rate</td>
+            <td style="text-align:right;font-size:13px;font-weight:700;color:#58c8f0;border-bottom:1px solid #1e2d3d">14%</td>
+            <td style="text-align:right;font-size:13px;color:#6a8aa0;border-bottom:1px solid #1e2d3d">21%</td>
+            <td style="text-align:right;font-size:13px;color:#6cc96c;border-bottom:1px solid #1e2d3d">−7pp</td>
+          </tr>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0;border-bottom:1px solid #1e2d3d">Rage tap count (avg/session)</td>
+            <td style="text-align:right;font-size:13px;font-weight:700;color:#58c8f0;border-bottom:1px solid #1e2d3d">1.2</td>
+            <td style="text-align:right;font-size:13px;color:#6a8aa0;border-bottom:1px solid #1e2d3d">2.8</td>
+            <td style="text-align:right;font-size:13px;color:#6cc96c;border-bottom:1px solid #1e2d3d">−1.6</td>
+          </tr>
+          <tr>
+            <td style="font-size:13px;color:#c8d8e8;padding:10px 0">Session abandonment rate</td>
+            <td style="text-align:right;font-size:13px;font-weight:700;color:#ffd166">11%</td>
+            <td style="text-align:right;font-size:13px;color:#6a8aa0">13%</td>
+            <td style="text-align:right;font-size:13px;color:#6cc96c">−2pp</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BY PERSONA -->
+<div id="persona" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Metrics by Persona</div>
+    <div class="page-sub">Breakdown across 4 user groups · Beta Week 12</div>
+
+    <div class="pt-wrapper">
+      <div class="pt-header">
+        <span class="pt-title">Task Completion by Persona</span>
+        <span class="pt-meta">Target: 75%</span>
+      </div>
+      <table class="persona-table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Completion</th>
+            <th>Error Rate</th>
+            <th>Satisfaction</th>
+            <th>SUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="persona-name">
+                <div class="persona-avatar av-child">👶</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#e8edf3">Child</div>
+                  <div style="font-size:11px;color:#6a8aa0">n = 4 participants</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:78%;background:#58c8f0"></div></div>
+                <span class="score-val" style="color:#58c8f0">78%</span>
+              </div>
+            </td>
+            <td><span style="color:#ffd166;font-weight:700">11.4%</span></td>
+            <td><span style="color:#ffd166;font-weight:700">4.5</span></td>
+            <td><span style="color:#6cc96c;font-weight:700">71</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="persona-name">
+                <div class="persona-avatar av-parent">👩‍👧</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#e8edf3">Parent</div>
+                  <div style="font-size:11px;color:#6a8aa0">n = 2 participants</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:88%;background:#58c8f0"></div></div>
+                <span class="score-val" style="color:#58c8f0">88%</span>
+              </div>
+            </td>
+            <td><span style="color:#6cc96c;font-weight:700">6.2%</span></td>
+            <td><span style="color:#ffd166;font-weight:700">4.1</span></td>
+            <td><span style="color:#6cc96c;font-weight:700">80</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="persona-name">
+                <div class="persona-avatar av-teacher">👩‍🏫</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#e8edf3">Teacher</div>
+                  <div style="font-size:11px;color:#6a8aa0">n = 1 participant</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:91%;background:#58c8f0"></div></div>
+                <span class="score-val" style="color:#58c8f0">91%</span>
+              </div>
+            </td>
+            <td><span style="color:#6cc96c;font-weight:700">4.8%</span></td>
+            <td><span style="color:#ffd166;font-weight:700">3.9</span></td>
+            <td><span style="color:#6cc96c;font-weight:700">78</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="persona-name">
+                <div class="persona-avatar av-owner">🧑‍💼</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#e8edf3">Owner</div>
+                  <div style="font-size:11px;color:#6a8aa0">n = 1 participant</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:82%;background:#58c8f0"></div></div>
+                <span class="score-val" style="color:#58c8f0">82%</span>
+              </div>
+            </td>
+            <td><span style="color:#ffd166;font-weight:700">9.1%</span></td>
+            <td><span style="color:#ffd166;font-weight:700">4.3</span></td>
+            <td><span style="color:#6cc96c;font-weight:700">74</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Observation</div>
+      <p>Teacher persona shows highest completion rate (91%) but lowest satisfaction (3.9). Investigate whether professional tool surfaces feel overly complex or underpowered for daily workflow use. Small sample — expand n=1 to at least n=3 next week.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TREND VIEW -->
+<div id="trend" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Trend View</div>
+    <div class="page-sub">6-week trend across all key usability metrics</div>
+
+    <div class="trend-chart">
+      <div class="trend-title">Task Completion % — Weeks 7–12</div>
+      <div class="sparkline-row">
+        <div class="spark-bar" style="height:63%;background:rgba(88,200,240,0.3)"></div>
+        <div class="spark-bar" style="height:67%;background:rgba(88,200,240,0.4)"></div>
+        <div class="spark-bar" style="height:70%;background:rgba(88,200,240,0.5)"></div>
+        <div class="spark-bar" style="height:74%;background:rgba(88,200,240,0.6)"></div>
+        <div class="spark-bar" style="height:78%;background:rgba(88,200,240,0.75)"></div>
+        <div class="spark-bar" style="height:84%;background:#58c8f0"></div>
+      </div>
+      <div class="spark-labels">
+        <span class="spark-label">W7</span>
+        <span class="spark-label">W8</span>
+        <span class="spark-label">W9</span>
+        <span class="spark-label">W10</span>
+        <span class="spark-label">W11</span>
+        <span class="spark-label">W12</span>
+      </div>
+    </div>
+
+    <div class="trend-metric-row">
+      <div class="trend-mini">
+        <div class="tm-val" style="color:#6cc96c">84%</div>
+        <div class="tm-delta delta-pos">↑ +21pp (6wk)</div>
+        <div class="tm-label">Task Completion</div>
+      </div>
+      <div class="trend-mini">
+        <div class="tm-val" style="color:#58c8f0">2:34</div>
+        <div class="tm-delta delta-pos">↓ −1:12 (6wk)</div>
+        <div class="tm-label">Avg Time on Task</div>
+      </div>
+      <div class="trend-mini">
+        <div class="tm-val" style="color:#ffd166">8.2%</div>
+        <div class="tm-delta delta-pos">↓ −6.8pp (6wk)</div>
+        <div class="tm-label">Error Rate</div>
+      </div>
+      <div class="trend-mini">
+        <div class="tm-val" style="color:#ffd166">4.2</div>
+        <div class="tm-delta delta-pos">↑ +0.7 (6wk)</div>
+        <div class="tm-label">Satisfaction</div>
+      </div>
+      <div class="trend-mini">
+        <div class="tm-val" style="color:#6cc96c">76</div>
+        <div class="tm-delta delta-pos">↑ +12 (6wk)</div>
+        <div class="tm-label">SUS Score</div>
+      </div>
+    </div>
+
+    <div class="hint-box" style="margin-top:20px">
+      <div class="hint-label">6-Week Trajectory</div>
+      <p>All metrics are trending in the right direction. SUS improvement from 64 → 76 is the most significant gain, driven by navigation improvements in W10 and badge flow redesign in W12. On current trajectory, SUS should reach 80 (Good threshold) by Week 15.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="container">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>usability-metrics-strip-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Quick usability metrics panel with compact horizontal strip and expandable full metrics table. Shows task completion, avg time on task, error rate, satisfaction (emoji scale), and SUS score.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #10161e · Accent: #58c8f0</li>
+        <li>Viewport: Desktop 900px+ · Hint box: #2a1f00 / #ffd166</li>
+        <li>Good: #6cc96c · Warning: #ffd166 · Bad: #ff5e5e</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Tabs</h3>
+      <ul>
+        <li>Compact Strip — horizontal 5-metric summary bar with expand link</li>
+        <li>Full Metrics — 5-card grid with SUS gauge, bars, and additional table</li>
+        <li>By Persona — breakdown per user group (Child/Parent/Teacher/Owner)</li>
+        <li>Trend View — 6-week sparkline and delta summary</li>
+        <li>Spec — this document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['compact','full','persona','trend','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

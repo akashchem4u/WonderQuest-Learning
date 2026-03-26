@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Voice Readiness Check — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0d1117;
+    --card:    #161b22;
+    --card2:   #1c2230;
+    --accent:  #50e890;
+    --text:    #f0f6ff;
+    --muted:   #8b949e;
+    --border:  rgba(255,255,255,.06);
+    --hover:   rgba(255,255,255,.04);
+    --beta:    #f59e0b;
+    --pass:    #50e890;
+    --fail:    #ef4444;
+    --warn:    #f59e0b;
+    --pending: #8b949e;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ── Engineering hint ── */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1200;
+    font-size: 12px;
+    line-height: 1.6;
+    font-family: 'Courier New', monospace;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+  }
+  .eng-hint strong { font-weight: 700; color: #7c4d00; }
+
+  /* ── Page header ── */
+  .page-header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-mark {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .page-header h1 { font-size: 17px; font-weight: 700; }
+  .page-header .sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .beta-badge {
+    margin-left: auto;
+    background: rgba(245,158,11,.14);
+    color: var(--beta);
+    border: 1px solid rgba(245,158,11,.3);
+    border-radius: 20px;
+    padding: 3px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 24px;
+    gap: 4px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Layout ── */
+  .page-body {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px;
+  }
+
+  /* ── Check card (centered, narrower) ── */
+  .check-container {
+    max-width: 580px;
+    margin: 0 auto;
+  }
+
+  .check-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .check-header h2 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .check-header .sub-text {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* device info strip */
+  .device-strip {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .device-strip span { color: var(--text); font-weight: 500; }
+
+  /* run-all + download bar */
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-accent  { background: var(--accent); color: #0a1a0e; }
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.18);
+  }
+  .btn-outline:hover { background: var(--hover); }
+  .btn-small {
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+  .btn-amber  { background: rgba(245,158,11,.15); color: var(--beta); border: 1px solid rgba(245,158,11,.3); }
+  .btn-amber:hover { background: rgba(245,158,11,.25); }
+
+  /* ── Check rows ── */
+  .check-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: border-color .2s;
+  }
+  .check-row.pass  { border-color: rgba(80,232,144,.3); }
+  .check-row.fail  { border-color: rgba(239,68,68,.35); }
+  .check-row.warn  { border-color: rgba(245,158,11,.35); }
+
+  .check-row-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .check-label { font-size: 13px; font-weight: 700; }
+  .check-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .check-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .badge-pending { background: rgba(139,148,158,.12); color: var(--pending); }
+  .badge-pass    { background: rgba(80,232,144,.12);  color: var(--pass); }
+  .badge-fail    { background: rgba(239,68,68,.12);   color: var(--fail); }
+  .badge-warn    { background: rgba(245,158,11,.12);  color: var(--warn); }
+
+  .check-row-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .check-detail {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .check-detail.hidden { display: none; }
+
+  /* manual confirm buttons */
+  .confirm-btns { display: flex; gap: 8px; margin-top: 8px; }
+  .confirm-btn {
+    padding: 5px 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card2);
+    color: var(--text);
+    transition: background .15s;
+  }
+  .confirm-btn.yes:hover { background: rgba(80,232,144,.15); border-color: rgba(80,232,144,.4); }
+  .confirm-btn.no:hover  { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.4); }
+  .confirm-btn.selected-yes { background: rgba(80,232,144,.2); border-color: rgba(80,232,144,.5); color: var(--pass); }
+  .confirm-btn.selected-no  { background: rgba(239,68,68,.2);  border-color: rgba(239,68,68,.5);  color: var(--fail); }
+
+  /* LUFS meter */
+  .lufs-meter {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 32px;
+    margin-top: 8px;
+  }
+  .lufs-bar {
+    width: 18px;
+    border-radius: 3px 3px 0 0;
+    background: var(--pending);
+    transition: height .2s, background .2s;
+    min-height: 4px;
+  }
+  .lufs-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+    align-self: center;
+  }
+
+  /* waveform canvas */
+  .waveform-wrap {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  #waveformCanvas { display: block; width: 100%; }
+
+  /* overall result chip */
+  .overall-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    background: var(--card2);
+    color: var(--muted);
+    transition: all .3s;
+  }
+  .overall-chip.ready   { background: rgba(80,232,144,.1);  border-color: rgba(80,232,144,.35); color: var(--pass); }
+  .overall-chip.partial { background: rgba(245,158,11,.1);  border-color: rgba(245,158,11,.35); color: var(--warn); }
+  .overall-chip.issues  { background: rgba(239,68,68,.1);   border-color: rgba(239,68,68,.35);  color: var(--fail); }
+
+  /* ── Results tab ── */
+  .result-card {
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .result-card.pass-card   { background: rgba(80,232,144,.07);  border: 1px solid rgba(80,232,144,.3); }
+  .result-card.warn-card   { background: rgba(245,158,11,.07);  border: 1px solid rgba(245,158,11,.3); }
+  .result-card.fail-card   { background: rgba(239,68,68,.07);   border: 1px solid rgba(239,68,68,.3); }
+  .result-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .result-card p  { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .result-card p:last-child { margin-bottom: 0; }
+  .result-card ul { margin: 8px 0 0 18px; }
+  .result-card ul li { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .result-card a   { color: var(--accent); text-decoration: none; }
+  .result-card a:hover { text-decoration: underline; }
+
+  .info-note {
+    background: rgba(80,232,144,.07);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .info-note strong { color: var(--text); }
+
+  /* pending placeholder for results tab */
+  .pending-placeholder {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .pending-placeholder .icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* ── Spec tab ── */
+  .spec-section { margin-bottom: 28px; }
+  .spec-section h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 9px 12px;
+    background: var(--card2);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--hover); }
+
+  .req-yes  { color: var(--pass); font-weight: 600; }
+  .req-no   { color: var(--muted); }
+  .req-rec  { color: var(--warn); font-weight: 600; }
+
+  pre {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #c9d1d9;
+  }
+
+  /* ── Utility ── */
+  .hidden { display: none !important; }
+  .flex-row { display: flex; gap: 10px; align-items: center; }
+  .mt8  { margin-top: 8px; }
+  .mt12 { margin-top: 12px; }
+  .mt20 { margin-top: 20px; }
+
+  /* spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+  }
+
+  /* LUFS bar pulse animation */
+  @keyframes lufs-pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
+  .lufs-bar.animating { animation: lufs-pulse .4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div class="eng-hint" style="max-width:900px;margin:20px auto 0;margin-bottom:0;">
+  <strong>beta-voice-readiness-check-v2.html</strong> — Voice/audio readiness check for beta sessions.
+  Checks: (1) Audio playback (can play pre-recorded audio?), (2) TTS fallback (Web Speech API available?),
+  (3) Microphone (optional — for voice answer feature), (4) LUFS level check (can we measure playback level?),
+  (5) Latency (audio starts within 300ms?). Pass: all Required checks pass.
+  Result stored in <code>beta_device_checks</code> with <code>check_category='voice'</code>. NO timer anywhere.
+</div>
+
+<!-- Page header -->
+<header class="page-header">
+  <div class="logo-mark">🎙</div>
+  <div>
+    <h1>WonderQuest Beta</h1>
+    <div class="sub">Voice Readiness Check</div>
+  </div>
+  <div class="beta-badge">Beta Tool</div>
+</header>
+
+<!-- Tab bar -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">🎤 Voice Check Panel</button>
+  <button class="tab-btn" onclick="showTab(2)">📋 Results &amp; Recommendations</button>
+  <button class="tab-btn" onclick="showTab(3)">📐 Spec</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1 — Voice Check Panel
+═══════════════════════════════════════════ -->
+<div id="tab1" class="tab-panel active">
+  <div class="page-body">
+    <div class="check-container">
+
+      <!-- Header -->
+      <div class="check-header">
+        <h2>🎤 Voice Readiness Check</h2>
+        <div class="sub-text">Run before your first session to verify audio works on this device</div>
+      </div>
+
+      <!-- Device strip -->
+      <div class="device-strip">
+        🖥️&nbsp;
+        <span id="deviceInfo">Detecting device…</span>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn btn-accent" onclick="runAllChecks()" id="runAllBtn">
+          ▶ Run All Checks
+        </button>
+        <button class="btn btn-outline" onclick="downloadReport()">
+          ⬇ Download voice check report
+        </button>
+      </div>
+
+      <!-- ── Check 1: Audio Playback ── -->
+      <div class="check-row" id="row1">
+        <div class="check-row-top">
+          <div>
+            <div class="check-label">Check 1 — Audio Playback <span style="color:var(--fail);font-size:10px;vertical-align:middle;">Required</span></div>
+            <div class="check-desc">Can your device play audio?</div>
+          </div>
+          <span class="check-badge badge-pending" id="badge1">⏳ Pending</span>
+        </div>
+        <div class="check-row-controls">
+          <button class="btn btn-outline btn-small" id="playToneBtn" onclick="playTestTone()">▶ Play test tone</button>
+          <span id="check1Spinner" class="spinner hidden"></span>
+        </div>
+        <div class="check-detail hidden" id="detail1">
+          <p>Did you hear a tone?</p>
+          <div class="confirm-btns">
+            <button class="confirm-btn yes" onclick="confirmTone(true)">Yes ✓</button>
+            <button class="confirm-btn no"  onclick="confirmTone(false)">No ✗</button>
+          </div>
+          <p class="mt8" id="lufsReadout" style="font-size:11px;color:var(--muted)"></p>
+        </div>
+      </div>
+
+      <!-- ── Check 2: Question Readout ── -->
+      <div class="check-row" id="row2">
+        <div class="check-row-top">
+          <div>
+            <div class="check-label">Check 2 — Question Readout <span style="color:var(--fail);font-size:10px;vertical-align:middle;">Required</span></div>
+            <div class="check-desc">Can WonderQuest read questions aloud?</div>
+          </div>
+          <span class="check-badge badge-pending" id="badge2">⏳ Pending</span>
+        </div>
+        <div class="check-row-controls">
+          <button class="btn btn-outline btn-small" id="playReadoutBtn" onclick="playReadout()">▶ Play sample question</button>
+          <span id="check2Spinner" class="spinner hidden"></span>
+        </div>
+        <div class="check-detail hidden" id="detail2">
+          <p id="readoutDetail"></p>
+        </div>
+      </div>
+
+      <!-- ── Check 3: Volume Level ── -->
+      <div class="check-row" id="row3">
+        <div class="check-row-top">
+          <div>
+            <div class="check-label">Check 3 — Audio Volume Level <span style="color:var(--fail);font-size:10px;vertical-align:middle;">Required</span></div>
+            <div class="check-desc">Is the volume loud enough for children to hear?</div>
+          </div>
+          <span class="check-badge badge-pending" id="badge3">⏳ Pending</span>
+        </div>
+        <div class="check-row-controls">
+          <button class="btn btn-outline btn-small" id="runVolumeBtn" onclick="runVolumeCheck()">▶ Measure volume level</button>
+          <span id="check3Spinner" class="spinner hidden"></span>
+        </div>
+        <div class="check-detail hidden" id="detail3">
+          <div class="lufs-meter" id="lufsMeter">
+            <div class="lufs-bar" id="lBar1" style="height:8px"></div>
+            <div class="lufs-bar" id="lBar2" style="height:8px"></div>
+            <div class="lufs-bar" id="lBar3" style="height:8px"></div>
+            <div class="lufs-bar" id="lBar4" style="height:8px"></div>
+            <div class="lufs-bar" id="lBar5" style="height:8px"></div>
+            <span class="lufs-label" id="lufsMeterLabel">Measuring…</span>
+          </div>
+          <p id="volumeResult" class="mt8" style="font-size:12px;color:var(--muted)"></p>
+          <button class="btn btn-outline btn-small mt8 hidden" id="retestVolumeBtn" onclick="runVolumeCheck()">
+            🔁 Adjust volume and re-test
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Check 4: Microphone ── -->
+      <div class="check-row" id="row4">
+        <div class="check-row-top">
+          <div>
+            <div class="check-label">Check 4 — Microphone <span style="color:var(--muted);font-size:10px;vertical-align:middle;">Optional</span></div>
+            <div class="check-desc">Does your device have a working microphone?</div>
+          </div>
+          <span class="check-badge badge-pending" id="badge4">⏳ Pending</span>
+        </div>
+        <div class="check-row-controls">
+          <button class="btn btn-outline btn-small" id="testMicBtn" onclick="testMicrophone()">🎤 Test microphone</button>
+          <span id="check4Spinner" class="spinner hidden"></span>
+        </div>
+        <div class="check-detail hidden" id="detail4">
+          <div class="waveform-wrap hidden" id="waveformWrap">
+            <canvas id="waveformCanvas" width="540" height="48"></canvas>
+          </div>
+          <p id="micDetail" class="mt8" style="font-size:12px;color:var(--muted)"></p>
+        </div>
+      </div>
+
+      <!-- ── Check 5: Audio Latency ── -->
+      <div class="check-row" id="row5">
+        <div class="check-row-top">
+          <div>
+            <div class="check-label">Check 5 — Audio Latency <span style="color:var(--warn);font-size:10px;vertical-align:middle;">Recommended</span></div>
+            <div class="check-desc">Does audio start quickly enough?</div>
+          </div>
+          <span class="check-badge badge-pending" id="badge5">⏳ Pending</span>
+        </div>
+        <div class="check-row-controls">
+          <button class="btn btn-outline btn-small" id="runLatencyBtn" onclick="runLatencyCheck()">▶ Measure latency</button>
+          <span id="check5Spinner" class="spinner hidden"></span>
+        </div>
+        <div class="check-detail hidden" id="detail5">
+          <p id="latencyDetail" style="font-size:12px;color:var(--muted)"></p>
+        </div>
+      </div>
+
+      <!-- Overall result chip -->
+      <div class="overall-chip" id="overallChip">
+        <span id="overallIcon">⏳</span>
+        <span id="overallText">Run checks to see your device status</span>
+      </div>
+
+    </div><!-- /check-container -->
+  </div><!-- /page-body -->
+</div><!-- /tab1 -->
+
+<!-- ═══════════════════════════════════════════
+     TAB 2 — Results & Recommendations
+═══════════════════════════════════════════ -->
+<div id="tab2" class="tab-panel">
+  <div class="page-body">
+    <div id="resultsContent">
+      <div class="pending-placeholder">
+        <div class="icon">📋</div>
+        <p>Run the checks in <strong style="color:var(--text)">Voice Check Panel</strong> first.</p>
+        <p class="mt8">Your results and recommendations will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 3 — Spec
+═══════════════════════════════════════════ -->
+<div id="tab3" class="tab-panel">
+  <div class="page-body">
+
+    <div class="spec-section">
+      <h3>Voice Check Thresholds</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Method</th>
+            <th>Pass threshold</th>
+            <th>Required</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Playback</td>
+            <td>Web Audio API oscillator</td>
+            <td>User confirms sound heard</td>
+            <td class="req-yes">Yes</td>
+          </tr>
+          <tr>
+            <td>Readout</td>
+            <td>SpeechSynthesis.speak()</td>
+            <td>Utterance starts without error</td>
+            <td class="req-yes">Yes</td>
+          </tr>
+          <tr>
+            <td>Volume</td>
+            <td>AnalyserNode getByteFrequencyData()</td>
+            <td>Peak amplitude &gt; 0.3</td>
+            <td class="req-yes">Yes</td>
+          </tr>
+          <tr>
+            <td>Mic</td>
+            <td>getUserMedia({audio:true})</td>
+            <td>No error thrown</td>
+            <td class="req-no">No</td>
+          </tr>
+          <tr>
+            <td>Latency</td>
+            <td>audioCtx.currentTime delta</td>
+            <td>≤ 300ms</td>
+            <td class="req-rec">Recommended</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Storage Schema</h3>
+      <pre>-- Stored as part of beta_device_checks
+check_results JSONB: {
+  "voice_playback":  { "status": "pass", "checked_at": "..." },
+  "voice_readout":   { "status": "warn", "value": "tts_only", "checked_at": "..." },
+  "voice_volume":    { "status": "pass", "lufs": -18.4, "checked_at": "..." },
+  "voice_mic":       { "status": "warn", "value": "permission_denied", "checked_at": "..." },
+  "voice_latency":   { "status": "pass", "ms": 124, "checked_at": "..." }
+}</pre>
+    </div>
+
+    <div class="spec-section">
+      <h3>Notes</h3>
+      <table>
+        <tbody>
+          <tr>
+            <td style="color:var(--muted);width:180px">Audio context</td>
+            <td>Created on first user gesture to comply with autoplay policies. Shared across checks.</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">LUFS estimation</td>
+            <td>Approximated from AnalyserNode peak amplitude; not a true LUFS meter (no K-weighting). Sufficient for go/no-go level check.</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Mic permission</td>
+            <td>getUserMedia is optional. If denied, only the voice-answer feature is affected. Core play is unaffected.</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">Latency baseline</td>
+            <td>300ms target matches Chrome's typical AudioContext startup. High latency may cause perceptible delay on first question playback.</td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">No timer</td>
+            <td>This tool has no countdown or auto-expiry. Beta testers can re-run at any point.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   Tab switching
+══════════════════════════════════════════════ */
+function showTab(t) {
+  document.querySelectorAll('.tab-panel').forEach((p,i) => {
+    p.classList.toggle('active', i+1 === t);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', i+1 === t);
+  });
+}
+
+/* ══════════════════════════════════════════════
+   Device info
+══════════════════════════════════════════════ */
+(function detectDevice() {
+  const ua = navigator.userAgent;
+  let browser = 'Browser';
+  const bm = ua.match(/(Chrome|Firefox|Safari|Edg|OPR)\/(\d+)/);
+  if (bm) browser = bm[1].replace('Edg','Edge').replace('OPR','Opera') + ' ' + bm[2];
+  let os = 'OS unknown';
+  if (/Mac OS X ([\d_]+)/.test(ua)) os = 'macOS ' + RegExp.$1.replace(/_/g,'.');
+  else if (/Windows NT ([\d.]+)/.test(ua)) os = 'Windows ' + RegExp.$1;
+  else if (/Android ([\d.]+)/.test(ua)) os = 'Android ' + RegExp.$1;
+  else if (/iPhone OS ([\d_]+)/.test(ua)) os = 'iOS ' + RegExp.$1.replace(/_/g,'.');
+  else if (/Linux/.test(ua)) os = 'Linux';
+  document.getElementById('deviceInfo').textContent =
+    browser + ' · ' + os + ' · WonderQuest v2.5.9-beta';
+})();
+
+/* ══════════════════════════════════════════════
+   State
+══════════════════════════════════════════════ */
+const results = {
+  voice_playback: null,
+  voice_readout:  null,
+  voice_volume:   null,
+  voice_mic:      null,
+  voice_latency:  null
+};
+
+let audioCtx = null;
+let analyser = null;
+let micStream = null;
+let micAnimFrame = null;
+
+function getAudioCtx() {
+  if (!audioCtx || audioCtx.state === 'closed') {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+/* ══════════════════════════════════════════════
+   Badge helpers
+══════════════════════════════════════════════ */
+function setBadge(n, status, label) {
+  const el = document.getElementById('badge' + n);
+  el.className = 'check-badge badge-' + status;
+  el.textContent = label;
+}
+
+function setRowStatus(n, status) {
+  const row = document.getElementById('row' + n);
+  row.className = 'check-row ' + (status === 'pending' ? '' : status);
+}
+
+function showDetail(n) {
+  document.getElementById('detail' + n).classList.remove('hidden');
+}
+
+function showSpinner(n, show) {
+  document.getElementById('check' + n + 'Spinner').classList.toggle('hidden', !show);
+}
+
+/* ══════════════════════════════════════════════
+   Check 1 — Audio Playback
+══════════════════════════════════════════════ */
+let peakAmplitude = 0;
+
+function playTestTone() {
+  const btn = document.getElementById('playToneBtn');
+  btn.disabled = true;
+  showSpinner(1, true);
+  showDetail(1);
+
+  const ctx = getAudioCtx();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  const bufLen = analyser.frequencyBinCount;
+  const dataArr = new Uint8Array(bufLen);
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 0.05);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.95);
+
+  osc.type = 'sine';
+  osc.frequency.value = 440;
+  osc.connect(gain);
+  gain.connect(analyser);
+  analyser.connect(ctx.destination);
+
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 1);
+
+  peakAmplitude = 0;
+  const sampleInterval = setInterval(() => {
+    analyser.getByteFrequencyData(dataArr);
+    const peak = Math.max(...dataArr) / 255;
+    if (peak > peakAmplitude) peakAmplitude = peak;
+  }, 50);
+
+  osc.onended = () => {
+    clearInterval(sampleInterval);
+    showSpinner(1, false);
+    btn.disabled = false;
+    const lufsEst = peakAmplitude > 0.01
+      ? (-20 * Math.log10(1 / peakAmplitude)).toFixed(1)
+      : null;
+    document.getElementById('lufsReadout').textContent = lufsEst
+      ? `Estimated level: ${lufsEst} dBFS peak`
+      : 'Could not measure level (audio may be silent)';
+  };
+}
+
+function confirmTone(heard) {
+  const yBtn = document.querySelector('.confirm-btn.yes');
+  const nBtn = document.querySelector('.confirm-btn.no');
+  yBtn.classList.toggle('selected-yes', heard);
+  nBtn.classList.toggle('selected-no', !heard);
+
+  if (heard) {
+    setBadge(1, 'pass', '✅ Pass');
+    setRowStatus(1, 'pass');
+    results.voice_playback = { status: 'pass', checked_at: new Date().toISOString() };
+  } else {
+    setBadge(1, 'fail', '❌ Fail');
+    setRowStatus(1, 'fail');
+    results.voice_playback = { status: 'fail', checked_at: new Date().toISOString() };
+  }
+  updateOverall();
+  updateResultsTab();
+}
+
+/* ══════════════════════════════════════════════
+   Check 2 — Question Readout (TTS)
+══════════════════════════════════════════════ */
+function playReadout() {
+  const btn = document.getElementById('playReadoutBtn');
+  btn.disabled = true;
+  showSpinner(2, true);
+  showDetail(2);
+
+  const synth = window.speechSynthesis;
+  if (!synth) {
+    showSpinner(2, false);
+    btn.disabled = false;
+    setBadge(2, 'fail', '❌ Fail');
+    setRowStatus(2, 'fail');
+    document.getElementById('readoutDetail').textContent =
+      'Web Speech API not available on this browser.';
+    results.voice_readout = { status: 'fail', value: 'no_tts', checked_at: new Date().toISOString() };
+    updateOverall();
+    updateResultsTab();
+    return;
+  }
+
+  const utt = new SpeechSynthesisUtterance('How many apples are in the basket?');
+  utt.lang = 'en-US';
+  utt.rate = 0.9;
+
+  utt.onstart = () => {
+    showSpinner(2, false);
+    btn.disabled = false;
+    setBadge(2, 'warn', '⚠ TTS only');
+    setRowStatus(2, 'warn');
+    document.getElementById('readoutDetail').textContent =
+      'TTS active (no pre-recorded audio). Speech synthesis is available — questions will be read aloud.';
+    results.voice_readout = { status: 'warn', value: 'tts_only', checked_at: new Date().toISOString() };
+    updateOverall();
+    updateResultsTab();
+  };
+
+  utt.onerror = (e) => {
+    showSpinner(2, false);
+    btn.disabled = false;
+    setBadge(2, 'fail', '❌ Fail');
+    setRowStatus(2, 'fail');
+    document.getElementById('readoutDetail').textContent =
+      'Speech synthesis error: ' + e.error;
+    results.voice_readout = { status: 'fail', value: e.error, checked_at: new Date().toISOString() };
+    updateOverall();
+    updateResultsTab();
+  };
+
+  synth.speak(utt);
+
+  // Fallback if onstart never fires (some browsers)
+  setTimeout(() => {
+    if (!results.voice_readout) {
+      showSpinner(2, false);
+      btn.disabled = false;
+      setBadge(2, 'warn', '⚠ TTS only');
+      setRowStatus(2, 'warn');
+      document.getElementById('readoutDetail').textContent =
+        'Speech synthesis triggered (no pre-recorded audio available).';
+      results.voice_readout = { status: 'warn', value: 'tts_only', checked_at: new Date().toISOString() };
+      updateOverall();
+      updateResultsTab();
+    }
+  }, 1500);
+}
+
+/* ══════════════════════════════════════════════
+   Check 3 — Audio Volume Level
+══════════════════════════════════════════════ */
+function runVolumeCheck() {
+  const btn = document.getElementById('runVolumeBtn');
+  btn.disabled = true;
+  showSpinner(3, true);
+  showDetail(3);
+  document.getElementById('retestVolumeBtn').classList.add('hidden');
+
+  const bars = ['lBar1','lBar2','lBar3','lBar4','lBar5'];
+  bars.forEach(id => {
+    const b = document.getElementById(id);
+    b.style.height = '8px';
+    b.style.background = 'var(--pending)';
+    b.classList.add('animating');
+  });
+  document.getElementById('lufsMeterLabel').textContent = 'Measuring…';
+
+  const ctx = getAudioCtx();
+  const analyserV = ctx.createAnalyser();
+  analyserV.fftSize = 256;
+  const bufLen = analyserV.frequencyBinCount;
+  const dataArr = new Uint8Array(bufLen);
+
+  const osc = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+  gainNode.gain.setValueAtTime(0, ctx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+  gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.75);
+
+  osc.type = 'sine';
+  osc.frequency.value = 440;
+  osc.connect(gainNode);
+  gainNode.connect(analyserV);
+  analyserV.connect(ctx.destination);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.8);
+
+  let peakV = 0;
+  const poll = setInterval(() => {
+    analyserV.getByteFrequencyData(dataArr);
+    const peak = Math.max(...dataArr) / 255;
+    if (peak > peakV) peakV = peak;
+
+    // animate bars
+    const filled = Math.ceil(peak * 5);
+    bars.forEach((id, i) => {
+      const b = document.getElementById(id);
+      const h = Math.max(6, Math.round((i < filled ? 0.4 + (peak * 0.6) : 0.15) * 32));
+      b.style.height = h + 'px';
+      b.style.background = peak > 0.3 ? 'var(--pass)' : peak > 0.1 ? 'var(--warn)' : 'var(--fail)';
+    });
+  }, 60);
+
+  osc.onended = () => {
+    clearInterval(poll);
+    bars.forEach(id => document.getElementById(id).classList.remove('animating'));
+
+    // Final bar display
+    const filled = Math.max(1, Math.ceil(peakV * 5));
+    bars.forEach((id, i) => {
+      const b = document.getElementById(id);
+      b.style.height = (i < filled ? Math.max(8, Math.round(peakV * 32)) : 6) + 'px';
+      b.style.background = peakV > 0.3 ? 'var(--pass)' : peakV > 0.1 ? 'var(--warn)' : 'var(--fail)';
+    });
+
+    const lufsEst = peakV > 0.001
+      ? Math.round(-20 * Math.log10(Math.max(peakV, 0.001)))
+      : null;
+    const lufsStr = lufsEst !== null ? `~${-lufsEst} dBFS` : 'n/a';
+
+    showSpinner(3, false);
+    btn.disabled = false;
+
+    if (peakV > 0.3) {
+      setBadge(3, 'pass', '✅ Pass');
+      setRowStatus(3, 'pass');
+      document.getElementById('lufsMeterLabel').textContent = lufsStr + ' — Good';
+      document.getElementById('volumeResult').textContent =
+        'Volume level is sufficient for children to hear clearly.';
+      results.voice_volume = { status: 'pass', lufs: lufsEst !== null ? -lufsEst : null, checked_at: new Date().toISOString() };
+    } else if (peakV > 0.05) {
+      setBadge(3, 'warn', '⚠ Low');
+      setRowStatus(3, 'warn');
+      document.getElementById('lufsMeterLabel').textContent = lufsStr + ' — Low';
+      document.getElementById('volumeResult').textContent =
+        'Volume may be too low. Turn up device volume to 80%+ and re-test.';
+      document.getElementById('retestVolumeBtn').classList.remove('hidden');
+      results.voice_volume = { status: 'warn', lufs: lufsEst !== null ? -lufsEst : null, checked_at: new Date().toISOString() };
+    } else {
+      setBadge(3, 'fail', '❌ Fail');
+      setRowStatus(3, 'fail');
+      document.getElementById('lufsMeterLabel').textContent = 'No signal detected';
+      document.getElementById('volumeResult').textContent =
+        'Audio level is too low or silent. Check device volume and audio output.';
+      document.getElementById('retestVolumeBtn').classList.remove('hidden');
+      results.voice_volume = { status: 'fail', lufs: null, checked_at: new Date().toISOString() };
+    }
+    updateOverall();
+    updateResultsTab();
+  };
+}
+
+/* ══════════════════════════════════════════════
+   Check 4 — Microphone
+══════════════════════════════════════════════ */
+let waveformCtx = null;
+
+function testMicrophone() {
+  const btn = document.getElementById('testMicBtn');
+  btn.disabled = true;
+  showSpinner(4, true);
+  showDetail(4);
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showSpinner(4, false);
+    btn.disabled = false;
+    setBadge(4, 'warn', '⚠ No mic API');
+    setRowStatus(4, 'warn');
+    document.getElementById('micDetail').textContent =
+      'getUserMedia not available on this device/browser. Voice answer feature won\'t work.';
+    results.voice_mic = { status: 'warn', value: 'no_api', checked_at: new Date().toISOString() };
+    updateOverall();
+    updateResultsTab();
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      showSpinner(4, false);
+      btn.disabled = false;
+      micStream = stream;
+
+      // Show waveform
+      const wrap = document.getElementById('waveformWrap');
+      wrap.classList.remove('hidden');
+      const canvas = document.getElementById('waveformCanvas');
+      waveformCtx = canvas.getContext('2d');
+
+      const micCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = micCtx.createMediaStreamSource(stream);
+      const micAnalyser = micCtx.createAnalyser();
+      micAnalyser.fftSize = 512;
+      source.connect(micAnalyser);
+      const buf = new Uint8Array(micAnalyser.frequencyBinCount);
+
+      function drawWave() {
+        micAnalyser.getByteTimeDomainData(buf);
+        const w = canvas.width, h = canvas.height;
+        waveformCtx.fillStyle = 'rgba(22,27,34,0.8)';
+        waveformCtx.fillRect(0, 0, w, h);
+        waveformCtx.beginPath();
+        waveformCtx.strokeStyle = '#50e890';
+        waveformCtx.lineWidth = 1.5;
+        const step = w / buf.length;
+        for (let i = 0; i < buf.length; i++) {
+          const y = (buf[i] / 255) * h;
+          i === 0 ? waveformCtx.moveTo(i * step, y) : waveformCtx.lineTo(i * step, y);
+        }
+        waveformCtx.stroke();
+        micAnimFrame = requestAnimationFrame(drawWave);
+      }
+      drawWave();
+
+      setBadge(4, 'pass', '✅ Available');
+      setRowStatus(4, 'pass');
+      document.getElementById('micDetail').textContent =
+        'Microphone active — live waveform shown above. Voice answer feature will work.';
+      results.voice_mic = { status: 'pass', checked_at: new Date().toISOString() };
+
+      // Auto-stop after 5s
+      setTimeout(() => {
+        if (micAnimFrame) cancelAnimationFrame(micAnimFrame);
+        stream.getTracks().forEach(t => t.stop());
+        document.getElementById('micDetail').textContent =
+          'Microphone test complete. Voice answer feature is available on this device.';
+      }, 5000);
+
+      updateOverall();
+      updateResultsTab();
+    })
+    .catch(err => {
+      showSpinner(4, false);
+      btn.disabled = false;
+      let detail = '';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setBadge(4, 'warn', '⚠ Permission denied');
+        setRowStatus(4, 'warn');
+        detail = 'Microphone permission denied. Voice answer feature won\'t work, but all other features are unaffected.';
+        results.voice_mic = { status: 'warn', value: 'permission_denied', checked_at: new Date().toISOString() };
+      } else if (err.name === 'NotFoundError') {
+        setBadge(4, 'warn', '⚠ No mic found');
+        setRowStatus(4, 'warn');
+        detail = 'No microphone detected on this device. Voice answer feature won\'t work — that\'s fine for most test sessions.';
+        results.voice_mic = { status: 'warn', value: 'no_mic', checked_at: new Date().toISOString() };
+      } else {
+        setBadge(4, 'warn', '⚠ Error');
+        setRowStatus(4, 'warn');
+        detail = 'Mic error: ' + err.message;
+        results.voice_mic = { status: 'warn', value: err.name, checked_at: new Date().toISOString() };
+      }
+      document.getElementById('micDetail').textContent = detail;
+      updateOverall();
+      updateResultsTab();
+    });
+}
+
+/* ══════════════════════════════════════════════
+   Check 5 — Audio Latency
+══════════════════════════════════════════════ */
+function runLatencyCheck() {
+  const btn = document.getElementById('runLatencyBtn');
+  btn.disabled = true;
+  showSpinner(5, true);
+  showDetail(5);
+
+  const ctx = getAudioCtx();
+
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.001, ctx.currentTime);
+  osc.connect(g);
+  g.connect(ctx.destination);
+
+  const t0 = performance.now();
+  const schedTime = ctx.currentTime + 0.001;
+  osc.start(schedTime);
+  osc.stop(schedTime + 0.1);
+
+  let measured = false;
+  const poll = setInterval(() => {
+    if (ctx.currentTime >= schedTime && !measured) {
+      measured = true;
+      const latencyMs = Math.round(performance.now() - t0);
+      clearInterval(poll);
+
+      showSpinner(5, false);
+      btn.disabled = false;
+
+      if (latencyMs <= 300) {
+        setBadge(5, 'pass', '✅ Pass');
+        setRowStatus(5, 'pass');
+        document.getElementById('latencyDetail').textContent =
+          `Measured ${latencyMs}ms — audio starts quickly. Within the 300ms target.`;
+        results.voice_latency = { status: 'pass', ms: latencyMs, checked_at: new Date().toISOString() };
+      } else {
+        setBadge(5, 'warn', '⚠ High latency');
+        setRowStatus(5, 'warn');
+        document.getElementById('latencyDetail').textContent =
+          `Measured ${latencyMs}ms — above the 300ms target. Audio may feel slightly delayed on first playback.`;
+        results.voice_latency = { status: 'warn', ms: latencyMs, checked_at: new Date().toISOString() };
+      }
+      updateOverall();
+      updateResultsTab();
+    }
+  }, 10);
+
+  // Timeout fallback
+  setTimeout(() => {
+    if (!measured) {
+      clearInterval(poll);
+      measured = true;
+      const latencyMs = Math.round(performance.now() - t0);
+      showSpinner(5, false);
+      btn.disabled = false;
+      setBadge(5, 'warn', '⚠ Uncertain');
+      document.getElementById('latencyDetail').textContent =
+        `Could not precisely measure latency (approx ${latencyMs}ms). AudioContext may be slow to start.`;
+      results.voice_latency = { status: 'warn', ms: latencyMs, checked_at: new Date().toISOString() };
+      updateOverall();
+      updateResultsTab();
+    }
+  }, 2000);
+}
+
+/* ══════════════════════════════════════════════
+   Run All Checks (sequential, 500ms gaps)
+══════════════════════════════════════════════ */
+function runAllChecks() {
+  const btn = document.getElementById('runAllBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running checks…';
+
+  // Chain: tone plays → auto-confirm heard if amplitude ok, then proceed
+  playTestTone();
+
+  setTimeout(() => {
+    // Auto-confirm "heard" if amplitude looks ok, otherwise leave for user
+    if (peakAmplitude > 0.05) {
+      confirmTone(true);
+    }
+    playReadout();
+  }, 1600);
+
+  setTimeout(() => { runVolumeCheck(); }, 3000);
+  setTimeout(() => { testMicrophone(); }, 4500);
+  setTimeout(() => { runLatencyCheck(); }, 6500);
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '▶ Run All Checks';
+  }, 9000);
+}
+
+/* ══════════════════════════════════════════════
+   Overall result chip
+══════════════════════════════════════════════ */
+function updateOverall() {
+  const required = [results.voice_playback, results.voice_readout, results.voice_volume];
+  const allDone = required.every(r => r !== null);
+  if (!allDone) return;
+
+  const allRequiredPass = required.every(r => r && (r.status === 'pass' || r.status === 'warn'));
+  const anyRequiredFail = required.some(r => r && r.status === 'fail');
+  const hasWarn = Object.values(results).some(r => r && r.status === 'warn');
+
+  const chip = document.getElementById('overallChip');
+  if (anyRequiredFail) {
+    chip.className = 'overall-chip issues';
+    document.getElementById('overallIcon').textContent = '❌';
+    document.getElementById('overallText').textContent = 'Audio issues detected — see Results tab';
+  } else if (hasWarn) {
+    chip.className = 'overall-chip partial';
+    document.getElementById('overallIcon').textContent = '⚠';
+    document.getElementById('overallText').textContent = 'Partial — see Results & Recommendations';
+  } else if (allRequiredPass) {
+    chip.className = 'overall-chip ready';
+    document.getElementById('overallIcon').textContent = '✅';
+    document.getElementById('overallText').textContent = 'Ready to test!';
+  }
+}
+
+/* ══════════════════════════════════════════════
+   Results tab content
+══════════════════════════════════════════════ */
+function updateResultsTab() {
+  const required = [results.voice_playback, results.voice_readout, results.voice_volume];
+  if (!required.every(r => r !== null)) return;
+
+  const anyFail = required.some(r => r && r.status === 'fail');
+  const volumeLow = results.voice_volume && results.voice_volume.status === 'warn';
+  const micUnavail = results.voice_mic && results.voice_mic.status !== 'pass';
+  const latencyHigh = results.voice_latency && results.voice_latency.status === 'warn';
+  const playbackFail = results.voice_playback && results.voice_playback.status === 'fail';
+  const readoutFail = results.voice_readout && results.voice_readout.status === 'fail';
+
+  let html = '';
+
+  // ── Pass card ──
+  if (!anyFail && !volumeLow) {
+    html += `<div class="result-card pass-card">
+      <h3 style="color:var(--pass)">✅ Your device is ready for voice testing!</h3>
+      <p>All required audio checks passed. You're good to go.</p>
+    </div>`;
+    if (micUnavail) {
+      const val = results.voice_mic ? results.voice_mic.value : '';
+      const micMsg = val === 'permission_denied'
+        ? 'Microphone permission was denied — voice answer feature won\'t be testable on this device. That\'s fine!'
+        : 'Microphone not available on this device — voice answer feature won\'t be testable here. That\'s fine!';
+      html += `<div class="info-note">ℹ <strong>Note:</strong> ${micMsg}</div>`;
+    }
+    if (latencyHigh && results.voice_latency) {
+      html += `<div class="info-note" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07)">
+        ⚠ <strong>Note:</strong> Audio latency is ${results.voice_latency.ms}ms — slightly above the 300ms target.
+        First question playback may feel marginally delayed. Not a blocker for testing.
+      </div>`;
+    }
+  }
+
+  // ── Volume warn card ──
+  if (volumeLow && !playbackFail && !readoutFail) {
+    html += `<div class="result-card warn-card">
+      <h3 style="color:var(--warn)">⚠ Audio detected but volume may be too low</h3>
+      <p>Before your session: turn device volume to 80%+ or use external speakers.</p>
+      <p>Children may struggle to hear questions at current volume.</p>
+    </div>
+    <button class="btn btn-amber mt12" onclick="showTab(1);document.getElementById('runVolumeBtn').scrollIntoView({behavior:'smooth'})">
+      🔁 Re-run checks after adjusting
+    </button>`;
+    if (micUnavail) {
+      html += `<div class="info-note mt12">ℹ <strong>Note:</strong> Microphone optional — voice answer feature won't be testable on this device. That's fine!</div>`;
+    }
+  }
+
+  // ── Fail cards ──
+  if (playbackFail) {
+    html += `<div class="result-card fail-card">
+      <h3 style="color:var(--fail)">❌ Audio playback failed</h3>
+      <p>WonderQuest requires working audio for a full testing experience.</p>
+      <ul>
+        <li>Check if device is muted (look for the mute switch on iPad/iPhone)</li>
+        <li>Try a different browser (Chrome is recommended)</li>
+        <li>If using a Chromebook, check system audio settings</li>
+        <li>Contact beta support: <a href="mailto:beta@wonderquest.com">beta@wonderquest.com</a></li>
+      </ul>
+    </div>`;
+  }
+
+  if (readoutFail) {
+    html += `<div class="result-card fail-card">
+      <h3 style="color:var(--fail)">❌ Question readout (TTS) failed</h3>
+      <p>Web Speech API is unavailable or errored on this browser/device.</p>
+      <ul>
+        <li>Try Chrome on desktop or Android — it has the best TTS support</li>
+        <li>On iOS: ensure "Speak Selection" is enabled in Accessibility settings</li>
+        <li>Contact beta support: <a href="mailto:beta@wonderquest.com">beta@wonderquest.com</a></li>
+      </ul>
+    </div>`;
+  }
+
+  // ── Summary table ──
+  html += `<div style="margin-top:20px">
+    <h3 style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Check Summary</h3>
+    <table>
+      <thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead>
+      <tbody>
+        ${summaryRow('Audio Playback', results.voice_playback)}
+        ${summaryRow('Question Readout', results.voice_readout)}
+        ${summaryRow('Volume Level', results.voice_volume)}
+        ${summaryRow('Microphone', results.voice_mic)}
+        ${summaryRow('Latency', results.voice_latency)}
+      </tbody>
+    </table>
+  </div>`;
+
+  document.getElementById('resultsContent').innerHTML = html;
+}
+
+function summaryRow(label, r) {
+  if (!r) return `<tr><td>${label}</td><td><span style="color:var(--muted)">—</span></td><td style="color:var(--muted)">Not run</td></tr>`;
+  const icons = { pass: '✅', warn: '⚠️', fail: '❌' };
+  const colors = { pass: 'var(--pass)', warn: 'var(--warn)', fail: 'var(--fail)' };
+  const icon = icons[r.status] || '—';
+  const color = colors[r.status] || 'var(--muted)';
+  const detail = r.value ? r.value : (r.ms ? r.ms + 'ms' : r.lufs != null ? r.lufs + ' dBFS' : '');
+  return `<tr>
+    <td>${label}</td>
+    <td style="color:${color};font-weight:600">${icon} ${r.status}</td>
+    <td style="color:var(--muted)">${detail || '—'}</td>
+  </tr>`;
+}
+
+/* ══════════════════════════════════════════════
+   Download report
+══════════════════════════════════════════════ */
+function downloadReport() {
+  const ts = new Date().toISOString();
+  const device = document.getElementById('deviceInfo').textContent;
+  const payload = {
+    generated_at: ts,
+    device: device,
+    check_category: 'voice',
+    check_results: {
+      voice_playback: results.voice_playback || { status: 'not_run' },
+      voice_readout:  results.voice_readout  || { status: 'not_run' },
+      voice_volume:   results.voice_volume   || { status: 'not_run' },
+      voice_mic:      results.voice_mic      || { status: 'not_run' },
+      voice_latency:  results.voice_latency  || { status: 'not_run' }
+    }
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'wq-voice-check-' + ts.replace(/[:.]/g,'-') + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Voice Guide Selector v2 – WonderQuest Child</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#1a1240;border-bottom:2px solid #2a1f5e;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 14px;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;color:#9b72ff;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#ffd166;border-bottom-color:#ffd166}
+.screen{display:none;padding:20px 16px;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Voice Picker */
+.page-title{font-size:22px;font-weight:900;color:#ffd166;margin-bottom:6px}
+.page-sub{font-size:13px;color:#9b8ec4;margin-bottom:20px}
+.coach-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.coach-card{background:#1a1240;border:2.5px solid #2a1f5e;border-radius:18px;padding:18px 12px;text-align:center;cursor:pointer;transition:all 0.25s;position:relative}
+.coach-card:hover{border-color:#9b72ff;transform:translateY(-2px)}
+.coach-card.selected{border-color:#ffd166;background:#221a50;box-shadow:0 0 18px rgba(255,209,102,0.35)}
+.coach-card.selected::after{content:'✓';position:absolute;top:8px;right:10px;font-size:14px;color:#ffd166;font-weight:900}
+.coach-emoji{font-size:42px;margin-bottom:10px;display:block}
+.coach-name{font-size:16px;font-weight:900;color:#fff;margin-bottom:4px}
+.coach-vibe{font-size:11px;color:#9b8ec4;line-height:1.4}
+.hear-btn{width:100%;margin-top:10px;background:#9b72ff;border:none;border-radius:10px;padding:8px;color:#fff;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;cursor:pointer;transition:background 0.2s}
+.hear-btn:hover{background:#b08aff}
+.hear-btn:active{background:#7a52d4}
+
+/* Selected Preview */
+.selected-banner{background:linear-gradient(135deg,#221a50,#1a1240);border:2px solid #ffd166;border-radius:20px;padding:24px;text-align:center;margin-bottom:20px}
+.selected-banner .big-emoji{font-size:72px;margin-bottom:12px}
+.selected-banner h2{font-size:24px;font-weight:900;color:#ffd166;margin-bottom:6px}
+.selected-banner p{font-size:13px;color:#c8b8f0;line-height:1.6}
+.trait-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.trait-pill{background:#2a1f5e;border-radius:20px;padding:5px 12px;font-size:12px;color:#9b72ff;font-weight:700}
+.preview-says{background:#1a1240;border-radius:14px;padding:16px;margin-bottom:20px;border-left:4px solid #9b72ff}
+.preview-says .label{font-size:10px;color:#9b72ff;font-weight:900;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.preview-says p{font-size:15px;color:#fff;line-height:1.6;font-weight:700}
+.play-voice-btn{width:100%;background:linear-gradient(135deg,#ffd166,#ffb300);border:none;border-radius:14px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* Voice in Play */
+.question-scene{background:#1a1240;border-radius:20px;padding:20px;margin-bottom:16px;text-align:center}
+.coach-bubble{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.coach-avatar{font-size:36px;flex-shrink:0;background:#221a50;border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;border:2px solid #9b72ff}
+.speech-bubble{background:#221a50;border-radius:16px 16px 16px 4px;padding:12px 14px;flex:1;border:1.5px solid #2a1f5e}
+.speech-bubble p{font-size:14px;color:#fff;line-height:1.5;font-weight:700}
+.question-box{background:#2a1f5e;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px}
+.question-box .q-label{font-size:11px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.question-box .q-text{font-size:18px;font-weight:900;color:#ffd166}
+.answer-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer-card{background:#1a1240;border:2px solid #2a1f5e;border-radius:14px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s}
+.answer-card:hover{border-color:#9b72ff;background:#221a50}
+.answer-card .ans-emoji{font-size:26px;margin-bottom:6px}
+.answer-card .ans-text{font-size:13px;font-weight:900;color:#fff}
+
+/* Change Voice */
+.change-intro{font-size:14px;color:#9b8ec4;margin-bottom:16px;line-height:1.5}
+.voice-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.voice-row{display:flex;align-items:center;gap:14px;background:#1a1240;border:2px solid #2a1f5e;border-radius:14px;padding:14px;cursor:pointer;transition:all 0.2s}
+.voice-row:hover{border-color:#9b72ff}
+.voice-row.current{border-color:#ffd166;background:#221a50}
+.voice-row .v-emoji{font-size:30px}
+.voice-row .v-info{flex:1}
+.voice-row .v-name{font-size:15px;font-weight:900;color:#fff}
+.voice-row .v-desc{font-size:11px;color:#9b8ec4;margin-top:2px}
+.voice-row .v-badge{background:#ffd166;color:#100b2e;font-size:10px;font-weight:900;border-radius:8px;padding:2px 8px}
+.confirm-btn{width:100%;background:#9b72ff;border:none;border-radius:14px;padding:14px;color:#fff;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;cursor:pointer}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2a1f5e;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1a1240;font-size:12px}
+.spec-row .spec-key{color:#9b8ec4;font-weight:700;flex:0 0 120px}
+.spec-row .spec-val{color:#e0d8ff;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#1a1240;border-radius:10px;padding:12px;font-size:11px;color:#9b8ec4;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('picker')">Voice Picker</button>
+  <button class="tab" onclick="show('preview')">Selected Preview</button>
+  <button class="tab" onclick="show('inplay')">Voice in Play</button>
+  <button class="tab" onclick="show('change')">Change Voice</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Voice Picker -->
+<div id="picker" class="screen active">
+  <div class="hint-box">Route: /play/setup/voice-guide — child picks a coach persona before or during session setup. <span>Persists to profile.</span></div>
+  <div class="page-title">Pick Your Guide!</div>
+  <div class="page-sub">Who do you want to adventure with?</div>
+  <div class="coach-grid">
+    <div class="coach-card selected" onclick="selectCoach(this)">
+      <span class="coach-emoji">🦉</span>
+      <div class="coach-name">Ollie Owl</div>
+      <div class="coach-vibe">Calm, curious, loves asking questions</div>
+      <button class="hear-btn">🔊 Hear Me</button>
+    </div>
+    <div class="coach-card" onclick="selectCoach(this)">
+      <span class="coach-emoji">🦊</span>
+      <div class="coach-name">Finn Fox</div>
+      <div class="coach-vibe">Playful, silly, always cheering you on</div>
+      <button class="hear-btn">🔊 Hear Me</button>
+    </div>
+    <div class="coach-card" onclick="selectCoach(this)">
+      <span class="coach-emoji">🐻</span>
+      <div class="coach-name">Benny Bear</div>
+      <div class="coach-vibe">Warm, cozy, makes everything feel safe</div>
+      <button class="hear-btn">🔊 Hear Me</button>
+    </div>
+    <div class="coach-card" onclick="selectCoach(this)">
+      <span class="coach-emoji">🐰</span>
+      <div class="coach-name">Luna Bunny</div>
+      <div class="coach-vibe">Bubbly, imaginative, loves surprises</div>
+      <button class="hear-btn">🔊 Hear Me</button>
+    </div>
+  </div>
+  <button class="confirm-btn" style="width:100%;background:linear-gradient(135deg,#ffd166,#ffb300);border:none;border-radius:14px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer">
+    Adventure with Ollie! 🦉
+  </button>
+</div>
+
+<!-- TAB 2: Selected Preview -->
+<div id="preview" class="screen">
+  <div class="hint-box">Route: /play/setup/voice-guide/preview — shown after tapping a coach to hear more about them.</div>
+  <div class="selected-banner">
+    <div class="big-emoji">🦉</div>
+    <h2>Ollie Owl</h2>
+    <p>Your wise and curious adventure guide through every WonderQuest quest!</p>
+    <div class="trait-row">
+      <span class="trait-pill">Calm</span>
+      <span class="trait-pill">Curious</span>
+      <span class="trait-pill">Encouraging</span>
+      <span class="trait-pill">Gentle</span>
+    </div>
+  </div>
+  <div class="preview-says">
+    <div class="label">Ollie says…</div>
+    <p>"Whoooo's ready for an amazing adventure today? Let's discover something wonderful together!"</p>
+  </div>
+  <button class="play-voice-btn">🔊 Hear Ollie's Voice</button>
+  <div style="height:12px"></div>
+  <button onclick="show('picker')" style="width:100%;background:#2a1f5e;border:none;border-radius:14px;padding:14px;color:#9b72ff;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;cursor:pointer">← See All Guides</button>
+</div>
+
+<!-- TAB 3: Voice in Play -->
+<div id="inplay" class="screen">
+  <div class="hint-box">Route: /play/session — coach overlay during an active question. Ollie speaks the prompt aloud.</div>
+  <div class="coach-bubble">
+    <div class="coach-avatar">🦉</div>
+    <div class="speech-bubble">
+      <p>Look at this picture! Can you find the one that starts with the letter B? Take your time! 🌟</p>
+    </div>
+  </div>
+  <div class="question-box">
+    <div class="q-label">Which one starts with B?</div>
+    <div class="q-text" style="font-size:48px;margin-top:8px">🐝 🐟 🌸 🦋</div>
+  </div>
+  <div class="answer-row">
+    <div class="answer-card">
+      <div class="ans-emoji">🐝</div>
+      <div class="ans-text">Bee</div>
+    </div>
+    <div class="answer-card">
+      <div class="ans-emoji">🐟</div>
+      <div class="ans-text">Fish</div>
+    </div>
+    <div class="answer-card">
+      <div class="ans-emoji">🌸</div>
+      <div class="ans-text">Flower</div>
+    </div>
+    <div class="answer-card">
+      <div class="ans-emoji">🦋</div>
+      <div class="ans-text">Butterfly</div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:16px">
+    <button style="background:none;border:1.5px solid #2a1f5e;border-radius:20px;padding:8px 18px;color:#9b72ff;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;cursor:pointer">🔊 Hear again</button>
+  </div>
+</div>
+
+<!-- TAB 4: Change Voice -->
+<div id="change" class="screen">
+  <div class="hint-box">Route: /play/settings/voice — change coach anytime from settings. Change takes effect on next question.</div>
+  <div class="page-title">Switch Guide</div>
+  <div class="change-intro">Want a different adventure buddy? Switch anytime — your progress stays safe!</div>
+  <div class="voice-list">
+    <div class="voice-row current">
+      <span class="v-emoji">🦉</span>
+      <div class="v-info">
+        <div class="v-name">Ollie Owl</div>
+        <div class="v-desc">Calm · Curious · Gentle</div>
+      </div>
+      <span class="v-badge">Now Playing</span>
+    </div>
+    <div class="voice-row">
+      <span class="v-emoji">🦊</span>
+      <div class="v-info">
+        <div class="v-name">Finn Fox</div>
+        <div class="v-desc">Playful · Silly · Hype</div>
+      </div>
+    </div>
+    <div class="voice-row">
+      <span class="v-emoji">🐻</span>
+      <div class="v-info">
+        <div class="v-name">Benny Bear</div>
+        <div class="v-desc">Warm · Cozy · Safe</div>
+      </div>
+    </div>
+    <div class="voice-row">
+      <span class="v-emoji">🐰</span>
+      <div class="v-info">
+        <div class="v-name">Luna Bunny</div>
+        <div class="v-desc">Bubbly · Imaginative · Fun</div>
+      </div>
+    </div>
+  </div>
+  <button class="confirm-btn">Keep Ollie Owl 🦉</button>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec and implementation notes for voice-guide-selector-v2.</div>
+  <div class="spec-section">
+    <h3>Component Identity</h3>
+    <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">child-voice-guide-selector-v2.html</span></div>
+    <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">Child (ages 4–8)</span></div>
+    <div class="spec-row"><span class="spec-key">Route</span><span class="spec-val">/play/setup/voice-guide</span></div>
+    <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Nunito 900</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Coaches</h3>
+    <div class="spec-row"><span class="spec-key">Ollie Owl</span><span class="spec-val">🦉 Calm, curious, gentle</span></div>
+    <div class="spec-row"><span class="spec-key">Finn Fox</span><span class="spec-val">🦊 Playful, silly, hype</span></div>
+    <div class="spec-row"><span class="spec-key">Benny Bear</span><span class="spec-val">🐻 Warm, cozy, safe</span></div>
+    <div class="spec-row"><span class="spec-key">Luna Bunny</span><span class="spec-val">🐰 Bubbly, imaginative</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Rules</h3>
+    <div class="spec-note">• No academic/grade language on coach cards — descriptors are personality-based only.<br>• Coach selection persists to user profile across sessions.<br>• "Hear Me" triggers TTS preview of coach greeting.<br>• Selected state: gold border + glow + checkmark badge.<br>• Change can happen anytime from /play/settings/voice.<br>• Coach avatar shown during all active question states.</div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['picker','preview','inplay','change','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+function selectCoach(el){
+  document.querySelectorAll('.coach-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+</script>
+</body>
+</html>

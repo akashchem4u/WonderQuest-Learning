@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Observation Log Panel — WonderQuest v2</title>
+<style>
+/* ──── ENG HINT ──── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px 18px;font-family:monospace;font-size:12px;line-height:1.7;margin-bottom:20px}
+.eng-hint strong{color:#7a5c00}
+
+/* ──── RESET ──── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;min-height:100vh;padding:24px;color:#f0f6ff}
+
+/* ──── TAB BAR ──── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px}
+.tab-btn{padding:9px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:system-ui;background:#161b22;color:#8b949e;border:1.5px solid rgba(255,255,255,.07);transition:all .18s}
+.tab-btn:hover{color:#f0f6ff;border-color:rgba(255,255,255,.15)}
+.tab-btn.active{background:#f59e0b;color:#0d1117;border-color:#f59e0b}
+.screen{display:none}
+.screen.active{display:block}
+
+/* ──── CARDS ──── */
+.form-card{background:#161b22;border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:28px 32px;max-width:600px;margin:0 auto}
+.card-wide{max-width:900px;margin:0 auto}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.card-title{font-size:18px;font-weight:800;color:#f0f6ff}
+.beta-week-chip{background:rgba(245,158,11,.15);border:1.5px solid #f59e0b;color:#f59e0b;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em}
+
+/* ──── FORM ELEMENTS ──── */
+.form-group{margin-bottom:20px}
+.form-label{font-size:12px;font-weight:700;color:#8b949e;margin-bottom:8px;display:block;letter-spacing:.03em;text-transform:uppercase}
+.form-label .req{color:#f59e0b;margin-left:2px}
+.form-input,.form-textarea,.form-select{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#f0f6ff;font-size:14px;font-family:system-ui;padding:10px 12px;transition:border-color .18s;outline:none}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.08)}
+.form-textarea{resize:vertical;min-height:100px;line-height:1.55}
+.form-select option{background:#161b22}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+.form-input::placeholder,.form-textarea::placeholder{color:#4d5566}
+
+/* ──── CHIPS ──── */
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:#8b949e;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s;line-height:1}
+.chip:hover{border-color:rgba(245,158,11,.5);color:#f0f6ff}
+.chip.sel{border-color:#f59e0b;background:rgba(245,158,11,.13);color:#f59e0b}
+.chip.sel-green{border-color:#50e890;background:rgba(80,232,144,.1);color:#50e890}
+
+/* ──── OBSERVATION TYPE CHIPS ──── */
+.obs-chip-group{display:flex;flex-wrap:wrap;gap:10px}
+.obs-chip{padding:9px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,.09);background:#0d1117;color:#8b949e;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s;text-align:left;display:flex;flex-direction:column;gap:2px}
+.obs-chip .oc-title{color:#f0f6ff;font-size:13px;font-weight:800}
+.obs-chip .oc-hint{font-size:11px;color:#8b949e;font-weight:500}
+.obs-chip:hover{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.04)}
+.obs-chip.sel-behaviour{border-color:#60a5fa;background:rgba(96,165,250,.1)}
+.obs-chip.sel-behaviour .oc-title{color:#60a5fa}
+.obs-chip.sel-engagement{border-color:#50e890;background:rgba(80,232,144,.08)}
+.obs-chip.sel-engagement .oc-title{color:#50e890}
+.obs-chip.sel-difficulty{border-color:#f85149;background:rgba(248,81,73,.08)}
+.obs-chip.sel-difficulty .oc-title{color:#f85149}
+.obs-chip.sel-confusion{border-color:#a78bfa;background:rgba(167,139,250,.08)}
+.obs-chip.sel-confusion .oc-title{color:#a78bfa}
+.obs-chip.sel-delight{border-color:#f59e0b;background:rgba(245,158,11,.1)}
+.obs-chip.sel-delight .oc-title{color:#f59e0b}
+
+/* ──── IMPACT CHIPS ──── */
+.impact-group{display:flex;gap:10px;flex-wrap:wrap}
+.impact-chip{padding:8px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,.09);background:transparent;color:#8b949e;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s;text-align:left;line-height:1.3}
+.impact-chip:hover{border-color:rgba(255,255,255,.2)}
+.impact-chip .ic-main{display:block;color:#f0f6ff}
+.impact-chip .ic-sub{display:block;font-weight:500;font-size:11px;margin-top:1px}
+.impact-chip.sel-low{border-color:#50e890;background:rgba(80,232,144,.1)}
+.impact-chip.sel-low .ic-main{color:#50e890}
+.impact-chip.sel-medium{border-color:#f59e0b;background:rgba(245,158,11,.1)}
+.impact-chip.sel-medium .ic-main{color:#f59e0b}
+.impact-chip.sel-high{border-color:#f85149;background:rgba(248,81,73,.1)}
+.impact-chip.sel-high .ic-main{color:#f85149}
+
+/* ──── TAG INPUT ──── */
+.tag-input-wrap{background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:border-color .18s;cursor:text}
+.tag-input-wrap:focus-within{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.08)}
+.tag-pill{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:#f59e0b;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.tag-pill-x{cursor:pointer;color:#f59e0b;opacity:.7;font-size:13px;line-height:1;padding:0 2px}
+.tag-pill-x:hover{opacity:1}
+.tag-real-input{background:transparent;border:none;outline:none;color:#f0f6ff;font-size:13px;font-family:system-ui;min-width:80px;flex:1;padding:2px 4px}
+.tag-real-input::placeholder{color:#4d5566}
+
+/* ──── ATTACH ZONE ──── */
+.attach-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.12);background:#0d1117;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui;transition:all .18s}
+.attach-btn:hover{border-color:rgba(245,158,11,.5);color:#f59e0b}
+.attach-preview{margin-top:10px;display:none;flex-direction:column;gap:6px}
+.attach-file-row{display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 12px}
+.attach-file-name{font-size:12px;color:#f0f6ff;flex:1}
+.attach-file-remove{color:#8b949e;cursor:pointer;font-size:16px;line-height:1}
+.attach-file-remove:hover{color:#f85149}
+#screenshot-input{display:none}
+
+/* ──── BUTTONS ──── */
+.btn-row{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.btn-primary{padding:11px 24px;background:#f59e0b;color:#0d1117;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;font-family:system-ui;transition:all .18s}
+.btn-primary:hover{background:#e08c00;transform:translateY(-1px)}
+.btn-secondary{padding:11px 24px;background:transparent;color:#8b949e;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.btn-secondary:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25)}
+.btn-ghost{padding:7px 12px;background:transparent;color:#8b949e;border:1px solid rgba(255,255,255,.08);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:system-ui;transition:all .18s}
+.btn-ghost:hover{color:#f0f6ff;border-color:rgba(255,255,255,.2)}
+.btn-ghost-red:hover{color:#f85149;border-color:rgba(248,81,73,.35)}
+.btn-ghost-amber:hover{color:#f59e0b;border-color:rgba(245,158,11,.35)}
+.form-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:24px 0}
+
+/* ──── SAVE TOAST ──── */
+.toast{position:fixed;bottom:28px;right:28px;background:#50e890;color:#0d1117;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;display:flex;align-items:center;gap:8px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ──── TAB 2 — OBSERVATION LIST ──── */
+.obs-list-wrap{max-width:900px;margin:0 auto}
+.filter-bar{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
+.filter-bar .filter-label{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.filter-select{background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#f0f6ff;font-size:13px;font-family:system-ui;padding:6px 10px;outline:none;cursor:pointer}
+.filter-select option{background:#161b22}
+.filter-search{flex:1;min-width:160px;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#f0f6ff;font-size:13px;font-family:system-ui;padding:7px 12px;outline:none}
+.filter-search:focus{border-color:#f59e0b}
+.filter-search::placeholder{color:#4d5566}
+
+/* Stats strip */
+.stats-strip{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:20px}
+.stat-item{font-size:13px;color:#8b949e}
+.stat-item strong{color:#f0f6ff;font-weight:800}
+.stat-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.stat-sep{color:rgba(255,255,255,.12);font-size:16px}
+
+/* Observation cards */
+.obs-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;transition:border-color .18s}
+.obs-card:hover{border-color:rgba(255,255,255,.12)}
+.obs-card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.obs-type-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.03em;white-space:nowrap}
+.obs-type-badge.behaviour{background:rgba(96,165,250,.12);color:#60a5fa}
+.obs-type-badge.engagement{background:rgba(80,232,144,.1);color:#50e890}
+.obs-type-badge.difficulty{background:rgba(248,81,73,.1);color:#f85149}
+.obs-type-badge.confusion{background:rgba(167,139,250,.1);color:#a78bfa}
+.obs-type-badge.delight{background:rgba(245,158,11,.12);color:#f59e0b}
+.obs-band-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:800;background:rgba(255,255,255,.06);color:#f0f6ff;letter-spacing:.04em}
+.obs-subj-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:600;background:#0d1117;color:#8b949e;border:1px solid rgba(255,255,255,.06)}
+.obs-spacer{flex:1}
+.obs-date{font-size:11px;color:#8b949e;white-space:nowrap}
+.obs-body{font-size:13px;color:#c9d1d9;line-height:1.55;margin-bottom:10px}
+.obs-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.obs-tag{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.obs-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.impact-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:800}
+.impact-badge.low{background:rgba(80,232,144,.1);color:#50e890}
+.impact-badge.medium{background:rgba(245,158,11,.12);color:#f59e0b}
+.impact-badge.high{background:rgba(248,81,73,.1);color:#f85149}
+.obs-actions{display:flex;gap:6px;margin-left:auto}
+
+/* Expanded body */
+.obs-body-full{display:none;font-size:13px;color:#c9d1d9;line-height:1.55;margin-bottom:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;margin-top:6px}
+.obs-body-full.visible{display:block}
+
+/* ──── TAB 3 — SPEC ──── */
+.spec-wrap{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.spec-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:24px 28px}
+.spec-card-title{font-size:14px;font-weight:800;color:#f59e0b;margin-bottom:16px;text-transform:uppercase;letter-spacing:.06em}
+.spec-sql{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:18px;font-family:monospace;font-size:12.5px;line-height:1.8;color:#c9d1d9;overflow-x:auto;white-space:pre}
+.sql-kw{color:#79c0ff}
+.sql-type{color:#a5d6ff}
+.sql-comment{color:#57606a}
+.sql-str{color:#a8d8a8}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px}
+.spec-table th{text-align:left;padding:8px 12px;color:#8b949e;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid rgba(255,255,255,.06)}
+.spec-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+.spec-table td:first-child{font-weight:800;white-space:nowrap}
+.spec-table tr:last-child td{border-bottom:none}
+.spec-type-badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:800}
+.privacy-rule{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.privacy-rule:last-child{border-bottom:none}
+.privacy-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.privacy-text{font-size:13px;color:#c9d1d9;line-height:1.5}
+.privacy-text strong{color:#f0f6ff}
+
+/* ──── EMPTY STATE ──── */
+.empty-state{text-align:center;padding:48px 24px;color:#8b949e}
+.empty-state .es-icon{font-size:40px;margin-bottom:12px}
+.empty-state .es-text{font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>beta-observation-log-panel-v2.html</strong> — Beta observation logging tool. Teacher beta testers observe children using WonderQuest and log structured notes. Distinct from feedback (opinions) — observations are factual notes about user behaviour. Stored in: <strong>beta_observations</strong>(id, observer_id, session_date, band, subject, observer_type ENUM teacher/researcher, observation_type ENUM behaviour/engagement/difficulty/confusion/delight, body TEXT, tags TEXT[], created_at). Used by: owner in beta readout to identify UX patterns.
+</div>
+
+<!-- ──── TAB BAR ──── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">📋 Log New Observation</button>
+  <button class="tab-btn" onclick="showTab(2)">📂 My Observations</button>
+  <button class="tab-btn" onclick="showTab(3)">📐 Spec</button>
+</div>
+
+<!-- ════════════════════════════════
+     TAB 1 — LOG NEW OBSERVATION
+════════════════════════════════ -->
+<div id="tab1" class="screen active">
+  <div class="form-card">
+    <div class="card-header">
+      <span class="card-title">📋 Log an Observation</span>
+      <span class="beta-week-chip">Week 3</span>
+    </div>
+
+    <!-- When -->
+    <div class="form-group">
+      <label class="form-label">When did this happen?</label>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <input type="date" class="form-input" id="obs-date" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;flex:0 0 140px">
+          <input type="time" class="form-input" id="obs-time" placeholder="Optional" />
+        </div>
+      </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- Who was observed -->
+    <div class="form-group">
+      <label class="form-label">Who was being observed? <span style="font-weight:500;font-size:11px;color:#57606a">(multi-select)</span></label>
+      <div class="chip-group" id="who-group">
+        <button class="chip" data-val="p0" onclick="toggleChip(this,'who-group')">Child — P0</button>
+        <button class="chip" data-val="p1" onclick="toggleChip(this,'who-group')">Child — P1</button>
+        <button class="chip" data-val="p2" onclick="toggleChip(this,'who-group')">Child — P2</button>
+        <button class="chip" data-val="p3" onclick="toggleChip(this,'who-group')">Child — P3</button>
+        <button class="chip" data-val="teacher" onclick="toggleChip(this,'who-group')">Teacher</button>
+        <button class="chip" data-val="parent" onclick="toggleChip(this,'who-group')">Parent</button>
+      </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- Subject area -->
+    <div class="form-group">
+      <label class="form-label">Subject area?</label>
+      <div class="chip-group" id="subject-group">
+        <button class="chip" data-val="mathematics" onclick="toggleChip(this,'subject-group','single')">Mathematics</button>
+        <button class="chip" data-val="science" onclick="toggleChip(this,'subject-group','single')">Science</button>
+        <button class="chip" data-val="ela" onclick="toggleChip(this,'subject-group','single')">ELA</button>
+        <button class="chip" data-val="social-studies" onclick="toggleChip(this,'subject-group','single')">Social Studies</button>
+        <button class="chip" data-val="arts" onclick="toggleChip(this,'subject-group','single')">Arts</button>
+        <button class="chip" data-val="general" onclick="toggleChip(this,'subject-group','single')">General / App</button>
+      </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- Observation type -->
+    <div class="form-group">
+      <label class="form-label">Observation type <span class="req">*</span></label>
+      <div class="obs-chip-group" id="obs-type-group">
+        <button class="obs-chip" data-val="behaviour" data-class="sel-behaviour" onclick="selectObsType(this)">
+          <span class="oc-title">👀 Behaviour</span>
+          <span class="oc-hint">What did they do?</span>
+        </button>
+        <button class="obs-chip" data-val="engagement" data-class="sel-engagement" onclick="selectObsType(this)">
+          <span class="oc-title">💡 Engagement</span>
+          <span class="oc-hint">Were they interested / bored?</span>
+        </button>
+        <button class="obs-chip" data-val="difficulty" data-class="sel-difficulty" onclick="selectObsType(this)">
+          <span class="oc-title">😤 Difficulty</span>
+          <span class="oc-hint">Something seemed hard</span>
+        </button>
+        <button class="obs-chip" data-val="confusion" data-class="sel-confusion" onclick="selectObsType(this)">
+          <span class="oc-title">😕 Confusion</span>
+          <span class="oc-hint">They seemed confused by something</span>
+        </button>
+        <button class="obs-chip" data-val="delight" data-class="sel-delight" onclick="selectObsType(this)">
+          <span class="oc-title">😄 Delight</span>
+          <span class="oc-hint">They really enjoyed something</span>
+        </button>
+      </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- What did you observe -->
+    <div class="form-group">
+      <label class="form-label">What did you observe? <span class="req">*</span></label>
+      <textarea class="form-textarea" id="obs-body" rows="4" placeholder="Describe what you saw in neutral, factual terms. E.g. 'The child re-read the question 3 times before selecting an answer.'"></textarea>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- Tags -->
+    <div class="form-group">
+      <label class="form-label">Tags <span style="font-weight:500;color:#57606a;font-size:11px">— type and press Enter</span></label>
+      <div class="tag-input-wrap" id="tag-wrap" onclick="document.getElementById('tag-input').focus()">
+        <input type="text" class="tag-real-input" id="tag-input" placeholder="e.g. audio  navigation  fractions  P0" />
+      </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- Severity / Impact -->
+    <div class="form-group">
+      <label class="form-label">Severity / Impact</label>
+      <div class="impact-group" id="impact-group">
+        <button class="impact-chip" data-val="low" onclick="selectImpact(this)">
+          <span class="ic-main">Low</span>
+          <span class="ic-sub">Interesting note</span>
+        </button>
+        <button class="impact-chip" data-val="medium" onclick="selectImpact(this)">
+          <span class="ic-main">Medium</span>
+          <span class="ic-sub">Worth investigating</span>
+        </button>
+        <button class="impact-chip" data-val="high" onclick="selectImpact(this)">
+          <span class="ic-main">High</span>
+          <span class="ic-sub">Affects UX</span>
+        </button>
+      </div>
+    </div>
+
+    <hr class="form-divider">
+
+    <!-- Screenshot -->
+    <div class="form-group">
+      <label class="form-label">Screenshot / Photo? <span style="font-weight:500;color:#57606a;font-size:11px">— optional</span></label>
+      <button class="attach-btn" onclick="document.getElementById('screenshot-input').click()">
+        📷 Attach photo
+      </button>
+      <input type="file" id="screenshot-input" accept="image/*" onchange="handleAttach(this)" />
+      <div class="attach-preview" id="attach-preview"></div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn-primary" onclick="saveObservation(false)">Save Observation</button>
+      <button class="btn-secondary" onclick="saveObservation(true)">Save &amp; Add Another</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB 2 — MY OBSERVATIONS
+════════════════════════════════ -->
+<div id="tab2" class="screen">
+  <div class="obs-list-wrap">
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <span class="filter-label">Type</span>
+      <select class="filter-select" id="filter-type" onchange="filterObs()">
+        <option value="all">All Types</option>
+        <option value="behaviour">👀 Behaviour</option>
+        <option value="engagement">💡 Engagement</option>
+        <option value="difficulty">😤 Difficulty</option>
+        <option value="confusion">😕 Confusion</option>
+        <option value="delight">😄 Delight</option>
+      </select>
+      <span class="filter-label">Band</span>
+      <select class="filter-select" id="filter-band" onchange="filterObs()">
+        <option value="all">All Bands</option>
+        <option value="P0">P0 (Pre-K)</option>
+        <option value="P1">P1 (K–1)</option>
+        <option value="P2">P2 (2–3)</option>
+        <option value="P3">P3 (4–5)</option>
+      </select>
+      <span class="filter-label">Date</span>
+      <input type="date" class="filter-select" id="filter-date" onchange="filterObs()" style="font-size:13px;font-family:system-ui;padding:6px 10px;cursor:pointer" />
+      <input type="text" class="filter-search" id="filter-search" placeholder="🔍  Search observations…" oninput="filterObs()" />
+    </div>
+
+    <!-- Stats strip -->
+    <div class="stats-strip">
+      <span class="stat-item"><strong>24</strong> total</span>
+      <span class="stat-sep">·</span>
+      <span class="stat-item"><span class="stat-dot" style="background:#f85149"></span><strong>6</strong> difficulty</span>
+      <span class="stat-sep">·</span>
+      <span class="stat-item"><span class="stat-dot" style="background:#a78bfa"></span><strong>4</strong> confusion</span>
+      <span class="stat-sep">·</span>
+      <span class="stat-item"><span class="stat-dot" style="background:#f59e0b"></span><strong>8</strong> delight</span>
+      <span class="stat-sep">·</span>
+      <span class="stat-item"><span class="stat-dot" style="background:#8b949e"></span><strong>6</strong> other</span>
+    </div>
+
+    <!-- Observation list -->
+    <div id="obs-list"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     TAB 3 — SPEC
+════════════════════════════════ -->
+<div id="tab3" class="screen">
+  <div class="spec-wrap">
+
+    <!-- Schema card -->
+    <div class="spec-card">
+      <div class="spec-card-title">Database Schema</div>
+      <div class="spec-sql"><span class="sql-kw">CREATE TABLE</span> beta_observations (
+  id              <span class="sql-type">UUID</span>          <span class="sql-kw">PRIMARY KEY</span>,
+  observer_id     <span class="sql-type">UUID</span>          <span class="sql-kw">REFERENCES</span> users(id),
+  session_date    <span class="sql-type">DATE</span>          <span class="sql-kw">NOT NULL</span>,
+  session_time    <span class="sql-type">TIME</span>          nullable,
+  band            <span class="sql-type">ENUM</span>(<span class="sql-str">'p0','p1','p2','p3'</span>) nullable,
+  subject         <span class="sql-type">TEXT</span>          nullable,
+  observer_type   <span class="sql-type">ENUM</span>(<span class="sql-str">'teacher','researcher','parent'</span>),
+  observation_type <span class="sql-type">ENUM</span>(<span class="sql-str">'behaviour','engagement','difficulty','confusion','delight'</span>),
+  body            <span class="sql-type">TEXT</span>          <span class="sql-kw">NOT NULL</span>,
+  tags            <span class="sql-type">TEXT[]</span>,
+  impact          <span class="sql-type">ENUM</span>(<span class="sql-str">'low','medium','high'</span>),
+  screenshot_url  <span class="sql-type">TEXT</span>          nullable,
+  beta_week       <span class="sql-type">INT</span>,
+  created_at      <span class="sql-type">TIMESTAMPTZ</span>   <span class="sql-kw">DEFAULT</span> <span class="sql-str">NOW()</span>
+);</div>
+    </div>
+
+    <!-- Taxonomy card -->
+    <div class="spec-card">
+      <div class="spec-card-title">Observation Type Taxonomy</div>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Purpose</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="obs-type-badge behaviour" style="font-size:12px">👀 behaviour</span>
+            </td>
+            <td style="color:#c9d1d9">Factual account of actions taken</td>
+            <td style="color:#8b949e;font-style:italic">"Child tapped X 3 times"</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="obs-type-badge engagement" style="font-size:12px">💡 engagement</span>
+            </td>
+            <td style="color:#c9d1d9">Level of interest / attention</td>
+            <td style="color:#8b949e;font-style:italic">"Class stayed focused for 18 min"</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="obs-type-badge difficulty" style="font-size:12px">😤 difficulty</span>
+            </td>
+            <td style="color:#c9d1d9">Task / content seemed hard</td>
+            <td style="color:#8b949e;font-style:italic">"Re-read question 4 times"</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="obs-type-badge confusion" style="font-size:12px">😕 confusion</span>
+            </td>
+            <td style="color:#c9d1d9">UI / UX confusion</td>
+            <td style="color:#8b949e;font-style:italic">"Couldn't find the back button"</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="obs-type-badge delight" style="font-size:12px">😄 delight</span>
+            </td>
+            <td style="color:#c9d1d9">Positive emotional reaction</td>
+            <td style="color:#8b949e;font-style:italic">"Said 'this is so fun!'"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Privacy card -->
+    <div class="spec-card">
+      <div class="spec-card-title">Privacy Rules</div>
+      <div class="privacy-rule">
+        <span class="privacy-icon">🔒</span>
+        <span class="privacy-text"><strong>observer_id</strong> is the teacher / researcher (not anonymised — they own their observations)</span>
+      </div>
+      <div class="privacy-rule">
+        <span class="privacy-icon">🧒</span>
+        <span class="privacy-text">Children observed are <strong>NOT named in the database</strong>. Body text may contain first names but that is teacher-controlled.</span>
+      </div>
+      <div class="privacy-rule">
+        <span class="privacy-icon">🗓️</span>
+        <span class="privacy-text">After beta: observations are <strong>anonymised after 90 days</strong> (observer_id → NULL, body scrubbed of names)</span>
+      </div>
+      <div class="privacy-rule">
+        <span class="privacy-icon">📊</span>
+        <span class="privacy-text">Used by: <strong>owner for UX pattern analysis</strong> in beta readout only</span>
+      </div>
+    </div>
+
+    <!-- Field guide card -->
+    <div class="spec-card">
+      <div class="spec-card-title">Field Guide</div>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">id</td>
+            <td><span class="spec-type-badge" style="background:rgba(96,165,250,.1);color:#60a5fa">UUID PK</span></td>
+            <td style="color:#8b949e">Auto-generated</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">observer_id</td>
+            <td><span class="spec-type-badge" style="background:rgba(96,165,250,.1);color:#60a5fa">UUID FK</span></td>
+            <td style="color:#8b949e">References users.id — the teacher/researcher</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">session_date</td>
+            <td><span class="spec-type-badge" style="background:rgba(80,232,144,.08);color:#50e890">DATE</span></td>
+            <td style="color:#8b949e">Required — date of observation</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">session_time</td>
+            <td><span class="spec-type-badge" style="background:rgba(255,255,255,.06);color:#8b949e">TIME?</span></td>
+            <td style="color:#8b949e">Optional — approximate time of observation</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">band</td>
+            <td><span class="spec-type-badge" style="background:rgba(245,158,11,.1);color:#f59e0b">ENUM?</span></td>
+            <td style="color:#8b949e">p0 / p1 / p2 / p3 — nullable</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">subject</td>
+            <td><span class="spec-type-badge" style="background:rgba(255,255,255,.06);color:#8b949e">TEXT?</span></td>
+            <td style="color:#8b949e">Free-text subject label — nullable</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">observer_type</td>
+            <td><span class="spec-type-badge" style="background:rgba(245,158,11,.1);color:#f59e0b">ENUM</span></td>
+            <td style="color:#8b949e">teacher / researcher / parent</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">observation_type</td>
+            <td><span class="spec-type-badge" style="background:rgba(245,158,11,.1);color:#f59e0b">ENUM</span></td>
+            <td style="color:#8b949e">behaviour / engagement / difficulty / confusion / delight</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">body</td>
+            <td><span class="spec-type-badge" style="background:rgba(80,232,144,.08);color:#50e890">TEXT</span></td>
+            <td style="color:#8b949e">Required — factual observation text</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">tags</td>
+            <td><span class="spec-type-badge" style="background:rgba(255,255,255,.06);color:#8b949e">TEXT[]</span></td>
+            <td style="color:#8b949e">Array of tag strings — nullable</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">impact</td>
+            <td><span class="spec-type-badge" style="background:rgba(245,158,11,.1);color:#f59e0b">ENUM?</span></td>
+            <td style="color:#8b949e">low / medium / high — nullable</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">screenshot_url</td>
+            <td><span class="spec-type-badge" style="background:rgba(255,255,255,.06);color:#8b949e">TEXT?</span></td>
+            <td style="color:#8b949e">Stored file URL — nullable</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">beta_week</td>
+            <td><span class="spec-type-badge" style="background:rgba(255,255,255,.06);color:#8b949e">INT</span></td>
+            <td style="color:#8b949e">Week number within beta period</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-family:monospace;font-size:12px">created_at</td>
+            <td><span class="spec-type-badge" style="background:rgba(80,232,144,.08);color:#50e890">TSTZ</span></td>
+            <td style="color:#8b949e">Auto-set to NOW()</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">✓ Observation saved</div>
+
+<script>
+/* ──── TAB SWITCHING ──── */
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+}
+
+/* ──── CHIP TOGGLES ──── */
+function toggleChip(el, groupId, mode) {
+  if (mode === 'single') {
+    document.querySelectorAll('#' + groupId + ' .chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+  } else {
+    el.classList.toggle('sel');
+  }
+}
+
+function selectObsType(el) {
+  document.querySelectorAll('#obs-type-group .obs-chip').forEach(c => {
+    c.className = 'obs-chip';
+  });
+  el.classList.add(el.dataset.class);
+}
+
+function selectImpact(el) {
+  document.querySelectorAll('#impact-group .impact-chip').forEach(c => {
+    c.className = 'impact-chip';
+  });
+  el.classList.add('sel-' + el.dataset.val);
+}
+
+/* ──── TAG INPUT ──── */
+const tagInput = document.getElementById('tag-input');
+const tagWrap  = document.getElementById('tag-wrap');
+const tags     = [];
+
+tagInput.addEventListener('keydown', function(e) {
+  if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+    e.preventDefault();
+    addTag(tagInput.value.trim().replace(/,/g, ''));
+    tagInput.value = '';
+  }
+  if (e.key === 'Backspace' && tagInput.value === '' && tags.length) {
+    removeTag(tags.length - 1);
+  }
+});
+
+function addTag(text) {
+  if (!text || tags.includes(text)) return;
+  tags.push(text);
+  const pill = document.createElement('span');
+  pill.className = 'tag-pill';
+  const idx = tags.length - 1;
+  pill.innerHTML = text + '<span class="tag-pill-x" onclick="removeTag(' + idx + ')">×</span>';
+  pill.id = 'tag-' + idx;
+  tagWrap.insertBefore(pill, tagInput);
+}
+
+function removeTag(i) {
+  tags.splice(i, 1);
+  renderTags();
+}
+
+function renderTags() {
+  tagWrap.querySelectorAll('.tag-pill').forEach(p => p.remove());
+  tags.forEach((t, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'tag-pill';
+    pill.id = 'tag-' + i;
+    pill.innerHTML = t + '<span class="tag-pill-x" onclick="removeTag(' + i + ')">×</span>';
+    tagWrap.insertBefore(pill, tagInput);
+  });
+}
+
+/* ──── ATTACH ──── */
+function handleAttach(input) {
+  const preview = document.getElementById('attach-preview');
+  preview.innerHTML = '';
+  preview.style.display = 'flex';
+  Array.from(input.files).forEach(file => {
+    const row = document.createElement('div');
+    row.className = 'attach-file-row';
+    row.innerHTML = `<span style="font-size:18px">🖼️</span><span class="attach-file-name">${file.name}</span><span class="attach-file-remove" onclick="this.closest('.attach-file-row').remove()">×</span>`;
+    preview.appendChild(row);
+  });
+}
+
+/* ──── SAVE ──── */
+function saveObservation(addAnother) {
+  const body = document.getElementById('obs-body').value.trim();
+  const obsType = document.querySelector('#obs-type-group .obs-chip[class*="sel-"]');
+  if (!body) { alert('Please describe what you observed.'); return; }
+  if (!obsType) { alert('Please select an observation type.'); return; }
+  showToast('✓ Observation saved');
+  if (addAnother) {
+    resetForm();
+  }
+}
+
+function resetForm() {
+  document.getElementById('obs-body').value = '';
+  document.getElementById('obs-time').value = '';
+  document.querySelectorAll('.chip.sel').forEach(c => c.classList.remove('sel'));
+  document.querySelectorAll('.obs-chip').forEach(c => c.className = 'obs-chip');
+  document.querySelectorAll('.impact-chip').forEach(c => c.className = 'impact-chip');
+  tags.length = 0;
+  renderTags();
+  document.getElementById('attach-preview').style.display = 'none';
+  document.getElementById('attach-preview').innerHTML = '';
+  document.getElementById('screenshot-input').value = '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ──── SET DATE DEFAULT ──── */
+(function() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('obs-date').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+})();
+
+/* ──── OBSERVATION DATA ──── */
+const OBSERVATIONS = [
+  {
+    id: 1,
+    type: 'difficulty',
+    icon: '😤',
+    band: 'P1',
+    subject: 'Mathematics',
+    body: 'Marcus re-read the fractions question 3 times and then selected an incorrect answer without hesitation — likely misunderstood the question wording.',
+    tags: ['fractions', 'wording'],
+    date: 'March 21, 2026',
+    dateRaw: '2026-03-21',
+    impact: 'medium'
+  },
+  {
+    id: 2,
+    type: 'delight',
+    icon: '😄',
+    band: 'P0',
+    subject: 'Science',
+    body: 'Emma immediately started dancing when the gold stars appeared. She said "I got all three!" and called her friend over to show her.',
+    tags: ['stars', 'celebration', 'p0'],
+    date: 'March 21, 2026',
+    dateRaw: '2026-03-21',
+    impact: 'low'
+  },
+  {
+    id: 3,
+    type: 'confusion',
+    icon: '😕',
+    band: 'P2',
+    subject: 'ELA',
+    body: 'Student tapped the speaker icon 4 times expecting something to happen but audio was already playing. No visual indicator that audio was active.',
+    tags: ['audio', 'ux', 'icon'],
+    date: 'March 20, 2026',
+    dateRaw: '2026-03-20',
+    impact: 'high'
+  },
+  {
+    id: 4,
+    type: 'engagement',
+    icon: '💡',
+    band: 'P1',
+    subject: 'General / App',
+    body: 'Class was noticeably more engaged during the adventure theme than the default theme. 3 students asked to keep playing after the session ended.',
+    tags: ['theme', 'engagement'],
+    date: 'March 19, 2026',
+    dateRaw: '2026-03-19',
+    impact: 'medium'
+  },
+  {
+    id: 5,
+    type: 'behaviour',
+    icon: '👀',
+    band: 'P3',
+    subject: 'Mathematics',
+    body: 'Student completed 8 questions in 12 minutes without prompting. Usually needs 20+ minutes for similar tasks in class.',
+    tags: ['pace', 'p3'],
+    date: 'March 18, 2026',
+    dateRaw: '2026-03-18',
+    impact: 'low'
+  },
+  {
+    id: 6,
+    type: 'difficulty',
+    icon: '😤',
+    band: 'P0',
+    subject: 'Science',
+    body: 'Pre-K student could not identify the "Skip" button — kept tapping the star icon instead. The skip affordance is not clear at this age band.',
+    tags: ['navigation', 'p0', 'skip'],
+    date: 'March 17, 2026',
+    dateRaw: '2026-03-17',
+    impact: 'high'
+  }
+];
+
+let expandedIds = new Set();
+
+function buildObsCard(obs) {
+  const isExpanded = expandedIds.has(obs.id);
+  const TRUNCATE = 130;
+  const truncated = obs.body.length > TRUNCATE ? obs.body.slice(0, TRUNCATE) + '…' : obs.body;
+
+  const tagsHtml = obs.tags.map(t => `<span class="obs-tag">${t}</span>`).join('');
+
+  return `
+  <div class="obs-card" id="obs-card-${obs.id}" data-type="${obs.type}" data-band="${obs.band}" data-date="${obs.dateRaw}" data-body="${obs.body.toLowerCase()}">
+    <div class="obs-card-header">
+      <span class="obs-type-badge ${obs.type}">${obs.icon} ${obs.type}</span>
+      <span class="obs-band-chip">${obs.band}</span>
+      <span class="obs-subj-chip">${obs.subject}</span>
+      <span class="obs-spacer"></span>
+      <span class="obs-date">${obs.date}</span>
+    </div>
+    <div class="obs-body">${isExpanded ? obs.body : truncated}</div>
+    ${obs.body.length > TRUNCATE ? `<div class="obs-body-full ${isExpanded ? 'visible' : ''}">
+      ${obs.body}
+    </div>` : ''}
+    <div class="obs-tags">${tagsHtml}</div>
+    <div class="obs-footer">
+      <span class="impact-badge ${obs.impact}">${obs.impact === 'low' ? '↓ Low' : obs.impact === 'medium' ? '→ Medium' : '↑ High'}</span>
+      <div class="obs-actions">
+        ${obs.body.length > TRUNCATE ? `<button class="btn-ghost btn-ghost-amber" onclick="toggleExpand(${obs.id})">
+          ${isExpanded ? 'Collapse' : 'Expand'}
+        </button>` : ''}
+        <button class="btn-ghost btn-ghost-amber" onclick="editObs(${obs.id})">Edit</button>
+        <button class="btn-ghost btn-ghost-red" onclick="deleteObs(${obs.id})">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleExpand(id) {
+  if (expandedIds.has(id)) expandedIds.delete(id);
+  else expandedIds.add(id);
+  renderObsList();
+}
+
+function editObs(id) {
+  showToast('✎ Edit mode — observation #' + id);
+}
+
+function deleteObs(id) {
+  if (!confirm('Delete this observation? This cannot be undone.')) return;
+  showToast('🗑 Observation deleted');
+}
+
+function filterObs() {
+  const typeVal  = document.getElementById('filter-type').value;
+  const bandVal  = document.getElementById('filter-band').value;
+  const dateVal  = document.getElementById('filter-date').value;
+  const searchVal = document.getElementById('filter-search').value.toLowerCase();
+
+  const filtered = OBSERVATIONS.filter(obs => {
+    if (typeVal !== 'all' && obs.type !== typeVal) return false;
+    if (bandVal !== 'all' && obs.band !== bandVal) return false;
+    if (dateVal && obs.dateRaw !== dateVal) return false;
+    if (searchVal && !obs.body.toLowerCase().includes(searchVal) && !obs.tags.join(' ').toLowerCase().includes(searchVal)) return false;
+    return true;
+  });
+
+  renderObsList(filtered);
+}
+
+function renderObsList(list) {
+  const data = list !== undefined ? list : OBSERVATIONS;
+  const container = document.getElementById('obs-list');
+  if (data.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="es-icon">🔍</div><div class="es-text">No observations match your filters.</div></div>`;
+    return;
+  }
+  container.innerHTML = data.map(buildObsCard).join('');
+}
+
+/* ──── INIT LIST ──── */
+renderObsList();
+</script>
+</body>
+</html>

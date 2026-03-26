@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Feedback Resolution Loop — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px;margin-bottom:20px;font-family:monospace;font-size:12px;line-height:1.7;max-width:1140px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ── Tab bar ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1140px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#50e890;color:#0d1117}
+.screen{display:none;max-width:1140px}
+.screen.active{display:block}
+
+/* ── Dark shell ── */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.sh-sub{font-size:11px;color:rgba(255,255,255,.3);margin-left:auto}
+.shell-body{padding:24px}
+
+/* ── Section label ── */
+.sec-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* ── Stat cards row ── */
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.stat-card{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:14px 18px;flex:1;min-width:130px}
+.sc-val{font-size:26px;font-weight:900;color:#f0f6ff;line-height:1}
+.sc-lbl{font-size:11px;color:#8b949e;margin-top:4px}
+
+/* ──────────────────────────────────
+   TAB 1 — Pipeline diagram
+   ────────────────────────────────── */
+.pipeline{display:flex;align-items:stretch;gap:0;overflow-x:auto;margin-bottom:28px;padding-bottom:4px}
+.pipe-stage{background:#161b22;border:1px solid rgba(255,255,255,.07);border-radius:0;padding:18px 16px;flex:1;min-width:130px;position:relative;display:flex;flex-direction:column;gap:6px}
+.pipe-stage:first-child{border-radius:12px 0 0 12px}
+.pipe-stage:last-child{border-radius:0 12px 12px 0}
+.pipe-stage+.pipe-stage{border-left:none}
+.pipe-arrow{position:absolute;right:-14px;top:50%;transform:translateY(-50%);z-index:2;width:28px;height:28px;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:rgba(255,255,255,.4);flex-shrink:0}
+.ps-icon{font-size:20px}
+.ps-name{font-size:11px;font-weight:800;color:#f0f6ff;text-transform:uppercase;letter-spacing:.06em}
+.ps-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:800;margin-top:4px;align-self:flex-start}
+.ps-badge-green{background:rgba(80,232,144,.15);color:#50e890}
+.ps-badge-amber{background:rgba(245,158,11,.15);color:#f59e0b}
+.ps-badge-blue{background:rgba(88,166,255,.15);color:#58a6ff}
+.ps-badge-muted{background:rgba(255,255,255,.08);color:#8b949e}
+.ps-sub{font-size:10px;color:#8b949e;line-height:1.5}
+
+/* SLA strip */
+.sla-strip{display:flex;gap:10px;flex-wrap:wrap;background:#161b22;border-radius:12px;padding:14px 18px;margin-bottom:24px;border:1px solid rgba(255,255,255,.06)}
+.sla-item{display:flex;align-items:center;gap:8px;flex:1;min-width:160px}
+.sla-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sla-dot-green{background:#50e890}
+.sla-dot-amber{background:#f59e0b}
+.sla-label{font-size:12px;color:#8b949e}
+.sla-pct{font-size:14px;font-weight:800;color:#f0f6ff}
+.sla-pct-amber{color:#f59e0b}
+.sla-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
+.sla-bar{height:100%;border-radius:4px;transition:width .3s}
+
+/* This-week stats */
+.week-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px}
+.wk-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;text-align:center}
+.wk-val{font-size:22px;font-weight:900;color:#f0f6ff}
+.wk-val-amber{color:#f59e0b}
+.wk-lbl{font-size:11px;color:#8b949e;margin-top:3px}
+
+/* Avg timing row */
+.timing-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.timing-chip{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 14px}
+.tc-prio{font-size:10px;font-weight:800;letter-spacing:.06em;color:#8b949e;text-transform:uppercase;margin-bottom:2px}
+.tc-val{font-size:15px;font-weight:800;color:#f0f6ff}
+
+/* ──────────────────────────────────
+   TAB 2 — Active Loop Items (2-panel)
+   ────────────────────────────────── */
+.two-panel{display:grid;grid-template-columns:300px 1fr;min-height:580px;border-top:1px solid rgba(255,255,255,.06)}
+.list-panel{border-right:1px solid rgba(255,255,255,.06);overflow-y:auto}
+.detail-panel{padding:24px;overflow-y:auto}
+
+/* List items */
+.loop-item{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .15s;position:relative}
+.loop-item:hover{background:rgba(255,255,255,.03)}
+.loop-item.selected{background:rgba(80,232,144,.06);border-left:3px solid #50e890}
+.loop-item:not(.selected){border-left:3px solid transparent}
+.li-row1{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.li-id{font-size:10px;font-weight:800;color:#8b949e;font-family:monospace}
+.li-prio{font-size:9px;font-weight:900;padding:1px 6px;border-radius:4px;text-transform:uppercase}
+.lp-p0{background:rgba(248,81,73,.2);color:#f85149}
+.lp-p1{background:rgba(245,158,11,.18);color:#f59e0b}
+.lp-p2{background:rgba(88,166,255,.15);color:#58a6ff}
+.lp-p3{background:rgba(255,255,255,.1);color:#8b949e}
+.li-type{font-size:10px;color:#8b949e;font-weight:700}
+.li-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:5px;line-height:1.35}
+.li-footer{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.li-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+.ls-inprog{background:rgba(88,166,255,.12);color:#58a6ff}
+.ls-backlog{background:rgba(255,255,255,.07);color:#8b949e}
+.ls-ready{background:rgba(80,232,144,.15);color:#50e890}
+.li-elapsed{font-size:10px;color:#8b949e;margin-left:auto}
+.li-elapsed-warn{color:#f59e0b}
+.li-notify-badge{font-size:9px;background:rgba(80,232,144,.2);color:#50e890;font-weight:800;padding:2px 6px;border-radius:4px}
+
+/* Detail panel content */
+.detail-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.dh-left{flex:1}
+.dh-id{font-size:11px;font-weight:800;color:#8b949e;font-family:monospace;margin-bottom:4px}
+.dh-title{font-size:18px;font-weight:900;color:#f0f6ff;line-height:1.2;margin-bottom:8px}
+.dh-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.meta-chip{font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px}
+.mc-type{background:rgba(255,255,255,.07);color:#8b949e}
+.mc-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.mc-p2{background:rgba(88,166,255,.12);color:#58a6ff}
+.mc-p3{background:rgba(255,255,255,.08);color:#8b949e}
+.mc-school{background:rgba(80,232,144,.1);color:#50e890}
+.mc-status-ready{background:rgba(80,232,144,.15);color:#50e890}
+.mc-date{background:rgba(255,255,255,.05);color:#8b949e}
+
+.resolution-box{background:rgba(80,232,144,.06);border:1px solid rgba(80,232,144,.2);border-radius:10px;padding:14px 16px;margin-bottom:18px}
+.rb-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:rgba(80,232,144,.7);margin-bottom:6px}
+.rb-text{font-size:13px;color:#f0f6ff;line-height:1.5;font-weight:600}
+
+.notif-draft{background:#161b22;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;margin-bottom:18px}
+.nd-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.nd-privacy-badge{font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 7px;border-radius:4px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.nd-line{font-size:13px;color:rgba(255,255,255,.75);padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);line-height:1.5}
+.nd-line:last-child{border-bottom:none}
+.nd-line strong{color:#f0f6ff}
+
+.action-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn-primary{background:#50e890;color:#0d1117;border:none;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:system-ui;transition:opacity .18s;display:flex;align-items:center;gap:7px}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{background:transparent;color:#8b949e;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .18s}
+.btn-ghost:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25)}
+
+/* ──────────────────────────────────
+   TAB 3 — Closed Loop Examples
+   ────────────────────────────────── */
+.closed-grid{display:flex;flex-direction:column;gap:16px}
+.closed-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px 22px}
+.cc-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.cc-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.cc-id{font-size:10px;font-weight:800;color:#8b949e;font-family:monospace;margin-bottom:3px}
+.cc-title{font-size:14px;font-weight:800;color:#f0f6ff;margin-bottom:4px}
+.cc-meta{display:flex;gap:7px;flex-wrap:wrap}
+.cc-meta-chip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+.cc-sent{font-size:11px;color:#8b949e;margin-top:2px}
+
+.cc-resolution{background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;margin-bottom:12px;border-left:3px solid rgba(255,255,255,.12)}
+.cc-res-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:4px}
+.cc-res-text{font-size:12px;color:rgba(255,255,255,.65);line-height:1.5}
+
+.cc-response{background:rgba(80,232,144,.05);border:1px solid rgba(80,232,144,.15);border-radius:8px;padding:10px 14px;margin-bottom:0}
+.cc-response.wontfix{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08)}
+.cc-response.deferred{background:rgba(245,158,11,.04);border-color:rgba(245,158,11,.12)}
+.cc-resp-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px}
+.cc-resp-stars{font-size:15px;margin-bottom:4px}
+.cc-resp-text{font-size:12px;color:rgba(255,255,255,.65);font-style:italic}
+.cc-no-resp{font-size:12px;color:#8b949e;font-style:italic}
+
+.resp-rate-bar{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:16px}
+.rrb-val{font-size:26px;font-weight:900;color:#50e890}
+.rrb-label{font-size:12px;color:#8b949e;flex:1}
+.rrb-compare{font-size:11px;color:#8b949e;padding:4px 10px;background:rgba(255,255,255,.05);border-radius:6px}
+.rrb-compare strong{color:#50e890}
+
+/* ──────────────────────────────────
+   TAB 4 — Spec
+   ────────────────────────────────── */
+.spec-grid{display:flex;flex-direction:column;gap:20px}
+.spec-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px 22px}
+.spec-title{font-size:13px;font-weight:800;color:#f0f6ff;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-badge{font-size:10px;padding:2px 8px;border-radius:5px;font-weight:800}
+.sb-sql{background:rgba(88,166,255,.15);color:#58a6ff}
+.sb-rules{background:rgba(80,232,144,.12);color:#50e890}
+.sb-privacy{background:rgba(245,158,11,.15);color:#f59e0b}
+pre{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px 16px;font-size:11.5px;line-height:1.7;color:#8b949e;overflow-x:auto;white-space:pre}
+pre .kw{color:#ff7b72}
+pre .ty{color:#79c0ff}
+pre .cm{color:rgba(255,255,255,.25);font-style:italic}
+pre .str{color:#a5d6ff}
+
+.sla-table{width:100%;border-collapse:collapse;font-size:12px}
+.sla-table th{text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sla-table td{padding:8px 10px;color:rgba(255,255,255,.65);border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+.sla-table td:first-child{color:#f0f6ff;font-weight:700;width:80px}
+.sla-table td:nth-child(2){color:#f59e0b;font-weight:800;width:100px}
+.sla-table tr:last-child td{border-bottom:none}
+
+.privacy-rule{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start}
+.privacy-rule:last-child{border-bottom:none}
+.pr-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.pr-body{}
+.pr-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.pr-desc{font-size:11px;color:#8b949e;line-height:1.5}
+
+/* misc */
+.overdue-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);padding:4px 10px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint">
+  <strong>beta-feedback-resolution-loop-v2.html</strong> — Beta feedback resolution workflow. Shows the full lifecycle of beta feedback: Submit → Auto-triage → Owner review → Action → Close the loop (notify tester). SLA: P0 &lt; 4h / P1 &lt; 24h / P2 &lt; 72h / Feature = next sprint. 'Close the loop' = send notification to tester with resolution update. Tester privacy: platform notification only (not email), uses tester's school label (not personal name) in owner view.
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Loop Overview</button>
+  <button class="tab-btn" onclick="showTab(2)">Active Loop Items</button>
+  <button class="tab-btn" onclick="showTab(3)">Closed Loop Examples</button>
+  <button class="tab-btn" onclick="showTab(4)">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1 — LOOP OVERVIEW
+     ═══════════════════════════════════════════════ -->
+<div id="tab1" class="screen active">
+  <div class="shell">
+    <div class="shell-hdr">
+      <span class="sh-title">Beta Feedback Resolution Loop</span>
+      <span class="sh-sub">WonderQuest Beta · March 2026</span>
+    </div>
+    <div class="shell-body">
+
+      <!-- Pipeline diagram -->
+      <div class="sec-lbl">Full Lifecycle Pipeline</div>
+      <div class="pipeline">
+        <!-- Submit -->
+        <div class="pipe-stage">
+          <div class="pipe-arrow">→</div>
+          <div class="ps-icon">📥</div>
+          <div class="ps-name">Submit</div>
+          <div class="ps-badge ps-badge-muted">183 total</div>
+          <div class="ps-sub">All feedback<br>submitted this beta</div>
+        </div>
+        <!-- Auto-triage -->
+        <div class="pipe-stage">
+          <div class="pipe-arrow">→</div>
+          <div class="ps-icon">🤖</div>
+          <div class="ps-name">Auto-triage</div>
+          <div class="ps-sub">
+            <span style="color:#f85149;font-weight:800">P0</span> 0 &nbsp;·&nbsp;
+            <span style="color:#f59e0b;font-weight:800">P1</span> 8<br>
+            <span style="color:#58a6ff;font-weight:800">P2</span> 34 &nbsp;·&nbsp;
+            <span style="color:#8b949e;font-weight:800">P3</span> 71<br>
+            <span style="color:#c3aef5;font-weight:800">Feat</span> 70
+          </div>
+        </div>
+        <!-- In Review -->
+        <div class="pipe-stage">
+          <div class="pipe-arrow">→</div>
+          <div class="ps-icon">🔍</div>
+          <div class="ps-name">In Review</div>
+          <div class="ps-badge ps-badge-amber">12 items</div>
+          <div class="ps-sub">Owner actively<br>reviewing</div>
+        </div>
+        <!-- Action Taken -->
+        <div class="pipe-stage">
+          <div class="pipe-arrow">→</div>
+          <div class="ps-icon">⚙️</div>
+          <div class="ps-name">Action Taken</div>
+          <div class="ps-badge ps-badge-blue">21 items</div>
+          <div class="ps-sub">Resolved / Deferred<br>/ Won't fix</div>
+        </div>
+        <!-- Loop Closed -->
+        <div class="pipe-stage">
+          <div class="pipe-arrow">→</div>
+          <div class="ps-icon">🔔</div>
+          <div class="ps-name">Loop Closed</div>
+          <div class="ps-badge ps-badge-green">156 items</div>
+          <div class="ps-sub">Tester notified<br>in-app</div>
+        </div>
+        <!-- Tester Notified -->
+        <div class="pipe-stage">
+          <div class="ps-icon">✅</div>
+          <div class="ps-name">Tester Notified</div>
+          <div class="ps-badge ps-badge-green">156</div>
+          <div class="ps-sub">In-app only<br>62% responded</div>
+        </div>
+      </div>
+
+      <!-- SLA compliance strip -->
+      <div class="sec-lbl">SLA Compliance</div>
+      <div class="sla-strip">
+        <div class="sla-item">
+          <div class="sla-dot sla-dot-green"></div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#8b949e;margin-bottom:2px">P0 &lt; 4h</div>
+            <div class="sla-pct">100%</div>
+          </div>
+          <div class="sla-bar-wrap" style="margin-left:8px">
+            <div class="sla-bar" style="width:100%;background:#50e890"></div>
+          </div>
+        </div>
+        <div class="sla-item">
+          <div class="sla-dot sla-dot-green"></div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#8b949e;margin-bottom:2px">P1 &lt; 24h</div>
+            <div class="sla-pct">87.5%</div>
+          </div>
+          <div class="sla-bar-wrap" style="margin-left:8px">
+            <div class="sla-bar" style="width:87.5%;background:#50e890"></div>
+          </div>
+        </div>
+        <div class="sla-item">
+          <div class="sla-dot sla-dot-amber"></div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#8b949e;margin-bottom:2px">P2 &lt; 72h</div>
+            <div class="sla-pct sla-pct-amber">76.5% ⚠</div>
+          </div>
+          <div class="sla-bar-wrap" style="margin-left:8px">
+            <div class="sla-bar" style="width:76.5%;background:#f59e0b"></div>
+          </div>
+        </div>
+        <div class="sla-item" style="align-items:flex-start;flex-direction:column;gap:4px">
+          <div class="overdue-badge">⏳ 3 overdue</div>
+          <div style="font-size:11px;color:#8b949e">All P2 — slightly behind</div>
+        </div>
+      </div>
+
+      <!-- Avg loop time -->
+      <div class="sec-lbl">Average Loop Close Time</div>
+      <div class="timing-row" style="margin-bottom:24px">
+        <div class="timing-chip">
+          <div class="tc-prio">P0</div>
+          <div class="tc-val" style="color:#50e890">2.1h</div>
+        </div>
+        <div class="timing-chip">
+          <div class="tc-prio">P1</div>
+          <div class="tc-val">18h</div>
+        </div>
+        <div class="timing-chip">
+          <div class="tc-prio">P2</div>
+          <div class="tc-val" style="color:#f59e0b">61h</div>
+        </div>
+        <div class="timing-chip" style="opacity:.55">
+          <div class="tc-prio">Feature</div>
+          <div class="tc-val">Next sprint</div>
+        </div>
+      </div>
+
+      <!-- This week stats -->
+      <div class="sec-lbl">This Week</div>
+      <div class="week-grid">
+        <div class="wk-card">
+          <div class="wk-val">34</div>
+          <div class="wk-lbl">New items</div>
+        </div>
+        <div class="wk-card">
+          <div class="wk-val" style="color:#50e890">28</div>
+          <div class="wk-lbl">Resolved</div>
+        </div>
+        <div class="wk-card">
+          <div class="wk-val" style="color:#50e890">26</div>
+          <div class="wk-lbl">Loop closed (tester notified)</div>
+        </div>
+        <div class="wk-card" style="border-color:rgba(245,158,11,.2)">
+          <div class="wk-val wk-val-amber">3</div>
+          <div class="wk-lbl" style="color:#f59e0b">Currently overdue (P2)</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 2 — ACTIVE LOOP ITEMS
+     ═══════════════════════════════════════════════ -->
+<div id="tab2" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <span class="sh-title">Active Loop Items</span>
+      <span class="sh-sub">4 pending loop closure</span>
+    </div>
+    <div class="two-panel">
+
+      <!-- Left list -->
+      <div class="list-panel">
+        <!-- BTA-0041 -->
+        <div class="loop-item" onclick="selectItem('0041')">
+          <div class="li-row1">
+            <span class="li-id">BTA-0041</span>
+            <span class="li-prio lp-p1">P1</span>
+            <span class="li-type">Bug</span>
+          </div>
+          <div class="li-title">Intervention flag too sensitive</div>
+          <div class="li-footer">
+            <span class="li-status ls-inprog">In Progress</span>
+            <span class="li-elapsed li-elapsed-warn">18h elapsed ⚠</span>
+          </div>
+        </div>
+        <!-- BTA-0047 -->
+        <div class="loop-item" onclick="selectItem('0047')">
+          <div class="li-row1">
+            <span class="li-id">BTA-0047</span>
+            <span class="li-prio lp-p1">P1</span>
+            <span class="li-type">Bug</span>
+          </div>
+          <div class="li-title">Audio delay P0</div>
+          <div class="li-footer">
+            <span class="li-status ls-inprog">In Progress</span>
+            <span class="li-elapsed">6h elapsed</span>
+          </div>
+        </div>
+        <!-- BTA-0048 -->
+        <div class="loop-item" onclick="selectItem('0048')">
+          <div class="li-row1">
+            <span class="li-id">BTA-0048</span>
+            <span class="li-prio lp-p3">P3</span>
+            <span class="li-type">Suggestion</span>
+          </div>
+          <div class="li-title">Parent email digest</div>
+          <div class="li-footer">
+            <span class="li-status ls-backlog">Backlog</span>
+            <span class="li-elapsed">3 days elapsed</span>
+          </div>
+        </div>
+        <!-- BTA-0052 — selected -->
+        <div class="loop-item selected" id="item-0052" onclick="selectItem('0052')">
+          <div class="li-row1">
+            <span class="li-id">BTA-0052</span>
+            <span class="li-prio lp-p2">P2</span>
+            <span class="li-type">Bug</span>
+          </div>
+          <div class="li-title">Sort order on student list</div>
+          <div class="li-footer">
+            <span class="li-status ls-ready">Fix deployed</span>
+            <span class="li-notify-badge">⏳ Notify tester</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right detail — BTA-0052 -->
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-hdr">
+          <div class="dh-left">
+            <div class="dh-id">BTA-0052</div>
+            <div class="dh-title">Sort order on student list</div>
+            <div class="dh-meta">
+              <span class="meta-chip mc-type">Bug</span>
+              <span class="meta-chip mc-p2">P2</span>
+              <span class="meta-chip mc-status-ready">Fix Deployed</span>
+              <span class="meta-chip mc-school">🏫 Maple Ridge Elementary</span>
+              <span class="meta-chip mc-date">Submitted Mar 19, 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resolution summary -->
+        <div class="sec-lbl">Resolution Summary</div>
+        <div class="resolution-box" style="margin-bottom:18px">
+          <div class="rb-lbl">Fix confirmed in build #1251</div>
+          <div class="rb-text">Student list now sorts by last name ascending. Regression introduced in v2.5.8, resolved in v2.5.10-beta.</div>
+        </div>
+
+        <!-- Tester notification draft -->
+        <div class="sec-lbl">Tester Notification Draft <span style="font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;margin-left:6px">In-app only · No email</span></div>
+        <div class="notif-draft">
+          <div class="nd-lbl">
+            Message to tester
+            <span class="nd-privacy-badge">Privacy: school label only</span>
+          </div>
+          <div class="nd-line">Hi! We've resolved the issue you reported (<strong>BTA-0052</strong>).</div>
+          <div class="nd-line"><strong>What we fixed:</strong> Student list now sorts correctly by last name.</div>
+          <div class="nd-line"><strong>Available in:</strong> WonderQuest v2.5.10-beta — update your app to get the fix.</div>
+          <div class="nd-line">Thank you for catching this! 🙏</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-row">
+          <button class="btn-primary" onclick="closeLoop()">
+            <span>✓</span> Send Notification &amp; Close Loop
+          </button>
+          <button class="btn-ghost">Edit message</button>
+          <button class="btn-ghost">Schedule for later</button>
+        </div>
+        <div id="loop-closed-msg" style="display:none;margin-top:14px;background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.3);border-radius:8px;padding:12px 16px;font-size:13px;color:#50e890;font-weight:700">
+          ✅ Loop closed! Tester at Maple Ridge Elementary has been notified in-app.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 3 — CLOSED LOOP EXAMPLES
+     ═══════════════════════════════════════════════ -->
+<div id="tab3" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <span class="sh-title">Closed Loop Examples</span>
+      <span class="sh-sub">156 total closed this beta</span>
+    </div>
+    <div class="shell-body">
+      <div class="closed-grid">
+
+        <!-- BTA-0038 — Resolved, positive response -->
+        <div class="closed-card" style="border-color:rgba(80,232,144,.15)">
+          <div class="cc-header">
+            <div class="cc-icon">🐛</div>
+            <div style="flex:1">
+              <div class="cc-id">BTA-0038</div>
+              <div class="cc-title">Back button not working on student detail</div>
+              <div class="cc-meta">
+                <span class="cc-meta-chip" style="background:rgba(88,166,255,.12);color:#58a6ff">P2</span>
+                <span class="cc-meta-chip" style="background:rgba(255,255,255,.07);color:#8b949e">Bug</span>
+                <span class="cc-meta-chip" style="background:rgba(80,232,144,.12);color:#50e890">Resolved ✓</span>
+              </div>
+              <div class="cc-sent">Notification sent: March 18, 2026</div>
+            </div>
+          </div>
+          <div class="cc-resolution">
+            <div class="cc-res-lbl">Resolution sent to tester</div>
+            <div class="cc-res-text">"Fixed in v2.5.8-beta — back navigation now works correctly. Update your app to see the fix."</div>
+          </div>
+          <div class="cc-response">
+            <div class="cc-resp-lbl">Tester Response</div>
+            <div class="cc-resp-stars">★★★★★</div>
+            <div class="cc-resp-text">"Works great now! Kids noticed it was fixed too 😊"</div>
+          </div>
+        </div>
+
+        <!-- BTA-0039 — Won't Fix -->
+        <div class="closed-card" style="border-color:rgba(255,255,255,.08)">
+          <div class="cc-header">
+            <div class="cc-icon">💡</div>
+            <div style="flex:1">
+              <div class="cc-id">BTA-0039</div>
+              <div class="cc-title">Add a dark-mode toggle for the play screen</div>
+              <div class="cc-meta">
+                <span class="cc-meta-chip" style="background:rgba(255,255,255,.08);color:#8b949e">P3</span>
+                <span class="cc-meta-chip" style="background:rgba(255,255,255,.07);color:#8b949e">Suggestion</span>
+                <span class="cc-meta-chip" style="background:rgba(255,255,255,.08);color:#8b949e">Won't Fix</span>
+              </div>
+              <div class="cc-sent">Notification sent: March 19, 2026</div>
+            </div>
+          </div>
+          <div class="cc-resolution">
+            <div class="cc-res-lbl">Won't Fix — explanation sent</div>
+            <div class="cc-res-text">"Play screen is intentionally designed with a dark, immersive experience. Theme switching is on our roadmap for v3.0."</div>
+          </div>
+          <div class="cc-response wontfix">
+            <div class="cc-resp-lbl">Tester Response</div>
+            <div class="cc-resp-stars">★★★☆☆</div>
+            <div class="cc-resp-text">"Fair enough, thanks for explaining"</div>
+          </div>
+        </div>
+
+        <!-- BTA-0040 — Deferred -->
+        <div class="closed-card" style="border-color:rgba(245,158,11,.12)">
+          <div class="cc-header">
+            <div class="cc-icon">🗺️</div>
+            <div style="flex:1">
+              <div class="cc-id">BTA-0040</div>
+              <div class="cc-title">Show weekly XP totals in parent summary</div>
+              <div class="cc-meta">
+                <span class="cc-meta-chip" style="background:rgba(245,158,11,.12);color:#f59e0b">Feature</span>
+                <span class="cc-meta-chip" style="background:rgba(245,158,11,.1);color:#f59e0b">Deferred → v2.7</span>
+              </div>
+              <div class="cc-sent">Notification sent: March 20, 2026</div>
+            </div>
+          </div>
+          <div class="cc-resolution">
+            <div class="cc-res-lbl">Deferred — roadmap update sent</div>
+            <div class="cc-res-text">"Great idea! Weekly XP totals in the parent summary are on our roadmap for v2.7. We'll let you know when it ships."</div>
+          </div>
+          <div class="cc-response deferred">
+            <div class="cc-resp-lbl">Tester Response</div>
+            <div class="cc-no-resp">No response yet — awaiting tester reply</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Response rate bar -->
+      <div class="resp-rate-bar">
+        <div class="rrb-val">62%</div>
+        <div class="rrb-label">
+          <div style="font-size:13px;font-weight:800;color:#f0f6ff;margin-bottom:2px">Tester response rate</div>
+          <div style="font-size:11px;color:#8b949e">62% of closed loops receive a tester response within 7 days</div>
+        </div>
+        <div class="rrb-compare">Industry avg: <strong>~40%</strong></div>
+        <div style="font-size:11px;background:rgba(80,232,144,.12);color:#50e890;padding:4px 10px;border-radius:6px;font-weight:700">+22pp above avg ↑</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 4 — SPEC
+     ═══════════════════════════════════════════════ -->
+<div id="tab4" class="screen">
+  <div class="shell">
+    <div class="shell-hdr">
+      <span class="sh-title">Workflow Spec &amp; Schema</span>
+      <span class="sh-sub">beta-feedback-resolution-loop-v2</span>
+    </div>
+    <div class="shell-body">
+      <div class="spec-grid">
+
+        <!-- Schema block -->
+        <div class="spec-block">
+          <div class="spec-title">
+            Database Schema
+            <span class="spec-badge sb-sql">SQL</span>
+          </div>
+          <pre><span class="cm">-- Lifecycle event log</span>
+<span class="kw">CREATE TABLE</span> feedback_loop_events (
+  id           <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY</span>,
+  feedback_id  <span class="ty">UUID</span>         <span class="kw">REFERENCES</span> feedback(id),
+  event_type   <span class="ty">ENUM</span>(
+                 <span class="str">'submitted'</span>, <span class="str">'triaged'</span>, <span class="str">'in_review'</span>,
+                 <span class="str">'action_taken'</span>, <span class="str">'loop_closed'</span>, <span class="str">'tester_responded'</span>
+               ),
+  event_data   <span class="ty">JSONB</span>,
+  actor_id     <span class="ty">UUID</span>         <span class="kw">NULLABLE</span>,  <span class="cm">-- null for auto-triage</span>
+  created_at   <span class="ty">TIMESTAMPTZ</span>  <span class="kw">DEFAULT NOW()</span>
+);
+
+<span class="cm">-- Tester notification records</span>
+<span class="kw">CREATE TABLE</span> loop_notifications (
+  id              <span class="ty">UUID</span>,
+  feedback_id     <span class="ty">UUID</span>,
+  message         <span class="ty">TEXT</span>,
+  sent_at         <span class="ty">TIMESTAMPTZ</span>  <span class="kw">NULLABLE</span>,
+  opened_at       <span class="ty">TIMESTAMPTZ</span>  <span class="kw">NULLABLE</span>,
+  response_rating <span class="ty">INT</span>          <span class="kw">NULLABLE</span>,   <span class="cm">-- 1-5 stars</span>
+  response_text   <span class="ty">TEXT</span>         <span class="kw">NULLABLE</span>
+);
+
+<span class="cm">-- Notification templates (i18n-ready)</span>
+<span class="kw">CREATE TABLE</span> notification_templates (
+  key           <span class="ty">TEXT</span>,
+  locale        <span class="ty">TEXT</span>,           <span class="cm">-- e.g. 'en-US'</span>
+  body_template <span class="ty">TEXT</span>            <span class="cm">-- vars: {{issue_id}} {{resolution_summary}} {{version}}</span>
+);</pre>
+        </div>
+
+        <!-- SLA rules -->
+        <div class="spec-block">
+          <div class="spec-title">
+            SLA Tracking Rules
+            <span class="spec-badge sb-rules">Rules</span>
+          </div>
+          <table class="sla-table">
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Threshold</th>
+                <th>Measurement</th>
+                <th>Overdue condition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="color:#f85149">P0</span></td>
+                <td>&lt; 4 hours</td>
+                <td><code style="font-size:11px;color:#79c0ff">action_taken</code> from <code style="font-size:11px;color:#79c0ff">submitted</code></td>
+                <td>elapsed &gt; 4h AND status NOT IN resolved / wont_fix / deferred</td>
+              </tr>
+              <tr>
+                <td><span style="color:#f59e0b">P1</span></td>
+                <td>&lt; 24 hours</td>
+                <td><code style="font-size:11px;color:#79c0ff">action_taken</code> from <code style="font-size:11px;color:#79c0ff">submitted</code></td>
+                <td>elapsed &gt; 24h AND status open</td>
+              </tr>
+              <tr>
+                <td><span style="color:#58a6ff">P2</span></td>
+                <td>&lt; 72 hours</td>
+                <td><code style="font-size:11px;color:#79c0ff">action_taken</code> from <code style="font-size:11px;color:#79c0ff">submitted</code></td>
+                <td>elapsed &gt; 72h AND status open</td>
+              </tr>
+              <tr>
+                <td><span style="color:#8b949e">P3</span></td>
+                <td>&lt; 1 week</td>
+                <td>Best effort</td>
+                <td>No hard SLA — tracked for reporting only</td>
+              </tr>
+              <tr>
+                <td><span style="color:#c3aef5">Feature</span></td>
+                <td>2 sprints</td>
+                <td>Triage decision within 2 weeks of submission</td>
+                <td>Unactioned after 2 sprints = overdue</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre style="margin-top:14px"><span class="cm">-- Overdue query example</span>
+<span class="kw">SELECT</span> f.id, f.priority, f.submitted_at,
+       NOW() - f.submitted_at <span class="kw">AS</span> elapsed
+<span class="kw">FROM</span>   feedback f
+<span class="kw">WHERE</span>  f.status <span class="kw">NOT IN</span> (<span class="str">'resolved'</span>, <span class="str">'wont_fix'</span>, <span class="str">'deferred'</span>)
+  <span class="kw">AND</span>  (
+         (f.priority = <span class="str">'P0'</span> <span class="kw">AND</span> NOW() - f.submitted_at &gt; INTERVAL <span class="str">'4 hours'</span>)
+    <span class="kw">OR</span>   (f.priority = <span class="str">'P1'</span> <span class="kw">AND</span> NOW() - f.submitted_at &gt; INTERVAL <span class="str">'24 hours'</span>)
+    <span class="kw">OR</span>   (f.priority = <span class="str">'P2'</span> <span class="kw">AND</span> NOW() - f.submitted_at &gt; INTERVAL <span class="str">'72 hours'</span>)
+       );</pre>
+        </div>
+
+        <!-- Tester notification rules -->
+        <div class="spec-block">
+          <div class="spec-title">
+            Tester Notification &amp; Privacy Rules
+            <span class="spec-badge sb-privacy">Privacy</span>
+          </div>
+          <div class="privacy-rule">
+            <div class="pr-icon">🔔</div>
+            <div class="pr-body">
+              <div class="pr-title">Delivery channel: In-app notification only</div>
+              <div class="pr-desc">Notifications are delivered exclusively via the WonderQuest in-app notification center. Email delivery is disabled for all beta tester notifications to protect tester privacy and avoid unsolicited external contact.</div>
+            </div>
+          </div>
+          <div class="privacy-rule">
+            <div class="pr-icon">🏫</div>
+            <div class="pr-body">
+              <div class="pr-title">Tester identity: School/cohort label only in owner view</div>
+              <div class="pr-desc">Personal names of testers are never shown in the owner feedback dashboard. The owner sees only the tester's school label (e.g., "Maple Ridge Elementary") or cohort label. This prevents inadvertent privacy exposure and reduces bias in triage.</div>
+            </div>
+          </div>
+          <div class="privacy-rule">
+            <div class="pr-icon">📝</div>
+            <div class="pr-body">
+              <div class="pr-title">Template variables: <code style="font-size:11px;color:#79c0ff">{{issue_id}}</code> · <code style="font-size:11px;color:#79c0ff">{{resolution_summary}}</code> · <code style="font-size:11px;color:#79c0ff">{{version}}</code></div>
+              <div class="pr-desc">All notification messages are rendered from templates stored in <code style="font-size:11px;color:#79c0ff">notification_templates(key, locale, body_template)</code>. Templates support locale-aware rendering. Owner can edit the message before sending.</div>
+            </div>
+          </div>
+          <div class="privacy-rule">
+            <div class="pr-icon">↩️</div>
+            <div class="pr-body">
+              <div class="pr-title">Tester response: Optional 1–5 star rating + free text</div>
+              <div class="pr-desc">Testers may respond to the loop-close notification with a star rating and optional comment. Response is stored in <code style="font-size:11px;color:#79c0ff">loop_notifications.response_rating</code> and <code style="font-size:11px;color:#79c0ff">.response_text</code>. Response is never required.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+}
+
+function selectItem(id) {
+  document.querySelectorAll('.loop-item').forEach(el => el.classList.remove('selected'));
+  // Find clicked item by data or by matching onclick
+  const allItems = document.querySelectorAll('.loop-item');
+  allItems.forEach(el => {
+    if (el.getAttribute('onclick') === "selectItem('" + id + "')") {
+      el.classList.add('selected');
+    }
+  });
+  // Reset close loop message
+  const msg = document.getElementById('loop-closed-msg');
+  if (msg) msg.style.display = 'none';
+
+  const detailPanel = document.getElementById('detail-panel');
+  const items = {
+    '0041': {
+      title: 'Intervention flag too sensitive',
+      type: 'Bug', prio: 'P1', prioClass: 'mc-p1',
+      status: 'In Progress', statusClass: 'mc-status-ready',
+      statusStyle: 'background:rgba(88,166,255,.15);color:#58a6ff',
+      school: 'Sunnyvale Unified',
+      date: 'Mar 17, 2026',
+      resolution: 'Threshold tuning in progress — reducing sensitivity from 2 missed sessions to 3. ETA: build #1253.',
+      notifyReady: false
+    },
+    '0047': {
+      title: 'Audio delay P0',
+      type: 'Bug', prio: 'P1', prioClass: 'mc-p1',
+      status: 'In Progress', statusClass: '',
+      statusStyle: 'background:rgba(88,166,255,.15);color:#58a6ff',
+      school: 'Lincoln Charter',
+      date: 'Mar 21, 2026',
+      resolution: 'Investigating audio buffer pre-load timing. Repro confirmed on iOS 17.4. Fix in progress.',
+      notifyReady: false
+    },
+    '0048': {
+      title: 'Parent email digest',
+      type: 'Suggestion', prio: 'P3', prioClass: 'mc-p3',
+      status: 'Backlog', statusClass: '',
+      statusStyle: 'background:rgba(255,255,255,.07);color:#8b949e',
+      school: 'Westbrook Academy',
+      date: 'Mar 18, 2026',
+      resolution: 'Logged to backlog. Weekly digest is a common ask — will consider for v2.8 planning.',
+      notifyReady: false
+    },
+    '0052': {
+      title: 'Sort order on student list',
+      type: 'Bug', prio: 'P2', prioClass: 'mc-p2',
+      status: 'Fix deployed', statusClass: 'mc-status-ready',
+      statusStyle: '',
+      school: 'Maple Ridge Elementary',
+      date: 'Mar 19, 2026',
+      resolution: 'Fixed in build #1251 — student list now sorts by last name ascending. Regression introduced in v2.5.8, resolved in v2.5.10-beta.',
+      notifyReady: true
+    }
+  };
+  const item = items[id];
+  if (!item) return;
+
+  const notifySection = item.notifyReady ? `
+    <div class="sec-lbl" style="margin-top:18px">Tester Notification Draft <span style="font-size:9px;background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle;margin-left:6px">In-app only · No email</span></div>
+    <div class="notif-draft">
+      <div class="nd-lbl">Message to tester <span class="nd-privacy-badge">Privacy: school label only</span></div>
+      <div class="nd-line">Hi! We've resolved the issue you reported (<strong>BTA-0052</strong>).</div>
+      <div class="nd-line"><strong>What we fixed:</strong> Student list now sorts correctly by last name.</div>
+      <div class="nd-line"><strong>Available in:</strong> WonderQuest v2.5.10-beta — update your app to get the fix.</div>
+      <div class="nd-line">Thank you for catching this! 🙏</div>
+    </div>
+    <div class="action-row">
+      <button class="btn-primary" onclick="closeLoop()"><span>✓</span> Send Notification &amp; Close Loop</button>
+      <button class="btn-ghost">Edit message</button>
+      <button class="btn-ghost">Schedule for later</button>
+    </div>
+    <div id="loop-closed-msg" style="display:none;margin-top:14px;background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.3);border-radius:8px;padding:12px 16px;font-size:13px;color:#50e890;font-weight:700">
+      ✅ Loop closed! Tester at Maple Ridge Elementary has been notified in-app.
+    </div>` : `
+    <div style="margin-top:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 16px;font-size:12px;color:#8b949e">
+      ⏳ Resolution not yet ready — notification will be available once action is taken.
+    </div>`;
+
+  const statusHtml = item.statusStyle
+    ? `<span class="meta-chip" style="${item.statusStyle}">${item.status}</span>`
+    : `<span class="meta-chip mc-status-ready">${item.status}</span>`;
+
+  detailPanel.innerHTML = `
+    <div class="detail-hdr">
+      <div class="dh-left">
+        <div class="dh-id">BTA-${id}</div>
+        <div class="dh-title">${item.title}</div>
+        <div class="dh-meta">
+          <span class="meta-chip mc-type">${item.type}</span>
+          <span class="meta-chip ${item.prioClass}">${item.prio}</span>
+          ${statusHtml}
+          <span class="meta-chip mc-school">🏫 ${item.school}</span>
+          <span class="meta-chip mc-date">Submitted ${item.date}</span>
+        </div>
+      </div>
+    </div>
+    <div class="sec-lbl">Resolution Notes</div>
+    <div class="resolution-box" style="margin-bottom:18px">
+      <div class="rb-lbl">Current Status</div>
+      <div class="rb-text">${item.resolution}</div>
+    </div>
+    ${notifySection}
+  `;
+}
+
+function closeLoop() {
+  const msg = document.getElementById('loop-closed-msg');
+  if (msg) {
+    msg.style.display = 'block';
+    // Update list item
+    const item52 = document.getElementById('item-0052');
+    if (item52) {
+      const badge = item52.querySelector('.li-notify-badge');
+      if (badge) badge.textContent = '✅ Loop closed';
+    }
+  }
+}
+</script>
+</body>
+</html>

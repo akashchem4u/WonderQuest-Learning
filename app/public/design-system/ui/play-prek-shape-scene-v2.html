@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>PreK Shape Scene v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#1a1240;border-bottom:2px solid #2a1f5e;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:10px;color:#9b72ff;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#ffd166;border-bottom-color:#ffd166}
+.screen{display:none;padding:16px;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+.shape-stage{background:linear-gradient(135deg,#1a1240,#221a50);border-radius:24px;padding:24px;text-align:center;margin-bottom:16px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #2a1f5e}
+.shape-label{font-size:12px;font-weight:900;color:#ffd166;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+@keyframes pulse-outline{0%{filter:drop-shadow(0 0 6px #ffd166)}50%{filter:drop-shadow(0 0 18px #ffd166)}100%{filter:drop-shadow(0 0 6px #ffd166)}}
+.shape-svg{animation:pulse-outline 2s ease-in-out infinite}
+.shape-name-big{font-size:32px;font-weight:900;color:#fff;margin-top:12px}
+.coach-strip{display:flex;align-items:center;gap:10px;background:#1a1240;border-radius:14px;padding:12px;margin-bottom:16px;border:1.5px solid #2a1f5e}
+.coach-face{font-size:28px;flex-shrink:0;background:#221a50;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1.5px solid #9b72ff}
+.coach-speech p{font-size:13px;color:#fff;font-weight:700;line-height:1.4}
+.answer-label{font-size:11px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.shape-answers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.shape-card{background:#1a1240;border:2.5px solid #2a1f5e;border-radius:16px;padding:16px 10px;text-align:center;cursor:pointer;transition:all 0.2s}
+.shape-card:hover{border-color:#9b72ff;background:#221a50;transform:scale(1.03)}
+.shape-card.correct{border-color:#58e8c1;background:#0a2e25;box-shadow:0 0 18px rgba(88,232,193,0.35)}
+.shape-card .sc-emoji{font-size:32px;margin-bottom:8px}
+.shape-card .sc-name{font-size:14px;font-weight:900;color:#fff}
+.celebrate-overlay{background:linear-gradient(135deg,#221a50,#1a1240);border-radius:24px;padding:28px;text-align:center;border:2px solid #58e8c1;margin-bottom:16px}
+.celebrate-overlay .big-star{font-size:64px;margin-bottom:12px;display:block;animation:bounce-star 0.6s ease-in-out infinite alternate}
+@keyframes bounce-star{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-8px) scale(1.1)}}
+.celebrate-overlay h2{font-size:26px;font-weight:900;color:#58e8c1;margin-bottom:8px}
+.celebrate-overlay p{font-size:15px;color:#c8f0e0;line-height:1.5}
+.star-row{display:flex;justify-content:center;gap:8px;margin-top:12px;font-size:28px}
+.next-btn{width:100%;background:linear-gradient(135deg,#58e8c1,#2abf9d);border:none;border-radius:14px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer;margin-top:12px}
+@keyframes trace{0%{stroke-dashoffset:400}100%{stroke-dashoffset:0}}
+.trace-svg circle{stroke-dasharray:400;stroke-dashoffset:400;animation:trace 2s ease-in-out infinite}
+.hint-stage{background:#1a1240;border-radius:20px;padding:24px;text-align:center;margin-bottom:12px;border:1.5px solid #2a1f5e}
+.hint-tip{background:#221a50;border-radius:12px;padding:12px;font-size:13px;color:#9b72ff;font-weight:700;text-align:center;line-height:1.5}
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2a1f5e;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1a1240;font-size:12px}
+.spec-row .spec-key{color:#9b8ec4;font-weight:700;flex:0 0 120px}
+.spec-row .spec-val{color:#e0d8ff;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#1a1240;border-radius:10px;padding:12px;font-size:11px;color:#9b8ec4;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('circle')">Shape (Circle)</button>
+  <button class="tab" onclick="show('triangle')">Shape (Triangle)</button>
+  <button class="tab" onclick="show('celebrate')">Correct Celebration</button>
+  <button class="tab" onclick="show('hint')">Hint Trace</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<div id="circle" class="screen active">
+  <div class="hint-box">Route: /play/prek/shapes — shape identification scene. Large animated shape with 4 answer cards. <span>No timers, no shame language.</span></div>
+  <div class="shape-stage">
+    <div class="shape-label">What shape is this?</div>
+    <svg class="shape-svg" width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="50" fill="rgba(255,209,102,0.15)" stroke="#ffd166" stroke-width="5"/>
+    </svg>
+    <div class="shape-name-big">? ? ?</div>
+  </div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>Look at this shape! Can you find the same one below? Tap it!</p></div>
+  </div>
+  <div class="answer-label">Pick the right shape!</div>
+  <div class="shape-answers">
+    <div class="shape-card"><div class="sc-emoji">⭕</div><div class="sc-name">Circle</div></div>
+    <div class="shape-card"><div class="sc-emoji">🔷</div><div class="sc-name">Square</div></div>
+    <div class="shape-card"><div class="sc-emoji">🔺</div><div class="sc-name">Triangle</div></div>
+    <div class="shape-card"><div class="sc-emoji">⭐</div><div class="sc-name">Star</div></div>
+  </div>
+</div>
+
+<div id="triangle" class="screen">
+  <div class="hint-box">Route: /play/prek/shapes — triangle variant. Correct card highlighted for demo only. <span>No timers.</span></div>
+  <div class="shape-stage">
+    <div class="shape-label">What shape is this?</div>
+    <svg class="shape-svg" width="120" height="120" viewBox="0 0 120 120" style="--pulse-color:#9b72ff">
+      <polygon points="60,10 110,110 10,110" fill="rgba(155,114,255,0.15)" stroke="#9b72ff" stroke-width="5" stroke-linejoin="round"/>
+    </svg>
+    <div class="shape-name-big">? ? ?</div>
+  </div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>This one has pointy corners! Count the sides — 1, 2, 3! What is it?</p></div>
+  </div>
+  <div class="answer-label">Pick the right shape!</div>
+  <div class="shape-answers">
+    <div class="shape-card"><div class="sc-emoji">⭕</div><div class="sc-name">Circle</div></div>
+    <div class="shape-card"><div class="sc-emoji">🔷</div><div class="sc-name">Square</div></div>
+    <div class="shape-card correct"><div class="sc-emoji">🔺</div><div class="sc-name">Triangle</div></div>
+    <div class="shape-card"><div class="sc-emoji">⭐</div><div class="sc-name">Star</div></div>
+  </div>
+</div>
+
+<div id="celebrate" class="screen">
+  <div class="hint-box">Route: /play/prek/shapes/correct — correct celebration. 3 stars always given. Replay never loses stars.</div>
+  <div class="celebrate-overlay">
+    <span class="big-star">⭐</span>
+    <h2>You got it!</h2>
+    <p>That IS a circle! Circles are perfectly round with no corners. You're amazing!</p>
+    <div class="star-row">⭐ ⭐ ⭐</div>
+  </div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>WOW! Fantastic! You found the circle! I knew you could do it!</p></div>
+  </div>
+  <div class="shape-stage" style="min-height:140px">
+    <svg width="90" height="90" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="50" fill="rgba(88,232,193,0.2)" stroke="#58e8c1" stroke-width="5"/>
+    </svg>
+    <div class="shape-name-big" style="color:#58e8c1">Circle!</div>
+  </div>
+  <button class="next-btn">Next Shape! 🚀</button>
+</div>
+
+<div id="hint" class="screen">
+  <div class="hint-box">Route: /play/prek/shapes/hint — trace animation after 2nd attempt or explicit hint tap. <span>Never shame-framed.</span></div>
+  <div style="font-size:14px;color:#9b8ec4;margin-bottom:12px;line-height:1.5">Watch Ollie trace the shape — then tap the one that matches!</div>
+  <div class="coach-strip">
+    <div class="coach-face">🦉</div>
+    <div class="coach-speech"><p>Let me show you! Watch me trace around — it goes round and round with no pointy parts!</p></div>
+  </div>
+  <div class="hint-stage">
+    <div style="font-size:11px;font-weight:900;color:#ffd166;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Watch the outline!</div>
+    <svg class="trace-svg" width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="50" fill="rgba(255,209,102,0.08)" stroke="#ffd166" stroke-width="5"/>
+    </svg>
+    <div style="margin-top:10px;font-size:13px;color:#9b8ec4;font-weight:700">Drawing the circle…</div>
+  </div>
+  <div class="hint-tip">A circle is perfectly round — like a ball or the sun! It goes all the way around with no corners.</div>
+  <div style="margin-top:14px">
+    <button style="width:100%;background:#221a50;border:1.5px solid #9b72ff;border-radius:14px;padding:14px;color:#9b72ff;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;cursor:pointer">I'm ready to try!</button>
+  </div>
+</div>
+
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for play-prek-shape-scene-v2.</div>
+  <div class="spec-section">
+    <h3>Component Identity</h3>
+    <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">play-prek-shape-scene-v2.html</span></div>
+    <div class="spec-row"><span class="spec-key">Age group</span><span class="spec-val">Pre-K (ages 3–5)</span></div>
+    <div class="spec-row"><span class="spec-key">Skill</span><span class="spec-val">Shape recognition</span></div>
+    <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Nunito 900</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Shape Pack</h3>
+    <div class="spec-row"><span class="spec-key">Circle</span><span class="spec-val">Gold stroke, SVG circle</span></div>
+    <div class="spec-row"><span class="spec-key">Triangle</span><span class="spec-val">Violet stroke, SVG polygon</span></div>
+    <div class="spec-row"><span class="spec-key">Square</span><span class="spec-val">Mint stroke, SVG rect</span></div>
+    <div class="spec-row"><span class="spec-key">Star</span><span class="spec-val">Coral stroke, SVG path</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Rules</h3>
+    <div class="spec-note">No timers on shape scenes. Hint available from first attempt. Outline pulse uses CSS keyframes on SVG drop-shadow. Trace hint uses stroke-dashoffset animation. 3 stars always awarded for correct answer regardless of attempt count. Voice coach always visible and reads prompt on load via TTS. Wrong tap = shape shake only, no text feedback, no star penalty.</div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['circle','triangle','celebrate','hint','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

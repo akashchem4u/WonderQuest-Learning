@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Entry — Mobile v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent entry / sign-in flow — Mobile variant              │
+  │  Phone frame: 390px, border-radius:40px                    │
+  │  Parent bg: #f5f0e8 (NOT child dark theme)                 │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Sign-In Screen                                       │
+  │    2. Returning Parent (PIN)                               │
+  │    3. Create Account                                       │
+  │    4. Verification                                         │
+  │    5. Spec                                                 │
+  │                                                            │
+  │  Mobile notes:                                             │
+  │  - Single column, full-width card flow                     │
+  │  - CTA: full-width, height: 52px                          │
+  │  - Bottom sheet for social auth options                    │
+  │  - PIN numpad is full width bottom-anchored                │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #2a2060;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+  gap: 0;
+}
+
+/* ─── Tab Bar ─── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 0 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  width: 100%;
+  max-width: 420px;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 8px 14px;
+  border: none;
+  background: #3a3070;
+  color: #b0a0e0;
+  font: 600 0.72rem system-ui, sans-serif;
+  cursor: pointer;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+.tab-btn.active {
+  background: #9b72ff;
+  color: #fff;
+}
+.screen { display: none; width: 100%; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ─── Phone Frame ─── */
+.phone {
+  width: 390px;
+  max-width: 100%;
+  background: #f5f0e8;
+  border-radius: 40px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 0 0 2px #9b72ff22;
+}
+.status-bar {
+  height: 44px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 20px 8px;
+  justify-content: space-between;
+  background: #f5f0e8;
+}
+.sb-time { font: 600 0.8rem system-ui; color: #1a1240; }
+.sb-icons { display: flex; gap: 4px; font-size: 0.8rem; color: #1a1240; }
+
+/* ─── SIGN-IN SCREEN ─── */
+.signin-content {
+  padding: 24px 24px 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 750px;
+}
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.brand-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+}
+.brand-text {
+  font: 900 1.1rem system-ui, sans-serif;
+  background: linear-gradient(135deg, #3d2a8a, #9b72ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.signin-headline {
+  font: 700 1.6rem/1.2 system-ui;
+  color: #1a1240;
+  margin-bottom: 6px;
+}
+.signin-sub {
+  font: 400 0.85rem/1.5 system-ui;
+  color: #6a5890;
+  margin-bottom: 28px;
+}
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font: 600 0.75rem system-ui;
+  color: #4a3880;
+  margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid #d0c8e8;
+  border-radius: 12px;
+  font: 400 0.95rem system-ui;
+  color: #1a1240;
+  background: #fff;
+  outline: none;
+  -webkit-appearance: none;
+}
+.form-input:focus { border-color: #9b72ff; box-shadow: 0 0 0 3px #9b72ff18; }
+.form-input::placeholder { color: #b0a0d0; }
+.pw-wrap { position: relative; }
+.pw-wrap .form-input { padding-right: 46px; }
+.show-pw {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer;
+  font-size: 1rem; color: #9080b0;
+}
+.forgot-row {
+  text-align: right;
+  margin-top: -8px; margin-bottom: 22px;
+}
+.forgot-row a { font: 500 0.78rem system-ui; color: #9b72ff; text-decoration: none; }
+.btn-primary {
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font: 700 1rem system-ui;
+  cursor: pointer;
+  margin-bottom: 14px;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.85; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
+.divider-line { flex: 1; height: 1px; background: #d8d0e8; }
+.divider-text { font: 400 0.72rem system-ui; color: #b0a0c8; }
+.btn-google {
+  width: 100%;
+  height: 48px;
+  background: #fff;
+  border: 1.5px solid #d0c8e8;
+  border-radius: 14px;
+  font: 600 0.9rem system-ui;
+  color: #3a3060;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 20px;
+  -webkit-tap-highlight-color: transparent;
+}
+.new-account-row {
+  text-align: center;
+  font: 400 0.82rem system-ui;
+  color: #8070a0;
+}
+.new-account-row a { color: #9b72ff; font-weight: 600; text-decoration: none; }
+.home-indicator-bar {
+  height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  padding-bottom: 4px;
+}
+.home-bar {
+  width: 120px; height: 5px;
+  border-radius: 3px;
+  background: #2a1a80;
+  opacity: 0.2;
+}
+.coppa-note-mobile {
+  margin: 16px 0 24px;
+  padding: 10px 14px;
+  background: #ede8ff;
+  border-radius: 10px;
+  font: 400 0.72rem/1.5 system-ui;
+  color: #6a5890;
+  text-align: center;
+}
+
+/* ─── RETURNING PIN SCREEN ─── */
+.pin-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 760px;
+}
+.pin-top {
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+.parent-avatar-circle {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+  box-shadow: 0 4px 20px #9b72ff44;
+}
+.pin-name { font: 700 1.1rem system-ui; color: #1a1240; }
+.pin-email { font: 400 0.78rem system-ui; color: #8070a0; }
+.not-me-link { font: 500 0.75rem system-ui; color: #9b72ff; margin-top: -6px; }
+.pin-title { font: 600 0.85rem system-ui; color: #4a3880; margin-top: 8px; }
+.pin-dots-row {
+  display: flex; gap: 14px;
+}
+.pin-dot-m {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid #c0b0e8;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pin-dot-m.filled { background: #9b72ff; border-color: #9b72ff; }
+.biometric-btn {
+  display: flex; align-items: center; gap: 8px;
+  font: 500 0.8rem system-ui; color: #9b72ff;
+  border: none; background: none; cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #ccc0f0;
+}
+
+/* Numpad bottom anchored */
+.pin-numpad-section {
+  background: #fff;
+  border-top: 1px solid #e0d8f0;
+  padding: 16px 24px 0;
+}
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 0;
+}
+.nk {
+  height: 58px;
+  border: none;
+  background: #f5f0ff;
+  border-radius: 12px;
+  font: 700 1.2rem system-ui;
+  color: #1a1240;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.nk:active { background: #ded8ff; }
+.nk .sub { font: 400 0.52rem system-ui; color: #b0a0c8; letter-spacing: 0.05em; }
+.nk.del { font-size: 1.1rem; color: #9080c0; }
+.nk.empty { background: transparent; cursor: default; }
+
+/* ─── CREATE ACCOUNT SCREEN ─── */
+.create-content {
+  padding: 24px 24px 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 800px;
+}
+.create-headline-m {
+  font: 700 1.4rem/1.25 system-ui;
+  color: #1a1240;
+  margin-bottom: 8px;
+}
+.create-sub-m {
+  font: 400 0.82rem/1.5 system-ui;
+  color: #6a5890;
+  margin-bottom: 6px;
+}
+.step-bar {
+  display: flex; gap: 6px; align-items: center; margin: 16px 0 24px;
+}
+.step-seg {
+  flex: 1; height: 4px; border-radius: 2px; background: #d8d0f0;
+}
+.step-seg.done { background: #50e890; }
+.step-seg.active { background: #9b72ff; }
+.step-num { font: 600 0.7rem system-ui; color: #9080b0; }
+.form-row-2m { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.terms-row-m { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; }
+.terms-check-m { width: 18px; height: 18px; border-radius: 4px; accent-color: #9b72ff; flex-shrink: 0; margin-top: 2px; }
+.terms-text-m { font: 400 0.73rem/1.5 system-ui; color: #8070a0; }
+.terms-text-m a { color: #9b72ff; }
+
+/* ─── VERIFY SCREEN ─── */
+.verify-content {
+  padding: 40px 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 700px;
+}
+.verify-icon-m {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: linear-gradient(135deg, #ede8ff, #d8d0ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; margin-bottom: 20px;
+}
+.verify-headline-m { font: 700 1.4rem system-ui; color: #1a1240; text-align: center; margin-bottom: 8px; }
+.verify-sub-m { font: 400 0.82rem/1.5 system-ui; color: #6a5890; text-align: center; margin-bottom: 28px; }
+.otp-row-m { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+.otp-box-m {
+  width: 44px; height: 54px;
+  border: 2px solid #d0c8f0; border-radius: 10px;
+  font: 700 1.4rem system-ui; color: #1a1240; text-align: center;
+  background: #faf8ff; outline: none;
+}
+.otp-box-m.filled { background: #ede8ff; border-color: #9b72ff; }
+.resend-m { font: 400 0.78rem system-ui; color: #8070a0; text-align: center; margin-bottom: 22px; }
+.resend-m a { color: #9b72ff; font-weight: 600; text-decoration: none; }
+.verify-why {
+  margin-top: 20px; padding: 14px 16px;
+  background: #ede8ff; border-radius: 12px;
+  font: 400 0.76rem/1.5 system-ui; color: #6a5890; width: 100%;
+}
+.verify-why strong { color: #9b72ff; display: block; margin-bottom: 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ─── SPEC SCREEN ─── */
+#screen-spec-m { display: none; background: #f5f0e8; padding: 24px; }
+#screen-spec-m.active { display: block; }
+.spec-title-m { font: 700 1.1rem system-ui; color: #1a1240; margin-bottom: 20px; }
+.spec-table-m { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-bottom: 24px; }
+.spec-table-m th { text-align: left; padding: 9px 12px; background: #ede8ff; color: #4a3880; font: 700 0.68rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table-m td { padding: 9px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table-m tr:last-child td { border-bottom: none; }
+.spec-rule-m { font-weight: 700; color: #1a1240; }
+.spec-detail-m { color: #6a5890; font-size: 0.73rem; line-height: 1.5; }
+.spec-section-m { font: 700 0.88rem system-ui; color: #3d2a8a; margin: 20px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('signin')">Sign-In</button>
+  <button class="tab-btn" onclick="showTab('pin')">PIN</button>
+  <button class="tab-btn" onclick="showTab('create')">Create</button>
+  <button class="tab-btn" onclick="showTab('verify')">Verify</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════ SIGN-IN ═══════════════ -->
+<div class="screen active" id="screen-signin">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="sb-time">9:41</span>
+      <div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+
+    <div class="signin-content">
+      <div class="brand-row">
+        <div class="brand-icon">🌟</div>
+        <span class="brand-text">WonderQuest</span>
+      </div>
+
+      <div class="signin-headline">Parent portal</div>
+      <div class="signin-sub">Track your child's learning adventure</div>
+
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" placeholder="you@example.com" value="sarah.johnson@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="pw-wrap">
+          <input class="form-input" type="password" value="••••••••">
+          <button class="show-pw">👁</button>
+        </div>
+      </div>
+      <div class="forgot-row"><a href="#">Forgot password?</a></div>
+
+      <button class="btn-primary">Sign in →</button>
+
+      <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">or</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <button class="btn-google">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="new-account-row">
+        New here? <a href="#">Create parent account →</a>
+      </div>
+
+      <div class="coppa-note-mobile">
+        🔒 This portal is for parents only. Child accounts are managed through your dashboard.
+      </div>
+    </div>
+
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ PIN ═══════════════ -->
+<div class="screen" id="screen-pin">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="sb-time">9:41</span>
+      <div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+
+    <div class="pin-screen">
+      <div class="pin-top">
+        <div class="parent-avatar-circle">👩</div>
+        <div class="pin-name">Sarah Johnson</div>
+        <div class="pin-email">sarah.johnson@email.com</div>
+        <div class="not-me-link">Not me — switch account</div>
+        <div style="height: 20px;"></div>
+        <div class="pin-title">Enter your 4-digit PIN</div>
+        <div class="pin-dots-row">
+          <div class="pin-dot-m filled"></div>
+          <div class="pin-dot-m filled"></div>
+          <div class="pin-dot-m"></div>
+          <div class="pin-dot-m"></div>
+        </div>
+        <button class="biometric-btn">🪪 Use Face ID instead</button>
+        <div style="font:500 0.75rem system-ui; color:#9b72ff; margin-top:4px;">Forgot PIN?</div>
+      </div>
+
+      <div class="pin-numpad-section">
+        <div class="numpad-grid">
+          <button class="nk">1</button>
+          <button class="nk">2<span class="sub">ABC</span></button>
+          <button class="nk">3<span class="sub">DEF</span></button>
+          <button class="nk">4<span class="sub">GHI</span></button>
+          <button class="nk">5<span class="sub">JKL</span></button>
+          <button class="nk">6<span class="sub">MNO</span></button>
+          <button class="nk">7<span class="sub">PQRS</span></button>
+          <button class="nk">8<span class="sub">TUV</span></button>
+          <button class="nk">9<span class="sub">WXYZ</span></button>
+          <button class="nk empty"></button>
+          <button class="nk">0</button>
+          <button class="nk del">⌫</button>
+        </div>
+        <div class="home-indicator-bar"><div class="home-bar"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CREATE ═══════════════ -->
+<div class="screen" id="screen-create">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="sb-time">9:41</span>
+      <div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+
+    <div class="create-content">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <button style="border:none;background:none;font:600 0.82rem system-ui;color:#9b72ff;cursor:pointer;padding:4px;">← Back</button>
+        <div style="font:400 0.72rem system-ui;color:#9080b0;">Step 1 of 3</div>
+      </div>
+
+      <div class="create-headline-m">Create parent account</div>
+      <div class="create-sub-m">Free to start. Help your child learn every day.</div>
+
+      <div class="step-bar">
+        <div class="step-seg active"></div>
+        <div class="step-seg"></div>
+        <div class="step-seg"></div>
+      </div>
+
+      <div class="form-row-2m">
+        <div class="form-group">
+          <label class="form-label">First name</label>
+          <input class="form-input" type="text" placeholder="Sarah">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name</label>
+          <input class="form-input" type="text" placeholder="Johnson">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="pw-wrap">
+          <input class="form-input" type="password" placeholder="8+ characters">
+          <button class="show-pw">👁</button>
+        </div>
+      </div>
+
+      <div style="padding:10px 12px; background:#ede8ff; border-radius:8px; margin-bottom:14px;">
+        <div style="font:600 0.7rem system-ui;color:#9b72ff;">Password strength: <strong>Good ✓</strong></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your role</label>
+        <select class="form-input" style="cursor:pointer;">
+          <option>Parent</option>
+          <option>Guardian</option>
+          <option>Grandparent</option>
+          <option>Educator</option>
+        </select>
+      </div>
+
+      <div class="terms-row-m">
+        <input type="checkbox" class="terms-check-m" checked>
+        <div class="terms-text-m">
+          I agree to the <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>, and confirm I am 18+ and the parent/guardian of any child I add.
+        </div>
+      </div>
+
+      <button class="btn-primary">Continue →</button>
+
+      <div class="new-account-row" style="margin-top:12px;">
+        Already have an account? <a href="#">Sign in →</a>
+      </div>
+    </div>
+
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ VERIFY ═══════════════ -->
+<div class="screen" id="screen-verify">
+  <div class="phone">
+    <div class="status-bar">
+      <span class="sb-time">9:41</span>
+      <div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+
+    <div class="verify-content">
+      <div class="verify-icon-m">📧</div>
+      <div class="verify-headline-m">Check your email</div>
+      <div class="verify-sub-m">
+        We sent a 6-digit code to<br>
+        <strong style="color:#1a1240;">sarah.johnson@email.com</strong>
+      </div>
+
+      <div class="otp-row-m">
+        <input class="otp-box-m filled" type="text" maxlength="1" value="4">
+        <input class="otp-box-m filled" type="text" maxlength="1" value="8">
+        <input class="otp-box-m filled" type="text" maxlength="1" value="2">
+        <input class="otp-box-m" type="text" maxlength="1" placeholder="·">
+        <input class="otp-box-m" type="text" maxlength="1" placeholder="·">
+        <input class="otp-box-m" type="text" maxlength="1" placeholder="·">
+      </div>
+
+      <div class="resend-m">
+        Didn't get it? <a href="#">Resend</a> · Check spam
+      </div>
+
+      <button class="btn-primary" style="width:100%;">Verify &amp; continue →</button>
+
+      <div class="verify-why">
+        <strong>Why verify?</strong>
+        Email verification confirms you're the real parent or guardian, keeping your child's account secure and COPPA compliant.
+      </div>
+
+      <div style="text-align:center; margin-top:16px; font:400 0.75rem system-ui; color:#8070a0;">
+        <a href="#" style="color:#9b72ff; font-weight:600; text-decoration:none;">Try a different email</a>
+      </div>
+    </div>
+
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SPEC ═══════════════ -->
+<div class="screen" id="screen-spec">
+  <div style="background:#f5f0e8; border-radius:20px; padding:28px 24px; width:100%; max-width:420px;">
+    <div class="spec-title-m">Parent Entry Mobile — Spec</div>
+
+    <div class="spec-section-m">Mobile vs Desktop Differences</div>
+    <table class="spec-table-m">
+      <thead><tr><th>Aspect</th><th>Mobile</th><th>Desktop</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule-m">Layout</td>
+          <td class="spec-detail-m">Single column, full-width</td>
+          <td class="spec-detail-m">2-col grid (hero + card)</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">CTA height</td>
+          <td class="spec-detail-m">52px full-width</td>
+          <td class="spec-detail-m">52px full-width (card only)</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">PIN screen</td>
+          <td class="spec-detail-m">Numpad anchored at bottom, fills viewport</td>
+          <td class="spec-detail-m">Numpad in centered card</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Hero copy</td>
+          <td class="spec-detail-m">Abbreviated — headline + sub only</td>
+          <td class="spec-detail-m">Full hero + benefit list + preview stats</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Phone frame</td>
+          <td class="spec-detail-m">390px, 40px radius, inset glow</td>
+          <td class="spec-detail-m">No phone frame — full viewport</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-m">Auth Rules (Both)</div>
+    <table class="spec-table-m">
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule-m">Parent-only portal</td>
+          <td class="spec-detail-m">COPPA note always shown. This is NOT the child's login screen.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Age confirmation</td>
+          <td class="spec-detail-m">Checkbox: "I confirm I am 18+ and parent/guardian" — required on create.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">OTP auto-advance</td>
+          <td class="spec-detail-m">Focus moves to next OTP box automatically on input. Auto-submit on 6th digit.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Session cache</td>
+          <td class="spec-detail-m">Returning parent skips email/password — shows avatar + PIN numpad.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Biometric</td>
+          <td class="spec-detail-m">Face ID / Touch ID offered on returning PIN screen. Graceful fallback to PIN if not available.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Password tone</td>
+          <td class="spec-detail-m">Never show "Weak" in red. Use positive framing: "Good — try adding a symbol for strong."</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-m">Next Step After Entry</div>
+    <table class="spec-table-m">
+      <thead><tr><th>Path</th><th>Destination</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule-m">Returning parent</td>
+          <td class="spec-detail-m">→ Family dashboard (parent-family-dashboard-mobile-v3.html)</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">New parent (after verify)</td>
+          <td class="spec-detail-m">→ Link child flow (parent-link-child-flow-v3.html)</td>
+        </tr>
+        <tr>
+          <td class="spec-rule-m">Sign-in success</td>
+          <td class="spec-detail-m">→ Family dashboard</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 228 · play-visual-only-question-mode-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Engineering hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #1a1a1a;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      margin-bottom: 28px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #50e890;
+      margin-bottom: 6px;
+    }
+    .page-header p {
+      font-size: 14px;
+      color: rgba(240,246,255,.55);
+    }
+
+    /* ── Tab switcher ── */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 8px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: #161b22;
+      color: rgba(240,246,255,.6);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .18s, color .18s, border-color .18s;
+    }
+    .tab-btn:hover {
+      background: rgba(80,232,144,.08);
+      color: #f0f6ff;
+    }
+    .tab-btn.active {
+      background: rgba(80,232,144,.15);
+      border-color: #50e890;
+      color: #50e890;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,.4);
+      margin-bottom: 16px;
+    }
+
+    /* ────────────────────────────────
+       TAB 1 — Visual Question Gallery
+    ──────────────────────────────────*/
+    .question-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) {
+      .question-grid { grid-template-columns: 1fr; }
+    }
+
+    .q-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .q-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .q-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(240,246,255,.5);
+    }
+
+    .band-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+    .band-p0 { background: rgba(255,209,102,.15); color: #ffd166; border: 1px solid rgba(255,209,102,.3); }
+    .band-p1 { background: rgba(155,114,255,.15); color: #9b72ff; border: 1px solid rgba(155,114,255,.3); }
+    .band-p01 { background: linear-gradient(90deg,rgba(255,209,102,.15),rgba(155,114,255,.15)); color: #c8b0ff; border: 1px solid rgba(155,114,255,.25); }
+
+    /* Question prompt area */
+    .q-prompt {
+      background: rgba(255,255,255,.03);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .q-prompt .big-emoji {
+      font-size: 56px;
+      line-height: 1;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .q-prompt .prompt-label {
+      font-size: 13px;
+      color: rgba(240,246,255,.7);
+      font-weight: 500;
+    }
+    .q-prompt .big-word {
+      font-size: 40px;
+      font-weight: 800;
+      color: #f0f6ff;
+      letter-spacing: .06em;
+      margin-bottom: 4px;
+    }
+    .q-prompt .math-expr {
+      font-size: 32px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 4px;
+    }
+
+    /* Pattern row */
+    .pattern-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 28px;
+    }
+    .pattern-blank {
+      width: 36px;
+      height: 36px;
+      border: 2px dashed rgba(255,255,255,.3);
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: rgba(255,255,255,.3);
+    }
+
+    /* Answer options */
+    .ans-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .ans-btn {
+      background: rgba(255,255,255,.05);
+      border: 1.5px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      padding: 10px 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: background .15s, border-color .15s, transform .1s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .ans-btn:hover {
+      background: rgba(80,232,144,.12);
+      border-color: #50e890;
+      transform: translateY(-2px);
+    }
+    .ans-btn .ans-emoji { font-size: 28px; line-height: 1; }
+    .ans-btn .ans-text { font-size: 10px; color: rgba(240,246,255,.5); }
+
+    /* Dot array answer */
+    .ans-btn .dot-array {
+      font-size: 10px;
+      line-height: 1.3;
+      color: #f0f6ff;
+      letter-spacing: 1px;
+    }
+
+    /* Settings note */
+    .settings-note {
+      background: rgba(80,232,144,.06);
+      border: 1px solid rgba(80,232,144,.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .settings-note .sn-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: rgba(240,246,255,.75);
+    }
+    .settings-note .sn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ────────────────────────────────
+       TAB 2 — Audio vs Visual split
+    ──────────────────────────────────*/
+    .split-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) {
+      .split-panel { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .panel-audio .panel-title { color: #ffd166; }
+    .panel-visual .panel-title { color: #50e890; }
+
+    .type-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .type-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: rgba(240,246,255,.8);
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      letter-spacing: .03em;
+    }
+    .badge-amber { background: rgba(255,209,102,.15); color: #ffd166; border: 1px solid rgba(255,209,102,.3); }
+    .badge-green { background: rgba(80,232,144,.15); color: #50e890; border: 1px solid rgba(80,232,144,.3); }
+
+    .access-note {
+      margin-top: 12px;
+      font-size: 11px;
+      color: rgba(240,246,255,.45);
+      font-style: italic;
+      border-top: 1px solid rgba(255,255,255,.05);
+      padding-top: 10px;
+    }
+
+    /* Stat banner */
+    .stat-banner {
+      background: linear-gradient(135deg, rgba(80,232,144,.1), rgba(88,232,193,.08));
+      border: 1px solid rgba(80,232,144,.2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .stat-banner .stat-number {
+      font-size: 42px;
+      font-weight: 800;
+      color: #50e890;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-banner .stat-desc {
+      font-size: 14px;
+      color: rgba(240,246,255,.7);
+    }
+
+    /* SQL schema */
+    .schema-block {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 18px 20px;
+      overflow-x: auto;
+    }
+    .schema-block pre {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #58e8c1;
+      line-height: 1.7;
+      white-space: pre;
+    }
+    .schema-block pre .kw { color: #9b72ff; }
+    .schema-block pre .ty { color: #ffd166; }
+    .schema-block pre .cm { color: rgba(240,246,255,.35); }
+
+    /* ────────────────────────────────
+       TAB 3 — Spec
+    ──────────────────────────────────*/
+    .spec-section {
+      margin-bottom: 28px;
+    }
+    .spec-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #50e890;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .spec-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,.4);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .spec-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      color: rgba(240,246,255,.8);
+      vertical-align: top;
+    }
+    .spec-table td:first-child {
+      font-weight: 600;
+      color: #f0f6ff;
+      white-space: nowrap;
+      width: 220px;
+    }
+    .spec-table tr:last-child td { border-bottom: none; }
+
+    .spec-row-bg { background: #161b22; border-radius: 10px; overflow: hidden; }
+
+    .code-inline {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      background: rgba(255,255,255,.07);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #58e8c1;
+    }
+
+    .wcag-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .wcag-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #161b22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+    }
+    .wcag-item .wcag-id {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #9b72ff;
+      background: rgba(155,114,255,.1);
+      border: 1px solid rgba(155,114,255,.25);
+      padding: 2px 7px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .wcag-item .wcag-desc { color: rgba(240,246,255,.8); line-height: 1.5; }
+
+    .ci-block {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.08);
+      border-left: 3px solid #50e890;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .ci-block .ci-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #50e890;
+      margin-bottom: 8px;
+    }
+    .ci-block pre {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #58e8c1;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .ci-block .ci-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(240,246,255,.45);
+    }
+
+    .band-design-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 500px) {
+      .band-design-grid { grid-template-columns: 1fr; }
+    }
+    .band-design-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .band-design-card .bdc-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .band-design-card.p0 .bdc-title { color: #ffd166; }
+    .band-design-card.p3 .bdc-title { color: #ff7b6b; }
+    .band-design-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .band-design-card ul li {
+      font-size: 12px;
+      color: rgba(240,246,255,.7);
+      padding-left: 14px;
+      position: relative;
+    }
+    .band-design-card ul li::before {
+      content: '·';
+      position: absolute;
+      left: 4px;
+      color: rgba(255,255,255,.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 228 · play-visual-only-question-mode-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <h1>Visual-Only Question Mode</h1>
+    <p>Question design, content rules, and accessibility spec for audio-free play</p>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Visual Question Types</button>
+    <button class="tab-btn" onclick="showTab(1)">Audio vs Visual</button>
+    <button class="tab-btn" onclick="showTab(2)">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 1 — Visual Question Types
+  ════════════════════════════════════ -->
+  <div class="screen active" id="screen-0">
+
+    <div class="section-label">Visual question gallery</div>
+
+    <div class="question-grid">
+
+      <!-- Card 1: Image Match -->
+      <div class="q-card">
+        <div class="q-card-header">
+          <span class="q-card-label">Image match — no audio needed</span>
+          <span class="band-tag band-p0">P0</span>
+        </div>
+        <div class="q-prompt">
+          <span class="big-emoji" role="img" aria-label="Elephant">🐘</span>
+          <span class="prompt-label">Elephant</span>
+        </div>
+        <div class="ans-grid">
+          <button class="ans-btn" aria-label="Elephant">
+            <span class="ans-emoji">🐘</span>
+          </button>
+          <button class="ans-btn" aria-label="Dolphin">
+            <span class="ans-emoji">🐬</span>
+          </button>
+          <button class="ans-btn" aria-label="Lion">
+            <span class="ans-emoji">🦁</span>
+          </button>
+          <button class="ans-btn" aria-label="Fox">
+            <span class="ans-emoji">🦊</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card 2: Pattern Complete -->
+      <div class="q-card">
+        <div class="q-card-header">
+          <span class="q-card-label">Pattern completion</span>
+          <span class="band-tag band-p01">P0 / P1</span>
+        </div>
+        <div class="q-prompt">
+          <div class="pattern-row" role="img" aria-label="Yellow circle, blue circle, yellow circle, blue circle, yellow circle, blank">
+            <span>🟡</span>
+            <span>🔵</span>
+            <span>🟡</span>
+            <span>🔵</span>
+            <span>🟡</span>
+            <span class="pattern-blank">?</span>
+          </div>
+        </div>
+        <div class="ans-grid">
+          <button class="ans-btn" aria-label="Blue circle">
+            <span class="ans-emoji">🔵</span>
+          </button>
+          <button class="ans-btn" aria-label="Yellow circle">
+            <span class="ans-emoji">🟡</span>
+          </button>
+          <button class="ans-btn" aria-label="Green circle">
+            <span class="ans-emoji">🟢</span>
+          </button>
+          <button class="ans-btn" aria-label="Red circle">
+            <span class="ans-emoji">🔴</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card 3: Word-Image Match -->
+      <div class="q-card">
+        <div class="q-card-header">
+          <span class="q-card-label">Word + image</span>
+          <span class="band-tag band-p1">P1</span>
+        </div>
+        <div class="q-prompt">
+          <div class="big-word">CAT</div>
+          <span class="prompt-label">Find the matching picture</span>
+        </div>
+        <div class="ans-grid">
+          <button class="ans-btn" aria-label="Cat">
+            <span class="ans-emoji">🐱</span>
+          </button>
+          <button class="ans-btn" aria-label="Dog">
+            <span class="ans-emoji">🐶</span>
+          </button>
+          <button class="ans-btn" aria-label="Rabbit">
+            <span class="ans-emoji">🐰</span>
+          </button>
+          <button class="ans-btn" aria-label="Frog">
+            <span class="ans-emoji">🐸</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card 4: Visual Maths -->
+      <div class="q-card">
+        <div class="q-card-header">
+          <span class="q-card-label">Visual maths</span>
+          <span class="band-tag band-p01">P0 / P1</span>
+        </div>
+        <div class="q-prompt">
+          <div class="math-expr">3 + 2 = ?</div>
+          <span class="prompt-label">Choose the right number of dots</span>
+        </div>
+        <div class="ans-grid">
+          <button class="ans-btn" aria-label="5 dots">
+            <span class="dot-array">● ● ●<br>● ●</span>
+          </button>
+          <button class="ans-btn" aria-label="4 dots">
+            <span class="dot-array">● ●<br>● ●</span>
+          </button>
+          <button class="ans-btn" aria-label="6 dots">
+            <span class="dot-array">● ● ●<br>● ● ●</span>
+          </button>
+          <button class="ans-btn" aria-label="2 dots">
+            <span class="dot-array">●<br>●</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Settings note -->
+    <div class="settings-note">
+      <div class="sn-row">
+        <span class="sn-icon">🔇</span>
+        <span>Visual-only mode activates automatically when audio is disabled</span>
+      </div>
+      <div class="sn-row">
+        <span class="sn-icon">✅</span>
+        <span>All WonderQuest questions have a visual-only fallback</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 2 — Audio vs Visual
+  ════════════════════════════════════ -->
+  <div class="screen" id="screen-1">
+
+    <div class="split-panel">
+
+      <!-- Left: Audio-dependent -->
+      <div class="panel panel-audio">
+        <div class="panel-title">Audio-dependent question types</div>
+        <ul class="type-list">
+          <li class="type-item">
+            <span class="badge badge-amber">⚠ Audio recommended</span>
+            <span>Phonics &amp; rhyme questions — require hearing the sound</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-amber">⚠ Audio recommended</span>
+            <span>"Which word sounds like…?" questions</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-amber">⚠ Audio recommended</span>
+            <span>Audio story comprehension questions</span>
+          </li>
+        </ul>
+        <p class="access-note">
+          These are still accessible — the question text is always shown on screen; audio is an enhancement, not the only path.
+        </p>
+      </div>
+
+      <!-- Right: Visual-first -->
+      <div class="panel panel-visual">
+        <div class="panel-title">Visual-first question types</div>
+        <ul class="type-list">
+          <li class="type-item">
+            <span class="badge badge-green">✓ Visual-first</span>
+            <span>Image match</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-green">✓ Visual-first</span>
+            <span>Pattern completion</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-green">✓ Visual-first</span>
+            <span>Dot counting / number sense</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-green">✓ Visual-first</span>
+            <span>Shape recognition</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-green">✓ Visual-first</span>
+            <span>Sorting &amp; categorisation</span>
+          </li>
+          <li class="type-item">
+            <span class="badge badge-green">✓ Visual-first</span>
+            <span>Sequencing (emoji order)</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- Stat banner -->
+    <div class="stat-banner">
+      <div class="stat-number">85%</div>
+      <div class="stat-desc">of WonderQuest questions are fully accessible without audio</div>
+    </div>
+
+    <!-- Schema -->
+    <div class="section-label">Content metadata schema</div>
+    <div class="schema-block">
+      <pre><span class="kw">content_questions</span> (
+  id                          <span class="ty">UUID</span>,
+  ...
+  audio_required              <span class="ty">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="ty">false</span>,
+  visual_fallback_available   <span class="ty">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="ty">true</span>,
+  has_image_asset             <span class="ty">BOOLEAN</span>,
+  alt_text                    <span class="ty">TEXT</span>,  <span class="cm">-- always required if has_image_asset=true</span>
+  ...
+)</pre>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 3 — Spec
+  ════════════════════════════════════ -->
+  <div class="screen" id="screen-2">
+
+    <!-- Trigger & Content Rules -->
+    <div class="spec-section">
+      <h3>Trigger &amp; Content Rules</h3>
+      <div class="spec-row-bg">
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Rule</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Visual-only trigger</td>
+              <td>
+                <span class="code-inline">child_audio_prefs.readout_enabled = false</span>
+                OR device audio unavailable
+              </td>
+            </tr>
+            <tr>
+              <td>Content rule</td>
+              <td>
+                Every question MUST have
+                <span class="code-inline">visual_fallback_available = true</span>
+                — enforced at publish gate
+              </td>
+            </tr>
+            <tr>
+              <td>Exception</td>
+              <td>
+                Phonics / rhyme skills marked
+                <span class="code-inline">audio_required = true</span>
+                — automatically excluded from session when audio is disabled
+              </td>
+            </tr>
+            <tr>
+              <td>Adaptive exclusion</td>
+              <td>
+                When audio is off, <span class="code-inline">audio_required=true</span> questions excluded from adaptive selection pool:
+                <br><br>
+                <span class="code-inline">WHERE audio_required = false OR audio_disabled = false</span>
+              </td>
+            </tr>
+            <tr>
+              <td>Image alt text</td>
+              <td>
+                <span class="code-inline">alt_text</span> required for all images (WCAG 1.1.1); enforced as publish blocker
+              </td>
+            </tr>
+            <tr>
+              <td>Authoring rule</td>
+              <td>
+                Every image answer option must have descriptive alt text; emoji questions use the emoji character + name
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Band visual design -->
+    <div class="spec-section">
+      <h3>Band Visual Design</h3>
+      <div class="band-design-grid">
+        <div class="band-design-card p0">
+          <div class="bdc-title">Band P0 — Earliest Learners</div>
+          <ul>
+            <li>Large images (120 px+)</li>
+            <li>2-option layouts available</li>
+            <li>Maximum font size 20 px</li>
+            <li>High contrast imagery</li>
+          </ul>
+        </div>
+        <div class="band-design-card p3">
+          <div class="bdc-title">Band P3 — Advanced</div>
+          <ul>
+            <li>Richer text content</li>
+            <li>Images supplementary</li>
+            <li>Standard 4-option layout</li>
+            <li>Denser information display</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- WCAG -->
+    <div class="spec-section">
+      <h3>Accessibility Standards (WCAG)</h3>
+      <ul class="wcag-list">
+        <li class="wcag-item">
+          <span class="wcag-id">1.1.1</span>
+          <span class="wcag-desc">
+            <strong>Non-text content</strong> — alt text required for all images; enforced as a publish blocker
+          </span>
+        </li>
+        <li class="wcag-item">
+          <span class="wcag-id">1.3.3</span>
+          <span class="wcag-desc">
+            <strong>Sensory characteristics</strong> — instructions never rely on shape, colour, or sound alone
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- CI check -->
+    <div class="spec-section">
+      <h3>CI Publish Gate Check</h3>
+      <div class="ci-block">
+        <div class="ci-label">SQL — must return 0</div>
+        <pre>SELECT COUNT(*)
+FROM   content_questions
+WHERE  has_image_asset = true
+  AND  alt_text IS NULL
+  AND  review_status = 'Published'</pre>
+        <p class="ci-note">This check runs on every deploy. A non-zero result blocks the publish pipeline.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.screen').forEach((screen, i) => {
+        screen.classList.toggle('active', i === t);
+      });
+    }
+  </script>
+
+</body>
+</html>

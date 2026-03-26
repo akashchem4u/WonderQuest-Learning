@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — voice-coach-persona-selector-v2.html
+  ========================================================
+  ITEM 261 · WonderQuest parallel-agent build
+  Parent-facing voice coach persona selector.
+  DB: child_audio_prefs.voice_coach_id UUID FK → voice_coaches(id, name, locale, tts_voice_key, pace_level)
+  Preview: Web Speech API speechSynthesis (no server call).
+  Default: voice_coach_id = NULL → system default (Orbit for P0, Luna for P1/P2).
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Voice Coach Persona Selector v2</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --accent: #50e890;
+  --text: #f0f6ff;
+  --muted: #8b949e;
+  --border: rgba(255,255,255,.06);
+  --p0: #ffd166;
+  --p1: #9b72ff;
+  --p2: #58e8c1;
+  --p3: #ff7b6b;
+  --parent: #a78bfa;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+/* Engineering hint box */
+.hint-box {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-family: monospace;
+  font-size: 13px;
+  color: #1a1a1a;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Tab nav */
+.tab-nav {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+}
+.tab-btn:hover {
+  color: var(--text);
+  border-color: rgba(255,255,255,.15);
+}
+.tab-btn.active {
+  background: var(--accent);
+  color: #0d1117;
+  border-color: var(--accent);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── TAB 1 ── */
+.selector-header {
+  max-width: 860px;
+  margin: 0 auto 24px;
+}
+.selector-header h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.selector-header p {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.coach-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  max-width: 860px;
+  margin: 0 auto 20px;
+}
+@media (max-width: 600px) {
+  .coach-grid { grid-template-columns: 1fr; }
+}
+
+.coach-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .18s, box-shadow .18s;
+  position: relative;
+}
+.coach-card:hover {
+  border-color: rgba(255,255,255,.18);
+}
+.coach-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(80,232,144,.18);
+}
+
+.coach-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.coach-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.05);
+  border-radius: 10px;
+}
+.coach-info { flex: 1; }
+.coach-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.selected-chip {
+  display: none;
+  background: var(--accent);
+  color: #0d1117;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  letter-spacing: .02em;
+}
+.coach-card.selected .selected-chip { display: inline; }
+
+.coach-desc {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.coach-style {
+  font-size: 0.75rem;
+  color: var(--text);
+  opacity: .65;
+}
+
+.band-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.band-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  letter-spacing: .02em;
+}
+.band-tag.p0 { background: rgba(255,209,102,.15); color: var(--p0); }
+.band-tag.p1 { background: rgba(155,114,255,.15); color: var(--p1); }
+.band-tag.p2 { background: rgba(88,232,193,.15); color: var(--p2); }
+.band-tag.p3 { background: rgba(255,123,107,.15); color: var(--p3); }
+.band-tag.all { background: rgba(255,255,255,.08); color: var(--muted); }
+
+.coach-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.btn-preview {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.18);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-preview:hover {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.3);
+}
+.btn-preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn-select {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,.14);
+  color: var(--text);
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  flex: 1;
+}
+.btn-select:hover {
+  background: rgba(80,232,144,.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.coach-card.selected .btn-select {
+  background: rgba(80,232,144,.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* no-voice card */
+.coach-card.no-voice {
+  background: rgba(255,255,255,.025);
+  border-style: dashed;
+}
+.coach-card.no-voice .coach-icon {
+  opacity: .4;
+}
+
+/* Privacy note */
+.privacy-note {
+  max-width: 860px;
+  margin: 0 auto;
+  background: rgba(167,139,250,.07);
+  border: 1px solid rgba(167,139,250,.22);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.privacy-note span.icon { font-size: 1rem; flex-shrink: 0; }
+
+/* Preview toast */
+.preview-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1e2530;
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s, transform .22s;
+  z-index: 100;
+  white-space: nowrap;
+}
+.preview-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.preview-toast .spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(80,232,144,.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TAB 2 ── */
+.tab2-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.tab2-wrap h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.compare-table th {
+  text-align: left;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,.025);
+}
+.compare-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table tr:hover td { background: rgba(255,255,255,.025); }
+.compare-table tr.selected-row td { background: rgba(80,232,144,.05); }
+.compare-table tr.selected-row td:first-child {
+  border-left: 3px solid var(--accent);
+  padding-left: 11px;
+}
+
+.coach-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.coach-cell .em { font-size: 1.15rem; }
+
+.pace-pill {
+  display: inline-block;
+  background: rgba(255,255,255,.07);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.a11y-note {
+  margin-top: 18px;
+  background: rgba(88,232,193,.06);
+  border: 1px solid rgba(88,232,193,.2);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+/* ── TAB 3 ── */
+.spec-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.spec-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.spec-section h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.spec-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 7px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.spec-row:last-child { margin-bottom: 0; }
+.spec-label {
+  color: var(--muted);
+  min-width: 140px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+}
+.spec-val { color: var(--text); }
+.spec-val code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.76rem;
+  background: rgba(255,255,255,.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--p2);
+}
+.spec-val.parent-color { color: var(--parent); font-weight: 600; }
+
+.wcag-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wcag-list li {
+  font-size: 0.81rem;
+  color: var(--text);
+  display: flex;
+  gap: 8px;
+  line-height: 1.45;
+}
+.wcag-list li::before {
+  content: "✓";
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.no-clone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,123,107,.1);
+  border: 1px solid rgba(255,123,107,.25);
+  color: #ff7b6b;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  ITEM 261 &middot; voice-coach-persona-selector-v2.html &middot; WonderQuest parallel-agent build
+</div>
+
+<h1>Voice Coach Persona Selector</h1>
+<p class="subtitle">WonderQuest Learning &mdash; Parent Settings &middot; Item 261</p>
+
+<nav class="tab-nav" role="tablist" aria-label="Selector sections">
+  <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab1" id="tab-btn-1" onclick="showTab(1)">Voice Coach Selector</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab2" id="tab-btn-2" onclick="showTab(2)">Voice Characteristics</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab3" id="tab-btn-3" onclick="showTab(3)">Spec</button>
+</nav>
+
+<!-- ════════════════════════════════════════════ TAB 1 ════ -->
+<div class="tab-panel active" id="tab1" role="tabpanel" aria-labelledby="tab-btn-1">
+
+  <div class="selector-header">
+    <h2>Choose a Voice Guide for Emma</h2>
+    <p>Emma will hear this voice when questions are read aloud</p>
+  </div>
+
+  <div class="coach-grid">
+
+    <!-- 1. Orbit -->
+    <div class="coach-card" id="card-orbit" data-coach="orbit">
+      <div class="coach-card-top">
+        <div class="coach-icon" aria-hidden="true">🤖</div>
+        <div class="coach-info">
+          <div class="coach-name">
+            Orbit the Robot
+            <span class="selected-chip">&#10003; Selected</span>
+          </div>
+          <div class="coach-desc">Clear and friendly, great for early learners</div>
+          <div class="coach-style">Neutral &middot; Slow pace</div>
+        </div>
+      </div>
+      <div class="band-tags" aria-label="Recommended bands">
+        <span class="band-tag p0">P0</span>
+        <span class="band-tag p1">P1</span>
+        <span style="font-size:.67rem;color:var(--muted);padding:2px 6px;align-self:center;">Recommended</span>
+      </div>
+      <div class="coach-actions">
+        <button class="btn-preview" onclick="previewVoice('orbit')" aria-label="Preview Orbit the Robot voice">
+          &#9654; Preview
+        </button>
+        <button class="btn-select" id="sel-orbit" aria-pressed="false" onclick="selectCoach('orbit')">Select</button>
+      </div>
+    </div>
+
+    <!-- 2. Luna (selected) -->
+    <div class="coach-card selected" id="card-luna" data-coach="luna">
+      <div class="coach-card-top">
+        <div class="coach-icon" aria-hidden="true">🌙</div>
+        <div class="coach-info">
+          <div class="coach-name">
+            Luna the Explorer
+            <span class="selected-chip">&#10003; Selected</span>
+          </div>
+          <div class="coach-desc">Warm and encouraging, perfect for adventures</div>
+          <div class="coach-style">Warm &middot; Moderate pace</div>
+        </div>
+      </div>
+      <div class="band-tags" aria-label="Recommended bands">
+        <span class="band-tag p1">P1</span>
+        <span class="band-tag p2">P2</span>
+        <span style="font-size:.67rem;color:var(--muted);padding:2px 6px;align-self:center;">Recommended</span>
+      </div>
+      <div class="coach-actions">
+        <button class="btn-preview" onclick="previewVoice('luna')" aria-label="Preview Luna the Explorer voice">
+          &#9654; Preview
+        </button>
+        <button class="btn-select" id="sel-luna" aria-pressed="true" onclick="selectCoach('luna')">Select</button>
+      </div>
+    </div>
+
+    <!-- 3. Rex -->
+    <div class="coach-card" id="card-rex" data-coach="rex">
+      <div class="coach-card-top">
+        <div class="coach-icon" aria-hidden="true">🦖</div>
+        <div class="coach-info">
+          <div class="coach-name">
+            Captain Rex
+            <span class="selected-chip">&#10003; Selected</span>
+          </div>
+          <div class="coach-desc">Energetic and fun &mdash; dino-approved!</div>
+          <div class="coach-style">Enthusiastic &middot; Standard pace</div>
+        </div>
+      </div>
+      <div class="band-tags" aria-label="Recommended bands">
+        <span class="band-tag p0">P0</span>
+        <span class="band-tag p1">P1</span>
+        <span class="band-tag p2">P2</span>
+      </div>
+      <div class="coach-actions">
+        <button class="btn-preview" onclick="previewVoice('rex')" aria-label="Preview Captain Rex voice">
+          &#9654; Preview
+        </button>
+        <button class="btn-select" id="sel-rex" aria-pressed="false" onclick="selectCoach('rex')">Select</button>
+      </div>
+    </div>
+
+    <!-- 4. Maya -->
+    <div class="coach-card" id="card-maya" data-coach="maya">
+      <div class="coach-card-top">
+        <div class="coach-icon" aria-hidden="true">🔬</div>
+        <div class="coach-info">
+          <div class="coach-name">
+            Maya the Scientist
+            <span class="selected-chip">&#10003; Selected</span>
+          </div>
+          <div class="coach-desc">Curious and thoughtful, loves learning</div>
+          <div class="coach-style">Calm &middot; Clear</div>
+        </div>
+      </div>
+      <div class="band-tags" aria-label="Recommended bands">
+        <span class="band-tag p2">P2</span>
+        <span class="band-tag p3">P3</span>
+      </div>
+      <div class="coach-actions">
+        <button class="btn-preview" onclick="previewVoice('maya')" aria-label="Preview Maya the Scientist voice">
+          &#9654; Preview
+        </button>
+        <button class="btn-select" id="sel-maya" aria-pressed="false" onclick="selectCoach('maya')">Select</button>
+      </div>
+    </div>
+
+    <!-- 5. Zara -->
+    <div class="coach-card" id="card-zara" data-coach="zara">
+      <div class="coach-card-top">
+        <div class="coach-icon" aria-hidden="true">📖</div>
+        <div class="coach-info">
+          <div class="coach-name">
+            Zara the Storyteller
+            <span class="selected-chip">&#10003; Selected</span>
+          </div>
+          <div class="coach-desc">Engaging and expressive narrative voice</div>
+          <div class="coach-style">Expressive &middot; Natural pace</div>
+        </div>
+      </div>
+      <div class="band-tags" aria-label="Recommended bands">
+        <span class="band-tag p2">P2</span>
+        <span class="band-tag p3">P3</span>
+      </div>
+      <div class="coach-actions">
+        <button class="btn-preview" onclick="previewVoice('zara')" aria-label="Preview Zara the Storyteller voice">
+          &#9654; Preview
+        </button>
+        <button class="btn-select" id="sel-zara" aria-pressed="false" onclick="selectCoach('zara')">Select</button>
+      </div>
+    </div>
+
+    <!-- 6. No voice -->
+    <div class="coach-card no-voice" id="card-none" data-coach="none">
+      <div class="coach-card-top">
+        <div class="coach-icon" aria-hidden="true">🔇</div>
+        <div class="coach-info">
+          <div class="coach-name">
+            No voice guide (text only)
+            <span class="selected-chip">&#10003; Selected</span>
+          </div>
+          <div class="coach-desc">Just show question text, no voice readout</div>
+          <div class="coach-style" style="color:var(--muted)">N/A</div>
+        </div>
+      </div>
+      <div class="band-tags" aria-label="Recommended bands">
+        <span class="band-tag all">All bands</span>
+      </div>
+      <div class="coach-actions">
+        <button class="btn-select" id="sel-none" aria-pressed="false" onclick="selectCoach('none')" style="flex:unset;padding:6px 20px;">Select</button>
+      </div>
+    </div>
+
+  </div><!-- /.coach-grid -->
+
+  <div class="privacy-note" role="note">
+    <span class="icon">&#128274;</span>
+    <span>All voices are pre-recorded by professional voice actors or generated using accessible text-to-speech. No AI voice cloning is used.</span>
+  </div>
+
+</div><!-- /#tab1 -->
+
+<!-- ════════════════════════════════════════════ TAB 2 ════ -->
+<div class="tab-panel" id="tab2" role="tabpanel" aria-labelledby="tab-btn-2">
+  <div class="tab2-wrap">
+    <h2>Voice Characteristics Comparison</h2>
+
+    <table class="compare-table" aria-label="Voice coach comparison">
+      <thead>
+        <tr>
+          <th>Coach</th>
+          <th>Pace</th>
+          <th>Tone</th>
+          <th>Best for</th>
+          <th>Band</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="row-orbit">
+          <td><div class="coach-cell"><span class="em">🤖</span> Orbit the Robot</div></td>
+          <td><span class="pace-pill">Slow / Clear</span></td>
+          <td>Neutral</td>
+          <td>Early readers</td>
+          <td>
+            <span class="band-tag p0">P0</span>
+            <span style="color:var(--muted);font-size:.72rem;margin:0 2px;">&ndash;</span>
+            <span class="band-tag p1">P1</span>
+          </td>
+        </tr>
+        <tr id="row-luna" class="selected-row">
+          <td>
+            <div class="coach-cell"><span class="em">🌙</span> Luna the Explorer</div>
+            <div style="font-size:.7rem;color:var(--accent);margin-top:3px;margin-left:28px;">&#10003; Currently selected</div>
+          </td>
+          <td><span class="pace-pill">Moderate</span></td>
+          <td>Warm</td>
+          <td>Adventurers</td>
+          <td>
+            <span class="band-tag p1">P1</span>
+            <span style="color:var(--muted);font-size:.72rem;margin:0 2px;">&ndash;</span>
+            <span class="band-tag p2">P2</span>
+          </td>
+        </tr>
+        <tr id="row-rex">
+          <td><div class="coach-cell"><span class="em">🦖</span> Captain Rex</div></td>
+          <td><span class="pace-pill">Standard</span></td>
+          <td>Enthusiastic</td>
+          <td>Energetic learners</td>
+          <td>
+            <span class="band-tag p0">P0</span>
+            <span style="color:var(--muted);font-size:.72rem;margin:0 2px;">&ndash;</span>
+            <span class="band-tag p2">P2</span>
+          </td>
+        </tr>
+        <tr id="row-maya">
+          <td><div class="coach-cell"><span class="em">🔬</span> Maya the Scientist</div></td>
+          <td><span class="pace-pill">Standard</span></td>
+          <td>Calm</td>
+          <td>Focused learners</td>
+          <td>
+            <span class="band-tag p2">P2</span>
+            <span style="color:var(--muted);font-size:.72rem;margin:0 2px;">&ndash;</span>
+            <span class="band-tag p3">P3</span>
+          </td>
+        </tr>
+        <tr id="row-zara">
+          <td><div class="coach-cell"><span class="em">📖</span> Zara the Storyteller</div></td>
+          <td><span class="pace-pill">Natural</span></td>
+          <td>Expressive</td>
+          <td>Story lovers</td>
+          <td>
+            <span class="band-tag p2">P2</span>
+            <span style="color:var(--muted);font-size:.72rem;margin:0 2px;">&ndash;</span>
+            <span class="band-tag p3">P3</span>
+          </td>
+        </tr>
+        <tr id="row-none">
+          <td><div class="coach-cell"><span class="em">🔇</span> Text only</div></td>
+          <td><span class="pace-pill">&mdash;</span></td>
+          <td style="color:var(--muted)">&mdash;</td>
+          <td>Audio off preference</td>
+          <td><span class="band-tag all">All</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="a11y-note" role="note">
+      <span style="font-size:1rem;flex-shrink:0;">&#9997;</span>
+      <span><strong style="color:var(--text);">Accessibility note:</strong> All voice guides support slow speed mode. Slow mode is available via the speed toggle during play.</span>
+    </div>
+  </div>
+</div><!-- /#tab2 -->
+
+<!-- ════════════════════════════════════════════ TAB 3 ════ -->
+<div class="tab-panel" id="tab3" role="tabpanel" aria-labelledby="tab-btn-3">
+  <div class="spec-wrap">
+
+    <div class="spec-section">
+      <h3>Access &amp; Ownership</h3>
+      <div class="spec-row">
+        <span class="spec-label">Who can choose</span>
+        <span class="spec-val parent-color">Parent only (or child with parent permission &mdash; see child preferences)</span>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Database</h3>
+      <div class="spec-row">
+        <span class="spec-label">Preference table</span>
+        <span class="spec-val"><code>child_audio_prefs</code></span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">FK column</span>
+        <span class="spec-val"><code>voice_coach_id UUID FK &rarr; voice_coaches(id, name, locale, tts_voice_key, pace_level)</code></span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Default</span>
+        <span class="spec-val"><code>voice_coach_id = NULL</code> &mdash; system default: Orbit for P0, Luna for P1/P2</span>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Voice Technology</h3>
+      <div class="spec-row">
+        <span class="spec-label">MVP assets</span>
+        <span class="spec-val">Pre-recorded audio assets (primary)</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Fallback</span>
+        <span class="spec-val">Web Speech API <code>speechSynthesis</code> with <code>voice_coach.tts_voice_key</code> mapping to browser voice; locale respected</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Preview</span>
+        <span class="spec-val">Triggers <code>speechSynthesis</code> in browser (no server call); <code>utterance.voice</code> set from available voices list</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">AI cloning</span>
+        <span class="spec-val">
+          <div class="no-clone-badge">&#10005; No AI voice cloning</div>
+          <div style="margin-top:6px;font-size:.78rem;color:var(--muted);">Voice actors consent given for specific phrases only; no AI voice cloning technology used.</div>
+        </span>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Privacy</h3>
+      <div class="spec-row">
+        <span class="spec-label">Biometric data</span>
+        <span class="spec-val">None collected</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Voice recognition</span>
+        <span class="spec-val">Not used in this feature</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Voice actor sessions</span>
+        <span class="spec-val">Identified by <code>session_id</code> only (not name)</span>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Accessibility (WCAG)</h3>
+      <ul class="wcag-list">
+        <li>All cards keyboard navigable via Tab / Shift+Tab</li>
+        <li>[Preview] button activates on Enter and Space keys</li>
+        <li>Selected state conveyed via <code>aria-pressed</code> on Select button</li>
+        <li>All voice guides support slow speed mode via the speed toggle during play</li>
+        <li>Text-only option ensures no forced audio for audio-off preference</li>
+      </ul>
+    </div>
+
+  </div>
+</div><!-- /#tab3 -->
+
+<!-- Preview toast -->
+<div class="preview-toast" id="preview-toast" role="status" aria-live="polite">
+  <span class="spinner"></span>
+  <span id="preview-toast-text">Playing preview&hellip;</span>
+</div>
+
+<script>
+/* ─── Tab switching ─── */
+function showTab(t) {
+  document.querySelectorAll('.tab-panel').forEach(function(p, i) {
+    p.classList.toggle('active', (i + 1) === t);
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+    var active = (i + 1) === t;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
+  });
+}
+
+/* ─── Coach selection ─── */
+var currentCoach = 'luna';
+
+function selectCoach(id) {
+  // Deselect previous
+  var prevCard = document.getElementById('card-' + currentCoach);
+  var prevBtn  = document.getElementById('sel-' + currentCoach);
+  if (prevCard) prevCard.classList.remove('selected');
+  if (prevBtn)  prevBtn.setAttribute('aria-pressed', 'false');
+
+  currentCoach = id;
+
+  var card = document.getElementById('card-' + id);
+  var btn  = document.getElementById('sel-' + id);
+  if (card) card.classList.add('selected');
+  if (btn)  btn.setAttribute('aria-pressed', 'true');
+
+  // Sync tab 2 highlight
+  document.querySelectorAll('.compare-table tbody tr').forEach(function(r) {
+    r.classList.remove('selected-row');
+  });
+  var row = document.getElementById('row-' + id);
+  if (row) row.classList.add('selected-row');
+
+  // Update "currently selected" label in tab 2
+  document.querySelectorAll('.compare-table .cur-sel-lbl').forEach(function(el) {
+    el.remove();
+  });
+  if (row) {
+    var lbl = document.createElement('div');
+    lbl.className = 'cur-sel-lbl';
+    lbl.style.cssText = 'font-size:.7rem;color:var(--accent);margin-top:3px;margin-left:28px;';
+    lbl.textContent = '\u2713 Currently selected';
+    row.querySelector('td:first-child').appendChild(lbl);
+  }
+}
+
+/* ─── Voice preview via Web Speech API ─── */
+var PREVIEW_PHRASE = 'Which shape has four equal sides?';
+
+var VOICE_PARAMS = {
+  orbit: { pitch: 0.85, rate: 0.80 },
+  luna:  { pitch: 1.05, rate: 0.95 },
+  rex:   { pitch: 0.90, rate: 1.08 },
+  maya:  { pitch: 1.10, rate: 0.96 },
+  zara:  { pitch: 1.15, rate: 1.00 }
+};
+
+var COACH_NAMES = {
+  orbit: 'Orbit the Robot',
+  luna:  'Luna the Explorer',
+  rex:   'Captain Rex',
+  maya:  'Maya the Scientist',
+  zara:  'Zara the Storyteller'
+};
+
+var toastTimer = null;
+
+function showToast(text, persist) {
+  var toast = document.getElementById('preview-toast');
+  document.getElementById('preview-toast-text').textContent = text;
+  toast.classList.add('show');
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  if (!persist) {
+    toastTimer = setTimeout(function() {
+      toast.classList.remove('show');
+    }, 3500);
+  }
+}
+
+function hideToast(delay) {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() {
+    document.getElementById('preview-toast').classList.remove('show');
+  }, delay || 1200);
+}
+
+function previewVoice(coachId) {
+  if (!('speechSynthesis' in window)) {
+    showToast('Web Speech API not supported in this browser.');
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  var params = VOICE_PARAMS[coachId];
+  if (!params) return;
+
+  showToast('Playing preview \u2014 ' + (COACH_NAMES[coachId] || coachId) + '\u2026', true);
+
+  var utter = new SpeechSynthesisUtterance(PREVIEW_PHRASE);
+  utter.pitch  = params.pitch;
+  utter.rate   = params.rate;
+  utter.volume = 1.0;
+  utter.lang   = 'en-US';
+
+  function doSpeak() {
+    var voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      var enVoice = voices.find(function(v) { return v.lang.startsWith('en'); });
+      if (enVoice) utter.voice = enVoice;
+    }
+    window.speechSynthesis.speak(utter);
+  }
+
+  if (window.speechSynthesis.getVoices().length > 0) {
+    doSpeak();
+  } else {
+    var fired = false;
+    window.speechSynthesis.onvoiceschanged = function() {
+      if (fired) return;
+      fired = true;
+      window.speechSynthesis.onvoiceschanged = null;
+      doSpeak();
+    };
+    setTimeout(function() {
+      if (!fired) { fired = true; doSpeak(); }
+    }, 400);
+  }
+
+  utter.onend = function() {
+    document.getElementById('preview-toast-text').textContent = 'Preview complete.';
+    hideToast(1400);
+  };
+  utter.onerror = function() {
+    showToast('Preview unavailable \u2014 check browser audio settings.');
+  };
+}
+
+/* ─── Keyboard support for preview/select buttons ─── */
+document.addEventListener('keydown', function(e) {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('btn-preview')) {
+    e.preventDefault();
+    e.target.click();
+  }
+});
+</script>
+</body>
+</html>

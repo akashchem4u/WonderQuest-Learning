@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Family Home Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Sora',sans-serif;background:#ede8de;color:#1a1a1a;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#2c7a6e;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #1f5f56}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Sora',sans-serif;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);transition:all .2s}
+  .tab.active{background:#fff;color:#2c7a6e}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+
+  /* Desktop wrapper */
+  .desktop{min-width:1024px;max-width:1200px;background:#f5f0e8;margin:16px auto;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+
+  /* Top nav */
+  .top-nav{background:#2c7a6e;padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+  .nav-logo{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.5px}
+  .nav-links{display:flex;gap:24px;align-items:center}
+  .nav-link{font-size:13px;font-weight:600;color:rgba(255,255,255,.8);cursor:pointer;text-decoration:none}
+  .nav-link.active{color:#fff;border-bottom:2px solid #fff;padding-bottom:2px}
+  .nav-right{display:flex;align-items:center;gap:12px}
+  .nav-avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer}
+  .nav-notif{background:rgba(255,255,255,.15);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;color:#fff;cursor:pointer}
+
+  /* 3-col layout */
+  .three-col{display:grid;grid-template-columns:280px 1fr 300px;min-height:600px;gap:0}
+
+  /* Left col */
+  .col-left{padding:24px 20px;border-right:1px solid rgba(44,122,110,.12);background:#fff}
+  .family-avatar-area{text-align:center;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid rgba(0,0,0,.08)}
+  .family-avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#2c7a6e,#58e8c1);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .family-name{font-size:16px;font-weight:800;color:#1a1a1a}
+  .family-sub{font-size:11px;color:#888;font-weight:600;margin-top:2px}
+  .child-switcher{margin-bottom:20px}
+  .cs-label{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .child-chip{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;margin-bottom:6px;transition:background .15s}
+  .child-chip:hover{background:rgba(44,122,110,.07)}
+  .child-chip.active{background:rgba(44,122,110,.1);border:1px solid rgba(44,122,110,.2)}
+  .child-chip-avatar{width:32px;height:32px;border-radius:50%;background:#f0e8d0;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .child-chip-name{font-size:13px;font-weight:700;color:#1a1a1a}
+  .child-chip-world{font-size:10px;color:#888;font-weight:600}
+  .child-chip-dot{width:8px;height:8px;border-radius:50%;background:#2c7a6e;margin-left:auto;flex-shrink:0}
+  .nav-items{display:flex;flex-direction:column;gap:2px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:#555;transition:all .15s}
+  .nav-item:hover{background:rgba(44,122,110,.07);color:#2c7a6e}
+  .nav-item.active{background:rgba(44,122,110,.1);color:#2c7a6e;font-weight:700}
+  .nav-item-icon{font-size:16px}
+
+  /* Center col */
+  .col-center{padding:24px 24px 20px}
+  .section-label{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+
+  /* Weekly hero card */
+  .weekly-hero{background:linear-gradient(135deg,#2c7a6e,#1f5f56);border-radius:18px;padding:20px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden}
+  .weekly-hero::before{content:'🌊';position:absolute;right:-10px;top:-10px;font-size:80px;opacity:.15}
+  .wh-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:6px}
+  .wh-name{font-size:22px;font-weight:800;margin-bottom:4px}
+  .wh-sub{font-size:13px;opacity:.75;margin-bottom:14px}
+  .wh-stats{display:flex;gap:20px}
+  .wh-stat{text-align:center}
+  .wh-val{font-size:20px;font-weight:800;color:#ffd166}
+  .wh-lbl{font-size:10px;opacity:.65;font-weight:600;text-transform:uppercase}
+
+  /* Practice ideas */
+  .practice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .practice-card{background:#fff;border-radius:14px;padding:14px;border:1px solid rgba(0,0,0,.08)}
+  .pc-icon{font-size:24px;margin-bottom:8px}
+  .pc-title{font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:3px}
+  .pc-sub{font-size:11px;color:#888;font-weight:600;line-height:1.4}
+  .pc-tag{display:inline-block;background:rgba(44,122,110,.1);color:#2c7a6e;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;margin-top:6px}
+
+  /* Progress snapshot */
+  .progress-snap{background:#fff;border-radius:16px;padding:16px;border:1px solid rgba(0,0,0,.08)}
+  .ps-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .ps-title{font-size:14px;font-weight:700}
+  .ps-link{font-size:11px;color:#2c7a6e;font-weight:700;cursor:pointer}
+  .skill-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+  .skill-row:last-child{border-bottom:none}
+  .skill-name{font-size:12px;font-weight:600;color:#333;width:100px;flex-shrink:0}
+  .skill-bar{flex:1;background:rgba(0,0,0,.07);border-radius:6px;height:8px;overflow:hidden}
+  .skill-fill{height:100%;border-radius:6px}
+  .skill-tier{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;flex-shrink:0}
+  .tier-strength{background:rgba(44,122,110,.12);color:#2c7a6e}
+  .tier-growing{background:rgba(255,180,50,.15);color:#c17d00}
+  .tier-opportunity{background:rgba(255,123,107,.12);color:#c44}
+
+  /* Right col */
+  .col-right{padding:24px 20px;border-left:1px solid rgba(44,122,110,.12);background:#faf7f2}
+
+  /* Teacher messages */
+  .msg-card{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid rgba(0,0,0,.08)}
+  .msg-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .msg-avatar{width:32px;height:32px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .msg-meta{}
+  .msg-from{font-size:12px;font-weight:700;color:#1a1a1a}
+  .msg-time{font-size:10px;color:#aaa;font-weight:600}
+  .msg-text{font-size:12px;color:#555;line-height:1.5;font-weight:600}
+  .msg-badge{display:inline-block;background:rgba(44,122,110,.1);color:#2c7a6e;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;margin-top:6px}
+  .msg-new{width:8px;height:8px;border-radius:50%;background:#2c7a6e;flex-shrink:0;margin-top:4px}
+
+  /* Notification strip */
+  .notif-strip{background:rgba(44,122,110,.08);border:1px solid rgba(44,122,110,.2);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+  .ns-icon{font-size:18px;flex-shrink:0}
+  .ns-text{font-size:12px;color:#333;font-weight:600;line-height:1.4}
+  .ns-title{font-weight:700;color:#1a1a1a;margin-bottom:2px}
+
+  /* Quick links */
+  .quick-links{display:flex;flex-direction:column;gap:8px}
+  .ql-btn{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px 12px;cursor:pointer;font-size:12px;font-weight:700;color:#333;transition:all .15s}
+  .ql-btn:hover{border-color:#2c7a6e;color:#2c7a6e}
+  .ql-icon{font-size:18px}
+
+  /* Child detail view */
+  .child-detail-header{background:linear-gradient(135deg,#2c7a6e,#1f5f56);padding:20px 24px;color:#fff}
+  .cdh-back{font-size:11px;font-weight:700;opacity:.7;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+  .cdh-name{font-size:24px;font-weight:800;margin-bottom:4px}
+  .cdh-sub{font-size:12px;opacity:.7}
+
+  /* Spec */
+  .spec-body{padding:24px;font-size:12px;line-height:1.7;color:#444}
+  .spec-body h3{color:#2c7a6e;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(44,122,110,.1);border:1px solid #2c7a6e;border-radius:6px;padding:2px 8px;font-size:10px;color:#2c7a6e;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('family-home')">Family Home (3-col)</button>
+  <button class="tab" onclick="show('child-detail')">Child Detail View</button>
+  <button class="tab" onclick="show('practice-plan')">Practice Plan</button>
+  <button class="tab" onclick="show('messages-strip')">Messages Strip</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>parent-family-home-desktop-v2.html</code> — Desktop 1024px+ · Sora · #f5f0e8 · 3-col family hub · parent language rules enforced
+</div>
+
+<!-- FAMILY HOME 3-COL -->
+<div id="family-home" class="panel active">
+  <div class="desktop">
+    <div class="top-nav">
+      <div class="nav-logo">⭐ WonderQuest</div>
+      <div class="nav-links">
+        <span class="nav-link active">Home</span>
+        <span class="nav-link">Practice</span>
+        <span class="nav-link">Progress</span>
+        <span class="nav-link">Settings</span>
+      </div>
+      <div class="nav-right">
+        <div class="nav-notif">💬 2 messages</div>
+        <div class="nav-avatar">👤</div>
+      </div>
+    </div>
+    <div class="three-col">
+      <!-- Left -->
+      <div class="col-left">
+        <div class="family-avatar-area">
+          <div class="family-avatar">👨‍👩‍👧</div>
+          <div class="family-name">Johnson Family</div>
+          <div class="family-sub">2 learners · Since Sept 2024</div>
+        </div>
+        <div class="child-switcher">
+          <div class="cs-label">Your learners</div>
+          <div class="child-chip active">
+            <div class="child-chip-avatar">🧒</div>
+            <div><div class="child-chip-name">Alex</div><div class="child-chip-world">🌊 Ocean World</div></div>
+            <div class="child-chip-dot"></div>
+          </div>
+          <div class="child-chip">
+            <div class="child-chip-avatar">👧</div>
+            <div><div class="child-chip-name">Maya</div><div class="child-chip-world">🌲 Forest World</div></div>
+          </div>
+        </div>
+        <div class="nav-items">
+          <div class="nav-item active"><span class="nav-item-icon">🏠</span>Home</div>
+          <div class="nav-item"><span class="nav-item-icon">📊</span>Progress Reports</div>
+          <div class="nav-item"><span class="nav-item-icon">📅</span>Practice Schedule</div>
+          <div class="nav-item"><span class="nav-item-icon">💬</span>Teacher Messages</div>
+          <div class="nav-item"><span class="nav-item-icon">⚙️</span>Family Settings</div>
+          <div class="nav-item"><span class="nav-item-icon">🔗</span>Linked Accounts</div>
+        </div>
+      </div>
+
+      <!-- Center -->
+      <div class="col-center">
+        <div class="section-label">This week — Alex</div>
+        <div class="weekly-hero">
+          <div class="wh-label">Weekly highlights</div>
+          <div class="wh-name">Alex is exploring the Ocean!</div>
+          <div class="wh-sub">4 days of practice this week · Great consistency!</div>
+          <div class="wh-stats">
+            <div class="wh-stat"><div class="wh-val">4</div><div class="wh-lbl">Sessions</div></div>
+            <div class="wh-stat"><div class="wh-val">32</div><div class="wh-lbl">Stars earned</div></div>
+            <div class="wh-stat"><div class="wh-val">🔥4</div><div class="wh-lbl">Day streak</div></div>
+            <div class="wh-stat"><div class="wh-val">48m</div><div class="wh-lbl">Practice time</div></div>
+          </div>
+        </div>
+
+        <div class="section-label">Practice ideas for today</div>
+        <div class="practice-grid">
+          <div class="practice-card">
+            <div class="pc-icon">🔤</div>
+            <div class="pc-title">Word Builders</div>
+            <div class="pc-sub">Alex has been building phonics strength — great time to practice blends</div>
+            <div class="pc-tag">Strength area</div>
+          </div>
+          <div class="practice-card">
+            <div class="pc-icon">📖</div>
+            <div class="pc-title">Story Reading</div>
+            <div class="pc-sub">Reading together for 10 minutes supports vocabulary growth</div>
+            <div class="pc-tag">Family activity</div>
+          </div>
+          <div class="practice-card">
+            <div class="pc-icon">🎵</div>
+            <div class="pc-title">Phonics Songs</div>
+            <div class="pc-sub">Sound patterns are an opportunity to explore — try singing letter sounds</div>
+            <div class="pc-tag">Opportunity area</div>
+          </div>
+          <div class="practice-card">
+            <div class="pc-icon">✏️</div>
+            <div class="pc-title">Letter Tracing</div>
+            <div class="pc-sub">A fun hands-on way to reinforce letter recognition</div>
+            <div class="pc-tag">Growing area</div>
+          </div>
+        </div>
+
+        <div class="section-label">Skill snapshot — Alex</div>
+        <div class="progress-snap">
+          <div class="ps-header">
+            <div class="ps-title">Skill Areas</div>
+            <div class="ps-link">See full report →</div>
+          </div>
+          <div class="skill-row">
+            <div class="skill-name">Letter Sounds</div>
+            <div class="skill-bar"><div class="skill-fill" style="width:85%;background:#2c7a6e"></div></div>
+            <div class="skill-tier tier-strength">Strength</div>
+          </div>
+          <div class="skill-row">
+            <div class="skill-name">Sight Words</div>
+            <div class="skill-bar"><div class="skill-fill" style="width:62%;background:#f0b429"></div></div>
+            <div class="skill-tier tier-growing">Growing</div>
+          </div>
+          <div class="skill-row">
+            <div class="skill-name">Word Blending</div>
+            <div class="skill-bar"><div class="skill-fill" style="width:38%;background:#e86c5a"></div></div>
+            <div class="skill-tier tier-opportunity">Opportunity</div>
+          </div>
+          <div class="skill-row">
+            <div class="skill-name">Vocabulary</div>
+            <div class="skill-bar"><div class="skill-fill" style="width:70%;background:#f0b429"></div></div>
+            <div class="skill-tier tier-growing">Growing</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="col-right">
+        <div class="section-label">Teacher messages</div>
+        <div class="msg-card">
+          <div class="msg-header">
+            <div class="msg-avatar">👩‍🏫</div>
+            <div class="msg-meta">
+              <div class="msg-from">Ms. Rodriguez</div>
+              <div class="msg-time">Today · 9:14am</div>
+            </div>
+            <div class="msg-new"></div>
+          </div>
+          <div class="msg-text">Alex is doing beautifully with letter sounds this week! I'd love to see more practice with word blending at home. Great progress overall!</div>
+          <div class="msg-badge">Alex · Gr 1</div>
+        </div>
+        <div class="msg-card">
+          <div class="msg-header">
+            <div class="msg-avatar">👨‍🏫</div>
+            <div class="msg-meta">
+              <div class="msg-from">Mr. Thompson</div>
+              <div class="msg-time">Yesterday</div>
+            </div>
+          </div>
+          <div class="msg-text">Maya is growing well in vocabulary! Her comprehension is her strength right now.</div>
+          <div class="msg-badge">Maya · Gr 2</div>
+        </div>
+
+        <div class="section-label" style="margin-top:8px">Updates</div>
+        <div class="notif-strip">
+          <div class="ns-icon">📅</div>
+          <div class="ns-text"><div class="ns-title">Practice reminder set</div>Mon–Fri at 4pm · Both learners</div>
+        </div>
+        <div class="notif-strip">
+          <div class="ns-icon">🏅</div>
+          <div class="ns-text"><div class="ns-title">Alex almost earned a badge</div>Ocean Swimmer · 1 more session!</div>
+        </div>
+
+        <div class="section-label" style="margin-top:8px">Quick links</div>
+        <div class="quick-links">
+          <button class="ql-btn"><span class="ql-icon">📊</span>Alex's full report</button>
+          <button class="ql-btn"><span class="ql-icon">📊</span>Maya's full report</button>
+          <button class="ql-btn"><span class="ql-icon">📅</span>Set practice schedule</button>
+          <button class="ql-btn"><span class="ql-icon">⚙️</span>Family settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHILD DETAIL VIEW -->
+<div id="child-detail" class="panel">
+  <div class="desktop">
+    <div class="top-nav">
+      <div class="nav-logo">⭐ WonderQuest</div>
+      <div class="nav-links">
+        <span class="nav-link">Home</span>
+        <span class="nav-link active">Progress</span>
+        <span class="nav-link">Practice</span>
+      </div>
+      <div class="nav-right"><div class="nav-avatar">👤</div></div>
+    </div>
+    <div class="child-detail-header">
+      <div class="cdh-back">← Back to Family Home</div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px">🧒</div>
+        <div>
+          <div class="cdh-name">Alex's Learning Profile</div>
+          <div class="cdh-sub">🌊 Ocean World · 4-day streak · Session 14</div>
+        </div>
+      </div>
+    </div>
+    <div class="three-col">
+      <div class="col-left">
+        <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Skill areas</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border-radius:12px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+            <div style="font-size:12px;font-weight:700">Letter Sounds</div>
+            <div style="background:rgba(0,0,0,.06);border-radius:6px;height:6px;margin-top:6px;overflow:hidden"><div style="height:100%;background:#2c7a6e;border-radius:6px;width:85%"></div></div>
+            <div style="font-size:10px;color:#2c7a6e;font-weight:700;margin-top:3px">Strength</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+            <div style="font-size:12px;font-weight:700">Sight Words</div>
+            <div style="background:rgba(0,0,0,.06);border-radius:6px;height:6px;margin-top:6px;overflow:hidden"><div style="height:100%;background:#f0b429;border-radius:6px;width:62%"></div></div>
+            <div style="font-size:10px;color:#c17d00;font-weight:700;margin-top:3px">Growing</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+            <div style="font-size:12px;font-weight:700">Word Blending</div>
+            <div style="background:rgba(0,0,0,.06);border-radius:6px;height:6px;margin-top:6px;overflow:hidden"><div style="height:100%;background:#e86c5a;border-radius:6px;width:38%"></div></div>
+            <div style="font-size:10px;color:#c44;font-weight:700;margin-top:3px">Opportunity</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-center">
+        <div class="section-label">Recent activity</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+          <div style="background:#fff;border-radius:14px;padding:12px;border:1px solid rgba(0,0,0,.08);display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px">🌊</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700">Ocean World · Session 14</div>
+              <div style="font-size:11px;color:#888;font-weight:600">Today · 8 stars · 12 min</div>
+            </div>
+            <div style="background:rgba(44,122,110,.1);color:#2c7a6e;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700">Completed</div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:12px;border:1px solid rgba(0,0,0,.08);display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px">🌊</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700">Ocean World · Session 13</div>
+              <div style="font-size:11px;color:#888;font-weight:600">Yesterday · 7 stars · 10 min</div>
+            </div>
+            <div style="background:rgba(44,122,110,.1);color:#2c7a6e;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700">Completed</div>
+          </div>
+        </div>
+        <div class="section-label">Skill growth this month</div>
+        <div class="progress-snap">
+          <div class="skill-row"><div class="skill-name">Letter Sounds</div><div class="skill-bar"><div class="skill-fill" style="width:85%;background:#2c7a6e"></div></div><div class="skill-tier tier-strength">Strength</div></div>
+          <div class="skill-row"><div class="skill-name">Sight Words</div><div class="skill-bar"><div class="skill-fill" style="width:62%;background:#f0b429"></div></div><div class="skill-tier tier-growing">Growing</div></div>
+          <div class="skill-row"><div class="skill-name">Word Blending</div><div class="skill-bar"><div class="skill-fill" style="width:38%;background:#e86c5a"></div></div><div class="skill-tier tier-opportunity">Opportunity</div></div>
+          <div class="skill-row"><div class="skill-name">Vocabulary</div><div class="skill-bar"><div class="skill-fill" style="width:70%;background:#f0b429"></div></div><div class="skill-tier tier-growing">Growing</div></div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-label">Quick notes</div>
+        <div class="msg-card">
+          <div class="msg-header">
+            <div class="msg-avatar">👩‍🏫</div>
+            <div class="msg-meta">
+              <div class="msg-from">Ms. Rodriguez</div>
+              <div class="msg-time">Today</div>
+            </div>
+          </div>
+          <div class="msg-text">Great progress this week! Word blending is the next opportunity area to focus on at home.</div>
+        </div>
+        <div class="quick-links" style="margin-top:12px">
+          <button class="ql-btn"><span class="ql-icon">📊</span>Full progress report</button>
+          <button class="ql-btn"><span class="ql-icon">💬</span>Message teacher</button>
+          <button class="ql-btn"><span class="ql-icon">📅</span>Schedule practice</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRACTICE PLAN -->
+<div id="practice-plan" class="panel">
+  <div class="desktop">
+    <div class="top-nav">
+      <div class="nav-logo">⭐ WonderQuest</div>
+      <div class="nav-links"><span class="nav-link active">Practice</span></div>
+      <div class="nav-right"><div class="nav-avatar">👤</div></div>
+    </div>
+    <div class="three-col">
+      <div class="col-left">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px">This week's plan</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:rgba(44,122,110,.1);border:1px solid rgba(44,122,110,.2);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;color:#2c7a6e">Mon ✓</div>
+          <div style="background:rgba(44,122,110,.1);border:1px solid rgba(44,122,110,.2);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;color:#2c7a6e">Tue ✓</div>
+          <div style="background:rgba(44,122,110,.1);border:1px solid rgba(44,122,110,.2);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;color:#2c7a6e">Wed ✓</div>
+          <div style="background:#fff;border:2px solid #2c7a6e;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;color:#2c7a6e">Thu · Today</div>
+          <div style="background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;color:#aaa">Fri</div>
+        </div>
+      </div>
+      <div class="col-center">
+        <div class="section-label">Today's suggested practice — Alex</div>
+        <div class="practice-grid">
+          <div class="practice-card" style="border-color:#2c7a6e;background:rgba(44,122,110,.04)">
+            <div class="pc-icon">🌊</div>
+            <div class="pc-title">WonderQuest Session</div>
+            <div class="pc-sub">Ocean World is ready — Alex has been consistent this week!</div>
+            <div class="pc-tag" style="background:#2c7a6e;color:#fff">Recommended</div>
+          </div>
+          <div class="practice-card">
+            <div class="pc-icon">🔤</div>
+            <div class="pc-title">Word Blending Practice</div>
+            <div class="pc-sub">An opportunity area to grow — try "sl", "br", "gr" blends together</div>
+            <div class="pc-tag">Opportunity area</div>
+          </div>
+        </div>
+        <div class="section-label" style="margin-top:8px">Family activities this week</div>
+        <div style="background:#fff;border-radius:14px;padding:14px;border:1px solid rgba(0,0,0,.08)">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px">Ideas to try together</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:#555;font-weight:600">
+            <div style="display:flex;align-items:center;gap:8px"><span>📚</span>Read a library book — let Alex pick the topic</div>
+            <div style="display:flex;align-items:center;gap:8px"><span>🎵</span>Sing the alphabet with blends: A-bl-a-bla...</div>
+            <div style="display:flex;align-items:center;gap:8px"><span>✏️</span>Play "I spy something starting with..."</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-label">Schedule settings</div>
+        <div class="notif-strip">
+          <div class="ns-icon">⏰</div>
+          <div class="ns-text"><div class="ns-title">Reminder set: 4:00 PM daily</div>Mon–Fri for both learners</div>
+        </div>
+        <div class="quick-links" style="margin-top:10px">
+          <button class="ql-btn"><span class="ql-icon">📅</span>Change schedule</button>
+          <button class="ql-btn"><span class="ql-icon">📊</span>View progress</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MESSAGES STRIP -->
+<div id="messages-strip" class="panel">
+  <div class="desktop">
+    <div class="top-nav">
+      <div class="nav-logo">⭐ WonderQuest</div>
+      <div class="nav-links"><span class="nav-link active">Messages</span></div>
+      <div class="nav-right"><div class="nav-notif">💬 2 new</div><div class="nav-avatar">👤</div></div>
+    </div>
+    <div class="three-col">
+      <div class="col-left">
+        <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Conversations</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:rgba(44,122,110,.1);border:1px solid rgba(44,122,110,.2);border-radius:12px;padding:10px;cursor:pointer">
+            <div style="font-size:13px;font-weight:700">Ms. Rodriguez</div>
+            <div style="font-size:10px;color:#888;font-weight:600">Alex's Gr 1 teacher · Today</div>
+            <div style="width:8px;height:8px;border-radius:50%;background:#2c7a6e;margin-top:6px"></div>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;cursor:pointer">
+            <div style="font-size:13px;font-weight:700">Mr. Thompson</div>
+            <div style="font-size:10px;color:#888;font-weight:600">Maya's Gr 2 teacher · Yesterday</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-center">
+        <div style="background:#fff;border-radius:16px;padding:16px;border:1px solid rgba(0,0,0,.08);min-height:400px;display:flex;flex-direction:column">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.08)">Ms. Rodriguez · Alex's teacher</div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+            <div style="background:#f5f0e8;border-radius:14px 14px 14px 0;padding:12px;max-width:80%;font-size:13px;color:#333;font-weight:600;line-height:1.5">Alex is doing beautifully with letter sounds this week! I'd love to see more practice with word blending at home. Great progress overall!</div>
+            <div style="font-size:10px;color:#aaa;font-weight:600">Today 9:14am</div>
+            <div style="background:#f5f0e8;border-radius:14px 14px 14px 0;padding:12px;max-width:80%;font-size:13px;color:#333;font-weight:600;line-height:1.5">Word blending is the opportunity area I'd suggest focusing on — especially blends like "bl", "st", "cr". Alex is ready to grow in that area!</div>
+            <div style="font-size:10px;color:#aaa;font-weight:600">Today 9:16am</div>
+          </div>
+          <div style="border-top:1px solid rgba(0,0,0,.08);padding-top:12px;margin-top:12px;display:flex;gap:10px">
+            <div style="flex:1;background:#f5f0e8;border-radius:10px;padding:10px;font-size:13px;color:#aaa;font-weight:600">Reply to Ms. Rodriguez...</div>
+            <button style="background:#2c7a6e;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-label">Related to Alex</div>
+        <div class="skill-row" style="padding:8px 0">
+          <div style="font-size:12px;color:#555;line-height:1.5">Teacher highlighted <strong>Word Blending</strong> as an opportunity area — practice ideas available on the Practice tab.</div>
+        </div>
+        <div class="quick-links" style="margin-top:10px">
+          <button class="ql-btn"><span class="ql-icon">📅</span>Schedule practice</button>
+          <button class="ql-btn"><span class="ql-icon">📊</span>Alex's progress</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="desktop">
+    <div class="spec-body">
+      <h3>File: parent-family-home-desktop-v2.html</h3>
+      <ul>
+        <li>Desktop 1024px+ · Sora · bg <code>#f5f0e8</code> · nav <code>#2c7a6e</code></li>
+        <li>3-col layout: 280px left / flex center / 300px right</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Family Home:</strong> Family profile + child switcher + nav (left) · weekly hero + practice ideas + skill snapshot (center) · teacher messages + notifs + quick links (right)</li>
+        <li><strong>Child Detail View:</strong> Expanded per-child profile with skill bars, recent activity, teacher note</li>
+        <li><strong>Practice Plan:</strong> Weekly calendar + suggested practice + family activity ideas</li>
+        <li><strong>Messages Strip:</strong> Teacher message thread with reply composer</li>
+      </ul>
+      <h3>Parent Language Rules</h3>
+      <ul>
+        <li>NEVER accuracy % — skill tiers only: Opportunity / Growing / Strength</li>
+        <li>NEVER missed-day language — streaks are framed positively</li>
+        <li>Practice ideas are suggestions, not mandates</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">Desktop 1024px+</span>
+        <span class="spec-tag">3-col grid</span>
+        <span class="spec-tag">bg #f5f0e8</span>
+        <span class="spec-tag">nav #2c7a6e</span>
+        <span class="spec-tag">Sora font</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

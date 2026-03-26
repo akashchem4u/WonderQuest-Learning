@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explainer QA — WonderQuest Content CMS v3</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;display:flex;height:100vh;overflow:hidden;}
+
+/* ─── SIDEBAR ───────────────────────────────────────────────────── */
+.sidebar{width:200px;background:#0f1118;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;}
+.sb-logo{padding:18px 16px 14px;font-size:15px;font-weight:700;color:#50e890;border-bottom:1px solid rgba(255,255,255,.06);}
+.sb-logo span{color:#f0f6ff;font-weight:400;font-size:12px;display:block;margin-top:2px;}
+.sb-section{padding:10px 0;}
+.sb-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,246,255,.35);padding:6px 16px 4px;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:rgba(240,246,255,.6);font-size:13px;position:relative;transition:color .15s;}
+.sb-item:hover{color:#f0f6ff;}
+.sb-item.active{color:#f0f6ff;}
+.sb-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#50e890;}
+.sb-icon{font-size:15px;}
+.sb-badge{margin-left:auto;background:#ff4d4d;color:#fff;border-radius:9px;padding:1px 6px;font-size:10px;font-weight:700;}
+
+/* ─── MAIN ───────────────────────────────────────────────────────── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.top-bar{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.top-bar h1{font-size:16px;font-weight:600;color:#f0f6ff;}
+.top-bar .tb-sub{font-size:12px;color:rgba(240,246,255,.45);margin-left:4px;}
+
+/* ─── CONTENT AREA ───────────────────────────────────────────────── */
+.content-area{flex:1;overflow:hidden;display:flex;}
+.ex-list-pane{width:340px;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.ex-detail-pane{flex:1;overflow-y:auto;padding:20px 24px;}
+
+/* ─── FILTER BAR ─────────────────────────────────────────────────── */
+.filter-bar{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:8px;}
+.filter-bar input{background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 10px;color:#f0f6ff;font-size:13px;width:100%;}
+.filter-bar input::placeholder{color:rgba(240,246,255,.35);}
+.filter-bar input:focus{outline:none;border-color:#50e890;}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.fc{padding:4px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.12);font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);background:transparent;transition:all .15s;}
+.fc:hover{border-color:rgba(255,255,255,.25);color:#f0f6ff;}
+.fc.active{background:#50e890;color:#0d1117;border-color:#50e890;font-weight:600;}
+
+/* ─── EXPLAINER LIST ─────────────────────────────────────────────── */
+.ex-list{flex:1;overflow-y:auto;}
+.ex-list::-webkit-scrollbar{width:4px;}
+.ex-list::-webkit-scrollbar-track{background:transparent;}
+.ex-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+
+.ex-item{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .12s;position:relative;}
+.ex-item:hover{background:rgba(255,255,255,.03);}
+.ex-item.selected{background:rgba(80,232,144,.07);}
+.ex-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#50e890;}
+.ex-item.needs-revision::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#ff7b6b;}
+.ex-item.in-review::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#f0c040;}
+.ex-item.approved::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#50e890;}
+
+.exi-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.exi-id{font-size:10px;color:rgba(240,246,255,.35);font-family:monospace;}
+.exi-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:auto;}
+.status-draft{background:rgba(255,255,255,.08);color:rgba(240,246,255,.5);}
+.status-review{background:rgba(240,192,64,.15);color:#f0c040;}
+.status-revision{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.status-approved{background:rgba(80,232,144,.15);color:#50e890;}
+.status-published{background:rgba(80,232,144,.25);color:#50e890;}
+
+.exi-title{font-size:13px;font-weight:500;color:#f0f6ff;line-height:1.35;margin-bottom:5px;}
+.exi-meta{display:flex;gap:8px;align-items:center;}
+.exi-band{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;}
+.band-p0{background:rgba(255,209,102,.15);color:#ffd166;}
+.band-p1{background:rgba(155,114,255,.15);color:#9b72ff;}
+.band-p2{background:rgba(88,232,193,.15);color:#58e8c1;}
+.band-p3{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.exi-subject{font-size:11px;color:rgba(240,246,255,.4);}
+.exi-rl{font-size:11px;color:rgba(240,246,255,.4);margin-left:auto;}
+
+/* ─── DETAIL PANE ────────────────────────────────────────────────── */
+.detail-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;}
+.dh-left{flex:1;}
+.dh-id{font-size:11px;color:rgba(240,246,255,.35);font-family:monospace;margin-bottom:4px;}
+.dh-title{font-size:18px;font-weight:600;color:#f0f6ff;margin-bottom:8px;}
+.dh-tags{display:flex;gap:8px;flex-wrap:wrap;}
+.dh-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.status-large{font-size:12px;font-weight:700;padding:5px 12px;border-radius:12px;}
+
+/* ─── SCORE CHIPS ────────────────────────────────────────────────── */
+.score-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.score-chip{background:#161b22;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:4px;min-width:110px;}
+.sc-label{font-size:10px;color:rgba(240,246,255,.4);text-transform:uppercase;letter-spacing:.06em;}
+.sc-value{font-size:18px;font-weight:700;}
+.sc-sub{font-size:10px;color:rgba(240,246,255,.4);}
+.val-pass{color:#50e890;}
+.val-warn{color:#f0c040;}
+.val-fail{color:#ff7b6b;}
+.val-neutral{color:#f0f6ff;}
+
+/* ─── SECTION BLOCKS ─────────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.sb-action{font-size:12px;color:#50e890;cursor:pointer;background:none;border:none;font-family:inherit;}
+.sb-action:hover{text-decoration:underline;}
+
+/* ─── EXPLAINER PREVIEW ──────────────────────────────────────────── */
+.exp-preview{background:#0d1117;border-radius:8px;padding:16px;font-size:14px;line-height:1.7;color:#e0eaff;border:1px solid rgba(255,255,255,.06);}
+.exp-preview .eq-prompt{font-size:13px;color:rgba(240,246,255,.5);margin-bottom:10px;font-style:italic;}
+.exp-preview .eq-body{margin-bottom:12px;}
+.exp-preview .eq-example{background:rgba(80,232,144,.06);border-left:3px solid #50e890;padding:10px 12px;border-radius:0 6px 6px 0;font-size:13px;color:#c0dfc0;margin-top:8px;}
+.exp-preview .eq-fun-fact{background:rgba(155,114,255,.08);border-left:3px solid #9b72ff;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;color:rgba(240,246,255,.6);margin-top:8px;}
+
+.rl-bar-wrap{margin-top:12px;}
+.rl-label-row{display:flex;justify-content:space-between;font-size:11px;color:rgba(240,246,255,.4);margin-bottom:4px;}
+.rl-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;position:relative;}
+.rl-bar-fill{height:100%;border-radius:3px;}
+.rl-bar-target{position:absolute;top:-3px;bottom:-3px;width:2px;background:#50e890;}
+.rl-bar-current{position:absolute;top:-4px;font-size:10px;color:#f0c040;transform:translateX(-50%);}
+
+/* ─── QA CHECKLIST ───────────────────────────────────────────────── */
+.qa-checklist{display:flex;flex-direction:column;gap:8px;}
+.qa-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:7px;font-size:13px;}
+.qa-item.qi-pass{background:rgba(80,232,144,.07);border:1px solid rgba(80,232,144,.15);}
+.qa-item.qi-fail{background:rgba(255,123,107,.07);border:1px solid rgba(255,123,107,.2);}
+.qa-item.qi-warn{background:rgba(240,192,64,.07);border:1px solid rgba(240,192,64,.18);}
+.qa-item.qi-pending{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);}
+.qa-icon{font-size:14px;margin-top:1px;flex-shrink:0;}
+.qa-body{flex:1;}
+.qa-check-title{font-weight:500;color:#f0f6ff;margin-bottom:2px;}
+.qa-check-note{font-size:12px;color:rgba(240,246,255,.5);}
+.qa-assignee{font-size:11px;color:rgba(240,246,255,.35);margin-top:3px;}
+
+/* ─── FACT CHECK TABLE ───────────────────────────────────────────── */
+.fact-table{width:100%;border-collapse:collapse;font-size:12px;}
+.fact-table th{text-align:left;color:rgba(240,246,255,.4);font-weight:500;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.fact-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top;}
+.fact-table tr:last-child td{border-bottom:none;}
+.fact-claim{color:#f0f6ff;}
+.fact-source{color:rgba(240,246,255,.5);}
+.fact-status{font-weight:600;}
+.fs-verified{color:#50e890;}
+.fs-flagged{color:#ff7b6b;}
+.fs-pending{color:rgba(240,246,255,.35);}
+
+/* ─── LINKED SKILLS ──────────────────────────────────────────────── */
+.skill-link-list{display:flex;flex-direction:column;gap:8px;}
+.skill-link-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0d1117;border-radius:6px;border:1px solid rgba(255,255,255,.06);}
+.sli-id{font-size:11px;color:rgba(240,246,255,.4);font-family:monospace;}
+.sli-title{flex:1;font-size:13px;color:#f0f6ff;}
+.sli-q-count{font-size:11px;color:rgba(240,246,255,.4);}
+.sli-status{font-size:11px;font-weight:600;padding:2px 7px;border-radius:9px;}
+
+/* ─── REVISION NOTES ────────────────────────────────────────────── */
+.revision-thread{display:flex;flex-direction:column;gap:10px;}
+.rev-note{background:#0d1117;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.06);}
+.rev-note.rn-open{border-left:3px solid #ff7b6b;}
+.rev-note.rn-resolved{border-left:3px solid #50e890;opacity:.65;}
+.rn-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.rn-author{font-size:12px;font-weight:600;color:#f0f6ff;}
+.rn-time{font-size:11px;color:rgba(240,246,255,.35);}
+.rn-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;margin-left:auto;}
+.rnt-open{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.rnt-resolved{background:rgba(80,232,144,.12);color:#50e890;}
+.rn-body{font-size:13px;color:rgba(240,246,255,.75);line-height:1.5;}
+.rn-highlight{background:rgba(255,209,102,.12);border-radius:3px;padding:0 3px;color:#ffd166;}
+
+/* ─── ACTIONS BAR ────────────────────────────────────────────────── */
+.action-bar{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+.btn{padding:8px 16px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+.btn-danger{background:transparent;color:#ff7b6b;border:1px solid rgba(255,123,107,.3);}
+.btn-danger:hover{background:rgba(255,123,107,.08);}
+.btn-amber{background:transparent;color:#f0c040;border:1px solid rgba(240,192,64,.3);}
+.btn-amber:hover{background:rgba(240,192,64,.08);}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:20px;}
+.tab-btn{padding:8px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── EMPTY STATE ────────────────────────────────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(240,246,255,.3);gap:8px;padding:40px;}
+.es-icon{font-size:36px;}
+.es-text{font-size:14px;}
+
+/* ─── DIFF VIEW ──────────────────────────────────────────────────── */
+.diff-view{font-family:monospace;font-size:12px;line-height:1.8;background:#0d1117;border-radius:8px;padding:14px;border:1px solid rgba(255,255,255,.06);}
+.diff-line{padding:1px 4px;border-radius:2px;}
+.diff-add{background:rgba(80,232,144,.1);color:#50e890;}
+.diff-del{background:rgba(255,123,107,.1);color:#ff7b6b;text-decoration:line-through;}
+.diff-ctx{color:rgba(240,246,255,.45);}
+
+/* ─── READING LEVEL METER ────────────────────────────────────────── */
+.rl-meter{display:flex;gap:4px;margin:8px 0;}
+.rl-seg{flex:1;height:8px;border-radius:2px;background:rgba(255,255,255,.08);}
+.rl-seg.active{background:#50e890;}
+.rl-seg.over{background:#f0c040;}
+.rl-grade-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(240,246,255,.3);margin-top:3px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">WonderQuest <span>Content CMS</span></div>
+  <div class="sb-section">
+    <div class="sb-label">Content</div>
+    <div class="sb-item"><span class="sb-icon">🏠</span> Home</div>
+    <div class="sb-item active"><span class="sb-icon">💡</span> Explainers <span class="sb-badge">5</span></div>
+    <div class="sb-item"><span class="sb-icon">❓</span> Questions</div>
+    <div class="sb-item"><span class="sb-icon">🎧</span> Audio</div>
+    <div class="sb-item"><span class="sb-icon">🖼</span> Images</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Review</div>
+    <div class="sb-item"><span class="sb-icon">📋</span> Coverage Map</div>
+    <div class="sb-item"><span class="sb-icon">⚡</span> Bulk Import</div>
+    <div class="sb-item"><span class="sb-icon">📊</span> Alpha Readiness</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="top-bar">
+    <h1>Explainer QA</h1>
+    <span class="tb-sub">Review and approve hint/explanation content before publish</span>
+  </div>
+
+  <div class="content-area">
+
+    <!-- LIST PANE -->
+    <div class="ex-list-pane">
+      <div class="filter-bar">
+        <input type="text" placeholder="Search explainers…" value="">
+        <div class="filter-chips">
+          <span class="fc active">All</span>
+          <span class="fc">Needs Revision</span>
+          <span class="fc">In Review</span>
+          <span class="fc">Approved</span>
+        </div>
+        <div class="filter-chips">
+          <span class="fc">P0 Pre-K</span>
+          <span class="fc">P1 K–1</span>
+          <span class="fc">P2 G2–3</span>
+          <span class="fc">P3 G4–5</span>
+        </div>
+      </div>
+
+      <div class="ex-list">
+
+        <!-- EXP-0041 — selected, needs revision -->
+        <div class="ex-item selected needs-revision">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0041</span>
+            <span class="exi-status status-revision">Needs Revision</span>
+          </div>
+          <div class="exi-title">Why do plants need sunlight?</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p1">P1 K–1</span>
+            <span class="exi-subject">Science · Plants</span>
+            <span class="exi-rl">RL: 3.2</span>
+          </div>
+        </div>
+
+        <!-- EXP-0038 -->
+        <div class="ex-item in-review">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0038</span>
+            <span class="exi-status status-review">In Review</span>
+          </div>
+          <div class="exi-title">How do we count by 5s?</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p1">P1 K–1</span>
+            <span class="exi-subject">Math · Counting</span>
+            <span class="exi-rl">RL: 1.8</span>
+          </div>
+        </div>
+
+        <!-- EXP-0052 -->
+        <div class="ex-item in-review">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0052</span>
+            <span class="exi-status status-review">In Review</span>
+          </div>
+          <div class="exi-title">What makes something a living thing?</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p2">P2 G2–3</span>
+            <span class="exi-subject">Science · Biology</span>
+            <span class="exi-rl">RL: 4.1</span>
+          </div>
+        </div>
+
+        <!-- EXP-0044 -->
+        <div class="ex-item approved">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0044</span>
+            <span class="exi-status status-approved">Approved</span>
+          </div>
+          <div class="exi-title">Understanding place value to 100</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p2">P2 G2–3</span>
+            <span class="exi-subject">Math · Numbers</span>
+            <span class="exi-rl">RL: 3.7</span>
+          </div>
+        </div>
+
+        <!-- EXP-0033 -->
+        <div class="ex-item approved">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0033</span>
+            <span class="exi-status status-approved">Approved</span>
+          </div>
+          <div class="exi-title">What is a sentence?</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p0">P0 Pre-K</span>
+            <span class="exi-subject">ELA · Language</span>
+            <span class="exi-rl">RL: 1.2</span>
+          </div>
+        </div>
+
+        <!-- EXP-0061 -->
+        <div class="ex-item">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0061</span>
+            <span class="exi-status status-draft">Draft</span>
+          </div>
+          <div class="exi-title">How do fractions represent parts of a whole?</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p3">P3 G4–5</span>
+            <span class="exi-subject">Math · Fractions</span>
+            <span class="exi-rl">RL: —</span>
+          </div>
+        </div>
+
+        <!-- EXP-0057 -->
+        <div class="ex-item">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0057</span>
+            <span class="exi-status status-draft">Draft</span>
+          </div>
+          <div class="exi-title">The water cycle explained</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p3">P3 G4–5</span>
+            <span class="exi-subject">Science · Earth</span>
+            <span class="exi-rl">RL: —</span>
+          </div>
+        </div>
+
+        <!-- EXP-0029 -->
+        <div class="ex-item approved">
+          <div class="exi-row1">
+            <span class="exi-id">EXP-0029</span>
+            <span class="exi-status status-published">Published</span>
+          </div>
+          <div class="exi-title">What are vowels and consonants?</div>
+          <div class="exi-meta">
+            <span class="exi-band band-p0">P0 Pre-K</span>
+            <span class="exi-subject">ELA · Phonics</span>
+            <span class="exi-rl">RL: 1.5</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DETAIL PANE -->
+    <div class="ex-detail-pane">
+
+      <!-- Engineering hint always at top -->
+      <div class="eng-hint">
+        <strong>ENG NOTE — Explainer QA v3:</strong> Explainers (EXP-XXXX) are hint/explanation
+        blocks shown after incorrect answers. Each EXP links to 1–3 Skills (SK-XXXX).
+        Reading level = Flesch-Kincaid Grade; target = band_min − 0.5 (e.g. P1 K–1 target ≤ 2.0).
+        <br><strong>Auto-block rule:</strong> If reading_level &gt; band_max + 1.5 → set qa_status=blocked.
+        <strong>Fact-check required</strong> for Science/Social Studies; optional for Math/ELA.
+        <strong>Privacy:</strong> No student names, no teacher names in explainer copy.
+        Tab: QA Checklist / Explainer Preview / Linked Skills / Revision Notes / Diff View.
+      </div>
+
+      <div class="detail-header">
+        <div class="dh-left">
+          <div class="dh-id">EXP-0041 · linked to SK-0214, SK-0215</div>
+          <div class="dh-title">Why do plants need sunlight?</div>
+          <div class="dh-tags">
+            <span class="exi-band band-p1">P1 K–1</span>
+            <span class="exi-subject" style="font-size:12px;padding:3px 8px;background:rgba(255,255,255,.06);border-radius:10px;">Science</span>
+            <span class="exi-subject" style="font-size:12px;padding:3px 8px;background:rgba(255,255,255,.06);border-radius:10px;">Plants &amp; Growth</span>
+          </div>
+        </div>
+        <div class="dh-right">
+          <span class="exi-status status-revision status-large">Needs Revision</span>
+        </div>
+      </div>
+
+      <!-- Score row -->
+      <div class="score-row">
+        <div class="score-chip">
+          <span class="sc-label">Reading Level</span>
+          <span class="sc-value val-warn">3.2</span>
+          <span class="sc-sub">Target ≤ 2.0</span>
+        </div>
+        <div class="score-chip">
+          <span class="sc-label">Word Count</span>
+          <span class="sc-value val-pass">87</span>
+          <span class="sc-sub">Target 60–120</span>
+        </div>
+        <div class="score-chip">
+          <span class="sc-label">Fact Checks</span>
+          <span class="sc-value val-fail">1 Flagged</span>
+          <span class="sc-sub">3 claims total</span>
+        </div>
+        <div class="score-chip">
+          <span class="sc-label">QA Score</span>
+          <span class="sc-value val-warn">62%</span>
+          <span class="sc-sub">Threshold 90%</span>
+        </div>
+        <div class="score-chip">
+          <span class="sc-label">Revision #</span>
+          <span class="sc-value val-neutral">v3</span>
+          <span class="sc-sub">2 open notes</span>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn btn-primary" disabled>✓ Approve &amp; Link</button>
+        <button class="btn btn-amber">↩ Request Further Revision</button>
+        <button class="btn btn-secondary">✏ Edit Copy</button>
+        <button class="btn btn-danger">🚫 Block</button>
+        <button class="btn btn-secondary" style="margin-left:auto;">⬇ Export PDF</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('qa')">QA Checklist</button>
+        <button class="tab-btn" onclick="showTab('preview')">Explainer Preview</button>
+        <button class="tab-btn" onclick="showTab('skills')">Linked Skills</button>
+        <button class="tab-btn" onclick="showTab('revisions')">Revision Notes <span style="background:rgba(255,123,107,.2);color:#ff7b6b;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">2</span></button>
+        <button class="tab-btn" onclick="showTab('diff')">Diff View</button>
+      </div>
+
+      <!-- TAB: QA CHECKLIST -->
+      <div id="tab-qa" class="screen active">
+
+        <div class="section-block">
+          <div class="sb-head">
+            <span class="sb-title">Automated Checks</span>
+            <span style="font-size:11px;color:rgba(240,246,255,.35);">Run 2 hrs ago</span>
+          </div>
+          <div class="qa-checklist">
+            <div class="qa-item qi-fail">
+              <span class="qa-icon">✕</span>
+              <div class="qa-body">
+                <div class="qa-check-title">Reading level within band target</div>
+                <div class="qa-check-note">Flesch-Kincaid Grade 3.2 exceeds P1 target of ≤ 2.0 by 1.2 grade levels. Simplify vocabulary and sentence length.</div>
+              </div>
+            </div>
+            <div class="qa-item qi-pass">
+              <span class="qa-icon">✓</span>
+              <div class="qa-body">
+                <div class="qa-check-title">Word count in range (60–120 words)</div>
+                <div class="qa-check-note">87 words — within acceptable range.</div>
+              </div>
+            </div>
+            <div class="qa-item qi-pass">
+              <span class="qa-icon">✓</span>
+              <div class="qa-body">
+                <div class="qa-check-title">No student/teacher names present</div>
+                <div class="qa-check-note">Privacy scan passed — no PII detected in copy.</div>
+              </div>
+            </div>
+            <div class="qa-item qi-fail">
+              <span class="qa-icon">✕</span>
+              <div class="qa-body">
+                <div class="qa-check-title">All factual claims verified</div>
+                <div class="qa-check-note">Claim: "Plants only need sunlight, not water" — flagged as inaccurate. See Fact Check table below.</div>
+              </div>
+            </div>
+            <div class="qa-item qi-pass">
+              <span class="qa-icon">✓</span>
+              <div class="qa-body">
+                <div class="qa-check-title">No timer references in copy</div>
+                <div class="qa-check-note">Copy does not reference time pressure or countdowns.</div>
+              </div>
+            </div>
+            <div class="qa-item qi-warn">
+              <span class="qa-icon">⚠</span>
+              <div class="qa-body">
+                <div class="qa-check-title">Example uses concrete, age-appropriate scenario</div>
+                <div class="qa-check-note">Example references "photosynthesis" — complex term for K–1. Consider replacing with simpler analogy (e.g. "eating lunch").</div>
+              </div>
+            </div>
+            <div class="qa-item qi-pass">
+              <span class="qa-icon">✓</span>
+              <div class="qa-body">
+                <div class="qa-check-title">Audio script matches text body</div>
+                <div class="qa-check-note">Audio asset AUD-0098 matches text exactly (hash verified).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="sb-head">
+            <span class="sb-title">Fact Check — Science Claims</span>
+            <button class="sb-action">Run Re-check</button>
+          </div>
+          <table class="fact-table">
+            <thead>
+              <tr>
+                <th>Claim</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Reviewer</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="fact-claim">Plants use sunlight to make food</td>
+                <td class="fact-source">NGSS K-LS1-1</td>
+                <td class="fact-status fs-verified">✓ Verified</td>
+                <td class="fact-source">Auto</td>
+              </tr>
+              <tr>
+                <td class="fact-claim">"Plants only need sunlight, not water" <strong style="color:#ff7b6b;">[copy line 3]</strong></td>
+                <td class="fact-source">—</td>
+                <td class="fact-status fs-flagged">✕ Inaccurate</td>
+                <td class="fact-source">Dr. Patel, 2024-03-22</td>
+              </tr>
+              <tr>
+                <td class="fact-claim">Leaves are where food-making happens</td>
+                <td class="fact-source">NGSS K-LS1-1</td>
+                <td class="fact-status fs-verified">✓ Verified</td>
+                <td class="fact-source">Auto</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-block">
+          <div class="sb-head"><span class="sb-title">Reading Level Analysis</span></div>
+          <div style="font-size:13px;color:rgba(240,246,255,.55);margin-bottom:10px;">
+            Flesch-Kincaid Grade Level: <strong style="color:#f0c040;">3.2</strong> &nbsp;·&nbsp; Target for P1 K–1: <strong style="color:#50e890;">≤ 2.0</strong>
+          </div>
+          <div class="rl-meter">
+            <div class="rl-seg active"></div>
+            <div class="rl-seg active"></div>
+            <div class="rl-seg over"></div>
+            <div class="rl-seg"></div>
+            <div class="rl-seg"></div>
+            <div class="rl-seg"></div>
+            <div class="rl-seg"></div>
+            <div class="rl-seg"></div>
+          </div>
+          <div class="rl-grade-row">
+            <span>K</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7+</span>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:rgba(240,246,255,.4);line-height:1.6;">
+            Top offending words: <span style="background:rgba(255,123,107,.12);color:#ff7b6b;border-radius:3px;padding:1px 5px;margin:0 2px;">photosynthesis</span>
+            <span style="background:rgba(255,123,107,.12);color:#ff7b6b;border-radius:3px;padding:1px 5px;margin:0 2px;">nutrients</span>
+            <span style="background:rgba(240,192,64,.12);color:#f0c040;border-radius:3px;padding:1px 5px;margin:0 2px;">produces</span>
+            <span style="background:rgba(240,192,64,.12);color:#f0c040;border-radius:3px;padding:1px 5px;margin:0 2px;">absorb</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TAB: PREVIEW -->
+      <div id="tab-preview" class="screen">
+        <div class="section-block">
+          <div class="sb-head">
+            <span class="sb-title">Student-Facing Explainer (as rendered)</span>
+            <span style="font-size:11px;color:rgba(240,246,255,.35);">P1 K–1 · Science · Plants</span>
+          </div>
+          <div class="exp-preview">
+            <div class="eq-prompt">✨ Great try! Here's a hint to help you…</div>
+            <div class="eq-body">
+              Plants are like little food factories! They use sunlight to make their own food.
+              When sunlight hits the green leaves, the plant uses it to turn air and water into
+              energy — a process called <em>photosynthesis</em>. Without sunlight, a plant can't
+              make food and will stop growing.
+            </div>
+            <div class="eq-example">
+              🌱 <strong>Try this:</strong> Put a plant in a dark cupboard for a week and watch what happens.
+              Now put it back in the sun. What do you notice?
+            </div>
+            <div class="eq-fun-fact">
+              💜 <strong>Fun fact:</strong> Some plants, like mushrooms, don't need sunlight at all!
+              They get energy from things in the soil instead.
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:rgba(240,246,255,.35);">
+            ⚠ Preview shows current draft — not the approved version.
+            Inaccurate claim highlighted in review: line 3 ("only need sunlight, not water" was in a prior draft — removed in v3 but fact-check cache not yet refreshed).
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: LINKED SKILLS -->
+      <div id="tab-skills" class="screen">
+        <div class="section-block">
+          <div class="sb-head">
+            <span class="sb-title">Skills linked to EXP-0041</span>
+            <button class="sb-action">+ Link Skill</button>
+          </div>
+          <div class="skill-link-list">
+            <div class="skill-link-item">
+              <span class="sli-id">SK-0214</span>
+              <span class="sli-title">Plants need sunlight to grow</span>
+              <span class="sli-q-count">6 questions</span>
+              <span class="sli-status status-review">Under Review</span>
+            </div>
+            <div class="skill-link-item">
+              <span class="sli-id">SK-0215</span>
+              <span class="sli-title">Parts of a plant and their jobs</span>
+              <span class="sli-q-count">5 questions</span>
+              <span class="sli-status status-approved" style="background:rgba(80,232,144,.15);color:#50e890;">Published</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:rgba(240,246,255,.35);">
+            Note: This explainer will be shown to learners who answer incorrectly on any question within the linked skills.
+            If a skill is blocked, the explainer is still accessible via other linked skills.
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: REVISIONS -->
+      <div id="tab-revisions" class="screen">
+        <div class="section-block">
+          <div class="sb-head">
+            <span class="sb-title">Revision Thread</span>
+            <span style="font-size:11px;color:rgba(240,246,255,.35);">v3 current · 2 open</span>
+          </div>
+          <div class="revision-thread">
+            <div class="rev-note rn-open">
+              <div class="rn-header">
+                <span class="rn-author">Curriculum Lead</span>
+                <span class="rn-time">2024-03-22 · v2 → v3</span>
+                <span class="rn-tag rnt-open">Open</span>
+              </div>
+              <div class="rn-body">
+                Reading level is still too high. The word <span class="rn-highlight">photosynthesis</span> alone pushes FK grade above 3.
+                For K–1 we should use "the plant makes food from sunlight" instead. Please simplify
+                sentence structure throughout — aim for max 8 words per sentence.
+              </div>
+            </div>
+            <div class="rev-note rn-open">
+              <div class="rn-header">
+                <span class="rn-author">Dr. Patel (Science SME)</span>
+                <span class="rn-time">2024-03-22 · v3</span>
+                <span class="rn-tag rnt-open">Open</span>
+              </div>
+              <div class="rn-body">
+                Fact check flagged: previous draft said "Plants only need sunlight, not water" — this was removed in v3 ✓
+                but the system fact-check cache hasn't refreshed yet. Manually confirming: v3 copy is factually accurate.
+                Please trigger a re-check to clear the flag.
+              </div>
+            </div>
+            <div class="rev-note rn-resolved">
+              <div class="rn-header">
+                <span class="rn-author">Content Writer</span>
+                <span class="rn-time">2024-03-20 · v1 → v2</span>
+                <span class="rn-tag rnt-resolved">Resolved</span>
+              </div>
+              <div class="rn-body">
+                Added "Fun Fact" block with mushroom example. Added hands-on example (cupboard test). ✓
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: DIFF VIEW -->
+      <div id="tab-diff" class="screen">
+        <div class="section-block">
+          <div class="sb-head">
+            <span class="sb-title">Diff — v2 → v3</span>
+            <span style="font-size:11px;color:rgba(240,246,255,.35);">Showing text changes only</span>
+          </div>
+          <div class="diff-view">
+            <div class="diff-ctx"> Plants are like little food factories!</div>
+            <div class="diff-del">-Plants only need sunlight, not water, to make food.</div>
+            <div class="diff-add">+They use sunlight to make their own food.</div>
+            <div class="diff-ctx"> When sunlight hits the green leaves, the plant uses it</div>
+            <div class="diff-del">-to perform photosynthesis — turning light energy into sugar.</div>
+            <div class="diff-add">+to turn air and water into energy — a process called photosynthesis.</div>
+            <div class="diff-ctx"> Without sunlight, a plant can't make food and will stop growing.</div>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:rgba(240,246,255,.35);">
+            ⚠ The word "photosynthesis" remains in v3. Reading level revision still required to reach ≤ 2.0.
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /detail-pane -->
+  </div><!-- /content-area -->
+</div><!-- /main -->
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['qa','preview','skills','revisions','diff'];
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+
+// List item selection
+document.querySelectorAll('.ex-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.ex-item').forEach(i => i.classList.remove('selected'));
+    item.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>

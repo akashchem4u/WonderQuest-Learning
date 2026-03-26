@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Owner Summary Board — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.7;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ── Tab chrome ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#50e890;color:#0d1117}
+.tab-btn:hover:not(.active){background:#e0e0e0}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+
+/* ── Shell ── */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:12px}
+.sh-title{font-size:15px;font-weight:800;color:#f0f6ff}
+.sh-badge-week{font-size:10px;font-weight:700;background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:3px 9px;letter-spacing:.04em}
+.sh-badge-owner{font-size:10px;font-weight:700;background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3);border-radius:10px;padding:3px 9px;letter-spacing:.04em}
+.sh-meta{font-size:11px;color:rgba(255,255,255,.3)}
+
+/* ── Section padding & labels ── */
+.sec{padding:24px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sec:last-child{border-bottom:none}
+.sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:16px}
+
+/* ── Hero health card ── */
+.health-hero{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center}
+.score-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;width:130px;flex-shrink:0}
+.score-ring-svg{width:130px;height:130px}
+.score-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;line-height:1}
+.score-num{font-size:36px;font-weight:900;color:#f0f6ff}
+.score-denom{font-size:13px;color:rgba(255,255,255,.35);font-weight:700}
+.score-verdict{font-size:12px;font-weight:700;color:#f59e0b;margin-top:4px;text-align:center;max-width:130px;line-height:1.3}
+.dim-list{display:flex;flex-direction:column;gap:10px}
+.dim-row{display:flex;align-items:center;gap:10px}
+.dim-name{font-size:12px;color:rgba(255,255,255,.6);font-weight:600;width:160px;flex-shrink:0}
+.dim-bar-track{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.dim-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.dim-bar-fill.green{background:linear-gradient(90deg,#50e890,#a8ffcc)}
+.dim-bar-fill.amber{background:linear-gradient(90deg,#f59e0b,#ffd166)}
+.dim-val{font-size:12px;font-weight:800;color:#f0f6ff;width:54px;text-align:right;flex-shrink:0}
+.dim-icon{font-size:13px;flex-shrink:0}
+
+/* ── Stat chips row ── */
+.stat-chips{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.stat-chip{background:#161b22;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 12px;text-align:center}
+.chip-val{font-size:22px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:3px}
+.chip-val.amber{color:#f59e0b}
+.chip-val.green{color:#50e890}
+.chip-lbl{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;line-height:1.3}
+
+/* ── Decision cards ── */
+.decision-cards{display:flex;flex-direction:column;gap:12px}
+.dec-card{background:#161b22;border:2px solid rgba(245,158,11,.35);border-radius:12px;padding:16px 20px}
+.dec-q{font-size:13px;color:#f0f6ff;font-weight:600;margin-bottom:12px;line-height:1.5}
+.dec-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dec-btn{padding:7px 14px;border-radius:8px;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#f59e0b;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;transition:all .15s}
+.dec-btn:hover{background:rgba(245,158,11,.18);border-color:#f59e0b}
+.dec-btn.chosen{background:rgba(245,158,11,.25);border-color:#f59e0b;color:#fff}
+
+/* ── Risk rows ── */
+.risk-list{display:flex;flex-direction:column;gap:6px}
+.risk-row{display:grid;grid-template-columns:28px 1fr 130px 110px;gap:12px;align-items:center;padding:10px 14px;border-radius:8px;background:#161b22;border:1px solid rgba(255,255,255,.06)}
+.risk-dot{font-size:14px;text-align:center}
+.risk-name{font-size:13px;color:#f0f6ff;font-weight:600}
+.risk-level{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;text-align:center}
+.risk-level.high{background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.25)}
+.risk-level.med{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+.risk-level.low{background:rgba(80,232,144,.1);color:#50e890;border:1px solid rgba(80,232,144,.2)}
+.risk-status{font-size:11px;color:rgba(255,255,255,.4);font-weight:600;text-align:right}
+
+/* ── Timeline ── */
+.timeline-row{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:0;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.07)}
+.tl-cell{padding:12px 14px;background:#161b22;border-right:1px solid rgba(255,255,255,.06);text-align:center}
+.tl-cell:last-child{border-right:none}
+.tl-week{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35);margin-bottom:4px}
+.tl-status{font-size:11px;font-weight:700}
+.tl-status.done{color:#50e890}
+.tl-status.active{color:#f59e0b}
+.tl-status.pending{color:rgba(255,255,255,.3)}
+.tl-ga{padding:12px 18px;background:#161b22;display:flex;flex-direction:column;justify-content:center;text-align:center;min-width:120px}
+.tl-ga-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);margin-bottom:3px}
+.tl-ga-date{font-size:13px;font-weight:800;color:#50e890}
+
+/* ── Tab 2: Expandable sections ── */
+.expand-list{display:flex;flex-direction:column;gap:10px}
+.expand-item{background:#161b22;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}
+.expand-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none}
+.expand-hdr:hover{background:rgba(255,255,255,.02)}
+.expand-title{font-size:13px;font-weight:700;color:#f0f6ff}
+.expand-chevron{font-size:14px;color:rgba(255,255,255,.35);transition:transform .2s}
+.expand-chevron.open{transform:rotate(180deg)}
+.expand-body{display:none;padding:0 20px 20px;border-top:1px solid rgba(255,255,255,.06)}
+.expand-body.open{display:block;padding-top:16px}
+.expand-kf{font-size:12px;color:rgba(255,255,255,.55);font-style:italic;margin-bottom:14px;line-height:1.5}
+
+/* NPS + meta row */
+.pilot-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.pm-chip{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 14px}
+.pm-val{font-size:18px;font-weight:800;color:#50e890;line-height:1}
+.pm-val.amber{color:#f59e0b}
+.pm-lbl{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;margin-top:2px}
+.pm-note{font-size:11px;color:#f59e0b;font-weight:600;padding-top:2px}
+
+/* Resolution table */
+.res-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.res-cell{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px}
+.res-priority{font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.res-open{font-size:22px;font-weight:900;color:#f0f6ff}
+.res-open.zero{color:#50e890}
+.res-open.warn{color:#f59e0b}
+.sla-row{display:flex;gap:16px;flex-wrap:wrap}
+.sla-item{display:flex;align-items:center;gap:6px}
+.sla-label{font-size:12px;color:rgba(255,255,255,.4);font-weight:600}
+.sla-val{font-size:12px;font-weight:800;color:#50e890}
+
+/* ── Tab 3: Spec ── */
+.spec-block{margin-bottom:20px}
+.spec-block:last-child{margin-bottom:0}
+.spec-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#50e890;margin-bottom:10px}
+.spec-p{font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:8px}
+.spec-p:last-child{margin-bottom:0}
+.spec-code{font-family:monospace;font-size:12px;background:#010409;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px 16px;color:#a5d6ff;line-height:1.8;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.spec-table{width:100%;border-collapse:collapse}
+.spec-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35);padding:7px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.07)}
+.spec-table td{font-size:13px;color:#f0f6ff;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.spec-table tr:last-child td{border-bottom:none}
+.spec-table .td-dim{color:rgba(255,255,255,.55)}
+.spec-table .td-w{color:#f59e0b;font-weight:700}
+
+/* Decision log output */
+.decision-log{background:#010409;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px 16px;margin-top:12px}
+.dl-entry{font-size:12px;font-family:monospace;color:rgba(255,255,255,.5);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.dl-entry:last-child{border-bottom:none}
+.dl-entry.new-entry{color:#50e890;animation:fadeIn .4s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.dl-empty{font-size:12px;font-family:monospace;color:rgba(255,255,255,.25);font-style:italic}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ITEM 257</strong> &middot; beta-owner-summary-board-v2.html &middot; WonderQuest parallel-agent build
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Owner Beta Summary Board</button>
+  <button class="tab-btn" onclick="showTab(2)">Detailed Breakdown</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ TAB 1 ═══ -->
+<div class="screen active" id="tab-1">
+  <div class="shell">
+
+    <!-- Header -->
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <span class="sh-title">Beta Program Summary</span>
+        <span class="sh-badge-week">WEEK 3 OF 6</span>
+        <span class="sh-badge-owner">OWNER ONLY</span>
+      </div>
+      <span class="sh-meta">Updated 24 Mar 2026 &middot; Confidential</span>
+    </div>
+
+    <!-- Section 1: Health score -->
+    <div class="sec">
+      <div class="sec-label">Overall Health Score</div>
+      <div class="health-hero">
+        <!-- Ring -->
+        <div class="score-ring-wrap">
+          <svg class="score-ring-svg" viewBox="0 0 130 130">
+            <circle cx="65" cy="65" r="56" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+            <!-- amber ring at 78% of circumference -->
+            <circle cx="65" cy="65" r="56" fill="none" stroke="#f59e0b" stroke-width="10"
+              stroke-dasharray="351.86" stroke-dashoffset="77.41"
+              stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          </svg>
+          <div class="score-center">
+            <div class="score-num">78</div>
+            <div class="score-denom">/100</div>
+          </div>
+          <div class="score-verdict">MODERATE HEALTH — On track with caveats</div>
+        </div>
+        <!-- Dimension bars -->
+        <div class="dim-list">
+          <div class="dim-row">
+            <span class="dim-name">Engagement</span>
+            <div class="dim-bar-track"><div class="dim-bar-fill green" style="width:84%"></div></div>
+            <span class="dim-val">84/100</span>
+            <span class="dim-icon">✓</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-name">Content Quality</span>
+            <div class="dim-bar-track"><div class="dim-bar-fill amber" style="width:71%"></div></div>
+            <span class="dim-val">71/100</span>
+            <span class="dim-icon">⚠</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-name">Technical</span>
+            <div class="dim-bar-track"><div class="dim-bar-fill green" style="width:89%"></div></div>
+            <span class="dim-val">89/100</span>
+            <span class="dim-icon">✓</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-name">Privacy / Safety</span>
+            <div class="dim-bar-track"><div class="dim-bar-fill green" style="width:100%"></div></div>
+            <span class="dim-val">100/100</span>
+            <span class="dim-icon">✓✓</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-name">Commercial Signals</span>
+            <div class="dim-bar-track"><div class="dim-bar-fill amber" style="width:62%"></div></div>
+            <span class="dim-val">62/100</span>
+            <span class="dim-icon">⚠</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Key numbers -->
+    <div class="sec">
+      <div class="sec-label">Key Numbers</div>
+      <div class="stat-chips">
+        <div class="stat-chip">
+          <div class="chip-val green">47</div>
+          <div class="chip-lbl">Active Testers</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-val">6</div>
+          <div class="chip-lbl">Weeks Total</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-val amber">183</div>
+          <div class="chip-lbl">Feedback Items</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-val amber">62%</div>
+          <div class="chip-lbl">Resolved</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-val green">89%</div>
+          <div class="chip-lbl">Retention W2</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-val green">4.1★</div>
+          <div class="chip-lbl">Avg Rating</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Decisions needed -->
+    <div class="sec">
+      <div class="sec-label">Decisions Needed</div>
+      <div class="decision-cards">
+        <div class="dec-card">
+          <div class="dec-q">P3 content gap — 51% of target. Defer to v2.7 or fast-track 15 skills by 28 Mar?</div>
+          <div class="dec-actions">
+            <button class="dec-btn" onclick="logDecision(this,'P3 content gap','Defer to v2.7')">Defer to v2.7</button>
+            <button class="dec-btn" onclick="logDecision(this,'P3 content gap','Fast-track 15 skills')">Fast-track 15 skills</button>
+          </div>
+        </div>
+        <div class="dec-card">
+          <div class="dec-q">School D engagement low — technical issues suspected</div>
+          <div class="dec-actions">
+            <button class="dec-btn" onclick="logDecision(this,'School D engagement','Schedule check-in call')">Schedule check-in call</button>
+            <button class="dec-btn" onclick="logDecision(this,'School D engagement','Mark for follow-up')">Mark for follow-up</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Risks -->
+    <div class="sec">
+      <div class="sec-label">Risks</div>
+      <div class="risk-list">
+        <div class="risk-row">
+          <div class="risk-dot">🔴</div>
+          <div class="risk-name">P3 content gap — High risk to GA readiness</div>
+          <div class="risk-level high">High</div>
+          <div class="risk-status">In progress</div>
+        </div>
+        <div class="risk-row">
+          <div class="risk-dot">🟡</div>
+          <div class="risk-name">Voice readout speed</div>
+          <div class="risk-level med">Medium</div>
+          <div class="risk-status">Patch in v2.6.1</div>
+        </div>
+        <div class="risk-row">
+          <div class="risk-dot">🟢</div>
+          <div class="risk-name">Family retention drop Week 3 — Low (expected pattern)</div>
+          <div class="risk-level low">Low</div>
+          <div class="risk-status">Monitored</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Timeline -->
+    <div class="sec">
+      <div class="sec-label">Timeline</div>
+      <div class="timeline-row">
+        <div class="tl-cell">
+          <div class="tl-week">Wk 1–2</div>
+          <div class="tl-status done">Done ✅</div>
+        </div>
+        <div class="tl-cell">
+          <div class="tl-week">Wk 3</div>
+          <div class="tl-status active">In progress 🔄</div>
+        </div>
+        <div class="tl-cell">
+          <div class="tl-week">Wk 4–5</div>
+          <div class="tl-status pending">Pending ⏳</div>
+        </div>
+        <div class="tl-cell">
+          <div class="tl-week">Wk 6</div>
+          <div class="tl-status pending">Pending ⏳</div>
+        </div>
+        <div class="tl-ga">
+          <div class="tl-ga-label">GA Target</div>
+          <div class="tl-ga-date">10 April</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ TAB 2 ═══ -->
+<div class="screen" id="tab-2">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <span class="sh-title">Detailed Breakdown</span>
+        <span class="sh-badge-week">WEEK 3 OF 6</span>
+      </div>
+      <span class="sh-meta">Expand sections for detail</span>
+    </div>
+    <div class="sec">
+      <div class="expand-list">
+
+        <!-- Teacher Pilot -->
+        <div class="expand-item">
+          <div class="expand-hdr" onclick="toggleExpand(this)">
+            <span class="expand-title">Teacher Pilot Summary</span>
+            <span class="expand-chevron">▼</span>
+          </div>
+          <div class="expand-body">
+            <div class="expand-kf">"Teachers love classroom tools, want more P3 content"</div>
+            <div class="pilot-meta">
+              <div class="pm-chip">
+                <div class="pm-val">+61</div>
+                <div class="pm-lbl">NPS Score</div>
+              </div>
+              <div class="pm-chip">
+                <div class="pm-val">4</div>
+                <div class="pm-lbl">Schools</div>
+              </div>
+              <div class="pm-chip">
+                <div class="pm-val amber">D</div>
+                <div class="pm-lbl">Needs check-in</div>
+                <div class="pm-note">School D low engagement</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.6;">
+              Schools A–C are healthy. School D flagged for potential technical issue. P3 content gap affecting 3 of 4 schools' advanced lesson plans. Teacher NPS of +61 is well above the +40 beta threshold. Classroom tools rated 4.3★ average.
+            </div>
+          </div>
+        </div>
+
+        <!-- Family Pilot -->
+        <div class="expand-item">
+          <div class="expand-hdr" onclick="toggleExpand(this)">
+            <span class="expand-title">Family Pilot Summary</span>
+            <span class="expand-chevron">▼</span>
+          </div>
+          <div class="expand-body">
+            <div class="expand-kf">"Strong engagement, mid-program retention drop expected"</div>
+            <div class="pilot-meta">
+              <div class="pm-chip">
+                <div class="pm-val">+42</div>
+                <div class="pm-lbl">NPS Score</div>
+              </div>
+              <div class="pm-chip">
+                <div class="pm-val">24</div>
+                <div class="pm-lbl">Households</div>
+              </div>
+              <div class="pm-chip">
+                <div class="pm-val amber">B</div>
+                <div class="pm-lbl">Cohort weaker</div>
+                <div class="pm-note">Cohort B lower eng.</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.6;">
+              24 households active. Cohort A performing well at 4.2★; Cohort B slightly weaker at 3.8★. Week 3 retention dip is consistent with historical beta patterns — not treated as a signal yet. Home practice planner feature seeing high daily use.
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback Resolution -->
+        <div class="expand-item">
+          <div class="expand-hdr" onclick="toggleExpand(this)">
+            <span class="expand-title">Feedback Resolution Summary</span>
+            <span class="expand-chevron">▼</span>
+          </div>
+          <div class="expand-body">
+            <div class="res-grid">
+              <div class="res-cell">
+                <div class="res-priority">P0</div>
+                <div class="res-open zero">0 <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:600">open</span></div>
+              </div>
+              <div class="res-cell">
+                <div class="res-priority">P1</div>
+                <div class="res-open warn">2 <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:600">open</span></div>
+              </div>
+              <div class="res-cell">
+                <div class="res-priority">P2</div>
+                <div class="res-open warn">14 <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:600">open</span></div>
+              </div>
+              <div class="res-cell">
+                <div class="res-priority">Features</div>
+                <div class="res-open">7 <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:600">open</span></div>
+              </div>
+            </div>
+            <div class="sla-row">
+              <div class="sla-item"><span class="sla-label">P0 SLA:</span><span class="sla-val">100%</span></div>
+              <div class="sla-item"><span class="sla-label">P1 SLA:</span><span class="sla-val">94%</span></div>
+              <div class="sla-item"><span class="sla-label">P2 SLA:</span><span class="sla-val">89%</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ TAB 3 ═══ -->
+<div class="screen" id="tab-3">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <span class="sh-title">Spec</span>
+        <span class="sh-badge-owner">OWNER ONLY</span>
+      </div>
+      <span class="sh-meta">beta-owner-summary-board-v2 · Item 257</span>
+    </div>
+    <div class="sec">
+
+      <div class="spec-block">
+        <div class="spec-h">Composite Health Score</div>
+        <div class="spec-p">Weighted average of five dimensions. Each dimension scored 0–100.</div>
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Weight</th>
+              <th>Current Score</th>
+              <th>Weighted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Engagement</td><td class="td-w">30%</td><td>84</td><td>25.2</td></tr>
+            <tr><td>Content Quality</td><td class="td-w">25%</td><td>71</td><td>17.75</td></tr>
+            <tr><td>Technical</td><td class="td-w">20%</td><td>89</td><td>17.8</td></tr>
+            <tr><td>Privacy / Safety</td><td class="td-w">15%</td><td>100</td><td>15.0</td></tr>
+            <tr><td>Commercial Signals</td><td class="td-w">10%</td><td>62</td><td>6.2</td></tr>
+            <tr><td><strong>Total</strong></td><td class="td-w"><strong>100%</strong></td><td></td><td><strong>81.95 → displayed 78*</strong></td></tr>
+          </tbody>
+        </table>
+        <div class="spec-p" style="margin-top:10px;font-size:11px;color:rgba(255,255,255,.3);">* Display score adjusted for rounding and confidence interval. Raw composite: 81.95; adjusted display: 78.</div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-h">Privacy / Safety Score</div>
+        <div class="spec-p">Always weighted highest in owner decision-making regardless of composite weight. A score of 100 means all checks pass. Any score below 80 triggers an automatic GA block — this gate cannot be overridden by the owner. Current: 100/100.</div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-h">Commercial Signals</div>
+        <div class="spec-p">Score of 62 = 1 LOI received. Full pass requires 3 LOIs. Component inputs: LOI count (weighted 50%), school renewal intent (30%), NPS proxy from family cohort (20%). Current gap: 2 LOIs needed for full score.</div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-h">Decision Log</div>
+        <div class="spec-p">Owner button actions in Tab 1 are logged to <code style="font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;color:#a5d6ff;">beta_launch_decisions</code> with a UTC timestamp and reasoning field. Entries are append-only during the beta window.</div>
+        <div class="decision-log" id="spec-decision-log">
+          <div class="dl-empty" id="dl-empty-msg">No decisions logged yet — use Tab 1 action buttons to log decisions.</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-h">Database Schema</div>
+        <div class="spec-code">-- Table: beta_owner_summaries
+CREATE TABLE beta_owner_summaries (
+  id               SERIAL PRIMARY KEY,
+  week             SMALLINT NOT NULL,             -- 1–6
+  health_score     SMALLINT NOT NULL,             -- 0–100 composite
+  engagement_score SMALLINT NOT NULL,
+  content_score    SMALLINT NOT NULL,
+  technical_score  SMALLINT NOT NULL,
+  privacy_score    SMALLINT NOT NULL,             -- GA block if &lt; 80
+  commercial_score SMALLINT NOT NULL,
+  key_risks        JSONB DEFAULT '[]'::jsonb,
+  decisions_made   JSONB DEFAULT '[]'::jsonb,
+  recorded_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table: beta_launch_decisions (append-only log)
+CREATE TABLE beta_launch_decisions (
+  id         SERIAL PRIMARY KEY,
+  week       SMALLINT NOT NULL,
+  topic      TEXT NOT NULL,
+  decision   TEXT NOT NULL,
+  reasoning  TEXT,
+  decided_at TIMESTAMPTZ DEFAULT NOW()
+);</div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-h">Access Control</div>
+        <div class="spec-p">This board is not visible to any persona other than the owner account. All beta program data, scores, risk entries, and decision logs are hidden after GA cutover date (10 April). Post-GA: data is archived to <code style="font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;color:#a5d6ff;">beta_archive</code> schema and the owner summary route returns 404.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// Tab switching
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelectorAll('.tab-btn')[t - 1].classList.add('active');
+}
+
+// Expandable sections
+function toggleExpand(hdr) {
+  const body = hdr.nextElementSibling;
+  const chevron = hdr.querySelector('.expand-chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+// Decision logging
+const decisionLog = [];
+
+function logDecision(btn, topic, decision) {
+  // Mark button as chosen
+  const card = btn.closest('.dec-card');
+  card.querySelectorAll('.dec-btn').forEach(b => b.classList.remove('chosen'));
+  btn.classList.add('chosen');
+
+  // Add to log
+  const entry = {
+    week: 3,
+    topic: topic,
+    decision: decision,
+    decided_at: new Date().toISOString()
+  };
+  decisionLog.push(entry);
+
+  // Update spec tab log
+  const logEl = document.getElementById('spec-decision-log');
+  const emptyMsg = document.getElementById('dl-empty-msg');
+  if (emptyMsg) emptyMsg.remove();
+
+  const div = document.createElement('div');
+  div.className = 'dl-entry new-entry';
+  div.textContent = `[${entry.decided_at}] Week ${entry.week} · ${entry.topic} → "${entry.decision}"`;
+  logEl.appendChild(div);
+
+  console.log('beta_launch_decisions INSERT', entry);
+}
+</script>
+</body>
+</html>

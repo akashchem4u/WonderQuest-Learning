@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Release Bundle Card — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+.btn-danger{background:transparent;color:#ff7b6b;border:1px solid rgba(255,123,107,.3);}
+.btn-amber{background:transparent;color:#f0c040;border:1px solid rgba(240,192,64,.3);}
+
+.page-body{padding:24px 28px;}
+
+/* ─── BUNDLE GRID ────────────────────────────────────────────────── */
+.bundle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:28px;}
+
+/* ─── BUNDLE CARD ────────────────────────────────────────────────── */
+.bundle-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;transition:border-color .15s;}
+.bundle-card:hover{border-color:rgba(255,255,255,.15);}
+.bundle-card.bc-ready{border-color:rgba(80,232,144,.25);}
+.bundle-card.bc-blocked{border-color:rgba(255,123,107,.25);}
+.bundle-card.bc-partial{border-color:rgba(240,192,64,.2);}
+.bundle-card.bc-draft{border-color:rgba(255,255,255,.06);}
+
+/* Card top band */
+.bc-top{height:4px;}
+.bct-ready{background:linear-gradient(90deg,#50e890,#3dd678);}
+.bct-partial{background:linear-gradient(90deg,#f0c040,#d4a800);}
+.bct-blocked{background:linear-gradient(90deg,#ff7b6b,#e05444);}
+.bct-draft{background:rgba(255,255,255,.1);}
+
+.bc-header{padding:14px 16px 10px;}
+.bch-row1{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.bc-id{font-size:11px;color:rgba(240,246,255,.35);font-family:monospace;}
+.bc-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;margin-left:auto;}
+.bcs-ready{background:rgba(80,232,144,.15);color:#50e890;}
+.bcs-partial{background:rgba(240,192,64,.12);color:#f0c040;}
+.bcs-blocked{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.bcs-draft{background:rgba(255,255,255,.07);color:rgba(240,246,255,.45);}
+.bc-name{font-size:15px;font-weight:700;color:#f0f6ff;margin-bottom:4px;}
+.bc-desc{font-size:12px;color:rgba(240,246,255,.5);line-height:1.4;}
+
+.bc-divider{height:1px;background:rgba(255,255,255,.06);}
+
+/* Stat strip inside card */
+.bc-stats{display:flex;gap:0;}
+.bcs-cell{flex:1;padding:10px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.05);}
+.bcs-cell:last-child{border-right:none;}
+.bsn{font-size:16px;font-weight:700;color:#f0f6ff;}
+.bsl{font-size:9px;color:rgba(240,246,255,.4);margin-top:2px;text-transform:uppercase;letter-spacing:.05em;}
+.n-green{color:#50e890;}
+.n-amber{color:#f0c040;}
+.n-red{color:#ff7b6b;}
+
+/* Progress bars */
+.bc-progress{padding:12px 16px;}
+.bcp-row{margin-bottom:8px;}
+.bcp-label{display:flex;justify-content:space-between;font-size:11px;color:rgba(240,246,255,.45);margin-bottom:3px;}
+.bcp-track{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;}
+.bcp-fill{height:100%;border-radius:3px;}
+.bpf-green{background:#50e890;}
+.bpf-amber{background:#f0c040;}
+.bpf-red{background:#ff7b6b;}
+
+/* Band tags */
+.bc-bands{display:flex;gap:5px;padding:0 16px 12px;flex-wrap:wrap;}
+.band-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;}
+.bt-p0{background:rgba(255,209,102,.15);color:#ffd166;}
+.bt-p1{background:rgba(155,114,255,.15);color:#9b72ff;}
+.bt-p2{background:rgba(88,232,193,.15);color:#58e8c1;}
+.bt-p3{background:rgba(255,123,107,.15);color:#ff7b6b;}
+
+/* Blocker warning strip */
+.bc-blockers{background:rgba(255,123,107,.06);border-top:1px solid rgba(255,123,107,.15);padding:10px 16px;font-size:12px;color:#ff7b6b;}
+.bcb-item{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.bcb-item:last-child{margin-bottom:0;}
+
+/* Card footer */
+.bc-footer{padding:10px 16px;border-top:1px solid rgba(255,255,255,.05);display:flex;gap:8px;}
+.btn-xs{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(240,246,255,.6);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-xs:hover{background:rgba(255,255,255,.06);color:#f0f6ff;}
+.btn-xs.bx-ok{border-color:rgba(80,232,144,.3);color:#50e890;background:rgba(80,232,144,.06);}
+.btn-xs.bx-ok:disabled{opacity:.35;cursor:not-allowed;}
+.btn-xs.bx-amber{border-color:rgba(240,192,64,.3);color:#f0c040;}
+
+/* ─── DETAIL VIEW (expanded) ─────────────────────────────────────── */
+.bundle-detail{background:#161b22;border:1px solid rgba(80,232,144,.2);border-radius:12px;padding:20px;margin-bottom:24px;}
+.bd-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.bd-title{font-size:18px;font-weight:700;color:#f0f6ff;}
+.bd-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.bd-skill-table{width:100%;border-collapse:collapse;font-size:12px;}
+.bd-skill-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.bd-skill-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.bd-skill-table tr:last-child td{border-bottom:none;}
+.sk-id-cell{font-family:monospace;font-size:11px;color:rgba(240,246,255,.35);}
+.sk-status-cell{font-size:11px;font-weight:600;padding:2px 7px;border-radius:9px;}
+.ss-pub{background:rgba(80,232,144,.15);color:#50e890;}
+.ss-rev{background:rgba(240,192,64,.12);color:#f0c040;}
+.ss-blk{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.ss-dft{background:rgba(255,255,255,.07);color:rgba(240,246,255,.45);}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Release Bundle Cards</h1>
+  <span class="ph-sub">Content bundles staged for owner publish — grouped by release version</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⬇ Export All</button>
+    <button class="btn btn-primary">+ Create Bundle</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Release Bundle Card v2:</strong> A release bundle = a named set of skills to be published together in a single deploy.
+    <br>Bundles staged by curriculum team → owner sees summary + can approve/publish from owner console.
+    <br>Bundle status: Draft → Curriculum Ready → Owner Review → Published (or Rejected → back to Curriculum Ready).
+    <br><strong>Publish gate:</strong> ALL skills in bundle must have readiness_score ≥ 90 AND review_status = Approved before owner can publish bundle.
+    <br>Publishing a bundle sets delivery_locked=false on all included skills and creates a governance_log entry.
+    <br>Partial publish: owner may cherry-pick skills from a bundle (creates partial publish record; remaining skills stay in bundle).
+    <br>Tabs: Active Bundles / Published / Spec.
+  </div>
+
+  <!-- Expanded detail example -->
+  <div class="bundle-detail">
+    <div class="bd-header">
+      <div>
+        <div class="bd-title">🌿 Bundle v2.5-B — Nature &amp; Living Things</div>
+        <div class="bd-sub">BDL-0012 · P0 Pre-K + P1 K–1 · Science · 8 skills · Last updated 2024-03-22</div>
+      </div>
+      <span class="bc-status bcs-partial" style="font-size:12px;padding:5px 12px;border-radius:12px;margin-left:auto;">6/8 Ready</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" disabled>⬆ Submit to Owner</button>
+        <button class="btn btn-secondary">📋 View Readiness</button>
+      </div>
+    </div>
+    <table class="bd-skill-table">
+      <thead><tr><th>Skill ID</th><th>Title</th><th>Band</th><th>Readiness</th><th>Status</th><th>Blocker</th></tr></thead>
+      <tbody>
+        <tr><td class="sk-id-cell">SK-0082</td><td>Plant needs (water/sunlight/soil)</td><td><span class="band-tag bt-p1">P1</span></td><td style="color:#50e890;font-weight:600;">94%</td><td><span class="sk-status-cell ss-pub">Approved</span></td><td>—</td></tr>
+        <tr><td class="sk-id-cell">SK-0215</td><td>Parts of a plant and their jobs</td><td><span class="band-tag bt-p1">P1</span></td><td style="color:#50e890;font-weight:600;">91%</td><td><span class="sk-status-cell ss-pub">Approved</span></td><td>—</td></tr>
+        <tr><td class="sk-id-cell">SK-0041</td><td>Animals: habitats</td><td><span class="band-tag bt-p0">P0</span></td><td style="color:#50e890;font-weight:600;">92%</td><td><span class="sk-status-cell ss-pub">Approved</span></td><td>—</td></tr>
+        <tr><td class="sk-id-cell">SK-0042</td><td>Animals and their legs</td><td><span class="band-tag bt-p0">P0</span></td><td style="color:#50e890;font-weight:600;">90%</td><td><span class="sk-status-cell ss-pub">Approved</span></td><td>—</td></tr>
+        <tr><td class="sk-id-cell">SK-0058</td><td>Animal body parts</td><td><span class="band-tag bt-p0">P0</span></td><td style="color:#50e890;font-weight:600;">95%</td><td><span class="sk-status-cell ss-pub">Approved</span></td><td>—</td></tr>
+        <tr><td class="sk-id-cell">SK-0189</td><td>Food chains basics</td><td><span class="band-tag bt-p2">P2</span></td><td style="color:#50e890;font-weight:600;">93%</td><td><span class="sk-status-cell ss-pub">Approved</span></td><td>—</td></tr>
+        <tr style="background:rgba(240,192,64,.03);"><td class="sk-id-cell">SK-0214</td><td>Plants need sunlight to grow</td><td><span class="band-tag bt-p1">P1</span></td><td style="color:#f0c040;font-weight:600;">74%</td><td><span class="sk-status-cell ss-rev">Under Review</span></td><td style="color:#f0c040;font-size:11px;">QID-0390, QID-0391 pending</td></tr>
+        <tr style="background:rgba(255,123,107,.03);"><td class="sk-id-cell">SK-0241</td><td>Ocean animals: fish vs mammals</td><td><span class="band-tag bt-p2">P2</span></td><td style="color:#ff7b6b;font-weight:600;">52%</td><td><span class="sk-status-cell ss-blk">Blocked</span></td><td style="color:#ff7b6b;font-size:11px;">IMG-0443 (404), EXP missing</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Bundle grid -->
+  <div style="font-size:13px;font-weight:600;color:#f0f6ff;margin-bottom:14px;">All Active Bundles</div>
+  <div class="bundle-grid">
+
+    <!-- Bundle 1: Ready -->
+    <div class="bundle-card bc-ready">
+      <div class="bc-top bct-ready"></div>
+      <div class="bc-header">
+        <div class="bch-row1">
+          <span class="bc-id">BDL-0011</span>
+          <span class="bc-status bcs-ready">Ready to Publish</span>
+        </div>
+        <div class="bc-name">🔢 Counting &amp; Early Math</div>
+        <div class="bc-desc">P0 Pre-K numeracy foundation — counting, shapes, basic comparison</div>
+      </div>
+      <div class="bc-divider"></div>
+      <div class="bc-stats">
+        <div class="bcs-cell"><div class="bsn n-green">12</div><div class="bsl">Skills</div></div>
+        <div class="bcs-cell"><div class="bsn n-green">72</div><div class="bsl">Questions</div></div>
+        <div class="bcs-cell"><div class="bsn n-green">12/12</div><div class="bsl">Approved</div></div>
+        <div class="bcs-cell"><div class="bsn n-green">94%</div><div class="bsl">Avg Score</div></div>
+      </div>
+      <div class="bc-progress">
+        <div class="bcp-row">
+          <div class="bcp-label"><span>Readiness</span><span style="color:#50e890;">94% avg</span></div>
+          <div class="bcp-track"><div class="bcp-fill bpf-green" style="width:94%"></div></div>
+        </div>
+      </div>
+      <div class="bc-bands"><span class="band-tag bt-p0">P0 Pre-K</span></div>
+      <div class="bc-footer">
+        <button class="btn-xs bx-ok">⬆ Submit to Owner</button>
+        <button class="btn-xs">📋 View Skills</button>
+        <button class="btn-xs" style="margin-left:auto;">✏ Edit</button>
+      </div>
+    </div>
+
+    <!-- Bundle 2: Partial -->
+    <div class="bundle-card bc-partial">
+      <div class="bc-top bct-partial"></div>
+      <div class="bc-header">
+        <div class="bch-row1">
+          <span class="bc-id">BDL-0012</span>
+          <span class="bc-status bcs-partial">6/8 Ready</span>
+        </div>
+        <div class="bc-name">🌿 Nature &amp; Living Things</div>
+        <div class="bc-desc">P0–P2 Science — plants, animals, habitats, food chains</div>
+      </div>
+      <div class="bc-divider"></div>
+      <div class="bc-stats">
+        <div class="bcs-cell"><div class="bsn n-amber">8</div><div class="bsl">Skills</div></div>
+        <div class="bcs-cell"><div class="bsn n-amber">46</div><div class="bsl">Questions</div></div>
+        <div class="bcs-cell"><div class="bsn n-amber">6/8</div><div class="bsl">Approved</div></div>
+        <div class="bcs-cell"><div class="bsn n-amber">82%</div><div class="bsl">Avg Score</div></div>
+      </div>
+      <div class="bc-progress">
+        <div class="bcp-row">
+          <div class="bcp-label"><span>Bundle Readiness</span><span style="color:#f0c040;">82% avg</span></div>
+          <div class="bcp-track"><div class="bcp-fill bpf-amber" style="width:82%"></div></div>
+        </div>
+        <div class="bcp-row">
+          <div class="bcp-label"><span>Approved</span><span>6/8</span></div>
+          <div class="bcp-track"><div class="bcp-fill bpf-green" style="width:75%"></div></div>
+        </div>
+      </div>
+      <div class="bc-bands"><span class="band-tag bt-p0">P0</span><span class="band-tag bt-p1">P1</span><span class="band-tag bt-p2">P2</span></div>
+      <div class="bc-blockers">
+        <div class="bcb-item">⚠ SK-0214 under review — 2 questions pending</div>
+        <div class="bcb-item">🚫 SK-0241 blocked — missing image + explainer</div>
+      </div>
+      <div class="bc-footer">
+        <button class="btn-xs bx-ok" disabled>⬆ Submit to Owner</button>
+        <button class="btn-xs">📋 View Skills</button>
+        <button class="btn-xs bx-amber">Partial Submit</button>
+      </div>
+    </div>
+
+    <!-- Bundle 3: Blocked -->
+    <div class="bundle-card bc-blocked">
+      <div class="bc-top bct-blocked"></div>
+      <div class="bc-header">
+        <div class="bch-row1">
+          <span class="bc-id">BDL-0013</span>
+          <span class="bc-status bcs-blocked">2 Blocked</span>
+        </div>
+        <div class="bc-name">🚀 P3 G4–5 Math Sprint</div>
+        <div class="bc-desc">First P3 math bundle — fractions, decimals, operations</div>
+      </div>
+      <div class="bc-divider"></div>
+      <div class="bc-stats">
+        <div class="bcs-cell"><div class="bsn n-red">10</div><div class="bsl">Skills</div></div>
+        <div class="bcs-cell"><div class="bsn n-red">56</div><div class="bsl">Questions</div></div>
+        <div class="bcs-cell"><div class="bsn n-red">3/10</div><div class="bsl">Approved</div></div>
+        <div class="bcs-cell"><div class="bsn n-red">61%</div><div class="bsl">Avg Score</div></div>
+      </div>
+      <div class="bc-progress">
+        <div class="bcp-row">
+          <div class="bcp-label"><span>Bundle Readiness</span><span style="color:#ff7b6b;">61% avg</span></div>
+          <div class="bcp-track"><div class="bcp-fill bpf-red" style="width:61%"></div></div>
+        </div>
+      </div>
+      <div class="bc-bands"><span class="band-tag bt-p3">P3 G4–5</span></div>
+      <div class="bc-blockers">
+        <div class="bcb-item">🚫 SK-0151 blocked — fact check failed (multiplying fractions)</div>
+        <div class="bcb-item">🚫 SK-0301 blocked — IMG-0440 404 error</div>
+        <div class="bcb-item">⚠ 5 more skills still in draft</div>
+      </div>
+      <div class="bc-footer">
+        <button class="btn-xs bx-ok" disabled>⬆ Submit to Owner</button>
+        <button class="btn-xs">📋 View Skills</button>
+        <button class="btn-xs">✏ Edit Bundle</button>
+      </div>
+    </div>
+
+    <!-- Bundle 4: Draft -->
+    <div class="bundle-card bc-draft">
+      <div class="bc-top bct-draft"></div>
+      <div class="bc-header">
+        <div class="bch-row1">
+          <span class="bc-id">BDL-0014</span>
+          <span class="bc-status bcs-draft">Draft</span>
+        </div>
+        <div class="bc-name">🏙 City Life — Social Studies</div>
+        <div class="bc-desc">P1–P2 community, civics, and geography content</div>
+      </div>
+      <div class="bc-divider"></div>
+      <div class="bc-stats">
+        <div class="bcs-cell"><div class="bsn">6</div><div class="bsl">Skills</div></div>
+        <div class="bcs-cell"><div class="bsn">32</div><div class="bsl">Questions</div></div>
+        <div class="bcs-cell"><div class="bsn" style="color:rgba(240,246,255,.4);">0/6</div><div class="bsl">Approved</div></div>
+        <div class="bcs-cell"><div class="bsn" style="color:rgba(240,246,255,.4);">—</div><div class="bsl">Avg Score</div></div>
+      </div>
+      <div class="bc-progress">
+        <div class="bcp-row">
+          <div class="bcp-label"><span>Skills in draft/review</span><span>6/6</span></div>
+          <div class="bcp-track"><div class="bcp-fill" style="width:100%;background:rgba(255,255,255,.1)"></div></div>
+        </div>
+      </div>
+      <div class="bc-bands"><span class="band-tag bt-p1">P1</span><span class="band-tag bt-p2">P2</span></div>
+      <div class="bc-footer">
+        <button class="btn-xs bx-ok" disabled>⬆ Submit to Owner</button>
+        <button class="btn-xs">📋 View Skills</button>
+        <button class="btn-xs">✏ Edit Bundle</button>
+      </div>
+    </div>
+
+    <!-- Bundle 5: Ready -->
+    <div class="bundle-card bc-ready">
+      <div class="bc-top bct-ready"></div>
+      <div class="bc-header">
+        <div class="bch-row1">
+          <span class="bc-id">BDL-0010</span>
+          <span class="bc-status bcs-ready">Submitted to Owner</span>
+        </div>
+        <div class="bc-name">🅰 ELA Phonics Foundation</div>
+        <div class="bc-desc">P0 Pre-K phonics, alphabet, vowels/consonants</div>
+      </div>
+      <div class="bc-divider"></div>
+      <div class="bc-stats">
+        <div class="bcs-cell"><div class="bsn n-green">9</div><div class="bsl">Skills</div></div>
+        <div class="bcs-cell"><div class="bsn n-green">54</div><div class="bsl">Questions</div></div>
+        <div class="bcs-cell"><div class="bsn n-green">9/9</div><div class="bsl">Approved</div></div>
+        <div class="bcs-cell"><div class="bsn n-green">96%</div><div class="bsl">Avg Score</div></div>
+      </div>
+      <div class="bc-progress">
+        <div class="bcp-row">
+          <div class="bcp-label"><span>Readiness</span><span style="color:#50e890;">96% avg</span></div>
+          <div class="bcp-track"><div class="bcp-fill bpf-green" style="width:96%"></div></div>
+        </div>
+      </div>
+      <div class="bc-bands"><span class="band-tag bt-p0">P0 Pre-K</span></div>
+      <div class="bc-footer">
+        <button class="btn-xs" style="color:rgba(240,246,255,.35);">Awaiting owner…</button>
+        <button class="btn-xs">📋 View Skills</button>
+      </div>
+    </div>
+
+    <!-- Bundle 6: Add new -->
+    <div class="bundle-card" style="border:2px dashed rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:200px;transition:all .15s;" onmouseover="this.style.borderColor='rgba(80,232,144,.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,.1)'">
+      <div style="text-align:center;color:rgba(240,246,255,.3);">
+        <div style="font-size:32px;margin-bottom:8px;">+</div>
+        <div style="font-size:13px;">Create New Bundle</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// Bundle card click to expand (simplified)
+document.querySelectorAll('.bundle-card:not([style*="dashed"])').forEach(card => {
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Success State System v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0d1117;
+    --card:    #161b22;
+    --card2:   #1e2530;
+    --accent:  #50e890;
+    --text:    #f0f6ff;
+    --muted:   #8b949e;
+    --border:  rgba(255,255,255,.06);
+    --success: #50e890;
+    --amber:   #f59e0b;
+    --p0:      #ffd166;
+    --p1:      #9b72ff;
+    --p2:      #58e8c1;
+    --p3:      #ff7b6b;
+    --radius:  12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Engineering hint box ── */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #92400e; }
+
+  /* ── Layout ── */
+  .page-wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 28px 24px 80px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .page-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section headers ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .section-gap { margin-bottom: 40px; }
+
+  /* ── Card base ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card2 {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  /* ── Grid helpers ── */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 620px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ════════════════════════════════════════
+     TAB 1 — SUCCESS GALLERY
+  ════════════════════════════════════════ */
+
+  /* 1. Action Confirmed Toast */
+  .toast-confirmed {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--success);
+    background: rgba(80,232,144,.06);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    max-width: 380px;
+  }
+  .toast-confirmed .toast-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .toast-confirmed .toast-body { flex: 1; }
+  .toast-confirmed .toast-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--success);
+  }
+  .toast-confirmed .toast-dismiss {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .variant-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .variant-chip {
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  /* 2. Process Complete — Batch Import */
+  .process-complete-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+  }
+  .success-icon-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(80,232,144,.12);
+    border: 2px solid var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 16px;
+  }
+  .process-complete-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .process-complete-card .sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .stats-line {
+    font-size: 13px;
+    color: var(--success);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .import-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .import-table th {
+    color: var(--muted);
+    font-weight: 500;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .import-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .import-table tr:last-child td { border-bottom: none; }
+  .import-table .val-green { color: var(--success); font-weight: 600; }
+  .import-table .val-amber { color: var(--amber); font-weight: 600; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-primary {
+    background: var(--success);
+    color: #0d1117;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn-primary:hover { opacity: .88; }
+  .btn-secondary {
+    background: none;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .btn-secondary:hover { border-color: var(--muted); }
+
+  /* 3. Bundle Published */
+  .bundle-published-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+  }
+  .bundle-published-card .rocket-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(80,232,144,.12);
+    border: 2px solid var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 16px;
+  }
+  .bundle-published-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .bundle-published-card .bundle-id {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .bundle-stats-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .bundle-stat-chip {
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 120px;
+  }
+  .bundle-stat-chip .bsc-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--success);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .bundle-stat-chip .bsc-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* 4. Release Gate Passed */
+  .release-gate-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+  }
+  .release-gate-card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .release-gate-card .sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+
+  /* CSS ring */
+  .score-ring-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 24px;
+  }
+  .score-ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(var(--success) 0% 94%, var(--card2) 94% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .score-ring::before {
+    content: '';
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: var(--card);
+  }
+  .score-ring-label {
+    position: relative;
+    z-index: 1;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--success);
+  }
+
+  .gate-checks {
+    list-style: none;
+    max-width: 340px;
+    margin: 0 auto 24px;
+    text-align: left;
+  }
+  .gate-checks li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .gate-checks li:last-child { border-bottom: none; }
+  .gate-checks .check-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(80,232,144,.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Deploy button */
+  .btn-deploy {
+    background: var(--success);
+    color: #0d1117;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: .01em;
+    transition: opacity .15s;
+    display: inline-block;
+  }
+  .btn-deploy:hover { opacity: .88; }
+
+  /* ════════════════════════════════════════
+     TAB 2 — TOAST & INLINE
+  ════════════════════════════════════════ */
+
+  /* Toast stack demo */
+  .toast-stack-demo {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: relative;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0;
+  }
+  .toast-stack-demo .stack-label {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+
+  .toast-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--success);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    width: 320px;
+    background: rgba(80,232,144,.07);
+  }
+  .toast-item + .toast-item { margin-top: 6px; }
+  .toast-item.older {
+    opacity: .62;
+    transform: scale(.97);
+    transform-origin: center bottom;
+  }
+  .toast-item .t-icon { font-size: 16px; flex-shrink: 0; }
+  .toast-item .t-body { flex: 1; }
+  .toast-item .t-title { font-size: 13px; font-weight: 600; color: var(--success); }
+  .toast-item .t-dismiss { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+  /* Button state transitions */
+  .btn-state-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 20px;
+    background: var(--card2);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .state-arrow { color: var(--muted); font-size: 18px; }
+
+  .btn-idle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-loading {
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.2);
+    color: var(--muted);
+    border-radius: var(--radius-sm);
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .spin {
+    display: inline-block;
+    animation: spin .8s linear infinite;
+    font-size: 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-saved {
+    background: rgba(80,232,144,.15);
+    border: 1px solid var(--success);
+    color: var(--success);
+    border-radius: var(--radius-sm);
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Form submit success */
+  .form-success-demo {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    opacity: .3;
+    pointer-events: none;
+  }
+  .form-input {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .form-confirm-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.2);
+    border-radius: var(--radius-sm);
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Table row highlight */
+  .table-demo {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table-demo table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .table-demo th {
+    color: var(--muted);
+    font-weight: 500;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .table-demo td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-demo tr:last-child td { border-bottom: none; }
+  .table-demo .row-success {
+    background: rgba(80,232,144,.08);
+  }
+  .table-demo .row-success td:first-child {
+    border-left: 3px solid var(--success);
+    padding-left: 11px;
+  }
+  .row-success-badge {
+    font-size: 11px;
+    color: var(--success);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Copy button */
+  .copy-demo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    flex-wrap: wrap;
+  }
+  .copy-code-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    font-family: monospace;
+    font-size: 16px;
+    letter-spacing: .12em;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .btn-copy {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .15s;
+    min-width: 120px;
+    text-align: center;
+  }
+  .btn-copy.copied {
+    background: rgba(80,232,144,.12);
+    border-color: var(--success);
+    color: var(--success);
+    font-weight: 700;
+  }
+
+  /* ════════════════════════════════════════
+     TAB 3 — CHILD CELEBRATION STATES
+  ════════════════════════════════════════ */
+
+  .phone-frames-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .phone-frames-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .phone-frames-grid { grid-template-columns: 1fr; }
+  }
+
+  .phone-frame {
+    border-radius: 24px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    position: relative;
+    min-height: 540px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 18px 24px;
+    text-align: center;
+  }
+
+  /* Confetti */
+  .confetti-container {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .confetti-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: confetti-fall 2.4s ease-in infinite;
+    opacity: .85;
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+    100% { transform: translateY(600px) rotate(360deg); opacity: 0; }
+  }
+
+  /* Star pop */
+  @keyframes star-pop {
+    0%   { transform: scale(0);   opacity: 0; }
+    60%  { transform: scale(1.25); opacity: 1; }
+    80%  { transform: scale(.9); }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  /* Badge reveal */
+  @keyframes badge-reveal {
+    0%   { filter: blur(10px); opacity: 0; transform: scale(.8); }
+    100% { filter: blur(0px);  opacity: 1; transform: scale(1); }
+  }
+
+  /* XP bar fill */
+  @keyframes xp-fill {
+    0%   { width: 30%; }
+    100% { width: 78%; }
+  }
+
+  /* P0 Pre-K gold */
+  .phone-p0 {
+    background: linear-gradient(160deg, #3d2800 0%, #7a4e00 50%, #ffd166 100%);
+  }
+  .p0-star {
+    font-size: 72px;
+    margin-bottom: 8px;
+    display: block;
+    animation: star-pop .6s ease both;
+  }
+  .p0-title {
+    font-size: 34px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,.4);
+    margin-bottom: 6px;
+  }
+  .p0-xp {
+    font-size: 16px;
+    color: #fff3c0;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .stars-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .star-earn {
+    font-size: 28px;
+    animation: star-pop .4s ease both;
+  }
+  .star-earn:nth-child(2) { animation-delay: .15s; }
+  .star-earn:nth-child(3) { animation-delay: .3s; }
+
+  .band-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: .7;
+  }
+  .p0-badge { color: #ffd166; }
+
+  .btn-celebrate {
+    border: none;
+    border-radius: 50px;
+    padding: 13px 28px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 4px;
+    letter-spacing: .01em;
+  }
+  .btn-p0 { background: #ffd166; color: #2d1a00; }
+  .btn-p1 { background: #9b72ff; color: #fff; }
+  .btn-p2 { background: #58e8c1; color: #002b22; }
+  .btn-p3 { background: #ff7b6b; color: #fff; }
+
+  /* P1 K-1 violet */
+  .phone-p1 {
+    background: linear-gradient(160deg, #1a0b3d 0%, #3b1f80 50%, #9b72ff 100%);
+  }
+  .p1-icon {
+    font-size: 72px;
+    margin-bottom: 8px;
+    display: block;
+    animation: star-pop .5s ease both;
+  }
+  .p1-title {
+    font-size: 34px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,.4);
+    margin-bottom: 6px;
+  }
+  .p1-chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .chip {
+    border-radius: 50px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .chip-xp-p1 { background: rgba(155,114,255,.25); color: #d4bcff; border: 1px solid rgba(155,114,255,.4); }
+  .chip-streak { background: rgba(255,160,50,.2); color: #ffd166; border: 1px solid rgba(255,160,50,.3); }
+  .chip-xp-p2 { background: rgba(88,232,193,.2); color: #a7f5e0; border: 1px solid rgba(88,232,193,.35); }
+  .chip-badge-p2 { background: rgba(88,232,193,.12); color: #58e8c1; border: 1px solid rgba(88,232,193,.3); }
+  .chip-xp-p3 { background: rgba(255,123,107,.18); color: #ffb8b0; border: 1px solid rgba(255,123,107,.3); }
+  .chip-level { background: rgba(255,200,80,.18); color: #ffd166; border: 1px solid rgba(255,200,80,.3); }
+
+  .p1-badge { color: #c4aaff; }
+  .p2-badge { color: #58e8c1; }
+  .p3-badge { color: #ff9e96; }
+
+  /* P2 G2-3 mint */
+  .phone-p2 {
+    background: linear-gradient(160deg, #002b22 0%, #005c45 50%, #58e8c1 100%);
+  }
+  .p2-icon {
+    font-size: 72px;
+    margin-bottom: 8px;
+    display: block;
+    animation: star-pop .5s ease both;
+  }
+  .p2-title {
+    font-size: 34px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,.35);
+    margin-bottom: 6px;
+  }
+  .badge-reveal-wrap {
+    background: rgba(88,232,193,.12);
+    border: 1px solid rgba(88,232,193,.25);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin: 12px 0;
+    animation: badge-reveal .8s ease .3s both;
+  }
+  .badge-reveal-wrap .badge-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #58e8c1;
+    margin-bottom: 2px;
+  }
+  .badge-reveal-wrap .badge-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,.5);
+  }
+
+  /* P3 G4-5 coral */
+  .phone-p3 {
+    background: linear-gradient(160deg, #2d0a00 0%, #7a2010 50%, #ff7b6b 100%);
+  }
+  .p3-icon {
+    font-size: 72px;
+    margin-bottom: 8px;
+    display: block;
+    animation: star-pop .5s ease both;
+  }
+  .p3-title {
+    font-size: 34px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,.4);
+    margin-bottom: 6px;
+  }
+  .xp-bar-wrap {
+    width: 100%;
+    margin: 14px 0;
+  }
+  .xp-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(255,255,255,.5);
+    margin-bottom: 6px;
+  }
+  .xp-bar-track {
+    height: 10px;
+    background: rgba(255,255,255,.12);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff7b6b, #ffd166);
+    border-radius: 5px;
+    animation: xp-fill 1.2s ease .4s both;
+    width: 78%;
+  }
+
+  /* ════════════════════════════════════════
+     TAB 4 — SPEC
+  ════════════════════════════════════════ */
+
+  .spec-section { margin-bottom: 36px; }
+  .spec-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  pre.spec-code {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #a8d8a8;
+    overflow-x: auto;
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    white-space: pre;
+  }
+  pre.spec-code .kw  { color: #9b72ff; }
+  pre.spec-code .str { color: #58e8c1; }
+  pre.spec-code .cm  { color: var(--muted); font-style: italic; }
+  pre.spec-code .ty  { color: #ffd166; }
+
+  .copy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .copy-table th {
+    background: var(--card2);
+    color: var(--muted);
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .copy-table td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  .copy-table tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .copy-table .rule-good { color: var(--success); font-weight: 600; }
+  .copy-table .rule-bad  { color: #ef4444; text-decoration: line-through; }
+
+  .pill-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .spec-pill {
+    border-radius: 50px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+  .sp-action   { background: rgba(80,232,144,.12); color: var(--success); border: 1px solid rgba(80,232,144,.25); }
+  .sp-process  { background: rgba(88,232,193,.12); color: #58e8c1;        border: 1px solid rgba(88,232,193,.25); }
+  .sp-achieve  { background: rgba(255,209,102,.12); color: var(--p0);     border: 1px solid rgba(255,209,102,.25); }
+  .sp-mile     { background: rgba(155,114,255,.12); color: var(--p1);     border: 1px solid rgba(155,114,255,.25); }
+
+  .guideline-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .guideline-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--card2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .gl-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Engineering hint -->
+  <div class="eng-hint">
+    <strong>success-state-system-v2.html</strong> — Success state components. 4 success categories:
+    (1) <strong>Action Confirmed</strong> (save/approve/submit — brief, auto-dismiss),
+    (2) <strong>Process Complete</strong> (multi-step op finished — persistent until dismissed),
+    (3) <strong>Achievement Unlocked</strong> (child-facing — celebratory, animated),
+    (4) <strong>Milestone Reached</strong> (teacher/parent — positive but calm).
+    Child success states: full celebration (confetti burst, stars, positive language).
+    Adult success states: clean confirmation, no over-celebration.
+    <strong>No timer language anywhere.</strong>
+  </div>
+
+  <div class="page-title">Success State System</div>
+  <div class="page-sub">UI patterns shown when actions complete successfully — adult and child personas</div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Success Gallery</button>
+    <button class="tab-btn" onclick="showTab(1)">Toast &amp; Inline</button>
+    <button class="tab-btn" onclick="showTab(2)">Child Celebrations</button>
+    <button class="tab-btn" onclick="showTab(3)">Spec</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       TAB 0 — SUCCESS GALLERY
+  ══════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-0">
+
+    <!-- 1. Action Confirmed -->
+    <div class="section-gap">
+      <div class="section-label">1 — Action Confirmed (adult) · auto-dismiss</div>
+
+      <div class="toast-confirmed">
+        <span class="toast-icon">✅</span>
+        <div class="toast-body">
+          <div class="toast-title">Changes saved</div>
+        </div>
+        <span class="toast-dismiss">Saved · 3s</span>
+      </div>
+
+      <div class="variant-row">
+        <span class="variant-chip">✅ Saved</span>
+        <span class="variant-chip">✅ Approved</span>
+        <span class="variant-chip">✅ Submitted</span>
+        <span class="variant-chip">✅ Published</span>
+        <span class="variant-chip">✅ Resolved</span>
+      </div>
+
+      <p style="color:var(--muted);font-size:12px;margin-top:12px;max-width:480px;">
+        Green left-border 4px · background tint <code style="color:var(--success)">rgba(80,232,144,.06)</code> · no confetti · no animation — clean confirmation only. Auto-dismisses (3 s default).
+      </p>
+    </div>
+
+    <!-- 2. Process Complete — Batch Import -->
+    <div class="section-gap">
+      <div class="section-label">2 — Process Complete · Batch Import · persistent</div>
+      <div class="process-complete-card">
+        <div class="success-icon-circle">✅</div>
+        <h2>Import Complete</h2>
+        <p class="sub">Content import finished with no blocking errors</p>
+        <div class="stats-line">732 questions imported &nbsp;·&nbsp; 0 errors &nbsp;·&nbsp; 3 warnings</div>
+
+        <table class="import-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Count</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Created</td>
+              <td class="val-green">689</td>
+              <td style="color:var(--muted)">New records added</td>
+            </tr>
+            <tr>
+              <td>Updated</td>
+              <td class="val-green">43</td>
+              <td style="color:var(--muted)">Existing records patched</td>
+            </tr>
+            <tr>
+              <td>Skipped (duplicates)</td>
+              <td style="color:var(--muted)">0</td>
+              <td style="color:var(--muted)">No duplicates found</td>
+            </tr>
+            <tr>
+              <td>Warnings</td>
+              <td class="val-amber">3</td>
+              <td style="color:var(--amber)">Review recommended</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="btn-row">
+          <button class="btn-primary">View Imported Content</button>
+          <button class="btn-secondary">View Warnings (3)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Content Bundle Published -->
+    <div class="section-gap">
+      <div class="section-label">3 — Content Bundle Published · owner / content team · calm celebration</div>
+      <div class="bundle-published-card">
+        <div class="rocket-circle">🚀</div>
+        <h2>Bundle Published Successfully</h2>
+        <p class="bundle-id">BDL-0012 &nbsp;·&nbsp; Spring Mathematics &nbsp;·&nbsp; 8 skills &nbsp;·&nbsp; 127 questions</p>
+
+        <div class="bundle-stats-row">
+          <div class="bundle-stat-chip">
+            <span class="bsc-value">Live</span>
+            <span class="bsc-label">In Production</span>
+          </div>
+          <div class="bundle-stat-chip">
+            <span class="bsc-value">3</span>
+            <span class="bsc-label">Bands covered</span>
+          </div>
+          <div class="bundle-stat-chip">
+            <span class="bsc-value">1,247</span>
+            <span class="bsc-label">Students can access</span>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-primary">View Bundle</button>
+          <button class="btn-secondary">Share with Team</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Release Gate Passed -->
+    <div class="section-gap">
+      <div class="section-label">4 — Release Gate Passed · owner only · deploy CTA</div>
+      <div class="release-gate-card">
+        <h2>All gates passed — Ready to deploy</h2>
+        <p class="sub">Release v3.4.1 &nbsp;·&nbsp; Reviewed by system</p>
+
+        <div class="score-ring-wrap">
+          <div class="score-ring">
+            <span class="score-ring-label">94</span>
+          </div>
+        </div>
+
+        <ul class="gate-checks">
+          <li>
+            <span class="check-icon">✓</span>
+            <span>Quality</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--success);font-weight:600;">Passed</span>
+          </li>
+          <li>
+            <span class="check-icon">✓</span>
+            <span>Performance</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--success);font-weight:600;">Passed</span>
+          </li>
+          <li>
+            <span class="check-icon">✓</span>
+            <span>Content</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--success);font-weight:600;">Passed</span>
+          </li>
+          <li>
+            <span class="check-icon">✓</span>
+            <span>Privacy</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--success);font-weight:600;">Passed</span>
+          </li>
+          <li>
+            <span class="check-icon">✓</span>
+            <span>Sign-off</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--success);font-weight:600;">Passed</span>
+          </li>
+        </ul>
+
+        <button class="btn-deploy">Deploy to Production</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-0 -->
+
+  <!-- ══════════════════════════════════════
+       TAB 1 — TOAST & INLINE
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-1">
+
+    <!-- Toast stack -->
+    <div class="section-gap">
+      <div class="section-label">Toast stack — bottom-center, stacked (most recent on top)</div>
+      <div class="toast-stack-demo">
+        <span class="stack-label">Bottom-center overlay</span>
+        <div class="toast-item">
+          <span class="t-icon">✅</span>
+          <div class="t-body"><div class="t-title">Skill approved</div></div>
+          <span class="t-dismiss">3s</span>
+        </div>
+        <div class="toast-item older">
+          <span class="t-icon">✅</span>
+          <div class="t-body"><div class="t-title">Audio uploaded</div></div>
+          <span class="t-dismiss">5s</span>
+        </div>
+        <div class="toast-item older" style="opacity:.38;transform:scale(.94)">
+          <span class="t-icon">✅</span>
+          <div class="t-body"><div class="t-title">Question saved</div></div>
+          <span class="t-dismiss">2s</span>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-top:10px;">Most recent toast at top; older toasts stack below with reduced opacity and slight scale.</p>
+    </div>
+
+    <!-- Button state transitions -->
+    <div class="section-gap">
+      <div class="section-label">Button state transition · idle → saving → saved</div>
+      <div class="btn-state-row">
+        <button class="btn-idle">Save Changes</button>
+        <span class="state-arrow">→</span>
+        <div class="btn-loading">
+          <span class="spin">⟳</span> Saving...
+        </div>
+        <span class="state-arrow">→</span>
+        <div class="btn-saved">✓ Saved</div>
+        <span class="state-arrow">→</span>
+        <button class="btn-idle" style="opacity:.6">[returns to idle]</button>
+      </div>
+    </div>
+
+    <!-- Form submit success -->
+    <div class="section-gap">
+      <div class="section-label">Form submit success · input fields replaced with confirmation</div>
+      <div class="form-success-demo">
+        <div class="form-fields">
+          <div class="form-input">Display name</div>
+          <div class="form-input">Email address</div>
+        </div>
+        <div class="form-confirm-row">
+          <span style="font-size:18px;">✓</span>
+          Changes saved
+        </div>
+      </div>
+    </div>
+
+    <!-- Table row highlight -->
+    <div class="section-gap">
+      <div class="section-label">Table row success · row briefly highlights green after action</div>
+      <div class="table-demo">
+        <table>
+          <thead>
+            <tr>
+              <th>Question ID</th>
+              <th>Skill</th>
+              <th>Band</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--muted)">QST-10821</td>
+              <td>Addition basics</td>
+              <td>P1</td>
+              <td style="color:var(--muted)">Draft</td>
+            </tr>
+            <tr class="row-success">
+              <td>QST-10822</td>
+              <td>Subtraction intro</td>
+              <td>P1</td>
+              <td><span class="row-success-badge">✓ Approved</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--muted)">QST-10823</td>
+              <td>Counting to 20</td>
+              <td>P0</td>
+              <td style="color:var(--muted)">Draft</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Copy to clipboard -->
+    <div class="section-gap">
+      <div class="section-label">Copy-to-clipboard · button toggles to "Copied!" for 2s then resets</div>
+      <div class="copy-demo">
+        <span style="font-size:13px;color:var(--muted);">Class code:</span>
+        <div class="copy-code-box">W7X-4KP</div>
+        <button class="btn-copy" id="copyBtn" onclick="triggerCopy()">📋 Copy Class Code</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-1 -->
+
+  <!-- ══════════════════════════════════════
+       TAB 2 — CHILD CELEBRATIONS
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-2">
+
+    <div class="section-label" style="margin-bottom:20px;">4 phone frames — one per band · confetti (CSS only) · star-pop &amp; badge-reveal animations · no accuracy % · no timer · positive language only</div>
+
+    <div class="phone-frames-grid">
+
+      <!-- P0 Pre-K -->
+      <div class="phone-frame phone-p0">
+        <!-- Confetti -->
+        <div class="confetti-container" id="confetti-p0"></div>
+
+        <span class="band-badge p0-badge">Pre-K Explorer</span>
+        <span class="p0-star">⭐</span>
+        <div class="p0-title">Amazing!</div>
+        <div class="p0-xp">You got it right! +10 XP ✨</div>
+        <div class="stars-row">
+          <span class="star-earn">⭐</span>
+          <span class="star-earn">⭐</span>
+          <span class="star-earn">⭐</span>
+        </div>
+        <button class="btn-celebrate btn-p0">Keep Going!</button>
+      </div>
+
+      <!-- P1 K–1 -->
+      <div class="phone-frame phone-p1">
+        <div class="confetti-container" id="confetti-p1"></div>
+
+        <span class="band-badge p1-badge">K–1 Adventurer</span>
+        <span class="p1-icon">⚡</span>
+        <div class="p1-title">Awesome!</div>
+        <div class="p1-chips">
+          <span class="chip chip-xp-p1">+15 XP</span>
+          <span class="chip chip-streak">🔥 3 in a row!</span>
+        </div>
+        <button class="btn-celebrate btn-p1">Next Challenge!</button>
+      </div>
+
+      <!-- P2 G2–3 -->
+      <div class="phone-frame phone-p2">
+        <span class="band-badge p2-badge">Grade 2–3 Explorer</span>
+        <span class="p2-icon">🎯</span>
+        <div class="p2-title">Excellent!</div>
+        <div class="p1-chips">
+          <span class="chip chip-xp-p2">+20 XP</span>
+        </div>
+        <div class="badge-reveal-wrap">
+          <div class="badge-name">Science Explorer 🔬</div>
+          <div class="badge-sub">New badge earned!</div>
+        </div>
+        <button class="btn-celebrate btn-p2">Claim Badge!</button>
+      </div>
+
+      <!-- P3 G4–5 -->
+      <div class="phone-frame phone-p3">
+        <span class="band-badge p3-badge">Grade 4–5 Champion</span>
+        <span class="p3-icon">🏆</span>
+        <div class="p3-title">Outstanding!</div>
+        <div class="p1-chips">
+          <span class="chip chip-xp-p3">+25 XP</span>
+          <span class="chip chip-level">⬆ Level 7 reached!</span>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar-labels">
+            <span>Lv 6</span>
+            <span>Lv 7</span>
+          </div>
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill"></div>
+          </div>
+        </div>
+        <button class="btn-celebrate btn-p3">Continue Adventure</button>
+      </div>
+
+    </div><!-- /phone-frames-grid -->
+
+    <div style="margin-top:24px;padding:16px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--muted);line-height:1.7;">
+      <strong style="color:var(--text);">Child success rules enforced:</strong><br>
+      · No "Correct!" or accuracy percentage copy<br>
+      · No "You got X/Y right"<br>
+      · No timer language<br>
+      · Confetti CSS animation only — no JS canvas<br>
+      · Each band themed to its accent color (P0=gold, P1=violet, P2=mint, P3=coral)<br>
+      · Confetti rendered at significant milestones, not on every question answer
+    </div>
+
+  </div><!-- /tab-2 -->
+
+  <!-- ══════════════════════════════════════
+       TAB 3 — SPEC
+  ══════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-3">
+
+    <!-- Component interface -->
+    <div class="spec-section">
+      <h3>Component Props — SuccessStateProps</h3>
+<pre class="spec-code"><span class="kw">interface</span> <span class="ty">SuccessStateProps</span> {
+  <span class="cm">// Which success pattern to render</span>
+  category:    <span class="str">'action_confirmed'</span> | <span class="str">'process_complete'</span> | <span class="str">'achievement'</span> | <span class="str">'milestone'</span>
+
+  <span class="cm">// Who is seeing this success state</span>
+  persona:     <span class="str">'child'</span> | <span class="str">'teacher'</span> | <span class="str">'parent'</span> | <span class="str">'owner'</span> | <span class="str">'content'</span>
+
+  title:       <span class="ty">string</span>                          <span class="cm">// e.g. "Changes saved" / "Amazing!"</span>
+  body?:       <span class="ty">string</span>                          <span class="cm">// Optional sub-copy</span>
+  stats?:      <span class="ty">Array</span>&lt;{ label: <span class="ty">string</span>; value: <span class="ty">string</span> | <span class="ty">number</span> }&gt;
+
+  autoDismiss?: <span class="ty">number</span>                        <span class="cm">// ms; null = persistent. adult default: 3000</span>
+  cta?:         { label: <span class="ty">string</span>; action: <span class="ty">string</span> }  <span class="cm">// Primary CTA</span>
+
+  <span class="cm">// Child-only: confetti/stars. Always false for adult personas</span>
+  animated:    <span class="ty">boolean</span>
+
+  <span class="cm">// Required when persona === 'child'</span>
+  band?:       <span class="str">'p0'</span> | <span class="str">'p1'</span> | <span class="str">'p2'</span> | <span class="str">'p3'</span>
+}</pre>
+    </div>
+
+    <!-- Category quick reference -->
+    <div class="spec-section">
+      <h3>Category Quick Reference</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="padding:14px 16px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span class="spec-pill sp-action">action_confirmed</span>
+          </div>
+          <p style="font-size:13px;color:var(--muted);">Save / approve / submit / publish / resolve. Brief toast with green left-border. Auto-dismisses (3 s default). No animation, no confetti. Adult personas only.</p>
+        </div>
+        <div style="padding:14px 16px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span class="spec-pill sp-process">process_complete</span>
+          </div>
+          <p style="font-size:13px;color:var(--muted);">Multi-step operation finished (bulk import, export, sync). Full-card with summary stats. Persistent — user must dismiss. Adult personas.</p>
+        </div>
+        <div style="padding:14px 16px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span class="spec-pill sp-achieve">achievement</span>
+          </div>
+          <p style="font-size:13px;color:var(--muted);">Child-facing. Celebratory full-screen overlay. Confetti (significant milestones only, not every answer). Animated stars / badge reveal. Band-themed colors. Always includes XP amount. Never includes accuracy %.</p>
+        </div>
+        <div style="padding:14px 16px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span class="spec-pill sp-mile">milestone</span>
+          </div>
+          <p style="font-size:13px;color:var(--muted);">Teacher / parent-facing. Positive but calm — green tint, clean layout. No confetti. Full-card, persistent. Examples: bundle published, release gate passed, class goal reached.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copy guidelines -->
+    <div class="spec-section">
+      <h3>Copy Guidelines</h3>
+      <table class="copy-table">
+        <thead>
+          <tr>
+            <th>Context</th>
+            <th>Do write</th>
+            <th>Do not write</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Adult action confirmed</strong></td>
+            <td class="rule-good">"Saved" · "Approved" · "Published"</td>
+            <td class="rule-bad">"Amazing job saving!" · "Great work!"</td>
+          </tr>
+          <tr>
+            <td><strong>Adult process complete</strong></td>
+            <td class="rule-good">Factual summary stats with counts</td>
+            <td class="rule-bad">"You crushed it! 🎉"</td>
+          </tr>
+          <tr>
+            <td><strong>Child achievement</strong></td>
+            <td class="rule-good">"Amazing!" · "Awesome!" · "+15 XP ✨"</td>
+            <td class="rule-bad">"You got 8/10 correct" · "80% accuracy"</td>
+          </tr>
+          <tr>
+            <td><strong>Child achievement</strong></td>
+            <td class="rule-good">"3 in a row! 🔥" · "New badge earned!"</td>
+            <td class="rule-bad">Any timer or countdown language</td>
+          </tr>
+          <tr>
+            <td><strong>Level-up chip</strong></td>
+            <td class="rule-good">Show only when XP threshold crossed</td>
+            <td class="rule-bad">Show on every question answer</td>
+          </tr>
+          <tr>
+            <td><strong>Confetti trigger</strong></td>
+            <td class="rule-good">Badge earned · streak milestone · level-up</td>
+            <td class="rule-bad">Every correct answer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Auto-dismiss defaults -->
+    <div class="spec-section">
+      <h3>Auto-Dismiss Defaults</h3>
+      <ul class="guideline-list">
+        <li><span class="gl-icon">⏱</span><div><strong>action_confirmed (adult):</strong> 3000 ms default. Override via <code>autoDismiss</code> prop (e.g., 2000 for "Question saved", 5000 for "Audio uploaded").</div></li>
+        <li><span class="gl-icon">📌</span><div><strong>process_complete:</strong> <code>autoDismiss: null</code> — persistent. User must interact with the CTA to dismiss.</div></li>
+        <li><span class="gl-icon">🎯</span><div><strong>achievement (child):</strong> Persistent overlay — child taps [Keep Going!] / [Next Challenge!] etc. Never auto-dismiss.</div></li>
+        <li><span class="gl-icon">📌</span><div><strong>milestone (adult):</strong> Persistent card until the user navigates away or dismisses. No auto-dismiss.</div></li>
+      </ul>
+    </div>
+
+    <!-- Animated prop -->
+    <div class="spec-section">
+      <h3>Animated Prop Rules</h3>
+      <ul class="guideline-list">
+        <li><span class="gl-icon">✅</span><div><code>animated: true</code> is only valid when <code>persona === 'child'</code>. Rendering engine enforces this — adult personas always render <code>animated: false</code> regardless of prop value.</div></li>
+        <li><span class="gl-icon">✅</span><div>Confetti CSS animation triggered only for <code>category === 'achievement'</code> AND a significant milestone trigger (badge earned, level-up, streak milestone). Not fired on routine correct answers.</div></li>
+        <li><span class="gl-icon">✅</span><div>Star-pop <code>@keyframes</code> used for earned stars on P0 band only. Badge-reveal blur animation for P2 badge unlock. XP bar fill for P3 level-up.</div></li>
+        <li><span class="gl-icon">🚫</span><div>No JS canvas, no third-party animation libraries. All motion via CSS <code>@keyframes</code> only.</div></li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-3 -->
+
+</div><!-- /page-wrap -->
+
+<script>
+  /* ── Tab switching ── */
+  function showTab(idx) {
+    document.querySelectorAll('.tab-panel').forEach(function(p, i) {
+      p.classList.toggle('active', i === idx);
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+      b.classList.toggle('active', i === idx);
+    });
+  }
+
+  /* ── Copy-to-clipboard demo ── */
+  function triggerCopy() {
+    var btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.textContent = '✓ Copied!';
+    setTimeout(function() {
+      btn.classList.remove('copied');
+      btn.textContent = '📋 Copy Class Code';
+    }, 2000);
+  }
+
+  /* ── Generate confetti dots for P0 and P1 ── */
+  function makeConfetti(containerId, color1, color2, color3, count) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var colors = [color1, color2, color3, '#ffffff'];
+    for (var i = 0; i < count; i++) {
+      var dot = document.createElement('div');
+      dot.className = 'confetti-dot';
+      dot.style.left = (Math.random() * 100) + '%';
+      dot.style.top = (Math.random() * -60) + 'px';
+      dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+      dot.style.animationDelay = (Math.random() * 2.2) + 's';
+      dot.style.animationDuration = (1.8 + Math.random() * 1.2) + 's';
+      dot.style.width = (6 + Math.floor(Math.random() * 6)) + 'px';
+      dot.style.height = (6 + Math.floor(Math.random() * 6)) + 'px';
+      dot.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      container.appendChild(dot);
+    }
+  }
+
+  makeConfetti('confetti-p0', '#ffd166', '#ffecb3', '#ff8c00', 22);
+  makeConfetti('confetti-p1', '#9b72ff', '#c4aaff', '#e040fb', 22);
+</script>
+</body>
+</html>

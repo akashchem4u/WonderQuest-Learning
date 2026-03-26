@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Intervention Timeline — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Timeline container ───────────────────────────────────────────── */
+.timeline-card{background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:600px}
+.tc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.tc-title{font-size:16px;font-weight:900;color:#1a1440}
+.tc-sub{font-size:12px;color:#888;margin-top:3px}
+.tc-status{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px}
+.ts-active{background:#fef3c7;color:#92400e}
+.ts-resolved{background:#dcfce7;color:#15803d}
+
+/* Timeline items */
+.timeline{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:14px;padding-bottom:20px;position:relative}
+.tl-item:last-child{padding-bottom:0}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:17px;top:34px;bottom:0;width:2px;background:#e8ecf0}
+
+.tl-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.tl-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;border:2px solid transparent}
+.tld-trigger{background:#fef3c7;border-color:#f59e0b}
+.tld-note{background:#eff6ff;border-color:#3b82f6}
+.tld-mastery{background:#dcfce7;border-color:#22c55e}
+.tld-system{background:#f5f5f5;border-color:#d1d5db}
+.tld-resolve{background:#dcfce7;border-color:#22c55e}
+
+.tl-right{flex:1}
+.tl-date{font-size:10px;color:#aaa;font-weight:700;margin-bottom:4px}
+.tl-title{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:5px}
+.tl-detail{font-size:12px;color:#555;line-height:1.5}
+.tl-note-box{background:#f8faff;border-radius:8px;padding:9px 11px;font-size:11px;color:#444;line-height:1.5;margin-top:8px;border-left:3px solid #3b82f6}
+.note-label{font-size:9px;font-weight:700;text-transform:uppercase;color:#2563eb;letter-spacing:.06em;margin-bottom:4px}
+.tl-mastery-bar{display:flex;gap:8px;align-items:center;margin-top:8px}
+.mb-label{font-size:11px;color:#888;min-width:36px}
+.mb-bar-bg{flex:1;height:6px;background:#f0f4f8;border-radius:3px;overflow:hidden}
+.mb-bar-fill{height:100%;border-radius:3px}
+.mb-score{font-size:11px;font-weight:800;min-width:38px}
+
+/* Event type chips in timeline */
+.event-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:5px}
+.ec-trigger{background:#fef3c7;color:#92400e}
+.ec-note{background:#eff6ff;color:#2563eb}
+.ec-mastery{background:#dcfce7;color:#15803d}
+.ec-system{background:#f5f5f5;color:#888}
+
+/* Multi-student timeline variant */
+.multi-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f5f7fa}
+.ms-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0}
+.ms-name{font-size:14px;font-weight:800;color:#1a1440}
+.ms-band{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#58e8c122;color:#0d9065}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-blue{background:#eff6ff;color:#2563eb}
+.tag-red{background:#fff0f0;color:#dc2626}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-intervention-timeline-v3.html</strong><br>
+  Standalone intervention timeline component — used in the full-history view of a student's intervention record.<br>
+  <strong>NOT the same as the timeline inside intervention-detail:</strong> This is a richer, dedicated view reached from "View full history" link on intervention detail page.<br>
+  <strong>Timeline event types:</strong> trigger (queue flag created) | teacher_note (freetext note logged) | mastery_transition (status change) | system_adjustment (difficulty auto-adjusted) | resolution.<br>
+  <strong>Mastery transitions shown:</strong> just status changes (Just started → Building → Strong). Raw score changes NOT shown in timeline (only in detail page).<br>
+  <strong>Privacy:</strong> Teacher notes shown in full (private to teacher). No per-student accuracy %, no wrong answers, no parent info.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('full')">Full Timeline</button>
+  <button class="tab-btn" onclick="showTab('resolved')">Resolved History</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Full Timeline ───────────────────────────────────────────────── -->
+<div id="tab-full" class="screen active">
+  <p class="section-title">Full intervention timeline — Jordan · Fractions: Division</p>
+  <div class="timeline-card">
+    <div class="tc-header">
+      <div>
+        <div class="tc-title">Jordan — Fractions: Division</div>
+        <div class="tc-sub">P2 · G2–3 · Started Mar 22, 2026</div>
+      </div>
+      <span class="tc-status ts-active">⚠️ Active</span>
+    </div>
+
+    <div class="timeline">
+
+      <!-- Trigger -->
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-trigger">⚠️</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 22, 2026 · 9:14am</div>
+          <div class="tl-title">Support queue triggered</div>
+          <div class="tl-detail">confidence_floor_hit reached threshold (3 hits on Fractions: Division). System created queue item and notified teacher.</div>
+          <span class="event-chip ec-trigger">⚠️ Trigger</span>
+        </div>
+      </div>
+
+      <!-- Teacher note -->
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-note">🗒️</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 22, 2026 · 2:30pm</div>
+          <div class="tl-title">Teacher check-in & note logged</div>
+          <div class="tl-detail">Queue item acknowledged. Teacher spoke with Jordan during class.</div>
+          <div class="tl-note-box">
+            <div class="note-label">Teacher note</div>
+            Spoke with Jordan. They mentioned fractions are confusing — specifically the "equal parts" idea. Suggested pizza-slice visual. Will monitor 2 sessions.
+          </div>
+          <span class="event-chip ec-note">🗒️ Teacher note</span>
+        </div>
+      </div>
+
+      <!-- System adjustment -->
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-system">⚙️</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 22, 2026 · 9:14am</div>
+          <div class="tl-title">System: difficulty slightly reduced</div>
+          <div class="tl-detail">Adaptive engine lowered difficulty on Fractions: Division while confidence floor flag is active. Will restore on resolution.</div>
+          <span class="event-chip ec-system">⚙️ System</span>
+        </div>
+      </div>
+
+      <!-- Mastery transition -->
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-mastery">📈</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 24, 2026 · 4:08pm</div>
+          <div class="tl-title">Mastery status: Just started → Building</div>
+          <div class="tl-detail">Completed 2 sessions since check-in. Mastery crossed 40-threshold. Confidence floor hits reduced to 1 (vs 3 before intervention).</div>
+          <div class="tl-mastery-bar">
+            <div class="mb-label">Before</div>
+            <div class="mb-bar-bg"><div class="mb-bar-fill" style="width:32%;background:#d1d5db"></div></div>
+            <div class="mb-score" style="color:#888">32 / 100</div>
+          </div>
+          <div class="tl-mastery-bar">
+            <div class="mb-label">After</div>
+            <div class="mb-bar-bg"><div class="mb-bar-fill" style="width:46%;background:#2563eb"></div></div>
+            <div class="mb-score" style="color:#2563eb">46 / 100</div>
+          </div>
+          <span class="event-chip ec-mastery">📈 Mastery transition</span>
+        </div>
+      </div>
+
+      <!-- Second note -->
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-note">🗒️</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 24, 2026 · 5:00pm</div>
+          <div class="tl-title">Follow-up note</div>
+          <div class="tl-note-box">
+            <div class="note-label">Teacher note</div>
+            Good progress! Jordan seems more confident. Continuing to monitor. Will mark resolved if mastery reaches 65+ without floor hits.
+          </div>
+          <span class="event-chip ec-note">🗒️ Teacher note</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Resolved History ────────────────────────────────────────────── -->
+<div id="tab-resolved" class="screen">
+  <p class="section-title">Resolved intervention — complete timeline with resolution event</p>
+  <div class="timeline-card">
+    <div class="tc-header">
+      <div>
+        <div class="tc-title">Jordan — Fractions: Division</div>
+        <div class="tc-sub">P2 · G2–3 · Resolved Mar 28, 2026</div>
+      </div>
+      <span class="tc-status ts-resolved">✅ Resolved</span>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-trigger">⚠️</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 22 · 9:14am</div>
+          <div class="tl-title">Queue triggered — Confidence floor 3×</div>
+          <span class="event-chip ec-trigger">⚠️ Trigger</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-note">🗒️</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 22 · 2:30pm</div>
+          <div class="tl-title">Teacher check-in — visual model suggested</div>
+          <span class="event-chip ec-note">🗒️ Note</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-mastery">📈</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 24 · 4:08pm</div>
+          <div class="tl-title">Mastery: Just started → Building (46)</div>
+          <span class="event-chip ec-mastery">📈 Transition</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-mastery">💪</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 27 · 3:22pm</div>
+          <div class="tl-title">Mastery: Building → Strong (74)</div>
+          <div class="tl-mastery-bar">
+            <div class="mb-label">Before</div>
+            <div class="mb-bar-bg"><div class="mb-bar-fill" style="width:32%;background:#d1d5db"></div></div>
+            <div class="mb-score" style="color:#888">32</div>
+          </div>
+          <div class="tl-mastery-bar">
+            <div class="mb-label">Now</div>
+            <div class="mb-bar-bg"><div class="mb-bar-fill" style="width:74%;background:#22c55e"></div></div>
+            <div class="mb-score" style="color:#22c55e">74</div>
+          </div>
+          <span class="event-chip ec-mastery">💪 Mastery: Strong</span>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-dot tld-resolve">✅</div></div>
+        <div class="tl-right">
+          <div class="tl-date">Mar 28 · 9:00am</div>
+          <div class="tl-title">Intervention resolved</div>
+          <div class="tl-detail">Mastery reached Strong threshold (74/100). 0 confidence floor hits for 5 days. System auto-resolved and archived. Duration: 6 days.</div>
+          <span class="event-chip ec-mastery">✅ Resolved</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-intervention-timeline-v3.html<br>
+      <strong>Route:</strong> /teacher/support-queue/:intervention_id/timeline<br>
+      <strong>Reached from:</strong> "View full history" link on intervention detail page.
+    </div>
+    <h2 class="spec-h2">Timeline Event Types</h2>
+    <table class="spec-table">
+      <tr><th>Type</th><th>Trigger</th><th>Dot colour</th><th>Shows</th></tr>
+      <tr><td>⚠️ Trigger</td><td>Queue flag created</td><td>Amber</td><td>Trigger type, threshold hit</td></tr>
+      <tr><td>🗒️ Teacher note</td><td>Teacher logs note/action</td><td>Blue</td><td>Full note text (private)</td></tr>
+      <tr><td>📈 Mastery transition</td><td>Status crosses threshold</td><td>Green</td><td>Before/after N/100 bars + status labels</td></tr>
+      <tr><td>⚙️ System adjustment</td><td>Adaptive engine changes</td><td>Grey</td><td>Action taken (no student data)</td></tr>
+      <tr><td>✅ Resolution</td><td>Resolved (auto or teacher)</td><td>Green</td><td>Resolution reason, duration, final mastery</td></tr>
+    </table>
+    <h2 class="spec-h2">What is NOT in the Timeline</h2>
+    <table class="spec-table">
+      <tr><th>Data</th><th>Reason</th></tr>
+      <tr><td>Individual session records</td><td>Privacy — too granular</td></tr>
+      <tr><td>Accuracy % per session</td><td><span class="tag tag-red">NEVER shown</span></td></tr>
+      <tr><td>Wrong answers (any)</td><td><span class="tag tag-red">NEVER shown</span></td></tr>
+      <tr><td>Raw mastery score changes</td><td>Only status transitions shown in timeline; raw score in detail page</td></tr>
+      <tr><td>Parent communication history</td><td>Not tracked in teacher portal</td></tr>
+    </table>
+    <h2 class="spec-h2">Retention</h2>
+    <p class="spec-p">Resolved interventions are archived and visible for 90 days. After 90 days, intervention record is anonymised (student name replaced with "Student [hash]") but statistics are retained for class analytics. Teacher notes are deleted at 90 days.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

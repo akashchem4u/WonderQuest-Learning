@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Test Scenarios — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f0f4f8; color: #1a2535; min-height: 100vh; max-width: 390px; margin: 0 auto; }
+  .tab-bar { display: flex; background: #2a5080; overflow-x: auto; }
+  .tab-btn { flex: 1; min-width: 90px; padding: 13px 6px; background: none; border: none; color: rgba(255,255,255,0.55); font-family: 'Sora', sans-serif; font-size: 10px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: #fff; border-bottom-color: #58c8f0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .page { padding: 20px 16px 40px; }
+
+  .page-title { font-size: 18px; font-weight: 700; color: #1a2535; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: #4a6080; margin-bottom: 20px; }
+
+  /* Hint box */
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
+  .hint-label { font-size: 10px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .hint-box p { font-size: 12px; color: #e8c84a; line-height: 1.6; }
+
+  /* Scenario Cards */
+  .scenario-card { background: #fff; border: 1.5px solid #dde3ec; border-radius: 14px; padding: 18px; margin-bottom: 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 4px rgba(42,80,128,0.06); }
+  .scenario-card:hover, .scenario-card.active { border-color: #2a5080; box-shadow: 0 4px 12px rgba(42,80,128,0.12); }
+  .sc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .sc-num { width: 36px; height: 36px; border-radius: 10px; background: #2a5080; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .sc-title { font-size: 14px; font-weight: 700; color: #1a2535; }
+  .sc-tag { font-size: 10px; font-weight: 600; color: #4a6080; margin-top: 2px; }
+  .sc-desc { font-size: 12px; color: #4a6080; line-height: 1.5; margin-bottom: 12px; }
+  .sc-watch { display: flex; align-items: flex-start; gap: 8px; background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.4); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+  .sc-watch-text { font-size: 11px; color: #8a6000; line-height: 1.5; }
+  .record-btn { width: 100%; background: none; border: 1.5px solid #2a5080; border-radius: 10px; padding: 12px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; color: #2a5080; cursor: pointer; transition: all 0.2s; }
+  .record-btn:hover { background: rgba(42,80,128,0.06); }
+  .record-btn.recorded { border-color: #2a8040; color: #2a8040; background: rgba(42,128,64,0.06); }
+
+  /* Steps */
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .steps-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: #2a3a4a; line-height: 1.5; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: #2a5080; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 1px; }
+
+  /* Detail */
+  .detail-card { background: #fff; border: 1px solid #dde3ec; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(42,80,128,0.06); }
+  .detail-label { font-size: 11px; font-weight: 600; color: #4a6080; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 10px; }
+  .detail-title { font-size: 18px; font-weight: 700; color: #2a5080; margin-bottom: 6px; }
+  .detail-sub { font-size: 12px; color: #4a6080; margin-bottom: 16px; }
+
+  /* Form */
+  textarea { width: 100%; background: #fff; border: 1.5px solid #dde3ec; border-radius: 10px; padding: 14px 16px; font-family: 'Sora', sans-serif; font-size: 13px; color: #1a2535; resize: vertical; outline: none; min-height: 100px; margin-bottom: 14px; transition: border-color 0.2s; }
+  textarea:focus { border-color: #2a5080; }
+  ::placeholder { color: #8aa8c0; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .obs-tag { padding: 7px 12px; border-radius: 16px; border: 1.5px solid #dde3ec; background: #f0f4f8; font-size: 11px; font-weight: 600; color: #4a6080; cursor: pointer; }
+  .obs-tag.sel-friction { border-color: #d44; background: rgba(220,68,68,0.08); color: #c03030; }
+  .obs-tag.sel-delight { border-color: #c89000; background: rgba(255,209,102,0.12); color: #8a6000; }
+  .obs-tag.sel-confusion { border-color: #d48022; background: rgba(212,128,34,0.1); color: #8a5010; }
+  .obs-tag.sel-success { border-color: #2a8040; background: rgba(42,128,64,0.08); color: #1a6030; }
+  .save-btn { width: 100%; background: #2a5080; border: none; border-radius: 12px; padding: 14px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; }
+
+  /* Saved */
+  .obs-item { background: #fff; border: 1px solid #dde3ec; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(42,80,128,0.05); }
+  .obs-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .obs-scenario { font-size: 11px; font-weight: 600; color: #2a5080; }
+  .obs-time { font-size: 10px; color: #8aa8c0; }
+  .obs-text { font-size: 12px; color: #2a3a4a; line-height: 1.5; margin-bottom: 8px; }
+  .obs-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .obs-chip { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+  .chip-friction { background: rgba(220,68,68,0.1); color: #c03030; }
+  .chip-delight { background: rgba(255,209,102,0.15); color: #8a6000; }
+  .chip-confusion { background: rgba(212,128,34,0.1); color: #8a5010; }
+  .chip-success { background: rgba(42,128,64,0.1); color: #1a6030; }
+
+  /* Spec */
+  .spec-block { background: #fff; border: 1px solid #dde3ec; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+  .spec-block h3 { font-size: 12px; font-weight: 600; color: #2a5080; margin-bottom: 8px; }
+  .spec-block p, .spec-block li { font-size: 11px; color: #4a6080; line-height: 1.7; }
+  .spec-block ul { padding-left: 14px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('list')">Scenario List</button>
+  <button class="tab-btn" onclick="show('detail')">Scenario Detail</button>
+  <button class="tab-btn" onclick="show('record')">Record Observation</button>
+  <button class="tab-btn" onclick="show('saved')">Observations Saved</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- SCENARIO LIST -->
+<div id="list" class="tab-panel active">
+  <div class="page">
+    <div class="page-title">Teacher Scenarios</div>
+    <div class="page-sub">Beta Phase 2 · Week of Mar 17–23, 2026</div>
+    <div class="hint-box">
+      <div class="hint-label">Before You Start</div>
+      <p>These scenarios are designed for classroom or small-group use. Run them during a normal practice session where possible — avoid staging artificial conditions.</p>
+    </div>
+
+    <div class="scenario-card active" onclick="show('detail')">
+      <div class="sc-header">
+        <div class="sc-num">1</div>
+        <div>
+          <div class="sc-title">First Class Setup</div>
+          <div class="sc-tag">Onboarding · 15–20 min</div>
+        </div>
+      </div>
+      <div class="sc-desc">Set up WonderQuest for a new class group. Add students, set grade level, assign initial content band.</div>
+      <div class="sc-watch">
+        <div class="sc-watch-text">👁️ Watch for: how many steps to add 5 students? Any confusing field labels? Confirmation feedback clear?</div>
+      </div>
+      <button class="record-btn" onclick="event.stopPropagation(); show('record')">Record Observation</button>
+    </div>
+
+    <div class="scenario-card" onclick="show('detail')">
+      <div class="sc-header">
+        <div class="sc-num">2</div>
+        <div>
+          <div class="sc-title">Support Queue</div>
+          <div class="sc-tag">Intervention · 10 min</div>
+        </div>
+      </div>
+      <div class="sc-desc">Navigate to the support queue and identify the top 3 students needing intervention this week.</div>
+      <div class="sc-watch">
+        <div class="sc-watch-text">👁️ Watch for: is the queue sorted helpfully? Can you drill into a student in under 2 taps?</div>
+      </div>
+      <button class="record-btn recorded" onclick="event.stopPropagation()">✓ Observation Recorded</button>
+    </div>
+
+    <div class="scenario-card" onclick="show('detail')">
+      <div class="sc-header">
+        <div class="sc-num">3</div>
+        <div>
+          <div class="sc-title">Intervention Plan</div>
+          <div class="sc-tag">Intervention · 10 min</div>
+        </div>
+      </div>
+      <div class="sc-desc">Create an intervention plan for a struggling student. Set goal, content, and frequency. Save and verify it appears in the student's card.</div>
+      <div class="sc-watch">
+        <div class="sc-watch-text">👁️ Watch for: does the plan editor make sense? Is saving/confirmation clear?</div>
+      </div>
+      <button class="record-btn" onclick="event.stopPropagation(); show('record')">Record Observation</button>
+    </div>
+
+    <div class="scenario-card" onclick="show('detail')">
+      <div class="sc-header">
+        <div class="sc-num">4</div>
+        <div>
+          <div class="sc-title">Parent Message</div>
+          <div class="sc-tag">Communication · 5 min</div>
+        </div>
+      </div>
+      <div class="sc-desc">Send a message to a parent about their child's recent progress. Use the message center to compose and send.</div>
+      <div class="sc-watch">
+        <div class="sc-watch-text">👁️ Watch for: is the student lookup fast? Does the message thread feel appropriate for parent communication?</div>
+      </div>
+      <button class="record-btn" onclick="event.stopPropagation(); show('record')">Record Observation</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCENARIO DETAIL -->
+<div id="detail" class="tab-panel">
+  <div class="page">
+    <div class="detail-card">
+      <div class="detail-label">Scenario 1 of 4</div>
+      <div class="detail-title">First Class Setup</div>
+      <div class="detail-sub">Onboarding · Est. 15–20 min · Class of 5+ students</div>
+
+      <div class="detail-label">Steps</div>
+      <ol class="steps-list">
+        <li><span class="step-num">1</span>Open teacher dashboard. Navigate to Class Setup from the home screen.</li>
+        <li><span class="step-num">2</span>Create a new class. Enter class name and grade level.</li>
+        <li><span class="step-num">3</span>Add at least 5 students using the student import or manual entry flow.</li>
+        <li><span class="step-num">4</span>Assign an initial content band (Reading or Math) to the class.</li>
+        <li><span class="step-num">5</span>Verify the class appears on your dashboard with correct student count.</li>
+      </ol>
+
+      <div class="detail-label">Observation Prompts</div>
+      <div class="sc-watch" style="margin-bottom:0">
+        <div class="sc-watch-text">How many total taps to add 5 students? · Were any field labels confusing? · Did the confirmation feel trustworthy? · What would you change first?</div>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Note</div>
+      <p>If you already have a class set up, try adding a new one with a fresh group. The first-run experience is what we're testing.</p>
+    </div>
+    <button class="save-btn" onclick="show('record')">Record Observation</button>
+  </div>
+</div>
+
+<!-- RECORD OBSERVATION -->
+<div id="record" class="tab-panel">
+  <div class="page">
+    <div class="page-title">Record Observation</div>
+    <div class="page-sub">Scenario 1 — First Class Setup</div>
+    <div class="hint-box">
+      <div class="hint-label">Quick Note</div>
+      <p>Record immediately after completing the scenario. Even a rough note is more valuable than a polished one written hours later.</p>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:#4a6080;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px">What did you observe?</div>
+    <textarea placeholder="Describe what happened step by step. Include tap counts, confusion moments, and anything that surprised you."></textarea>
+    <div style="font-size:11px;font-weight:600;color:#4a6080;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px">Tag this observation</div>
+    <div class="tag-row">
+      <div class="obs-tag" onclick="toggleObs(this,'sel-friction')">Friction</div>
+      <div class="obs-tag" onclick="toggleObs(this,'sel-delight')">Delight</div>
+      <div class="obs-tag" onclick="toggleObs(this,'sel-confusion')">Confusion</div>
+      <div class="obs-tag" onclick="toggleObs(this,'sel-success')">Success</div>
+    </div>
+    <button class="save-btn" onclick="show('saved')">Save Observation</button>
+  </div>
+</div>
+
+<!-- OBSERVATIONS SAVED -->
+<div id="saved" class="tab-panel">
+  <div class="page">
+    <div class="page-title">Saved Observations</div>
+    <div class="page-sub">2 observations this week</div>
+
+    <div class="obs-item">
+      <div class="obs-meta">
+        <span class="obs-scenario">Scenario 2 — Support Queue</span>
+        <span class="obs-time">Today 10:32 AM</span>
+      </div>
+      <div class="obs-text">Queue sorted by days-since-active which wasn't what I expected — I wanted to see students by skill gap severity. Found the filter after 3 taps but the label "Priority View" wasn't obvious. Student drill-in was smooth once in.</div>
+      <div class="obs-tags">
+        <span class="obs-chip chip-friction">Friction</span>
+        <span class="obs-chip chip-confusion">Confusion</span>
+      </div>
+    </div>
+
+    <div class="obs-item">
+      <div class="obs-meta">
+        <span class="obs-scenario">Scenario 1 — First Class Setup</span>
+        <span class="obs-time">Mar 20 9:15 AM</span>
+      </div>
+      <div class="obs-text">Class creation was clean. Student manual entry required 6 fields per student which felt like a lot. Import from CSV worked first try but confirmation screen didn't show student names — just a count. Wanted to verify before saving.</div>
+      <div class="obs-tags">
+        <span class="obs-chip chip-friction">Friction</span>
+        <span class="obs-chip chip-success">Success</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="page">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>teacher-test-scenario-cards-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Test scenario cards for teacher beta testers. 4 scenarios covering class setup, support queue, intervention planning, and parent messaging.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #f0f4f8 · Nav: #2a5080</li>
+        <li>Viewport: 390px mobile · Hint box: #2a1f00 / #ffd166</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Scenarios</h3>
+      <ul>
+        <li>First Class Setup — onboarding a new class</li>
+        <li>Support Queue — finding at-risk students</li>
+        <li>Intervention Plan — creating a student plan</li>
+        <li>Parent Message — composing a message</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['list','detail','record','saved','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+  function toggleObs(el, cls) {
+    if (el.classList.contains(cls)) el.className = 'obs-tag';
+    else el.className = 'obs-tag ' + cls;
+  }
+</script>
+</body>
+</html>

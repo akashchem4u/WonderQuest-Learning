@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Item 240 · system-global-error-recovery-v2 · WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --border: rgba(255,255,255,.06);
+    --p0: #ffd166;
+    --p1: #9b72ff;
+    --p2: #58e8c1;
+    --p3: #ff7b6b;
+    --muted: #8b95a3;
+    --surface2: #1c2331;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 24px 20px 60px;
+  }
+
+  /* Engineering hint box */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #4a3800;
+  }
+
+  /* Tab nav */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Section heading */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* Card base */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card + .card { }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .card-header .badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .badge-p0 { background: rgba(255,209,102,.15); color: var(--p0); }
+  .badge-p1 { background: rgba(155,114,255,.15); color: var(--p1); }
+  .badge-p2 { background: rgba(88,232,193,.15); color: var(--p2); }
+  .badge-p3 { background: rgba(255,123,107,.15); color: var(--p3); }
+  .badge-accent { background: rgba(80,232,144,.12); color: var(--accent); }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Recovery mock screens */
+  .recovery-screen {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .recovery-screen .icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 12px;
+  }
+  .recovery-screen .heading {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .recovery-screen .body-text {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 420px;
+    margin: 0 auto 20px;
+  }
+  .recovery-screen .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    transition: opacity .15s;
+  }
+  .btn-primary:hover { opacity: .88; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    transition: border-color .15s;
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,.4); }
+  .recovery-screen .support-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .error-id {
+    display: inline-block;
+    font-family: monospace;
+    font-size: 11px;
+    color: #5a6472;
+    background: rgba(255,255,255,.04);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+
+  /* Child version */
+  .child-variant {
+    background: linear-gradient(135deg, #1a1040 0%, #112030 100%);
+    border: 1px solid rgba(155,114,255,.2);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    margin-top: 12px;
+  }
+  .child-variant .child-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--p1);
+    margin-bottom: 10px;
+  }
+  .child-variant .heading {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .child-variant .body-text {
+    font-size: 13px;
+    color: #b0bcc8;
+    margin-bottom: 16px;
+  }
+
+  /* Session expired */
+  .session-note {
+    font-size: 12px;
+    color: #5a8060;
+    background: rgba(80,232,144,.06);
+    border: 1px solid rgba(80,232,144,.12);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  /* Offline chip */
+  .play-screen-mock {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .play-topbar {
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .play-topbar .app-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  .chip-amber {
+    background: rgba(255,209,102,.15);
+    color: var(--p0);
+    border: 1px solid rgba(255,209,102,.3);
+  }
+  .chip-green {
+    background: rgba(80,232,144,.15);
+    color: var(--accent);
+    border: 1px solid rgba(80,232,144,.3);
+  }
+  .play-body {
+    padding: 24px;
+  }
+  .play-question-mock {
+    background: rgba(255,255,255,.04);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+  .play-question-mock .q-text {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .answer-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .answer-btn {
+    background: rgba(255,255,255,.06);
+    border: 2px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    min-height: 44px;
+    transition: border-color .15s;
+  }
+  .answer-btn:hover { border-color: var(--p2); }
+  .offline-note {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 10px 24px 16px;
+  }
+
+  /* Sync conflict */
+  .conflict-banner {
+    background: rgba(255,209,102,.08);
+    border: 1px solid rgba(255,209,102,.2);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .conflict-banner .conflict-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .conflict-banner .conflict-msg { font-size: 14px; color: var(--text); }
+  .session-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 600px) { .session-cards { grid-template-columns: 1fr; } }
+  .session-card {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .session-card:hover { border-color: rgba(255,255,255,.2); }
+  .session-card.recommended {
+    border-color: var(--accent);
+  }
+  .session-card .device-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+  }
+  .session-card .progress-pct {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .session-card .progress-label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .recommended-tag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--accent);
+    background: rgba(80,232,144,.12);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+  .conflict-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .conflict-note {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .countdown-badge {
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(255,255,255,.05);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: monospace;
+  }
+
+  /* Content failure */
+  .load-state-row {
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .load-state {
+    flex: 1 1 200px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .load-state .state-icon { font-size: 28px; margin-bottom: 8px; }
+  .load-state .state-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .load-state .state-desc { font-size: 12px; color: var(--muted); }
+  .arrow-right { align-self: center; font-size: 20px; color: var(--muted); }
+  .silent-log-note {
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+  }
+
+  /* Decision tree */
+  .tree-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .tree-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .tree-root {
+    font-size: 14px;
+    color: var(--text);
+  }
+  .tree-node {
+    position: relative;
+    padding-left: 20px;
+    margin-top: 8px;
+  }
+  .tree-node::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 14px;
+    height: 1px;
+    background: rgba(255,255,255,.2);
+  }
+  .tree-node.branch::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255,255,255,.1);
+  }
+  .tree-node:last-child::after { display: none; }
+  .tree-question {
+    font-weight: 600;
+    color: var(--text);
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .tree-yes { color: var(--accent); font-size: 12px; font-weight: 700; margin-right: 4px; }
+  .tree-no  { color: var(--p3);    font-size: 12px; font-weight: 700; margin-right: 4px; }
+  .tree-leaf {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--muted);
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-top: 2px;
+  }
+  .tree-leaf.good  { color: var(--p2); background: rgba(88,232,193,.07); border-color: rgba(88,232,193,.15); }
+  .tree-leaf.warn  { color: var(--p0); background: rgba(255,209,102,.07); border-color: rgba(255,209,102,.15); }
+  .tree-leaf.info  { color: var(--p1); background: rgba(155,114,255,.07); border-color: rgba(155,114,255,.15); }
+  .tree-leaf.action { color: var(--accent); background: rgba(80,232,144,.07); border-color: rgba(80,232,144,.15); }
+
+  /* Spec tab */
+  .spec-section {
+    margin-bottom: 28px;
+  }
+  .spec-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--p2);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .spec-table td {
+    padding: 9px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .spec-table td:first-child {
+    color: var(--muted);
+    font-weight: 600;
+    width: 38%;
+    white-space: nowrap;
+  }
+  .spec-table td:last-child { color: var(--text); }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .mono { font-family: monospace; font-size: 12px; }
+  .highlight-green { color: var(--accent); font-weight: 700; }
+  .highlight-amber { color: var(--p0); font-weight: 700; }
+  .highlight-purple { color: var(--p1); font-weight: 700; }
+
+  /* Guarantee pill row */
+  .guarantee-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .guarantee-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(80,232,144,.1);
+    border: 1px solid rgba(80,232,144,.2);
+    color: var(--accent);
+  }
+  .guarantee-pill .pill-icon { font-size: 14px; }
+
+  /* Aria note */
+  .aria-note {
+    background: rgba(155,114,255,.07);
+    border: 1px solid rgba(155,114,255,.18);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 8px;
+  }
+  .aria-note code {
+    font-family: monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.07);
+    padding: 2px 5px;
+    border-radius: 3px;
+    color: var(--p1);
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: rgba(255,255,255,.06);
+    border-radius: 4px;
+    height: 6px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div class="hint-box">
+  ITEM 240 &middot; system-global-error-recovery-v2.html &middot; WonderQuest parallel-agent build
+</div>
+
+<!-- Tab navigation -->
+<nav class="tab-nav" role="tablist" aria-label="Error recovery sections">
+  <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-1" id="btn-1" onclick="showTab(1)">Error Recovery States</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-2" id="btn-2" onclick="showTab(2)">Recovery Decision Tree</button>
+  <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-3" id="btn-3" onclick="showTab(3)">Spec</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1 — Error Recovery States
+════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-1" role="tabpanel" aria-labelledby="btn-1">
+
+  <!-- Recovery 1: App Crash -->
+  <div class="card">
+    <div class="card-header">
+      <span class="badge badge-p3">Recovery 1</span>
+      <span class="card-title">App Crash — Unhandled Exception</span>
+    </div>
+
+    <p class="section-title" style="margin-bottom:12px;">Adult / Parent / Teacher view</p>
+    <div class="recovery-screen" role="alert" aria-live="assertive">
+      <span class="icon" aria-hidden="true">🌟</span>
+      <div class="heading">Something went wrong on our end</div>
+      <div class="body-text">Don't worry — your progress is safe. We've been notified and are fixing this.</div>
+      <div class="btn-row">
+        <button class="btn-primary">Reload the app</button>
+        <button class="btn-secondary">Go back to home</button>
+      </div>
+      <div class="support-note">If this keeps happening, contact support</div>
+      <div><span class="error-id" tabindex="0" aria-label="Error reference ID: ERR-20260324-00042">ERR-20260324-00042</span></div>
+    </div>
+
+    <p class="section-title" style="margin-bottom:12px; margin-top:16px;">Child view</p>
+    <div class="child-variant">
+      <div class="child-label">Child persona — no error ID shown</div>
+      <span class="icon" style="font-size:40px; display:block; margin-bottom:10px;" aria-hidden="true">🌟</span>
+      <div class="heading">Oops! Something went wonky 🌟</div>
+      <div class="body-text">Your stars are safe!</div>
+      <button class="btn-primary">Try again</button>
+    </div>
+  </div>
+
+  <!-- Recovery 2: Session Expired -->
+  <div class="card">
+    <div class="card-header">
+      <span class="badge badge-p0">Recovery 2</span>
+      <span class="card-title">Session Expired</span>
+    </div>
+
+    <div class="recovery-screen" role="alert" aria-live="assertive">
+      <span class="icon" aria-hidden="true">⏱</span>
+      <div class="heading">Your session timed out</div>
+      <div class="body-text">For security, we signed you out after a period of inactivity. Your progress is saved.</div>
+      <div class="btn-row">
+        <button class="btn-primary">Sign in again</button>
+      </div>
+    </div>
+    <div class="session-note">Child accounts don't time out during active play sessions</div>
+  </div>
+
+  <!-- Recovery 3: Network Lost Mid-Session (child) -->
+  <div class="card">
+    <div class="card-header">
+      <span class="badge badge-p1">Recovery 3</span>
+      <span class="card-title">Network Lost Mid-Session — Child Play</span>
+    </div>
+
+    <p class="section-title" style="margin-bottom:12px;">Offline state — play continues uninterrupted</p>
+    <div class="play-screen-mock">
+      <div class="play-topbar">
+        <span class="app-label">WonderQuest</span>
+        <span class="chip chip-amber" role="status" aria-live="polite">📶 No internet — playing offline</span>
+      </div>
+      <div class="play-body">
+        <div class="play-question-mock">
+          <div class="q-text">What is 7 + 5?</div>
+          <div class="answer-row">
+            <button class="answer-btn">10</button>
+            <button class="answer-btn">11</button>
+            <button class="answer-btn">12</button>
+            <button class="answer-btn">13</button>
+          </div>
+        </div>
+      </div>
+      <div class="offline-note">Serving from ServiceWorker cache · 20 questions pre-cached · progress buffered locally</div>
+    </div>
+
+    <p class="section-title" style="margin-bottom:12px; margin-top:20px;">Reconnected state — progress synced</p>
+    <div class="play-screen-mock">
+      <div class="play-topbar">
+        <span class="app-label">WonderQuest</span>
+        <span class="chip chip-green" role="status" aria-live="polite">✓ Back online — progress synced</span>
+      </div>
+      <div class="play-body">
+        <div class="play-question-mock">
+          <div class="q-text">What is 9 × 3?</div>
+          <div class="answer-row">
+            <button class="answer-btn">24</button>
+            <button class="answer-btn">27</button>
+            <button class="answer-btn">30</button>
+            <button class="answer-btn">21</button>
+          </div>
+        </div>
+      </div>
+      <div class="offline-note">Child never sees a blocking error · navigator.onLine event triggers sync queue flush</div>
+    </div>
+  </div>
+
+  <!-- Recovery 4: Data Sync Conflict (parent view) -->
+  <div class="card">
+    <div class="card-header">
+      <span class="badge badge-p2">Recovery 4</span>
+      <span class="card-title">Data Sync Conflict — Parent View</span>
+    </div>
+
+    <div class="conflict-banner" role="alert" aria-live="assertive">
+      <span class="conflict-icon" aria-hidden="true">📱</span>
+      <span class="conflict-msg">We noticed WonderQuest is open on multiple devices</span>
+    </div>
+
+    <div class="session-cards">
+      <div class="session-card recommended" role="radio" aria-checked="true" tabindex="0">
+        <div class="device-name">Emma on iPad <span class="recommended-tag">Recommended</span></div>
+        <div class="progress-pct">74%</div>
+        <div class="progress-label">into Maths quest</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:74%"></div></div>
+      </div>
+      <div class="session-card" role="radio" aria-checked="false" tabindex="0">
+        <div class="device-name">Emma on Tablet</div>
+        <div class="progress-pct">32%</div>
+        <div class="progress-label">into same quest</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:32%; background: var(--muted);"></div></div>
+      </div>
+    </div>
+
+    <div class="conflict-actions">
+      <button class="btn-primary">Use most recent</button>
+      <button class="btn-secondary">I'll choose</button>
+      <span class="countdown-badge" id="countdown-badge">Auto-resolves in 60s</span>
+    </div>
+    <div class="conflict-note">Emma's stars will never decrease — we always keep the highest count</div>
+  </div>
+
+  <!-- Recovery 5: Content Load Failure (child play) -->
+  <div class="card">
+    <div class="card-header">
+      <span class="badge badge-accent">Recovery 5</span>
+      <span class="card-title">Content Load Failure — Child Play</span>
+    </div>
+
+    <p class="section-title" style="margin-bottom:12px;">State progression — child never blocked</p>
+    <div class="load-state-row">
+      <div class="load-state">
+        <div class="state-icon" aria-hidden="true">⏳</div>
+        <div class="state-label">Loading (0–3s)</div>
+        <div class="state-desc">"Loading your next adventure... 🌟"<br>Friendly message shown</div>
+      </div>
+      <div class="arrow-right" aria-hidden="true">→</div>
+      <div class="load-state">
+        <div class="state-icon" aria-hidden="true">🔄</div>
+        <div class="state-label">Retrying (×2)</div>
+        <div class="state-desc">Two silent retries<br>Child still sees loading message</div>
+      </div>
+      <div class="arrow-right" aria-hidden="true">→</div>
+      <div class="load-state">
+        <div class="state-icon" aria-hidden="true">✨</div>
+        <div class="state-label">Silent Skip</div>
+        <div class="state-desc">Question skipped silently<br>Next question loads immediately</div>
+      </div>
+    </div>
+    <div class="silent-log-note">
+      Failed question logged to <span class="mono">failed_deliveries</span> for content team QA · No error UI shown to child · Play continues uninterrupted
+    </div>
+  </div>
+
+</div><!-- /tab-1 -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB 2 — Recovery Decision Tree
+════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-2" role="tabpanel" aria-labelledby="btn-2">
+
+  <div class="tree-card">
+    <h3>Error Recovery Decision Tree</h3>
+
+    <div class="tree-root">
+      <strong style="font-size:15px; color:var(--p0);">Error occurs</strong>
+
+      <!-- Branch: Child persona? -->
+      <div class="tree-node branch">
+        <span class="tree-question">Child persona?</span>
+        <div class="tree-node branch">
+          <span class="tree-yes">YES</span>
+          <span class="tree-leaf good">Absorb silently · positive message · never block play</span>
+        </div>
+        <div class="tree-node">
+          <span class="tree-no">NO</span>
+          <span class="tree-leaf">Show appropriate error with recovery action</span>
+        </div>
+      </div>
+
+      <!-- Branch: Network error? -->
+      <div class="tree-node branch">
+        <span class="tree-question">Network error?</span>
+        <div class="tree-node branch">
+          <span class="tree-yes">YES</span>
+          <span class="tree-leaf good">Local-first · continue offline · sync when reconnected</span>
+        </div>
+        <div class="tree-node">
+          <span class="tree-no">NO</span>
+          <span class="tree-leaf info">Retry with exponential backoff: 1s→2s→4s→8s→30s max</span>
+        </div>
+      </div>
+
+      <!-- Branch: Auth error? -->
+      <div class="tree-node branch">
+        <span class="tree-question">Auth error?</span>
+        <div class="tree-node branch">
+          <span class="tree-yes">YES</span>
+          <span class="tree-leaf warn">Session expired flow → sign in again</span>
+        </div>
+        <div class="tree-node">
+          <span class="tree-no">NO</span>
+          <span class="tree-leaf">Categorise error type</span>
+        </div>
+      </div>
+
+      <!-- Branch: Server 5xx? -->
+      <div class="tree-node branch">
+        <span class="tree-question">Server 5xx?</span>
+        <div class="tree-node branch">
+          <span class="tree-yes">YES</span>
+          <span class="tree-leaf warn">"Our end" framing + error ID + auto-notify team (PagerDuty if &gt;5/min)</span>
+        </div>
+        <div class="tree-node">
+          <span class="tree-no">NO</span>
+          <span class="tree-leaf">Client error · check user state · suggest action</span>
+        </div>
+      </div>
+
+      <!-- Branch: Unhandled exception? -->
+      <div class="tree-node">
+        <span class="tree-question">Unhandled exception?</span>
+        <div class="tree-node">
+          <span class="tree-yes">YES</span>
+          <span class="tree-leaf action">App crash recovery · reload / home options</span>
+        </div>
+      </div>
+
+    </div><!-- /tree-root -->
+  </div>
+
+  <!-- Decision principles card -->
+  <div class="tree-card">
+    <h3>Core Principles</h3>
+    <div class="guarantee-row">
+      <div class="guarantee-pill"><span class="pill-icon">🛡</span> Child play never blocked</div>
+      <div class="guarantee-pill"><span class="pill-icon">⭐</span> Stars always safe</div>
+      <div class="guarantee-pill"><span class="pill-icon">📶</span> Local-first architecture</div>
+      <div class="guarantee-pill"><span class="pill-icon">🔄</span> Exponential backoff retry</div>
+      <div class="guarantee-pill"><span class="pill-icon">🔒</span> Session expiry for adults only</div>
+    </div>
+    <table class="spec-table">
+      <tr>
+        <td>Retry sequence</td>
+        <td class="mono highlight-amber">1s → 2s → 4s → 8s → 30s max; surface after 3 retries</td>
+      </tr>
+      <tr>
+        <td>Child error rule</td>
+        <td>All child errors: absorbed silently or shown as friendly positive message. Red blocking screens: never.</td>
+      </tr>
+      <tr>
+        <td>Adult error rule</td>
+        <td>Show error with clear recovery action. Frame server errors as "our end" to reduce user anxiety.</td>
+      </tr>
+      <tr>
+        <td>Error ID visibility</td>
+        <td>Shown to teacher / parent / owner only. <span class="highlight-green">Never shown to child.</span></td>
+      </tr>
+    </table>
+  </div>
+
+</div><!-- /tab-2 -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB 3 — Spec
+════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-3" role="tabpanel" aria-labelledby="btn-3">
+
+  <!-- Guarantees banner -->
+  <div class="card" style="margin-bottom:24px; border-color:rgba(80,232,144,.18);">
+    <div class="card-header">
+      <span class="badge badge-accent">Guarantees</span>
+      <span class="card-title">Progress Safety Guarantees</span>
+    </div>
+    <div class="guarantee-row" style="margin-bottom:0;">
+      <div class="guarantee-pill"><span class="pill-icon">➕</span> XP always additive — server merge</div>
+      <div class="guarantee-pill"><span class="pill-icon">⭐</span> Stars always max — server merge</div>
+      <div class="guarantee-pill"><span class="pill-icon">🏁</span> Checkpoint always max</div>
+      <div class="guarantee-pill"><span class="pill-icon">✅</span> "Your stars are safe" is always true</div>
+    </div>
+  </div>
+
+  <!-- Error ID -->
+  <div class="spec-section">
+    <div class="card">
+      <h3 style="font-size:13px; font-weight:700; color:var(--p2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">Error ID Format</h3>
+      <table class="spec-table">
+        <tr>
+          <td>Format</td>
+          <td><span class="mono highlight-amber">ERR-YYYYMMDD-NNNNN</span></td>
+        </tr>
+        <tr>
+          <td>Sequence</td>
+          <td>Zero-padded, incremented per day</td>
+        </tr>
+        <tr>
+          <td>Visibility</td>
+          <td>Shown to teacher / parent / owner only — <span class="highlight-green">never shown to child</span></td>
+        </tr>
+        <tr>
+          <td>WCAG</td>
+          <td>Error ID is focusable for screen reader users · <span class="mono">tabindex="0"</span> · <span class="mono">aria-label</span> includes full ID</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Child play -->
+  <div class="spec-section">
+    <div class="card">
+      <h3 style="font-size:13px; font-weight:700; color:var(--p2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">Child Play — Never Blocked</h3>
+      <table class="spec-table">
+        <tr>
+          <td>Rule</td>
+          <td>Any error in child play path is either (a) absorbed silently and skipped, or (b) shown as a positive friendly message. Never a blocking red error screen.</td>
+        </tr>
+        <tr>
+          <td>Content failure</td>
+          <td>After 2 retries: silently skip to next question · log to <span class="mono">failed_deliveries</span> for content team QA</td>
+        </tr>
+        <tr>
+          <td>Offline play</td>
+          <td>ServiceWorker cache: 20 questions pre-cached per current skill + audio pre-cached · ~20 questions of offline play guaranteed</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Retry strategy -->
+  <div class="spec-section">
+    <div class="card">
+      <h3 style="font-size:13px; font-weight:700; color:var(--p2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">Retry Strategy</h3>
+      <table class="spec-table">
+        <tr>
+          <td>Backoff sequence</td>
+          <td class="mono highlight-amber">1s → 2s → 4s → 8s → 30s max</td>
+        </tr>
+        <tr>
+          <td>Surface to user after</td>
+          <td>3 retries</td>
+        </tr>
+        <tr>
+          <td>Error notification</td>
+          <td>Server 5xx auto-fires <span class="mono">safety_flag</span> + PagerDuty if &gt;5 errors/min on same route</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sync / offline -->
+  <div class="spec-section">
+    <div class="card">
+      <h3 style="font-size:13px; font-weight:700; color:var(--p2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">Sync on Reconnect</h3>
+      <table class="spec-table">
+        <tr>
+          <td>Trigger</td>
+          <td class="mono">navigator.onLine</td>
+        </tr>
+        <tr>
+          <td>Action</td>
+          <td>Trigger sync queue flush · <span class="mono">POST /api/progress/sync</span> with all buffered events</td>
+        </tr>
+        <tr>
+          <td>Conflict resolution</td>
+          <td>XP: sum · Stars: max · Checkpoint: max</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Session expiry -->
+  <div class="spec-section">
+    <div class="card">
+      <h3 style="font-size:13px; font-weight:700; color:var(--p2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">Session Expiry</h3>
+      <table class="spec-table">
+        <tr>
+          <td>Adults</td>
+          <td>8h idle timeout · 24h absolute session limit</td>
+        </tr>
+        <tr>
+          <td>Children</td>
+          <td><span class="highlight-green">No timeout during active play</span> · 24h absolute session limit</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- WCAG -->
+  <div class="spec-section">
+    <div class="card">
+      <h3 style="font-size:13px; font-weight:700; color:var(--p2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">WCAG Accessibility</h3>
+      <table class="spec-table">
+        <tr>
+          <td>Error messages</td>
+          <td class="mono">role="alert" aria-live="assertive"</td>
+        </tr>
+        <tr>
+          <td>Error ID</td>
+          <td>Focusable via <span class="mono">tabindex="0"</span> · <span class="mono">aria-label</span> includes full readable ID for screen reader users</td>
+        </tr>
+        <tr>
+          <td>Recovery buttons</td>
+          <td>Minimum <span class="highlight-green">44×44px</span> touch target — all primary and secondary buttons</td>
+        </tr>
+        <tr>
+          <td>Status chips</td>
+          <td class="mono">role="status" aria-live="polite"</td>
+        </tr>
+      </table>
+      <div class="aria-note" style="margin-top:12px;">
+        Example: <code>&lt;div role="alert" aria-live="assertive"&gt;</code> wraps each recovery screen so assistive tech announces immediately on error. Error IDs use <code>tabindex="0"</code> with descriptive <code>aria-label</code> so keyboard / screen reader users can navigate to and copy the reference.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-3 -->
+
+<script>
+  function showTab(t) {
+    // Update panels
+    document.querySelectorAll('.tab-panel').forEach(function(p) {
+      p.classList.remove('active');
+    });
+    document.getElementById('tab-' + t).classList.add('active');
+
+    // Update buttons
+    document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+      var isActive = (i + 1 === t);
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
+  // Countdown for sync conflict auto-resolve demo
+  (function() {
+    var badge = document.getElementById('countdown-badge');
+    if (!badge) return;
+    var seconds = 60;
+    var interval = setInterval(function() {
+      seconds--;
+      if (seconds <= 0) {
+        badge.textContent = 'Auto-resolved ✓';
+        badge.style.color = 'var(--accent)';
+        clearInterval(interval);
+      } else {
+        badge.textContent = 'Auto-resolves in ' + seconds + 's';
+      }
+    }, 1000);
+  })();
+
+  // Session card radio toggle
+  document.querySelectorAll('.session-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('.session-card').forEach(function(c) {
+        c.classList.remove('recommended');
+        c.setAttribute('aria-checked', 'false');
+        // Remove recommended tag from non-recommended
+        var tag = c.querySelector('.recommended-tag');
+        if (tag) tag.remove();
+      });
+      card.classList.add('recommended');
+      card.setAttribute('aria-checked', 'true');
+    });
+    card.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
+  });
+</script>
+</body>
+</html>

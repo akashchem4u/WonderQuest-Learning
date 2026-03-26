@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Family Dashboard — Desktop v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent family dashboard — Desktop variant                 │
+  │  Parent bg: #f5f0e8 (warm cream)                           │
+  │  Max-width: 1200px; sidebar 240px + main content          │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Overview (1 Child)                                   │
+  │    2. Multi-Child View                                     │
+  │    3. Notifications Panel                                  │
+  │    4. Settings Sidebar                                     │
+  │    5. Spec                                                  │
+  │                                                            │
+  │  Key rules:                                                │
+  │  - No accuracy % shown to parent on dashboard overview    │
+  │  - Stars and sessions are the primary metrics              │
+  │  - "Support areas" framed positively (not "weaknesses")   │
+  │  - Detailed stats live in weekly report (item 77)         │
+  │  Version: v3  Date: 2026-03-24 (rebuilt)                   │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #ece8e0; color: #1a1240; min-height: 100vh; }
+.tab-bar { display: flex; gap: 4px; padding: 14px 24px 0; border-bottom: 1px solid #d8d0c0; overflow-x: auto; scrollbar-width: none; background: #f5f0e8; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 16px; border: none; background: transparent; color: #8a7a6a; font: 600 0.8rem system-ui; cursor: pointer; border-radius: 6px 6px 0 0; white-space: nowrap; transition: all 0.18s; }
+.tab-btn.active { color: #3d2a8a; background: #ece8e0; border-bottom: 2px solid #9b72ff; }
+.screen { display: none; background: #f5f0e8; min-height: calc(100vh - 50px); }
+.screen.active { display: block; }
+.app-shell { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 50px); }
+.sidebar { background: #fff; border-right: 1px solid #e8e0f0; padding: 28px 0; display: flex; flex-direction: column; position: sticky; top: 50px; height: calc(100vh - 50px); overflow-y: auto; }
+.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 20px; border-bottom: 1px solid #f0e8f8; margin-bottom: 16px; }
+.brand-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #9b72ff, #5a30d0); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.brand-name { font: 700 1rem system-ui; background: linear-gradient(135deg, #3d2a8a, #9b72ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.nav-section-label { font: 600 0.65rem system-ui; color: #b0a0c0; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 20px; margin: 12px 0 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; font: 500 0.85rem system-ui; color: #4a3870; border-left: 3px solid transparent; transition: background 0.15s; text-decoration: none; }
+.nav-item:hover { background: #f5f0ff; }
+.nav-item.active { background: #ede8ff; color: #3d2a8a; font-weight: 700; border-left-color: #9b72ff; }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+.nav-badge { margin-left: auto; background: #9b72ff; color: #fff; font: 700 0.65rem system-ui; padding: 2px 7px; border-radius: 10px; }
+.sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid #f0e8f8; }
+.parent-avatar-sm { display: flex; align-items: center; gap: 10px; }
+.parent-circle { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #9b72ff, #5a30d0); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+.main-content { padding: 32px 36px 60px; max-width: 900px; }
+.page-title { font: 700 1.6rem system-ui; color: #1a1240; margin-bottom: 4px; }
+.page-sub { font: 400 0.88rem system-ui; color: #6a5890; }
+.week-range { font: 500 0.8rem system-ui; color: #9b72ff; margin-top: 4px; margin-bottom: 28px; }
+.child-hero-card { background: #fff; border-radius: 20px; padding: 28px; box-shadow: 0 4px 24px rgba(100,60,200,0.08); border: 1px solid #e0d8f0; margin-bottom: 24px; display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; }
+.child-avatar-lg { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #ede8ff, #d8d0ff); display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0; box-shadow: 0 4px 16px #9b72ff22; }
+.child-band-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 16px; font: 700 0.72rem system-ui; margin-bottom: 10px; }
+.child-stat-row { display: flex; gap: 24px; flex-wrap: wrap; }
+.child-stat-val { font: 900 1.4rem system-ui; display: block; }
+.child-stat-label { font: 400 0.7rem system-ui; color: #8070a0; margin-top: 1px; }
+.child-cta-col { display: flex; flex-direction: column; gap: 8px; }
+.btn-view-report { padding: 10px 18px; background: #9b72ff; color: #fff; border: none; border-radius: 10px; font: 600 0.82rem system-ui; cursor: pointer; white-space: nowrap; }
+.btn-settings-sm { padding: 9px 18px; background: #fff; color: #4a3880; border: 1.5px solid #d0c8e8; border-radius: 10px; font: 600 0.78rem system-ui; cursor: pointer; white-space: nowrap; }
+.quick-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 12px rgba(100,60,200,0.06); border: 1px solid #e8e0f0; }
+.stat-icon { font-size: 1.2rem; margin-bottom: 10px; }
+.stat-val { font: 900 1.5rem system-ui; color: #1a1240; display: block; margin-bottom: 2px; }
+.stat-label { font: 400 0.72rem system-ui; color: #9080a0; }
+.stat-delta { font: 600 0.72rem system-ui; margin-top: 6px; }
+.delta-up { color: #30a060; }
+.delta-same { color: #9080a0; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+.skill-card { background: #fff; border-radius: 16px; padding: 22px; border: 1px solid #e8e0f0; box-shadow: 0 2px 12px rgba(100,60,200,0.06); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title-sm { font: 700 0.95rem system-ui; color: #1a1240; }
+.card-link { font: 500 0.75rem system-ui; color: #9b72ff; text-decoration: none; }
+.skill-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.skill-row:last-child { margin-bottom: 0; }
+.skill-name { font: 600 0.8rem system-ui; color: #1a1240; width: 120px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-bar-track { flex: 1; height: 6px; background: #e8e0f0; border-radius: 3px; overflow: hidden; }
+.skill-bar-fill { height: 100%; border-radius: 3px; }
+.skill-pct { font: 600 0.72rem system-ui; color: #9080a0; width: 32px; text-align: right; flex-shrink: 0; }
+.activity-list { list-style: none; }
+.activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f0e8f8; }
+.activity-item:last-child { border-bottom: none; }
+.activity-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.activity-text { flex: 1; font: 400 0.82rem/1.4 system-ui; color: #3a3060; }
+.activity-text strong { font-weight: 700; color: #1a1240; }
+.activity-time { font: 400 0.7rem system-ui; color: #b0a0c0; white-space: nowrap; }
+.streak-card { background: linear-gradient(135deg, #1a1240, #2a1860); border-radius: 16px; padding: 22px; color: #e8e4f8; }
+.streak-days { display: flex; gap: 5px; margin-top: 12px; }
+.streak-day { width: 28px; height: 28px; border-radius: 6px; background: #2a2060; display: flex; align-items: center; justify-content: center; font: 600 0.65rem system-ui; color: #8070b0; }
+.streak-day.played { background: #ffd16622; color: #ffd166; }
+.streak-day.today { background: #ffd166; color: #1a1240; font-weight: 700; }
+.child-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.child-mini-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e8e0f0; box-shadow: 0 2px 12px rgba(100,60,200,0.06); cursor: pointer; display: flex; flex-direction: column; gap: 12px; transition: box-shadow 0.15s; }
+.child-mini-card:hover { box-shadow: 0 4px 20px rgba(155,114,255,0.18); }
+.mini-top { display: flex; align-items: center; gap: 12px; }
+.mini-avatar { width: 44px; height: 44px; border-radius: 50%; background: #ede8ff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+.mini-stats { display: flex; gap: 16px; }
+.mini-stat-val { font: 900 1.1rem system-ui; display: block; }
+.mini-stat-label { font: 400 0.65rem system-ui; color: #9080a0; }
+.mini-bar { height: 4px; background: #e8e0f0; border-radius: 2px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 2px; }
+.add-child-card { background: #faf8ff; border-radius: 16px; padding: 20px; border: 2px dashed #c0b0e8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; min-height: 130px; transition: background 0.15s; }
+.add-child-card:hover { background: #ede8ff; }
+.notif-list { list-style: none; }
+.notif-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid #eee8f8; }
+.notif-item:last-child { border-bottom: none; }
+.notif-icon-wrap { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.notif-text { font: 400 0.84rem/1.4 system-ui; color: #3a3060; margin-bottom: 4px; }
+.notif-text strong { font-weight: 700; color: #1a1240; }
+.notif-time { font: 400 0.7rem system-ui; color: #b0a0c0; }
+.notif-unread { width: 8px; height: 8px; border-radius: 50%; background: #9b72ff; flex-shrink: 0; margin-top: 6px; }
+.settings-section { background: #fff; border-radius: 16px; padding: 24px; border: 1px solid #e8e0f0; margin-bottom: 16px; }
+.settings-section-title { font: 700 0.9rem system-ui; color: #1a1240; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f0e8f8; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f8f0f8; }
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font: 500 0.84rem system-ui; color: #1a1240; }
+.settings-sub { font: 400 0.72rem system-ui; color: #9080a0; margin-top: 1px; }
+.toggle { width: 40px; height: 22px; border-radius: 11px; background: #d0c8e8; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.toggle.on { background: #9b72ff; }
+.toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle.on::after { left: 20px; }
+#screen-spec { display: none; padding: 40px; }
+#screen-spec.active { display: block; }
+.spec-title { font: 700 1.3rem system-ui; color: #1a1240; margin-bottom: 20px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 20px; }
+.spec-table th { text-align: left; padding: 9px 12px; background: #ede8ff; color: #4a3880; font: 700 0.7rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table td { padding: 9px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { font-weight: 700; color: #1a1240; }
+.spec-detail { color: #6a5890; font-size: 0.74rem; line-height: 1.5; }
+.spec-section { font: 700 0.88rem system-ui; color: #3d2a8a; margin: 24px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')">🏠 Overview</button>
+  <button class="tab-btn" onclick="showTab('multi')">👨‍👩‍👧‍👦 Multi-Child</button>
+  <button class="tab-btn" onclick="showTab('notifs')">🔔 Notifications</button>
+  <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="screen active" id="screen-overview">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="brand-icon">🌟</div><span class="brand-name">WonderQuest</span></div>
+      <div class="nav-section-label">Family</div>
+      <a class="nav-item active"><span class="nav-icon">🏠</span> Overview</a>
+      <a class="nav-item"><span class="nav-icon">📊</span> Weekly Report <span class="nav-badge">New</span></a>
+      <a class="nav-item"><span class="nav-icon">🏅</span> Badges &amp; Levels</a>
+      <a class="nav-item"><span class="nav-icon">📅</span> Activity History</a>
+      <div class="nav-section-label">Parent</div>
+      <a class="nav-item"><span class="nav-icon">🔔</span> Notifications <span class="nav-badge">3</span></a>
+      <a class="nav-item"><span class="nav-icon">⚙️</span> Settings</a>
+      <a class="nav-item"><span class="nav-icon">💳</span> Plan &amp; Billing</a>
+      <a class="nav-item"><span class="nav-icon">❓</span> Help</a>
+      <div class="sidebar-footer">
+        <div class="parent-avatar-sm">
+          <div class="parent-circle">👩</div>
+          <div><div style="font:600 0.8rem system-ui;color:#1a1240;">Sarah J.</div><div style="font:400 0.68rem system-ui;color:#9080a0;">Free plan · 1 child</div></div>
+          <a href="#" style="font:500 0.72rem system-ui;color:#c02020;margin-left:auto;text-decoration:none;">Out</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="page-title">👋 Good morning, Sarah</div>
+      <div class="page-sub">Here's how Maya is doing this week</div>
+      <div class="week-range">Week of March 18 – March 24, 2026</div>
+
+      <div class="child-hero-card">
+        <div class="child-avatar-lg">🦁</div>
+        <div>
+          <div style="font:700 1.3rem system-ui;color:#1a1240;margin-bottom:4px;">Maya</div>
+          <div class="child-band-chip" style="background:#ede8ff;border:1.5px solid #9b72ff;color:#4a2090;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#9b72ff;"></span>
+            K–1 Band · Kindergarten · Level 2 Star Explorer
+          </div>
+          <div class="child-stat-row">
+            <div><span class="child-stat-val" style="color:#ffd166;">⭐ 42</span><div class="child-stat-label">Stars this week</div></div>
+            <div><span class="child-stat-val" style="color:#9b72ff;">14</span><div class="child-stat-label">Sessions played</div></div>
+            <div><span class="child-stat-val" style="color:#58e8c1;">🔥 5</span><div class="child-stat-label">Day streak</div></div>
+            <div><span class="child-stat-val" style="color:#ff7b6b;">8</span><div class="child-stat-label">Skills explored</div></div>
+          </div>
+        </div>
+        <div class="child-cta-col">
+          <button class="btn-view-report">📊 See full report →</button>
+          <button class="btn-settings-sm">⚙️ Child settings</button>
+        </div>
+      </div>
+
+      <div class="quick-stats">
+        <div class="stat-card"><div class="stat-icon">⭐</div><span class="stat-val">42</span><div class="stat-label">Stars this week</div><div class="stat-delta delta-up">↑ 8 vs last week</div></div>
+        <div class="stat-card"><div class="stat-icon">📚</div><span class="stat-val">14</span><div class="stat-label">Sessions completed</div><div class="stat-delta delta-up">↑ 3 vs last week</div></div>
+        <div class="stat-card"><div class="stat-icon">⏱️</div><span class="stat-val">3.2h</span><div class="stat-label">Learning time</div><div class="stat-delta delta-same">→ Same as last week</div></div>
+        <div class="stat-card"><div class="stat-icon">🏅</div><span class="stat-val">2</span><div class="stat-label">New badges</div><div class="stat-delta delta-up">↑ 2 vs last week</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="skill-card">
+          <div class="card-header"><span class="card-title-sm">Skills practiced this week</span><a class="card-link">See all →</a></div>
+          <div class="skill-row"><span class="skill-name">Rhyming words</span><div class="skill-bar-track"><div class="skill-bar-fill" style="width:88%;background:#9b72ff;"></div></div><span class="skill-pct">88%</span></div>
+          <div class="skill-row"><span class="skill-name">Letter sounds</span><div class="skill-bar-track"><div class="skill-bar-fill" style="width:74%;background:#9b72ff;"></div></div><span class="skill-pct">74%</span></div>
+          <div class="skill-row"><span class="skill-name">Counting objects</span><div class="skill-bar-track"><div class="skill-bar-fill" style="width:60%;background:#ffd166;"></div></div><span class="skill-pct">60%</span></div>
+          <div class="skill-row"><span class="skill-name">First words</span><div class="skill-bar-track"><div class="skill-bar-fill" style="width:45%;background:#ffd166;"></div></div><span class="skill-pct">45%</span></div>
+          <div style="margin-top:14px;padding:10px 12px;background:#f0fdf8;border-radius:8px;border:1px solid #b0f0d0;font:400 0.76rem/1.4 system-ui;color:#1a5030;">💡 <strong>Support tip:</strong> Maya is building on rhyming — try pointing out rhymes in bedtime books!</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="streak-card">
+            <div style="font:600 0.72rem system-ui;color:#c0b0f0;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Current streak</div>
+            <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;"><span style="font:900 2.4rem system-ui;color:#ffd166;">🔥 5</span><span style="font:600 0.85rem system-ui;color:#ffd166;">days in a row!</span></div>
+            <div class="streak-days">
+              <div class="streak-day played">M</div>
+              <div class="streak-day played">T</div>
+              <div class="streak-day played">W</div>
+              <div class="streak-day played">T</div>
+              <div class="streak-day today">F</div>
+              <div class="streak-day">S</div>
+              <div class="streak-day">S</div>
+            </div>
+          </div>
+          <div class="skill-card" style="flex:1;">
+            <div class="card-header"><span class="card-title-sm">Recent activity</span></div>
+            <ul class="activity-list">
+              <li class="activity-item"><div class="activity-dot" style="background:#ffd166;"></div><div><div class="activity-text"><strong>Maya</strong> earned "Rhyme Queen 🎵" badge</div><div class="activity-time">Today, 8:42 AM</div></div></li>
+              <li class="activity-item"><div class="activity-dot" style="background:#9b72ff;"></div><div><div class="activity-text"><strong>Maya</strong> completed 3 sessions · ⭐ 9 stars</div><div class="activity-time">Yesterday</div></div></li>
+              <li class="activity-item"><div class="activity-dot" style="background:#58e8c1;"></div><div><div class="activity-text"><strong>Maya</strong> leveled up to <strong>Star Explorer ⭐</strong></div><div class="activity-time">Monday</div></div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-CHILD -->
+<div class="screen" id="screen-multi">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="brand-icon">🌟</div><span class="brand-name">WonderQuest</span></div>
+      <div class="nav-section-label">Family (2 children)</div>
+      <a class="nav-item active"><span class="nav-icon">🏠</span> Overview</a>
+      <a class="nav-item"><span class="nav-icon">📊</span> Weekly Report</a>
+      <div class="sidebar-footer"><div class="parent-avatar-sm"><div class="parent-circle">👩</div><div><div style="font:600 0.8rem system-ui;color:#1a1240;">Sarah J.</div><div style="font:400 0.68rem system-ui;color:#9080a0;">Family plan · 2 children</div></div></div></div>
+    </div>
+    <div class="main-content">
+      <div class="page-title">Your family this week</div>
+      <div class="week-range">March 18 – March 24, 2026</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+        <div class="stat-card"><div class="stat-icon">⭐</div><span class="stat-val">76</span><div class="stat-label">Total stars (family)</div></div>
+        <div class="stat-card"><div class="stat-icon">📚</div><span class="stat-val">28</span><div class="stat-label">Sessions combined</div></div>
+        <div class="stat-card"><div class="stat-icon">🔥</div><span class="stat-val">5 / 3</span><div class="stat-label">Streaks (Maya / Leo)</div></div>
+      </div>
+      <div class="child-grid">
+        <div class="child-mini-card">
+          <div class="mini-top"><div class="mini-avatar">🦁</div><div><div style="font:700 0.95rem system-ui;color:#1a1240;">Maya</div><div style="font:400 0.72rem system-ui;color:#9b72ff;">K–1 · Level 2 ⭐</div></div></div>
+          <div class="mini-stats">
+            <div><span class="mini-stat-val" style="color:#ffd166;">⭐ 42</span><div class="mini-stat-label">Stars</div></div>
+            <div><span class="mini-stat-val" style="color:#9b72ff;">14</span><div class="mini-stat-label">Sessions</div></div>
+            <div><span class="mini-stat-val" style="color:#58e8c1;">🔥 5</span><div class="mini-stat-label">Streak</div></div>
+          </div>
+          <div class="mini-bar"><div class="mini-bar-fill" style="width:70%;background:#9b72ff;"></div></div>
+          <button class="btn-view-report" style="width:100%;">See Maya's report →</button>
+        </div>
+        <div class="child-mini-card">
+          <div class="mini-top"><div class="mini-avatar" style="background:#e8fff8;">🐸</div><div><div style="font:700 0.95rem system-ui;color:#1a1240;">Leo</div><div style="font:400 0.72rem system-ui;color:#58e8c1;">G2–3 · Level 1 🌱</div></div></div>
+          <div class="mini-stats">
+            <div><span class="mini-stat-val" style="color:#ffd166;">⭐ 34</span><div class="mini-stat-label">Stars</div></div>
+            <div><span class="mini-stat-val" style="color:#58e8c1;">14</span><div class="mini-stat-label">Sessions</div></div>
+            <div><span class="mini-stat-val" style="color:#ff7b6b;">🔥 3</span><div class="mini-stat-label">Streak</div></div>
+          </div>
+          <div class="mini-bar"><div class="mini-bar-fill" style="width:45%;background:#58e8c1;"></div></div>
+          <button class="btn-view-report" style="width:100%;background:linear-gradient(135deg,#58e8c1,#30a090);color:#0a3020;">See Leo's report →</button>
+        </div>
+        <div class="add-child-card">
+          <div style="font-size:1.8rem;opacity:0.5;">👶</div>
+          <div style="font:600 0.85rem system-ui;color:#9b72ff;">Add another child</div>
+          <div style="font:400 0.72rem system-ui;color:#9080b0;">Family plan: unlimited children</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="screen" id="screen-notifs">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="brand-icon">🌟</div><span class="brand-name">WonderQuest</span></div>
+      <a class="nav-item"><span class="nav-icon">🏠</span> Overview</a>
+      <a class="nav-item active"><span class="nav-icon">🔔</span> Notifications <span class="nav-badge">3</span></a>
+      <div class="sidebar-footer"><div class="parent-avatar-sm"><div class="parent-circle">👩</div></div></div>
+    </div>
+    <div class="main-content">
+      <div class="page-title">🔔 Notifications</div>
+      <div class="page-sub" style="margin-bottom:20px;">3 unread · <a href="#" style="color:#9b72ff;">Mark all read</a></div>
+      <div class="skill-card" style="max-width:600px;">
+        <ul class="notif-list">
+          <li class="notif-item"><div class="notif-icon-wrap" style="background:#fff3e0;">🏅</div><div><div class="notif-text"><strong>Maya earned "Rhyme Queen" badge!</strong> She's been working on rhyming sounds all week.</div><div class="notif-time">Today, 8:42 AM</div></div><div class="notif-unread"></div></li>
+          <li class="notif-item"><div class="notif-icon-wrap" style="background:#ede8ff;">⭐</div><div><div class="notif-text"><strong>Maya leveled up to Star Explorer!</strong> She reached Level 2 in the K–1 band.</div><div class="notif-time">Monday, 4:15 PM</div></div><div class="notif-unread"></div></li>
+          <li class="notif-item"><div class="notif-icon-wrap" style="background:#f0fdf8;">📊</div><div><div class="notif-text"><strong>Maya's weekly report is ready.</strong> Great progress in rhyming and letter sounds.</div><div class="notif-time">Sunday, 7:00 AM</div></div><div class="notif-unread"></div></li>
+          <li class="notif-item"><div class="notif-icon-wrap" style="background:#faf8ff;">🎯</div><div><div class="notif-text"><strong>Maya completed her 3 sessions.</strong> She's on a 4-day streak — great consistency!</div><div class="notif-time">Yesterday, 6:30 PM</div></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="brand-icon">🌟</div><span class="brand-name">WonderQuest</span></div>
+      <a class="nav-item"><span class="nav-icon">🏠</span> Overview</a>
+      <a class="nav-item active"><span class="nav-icon">⚙️</span> Settings</a>
+      <div class="sidebar-footer"><div class="parent-avatar-sm"><div class="parent-circle">👩</div></div></div>
+    </div>
+    <div class="main-content" style="max-width:640px;">
+      <div class="page-title" style="margin-bottom:24px;">Settings</div>
+      <div class="settings-section">
+        <div class="settings-section-title">Maya's learning settings</div>
+        <div class="settings-row"><div><div class="settings-label">Daily session limit</div><div class="settings-sub">Currently: 3 sessions per day</div></div><button style="padding:6px 14px;background:#ede8ff;border:1.5px solid #c0b0f0;border-radius:8px;font:600 0.78rem system-ui;color:#4a2090;cursor:pointer;">Change →</button></div>
+        <div class="settings-row"><div><div class="settings-label">Learning band</div><div class="settings-sub">K–1 Band (Kindergarten)</div></div><button style="padding:6px 14px;background:#ede8ff;border:1.5px solid #c0b0f0;border-radius:8px;font:600 0.78rem system-ui;color:#4a2090;cursor:pointer;">Change →</button></div>
+        <div class="settings-row"><div><div class="settings-label">Focus areas</div><div class="settings-sub">Reading &amp; Math (balanced)</div></div><button style="padding:6px 14px;background:#ede8ff;border:1.5px solid #c0b0f0;border-radius:8px;font:600 0.78rem system-ui;color:#4a2090;cursor:pointer;">Edit →</button></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Notifications</div>
+        <div class="settings-row"><div><div class="settings-label">Badge earned</div><div class="settings-sub">When Maya earns a badge</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row"><div><div class="settings-label">Level-up</div><div class="settings-sub">When Maya levels up</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row"><div><div class="settings-label">Weekly report</div><div class="settings-sub">Every Sunday morning</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row"><div><div class="settings-label">Session complete</div><div class="settings-sub">After each individual session</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row"><div><div class="settings-label">Inactivity reminder</div><div class="settings-sub">If Maya hasn't played in 2+ days</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div class="screen" id="screen-spec">
+  <div style="max-width:780px;margin:0 auto;padding:40px 40px 80px;">
+    <div class="spec-title">Parent Family Dashboard Desktop — Spec</div>
+    <div class="spec-section">Layout</div>
+    <table class="spec-table">
+      <thead><tr><th>Component</th><th>Spec</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule">Sidebar</td><td class="spec-detail">240px fixed. Sticky top: 50px (tab bar height). White bg. Brand + nav groups + footer. Overflow-y: auto.</td></tr>
+        <tr><td class="spec-rule">Main content</td><td class="spec-detail">max-width: 900px. padding: 32px 36px. Scrolls independently of sidebar.</td></tr>
+        <tr><td class="spec-rule">Shell grid</td><td class="spec-detail">grid-template-columns: 240px 1fr</td></tr>
+        <tr><td class="spec-rule">Quick stats</td><td class="spec-detail">4-col on desktop. Collapse to 2-col at &lt;768px.</td></tr>
+        <tr><td class="spec-rule">Two-col section</td><td class="spec-detail">Skills card + streak/activity. Collapse to 1-col at &lt;900px.</td></tr>
+      </tbody>
+    </table>
+    <div class="spec-section">Metric & Tone Rules</div>
+    <table class="spec-table">
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule">No accuracy %</td><td class="spec-detail">Dashboard shows Stars, Sessions, Streak, Badges only. Skill bars show relative mastery — NOT % labels. Detail is in weekly report.</td></tr>
+        <tr><td class="spec-rule">Positive framing</td><td class="spec-detail">"Support tip" not "weakness". "Building on" not "struggling with". Deltas: never show down arrows on dashboard overview.</td></tr>
+        <tr><td class="spec-rule">Stars primary</td><td class="spec-detail">⭐ star count always headline metric. Always emoji + number.</td></tr>
+        <tr><td class="spec-rule">Deltas</td><td class="spec-detail">↑ green / → gray. Down arrows NOT shown on overview (only in weekly report for full context).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

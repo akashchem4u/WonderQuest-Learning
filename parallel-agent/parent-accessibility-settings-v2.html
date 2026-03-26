@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parent Accessibility Settings v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --green: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --gold: #ffd166;
+      --violet: #9b72ff;
+      --mint: #58e8c1;
+      --coral: #ff7b6b;
+      --parent: #a78bfa;
+      --muted: rgba(240,246,255,.45);
+      --surface: rgba(255,255,255,.04);
+      --surface2: rgba(255,255,255,.07);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 64px;
+    }
+
+    /* ── Engineering hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Page wrapper ── */
+    .page-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Top nav tabs ── */
+    .top-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 28px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .18s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover { background: var(--surface2); color: var(--text); }
+
+    .tab-btn.active {
+      background: var(--parent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ─────────────────────────────────────────────
+       TAB 1 — Accessibility Settings Panel
+    ───────────────────────────────────────────── */
+    .settings-header {
+      margin-bottom: 24px;
+    }
+
+    .settings-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .settings-header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* Child selector tabs */
+    .child-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .child-tab {
+      padding: 8px 20px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .child-tab:hover { border-color: var(--parent); color: var(--text); }
+
+    .child-tab.active {
+      background: rgba(167,139,250,.15);
+      border-color: var(--parent);
+      color: var(--parent);
+      font-weight: 600;
+    }
+
+    /* Settings container (800px inner) */
+    .settings-container {
+      max-width: 800px;
+    }
+
+    /* Section card */
+    .section-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--parent);
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(167,139,250,.06);
+    }
+
+    .section-body {
+      padding: 4px 0;
+    }
+
+    /* Setting row */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+
+    .setting-row:last-child { border-bottom: none; }
+
+    .setting-label {
+      flex: 1;
+    }
+
+    .setting-label span {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .setting-label small {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      display: block;
+    }
+
+    /* Toggle switch */
+    .toggle-wrap {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.12);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .2s;
+    }
+
+    .toggle-wrap input:checked + .toggle-track { background: var(--parent); }
+    .toggle-wrap input:checked + .toggle-track::after { transform: translateX(20px); }
+
+    /* Segmented control */
+    .seg-control {
+      display: flex;
+      background: rgba(255,255,255,.06);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .seg-btn {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .seg-btn:hover { color: var(--text); }
+    .seg-btn.active { background: var(--parent); color: #fff; font-weight: 600; }
+
+    /* Slider row */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      width: 220px;
+    }
+
+    .slider-row input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.14);
+      outline: none;
+    }
+
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--parent);
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(167,139,250,.25);
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+
+    .slider-labels span {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .text-preview {
+      font-size: 14px;
+      color: var(--parent);
+      font-weight: 500;
+      min-width: 80px;
+      text-align: right;
+      transition: font-size .15s;
+    }
+
+    /* Pill selector */
+    .pill-select {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pill-btn {
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .pill-btn:hover { border-color: var(--parent); color: var(--text); }
+    .pill-btn.active { background: rgba(167,139,250,.15); border-color: var(--parent); color: var(--parent); font-weight: 600; }
+
+    /* Note row */
+    .note-row {
+      padding: 12px 20px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,.02);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .note-row:last-child { border-bottom: none; }
+    .note-row::before { content: 'ℹ'; font-size: 13px; color: var(--mint); flex-shrink: 0; }
+
+    /* Save button */
+    .save-bar {
+      padding: 20px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-save {
+      padding: 12px 28px;
+      background: var(--parent);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn-save:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-save:active { transform: translateY(0); }
+
+    .save-note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ─────────────────────────────────────────────
+       TAB 2 — Multi-Child Comparison
+    ───────────────────────────────────────────── */
+    .comparison-header {
+      margin-bottom: 24px;
+    }
+
+    .comparison-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .comparison-header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .comp-table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comp-table th {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      background: rgba(167,139,250,.07);
+    }
+
+    .comp-table th:first-child { color: var(--muted); font-weight: 500; }
+    .comp-table th.col-emma { color: var(--mint); }
+    .comp-table th.col-noah { color: var(--gold); }
+    .comp-table th.col-lily { color: var(--coral); }
+
+    .comp-table td {
+      padding: 13px 18px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .comp-table tr:last-child td { border-bottom: none; }
+    .comp-table tr:hover td { background: rgba(255,255,255,.025); }
+
+    .comp-table td:first-child {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .badge-on {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      background: rgba(80,232,144,.12);
+      border-radius: 20px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-off {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      background: rgba(255,255,255,.05);
+      border-radius: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-special {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      background: rgba(255,209,102,.12);
+      border-radius: 20px;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-dash {
+      color: rgba(255,255,255,.2);
+      font-size: 16px;
+    }
+
+    .btn-edit {
+      padding: 5px 14px;
+      background: transparent;
+      border: 1.5px solid var(--parent);
+      border-radius: 7px;
+      color: var(--parent);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .btn-edit:hover { background: rgba(167,139,250,.15); }
+
+    .comp-table th.col-actions,
+    .comp-table td.col-actions { text-align: right; }
+
+    /* ─────────────────────────────────────────────
+       TAB 3 — Spec
+    ───────────────────────────────────────────── */
+    .spec-wrap {
+      display: grid;
+      gap: 20px;
+    }
+
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .spec-card-title {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--parent);
+      border-bottom: 1px solid var(--border);
+      background: rgba(167,139,250,.06);
+    }
+
+    .spec-card-body {
+      padding: 20px;
+    }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12.5px;
+      line-height: 1.65;
+      overflow-x: auto;
+      color: #c9d1d9;
+    }
+
+    pre .kw  { color: #ff7b6b; }
+    pre .ty  { color: #58e8c1; }
+    pre .st  { color: #ffd166; }
+
+    .spec-list {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .spec-list li {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.6;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .spec-list li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--parent);
+      font-size: 12px;
+      top: 2px;
+    }
+
+    .spec-list li strong { color: var(--parent); font-weight: 600; }
+
+    .spec-tag-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .spec-tag {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .spec-tag.parent-only { background: rgba(167,139,250,.15); color: var(--parent); }
+    .spec-tag.child-can   { background: rgba(88,232,193,.12); color: var(--mint); }
+
+    .coppa-note {
+      background: rgba(88,232,193,.06);
+      border: 1px solid rgba(88,232,193,.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--mint);
+      line-height: 1.6;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 231 · parent-accessibility-settings-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <div class="page-wrap">
+
+    <!-- Top-level tab switcher -->
+    <div class="top-tabs" role="tablist">
+      <button class="tab-btn active" onclick="showTab('settings')" role="tab">Accessibility Settings</button>
+      <button class="tab-btn" onclick="showTab('comparison')" role="tab">Multi-Child Comparison</button>
+      <button class="tab-btn" onclick="showTab('spec')" role="tab">Spec</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 1 — Accessibility Settings Panel
+    ══════════════════════════════════════════ -->
+    <div id="screen-settings" class="screen active">
+
+      <div class="settings-header">
+        <h1>Accessibility Settings</h1>
+        <p>Manage how WonderQuest looks and sounds for each child</p>
+      </div>
+
+      <!-- Child selector -->
+      <div class="child-tabs">
+        <button class="child-tab active" onclick="selectChild(this, 'Emma')">Emma</button>
+        <button class="child-tab" onclick="selectChild(this, 'Noah')">Noah</button>
+        <button class="child-tab" onclick="selectChild(this, 'Lily')">Lily</button>
+      </div>
+
+      <div class="settings-container">
+
+        <!-- Section 1: Visual Settings -->
+        <div class="section-card">
+          <div class="section-title">Visual Settings</div>
+          <div class="section-body">
+
+            <!-- Display Mode -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Display Mode</span>
+                <small>Parent sets the display theme for this child</small>
+              </div>
+              <div class="seg-control">
+                <button class="seg-btn active" onclick="activateSeg(this)">Dark</button>
+                <button class="seg-btn" onclick="activateSeg(this)">Light</button>
+                <button class="seg-btn" onclick="activateSeg(this)">High Contrast</button>
+              </div>
+            </div>
+
+            <!-- Text Size -->
+            <div class="setting-row" style="flex-wrap: wrap; gap: 12px;">
+              <div class="setting-label">
+                <span>Text Size</span>
+                <small>Adjusts font size across the child's UI</small>
+              </div>
+              <div>
+                <div class="slider-row">
+                  <input type="range" min="0" max="3" value="1" id="textSizeSlider"
+                         oninput="updateTextSize(this.value)" />
+                  <span class="text-preview" id="textSizePreview">Medium</span>
+                </div>
+                <div class="slider-labels" style="width: 160px;">
+                  <span>Small</span><span>Med</span><span>Large</span><span>XL</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bold text -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Bold text</span>
+                <small>Increases font weight across the child UI</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <!-- Reduce Motion -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Reduce Motion</span>
+                <small>Disables animations and transitions</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <!-- Reduce transparency -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Reduce transparency</span>
+                <small>Disables blur and glass effects</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 2: Audio Settings -->
+        <div class="section-card">
+          <div class="section-title">Audio Settings</div>
+          <div class="section-body">
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Read questions aloud</span>
+                <small>Master audio switch for question narration</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" checked />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Background music</span>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" checked />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Sound effects</span>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" checked />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Celebration sounds</span>
+                <small>Plays when a child completes a round</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" checked />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <!-- Voice Speed -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Voice Speed</span>
+                <small>Narration playback rate</small>
+              </div>
+              <div class="pill-select">
+                <button class="pill-btn active" onclick="activatePill(this)">Normal</button>
+                <button class="pill-btn" onclick="activatePill(this)">Slow</button>
+              </div>
+            </div>
+
+            <!-- Lock voice speed -->
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Lock voice speed to Slow</span>
+                <small>Child cannot change narration speed</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 3: Play Settings -->
+        <div class="section-card">
+          <div class="section-title">Play Settings</div>
+          <div class="section-body">
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Large answer buttons</span>
+                <small>Forces largest button size regardless of band</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>High contrast answer buttons</span>
+                <small>Adds thick borders on answer buttons for visibility</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Show question number</span>
+                <small>Displays "Question 3 of 10" as an orientation aid</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="note-row">
+              WonderQuest never shows timers during play
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 4: Reading Support -->
+        <div class="section-card">
+          <div class="section-title">Reading Support</div>
+          <div class="section-body">
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Highlight text while reading</span>
+                <small>Highlights each word as it is read aloud</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Simplified vocabulary mode</span>
+                <small>Uses P0/P1 vocabulary level for all bands</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Extra time between questions</span>
+                <small>Adds a 2-second pause before the next question loads</small>
+              </div>
+              <label class="toggle-wrap">
+                <input type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Save button -->
+        <div class="save-bar">
+          <button class="btn-save" id="saveBtn" onclick="handleSave()">Save for Emma</button>
+          <span class="save-note" id="saveNote">Changes will apply next time Emma plays</span>
+        </div>
+
+      </div>
+    </div><!-- /screen-settings -->
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 2 — Multi-Child Comparison
+    ══════════════════════════════════════════ -->
+    <div id="screen-comparison" class="screen">
+
+      <div class="comparison-header">
+        <h2>Multi-Child Comparison</h2>
+        <p>Review and compare accessibility settings across all children at a glance</p>
+      </div>
+
+      <div class="comp-table-wrap">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Setting</th>
+              <th class="col-emma">Emma <span style="opacity:.6;font-weight:400;font-size:11px;">(P2)</span></th>
+              <th class="col-noah">Noah <span style="opacity:.6;font-weight:400;font-size:11px;">(P0)</span></th>
+              <th class="col-lily">Lily <span style="opacity:.6;font-weight:400;font-size:11px;">(P3)</span></th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Display Mode</td>
+              <td>Dark</td>
+              <td><span class="badge-special">High Contrast</span></td>
+              <td>Dark</td>
+              <td class="col-actions"></td>
+            </tr>
+            <tr>
+              <td>Text Size</td>
+              <td>Medium</td>
+              <td><span class="badge-special">Large</span></td>
+              <td>Medium</td>
+              <td class="col-actions"></td>
+            </tr>
+            <tr>
+              <td>Reduce Motion</td>
+              <td><span class="badge-off">Off</span></td>
+              <td><span class="badge-on">On</span></td>
+              <td><span class="badge-off">Off</span></td>
+              <td class="col-actions"></td>
+            </tr>
+            <tr>
+              <td>Audio Readout</td>
+              <td><span class="badge-on">On</span></td>
+              <td><span class="badge-on">On</span></td>
+              <td><span class="badge-off">Off</span></td>
+              <td class="col-actions"></td>
+            </tr>
+            <tr>
+              <td>Voice Speed</td>
+              <td>Normal</td>
+              <td><span class="badge-special">Slow (locked)</span></td>
+              <td><span class="badge-dash">—</span></td>
+              <td class="col-actions"></td>
+            </tr>
+            <tr>
+              <td>Large Buttons</td>
+              <td><span class="badge-off">Off</span></td>
+              <td><span class="badge-on">On</span></td>
+              <td><span class="badge-off">Off</span></td>
+              <td class="col-actions"></td>
+            </tr>
+            <tr>
+              <td>Reading Highlight</td>
+              <td><span class="badge-off">Off</span></td>
+              <td><span class="badge-on">On</span></td>
+              <td><span class="badge-off">Off</span></td>
+              <td class="col-actions"></td>
+            </tr>
+            <!-- Edit row -->
+            <tr style="background: rgba(167,139,250,.04);">
+              <td style="color: var(--muted); font-size: 12px; font-style: italic;">Edit settings</td>
+              <td><button class="btn-edit" onclick="jumpToChild('Emma')">Edit Emma</button></td>
+              <td><button class="btn-edit" onclick="jumpToChild('Noah')">Edit Noah</button></td>
+              <td><button class="btn-edit" onclick="jumpToChild('Lily')">Edit Lily</button></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /screen-comparison -->
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 3 — Spec
+    ══════════════════════════════════════════ -->
+    <div id="screen-spec" class="screen">
+
+      <div class="comparison-header">
+        <h2>Spec · Accessibility Settings v2</h2>
+        <p>Technical specification for the parent accessibility settings system</p>
+      </div>
+
+      <div class="spec-wrap">
+
+        <!-- DB Schema -->
+        <div class="spec-card">
+          <div class="spec-card-title">DB Schema</div>
+          <div class="spec-card-body">
+<pre><span class="ty">child_accessibility_prefs</span> (
+  <span class="kw">child_id</span>               UUID          <span class="kw">PRIMARY KEY</span>,
+  display_mode           ENUM(<span class="st">'dark'</span>,<span class="st">'light'</span>,<span class="st">'high_contrast'</span>) DEFAULT <span class="st">'dark'</span>,
+  text_size              ENUM(<span class="st">'small'</span>,<span class="st">'medium'</span>,<span class="st">'large'</span>,<span class="st">'xl'</span>)     DEFAULT <span class="st">'medium'</span>,
+  bold_text              BOOLEAN       DEFAULT <span class="kw">false</span>,
+  reduced_motion         BOOLEAN       DEFAULT <span class="kw">false</span>,
+  reduced_transparency   BOOLEAN       DEFAULT <span class="kw">false</span>,
+  readout_enabled        BOOLEAN       DEFAULT <span class="kw">true</span>,
+  music_enabled          BOOLEAN       DEFAULT <span class="kw">true</span>,
+  sfx_enabled            BOOLEAN       DEFAULT <span class="kw">true</span>,
+  celebration_sounds     BOOLEAN       DEFAULT <span class="kw">true</span>,
+  voice_speed            ENUM(<span class="st">'normal'</span>,<span class="st">'slow'</span>)             DEFAULT <span class="st">'normal'</span>,
+  voice_speed_locked     BOOLEAN       DEFAULT <span class="kw">false</span>,
+  large_buttons          BOOLEAN       DEFAULT <span class="kw">false</span>,
+  high_contrast_buttons  BOOLEAN       DEFAULT <span class="kw">false</span>,
+  show_question_number   BOOLEAN       DEFAULT <span class="kw">false</span>,
+  reading_highlight      BOOLEAN       DEFAULT <span class="kw">false</span>,
+  simplified_vocab       BOOLEAN       DEFAULT <span class="kw">false</span>,
+  extra_time             BOOLEAN       DEFAULT <span class="kw">false</span>,
+  updated_by_parent_id   UUID,
+  updated_at             TIMESTAMPTZ
+)</pre>
+          </div>
+        </div>
+
+        <!-- Apply Timing & Sync -->
+        <div class="spec-card">
+          <div class="spec-card-title">Apply Timing &amp; Sync</div>
+          <div class="spec-card-body">
+            <ul class="spec-list">
+              <li>Settings are applied on the <strong>next session start</strong>, not mid-session. Parent sees: <em>"Changes will apply next time [child] plays"</em></li>
+              <li>Settings are <strong>synced across devices via server</strong> — not localStorage-only. All devices reflect the latest saved state within seconds.</li>
+              <li>If a child is currently in an active session when a parent saves, the new settings queue for the session that begins after the current one ends.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Permission Model -->
+        <div class="spec-card">
+          <div class="spec-card-title">Permission Model</div>
+          <div class="spec-card-body" style="display: grid; gap: 16px;">
+            <div>
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600;">Parent-only controls (child cannot change)</div>
+              <div class="spec-tag-group">
+                <span class="spec-tag parent-only">Display mode</span>
+                <span class="spec-tag parent-only">Audio master switch</span>
+                <span class="spec-tag parent-only">Voice speed lock</span>
+                <span class="spec-tag parent-only">Large buttons</span>
+                <span class="spec-tag parent-only">Reading highlight</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600;">Child can change (if parent allows)</div>
+              <div class="spec-tag-group">
+                <span class="spec-tag child-can">Voice speed (if not locked)</span>
+                <span class="spec-tag child-can">Theme (if parent grants)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COPPA / FERPA -->
+        <div class="spec-card">
+          <div class="spec-card-title">COPPA / FERPA Note</div>
+          <div class="spec-card-body">
+            <ul class="spec-list">
+              <li>Accessibility preferences are <strong>functional data</strong>, not behavioral or performance data.</li>
+              <li>These prefs are <strong>not shared with teachers</strong> and are not surfaced in any teacher-facing dashboard.</li>
+              <li>Accessibility prefs are <strong>not used for analytics</strong>, personalization modeling, or advertising.</li>
+              <li>Stored under the parent's account scope; subject to standard COPPA deletion rights.</li>
+            </ul>
+            <div class="coppa-note">
+              Accessibility preferences exist solely to make the product more usable for the child. They carry no inferential or commercial value and are treated as purely operational data.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /screen-spec -->
+
+  </div><!-- /page-wrap -->
+
+  <script>
+    // ── Tab switcher ──────────────────────────────────────────────
+    const TAB_MAP = { settings: 0, comparison: 1, spec: 2 };
+
+    function showTab(t) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('screen-' + t).classList.add('active');
+      document.querySelectorAll('.tab-btn')[TAB_MAP[t]].classList.add('active');
+    }
+
+    // ── Child selector ────────────────────────────────────────────
+    const CHILDREN = ['Emma', 'Noah', 'Lily'];
+    let activeChild = 'Emma';
+
+    function selectChild(btn, name) {
+      document.querySelectorAll('.child-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeChild = name;
+      document.getElementById('saveBtn').textContent  = 'Save for ' + name;
+      document.getElementById('saveNote').textContent = 'Changes will apply next time ' + name + ' plays';
+    }
+
+    // ── Segmented control ─────────────────────────────────────────
+    function activateSeg(btn) {
+      btn.closest('.seg-control').querySelectorAll('.seg-btn')
+        .forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // ── Pill selector ─────────────────────────────────────────────
+    function activatePill(btn) {
+      btn.closest('.pill-select').querySelectorAll('.pill-btn')
+        .forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // ── Text size slider live preview ─────────────────────────────
+    const SIZE_LABELS = ['Small', 'Medium', 'Large', 'Extra Large'];
+    const SIZE_PX     = ['12px', '14px', '17px', '21px'];
+
+    function updateTextSize(val) {
+      const el = document.getElementById('textSizePreview');
+      el.textContent  = SIZE_LABELS[val];
+      el.style.fontSize = SIZE_PX[val];
+    }
+
+    // ── Save handler ──────────────────────────────────────────────
+    function handleSave() {
+      const btn  = document.getElementById('saveBtn');
+      const orig = btn.textContent;
+      btn.textContent        = 'Saved!';
+      btn.style.background   = '#50e890';
+      btn.style.color        = '#0d1117';
+      setTimeout(() => {
+        btn.textContent      = orig;
+        btn.style.background = '';
+        btn.style.color      = '';
+      }, 1800);
+    }
+
+    // ── Jump to child from comparison tab ─────────────────────────
+    function jumpToChild(name) {
+      showTab('settings');
+      const tabs = document.querySelectorAll('.child-tab');
+      const idx  = CHILDREN.indexOf(name);
+      if (idx !== -1) selectChild(tabs[idx], name);
+    }
+  </script>
+</body>
+</html>

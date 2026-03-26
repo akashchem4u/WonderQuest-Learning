@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 229 · play-parent-assist-overlay-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* Engineering hint box */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* Tab switcher */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 9px 20px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.12);
+      background: #161b22;
+      color: rgba(240,246,255,.55);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn:hover { border-color: rgba(167,139,250,.4); color: #a78bfa; }
+    .tab-btn.active {
+      background: #a78bfa;
+      border-color: #a78bfa;
+      color: #fff;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Section headings */
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 8px;
+    }
+    .section-sub {
+      font-size: 13px;
+      color: rgba(240,246,255,.5);
+      margin-bottom: 24px;
+    }
+
+    /* ──────────────────────────────────────
+       TAB 1 — Phone frame + overlay states
+       ────────────────────────────────────── */
+    .tab1-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 32px;
+    }
+
+    .state-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(240,246,255,.4);
+      margin-bottom: 12px;
+    }
+
+    /* Phone frame */
+    .phone-frame {
+      width: 375px;
+      height: 667px;
+      border-radius: 40px;
+      border: 3px solid rgba(255,255,255,.12);
+      background: #0d1117;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.04);
+      flex-shrink: 0;
+    }
+
+    /* Notch */
+    .phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 26px;
+      background: #0d1117;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+      z-index: 20;
+    }
+
+    /* Inner switcher tabs */
+    .phone-inner-tabs {
+      display: flex;
+      gap: 0;
+      padding: 36px 12px 0;
+      background: #0d1117;
+      position: relative;
+      z-index: 10;
+    }
+    .phone-tab-btn {
+      flex: 1;
+      padding: 7px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: rgba(240,246,255,.4);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .phone-tab-btn.active {
+      color: #a78bfa;
+      border-bottom-color: #a78bfa;
+    }
+
+    .phone-content {
+      position: absolute;
+      inset: 90px 0 0 0;
+      overflow: hidden;
+    }
+
+    .phone-screen { display: none; width: 100%; height: 100%; position: relative; }
+    .phone-screen.active { display: flex; flex-direction: column; }
+
+    /* ── Play screen (State A) ── */
+    .play-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .play-xp-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,209,102,.12);
+      border: 1px solid rgba(255,209,102,.25);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffd166;
+    }
+    .parent-help-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(167,139,250,.12);
+      border: 1px solid rgba(167,139,250,.3);
+      border-radius: 20px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a78bfa;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .parent-help-chip:hover { background: rgba(167,139,250,.22); }
+
+    .play-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      gap: 16px;
+    }
+
+    .adventure-band {
+      width: 100%;
+      background: rgba(80,232,144,.08);
+      border: 1px solid rgba(80,232,144,.2);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #50e890;
+      text-align: center;
+    }
+
+    .question-card {
+      width: 100%;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+    .question-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 6px;
+    }
+    .question-sub {
+      font-size: 12px;
+      color: rgba(240,246,255,.4);
+    }
+
+    .answers-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+    }
+    .answer-btn {
+      background: #161b22;
+      border: 1.5px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      padding: 14px 8px;
+      font-size: 20px;
+      color: #f0f6ff;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      text-align: center;
+    }
+    .answer-btn:hover { border-color: #50e890; background: rgba(80,232,144,.06); }
+
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0 14px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      background: #0d1117;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: rgba(240,246,255,.35);
+      cursor: pointer;
+    }
+    .nav-item.active-nav { color: #50e890; }
+    .nav-icon { font-size: 18px; }
+
+    /* ── Parent Assist Overlay (State B) ── */
+    .overlay-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: rgba(13,17,23,.85);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+    }
+
+    .overlay-header {
+      background: #a78bfa;
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .overlay-header-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      flex: 1;
+    }
+    .overlay-lock { font-size: 18px; }
+
+    .overlay-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .overlay-notice {
+      background: rgba(167,139,250,.1);
+      border: 1px solid rgba(167,139,250,.25);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: rgba(240,246,255,.85);
+      line-height: 1.5;
+    }
+
+    .paused-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,209,102,.08);
+      border: 1px solid rgba(255,209,102,.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #ffd166;
+      font-weight: 600;
+    }
+
+    .action-card {
+      background: #161b22;
+      border: 1.5px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 14px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .action-card:hover { border-color: #a78bfa; background: rgba(167,139,250,.06); }
+    .action-card-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .action-card-content { flex: 1; }
+    .action-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 2px;
+    }
+    .action-card-desc {
+      font-size: 11px;
+      color: rgba(240,246,255,.45);
+      line-height: 1.4;
+    }
+
+    .overlay-end-btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: #a78bfa;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity .15s;
+      margin-top: 4px;
+    }
+    .overlay-end-btn:hover { opacity: .88; }
+
+    .privacy-note {
+      font-size: 10px;
+      color: rgba(240,246,255,.3);
+      text-align: center;
+      line-height: 1.5;
+      padding: 0 4px;
+    }
+
+    /* ── State C: Hint revealed ── */
+    .hint-card {
+      width: 100%;
+      background: rgba(88,232,193,.07);
+      border: 1.5px solid rgba(88,232,193,.3);
+      border-radius: 12px;
+      padding: 14px 14px;
+      box-shadow: 0 0 16px rgba(88,232,193,.12);
+    }
+    .hint-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #58e8c1;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hint-card-text {
+      font-size: 13px;
+      color: rgba(240,246,255,.85);
+      line-height: 1.5;
+    }
+    .hint-adventure-tag {
+      display: inline-block;
+      margin-top: 8px;
+      background: rgba(88,232,193,.12);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #58e8c1;
+    }
+
+    /* ──────────────────────────────────────
+       TAB 2 — Access Control
+       ────────────────────────────────────── */
+    .access-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .access-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .access-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .access-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .badge-same { background: rgba(255,209,102,.12); color: #ffd166; border: 1px solid rgba(255,209,102,.25); }
+    .badge-separate { background: rgba(155,114,255,.12); color: #9b72ff; border: 1px solid rgba(155,114,255,.25); }
+    .badge-pin { background: rgba(88,232,193,.1); color: #58e8c1; border: 1px solid rgba(88,232,193,.25); }
+
+    .access-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f6ff;
+    }
+
+    .flow-steps { display: flex; flex-direction: column; gap: 10px; }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(167,139,250,.15);
+      border: 1px solid rgba(167,139,250,.3);
+      font-size: 11px;
+      font-weight: 700;
+      color: #a78bfa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text { font-size: 13px; color: rgba(240,246,255,.75); line-height: 1.5; }
+    .step-emphasis { color: #f0f6ff; font-weight: 600; }
+
+    /* PIN mockup */
+    .pin-mockup {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .pin-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f0f6ff;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .pin-dots {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .pin-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(167,139,250,.4);
+      background: transparent;
+    }
+    .pin-dot.filled { background: #a78bfa; border-color: #a78bfa; }
+    .pin-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .pin-key {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(240,246,255,.8);
+      cursor: pointer;
+    }
+    .pin-key:hover { background: rgba(167,139,250,.1); }
+
+    /* Remote join badge */
+    .remote-join-badge {
+      background: rgba(167,139,250,.1);
+      border: 1.5px solid rgba(167,139,250,.3);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .remote-badge-icon { font-size: 22px; }
+    .remote-badge-text { font-size: 12px; color: rgba(240,246,255,.7); line-height: 1.5; }
+    .remote-badge-btn {
+      margin-left: auto;
+      background: #a78bfa;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* PIN management */
+    .pin-mgmt-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .pin-mgmt-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .pin-mgmt-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .pin-mgmt-text { flex: 1; font-size: 12px; color: rgba(240,246,255,.7); line-height: 1.5; }
+    .pin-mgmt-label { display: block; font-size: 11px; font-weight: 700; color: #f0f6ff; margin-bottom: 2px; }
+    .code-pill {
+      display: inline-block;
+      background: rgba(88,232,193,.08);
+      border: 1px solid rgba(88,232,193,.2);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: monospace;
+      font-size: 10px;
+      color: #58e8c1;
+      margin-top: 3px;
+    }
+
+    /* ──────────────────────────────────────
+       TAB 3 — Spec
+       ────────────────────────────────────── */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .spec-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 18px 18px 16px;
+    }
+
+    .spec-card-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 12px;
+    }
+    .spec-card-title.gold { color: #ffd166; }
+    .spec-card-title.violet { color: #9b72ff; }
+    .spec-card-title.mint { color: #58e8c1; }
+    .spec-card-title.coral { color: #ff7b6b; }
+    .spec-card-title.green { color: #50e890; }
+    .spec-card-title.parent { color: #a78bfa; }
+
+    .spec-row {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+    .spec-row:last-child { border-bottom: none; }
+    .spec-key {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(240,246,255,.4);
+      min-width: 100px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .spec-val {
+      font-size: 12px;
+      color: rgba(240,246,255,.75);
+      line-height: 1.5;
+    }
+    .spec-val strong { color: #f0f6ff; }
+    .tag-good {
+      display: inline-block;
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.25);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #50e890;
+      margin-left: 4px;
+    }
+    .tag-warn {
+      display: inline-block;
+      background: rgba(255,123,107,.08);
+      border: 1px solid rgba(255,123,107,.25);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #ff7b6b;
+      margin-left: 4px;
+    }
+
+    /* SQL block */
+    .sql-block {
+      background: #0d1117;
+      border: 1px solid rgba(88,232,193,.15);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 12px;
+      color: rgba(240,246,255,.75);
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+      margin-bottom: 28px;
+    }
+    .sql-kw { color: #9b72ff; }
+    .sql-type { color: #58e8c1; }
+    .sql-comment { color: rgba(240,246,255,.3); }
+    .sql-str { color: #ffd166; }
+
+    /* WCAG list */
+    .wcag-list { display: flex; flex-direction: column; gap: 8px; }
+    .wcag-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(240,246,255,.7);
+      line-height: 1.5;
+    }
+    .wcag-bullet {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #a78bfa;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    /* No-shame banner */
+    .no-shame-banner {
+      background: linear-gradient(135deg, rgba(80,232,144,.08) 0%, rgba(88,232,193,.06) 100%);
+      border: 1.5px solid rgba(80,232,144,.2);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .no-shame-icon { font-size: 28px; flex-shrink: 0; }
+    .no-shame-title { font-size: 14px; font-weight: 800; color: #50e890; margin-bottom: 4px; }
+    .no-shame-text { font-size: 12px; color: rgba(240,246,255,.65); line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 229 &middot; play-parent-assist-overlay-v2.html &middot; WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('t1')">Overlay States</button>
+    <button class="tab-btn" onclick="showTab('t2')">Access Control</button>
+    <button class="tab-btn" onclick="showTab('t3')">Spec</button>
+  </div>
+
+  <!-- ════════════════════════════════════
+       TAB 1 — Overlay States
+       ════════════════════════════════════ -->
+  <div class="screen active" id="t1">
+    <div class="section-title">Parent Assist &mdash; Play Overlay States</div>
+    <div class="section-sub">Phone frame (375&times;667) with inner state switcher. Toggle between the three overlay states.</div>
+
+    <div class="tab1-layout">
+      <div>
+        <div class="state-label">State A / B / C &mdash; tap tabs inside the phone to switch</div>
+
+        <div class="phone-frame">
+          <!-- Inner state tabs -->
+          <div class="phone-inner-tabs">
+            <button class="phone-tab-btn active" onclick="showPhoneState('stateA', this)">A: Playing</button>
+            <button class="phone-tab-btn" onclick="showPhoneState('stateB', this)">B: Overlay</button>
+            <button class="phone-tab-btn" onclick="showPhoneState('stateC', this)">C: Hint</button>
+          </div>
+
+          <div class="phone-content">
+
+            <!-- ── STATE A: Normal play ── -->
+            <div class="phone-screen active" id="stateA">
+              <div class="play-topbar">
+                <div class="play-xp-badge">&#11088; 340 XP</div>
+                <div style="font-size:13px;font-weight:700;color:rgba(240,246,255,.6);">Quest 3 of 5</div>
+                <button class="parent-help-chip" onclick="showPhoneState('stateB', null)">&#128106; Parent Help</button>
+              </div>
+
+              <div class="play-body">
+                <div class="adventure-band">&#128506;&#65039; Explorer's Path &mdash; Pattern Land</div>
+
+                <div class="question-card">
+                  <div class="question-text">What comes next?</div>
+                  <div style="font-size:26px;margin:10px 0 6px;letter-spacing:3px;">&#128049; &#128054; &#128049; ___</div>
+                  <div class="question-sub">Choose your answer below</div>
+                </div>
+
+                <div class="answers-grid">
+                  <button class="answer-btn">&#128049;</button>
+                  <button class="answer-btn">&#128054;</button>
+                  <button class="answer-btn">&#129418;</button>
+                  <button class="answer-btn">&#128059;</button>
+                </div>
+              </div>
+
+              <div class="bottom-nav">
+                <div class="nav-item active-nav"><div class="nav-icon">&#127968;</div><span>Home</span></div>
+                <div class="nav-item"><div class="nav-icon">&#128506;&#65039;</div><span>Quest</span></div>
+                <div class="nav-item"><div class="nav-icon">&#11088;</div><span>Stars</span></div>
+                <div class="nav-item"><div class="nav-icon">&#128100;</div><span>Profile</span></div>
+              </div>
+            </div>
+
+            <!-- ── STATE B: Parent Assist Overlay ── -->
+            <div class="phone-screen" id="stateB">
+              <!-- Underlying play screen (dimmed behind overlay) -->
+              <div class="play-topbar" style="opacity:.25">
+                <div class="play-xp-badge">&#11088; 340 XP</div>
+                <div style="font-size:13px;font-weight:700;color:rgba(240,246,255,.6);">Quest 3 of 5</div>
+                <div class="parent-help-chip">&#128106; Parent Help</div>
+              </div>
+              <div class="play-body" style="opacity:.25">
+                <div class="adventure-band">&#128506;&#65039; Explorer's Path &mdash; Pattern Land</div>
+                <div class="question-card">
+                  <div class="question-text">What comes next?</div>
+                  <div style="font-size:26px;margin:10px 0 6px;letter-spacing:3px;">&#128049; &#128054; &#128049; ___</div>
+                </div>
+              </div>
+              <div class="bottom-nav" style="opacity:.25">
+                <div class="nav-item active-nav"><div class="nav-icon">&#127968;</div><span>Home</span></div>
+                <div class="nav-item"><div class="nav-icon">&#128506;&#65039;</div><span>Quest</span></div>
+                <div class="nav-item"><div class="nav-icon">&#11088;</div><span>Stars</span></div>
+                <div class="nav-item"><div class="nav-icon">&#128100;</div><span>Profile</span></div>
+              </div>
+
+              <!-- Overlay panel -->
+              <div class="overlay-wrap" role="dialog" aria-modal="true" aria-label="Parent Assist mode">
+                <div class="overlay-header">
+                  <span class="overlay-lock">&#128274;</span>
+                  <span class="overlay-header-title">Parent Assist</span>
+                </div>
+
+                <div class="overlay-body">
+                  <div class="overlay-notice">
+                    You're in <strong>Parent Assist mode</strong> &mdash; your child's session is paused while you help.
+                  </div>
+
+                  <div class="paused-indicator">
+                    <span>&#9208;&#65039;</span>
+                    <span>Session paused &mdash; no progress lost</span>
+                  </div>
+
+                  <!-- Action cards -->
+                  <div class="action-card" tabindex="0" role="button" aria-label="Read the question aloud">
+                    <div class="action-card-icon">&#128266;</div>
+                    <div class="action-card-content">
+                      <div class="action-card-title">Read the question aloud</div>
+                      <div class="action-card-desc">Plays the question as audio so your child can hear it clearly</div>
+                    </div>
+                  </div>
+
+                  <div class="action-card" tabindex="0" role="button" aria-label="Show a hint" onclick="showPhoneState('stateC', null)">
+                    <div class="action-card-icon">&#128161;</div>
+                    <div class="action-card-content">
+                      <div class="action-card-title">Show a hint</div>
+                      <div class="action-card-desc">Reveals a gentle clue below the question &mdash; returns to play</div>
+                    </div>
+                  </div>
+
+                  <div class="action-card" tabindex="0" role="button" aria-label="Try a different adventure — skip question">
+                    <div class="action-card-icon">&#9197;&#65039;</div>
+                    <div class="action-card-content">
+                      <div class="action-card-title">Try a different adventure!</div>
+                      <div class="action-card-desc">Skip to the next question &mdash; stars are safe, question may return later</div>
+                    </div>
+                  </div>
+
+                  <button class="overlay-end-btn" onclick="showPhoneState('stateA', null)">End Assist &mdash; Back to Play</button>
+
+                  <div class="privacy-note">
+                    Parent assist actions are not recorded or shown to teachers.<br />
+                    Logged only in your own Family Activity view.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── STATE C: Hint revealed ── -->
+            <div class="phone-screen" id="stateC">
+              <div class="play-topbar">
+                <div class="play-xp-badge">&#11088; 340 XP</div>
+                <div style="font-size:13px;font-weight:700;color:rgba(240,246,255,.6);">Quest 3 of 5</div>
+                <button class="parent-help-chip" onclick="showPhoneState('stateB', null)">&#128106; Parent Help</button>
+              </div>
+
+              <div class="play-body" style="justify-content:flex-start;padding-top:12px;gap:11px;overflow-y:auto;">
+                <div class="adventure-band">&#128506;&#65039; Explorer's Path &mdash; Pattern Land</div>
+
+                <div class="question-card">
+                  <div class="question-text">What comes next?</div>
+                  <div style="font-size:26px;margin:10px 0 6px;letter-spacing:3px;">&#128049; &#128054; &#128049; ___</div>
+                  <div class="question-sub">Choose your answer below</div>
+                </div>
+
+                <!-- Hint card -->
+                <div class="hint-card">
+                  <div class="hint-card-title">&#128161; Here's a clue!</div>
+                  <div class="hint-card-text">Look at the pattern &mdash; &#128049; &#128054; keeps repeating! What comes after &#128049; in the pattern?</div>
+                  <span class="hint-adventure-tag">&#127775; Adventure clue unlocked</span>
+                </div>
+
+                <div class="answers-grid">
+                  <button class="answer-btn">&#128049;</button>
+                  <button class="answer-btn">&#128054;</button>
+                  <button class="answer-btn">&#129418;</button>
+                  <button class="answer-btn">&#128059;</button>
+                </div>
+              </div>
+
+              <div class="bottom-nav">
+                <div class="nav-item active-nav"><div class="nav-icon">&#127968;</div><span>Home</span></div>
+                <div class="nav-item"><div class="nav-icon">&#128506;&#65039;</div><span>Quest</span></div>
+                <div class="nav-item"><div class="nav-icon">&#11088;</div><span>Stars</span></div>
+                <div class="nav-item"><div class="nav-icon">&#128100;</div><span>Profile</span></div>
+              </div>
+            </div>
+
+          </div><!-- phone-content -->
+        </div><!-- phone-frame -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       TAB 2 — Access Control
+       ════════════════════════════════════ -->
+  <div class="screen" id="t2">
+    <div class="section-title">Parent Assist &mdash; Access Control</div>
+    <div class="section-sub">How parents access the overlay on same-device and separate-device setups, plus PIN management.</div>
+
+    <div class="access-grid">
+
+      <!-- Same device -->
+      <div class="access-card">
+        <div class="access-card-header">
+          <span class="access-badge badge-same">Same Device</span>
+        </div>
+        <div class="access-card-title" style="margin-bottom:14px;">Child + parent share a tablet or phone</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-text">Child is playing. Parent taps the <span class="step-emphasis">&#128106; Parent Help chip</span> visible in the top corner.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-text">PIN prompt appears (see below). Parent enters their <span class="step-emphasis">4-digit Parent PIN</span>.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-text">PIN verified <span class="step-emphasis">locally</span> against hashed value &mdash; no network call required.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-text">Overlay opens. Session pauses. Parent can read aloud, show hint, or skip.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-text">Parent taps <span class="step-emphasis">End Assist</span>. Session resumes right where it left off.</div>
+          </div>
+        </div>
+
+        <div class="pin-mockup">
+          <div class="pin-title">&#128274; Enter your Parent PIN</div>
+          <div class="pin-dots">
+            <div class="pin-dot filled"></div>
+            <div class="pin-dot filled"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+          </div>
+          <div class="pin-grid">
+            <div class="pin-key">1</div>
+            <div class="pin-key">2</div>
+            <div class="pin-key">3</div>
+            <div class="pin-key">4</div>
+            <div class="pin-key">5</div>
+            <div class="pin-key">6</div>
+            <div class="pin-key">7</div>
+            <div class="pin-key">8</div>
+            <div class="pin-key">9</div>
+            <div class="pin-key" style="color:rgba(240,246,255,.35);font-size:13px;">&#9003;</div>
+            <div class="pin-key">0</div>
+            <div class="pin-key" style="color:rgba(240,246,255,.35);font-size:13px;">&#10005;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Separate devices -->
+      <div class="access-card">
+        <div class="access-card-header">
+          <span class="access-badge badge-separate">Separate Devices</span>
+        </div>
+        <div class="access-card-title" style="margin-bottom:14px;">Child on tablet, parent on their own phone</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-text">Child is actively playing. Parent's WonderQuest app detects an active child session.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-text">Parent sees a <span class="step-emphasis">Join Session</span> button on their home screen &mdash; taps to connect.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-text">Overlay controls appear on the <span class="step-emphasis">parent's device</span>. Child's screen remains uninterrupted.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-text">Child's screen shows a non-intrusive <span class="step-emphasis">&#128106; Parent is helping</span> badge while session is joined.</div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-text">Parent triggers read-aloud, hint, or skip <span class="step-emphasis">remotely</span> &mdash; child's device receives the action in real time.</div>
+          </div>
+        </div>
+
+        <div class="remote-join-badge">
+          <div class="remote-badge-icon">&#128241;</div>
+          <div class="remote-badge-text">
+            <strong style="color:#f0f6ff;">Lily's session</strong> is live now.<br />
+            Tap to assist from your device.
+          </div>
+          <button class="remote-badge-btn">Join Session</button>
+        </div>
+
+        <div style="margin-top:12px;background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">&#128106;</span>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:1px;">Parent is helping</div>
+            <div style="font-size:10px;color:rgba(240,246,255,.4);">Shown on child's screen &mdash; non-intrusive badge</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIN management -->
+      <div class="access-card">
+        <div class="access-card-header">
+          <span class="access-badge badge-pin">PIN Management</span>
+        </div>
+        <div class="access-card-title" style="margin-bottom:14px;">How the Parent PIN works</div>
+        <div class="pin-mgmt-list">
+          <div class="pin-mgmt-row">
+            <div class="pin-mgmt-icon">&#128273;</div>
+            <div class="pin-mgmt-text">
+              <span class="pin-mgmt-label">Set during onboarding</span>
+              Parent PIN is created during family account setup. Defaults to the account PIN if one exists.
+            </div>
+          </div>
+          <div class="pin-mgmt-row">
+            <div class="pin-mgmt-icon">&#9881;&#65039;</div>
+            <div class="pin-mgmt-text">
+              <span class="pin-mgmt-label">Where to change it</span>
+              Parent Settings &rsaquo; Security &rsaquo; Change Parent PIN
+            </div>
+          </div>
+          <div class="pin-mgmt-row">
+            <div class="pin-mgmt-icon">&#128737;&#65039;</div>
+            <div class="pin-mgmt-text">
+              <span class="pin-mgmt-label">How it's stored</span>
+              Never stored in plain text. Stored as:<br/>
+              <span class="code-pill">SHA-256(pin + user_id)</span><br/>
+              in the <span class="code-pill">parent_pins</span> table.
+            </div>
+          </div>
+          <div class="pin-mgmt-row">
+            <div class="pin-mgmt-icon">&#128285;</div>
+            <div class="pin-mgmt-text">
+              <span class="pin-mgmt-label">Offline verification</span>
+              Same-device PIN check is fully local &mdash; hashed value cached in secure session storage. No network required.
+            </div>
+          </div>
+          <div class="pin-mgmt-row">
+            <div class="pin-mgmt-icon">&#128683;</div>
+            <div class="pin-mgmt-text">
+              <span class="pin-mgmt-label">Child cannot access</span>
+              The Parent Help chip is visible but PIN-gated. 3 wrong PINs triggers a 30-second cooldown.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       TAB 3 — Spec
+       ════════════════════════════════════ -->
+  <div class="screen" id="t3">
+    <div class="section-title">Parent Assist &mdash; Full Specification</div>
+    <div class="section-sub">Behavioural rules, DB schema, WCAG notes, and child safety guarantees.</div>
+
+    <div class="spec-grid">
+
+      <!-- Access -->
+      <div class="spec-card">
+        <div class="spec-card-title parent">&#128100; Access &amp; Permissions</div>
+        <div class="spec-row">
+          <div class="spec-key">Who can use</div>
+          <div class="spec-val"><strong>Parent persona only.</strong> Never teacher-triggered. Child cannot open the overlay.</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Auth method</div>
+          <div class="spec-val">Parent PIN (same device) or authenticated parent session (separate device)</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Teacher access</div>
+          <div class="spec-val">Never. Parent assist actions are <strong>hidden from teacher view</strong> entirely.</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Logging</div>
+          <div class="spec-val">Actions logged to <strong>parent's own activity</strong> only. Not visible to teachers or admins.</div>
+        </div>
+      </div>
+
+      <!-- Session -->
+      <div class="spec-card">
+        <div class="spec-card-title gold">&#9208;&#65039; Session Behaviour</div>
+        <div class="spec-row">
+          <div class="spec-key">Pause effect</div>
+          <div class="spec-val">No question timer exists. Audio readout halts. Adaptive session clock pauses.</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Resume</div>
+          <div class="spec-val">Session resumes exactly where it left off on "End Assist".</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">XP during pause</div>
+          <div class="spec-val">No XP is gained or lost while overlay is open. Stars remain safe.</div>
+        </div>
+      </div>
+
+      <!-- Skip -->
+      <div class="spec-card">
+        <div class="spec-card-title mint">&#9197;&#65039; Skip Behaviour</div>
+        <div class="spec-row">
+          <div class="spec-key">skip_reason</div>
+          <div class="spec-val"><code style="color:#58e8c1;font-size:11px;">'parent_assist'</code> stored on the question attempt record</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">XP impact</div>
+          <div class="spec-val">None. <span class="tag-good">XP safe</span></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Marked wrong?</div>
+          <div class="spec-val">No. Question skipped without any penalty flag. <span class="tag-good">No penalty</span></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Reappearance</div>
+          <div class="spec-val">Question may return in a future session (spaced repetition continues normally)</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">UI copy</div>
+          <div class="spec-val">"Try a different adventure!" &mdash; <strong>never</strong> "Give up" or "Skip"</div>
+        </div>
+      </div>
+
+      <!-- Hint -->
+      <div class="spec-card">
+        <div class="spec-card-title violet">&#128161; Hint Behaviour</div>
+        <div class="spec-row">
+          <div class="spec-key">hint_shown</div>
+          <div class="spec-val"><code style="color:#9b72ff;font-size:11px;">hint_shown = true</code> stored on question attempt</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Star impact</div>
+          <div class="spec-val">None. Stars and progress unaffected. <span class="tag-good">Stars safe</span></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Overlay state</div>
+          <div class="spec-val">Overlay <strong>closes</strong> after hint shown &mdash; returns child to active play</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Hint display</div>
+          <div class="spec-val">Gentle glow card below question. Adventure language. Not authoritative.</div>
+        </div>
+      </div>
+
+      <!-- WCAG -->
+      <div class="spec-card">
+        <div class="spec-card-title green">&#9855; WCAG / Accessibility</div>
+        <div class="wcag-list">
+          <div class="wcag-item"><div class="wcag-bullet"></div>Overlay uses <code style="color:#50e890;font-size:11px;">role="dialog"</code> with <code style="color:#50e890;font-size:11px;">aria-modal="true"</code></div>
+          <div class="wcag-item"><div class="wcag-bullet"></div>Focus is trapped inside the overlay while it is open</div>
+          <div class="wcag-item"><div class="wcag-bullet"></div>Focus returns to the "Parent Help" chip when overlay closes</div>
+          <div class="wcag-item"><div class="wcag-bullet"></div>Overlay has <code style="color:#50e890;font-size:11px;">aria-label="Parent Assist mode"</code></div>
+          <div class="wcag-item"><div class="wcag-bullet"></div>All action cards are keyboard-focusable and activatable via Enter/Space</div>
+          <div class="wcag-item"><div class="wcag-bullet"></div>Colour contrast &ge; 4.5:1 for all text against card backgrounds</div>
+          <div class="wcag-item"><div class="wcag-bullet"></div>PIN entry keyboard is screen-reader-labelled (aria-labels on each digit button)</div>
+        </div>
+      </div>
+
+      <!-- Privacy -->
+      <div class="spec-card">
+        <div class="spec-card-title coral">&#128272; Privacy</div>
+        <div class="spec-row">
+          <div class="spec-key">Teacher view</div>
+          <div class="spec-val">Parent assist actions <strong>never appear</strong> in teacher dashboards or class reports <span class="tag-warn">excluded</span></div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Parent view</div>
+          <div class="spec-val">All assist actions appear in Family Activity log (parent-only screen)</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Data retention</div>
+          <div class="spec-val">Assist actions retained per household data policy (default 12 months)</div>
+        </div>
+        <div class="spec-row">
+          <div class="spec-key">Shown in-app</div>
+          <div class="spec-val">Privacy notice shown on every overlay open &mdash; "not recorded or shown to teachers"</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DB Schema -->
+    <div class="section-title" style="margin-bottom:12px;font-size:15px;">Database Schema</div>
+    <div class="sql-block"><span class="sql-kw">CREATE TYPE</span> action_enum <span class="sql-kw">AS ENUM</span> (<span class="sql-str">'read_aloud'</span>, <span class="sql-str">'show_hint'</span>, <span class="sql-str">'skip'</span>);
+
+<span class="sql-kw">CREATE TABLE</span> play_assist_actions (
+  id           <span class="sql-type">UUID</span>          <span class="sql-kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  session_id   <span class="sql-type">UUID</span>          <span class="sql-kw">NOT NULL REFERENCES</span> play_sessions(id),
+  question_id  <span class="sql-type">UUID</span>          <span class="sql-kw">NOT NULL REFERENCES</span> questions(id),
+  action_type  <span class="sql-type">action_enum</span>   <span class="sql-kw">NOT NULL</span>,
+  triggered_by <span class="sql-type">UUID</span>          <span class="sql-kw">NOT NULL REFERENCES</span> users(id),  <span class="sql-comment">-- parent_id</span>
+  created_at   <span class="sql-type">TIMESTAMPTZ</span>   <span class="sql-kw">NOT NULL DEFAULT</span> now()
+);
+
+<span class="sql-comment">-- Index for parent's Family Activity log (parent_id + time desc)</span>
+<span class="sql-kw">CREATE INDEX</span> idx_assist_triggered_by <span class="sql-kw">ON</span> play_assist_actions (triggered_by, created_at <span class="sql-kw">DESC</span>);
+
+<span class="sql-comment">-- Index for session-level lookups</span>
+<span class="sql-kw">CREATE INDEX</span> idx_assist_session <span class="sql-kw">ON</span> play_assist_actions (session_id);</div>
+
+    <!-- No-shame banner -->
+    <div class="no-shame-banner">
+      <div class="no-shame-icon">&#127775;</div>
+      <div>
+        <div class="no-shame-title">No Shaming &mdash; Ever</div>
+        <div class="no-shame-text">
+          Skipping is presented as "Try a different adventure!" &mdash; a positive pivot, never a failure. Hints are celebrated as clues unlocked, not signs of struggle. Parent assist exists to support, encourage, and make learning feel safe. No action taken through this overlay can decrease a child's stars, XP, or progress. The adventure always continues.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        var match = btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + t + "'") !== -1;
+        btn.classList.toggle('active', match);
+      });
+      document.querySelectorAll('.screen').forEach(function(s) {
+        s.classList.toggle('active', s.id === t);
+      });
+    }
+
+    function showPhoneState(stateId, clickedBtn) {
+      document.querySelectorAll('.phone-tab-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+      });
+
+      if (clickedBtn) {
+        clickedBtn.classList.add('active');
+      } else {
+        document.querySelectorAll('.phone-tab-btn').forEach(function(btn) {
+          if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + stateId + "'") !== -1) {
+            btn.classList.add('active');
+          }
+        });
+      }
+
+      document.querySelectorAll('.phone-screen').forEach(function(s) {
+        s.classList.toggle('active', s.id === stateId);
+      });
+    }
+  </script>
+</body>
+</html>

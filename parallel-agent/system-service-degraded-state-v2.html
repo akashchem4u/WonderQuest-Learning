@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ITEM 239 · system-service-degraded-state-v2 · WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --border: rgba(255,255,255,.06);
+    --p0: #ffd166;
+    --p1: #9b72ff;
+    --p2: #58e8c1;
+    --p3: #ff7b6b;
+    --amber: #f0c040;
+    --amber-bg: rgba(240,192,64,.10);
+    --amber-border: rgba(240,192,64,.35);
+    --red: #ff4d4f;
+    --red-bg: rgba(255,77,79,.10);
+    --green: #50e890;
+    --muted: rgba(240,246,255,.45);
+    --chip-h: 24px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 24px 20px 60px;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #1a1200;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -.3px;
+    margin-bottom: 4px;
+  }
+  .page-header p {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+    border-radius: 4px 4px 0 0;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title .pattern-num {
+    background: rgba(255,255,255,.08);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* ── Chip ── */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: var(--chip-h);
+    padding: 0 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .chip-amber {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    color: var(--amber);
+  }
+  .chip-green {
+    background: rgba(80,232,144,.10);
+    border: 1px solid rgba(80,232,144,.30);
+    color: var(--green);
+  }
+  .chip-red {
+    background: var(--red-bg);
+    border: 1px solid rgba(255,77,79,.35);
+    color: var(--red);
+  }
+  .chip-muted {
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* ── Dot indicator ── */
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+  .dot-green { background: var(--green); box-shadow: 0 0 4px var(--green); }
+  .dot-red   { background: var(--red);   box-shadow: 0 0 4px var(--red); }
+
+  /* ── Pulse animation ── */
+  @keyframes pulse-amber {
+    0%,100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+  .pulse { animation: pulse-amber 1.8s ease-in-out infinite; }
+
+  /* ── Spinner ── */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255,255,255,.12);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* ─────────────────────────────────────────
+     PATTERN MOCKUPS
+  ───────────────────────────────────────── */
+
+  /* P1: Global degraded banner */
+  .global-banner {
+    width: 100%;
+    height: 48px;
+    background: rgba(240,192,64,.15);
+    border: 1px solid var(--amber-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    font-size: 13px;
+    color: #f5e0a0;
+  }
+  .global-banner .banner-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .global-banner .banner-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .status-link {
+    font-size: 12px;
+    color: var(--amber);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* P2: Reports inline alert */
+  .reports-frame {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .reports-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .reports-header h3 { font-size: 14px; font-weight: 600; flex: 1; }
+  .reports-alert {
+    margin: 14px 16px;
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #f5e0a0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .reports-alert .alert-body { flex: 1; }
+  .reports-alert .retry-btn {
+    flex-shrink: 0;
+    background: rgba(240,192,64,.18);
+    border: 1px solid var(--amber-border);
+    color: var(--amber);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+  .reports-content {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 10px;
+  }
+  .report-cell {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .report-cell .val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--p2);
+  }
+  .report-cell .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* P3: Search degraded */
+  .search-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+  }
+  .search-input {
+    width: 100%;
+    background: rgba(255,255,255,.05);
+    border: 1.5px solid var(--amber);
+    border-radius: 8px;
+    padding: 9px 12px 9px 38px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    caret-color: var(--accent);
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .search-amber-dot {
+    position: absolute;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 5px var(--amber);
+  }
+  .search-tooltip {
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--amber);
+    opacity: .85;
+  }
+  .search-results {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .search-result-row {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .search-result-row .icon { font-size: 14px; }
+
+  /* P4: Sync degraded */
+  .sync-header {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sync-header .logo { font-weight: 800; color: var(--accent); font-size: 15px; flex: 1; }
+  .sync-play-area {
+    margin-top: 12px;
+    background: linear-gradient(135deg, rgba(155,114,255,.08), rgba(88,232,193,.06));
+    border: 1px solid rgba(155,114,255,.20);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .sync-play-area .stars-row {
+    font-size: 20px;
+    margin-bottom: 6px;
+    letter-spacing: 3px;
+  }
+  .sync-play-area .xp-bar-wrap {
+    background: rgba(255,255,255,.08);
+    border-radius: 4px;
+    height: 6px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+  .sync-play-area .xp-bar-fill {
+    width: 62%;
+    height: 100%;
+    background: var(--p1);
+    border-radius: 4px;
+  }
+  .sync-play-area .saving-note {
+    font-size: 11px;
+    color: var(--amber);
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  /* P5: Child-safe degraded */
+  .child-play-screen {
+    background: linear-gradient(135deg, #1a0f2e 0%, #0d1f2d 100%);
+    border: 1px solid rgba(155,114,255,.25);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .child-play-top {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .child-stars { font-size: 13px; }
+  .child-play-body {
+    padding: 24px 16px;
+    text-align: center;
+  }
+  .child-loading-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #d4bbff;
+    margin-bottom: 20px;
+  }
+  .child-exit-msg {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(155,114,255,.15);
+    border: 1px solid rgba(155,114,255,.30);
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 13px;
+    color: #d4bbff;
+  }
+
+  /* P6: Teacher dashboard degraded */
+  .teacher-frame {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .teacher-banner {
+    background: var(--amber-bg);
+    border-bottom: 1px solid var(--amber-border);
+    padding: 10px 16px;
+    font-size: 12px;
+    color: #f5e0a0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .teacher-banner .ts {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--amber);
+    opacity: .75;
+  }
+  .teacher-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 0;
+  }
+  .teacher-cell {
+    padding: 16px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .teacher-cell:last-child { border-right: none; }
+  .teacher-cell .t-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .teacher-cell .t-lbl { font-size: 11px; color: var(--muted); }
+  .teacher-cell .t-cached { font-size: 10px; color: var(--amber); opacity: .7; margin-top: 3px; }
+
+  /* ─────────────────────────────────────────
+     TAB 2 — SEVERITY LADDER
+  ───────────────────────────────────────── */
+  .severity-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 28px;
+  }
+  .severity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 700px;
+  }
+  .severity-table th {
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .severity-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .severity-table tr:last-child td { border-bottom: none; }
+  .severity-table tr:hover td { background: rgba(255,255,255,.025); }
+
+  .state-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .state-ok    { background: rgba(80,232,144,.12); color: var(--green); }
+  .state-slow  { background: rgba(80,232,144,.07); color: rgba(80,232,144,.55); }
+  .state-deg   { background: var(--amber-bg); color: var(--amber); }
+  .state-part  { background: rgba(255,165,0,.10); color: #ffaa33; }
+  .state-out   { background: var(--red-bg); color: var(--red); }
+  .state-maint { background: rgba(155,114,255,.12); color: var(--p1); }
+
+  /* Persona matrix */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .persona-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .persona-card-head {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .persona-card-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .persona-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .persona-row .level-badge {
+    flex-shrink: 0;
+    width: 68px;
+    text-align: right;
+    font-size: 10px;
+    font-weight: 700;
+    padding-top: 1px;
+  }
+  .persona-row .desc { color: var(--muted); line-height: 1.4; }
+
+  /* ─────────────────────────────────────────
+     TAB 3 — SPEC
+  ───────────────────────────────────────── */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 16px;
+  }
+  .spec-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .spec-item .spec-key {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .spec-item .spec-val {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .spec-item .spec-val code {
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--p2);
+  }
+  .spec-item .spec-val strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .spec-full {
+    grid-column: 1 / -1;
+  }
+
+  /* DB schema block */
+  .schema-block {
+    background: #0a0e14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 12px;
+    color: #a8d8ff;
+    margin-top: 10px;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .schema-block .kw  { color: #c792ea; }
+  .schema-block .ty  { color: var(--p2); }
+  .schema-block .str { color: #f0c040; }
+  .schema-block .cmt { color: rgba(255,255,255,.28); font-style: italic; }
+
+  /* Auto-recovery flash */
+  @keyframes flash-green {
+    0%   { opacity: 0; transform: translateY(-4px); }
+    15%  { opacity: 1; transform: translateY(0); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .recovery-flash {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(80,232,144,.18);
+    border: 1px solid rgba(80,232,144,.40);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 100;
+    animation: flash-green 3s ease forwards;
+    white-space: nowrap;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  /* ── note tag ── */
+  .note {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .spec-grid { grid-template-columns: 1fr; }
+    .persona-grid { grid-template-columns: 1fr; }
+    .teacher-grid { grid-template-columns: repeat(2,1fr); }
+    .reports-content { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div class="hint-box">ITEM 239 · system-service-degraded-state-v2.html · WonderQuest parallel-agent build</div>
+
+<!-- Page header -->
+<div class="page-header">
+  <h1>System / Service — Degraded State</h1>
+  <p>Patterns, severity ladder and spec for handling degraded service conditions across all WonderQuest personas.</p>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(1)">Degraded State Gallery</button>
+  <button class="tab-btn" onclick="showTab(2)">Severity Ladder</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1 — DEGRADED STATE GALLERY
+═══════════════════════════════════════════ -->
+<div id="tab-1" class="tab-panel active">
+
+  <!-- Pattern 1 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pattern-num">P1</span>
+      Global Degraded Banner — top of any page
+    </div>
+    <div class="global-banner">
+      <div class="banner-left">
+        <span class="dot dot-amber pulse"></span>
+        <span>⚠ Some features are slower than usual. We're working on it.</span>
+      </div>
+      <div class="banner-right">
+        <span class="chip chip-amber">Status: Degraded</span>
+        <a class="status-link" href="#">View status</a>
+      </div>
+    </div>
+    <p class="note">Full-width · 48px · non-dismissible · amber background · shown to parents, teachers, owners</p>
+  </div>
+
+  <!-- Pattern 2 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pattern-num">P2</span>
+      Specific Service Degraded — Reports route
+    </div>
+    <div class="reports-frame">
+      <div class="reports-header">
+        <span style="font-size:18px;">📊</span>
+        <h3>Class Reports</h3>
+        <span class="chip chip-amber"><span class="dot dot-amber pulse"></span>Slow</span>
+      </div>
+      <div class="reports-alert">
+        <span style="font-size:16px; flex-shrink:0; margin-top:1px;">📊</span>
+        <div class="alert-body">
+          <strong>Reports are loading slowly right now.</strong> Your data is safe — this may take longer than usual.
+          <div style="margin-top:5px; font-size:11px; opacity:.75;">Page content continues to load behind this notice. A retry option appears after 30 s.</div>
+        </div>
+        <button class="retry-btn">Retry</button>
+      </div>
+      <div class="reports-content">
+        <div class="report-cell"><div class="val">24</div><div class="lbl">Active learners</div></div>
+        <div class="report-cell"><div class="val">87%</div><div class="lbl">Avg completion</div></div>
+        <div class="report-cell"><div class="val">1,340</div><div class="lbl">XP earned today</div></div>
+      </div>
+    </div>
+    <p class="note">Inline alert · page content loads behind it (non-blocking) · retry shown after 30 s timeout</p>
+  </div>
+
+  <!-- Pattern 3 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pattern-num">P3</span>
+      Search Degraded
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" type="text" placeholder="Search activities, reports, children…" value="phonics" readonly />
+      <span class="search-amber-dot pulse"></span>
+    </div>
+    <div class="search-tooltip">
+      <span class="dot dot-amber"></span>
+      Search is running slowly — results may take a moment
+    </div>
+    <div class="search-results">
+      <div class="search-result-row"><span class="icon">📖</span> Phonics Adventure Level 2 <span class="chip chip-muted" style="margin-left:auto;">Activity</span></div>
+      <div class="search-result-row"><span class="icon">🎮</span> Phonics Blends Practice <span class="chip chip-muted" style="margin-left:auto;">Activity</span></div>
+      <div class="search-result-row"><span class="icon">📊</span> Phonics Progress Report — Class 3B <span class="chip chip-muted" style="margin-left:auto;">Report</span></div>
+    </div>
+    <p class="note">Amber border on input · amber dot (no block) · results still return, just slower · tooltip on hover</p>
+  </div>
+
+  <!-- Pattern 4 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pattern-num">P4</span>
+      Sync Degraded — Local-first scenario
+    </div>
+    <div class="sync-header">
+      <span class="logo">WonderQuest ✦</span>
+      <span class="chip chip-amber pulse">💾 Saving locally — we'll sync when back online</span>
+      <span class="chip chip-muted">Offline</span>
+    </div>
+    <div class="sync-play-area" style="margin-top:12px;">
+      <div class="stars-row">⭐ ⭐ ⭐ ⭐ ☆</div>
+      <div style="font-size:13px; color:#d4bbff; font-weight:600; margin-bottom:4px;">Adventure continues!</div>
+      <div class="xp-bar-wrap"><div class="xp-bar-fill"></div></div>
+      <div style="font-size:12px; color:var(--muted);">+120 XP earned this session</div>
+      <div class="saving-note">
+        <span class="dot dot-amber pulse"></span>
+        Your progress is being saved locally
+      </div>
+    </div>
+    <p class="note">Child play continues uninterrupted · XP/stars applied optimistically · "Saving locally" shown to parents only, not children · IndexedDB cache + sync buffer</p>
+  </div>
+
+  <!-- Pattern 5 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pattern-num">P5</span>
+      Child-Safe Degraded — Child play screen
+    </div>
+    <div class="child-play-screen">
+      <div class="child-play-top">
+        <span class="child-stars">⭐ ⭐ ⭐ ☆ ☆</span>
+        <span style="font-size:12px; color:#d4bbff;">Level 4 · Quest mode</span>
+        <!-- No degraded banner here — intentionally absent -->
+      </div>
+      <div class="child-play-body">
+        <!-- Loading state -->
+        <div class="child-loading-msg">
+          <div class="spinner"></div>
+          Loading your next adventure... 🌟
+        </div>
+        <!-- Repeated failure exit state -->
+        <div class="child-exit-msg">
+          Take a break! Your stars are waiting 🌟
+        </div>
+        <div style="font-size:11px; color:rgba(212,187,255,.4); margin-top:14px;">
+          No error messages · No degraded banners · Positive copy only
+        </div>
+      </div>
+    </div>
+    <p class="note">Child never sees system degradation UI · load failure = positive spinner · repeated failure = positive exit message, never "error"</p>
+  </div>
+
+  <!-- Pattern 6 -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pattern-num">P6</span>
+      Teacher Dashboard Degraded
+    </div>
+    <div class="teacher-frame">
+      <div class="teacher-banner">
+        <span class="dot dot-amber pulse"></span>
+        Class data updating — some stats may be a few minutes behind
+        <span class="ts">As of 14:32</span>
+      </div>
+      <div class="teacher-grid">
+        <div class="teacher-cell">
+          <div class="t-val">24</div>
+          <div class="t-lbl">Active today</div>
+          <div class="t-cached">Cached · 14:32</div>
+        </div>
+        <div class="teacher-cell">
+          <div class="t-val">87%</div>
+          <div class="t-lbl">Completion rate</div>
+          <div class="t-cached">Cached · 14:32</div>
+        </div>
+        <div class="teacher-cell">
+          <div class="t-val">6</div>
+          <div class="t-lbl">Needs attention</div>
+          <div class="t-cached">Cached · 14:32</div>
+        </div>
+        <div class="teacher-cell">
+          <div class="t-val">1,340</div>
+          <div class="t-lbl">XP earned</div>
+          <div class="t-cached">Cached · 14:32</div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Amber banner · data still shows (cached) · "As of HH:MM" timestamp · no blocking — all teacher features remain accessible</p>
+  </div>
+
+</div><!-- /tab-1 -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB 2 — SEVERITY LADDER
+═══════════════════════════════════════════ -->
+<div id="tab-2" class="tab-panel">
+
+  <div class="section-label">State → UI Treatment Mapping</div>
+  <div class="severity-table-wrap">
+    <table class="severity-table">
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Trigger</th>
+          <th>Banner</th>
+          <th>Child View</th>
+          <th>Dismissible</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="state-pill state-ok"><span class="dot dot-green"></span>All Good</span></td>
+          <td>All routes &lt;200ms p95</td>
+          <td>None</td>
+          <td>None</td>
+          <td>N/A</td>
+        </tr>
+        <tr>
+          <td><span class="state-pill state-slow">Slow</span></td>
+          <td>p95 &gt;200ms, &lt;300ms</td>
+          <td>None (background monitoring)</td>
+          <td>None</td>
+          <td>N/A</td>
+        </tr>
+        <tr>
+          <td><span class="state-pill state-deg"><span class="dot dot-amber"></span>Degraded</span></td>
+          <td>p95 &gt;300ms OR error rate &gt;0.5%</td>
+          <td>Amber · non-dismissible</td>
+          <td>None</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td><span class="state-pill state-part">Partial Outage</span></td>
+          <td>Route DOWN + fallback active</td>
+          <td>Amber + affected services listed</td>
+          <td>None</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td><span class="state-pill state-out"><span class="dot dot-red"></span>Full Outage</span></td>
+          <td>Multiple routes DOWN</td>
+          <td>Red · non-dismissible</td>
+          <td>"Taking a rest 😴"</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td><span class="state-pill state-maint">Maintenance</span></td>
+          <td>Scheduled window</td>
+          <td>See maintenance banner spec</td>
+          <td>"Having a rest! 😴"</td>
+          <td>Per timing rules</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="section-label" style="margin-bottom:16px;">Persona View — What Each User Sees</div>
+  <div class="persona-grid">
+
+    <!-- Child -->
+    <div class="persona-card">
+      <div class="persona-card-head" style="border-left:3px solid var(--p1);">
+        <span>👶</span> Child
+      </div>
+      <div class="persona-card-body">
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-ok" style="font-size:9px;">All Good</span></span>
+          <span class="desc">Normal play experience</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-slow" style="font-size:9px;">Slow</span></span>
+          <span class="desc">No change shown</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-deg" style="font-size:9px;">Degraded</span></span>
+          <span class="desc">No degraded UI — play continues uninterrupted</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-part" style="font-size:9px;">Partial</span></span>
+          <span class="desc">No degraded UI — local-first absorbs impact</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-out" style="font-size:9px;">Outage</span></span>
+          <span class="desc">"Taking a rest 😴" — positive, never "error"</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-maint" style="font-size:9px;">Maint.</span></span>
+          <span class="desc">"Having a rest! 😴" — scheduled positive message</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parent -->
+    <div class="persona-card">
+      <div class="persona-card-head" style="border-left:3px solid var(--p2);">
+        <span>👨‍👩‍👧</span> Parent
+      </div>
+      <div class="persona-card-body">
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-ok" style="font-size:9px;">All Good</span></span>
+          <span class="desc">Normal dashboard</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-slow" style="font-size:9px;">Slow</span></span>
+          <span class="desc">No banner (transparent)</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-deg" style="font-size:9px;">Degraded</span></span>
+          <span class="desc">Amber banner · "some features slower than usual"</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-part" style="font-size:9px;">Partial</span></span>
+          <span class="desc">Amber banner + affected areas listed</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-out" style="font-size:9px;">Outage</span></span>
+          <span class="desc">Red banner · "temporary issue" language · ETA if known</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-maint" style="font-size:9px;">Maint.</span></span>
+          <span class="desc">Scheduled banner with timing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher -->
+    <div class="persona-card">
+      <div class="persona-card-head" style="border-left:3px solid var(--p0);">
+        <span>👩‍🏫</span> Teacher
+      </div>
+      <div class="persona-card-body">
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-ok" style="font-size:9px;">All Good</span></span>
+          <span class="desc">Normal class dashboard</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-slow" style="font-size:9px;">Slow</span></span>
+          <span class="desc">No banner (transparent)</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-deg" style="font-size:9px;">Degraded</span></span>
+          <span class="desc">Amber banner · service detail · "As of HH:MM" on cached data</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-part" style="font-size:9px;">Partial</span></span>
+          <span class="desc">Amber banner · which services affected · fallback indicator</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-out" style="font-size:9px;">Outage</span></span>
+          <span class="desc">Red banner · operational impact language · what teachers can still do</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-maint" style="font-size:9px;">Maint.</span></span>
+          <span class="desc">Advance notice + timing + data availability info</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Owner -->
+    <div class="persona-card">
+      <div class="persona-card-head" style="border-left:3px solid var(--p3);">
+        <span>🏢</span> Owner / Operator
+      </div>
+      <div class="persona-card-body">
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-ok" style="font-size:9px;">All Good</span></span>
+          <span class="desc">Live metrics panel · all green</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-slow" style="font-size:9px;">Slow</span></span>
+          <span class="desc">Health dashboard · p95 trending indicator</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-deg" style="font-size:9px;">Degraded</span></span>
+          <span class="desc">Full technical detail · affected routes · p95/error rates · incident start</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-part" style="font-size:9px;">Partial</span></span>
+          <span class="desc">Route-level status · fallback status · user impact estimate</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-out" style="font-size:9px;">Outage</span></span>
+          <span class="desc">Full incident dashboard · all routes · ETA · runbook link</span>
+        </div>
+        <div class="persona-row">
+          <span class="level-badge"><span class="state-pill state-maint" style="font-size:9px;">Maint.</span></span>
+          <span class="desc">Maintenance window management · scheduling · rollback controls</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /tab-2 -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB 3 — SPEC
+═══════════════════════════════════════════ -->
+<div id="tab-3" class="tab-panel">
+
+  <div class="spec-grid">
+
+    <div class="spec-item">
+      <div class="spec-key">Detection</div>
+      <div class="spec-val">
+        Route health check polls every <strong>60 s</strong> (drops to <strong>10 s</strong> during an active incident).
+        Results written to <code>platform_status</code> table by the health check job.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Degraded Trigger</div>
+      <div class="spec-val">
+        <code>p95_latency_ms &gt; 300</code> <strong>OR</strong> <code>error_rate &gt; 0.005</code> on any monitored route triggers <code>status = 'degraded'</code>.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Child Isolation</div>
+      <div class="spec-val">
+        Child play session <strong>never</strong> shows system degradation UI.
+        Local-first architecture ensures play continues uninterrupted.
+        Errors are absorbed silently and surfaced only in operator logs.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Local-first During Degraded</div>
+      <div class="spec-val">
+        <strong>IndexedDB</strong> cache serves questions.
+        Answers queued in <strong>sync buffer</strong>.
+        XP / stars applied <strong>optimistically</strong>.
+        "Saving locally" chip shown to parents only — never to children.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Auto-recovery</div>
+      <div class="spec-val">
+        When health check returns to normal thresholds for <strong>3 consecutive polls</strong>:
+        banner auto-dismisses + green <em>"All systems restored"</em> flash shown for <strong>3 s</strong>.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Persona Routing</div>
+      <div class="spec-val">
+        <code>user.persona</code> field determines copy level and which UI elements render.
+        Child persona → degradation UI suppressed entirely.
+        Owner persona → full technical detail at all levels.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Cached Data Timestamp</div>
+      <div class="spec-val">
+        All degraded data views display <code>"As of [HH:MM]"</code> to set accurate user expectations. Timestamp sourced from <code>platform_status.updated_at</code>.
+      </div>
+    </div>
+
+    <div class="spec-item">
+      <div class="spec-key">Copy Principles</div>
+      <div class="spec-val">
+        Children: <strong>positive only</strong> — no "error", "fail", "problem".
+        Parents: <strong>"temporary issue"</strong> framing, no jargon.
+        Teachers: <strong>operational impact</strong> language.
+        Owner: <strong>technical</strong> — p95, error rate, route names.
+      </div>
+    </div>
+
+    <div class="spec-item spec-full">
+      <div class="spec-key">DB Schema — platform_status</div>
+      <div class="spec-val">
+        <div class="schema-block">
+<span class="kw">CREATE TABLE</span> platform_status (<br>
+&nbsp;&nbsp;id               <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY DEFAULT</span> gen_random_uuid(),<br>
+&nbsp;&nbsp;status           <span class="ty">TEXT</span>        <span class="kw">NOT NULL CHECK</span>(status <span class="kw">IN</span> (<span class="str">'ok'</span>, <span class="str">'slow'</span>, <span class="str">'degraded'</span>, <span class="str">'outage'</span>)),<br>
+&nbsp;&nbsp;affected_services <span class="ty">TEXT[]</span>,      <span class="cmt">-- e.g. ARRAY['reports','search']</span><br>
+&nbsp;&nbsp;p95_latency_ms    <span class="ty">INTEGER</span>,<br>
+&nbsp;&nbsp;error_rate        <span class="ty">NUMERIC(6,4)</span>,<br>
+&nbsp;&nbsp;updated_at        <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> now(),<br>
+&nbsp;&nbsp;updated_by        <span class="ty">TEXT</span>        <span class="kw">NOT NULL DEFAULT</span> <span class="str">'health-check-job'</span><br>
+);
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /tab-3 -->
+
+
+<!-- Auto-recovery flash (demo) -->
+<div id="recovery-flash" class="recovery-flash" style="display:none;">
+  <span class="dot dot-green"></span> All systems restored
+</div>
+
+
+<script>
+  function showTab(t) {
+    document.querySelectorAll('.tab-panel').forEach(function(p) {
+      p.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+      b.classList.remove('active');
+    });
+    var panel = document.getElementById('tab-' + t);
+    if (panel) panel.classList.add('active');
+    var btns = document.querySelectorAll('.tab-btn');
+    if (btns[t - 1]) btns[t - 1].classList.add('active');
+  }
+
+  // Demo: show auto-recovery flash when clicking "All Good" row area (just a tooltip demo trigger)
+  // Also wire retry button
+  var retryBtn = document.querySelector('.retry-btn');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', function() {
+      this.textContent = 'Retrying…';
+      var self = this;
+      setTimeout(function() { self.textContent = 'Retry'; }, 2000);
+    });
+  }
+
+  // Simulate auto-recovery flash on Tab 2 load after 1.5s (demo only)
+  var flashShown = false;
+  document.querySelectorAll('.tab-btn').forEach(function(btn, idx) {
+    btn.addEventListener('click', function() {
+      if (idx === 1 && !flashShown) {
+        flashShown = true;
+        setTimeout(function() {
+          var f = document.getElementById('recovery-flash');
+          f.style.display = 'flex';
+          setTimeout(function() { f.style.display = 'none'; }, 3200);
+        }, 800);
+      }
+    });
+  });
+</script>
+</body>
+</html>

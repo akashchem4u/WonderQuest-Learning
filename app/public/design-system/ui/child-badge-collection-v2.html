@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Child Badge Collection v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a1a; font-family: 'Nunito', sans-serif; font-weight: 700; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+.hint-box { background: #fffbe6; border: 2px solid #f0c030; border-radius: 10px; padding: 14px 18px; max-width: 780px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+.tab-btn { background: #1e1e3e; color: #9b72ff; border: 1.5px solid #2e2e5e; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #ffd166; color: #1a0f00; border-color: #ffd166; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Phone frame */
+.phone { width: 375px; background: #100b2e; border-radius: 40px; border: 3px solid #2e1f6e; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); margin: 0 auto; min-height: 720px; display: flex; flex-direction: column; }
+.status-bar { background: #0d0820; padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 11px; color: #7b6fa0; }
+.status-bar .gold { color: #ffd166; font-weight: 900; }
+.page-header { background: linear-gradient(135deg, #1a0f3e, #2a1060); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2e1f6e; }
+.page-title { font-size: 18px; font-weight: 900; color: #e8d8ff; flex: 1; }
+.page-count { font-size: 12px; color: #9b72ff; font-weight: 700; }
+
+/* Badge shelf */
+.badge-shelf-wrap { padding: 14px 14px 0; }
+.shelf-label { font-size: 12px; color: #9b72ff; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+.badge-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.badge-circle { width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; position: relative; transition: transform .15s; }
+.badge-item:active .badge-circle { transform: scale(.92); }
+.badge-earned { background: linear-gradient(135deg, #2a1060, #1a0f3e); border: 3px solid #ffd166; box-shadow: 0 0 14px rgba(255,209,102,.4); animation: glow-pulse 3s ease-in-out infinite; }
+@keyframes glow-pulse { 0%,100% { box-shadow: 0 0 10px rgba(255,209,102,.3); } 50% { box-shadow: 0 0 22px rgba(255,209,102,.7); } }
+.badge-new { background: linear-gradient(135deg, #2a1060, #1a0f3e); border: 3px solid #58e8c1; box-shadow: 0 0 14px rgba(88,232,193,.4); }
+.badge-locked { background: #1a1040; border: 2px dashed #2e2060; opacity: .5; filter: grayscale(1); }
+.badge-name { font-size: 9px; color: #c8b8f0; text-align: center; max-width: 62px; line-height: 1.2; }
+.badge-name.locked { color: #5a5080; }
+.new-chip { position: absolute; top: -4px; right: -4px; background: #58e8c1; color: #0a2018; font-size: 7px; font-weight: 900; padding: 1px 5px; border-radius: 6px; }
+
+/* Trophy groups */
+.trophy-group { background: #1a0f3e; border-radius: 16px; margin: 0 14px 12px; padding: 14px; }
+.trophy-group-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.trophy-icon { font-size: 28px; }
+.trophy-info { flex: 1; }
+.trophy-name { font-size: 14px; font-weight: 900; color: #e0d0ff; }
+.trophy-progress-label { font-size: 11px; color: #9b72ff; margin-top: 2px; }
+.trophy-pct { font-size: 13px; font-weight: 900; color: #ffd166; }
+.trophy-bar { height: 8px; background: #2a1f5e; border-radius: 6px; overflow: hidden; }
+.trophy-fill { height: 100%; background: linear-gradient(90deg, #ffd166, #ff9b3a); border-radius: 6px; }
+.trophy-badge-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.trophy-badge-mini { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2px solid #ffd166; background: linear-gradient(135deg, #2a1060, #1a0f3e); }
+.trophy-badge-mini.locked { opacity: .35; border-color: #2e2060; border-style: dashed; filter: grayscale(1); }
+
+/* Badge detail */
+.badge-detail-hero { text-align: center; padding: 24px 16px 16px; }
+.badge-detail-circle { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #2a1060, #1a0f3e); border: 4px solid #ffd166; box-shadow: 0 0 30px rgba(255,209,102,.5); display: flex; align-items: center; justify-content: center; font-size: 48px; margin: 0 auto 14px; }
+.badge-detail-name { font-size: 22px; font-weight: 900; color: #e8d8ff; }
+.badge-detail-world { font-size: 12px; color: #9b72ff; margin-top: 4px; }
+.badge-detail-desc { font-size: 14px; color: #c8b8f0; margin-top: 10px; line-height: 1.5; max-width: 260px; margin-left: auto; margin-right: auto; }
+.badge-detail-date { font-size: 11px; color: #7b6fa0; margin-top: 8px; }
+.badge-detail-meta { background: #1a0f3e; border-radius: 14px; margin: 0 14px; padding: 14px; }
+.meta-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #2e1f6e; font-size: 12px; }
+.meta-row:last-child { border-bottom: none; }
+.meta-key { color: #7b6fa0; }
+.meta-val { color: #e0d0ff; font-weight: 900; }
+.btn-share { background: linear-gradient(135deg, #9b72ff, #d87bff); color: #fff; border: none; border-radius: 24px; padding: 14px 40px; font-size: 16px; font-family: 'Nunito', sans-serif; font-weight: 900; cursor: pointer; width: calc(100% - 28px); margin: 14px; display: block; }
+
+/* Replay motivation (locked badge) */
+.locked-hero { text-align: center; padding: 20px 16px; }
+.locked-icon { font-size: 60px; filter: grayscale(1); opacity: .5; }
+.locked-title { font-size: 18px; font-weight: 900; color: #9b72ff; margin-top: 10px; }
+.locked-sub { font-size: 13px; color: #7b6fa0; margin-top: 4px; }
+.unlock-steps { margin: 14px; background: #1a0f3e; border-radius: 16px; padding: 14px; }
+.unlock-step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2e1f6e; }
+.unlock-step:last-child { border-bottom: none; }
+.step-icon { font-size: 22px; flex-shrink: 0; }
+.step-text { font-size: 14px; color: #c8b8f0; font-weight: 900; }
+.step-check { font-size: 16px; margin-left: auto; }
+.btn-go { background: #9b72ff; color: #fff; border: none; border-radius: 24px; padding: 14px 40px; font-size: 16px; font-family: 'Nunito', sans-serif; font-weight: 900; cursor: pointer; width: calc(100% - 28px); margin: 0 14px 14px; display: block; }
+.btn-back { background: transparent; color: #9b72ff; border: 2.5px solid #9b72ff; border-radius: 24px; padding: 12px 40px; font-size: 15px; font-family: 'Nunito', sans-serif; font-weight: 900; cursor: pointer; width: calc(100% - 28px); margin: 0 14px; display: block; }
+
+/* Spec */
+.spec-wrap { padding: 14px; }
+.spec-section { margin-bottom: 16px; }
+.spec-title { font-size: 12px; color: #ffd166; font-weight: 900; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.spec-table th { background: #1e1250; color: #9b72ff; padding: 6px 8px; text-align: left; border-bottom: 1px solid #2e1f6e; }
+.spec-table td { color: #c8b8f0; padding: 5px 8px; border-bottom: 1px solid #160d38; vertical-align: top; }
+.spec-rule { background: #12093a; border-left: 3px solid #ffd166; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 6px; font-size: 12px; color: #c8b8f0; }
+.spec-rule strong { color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>🏅 child-badge-collection-v2.html</strong> — Child badge shelf, trophy groups, locked/unlocked states, replay motivation. Emoji-first, no reading walls.<br>
+  <strong>Tabs:</strong> 1 · Badge Shelf (4-col grid: earned/new/locked; world group labels; glowing borders) &nbsp;|&nbsp; 2 · Trophy Groups (category cards: World/Reader/Math/Streak with % progress and mini-badge row) &nbsp;|&nbsp; 3 · Badge Detail (earned badge: large circle, description, how-earned, date, share CTA) &nbsp;|&nbsp; 4 · Replay Motivation (locked badge: unlock steps, emoji-first, replay CTA) &nbsp;|&nbsp; 5 · Spec (badge states, animation rules, reading-load rules, routes).<br>
+  <strong>Design:</strong> <code>#100b2e</code> bg · Nunito 900 · <code>#ffd166</code> gold · 375px frame · no grade labels · no reading walls · no accuracy %.
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('bc-shelf')">1 · Badge Shelf</button>
+  <button class="tab-btn" onclick="show('bc-groups')">2 · Trophy Groups</button>
+  <button class="tab-btn" onclick="show('bc-detail')">3 · Badge Detail</button>
+  <button class="tab-btn" onclick="show('bc-replay')">4 · Unlock This!</button>
+  <button class="tab-btn" onclick="show('bc-spec')">5 · Spec</button>
+</div>
+
+<!-- TAB 1: Badge Shelf -->
+<div id="bc-shelf" class="tab active">
+  <div class="phone">
+    <div class="status-bar"><span>My Badges</span><span class="gold">⭐ 42</span></div>
+    <div class="page-header">
+      <div class="page-title">My Badges 🏅</div>
+      <div class="page-count">7 / 24</div>
+    </div>
+    <div style="flex:1; overflow-y:auto;">
+      <div class="badge-shelf-wrap">
+        <div class="shelf-label">Dream World 🌙</div>
+        <div class="badge-grid">
+          <div class="badge-item">
+            <div class="badge-circle badge-earned">🌟</div>
+            <div class="badge-name">Dream Starter</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-earned">🌙</div>
+            <div class="badge-name">Night Owl</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-new">✨<div class="new-chip">NEW</div></div>
+            <div class="badge-name">Star Gazer</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">🌌</div>
+            <div class="badge-name locked">Galaxy</div>
+          </div>
+        </div>
+        <div class="shelf-label">Ocean World 🌊</div>
+        <div class="badge-grid">
+          <div class="badge-item">
+            <div class="badge-circle badge-earned">🐠</div>
+            <div class="badge-name">Fish Friend</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-earned">🦀</div>
+            <div class="badge-name">Crab Champ</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">🐬</div>
+            <div class="badge-name locked">Dolphin</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">🦈</div>
+            <div class="badge-name locked">Deep Diver</div>
+          </div>
+        </div>
+        <div class="shelf-label">Fire World 🔥</div>
+        <div class="badge-grid">
+          <div class="badge-item">
+            <div class="badge-circle badge-earned">🔥</div>
+            <div class="badge-name">Flame Finder</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">🌋</div>
+            <div class="badge-name locked">Volcano</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">⚡</div>
+            <div class="badge-name locked">Lightning</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">💫</div>
+            <div class="badge-name locked">Supernova</div>
+          </div>
+        </div>
+        <div class="shelf-label">Streak Badges 🔥</div>
+        <div class="badge-grid">
+          <div class="badge-item">
+            <div class="badge-circle badge-earned">🔥</div>
+            <div class="badge-name">5-Day Streak</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">🔥🔥</div>
+            <div class="badge-name locked">10-Day Streak</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">🔥🔥🔥</div>
+            <div class="badge-name locked">20-Day Streak</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle badge-locked">👑</div>
+            <div class="badge-name locked">Streak King</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Trophy Groups -->
+<div id="bc-groups" class="tab">
+  <div class="phone">
+    <div class="status-bar"><span>My Trophies</span><span class="gold">⭐ 42</span></div>
+    <div class="page-header">
+      <div class="page-title">Trophies 🏆</div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-top:12px;">
+      <div class="trophy-group">
+        <div class="trophy-group-header">
+          <div class="trophy-icon">🌍</div>
+          <div class="trophy-info">
+            <div class="trophy-name">World Explorer</div>
+            <div class="trophy-progress-label">2 of 4 worlds done</div>
+          </div>
+          <div class="trophy-pct">50%</div>
+        </div>
+        <div class="trophy-bar"><div class="trophy-fill" style="width:50%"></div></div>
+        <div class="trophy-badge-row">
+          <div class="trophy-badge-mini">🌙</div>
+          <div class="trophy-badge-mini">🌊</div>
+          <div class="trophy-badge-mini locked">🔥</div>
+          <div class="trophy-badge-mini locked">🌿</div>
+        </div>
+      </div>
+      <div class="trophy-group">
+        <div class="trophy-group-header">
+          <div class="trophy-icon">📚</div>
+          <div class="trophy-info">
+            <div class="trophy-name">Super Reader</div>
+            <div class="trophy-progress-label">3 of 6 reading badges</div>
+          </div>
+          <div class="trophy-pct">50%</div>
+        </div>
+        <div class="trophy-bar"><div class="trophy-fill" style="width:50%"></div></div>
+        <div class="trophy-badge-row">
+          <div class="trophy-badge-mini">📖</div>
+          <div class="trophy-badge-mini">🔤</div>
+          <div class="trophy-badge-mini">✍️</div>
+          <div class="trophy-badge-mini locked">📝</div>
+          <div class="trophy-badge-mini locked">📚</div>
+          <div class="trophy-badge-mini locked">👑</div>
+        </div>
+      </div>
+      <div class="trophy-group">
+        <div class="trophy-group-header">
+          <div class="trophy-icon">🔢</div>
+          <div class="trophy-info">
+            <div class="trophy-name">Math Wizard</div>
+            <div class="trophy-progress-label">1 of 5 math badges</div>
+          </div>
+          <div class="trophy-pct">20%</div>
+        </div>
+        <div class="trophy-bar"><div class="trophy-fill" style="width:20%; background: linear-gradient(90deg, #9b72ff, #d87bff);"></div></div>
+        <div class="trophy-badge-row">
+          <div class="trophy-badge-mini" style="border-color:#9b72ff;">🔢</div>
+          <div class="trophy-badge-mini locked">➕</div>
+          <div class="trophy-badge-mini locked">➖</div>
+          <div class="trophy-badge-mini locked">✖️</div>
+          <div class="trophy-badge-mini locked">🧮</div>
+        </div>
+      </div>
+      <div class="trophy-group">
+        <div class="trophy-group-header">
+          <div class="trophy-icon">🔥</div>
+          <div class="trophy-info">
+            <div class="trophy-name">Streak Master</div>
+            <div class="trophy-progress-label">1 of 4 streak badges</div>
+          </div>
+          <div class="trophy-pct">25%</div>
+        </div>
+        <div class="trophy-bar"><div class="trophy-fill" style="width:25%; background: linear-gradient(90deg, #ff7b6b, #ffd166);"></div></div>
+        <div class="trophy-badge-row">
+          <div class="trophy-badge-mini" style="border-color:#ff7b6b;">🔥</div>
+          <div class="trophy-badge-mini locked">🔥🔥</div>
+          <div class="trophy-badge-mini locked">🔥🔥🔥</div>
+          <div class="trophy-badge-mini locked">👑</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Badge Detail (Earned) -->
+<div id="bc-detail" class="tab">
+  <div class="phone">
+    <div class="status-bar"><span>Badge Detail</span><span class="gold">⭐ 42</span></div>
+    <div class="page-header">
+      <span style="font-size:18px; cursor:pointer;">←</span>
+      <div class="page-title" style="margin-left:8px;">My Badges</div>
+    </div>
+    <div style="flex:1; overflow-y:auto;">
+      <div class="badge-detail-hero">
+        <div class="badge-detail-circle">✨</div>
+        <div class="badge-detail-name">Star Gazer ✨</div>
+        <div class="badge-detail-world">Dream World · Earned just now!</div>
+        <div class="badge-detail-desc">You found the hidden stars in Dream World! 🌟 Amazing work!</div>
+        <div class="badge-detail-date">Earned: Today · Mar 22, 2026</div>
+      </div>
+      <div class="badge-detail-meta">
+        <div class="meta-row"><span class="meta-key">World</span><span class="meta-val">Dream World 🌙</span></div>
+        <div class="meta-row"><span class="meta-key">How to earn</span><span class="meta-val">Finish Node 3 ✅</span></div>
+        <div class="meta-row"><span class="meta-key">Stars earned</span><span class="meta-val">⭐ +5 stars</span></div>
+        <div class="meta-row"><span class="meta-key">XP earned</span><span class="meta-val">✨ +20 XP</span></div>
+      </div>
+      <button class="btn-share">Share with Family 💌</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Replay Motivation (Locked Badge) -->
+<div id="bc-replay" class="tab">
+  <div class="phone">
+    <div class="status-bar"><span>Badge Detail</span><span class="gold">⭐ 42</span></div>
+    <div class="page-header">
+      <span style="font-size:18px; cursor:pointer;">←</span>
+      <div class="page-title" style="margin-left:8px;">Unlock This!</div>
+    </div>
+    <div style="flex:1; overflow-y:auto;">
+      <div class="locked-hero">
+        <div class="locked-icon">🦈</div>
+        <div class="locked-title">Deep Diver 🔒</div>
+        <div class="locked-sub">Keep going to unlock this badge!</div>
+      </div>
+      <div class="unlock-steps">
+        <div style="font-size:13px; color:#9b72ff; font-weight:900; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px;">How to unlock:</div>
+        <div class="unlock-step">
+          <div class="step-icon">🌊</div>
+          <div class="step-text">Finish Ocean World</div>
+          <div class="step-check">⬜</div>
+        </div>
+        <div class="unlock-step">
+          <div class="step-icon">⭐</div>
+          <div class="step-text">Collect 10 stars</div>
+          <div class="step-check">✅</div>
+        </div>
+        <div class="unlock-step">
+          <div class="step-icon">🐬</div>
+          <div class="step-text">Earn Dolphin badge first</div>
+          <div class="step-check">⬜</div>
+        </div>
+      </div>
+      <div style="margin: 10px 14px; font-size:13px; color:#9b72ff; text-align:center;">You've done 1 of 3 steps! ✅</div>
+      <button class="btn-go">Go play Ocean World 🌊</button>
+      <button class="btn-back">Back to my badges</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="bc-spec" class="tab">
+  <div class="phone" style="min-height:860px;">
+    <div class="status-bar" style="background:#0d0820;"><span style="color:#ffd166; font-size:12px;">📋 Badge Collection Spec</span></div>
+    <div class="spec-wrap">
+      <div class="spec-section">
+        <div class="spec-title">Badge States</div>
+        <table class="spec-table">
+          <tr><th>State</th><th>Border</th><th>Glow</th><th>Filter</th></tr>
+          <tr><td>Earned</td><td>#ffd166 solid 3px</td><td>Gold pulse animation</td><td>None</td></tr>
+          <tr><td>New (just earned)</td><td>#58e8c1 solid 3px</td><td>Mint glow</td><td>None</td></tr>
+          <tr><td>Locked</td><td>#2e2060 dashed 2px</td><td>None</td><td>grayscale(1) + opacity .5</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Child Safety Rules</div>
+        <div class="spec-rule"><strong>No reading walls:</strong> Badge descriptions ≤ 12 words. Emoji-first always.</div>
+        <div class="spec-rule"><strong>No grade labels:</strong> Use world names + emoji only.</div>
+        <div class="spec-rule"><strong>No accuracy %:</strong> Never show "you got 60% right". Use stars and XP.</div>
+        <div class="spec-rule"><strong>Wrong answer:</strong> Never surfaces in badge detail. Positive framing only.</div>
+        <div class="spec-rule"><strong>Locked badge naming:</strong> Show friendly name + lock icon. No "Failed" or "Not good enough" language.</div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Routes / API</div>
+        <table class="spec-table">
+          <tr><th>Endpoint</th><th>Purpose</th></tr>
+          <tr><td>GET /badges</td><td>All badges for child with earned/locked state</td></tr>
+          <tr><td>GET /badges/:id</td><td>Badge detail: description, how-earned, XP, date</td></tr>
+          <tr><td>GET /trophies</td><td>Trophy group progress with category badges</td></tr>
+          <tr><td>POST /badges/:id/share</td><td>Generate shareable family card</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Design Tokens</div>
+        <table class="spec-table">
+          <tr><th>Token</th><th>Value</th></tr>
+          <tr><td>Child bg</td><td>#100b2e</td></tr>
+          <tr><td>Gold accent</td><td>#ffd166</td></tr>
+          <tr><td>Violet</td><td>#9b72ff</td></tr>
+          <tr><td>New mint</td><td>#58e8c1</td></tr>
+          <tr><td>Card bg</td><td>#1a0f3e</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

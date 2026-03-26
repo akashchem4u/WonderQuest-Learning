@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — voice-control-patterns-v2.html
+  ==================================================
+  Voice interaction patterns for child play.
+  Voice modes:
+    (1) Auto-read: question read aloud automatically on load
+    (2) Tap-to-hear: child taps speaker icon to replay
+    (3) Voice answer: child speaks answer — optional, device-permitting
+  Audio: Web Speech API (TTS) for readout.
+  Voice answer: SpeechRecognition API (optional feature, graceful fallback).
+  No timer anywhere.
+  Audio: LUFS target -18±2 dB.
+  Voice actor: pre-recorded assets (not live TTS for MVP). TTS only as fallback.
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Voice Control Patterns v2</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --accent: #50e890;
+  --text: #f0f6ff;
+  --muted: #8b949e;
+  --border: rgba(255,255,255,.06);
+  --p0: #ffd166;
+  --p1: #9b72ff;
+  --p2: #58e8c1;
+  --p3: #ff7b6b;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Engineering hint box */
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  color: #3a2a00;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.eng-hint strong { color: #7a4a00; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 28px;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tab-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tab-btn.active { background: var(--accent); border-color: var(--accent); color: #0d1117; }
+
+.screen { display: none; max-width: 860px; margin: 0 auto; }
+.screen.active { display: block; }
+
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 28px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.section-label:first-child { margin-top: 0; }
+
+/* Phone frame */
+.phone-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.phone-frame {
+  width: 200px;
+  min-height: 340px;
+  background: #0a0f14;
+  border: 2px solid rgba(255,255,255,.12);
+  border-radius: 24px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.phone-frame.wide { width: 260px; min-height: 420px; }
+.phone-notch {
+  width: 60px; height: 8px;
+  background: rgba(255,255,255,.08);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+.state-label {
+  position: absolute;
+  top: 8px; left: 50%; transform: translateX(-50%);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* Question card inside phone */
+.q-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.q-subject {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: var(--p0);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 4px;
+}
+.q-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Speaker icon */
+.speaker-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6px 0;
+  gap: 4px;
+  position: relative;
+}
+.speaker-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+  border: 2px solid rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+.speaker-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Waveform */
+.waveform {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  height: 20px;
+}
+.wv-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: waveform 0.8s ease-in-out infinite alternate;
+}
+.wv-bar:nth-child(1) { animation-delay: 0s; }
+.wv-bar:nth-child(2) { animation-delay: 0.1s; }
+.wv-bar:nth-child(3) { animation-delay: 0.2s; }
+.wv-bar:nth-child(4) { animation-delay: 0.15s; }
+.wv-bar:nth-child(5) { animation-delay: 0.05s; }
+
+@keyframes waveform {
+  0%   { height: 4px; }
+  100% { height: 18px; }
+}
+
+/* Answer buttons inside phone */
+.ans-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+.ans-btn {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+  font-family: inherit;
+}
+.ans-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.ans-btn.active-anim {
+  border-color: var(--accent);
+  animation: activate-btn 0.6s ease forwards;
+}
+
+@keyframes activate-btn {
+  0%   { border-color: var(--accent); box-shadow: 0 0 0 0 rgba(80,232,144,.5); }
+  50%  { border-color: var(--accent); box-shadow: 0 0 0 6px rgba(80,232,144,0); }
+  100% { border-color: rgba(80,232,144,.4); box-shadow: none; }
+}
+
+/* Speak ring animation */
+.speak-ring-wrap {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.speak-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation: speak-ring 1.8s ease-out infinite;
+}
+.speak-ring:nth-child(1) { width: 48px; height: 48px; animation-delay: 0s; }
+.speak-ring:nth-child(2) { width: 64px; height: 64px; animation-delay: 0.4s; }
+.speak-ring:nth-child(3) { width: 80px; height: 80px; animation-delay: 0.8s; }
+
+@keyframes speak-ring {
+  0%   { opacity: 0.6; transform: translate(-50%, -50%) scale(0.6); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Listening text */
+.listening-text {
+  font-size: 0.6rem;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* Replay chip */
+.replay-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(80,232,144,.1);
+  border: 1px solid rgba(80,232,144,.3);
+  color: var(--accent);
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+/* ---- TAB 2 Speaker states ---- */
+.state-grid {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.state-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 14px 12px;
+  min-width: 90px;
+}
+.state-cell .state-name {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Speaker states */
+.spk-idle {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+  border: 2px solid rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+.spk-hover {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.1);
+  border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 0 12px rgba(80,232,144,.2);
+}
+.spk-playing {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(80,232,144,.1);
+  border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  position: relative;
+  animation: spk-ring 1.4s ease-out infinite;
+}
+@keyframes spk-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(80,232,144,.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(80,232,144,0); }
+  100% { box-shadow: 0 0 0 0 rgba(80,232,144,0); }
+}
+.spk-disabled {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.03);
+  border: 2px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+  opacity: 0.35;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+/* Band variants */
+.band-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.band-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+.band-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.band-spk {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  border: 2px solid;
+  position: relative;
+}
+
+/* ---- TAB 3 Voice Answer ---- */
+.mic-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex: 1;
+}
+.mic-btn {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: rgba(80,232,144,.1);
+  border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.mic-btn.listening {
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+.mic-btn.processing {
+  border-color: var(--p1);
+  background: rgba(155,114,255,.1);
+}
+
+@keyframes mic-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.5);
+    border-color: #ff5050;
+    background: rgba(255,80,80,.1);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(255, 80, 80, 0);
+    border-color: #ff5050;
+    background: rgba(255,80,80,.15);
+  }
+}
+
+.mic-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+
+.speech-bubble {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 12px 12px 12px 4px;
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text);
+  width: 100%;
+  position: relative;
+  margin-bottom: 4px;
+}
+.speech-bubble::before {
+  content: '"';
+  color: var(--accent);
+}
+.speech-bubble::after {
+  content: '"';
+  color: var(--accent);
+}
+
+.confirm-row {
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  margin-top: 2px;
+}
+.btn-confirm {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  background: rgba(80,232,144,.1);
+  color: var(--accent);
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-retry {
+  flex: 1;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.error-msg {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--p3);
+  text-align: center;
+  padding: 6px;
+  background: rgba(255,123,107,.08);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.perm-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+}
+.perm-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.perm-sub {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+.btn-allow {
+  width: 100%;
+  padding: 7px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #0d1117;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-nothanks {
+  width: 100%;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Coming soon badge */
+.coming-soon-overlay {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: var(--p1);
+  color: white;
+  font-size: 0.5rem;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 10;
+}
+.coming-soon-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(155,114,255,.15);
+  border: 1px solid rgba(155,114,255,.4);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--p1);
+  margin-bottom: 16px;
+}
+
+/* ---- TAB 4 Spec ---- */
+.spec-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.spec-block h3 {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+pre {
+  background: #0a0f14;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 0.7rem;
+  line-height: 1.7;
+  color: #c9d1d9;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+pre .kw { color: #ff7b6b; }
+pre .st { color: #58e8c1; }
+pre .cm { color: #6e7681; }
+pre .fn { color: #9b72ff; }
+pre .num { color: #ffd166; }
+pre .prop { color: #50e890; }
+
+/* State machine diagram */
+.state-machine {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+.sm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sm-state {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border: 2px solid;
+}
+.sm-state.s-idle    { border-color: var(--muted); color: var(--muted); background: rgba(139,148,158,.08); }
+.sm-state.s-loading { border-color: var(--p0); color: var(--p0); background: rgba(255,209,102,.08); }
+.sm-state.s-playing { border-color: var(--accent); color: var(--accent); background: rgba(80,232,144,.08); }
+.sm-state.s-complete{ border-color: var(--p2); color: var(--p2); background: rgba(88,232,193,.08); }
+.sm-arrow { color: var(--muted); font-size: 0.8rem; }
+.sm-event {
+  font-size: 0.6rem;
+  color: var(--p1);
+  background: rgba(155,114,255,.1);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-weight: 700;
+}
+
+.a11y-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.a11y-list li {
+  display: flex;
+  gap: 10px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text);
+  padding: 8px 10px;
+  background: rgba(255,255,255,.03);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+.a11y-list li span { color: var(--accent); font-weight: 800; flex-shrink: 0; }
+
+/* Feedback banner */
+.feedback-banner {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.fb-correct { background: rgba(80,232,144,.15); color: var(--accent); border: 1px solid rgba(80,232,144,.3); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .wv-bar, .speak-ring, .spk-playing, .mic-btn.listening { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<h1>🔊 Voice Control Patterns</h1>
+<p class="subtitle">WonderQuest · v2 — Audio interaction patterns for child play experience</p>
+
+<div class="eng-hint">
+  <strong>voice-control-patterns-v2.html</strong> — Voice interaction patterns for child play.
+  Voice modes: <strong>(1) Auto-read</strong> (question read aloud automatically on load),
+  <strong>(2) Tap-to-hear</strong> (child taps speaker icon to replay),
+  <strong>(3) Voice answer</strong> (child speaks answer — optional, device-permitting).
+  Audio: Web Speech API (TTS) for readout. Voice answer: SpeechRecognition API (optional feature, graceful fallback).
+  <strong>No timer anywhere.</strong> Audio: LUFS target -18±2 dB. Voice actor: pre-recorded assets (not live TTS for MVP). TTS only as fallback.
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab(0)">Auto-Read Pattern</button>
+  <button class="tab-btn" onclick="showTab(1)">Tap-to-Hear / Replay</button>
+  <button class="tab-btn" onclick="showTab(2)">Voice Answer Mode</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</div>
+
+<!-- ===================== TAB 0: AUTO-READ ===================== -->
+<div class="screen active" id="tab-0">
+
+  <div class="section-label">Auto-Read Pattern — 3 states</div>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:18px;line-height:1.6;">
+    When a question loads, audio plays automatically. Answer buttons are disabled during readout so the child listens first.
+    After audio completes, buttons activate with a green border flash.
+  </p>
+
+  <div class="phone-row">
+
+    <!-- State 1: Loading -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="q-card">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div class="speaker-wrap">
+          <div class="speaker-btn" aria-label="Loading audio" style="cursor:default;">
+            <div class="spinner"></div>
+          </div>
+          <div class="speaker-label">Loading audio…</div>
+        </div>
+        <div class="ans-row">
+          <button class="ans-btn disabled" disabled aria-disabled="true">A. 36</button>
+          <button class="ans-btn disabled" disabled aria-disabled="true">B. 42</button>
+          <button class="ans-btn disabled" disabled aria-disabled="true">C. 48</button>
+          <button class="ans-btn disabled" disabled aria-disabled="true">D. 54</button>
+        </div>
+      </div>
+      <div style="font-size:0.68rem;font-weight:800;color:var(--p0);text-transform:uppercase;letter-spacing:0.06em;">1 · Loading</div>
+    </div>
+
+    <!-- State 2: Playing -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="q-card">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+
+        <div class="speaker-wrap">
+          <!-- Pulsing rings -->
+          <div class="speak-ring-wrap" aria-hidden="true">
+            <div class="speak-ring"></div>
+            <div class="speak-ring"></div>
+            <div class="speak-ring"></div>
+          </div>
+          <div class="speaker-btn" aria-label="Playing question audio" style="border-color:var(--accent);background:rgba(80,232,144,.1);cursor:default;z-index:1;">
+            🔊
+          </div>
+          <!-- Waveform bars -->
+          <div class="waveform" aria-hidden="true">
+            <div class="wv-bar" style="animation-duration:0.6s;"></div>
+            <div class="wv-bar" style="animation-duration:0.9s;"></div>
+            <div class="wv-bar" style="animation-duration:0.5s;"></div>
+            <div class="wv-bar" style="animation-duration:0.75s;"></div>
+            <div class="wv-bar" style="animation-duration:0.65s;"></div>
+          </div>
+          <div class="listening-text" role="status">Listening…</div>
+        </div>
+
+        <div class="ans-row">
+          <button class="ans-btn disabled" disabled aria-disabled="true">A. 36</button>
+          <button class="ans-btn disabled" disabled aria-disabled="true">B. 42</button>
+          <button class="ans-btn disabled" disabled aria-disabled="true">C. 48</button>
+          <button class="ans-btn disabled" disabled aria-disabled="true">D. 54</button>
+        </div>
+      </div>
+      <div style="font-size:0.68rem;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;">2 · Playing</div>
+    </div>
+
+    <!-- State 3: Complete -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="q-card">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div class="speaker-wrap">
+          <div class="speaker-btn" aria-label="Replay question" style="border-color:rgba(80,232,144,.35);cursor:pointer;">
+            🔁
+          </div>
+          <div class="speaker-label" style="color:var(--accent);">Tap to replay</div>
+        </div>
+        <div class="ans-row">
+          <button class="ans-btn active-anim">A. 36</button>
+          <button class="ans-btn active-anim" style="animation-delay:0.1s;">B. 42</button>
+          <button class="ans-btn active-anim" style="animation-delay:0.2s;">C. 48</button>
+          <button class="ans-btn active-anim" style="animation-delay:0.3s;">D. 54</button>
+        </div>
+      </div>
+      <div style="font-size:0.68rem;font-weight:800;color:var(--p2);text-transform:uppercase;letter-spacing:0.06em;">3 · Complete</div>
+    </div>
+
+  </div>
+
+  <div class="section-label">Live Demo — Auto-Read Simulation</div>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;">
+    Click the button to simulate the full auto-read flow. Uses Web Speech API (TTS) if available.
+  </p>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="phone-frame wide" id="demo-phone">
+      <div class="phone-notch"></div>
+      <div class="q-card">
+        <div class="q-subject">🔢 Math</div>
+        <div class="q-text">What is 6 × 7?</div>
+      </div>
+      <div class="speaker-wrap" id="demo-speaker-wrap" style="margin:10px 0;">
+        <div class="speaker-btn" id="demo-speaker-btn" style="cursor:default;">
+          <div class="spinner" id="demo-spinner" style="display:none;"></div>
+          <span id="demo-speaker-icon">🔊</span>
+        </div>
+        <div class="waveform" id="demo-waveform" aria-hidden="true" style="display:none;">
+          <div class="wv-bar" style="animation-duration:0.6s;"></div>
+          <div class="wv-bar" style="animation-duration:0.9s;"></div>
+          <div class="wv-bar" style="animation-duration:0.5s;"></div>
+          <div class="wv-bar" style="animation-duration:0.75s;"></div>
+          <div class="wv-bar" style="animation-duration:0.65s;"></div>
+        </div>
+        <div id="demo-status-text" class="speaker-label">—</div>
+      </div>
+      <div class="ans-row" id="demo-ans-row">
+        <button class="ans-btn disabled" disabled>A. 36</button>
+        <button class="ans-btn disabled" disabled>B. 42</button>
+        <button class="ans-btn disabled" disabled>C. 48</button>
+        <button class="ans-btn disabled" disabled>D. 54</button>
+      </div>
+    </div>
+    <button
+      onclick="runAutoReadDemo()"
+      style="padding:10px 28px;border-radius:20px;border:none;background:var(--accent);color:#0d1117;font-weight:800;font-size:0.85rem;cursor:pointer;font-family:inherit;">
+      ▶ Simulate Auto-Read
+    </button>
+    <p style="font-size:0.67rem;color:var(--muted);text-align:center;">
+      TTS via Web Speech API. If your browser doesn't support it, demo runs on a 3-second timer.
+    </p>
+  </div>
+
+</div>
+
+<!-- ===================== TAB 1: TAP TO HEAR ===================== -->
+<div class="screen" id="tab-1">
+
+  <div class="section-label">Speaker Button — 5 States</div>
+
+  <div class="state-grid">
+    <div class="state-cell">
+      <div class="spk-idle" aria-label="Read question aloud">🔊</div>
+      <div class="state-name">Idle</div>
+      <div style="font-size:0.58rem;color:var(--muted);text-align:center;">Default — tap to play</div>
+    </div>
+    <div class="state-cell">
+      <div class="spk-hover" aria-label="Read question aloud" tabindex="0">🔊</div>
+      <div class="state-name">Hover / Focus</div>
+      <div style="font-size:0.58rem;color:var(--muted);text-align:center;">Enlarged + accent border</div>
+    </div>
+    <div class="state-cell">
+      <div class="spk-playing" aria-label="Playing question" aria-live="polite">🔊</div>
+      <div class="waveform" aria-hidden="true" style="margin-top:2px;">
+        <div class="wv-bar" style="background:var(--accent);animation-duration:0.6s;"></div>
+        <div class="wv-bar" style="background:var(--accent);animation-duration:0.9s;"></div>
+        <div class="wv-bar" style="background:var(--accent);animation-duration:0.5s;"></div>
+        <div class="wv-bar" style="background:var(--accent);animation-duration:0.75s;"></div>
+        <div class="wv-bar" style="background:var(--accent);animation-duration:0.65s;"></div>
+      </div>
+      <div class="state-name">Playing</div>
+      <div style="font-size:0.58rem;color:var(--muted);text-align:center;">Ring pulse + waveform</div>
+    </div>
+    <div class="state-cell">
+      <div class="spk-playing" aria-label="Replaying question" style="border-color:var(--p2);background:rgba(88,232,193,.1);animation-name:spk-ring-p2;">🔁</div>
+      <div class="waveform" aria-hidden="true" style="margin-top:2px;">
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.7s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.85s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.55s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.7s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.6s;"></div>
+      </div>
+      <div class="state-name">Replaying</div>
+      <div style="font-size:0.58rem;color:var(--p2);text-align:center;font-weight:700;">Replay</div>
+    </div>
+    <div class="state-cell">
+      <div class="spk-disabled" aria-disabled="true" aria-label="Audio unavailable">🔇</div>
+      <div class="state-name">Disabled</div>
+      <div style="font-size:0.58rem;color:var(--muted);text-align:center;">Audio off / unavailable</div>
+    </div>
+  </div>
+
+  <div class="section-label">Hear It Again — Post-Answer Chip</div>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:14px;">
+    After child answers (correctly or not), a "Hear it again" chip appears below the feedback banner.
+    Tapping it replays the question audio so the child can review.
+  </p>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
+
+    <div class="phone-frame" style="width:220px;">
+      <div class="phone-notch"></div>
+      <div class="feedback-banner fb-correct" role="status">✓ Correct! 42 is right!</div>
+      <div class="q-card" style="margin-bottom:8px;">
+        <div class="q-subject">🔢 Math</div>
+        <div class="q-text">What is 6 × 7?</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="replay-chip" role="button" tabindex="0" aria-label="Replay question audio">
+          🔊 Hear it again
+        </div>
+        <div style="font-size:0.58rem;color:var(--muted);">Tapping replays question</div>
+      </div>
+      <div class="ans-row" style="margin-top:8px;">
+        <button class="ans-btn" style="border-color:var(--accent);background:rgba(80,232,144,.1);color:var(--accent);">B. 42 ✓</button>
+        <button class="ans-btn" style="opacity:.45;">A. 36</button>
+        <button class="ans-btn" style="opacity:.45;">C. 48</button>
+        <button class="ans-btn" style="opacity:.45;">D. 54</button>
+      </div>
+    </div>
+
+    <div class="phone-frame" style="width:220px;">
+      <div class="phone-notch"></div>
+      <div class="feedback-banner" style="background:rgba(255,123,107,.12);color:var(--p3);border:1px solid rgba(255,123,107,.3);" role="status">
+        Not quite — try again!
+      </div>
+      <div class="q-card" style="margin-bottom:8px;">
+        <div class="q-subject">🔢 Math</div>
+        <div class="q-text">What is 6 × 7?</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="replay-chip" role="button" tabindex="0" aria-label="Replay question audio" style="border-color:rgba(255,123,107,.3);background:rgba(255,123,107,.08);color:var(--p3);">
+          🔊 Hear it again
+        </div>
+        <div style="font-size:0.58rem;color:var(--muted);">Replay to help them retry</div>
+      </div>
+      <div class="ans-row" style="margin-top:8px;">
+        <button class="ans-btn">A. 36</button>
+        <button class="ans-btn">B. 42</button>
+        <button class="ans-btn">C. 48</button>
+        <button class="ans-btn">D. 54</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-label">Band Colour Variants</div>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:14px;">
+    Speaker button ring colour matches the child's band accent. P0 = gold, P1 = violet, P2 = mint.
+  </p>
+
+  <div class="band-row">
+
+    <div class="band-card">
+      <div class="band-tag" style="background:rgba(255,209,102,.1);color:var(--p0);">P0 — Gold</div>
+      <div class="band-spk"
+        aria-label="Read question aloud"
+        style="border-color:var(--p0);background:rgba(255,209,102,.1);animation:spk-ring-p0 1.4s ease-out infinite;">
+        🔊
+      </div>
+      <div class="waveform" aria-hidden="true">
+        <div class="wv-bar" style="background:var(--p0);animation-duration:0.6s;"></div>
+        <div class="wv-bar" style="background:var(--p0);animation-duration:0.9s;"></div>
+        <div class="wv-bar" style="background:var(--p0);animation-duration:0.5s;"></div>
+        <div class="wv-bar" style="background:var(--p0);animation-duration:0.75s;"></div>
+        <div class="wv-bar" style="background:var(--p0);animation-duration:0.65s;"></div>
+      </div>
+      <div style="font-size:0.6rem;color:var(--p0);font-weight:700;">Gold ring pulse</div>
+    </div>
+
+    <div class="band-card">
+      <div class="band-tag" style="background:rgba(155,114,255,.1);color:var(--p1);">P1 — Violet</div>
+      <div class="band-spk"
+        aria-label="Read question aloud"
+        style="border-color:var(--p1);background:rgba(155,114,255,.1);animation:spk-ring-p1 1.4s ease-out infinite;">
+        🔊
+      </div>
+      <div class="waveform" aria-hidden="true">
+        <div class="wv-bar" style="background:var(--p1);animation-duration:0.7s;"></div>
+        <div class="wv-bar" style="background:var(--p1);animation-duration:0.85s;"></div>
+        <div class="wv-bar" style="background:var(--p1);animation-duration:0.55s;"></div>
+        <div class="wv-bar" style="background:var(--p1);animation-duration:0.7s;"></div>
+        <div class="wv-bar" style="background:var(--p1);animation-duration:0.6s;"></div>
+      </div>
+      <div style="font-size:0.6rem;color:var(--p1);font-weight:700;">Violet ring pulse</div>
+    </div>
+
+    <div class="band-card">
+      <div class="band-tag" style="background:rgba(88,232,193,.1);color:var(--p2);">P2 — Mint</div>
+      <div class="band-spk"
+        aria-label="Read question aloud"
+        style="border-color:var(--p2);background:rgba(88,232,193,.1);animation:spk-ring-p2 1.4s ease-out infinite;">
+        🔊
+      </div>
+      <div class="waveform" aria-hidden="true">
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.65s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.8s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.5s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.7s;"></div>
+        <div class="wv-bar" style="background:var(--p2);animation-duration:0.6s;"></div>
+      </div>
+      <div style="font-size:0.6rem;color:var(--p2);font-weight:700;">Mint ring pulse</div>
+    </div>
+
+  </div>
+
+  <style>
+    @keyframes spk-ring-p0 {
+      0%   { box-shadow: 0 0 0 0 rgba(255,209,102,.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(255,209,102,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,209,102,0); }
+    }
+    @keyframes spk-ring-p1 {
+      0%   { box-shadow: 0 0 0 0 rgba(155,114,255,.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(155,114,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(155,114,255,0); }
+    }
+    @keyframes spk-ring-p2 {
+      0%   { box-shadow: 0 0 0 0 rgba(88,232,193,.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(88,232,193,0); }
+      100% { box-shadow: 0 0 0 0 rgba(88,232,193,0); }
+    }
+  </style>
+
+</div>
+
+<!-- ===================== TAB 2: VOICE ANSWER ===================== -->
+<div class="screen" id="tab-2">
+
+  <div style="text-align:center;margin-bottom:18px;">
+    <div class="coming-soon-banner">
+      🎤 Voice Answers — Coming in v2.7!
+    </div>
+  </div>
+
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:18px;line-height:1.6;text-align:center;">
+    Optional feature. Tap-to-answer is always available as fallback. Voice answer never blocks gameplay.
+  </p>
+
+  <div class="section-label">Microphone States — 5 Variants</div>
+
+  <div class="phone-row">
+
+    <!-- Idle -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame" style="position:relative;">
+        <div class="coming-soon-overlay">v2.7</div>
+        <div class="phone-notch"></div>
+        <div class="q-card" style="margin-bottom:8px;">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div style="font-size:0.6rem;color:var(--muted);margin-bottom:8px;text-align:center;">…or say your answer</div>
+        <div class="mic-container">
+          <div class="mic-btn" aria-label="Tap to answer by voice">🎤</div>
+          <div class="mic-label">Tap to answer</div>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Idle</div>
+    </div>
+
+    <!-- Listening -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame" style="position:relative;">
+        <div class="coming-soon-overlay">v2.7</div>
+        <div class="phone-notch"></div>
+        <div class="q-card" style="margin-bottom:8px;">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div class="mic-container">
+          <div class="mic-btn listening" aria-label="Listening for your answer" aria-live="polite">🎤</div>
+          <div class="waveform" aria-hidden="true">
+            <div class="wv-bar" style="background:#ff5050;animation-duration:0.5s;"></div>
+            <div class="wv-bar" style="background:#ff5050;animation-duration:0.8s;"></div>
+            <div class="wv-bar" style="background:#ff5050;animation-duration:0.4s;"></div>
+            <div class="wv-bar" style="background:#ff5050;animation-duration:0.7s;"></div>
+            <div class="wv-bar" style="background:#ff5050;animation-duration:0.55s;"></div>
+          </div>
+          <div class="mic-label" style="color:#ff5050;" role="status">Listening…</div>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;font-weight:800;color:#ff5050;text-transform:uppercase;letter-spacing:0.06em;">Listening</div>
+    </div>
+
+    <!-- Processing -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame" style="position:relative;">
+        <div class="coming-soon-overlay">v2.7</div>
+        <div class="phone-notch"></div>
+        <div class="q-card" style="margin-bottom:8px;">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div class="mic-container">
+          <div class="mic-btn processing" aria-label="Processing your answer" style="cursor:default;">
+            <div class="spinner" style="border-top-color:var(--p1);"></div>
+          </div>
+          <div class="mic-label" style="color:var(--p1);" role="status">Thinking…</div>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;font-weight:800;color:var(--p1);text-transform:uppercase;letter-spacing:0.06em;">Processing</div>
+    </div>
+
+    <!-- Recognized -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame" style="position:relative;">
+        <div class="coming-soon-overlay">v2.7</div>
+        <div class="phone-notch"></div>
+        <div class="q-card" style="margin-bottom:6px;">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div class="mic-container">
+          <div class="speech-bubble" role="status">I heard: Forty-two</div>
+          <div class="confirm-row">
+            <button class="btn-confirm">✓ That's my answer</button>
+            <button class="btn-retry">Try again</button>
+          </div>
+          <div class="mic-btn" aria-label="Recognized — confirm or retry" style="opacity:.5;cursor:default;margin-top:4px;">🎤</div>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;font-weight:800;color:var(--p2);text-transform:uppercase;letter-spacing:0.06em;">Recognized</div>
+    </div>
+
+    <!-- Error -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="phone-frame" style="position:relative;">
+        <div class="coming-soon-overlay">v2.7</div>
+        <div class="phone-notch"></div>
+        <div class="q-card" style="margin-bottom:6px;">
+          <div class="q-subject">🔢 Math</div>
+          <div class="q-text">What is 6 × 7?</div>
+        </div>
+        <div class="mic-container">
+          <div class="error-msg" role="alert">Hmm, I didn't catch that 🙉</div>
+          <div class="mic-btn" aria-label="Try again or tap to pick" style="border-color:var(--p3);background:rgba(255,123,107,.08);margin-top:6px;">🎤</div>
+          <div class="confirm-row">
+            <button class="btn-retry" style="border-color:var(--p3);color:var(--p3);">Try again</button>
+            <button class="btn-retry">Tap to pick</button>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;font-weight:800;color:var(--p3);text-transform:uppercase;letter-spacing:0.06em;">Error</div>
+    </div>
+
+  </div>
+
+  <div class="section-label">Permission Request State</div>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:14px;">
+    Shown when mic permission has not yet been granted. Always non-blocking — child can tap instead.
+  </p>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;">
+    <div class="phone-frame" style="width:240px;position:relative;">
+      <div class="coming-soon-overlay">v2.7</div>
+      <div class="phone-notch"></div>
+      <div class="q-card" style="margin-bottom:10px;">
+        <div class="q-subject">🔢 Math</div>
+        <div class="q-text">What is 6 × 7?</div>
+      </div>
+      <div class="perm-card">
+        <div style="font-size:1.4rem;">🎤</div>
+        <div class="perm-title">Can we use your microphone?</div>
+        <div class="perm-sub">So you can say your answer out loud! You can always tap instead.</div>
+        <button class="btn-allow">Allow microphone</button>
+        <button class="btn-nothanks">No thanks — I'll tap instead</button>
+      </div>
+      <div style="font-size:0.58rem;color:var(--muted);text-align:center;margin-top:8px;">
+        Tap fallback always available
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Tap-to-Answer Fallback (always present)</div>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+    Voice answer never blocks gameplay. If voice unavailable or rejected, tap-to-answer cards are shown as primary.
+    A small "🎤 Try voice" chip can optionally be shown to re-invite voice input.
+  </p>
+  <div style="display:flex;justify-content:center;margin-bottom:20px;">
+    <div class="phone-frame" style="width:220px;">
+      <div class="phone-notch"></div>
+      <div class="q-card" style="margin-bottom:8px;">
+        <div class="q-subject">🔢 Math</div>
+        <div class="q-text">What is 6 × 7?</div>
+      </div>
+      <div class="ans-row">
+        <button class="ans-btn active-anim">A. 36</button>
+        <button class="ans-btn active-anim" style="animation-delay:0.1s;">B. 42</button>
+        <button class="ans-btn active-anim" style="animation-delay:0.2s;">C. 48</button>
+        <button class="ans-btn active-anim" style="animation-delay:0.3s;">D. 54</button>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:8px;">
+        <div style="
+          display:inline-flex;align-items:center;gap:4px;
+          padding:3px 10px;border-radius:14px;
+          background:rgba(155,114,255,.08);border:1px solid rgba(155,114,255,.2);
+          color:var(--p1);font-size:0.58rem;font-weight:700;cursor:pointer;
+        ">🎤 Try voice instead</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== TAB 3: SPEC ===================== -->
+<div class="screen" id="tab-3">
+
+  <div class="section-label">Audio State Machine</div>
+  <div class="spec-block">
+    <h3>📊 State Diagram</h3>
+    <div class="state-machine">
+      <div class="sm-row">
+        <div class="sm-state s-idle">idle</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-event">question_load</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-state s-loading">loading</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-event">audio_ready</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-state s-playing">playing</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-event">audio_end</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-state s-complete">complete</div>
+      </div>
+      <div class="sm-row" style="margin-left:20px;">
+        <div class="sm-state s-complete">complete</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-event">replay_tap</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-state s-playing">playing</div>
+      </div>
+      <div class="sm-row" style="margin-left:20px;">
+        <div class="sm-state s-playing">playing</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-event">stop_tap</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-state s-complete">complete</div>
+      </div>
+      <div class="sm-row" style="margin-left:20px;">
+        <div class="sm-state s-idle" style="border-color:var(--p3);color:var(--p3);background:rgba(255,123,107,.06);">any</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-event" style="color:var(--p3);background:rgba(255,123,107,.1);">audio_error</div>
+        <div class="sm-arrow">→</div>
+        <div class="sm-state s-idle">idle</div>
+        <div style="font-size:0.62rem;color:var(--p3);margin-left:4px;">(show fallback text)</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+<pre>States: idle → loading → playing → complete → (replay → playing)
+
+Transitions:
+  idle     + question_load  → loading
+  loading  + audio_ready    → playing
+  playing  + audio_end      → complete
+  complete + replay_tap     → playing
+  playing  + stop_tap       → complete
+  any      + audio_error    → idle  (show fallback text)</pre>
+    </div>
+  </div>
+
+  <div class="section-label">Web Speech API — TTS Fallback</div>
+  <div class="spec-block">
+    <h3>🗣️ SpeechSynthesis (TTS)</h3>
+    <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+      TTS is fallback only. Pre-recorded voice actor assets are used for MVP (LUFS target -18±2 dB).
+      Rate 0.9 — slightly slower than default for child comprehension.
+    </p>
+<pre><span class="kw">const</span> utterance = <span class="kw">new</span> <span class="fn">SpeechSynthesisUtterance</span>(questionText);
+utterance.<span class="prop">rate</span>  = <span class="num">0.9</span>;   <span class="cm">// slightly slower for children</span>
+utterance.<span class="prop">pitch</span> = <span class="num">1.0</span>;
+utterance.<span class="prop">lang</span>  = <span class="st">'en-US'</span>;
+speechSynthesis.<span class="fn">speak</span>(utterance);
+
+<span class="cm">// Graceful fallback check</span>
+<span class="kw">if</span> (!(<span class="st">'speechSynthesis'</span> <span class="kw">in</span> window)) {
+  <span class="cm">// Audio unavailable — text is always visible, gameplay continues</span>
+  showFallbackText();
+}</pre>
+  </div>
+
+  <div class="section-label">SpeechRecognition — Voice Answer (Optional Feature)</div>
+  <div class="spec-block">
+    <h3>🎤 SpeechRecognition</h3>
+    <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+      Optional feature shipping in v2.7. <strong>Always gracefully falls back to tap-to-answer</strong> if
+      recognition is unavailable or permission denied. Never blocks gameplay.
+    </p>
+<pre><span class="kw">const</span> recognition = <span class="kw">new</span> (window.<span class="fn">SpeechRecognition</span> ||
+  window.<span class="fn">webkitSpeechRecognition</span>)();
+
+recognition.<span class="prop">lang</span>              = <span class="st">'en-US'</span>;
+recognition.<span class="prop">interimResults</span>    = <span class="kw">false</span>;
+recognition.<span class="prop">maxAlternatives</span>   = <span class="num">3</span>;
+
+recognition.<span class="fn">onresult</span> = (event) => {
+  <span class="kw">const</span> transcript = event.results[<span class="num">0</span>][<span class="num">0</span>].transcript;
+  showRecognizedText(transcript);  <span class="cm">// → "I heard: Forty-two"</span>
+};
+
+recognition.<span class="fn">onerror</span> = (event) => {
+  <span class="cm">// Show "Hmm, I didn't catch that" + fallback to tap</span>
+  handleVoiceError(event.error);
+};
+
+<span class="cm">// Permission check before starting</span>
+navigator.permissions.<span class="fn">query</span>({ name: <span class="st">'microphone'</span> })
+  .then(status => {
+    <span class="kw">if</span> (status.state === <span class="st">'denied'</span>) showTapFallback();
+    <span class="kw">else</span> recognition.<span class="fn">start</span>();
+  })
+  .catch(() => showTapFallback());</pre>
+  </div>
+
+  <div class="section-label">Accessibility Rules</div>
+  <div class="spec-block">
+    <h3>♿ Accessibility</h3>
+    <ul class="a11y-list">
+      <li>
+        <span>1</span>
+        All audio content also available as text. Question text is always visible — never hidden or replaced by audio.
+      </li>
+      <li>
+        <span>2</span>
+        Audio can be disabled via parent settings → <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">audio_enabled: false</code> in child profile.
+        All animations and audio stop; text remains fully functional.
+      </li>
+      <li>
+        <span>3</span>
+        <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">prefers-reduced-motion</code>: disables waveform and ring animations.
+        Audio playback continues normally — decorative animation only.
+      </li>
+      <li>
+        <span>4</span>
+        All waveform and ring animation elements carry <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">aria-hidden="true"</code> — purely decorative.
+      </li>
+      <li>
+        <span>5</span>
+        Speaker button: <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">aria-label="Read question aloud"</code> (idle) /
+        <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">aria-label="Replay question"</code> (complete state).
+        Status changes announced via <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">aria-live="polite"</code>.
+      </li>
+      <li>
+        <span>6</span>
+        Answer buttons include <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-family:monospace;">aria-disabled="true"</code> during readout.
+        Keyboard and switch-access users hear "unavailable" during audio playback.
+      </li>
+      <li>
+        <span>7</span>
+        Voice answer is always optional. A visible tap-to-answer path is always present. Microphone permission prompt includes a "No thanks — I'll tap instead" escape.
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-label">Audio Production Notes</div>
+  <div class="spec-block">
+    <h3>🎙️ Audio Spec</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px;">
+        <div style="font-size:0.62rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Loudness Target</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--p0);">-18 ± 2 LUFS</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px;">Integrated loudness per EBU R128 / broadcast standard for child media</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px;">
+        <div style="font-size:0.62rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Voice Actor</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--p1);">Pre-recorded</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px;">Professional talent for MVP. TTS (Web Speech API) is fallback only</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px;">
+        <div style="font-size:0.62rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">TTS Rate</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--p2);">0.9×</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px;">Slightly slower than default for child comprehension. Pitch 1.0, lang en-US</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border-radius:10px;padding:12px;">
+        <div style="font-size:0.62rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">No Timer</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--accent);">Never</div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px;">No countdown or time pressure in any voice mode. Child sets the pace</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showTab(idx) {
+    document.querySelectorAll('.screen').forEach((s, i) => {
+      s.classList.toggle('active', i === idx);
+    });
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === idx);
+    });
+  }
+
+  // ---- Auto-Read Demo ----
+  let demoRunning = false;
+
+  function runAutoReadDemo() {
+    if (demoRunning) return;
+    demoRunning = true;
+
+    const spinner      = document.getElementById('demo-spinner');
+    const icon         = document.getElementById('demo-speaker-icon');
+    const waveform     = document.getElementById('demo-waveform');
+    const statusText   = document.getElementById('demo-status-text');
+    const speakerBtn   = document.getElementById('demo-speaker-btn');
+    const ansRow       = document.getElementById('demo-ans-row');
+
+    const allBtns = ansRow.querySelectorAll('.ans-btn');
+
+    // Reset
+    allBtns.forEach(b => {
+      b.classList.add('disabled');
+      b.disabled = true;
+      b.classList.remove('active-anim');
+    });
+    waveform.style.display = 'none';
+    speakerBtn.style.border = '2px solid rgba(255,255,255,.12)';
+    speakerBtn.style.background = 'rgba(255,255,255,.06)';
+    icon.style.display = 'inline';
+    spinner.style.display = 'none';
+    statusText.style.color = 'var(--muted)';
+    statusText.textContent = 'Loading audio…';
+    statusText.className = 'speaker-label';
+
+    // --- Phase 1: Loading (0.8s) ---
+    icon.style.display = 'none';
+    spinner.style.display = 'block';
+
+    setTimeout(() => {
+      // --- Phase 2: Playing ---
+      spinner.style.display = 'none';
+      icon.style.display = 'inline';
+      icon.textContent = '🔊';
+      speakerBtn.style.border = '2px solid var(--accent)';
+      speakerBtn.style.background = 'rgba(80,232,144,.1)';
+      waveform.style.display = 'flex';
+      statusText.textContent = 'Listening…';
+      statusText.className = 'listening-text';
+
+      // Try TTS
+      let audioDuration = 3000;
+      if ('speechSynthesis' in window) {
+        try {
+          const utterance = new SpeechSynthesisUtterance('What is six times seven?');
+          utterance.rate = 0.9;
+          utterance.pitch = 1.0;
+          utterance.lang = 'en-US';
+          let ttsCompleted = false;
+          utterance.onend = () => {
+            if (!ttsCompleted) {
+              ttsCompleted = true;
+              finishPlayback();
+            }
+          };
+          utterance.onerror = () => {
+            if (!ttsCompleted) {
+              ttsCompleted = true;
+              setTimeout(finishPlayback, 1000);
+            }
+          };
+          speechSynthesis.speak(utterance);
+          // Timeout safety in case onend never fires
+          setTimeout(() => {
+            if (!ttsCompleted) { ttsCompleted = true; finishPlayback(); }
+          }, 6000);
+          return;
+        } catch(e) { /* fall through to timer */ }
+      }
+      // Fallback timer
+      setTimeout(finishPlayback, audioDuration);
+    }, 900);
+
+    function finishPlayback() {
+      // --- Phase 3: Complete ---
+      waveform.style.display = 'none';
+      icon.textContent = '🔁';
+      speakerBtn.style.border = '2px solid rgba(80,232,144,.35)';
+      speakerBtn.style.background = 'rgba(255,255,255,.04)';
+      speakerBtn.style.cursor = 'pointer';
+      speakerBtn.setAttribute('aria-label', 'Replay question');
+      statusText.textContent = 'Tap to replay';
+      statusText.className = 'speaker-label';
+      statusText.style.color = 'var(--accent)';
+
+      allBtns.forEach((b, i) => {
+        setTimeout(() => {
+          b.classList.remove('disabled');
+          b.disabled = false;
+          b.classList.add('active-anim');
+        }, i * 100);
+      });
+
+      speakerBtn.onclick = () => {
+        demoRunning = false;
+        runAutoReadDemo();
+      };
+
+      demoRunning = false;
+    }
+  }
+</script>
+</body>
+</html>

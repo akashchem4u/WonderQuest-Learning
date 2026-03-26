@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Session Shell — Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 1100px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 1100px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ── PLAY SHELL LAYOUT ── */
+  .play-shell {
+    background: #100b2e;
+    border: 2px solid #2a2060;
+    border-radius: 20px;
+    overflow: hidden;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top bar */
+  .play-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: #12103a;
+    border-bottom: 1px solid #2a2060;
+    flex-shrink: 0;
+  }
+  .pt-back {
+    background: transparent;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .pt-quest-info { flex: 1; }
+  .pt-quest-name { font-size: 14px; font-weight: 900; color: #e8e0ff; }
+  .pt-quest-sub { font-size: 11px; color: #9b8ec4; margin-top: 1px; }
+
+  /* Progress strip */
+  .progress-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ps-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .ps-dot.done { background: #50e890; }
+  .ps-dot.active { background: #9b72ff; animation: ps-pulse 1.5s ease-in-out infinite; }
+  .ps-dot.pending { background: #2a2060; }
+  @keyframes ps-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(155,114,255,0); }
+  }
+
+  /* Star counter */
+  .star-counter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 900;
+    color: #ffd166;
+    flex-shrink: 0;
+  }
+
+  /* Pause btn */
+  .pause-btn {
+    background: transparent;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Main play area */
+  .play-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+  }
+
+  /* Question zone */
+  .question-zone {
+    padding: 40px 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    border-right: 1px solid #1a1540;
+  }
+  .quest-q-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+  }
+  .quest-image {
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(135deg, #1e1470, #2a1060);
+    border-radius: 24px;
+    border: 3px solid #9b72ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 80px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 30px rgba(155,114,255,0.2);
+  }
+  .quest-prompt {
+    font-size: 24px;
+    font-weight: 900;
+    color: #e8e0ff;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .quest-prompt-sub {
+    font-size: 14px;
+    color: #9b8ec4;
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  /* Answer grid */
+  .answer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+  }
+  .answer-card {
+    background: #1a1540;
+    border: 3px solid #2a2060;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s, background 0.15s;
+    font-size: 16px;
+    font-weight: 900;
+    color: #e8e0ff;
+  }
+  .answer-card:hover { border-color: #9b72ff; transform: scale(1.03); background: #1e1470; }
+  .answer-card.selected-correct { border-color: #50e890; background: #1a3a20; color: #50e890; }
+  .answer-card.selected-wrong { border-color: #ff7b6b; background: #2a1010; color: #ff7b6b; animation: shake 0.4s ease-in-out; }
+  .answer-card .ac-emoji { font-size: 28px; display: block; margin-bottom: 5px; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  /* Right rail */
+  .play-rail {
+    padding: 20px 16px;
+    background: #0e0c2a;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .rail-section-title {
+    font-size: 10px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  /* Mascot coach */
+  .mascot-coach {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+  }
+  .mc-avatar { font-size: 36px; margin-bottom: 6px; animation: mc-bounce 2s ease-in-out infinite; }
+  @keyframes mc-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .mc-speech {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #c4b0ff;
+    text-align: left;
+    margin-top: 6px;
+    position: relative;
+  }
+  .mc-speech::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-bottom-color: #2a2060;
+  }
+
+  /* Play progress */
+  .play-progress-card {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .ppc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .ppc-label { font-size: 12px; font-weight: 700; color: #9b8ec4; }
+  .ppc-val { font-size: 13px; font-weight: 900; color: #e8e0ff; }
+  .ppc-bar {
+    height: 8px;
+    background: #1a1540;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .ppc-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #9b72ff, #58e8c1); }
+  .ppc-stars {
+    font-size: 16px;
+    text-align: center;
+    color: #ffd166;
+    margin-top: 4px;
+  }
+
+  /* Star safe badge */
+  .star-safe-rail {
+    background: #1a2a15;
+    border: 2px solid #50e890;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #50e890;
+    text-align: center;
+  }
+
+  /* Bottom bar */
+  .play-bottombar {
+    padding: 12px 20px;
+    background: #12103a;
+    border-top: 1px solid #1a1540;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .pb-audio-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pb-audio-btn.active { border-color: #9b72ff; color: #9b72ff; }
+  .pb-hint-btn {
+    background: transparent;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  .pb-idk-btn {
+    background: transparent;
+    border: 2px solid #ff7b6b44;
+    border-radius: 10px;
+    color: #ff7b6b;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin: 16px 0 8px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — play-session-shell-desktop-v3.html</strong><br>
+  States: <strong>Active (question)</strong> / <strong>Correct answer</strong> / <strong>Wrong answer (gentle)</strong> / <strong>Spec</strong><br>
+  Layout: 1100px max · full-height shell · top bar / main (1fr + 320px rail) / bottom bar.<br>
+  Top bar: back button + quest name/node + progress dots + star counter + pause button.<br>
+  Main: question zone (image + prompt + 2×2 answer grid) · right rail (mascot coach + progress card + star-safe badge).<br>
+  Bottom bar: 🔊 Replay audio · 💡 Hint · "I don't know yet" button. No timer anywhere.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active (Question)</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct Answer</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong (Gentle)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: ACTIVE ── -->
+<div class="screen active" id="tab-active">
+  <div class="play-shell">
+    <!-- Top bar -->
+    <div class="play-topbar">
+      <button class="pt-back">← Home</button>
+      <div class="pt-quest-info">
+        <div class="pt-quest-name">Story Builder</div>
+        <div class="pt-quest-sub">Aim High · Cosmic Castle</div>
+      </div>
+      <div class="progress-strip">
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done"></div>
+        <div class="ps-dot active"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+      </div>
+      <div style="font-size:11px;color:#9b8ec4;padding:0 8px">Q4/8</div>
+      <div class="star-counter">🌟 18</div>
+      <button class="pause-btn">⏸</button>
+    </div>
+
+    <!-- Main -->
+    <div class="play-main">
+      <div class="question-zone">
+        <div class="quest-q-label">Which word matches the picture?</div>
+        <div class="quest-image">🐱</div>
+        <div class="quest-prompt">What is this?</div>
+        <div class="quest-prompt-sub">Pick the right word below</div>
+        <div class="answer-grid">
+          <div class="answer-card"><span class="ac-emoji">🐱</span>cat</div>
+          <div class="answer-card"><span class="ac-emoji">🐶</span>dog</div>
+          <div class="answer-card"><span class="ac-emoji">🐸</span>frog</div>
+          <div class="answer-card"><span class="ac-emoji">🐰</span>rabbit</div>
+        </div>
+      </div>
+      <div class="play-rail">
+        <div class="mascot-coach">
+          <div class="mc-avatar">🦁</div>
+          <div class="mc-speech">Look at the picture carefully! What animal do you see? 👀</div>
+        </div>
+        <div class="play-progress-card">
+          <div class="rail-section-title">This Quest</div>
+          <div class="ppc-row">
+            <div class="ppc-label">Questions</div>
+            <div class="ppc-val">4 / 8</div>
+          </div>
+          <div class="ppc-bar"><div class="ppc-fill" style="width:50%"></div></div>
+          <div class="ppc-stars">⭐ ⭐ ☆</div>
+        </div>
+        <div class="star-safe-rail">⭐ Your stars are safe!</div>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="play-bottombar">
+      <button class="pb-audio-btn active">🔊 Replay question</button>
+      <button class="pb-hint-btn">💡 Give me a hint</button>
+      <button class="pb-idk-btn">🤷 I don't know yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: CORRECT ── -->
+<div class="screen" id="tab-correct">
+  <div class="play-shell">
+    <div class="play-topbar">
+      <button class="pt-back">← Home</button>
+      <div class="pt-quest-info">
+        <div class="pt-quest-name">Story Builder</div>
+        <div class="pt-quest-sub">Aim High · Cosmic Castle</div>
+      </div>
+      <div class="progress-strip">
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done" style="background:#ffd166"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+      </div>
+      <div style="font-size:11px;color:#50e890;padding:0 8px;font-weight:700">Q4 ✓</div>
+      <div class="star-counter" style="border-color:#ffd166;background:#1a1500">🌟 19</div>
+      <button class="pause-btn">⏸</button>
+    </div>
+
+    <div class="play-main">
+      <div class="question-zone" style="background:radial-gradient(ellipse at 50% 40%,rgba(80,232,144,0.08) 0%,transparent 70%)">
+        <div class="quest-q-label" style="color:#50e890">✓ That's right!</div>
+        <div class="quest-image" style="border-color:#50e890;background:linear-gradient(135deg,#1a3a20,#2a5a30);box-shadow:0 0 30px rgba(80,232,144,0.25)">🐱</div>
+        <div class="quest-prompt" style="color:#50e890">🎉 "cat" — yes!</div>
+        <div class="quest-prompt-sub">Amazing! You earned a star for that one!</div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <div style="background:#1a3a20;border:2px solid #50e890;border-radius:14px;padding:10px 20px;font-size:16px;font-weight:900;color:#50e890;animation:chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both">+1 ⭐</div>
+        </div>
+        <button style="margin-top:20px;background:linear-gradient(135deg,#9b72ff,#7c4dff);border:none;border-radius:12px;color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;padding:12px 32px;cursor:pointer">Next Question →</button>
+      </div>
+      <div class="play-rail">
+        <div class="mascot-coach">
+          <div class="mc-avatar" style="animation:none;font-size:44px">🦁</div>
+          <div class="mc-speech" style="border-color:#50e890;color:#50e890;background:#1a3a20">You got it! "cat" starts with the /k/ sound — great listening! 🎉</div>
+        </div>
+        <div class="play-progress-card">
+          <div class="rail-section-title">This Quest</div>
+          <div class="ppc-row">
+            <div class="ppc-label">Questions</div>
+            <div class="ppc-val">5 / 8</div>
+          </div>
+          <div class="ppc-bar"><div class="ppc-fill" style="width:62.5%"></div></div>
+          <div class="ppc-stars">⭐ ⭐ ⭐</div>
+        </div>
+        <div class="star-safe-rail">⭐ Your stars are safe!</div>
+      </div>
+    </div>
+
+    <div class="play-bottombar">
+      <div style="font-size:13px;color:#50e890;font-weight:700">✓ Answer saved!</div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes chip-pop {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</div>
+
+<!-- ── TAB 3: WRONG / GENTLE ── -->
+<div class="screen" id="tab-wrong">
+  <div class="play-shell">
+    <div class="play-topbar">
+      <button class="pt-back">← Home</button>
+      <div class="pt-quest-info">
+        <div class="pt-quest-name">Story Builder</div>
+        <div class="pt-quest-sub">Aim High · Cosmic Castle</div>
+      </div>
+      <div class="progress-strip">
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done"></div>
+        <div class="ps-dot done"></div>
+        <div class="ps-dot active" style="background:#ff7b6b;animation:none"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+        <div class="ps-dot pending"></div>
+      </div>
+      <div style="font-size:11px;color:#ff7b6b;padding:0 8px;font-weight:700">Try again!</div>
+      <div class="star-counter">🌟 18</div>
+      <button class="pause-btn">⏸</button>
+    </div>
+
+    <div class="play-main">
+      <div class="question-zone">
+        <div class="quest-q-label" style="color:#ff7b6b">Not quite — give it another try!</div>
+        <div class="quest-image">🐱</div>
+        <div class="quest-prompt">What is this?</div>
+        <div class="quest-prompt-sub">Listen again — what sound does it start with?</div>
+        <div class="answer-grid">
+          <div class="answer-card"><span class="ac-emoji">🐱</span>cat</div>
+          <div class="answer-card selected-wrong"><span class="ac-emoji">🐶</span>dog</div>
+          <div class="answer-card"><span class="ac-emoji">🐸</span>frog</div>
+          <div class="answer-card"><span class="ac-emoji">🐰</span>rabbit</div>
+        </div>
+        <div style="margin-top:14px;background:#2a1010;border:2px solid #ff7b6b44;border-radius:12px;padding:10px 14px;font-size:13px;color:#ff7b6b;font-weight:700;max-width:440px;text-align:center">
+          That wasn't it — try again! You're getting closer 🌟
+        </div>
+      </div>
+      <div class="play-rail">
+        <div class="mascot-coach">
+          <div class="mc-avatar" style="animation:none">🦁</div>
+          <div class="mc-speech" style="border-color:#ff7b6b44;color:#ff8888">Hmm, look again! Listen to the start sound — /k/ /k/ /k/ ... what starts with that? 🎵</div>
+        </div>
+        <div class="play-progress-card">
+          <div class="rail-section-title">This Quest</div>
+          <div class="ppc-row">
+            <div class="ppc-label">Questions</div>
+            <div class="ppc-val">4 / 8</div>
+          </div>
+          <div class="ppc-bar"><div class="ppc-fill" style="width:50%"></div></div>
+          <div class="ppc-stars" style="color:#9b8ec4">⭐ ⭐ ☆</div>
+        </div>
+        <div class="star-safe-rail">⭐ Stars safe — keep trying!</div>
+      </div>
+    </div>
+
+    <div class="play-bottombar">
+      <button class="pb-audio-btn active">🔊 Replay question</button>
+      <button class="pb-hint-btn" style="border-color:#9b72ff;color:#9b72ff">💡 Get a hint</button>
+      <button class="pb-idk-btn">🤷 I don't know yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">play-session-shell-desktop-v3.html</div></div>
+    <div class="spec-row"><div class="spec-k">Route</div><div class="spec-v">/child/play · wraps all scene types (reading/math/phonics/etc)</div></div>
+    <div class="spec-row"><div class="spec-k">Layout</div><div class="spec-v">1100px · top bar / (1fr question + 320px rail) / bottom bar</div></div>
+    <div class="spec-row"><div class="spec-k">States</div><div class="spec-v">Active · Correct · Wrong (gentle)</div></div>
+
+    <h3>Top Bar</h3>
+    <div class="spec-row"><div class="spec-k">Back button</div><div class="spec-v">← Home · triggers pause/save confirmation if mid-question</div></div>
+    <div class="spec-row"><div class="spec-k">Progress strip</div><div class="spec-v">Dots: done=green / active=violet pulse / pending=dim. "Q4/8" label.</div></div>
+    <div class="spec-row"><div class="spec-k">Star counter</div><div class="spec-v">Running total. Turns gold on correct answer momentarily.</div></div>
+    <div class="spec-row"><div class="spec-k">Pause button</div><div class="spec-v">⏸ → opens play-pause-sheet modal</div></div>
+
+    <h3>Question Zone</h3>
+    <div class="spec-row"><div class="spec-k">Image</div><div class="spec-v">160px rounded box · band-colored bg · center emoji for prototype</div></div>
+    <div class="spec-row"><div class="spec-k">Answer grid</div><div class="spec-v">2×2 grid · hover=violet · correct=green · wrong=red + shake keyframe</div></div>
+    <div class="spec-row"><div class="spec-k">No timer</div><div class="spec-v">Absolutely no countdown. No time pressure anywhere.</div></div>
+
+    <h3>Right Rail</h3>
+    <div class="spec-row"><div class="spec-k">Mascot coach</div><div class="spec-v">mc-bounce animation · speech bubble · message changes per state</div></div>
+    <div class="spec-row"><div class="spec-k">Progress card</div><div class="spec-v">Questions done/total · progress bar · star row (earned ⭐)</div></div>
+    <div class="spec-row"><div class="spec-k">Star-safe badge</div><div class="spec-v">Always visible · message: "Stars safe — keep trying!" on wrong</div></div>
+
+    <h3>Bottom Bar</h3>
+    <div class="spec-row"><div class="spec-k">Replay audio</div><div class="spec-v">Replays TTS question. Always available. Active state = violet border.</div></div>
+    <div class="spec-row"><div class="spec-k">Hint</div><div class="spec-v">Progressive disclosure. Hint button turns violet after wrong answer.</div></div>
+    <div class="spec-row"><div class="spec-k">I don't know yet</div><div class="spec-v">Red-tinted ghost button. Skips question, saves slot for retry. Stars safe.</div></div>
+
+    <h3>Wrong Answer Rules</h3>
+    <div class="spec-row"><div class="spec-k">Language</div><div class="spec-v">"Not quite — give it another try!" / "That wasn't it" — never "Wrong!"</div></div>
+    <div class="spec-row"><div class="spec-k">Shake anim</div><div class="spec-v">Wrong card: shake keyframe (translateX oscillation, 0.4s)</div></div>
+    <div class="spec-row"><div class="spec-k">Stars safe</div><div class="spec-v">Stars do NOT decrease on wrong answer. Rail badge always present.</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

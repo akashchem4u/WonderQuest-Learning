@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Support Areas Card — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Card shell ─────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:440px;display:inline-block;vertical-align:top}
+.card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff;margin-bottom:14px}
+
+/* ── Support area row ────────────────────────────────────────────── */
+.area-row{padding:14px 0;border-bottom:1px solid #f5f0ff}
+.area-row:last-child{border-bottom:none;padding-bottom:0}
+.area-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.area-icon{width:36px;height:36px;border-radius:10px;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.area-name{font-size:14px;font-weight:700;color:#1a1440}
+.area-subject{font-size:11px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+.building-badge{display:inline-flex;align-items:center;gap:4px;background:#fff8f0;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#d97706;margin-left:auto}
+
+/* ── Mastery bar ─────────────────────────────────────────────────── */
+.mastery-bar{height:8px;border-radius:4px;background:#f0ecf8;overflow:hidden;margin-bottom:6px}
+.mastery-fill-gold{height:100%;border-radius:4px;background:linear-gradient(90deg,#ffd166,#ffb347)}
+.mastery-fill-coral{height:100%;border-radius:4px;background:linear-gradient(90deg,#ff7b6b,#ff5a47)}
+
+/* ── Support tip ─────────────────────────────────────────────────── */
+.support-tip{background:#fffbf0;border-radius:10px;padding:11px 14px;font-size:12px;color:#92400e;line-height:1.5;border-left:3px solid #ffd166}
+.support-tip strong{color:#78350f}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:28px 16px;color:#aaa}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty-text{font-size:13px;line-height:1.5}
+
+/* ── Stars (displayed for context) ───────────────────────────────── */
+.stars-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#888;margin-top:4px}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-orange{background:#fff5eb;color:#d97706}
+.tag-red{background:#fff0f0;color:#dc2626}
+.tag-gray{background:#f0f0f0;color:#555}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-support-areas-card-v2.html</strong><br>
+  Shows skills "building toward mastery" — areas where mastery_score &lt; 65 OR delta &lt; 0 AND sessions >= 2.<br>
+  <strong>Framing rule (CRITICAL):</strong> NEVER use "weakness", "failing", "struggling", "low score", or accuracy %.<br>
+  Always use: "Building toward", "Still developing", "Support tip: [at-home activity]".<br>
+  <strong>Support tips</strong> are positive, actionable at-home suggestions — NOT corrections of what the child did wrong.<br>
+  Max 3 areas shown. If 0 qualify: show empty state "All skills looking strong this week! 🎉".
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('standard')">Standard (2 areas)</button>
+  <button class="tab-btn" onclick="showTab('three')">3 Areas</button>
+  <button class="tab-btn" onclick="showTab('empty')">Empty (all strong)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Standard ───────────────────────────────────────────────────── -->
+<div id="tab-standard" class="screen active">
+  <p class="section-title">Standard — 2 support areas</p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div class="card">
+      <div class="card-label">🌱 Building toward</div>
+
+      <div class="area-row">
+        <div class="area-header">
+          <div class="area-icon">🔤</div>
+          <div>
+            <div class="area-name">Blending sounds</div>
+            <div class="area-subject">Reading</div>
+          </div>
+          <span class="building-badge">🌱 Building</span>
+        </div>
+        <div class="mastery-bar">
+          <div class="mastery-fill-gold" style="width:48%"></div>
+        </div>
+        <div class="stars-row">
+          <span>⭐ 6 stars earned this week</span>
+          <span style="font-size:11px;color:#d97706;font-weight:700">Still developing</span>
+        </div>
+        <div class="support-tip" style="margin-top:10px">
+          <strong>💡 Support tip:</strong> Try reading picture books aloud together — pausing at new words and sounding them out slowly can help blending "click" naturally.
+        </div>
+      </div>
+
+      <div class="area-row">
+        <div class="area-header">
+          <div class="area-icon" style="background:#f0ebff">🔢</div>
+          <div>
+            <div class="area-name">Skip counting</div>
+            <div class="area-subject">Math</div>
+          </div>
+          <span class="building-badge">🌱 Building</span>
+        </div>
+        <div class="mastery-bar">
+          <div class="mastery-fill-gold" style="width:38%"></div>
+        </div>
+        <div class="stars-row">
+          <span>⭐ 4 stars earned this week</span>
+          <span style="font-size:11px;color:#d97706;font-weight:700">Still developing</span>
+        </div>
+        <div class="support-tip" style="margin-top:10px">
+          <strong>💡 Support tip:</strong> Count together by 2s or 5s when you're out walking or doing chores — makes skip counting feel fun and real.
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact dashboard variant -->
+    <div class="card" style="max-width:280px">
+      <div class="card-label">🌱 Building toward</div>
+      <div class="area-row">
+        <div class="area-header">
+          <div class="area-icon" style="width:28px;height:28px;font-size:14px">🔤</div>
+          <div><div class="area-name" style="font-size:13px">Blending sounds</div><div class="area-subject">Reading</div></div>
+        </div>
+        <div class="mastery-bar"><div class="mastery-fill-gold" style="width:48%"></div></div>
+      </div>
+      <div class="area-row">
+        <div class="area-header">
+          <div class="area-icon" style="width:28px;height:28px;font-size:14px;background:#f0ebff">🔢</div>
+          <div><div class="area-name" style="font-size:13px">Skip counting</div><div class="area-subject">Math</div></div>
+        </div>
+        <div class="mastery-bar"><div class="mastery-fill-gold" style="width:38%"></div></div>
+      </div>
+      <div style="margin-top:12px">
+        <a href="#" style="font-size:12px;color:#9b72ff;font-weight:700;text-decoration:none">See activity suggestions →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Three Areas ─────────────────────────────────────────────────── -->
+<div id="tab-three" class="screen">
+  <p class="section-title">3 support areas (maximum shown)</p>
+  <div class="card">
+    <div class="card-label">🌱 Building toward</div>
+
+    <div class="area-row">
+      <div class="area-header">
+        <div class="area-icon">🔤</div>
+        <div><div class="area-name">Blending sounds</div><div class="area-subject">Reading</div></div>
+        <span class="building-badge">🌱 Building</span>
+      </div>
+      <div class="mastery-bar"><div class="mastery-fill-gold" style="width:52%"></div></div>
+      <div class="stars-row"><span>⭐ 7 stars</span></div>
+      <div class="support-tip" style="margin-top:8px"><strong>💡 Support tip:</strong> Read aloud together — pause at unfamiliar words and sound them out slowly.</div>
+    </div>
+
+    <div class="area-row">
+      <div class="area-header">
+        <div class="area-icon" style="background:#f0ebff">🔢</div>
+        <div><div class="area-name">Skip counting</div><div class="area-subject">Math</div></div>
+        <span class="building-badge">🌱 Building</span>
+      </div>
+      <div class="mastery-bar"><div class="mastery-fill-gold" style="width:40%"></div></div>
+      <div class="stars-row"><span>⭐ 5 stars</span></div>
+      <div class="support-tip" style="margin-top:8px"><strong>💡 Support tip:</strong> Count by 2s or 5s when walking or cooking together.</div>
+    </div>
+
+    <div class="area-row">
+      <div class="area-header">
+        <div class="area-icon" style="background:#e6fef8">🗣️</div>
+        <div><div class="area-name">Rhyming words</div><div class="area-subject">Vocabulary</div></div>
+        <span class="building-badge" style="background:#fff0f5;color:#c2185b">🌱 Just started</span>
+      </div>
+      <div class="mastery-bar"><div class="mastery-fill-coral" style="width:22%"></div></div>
+      <div class="stars-row"><span>⭐ 2 stars</span><span style="font-size:11px;color:#c2185b;font-weight:700">Just started</span></div>
+      <div class="support-tip" style="margin-top:8px;border-left-color:#ff7b6b"><strong>💡 Support tip:</strong> Play rhyming word games in the car — "What rhymes with cat? Hat! Bat! Mat!"</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Empty State ─────────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">Empty state — all skills strong this week</p>
+  <div class="card">
+    <div class="card-label">🌱 Building toward</div>
+    <div class="empty-state">
+      <div class="empty-icon">🎉</div>
+      <div class="empty-text">
+        All skills are looking strong this week!<br>
+        <strong style="color:#1a1440">Keep up the great sessions — more skills will be tracked as Maya plays.</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-support-areas-card-v2.html<br>
+      <strong>Qualification:</strong> mastery_score &lt; 65 OR (delta &lt; 0 AND mastery_score &lt; 75). sessions_count >= 2. Max 3, sorted by mastery_score asc (lowest first).
+    </div>
+    <h2 class="spec-h2">Support Area Categories</h2>
+    <table class="spec-table">
+      <tr><th>mastery_score</th><th>Badge text</th><th>Bar fill</th><th>Support tip priority</th></tr>
+      <tr><td>40–64</td><td>🌱 Building</td><td>Gold gradient</td><td>One at-home tip shown</td></tr>
+      <tr><td>10–39</td><td>🌱 Just started</td><td>Coral gradient</td><td>One at-home tip + encouragement sentence</td></tr>
+      <tr><td>< 10 (new skill)</td><td>🌱 Just started</td><td>Coral (short bar)</td><td>Same as above</td></tr>
+    </table>
+    <h2 class="spec-h2">Prohibited Language</h2>
+    <table class="spec-table">
+      <tr><th>Never say</th><th>Say instead</th></tr>
+      <tr><td>"weakness"</td><td>"Building toward"</td></tr>
+      <tr><td>"struggling with"</td><td>"Still developing" / "Just started"</td></tr>
+      <tr><td>"low score" / "X% correct"</td><td>Stars earned this week only</td></tr>
+      <tr><td>"failed" / "can't do"</td><td>"Building toward [skill]"</td></tr>
+      <tr><td>Accuracy % in any form</td><td>Never shown here — weekly report only</td></tr>
+    </table>
+    <h2 class="spec-h2">Support Tips</h2>
+    <p class="spec-p">Tips are generated per skill-category from a curated tip library (not AI-generated per child). Each tip is a specific, actionable at-home activity. Tips must be:</p>
+    <p class="spec-p">1. Framed as something FUN to do together (not "drill your child on X").</p>
+    <p class="spec-p">2. Context-appropriate (pre-K tips differ from Grade 4–5 tips).</p>
+    <p class="spec-p">3. Free / no materials required unless clearly stated.</p>
+    <h2 class="spec-h2">Empty State</h2>
+    <p class="spec-p">If 0 skills qualify: show "🎉 All skills are looking strong this week!" — never show an empty card with no message. This positive empty state is a reward for the parent too.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

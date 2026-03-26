@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Route Shells — WonderQuest v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* Engineering hint */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:12px;line-height:1.7;margin-bottom:20px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+
+/* Top tab navigation */
+.tab-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.tab-btn.active{background:#1a1440;color:#fff}
+.tab-btn:hover:not(.active){background:#f0ede6}
+
+/* Screens */
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+
+/* Section title */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#8a7a6a;margin-bottom:12px;margin-top:24px}
+.section-label:first-child{margin-top:0}
+
+/* Phone frame grid layouts */
+.phones-2x2{display:grid;grid-template-columns:repeat(2,375px);gap:32px;justify-content:start}
+.phones-row{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap}
+.phones-single{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap}
+
+/* Phone frame */
+.phone{width:375px;height:812px;border-radius:36px;border:2px solid #30363d;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,.35);position:relative;background:#0d1117;display:flex;flex-direction:column;flex-shrink:0}
+
+/* Phone label */
+.phone-label{font-size:11px;font-weight:700;color:#8a7a6a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;text-align:center}
+
+/* Notch */
+.notch{width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;margin:0 auto;flex-shrink:0;z-index:10;position:relative}
+
+/* Status bar */
+.status-bar{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 8px;flex-shrink:0;position:relative}
+.status-bar-combined{height:44px;background:#0d1117;position:relative;flex-shrink:0}
+.status-notch{width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;margin:0 auto;position:absolute;top:0;left:50%;transform:translateX(-50%)}
+.status-row{display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;height:44px;}
+.status-time{font-size:12px;font-weight:700;color:#f0f6ff}
+.status-icons{display:flex;gap:5px;align-items:center}
+.status-icon{font-size:11px;color:#f0f6ff}
+
+/* Fixed top header */
+.mob-header{height:56px;background:#0d1117;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0}
+.mob-header-left{display:flex;align-items:center;gap:8px}
+.mob-header-logo{font-size:14px;font-weight:900;color:#50e890;letter-spacing:-.02em}
+.mob-header-sub{font-size:11px;font-weight:600;color:#8b949e}
+.mob-header-greeting{font-size:14px;font-weight:700;color:#f0f6ff}
+.mob-header-right{display:flex;gap:8px;align-items:center}
+.mob-icon-btn{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;position:relative;flex-shrink:0}
+.mob-notif-badge{position:absolute;top:-3px;right:-3px;width:15px;height:15px;background:#ef4444;border-radius:50%;border:2px solid #0d1117;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900}
+.mob-env-badge{font-size:9px;font-weight:800;background:#22c55e;color:#052e16;border-radius:4px;padding:2px 6px;letter-spacing:.05em}
+.mob-mfa-badge{font-size:11px}
+
+/* Content area */
+.mob-content{flex:1;overflow-y:auto;background:#0f1118;padding:16px}
+.mob-content.child-bg{background:linear-gradient(160deg,#0d1117 0%,#0f1b2d 60%,#0d1117 100%)}
+
+/* Content placeholders */
+.content-card{background:#161b22;border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px}
+.content-card-title{font-size:12px;font-weight:800;color:#f0f6ff;margin-bottom:8px}
+.placeholder-row{height:9px;border-radius:5px;background:rgba(255,255,255,.07);margin-bottom:6px}
+.placeholder-row.w70{width:70%}
+.placeholder-row.w50{width:50%}
+.placeholder-row.w85{width:85%}
+
+/* Child world map placeholder */
+.world-map-placeholder{background:linear-gradient(135deg,#0d2b3e 0%,#1a1a3e 50%,#0d2b1a 100%);flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
+@keyframes twinkle{0%{opacity:.3}100%{opacity:.9}}
+.map-island{position:absolute;border-radius:50%;opacity:.8}
+.map-path-node{position:absolute;border-radius:50%;border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:14px}
+
+/* Bottom tab bar — adult */
+.mob-tabs{background:#0d1117;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.mob-tabs-inner{height:49px;display:flex}
+.mob-safe-bottom{height:34px;background:#0d1117}
+.mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;position:relative;padding-top:4px}
+.mob-tab-icon{font-size:20px;color:rgba(255,255,255,.35);line-height:1}
+.mob-tab-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.03em}
+.mob-tab.active .mob-tab-icon{color:var(--accent)}
+.mob-tab.active .mob-tab-label{color:var(--accent)}
+.tab-badge{position:absolute;top:4px;right:calc(50% - 17px);background:#ef4444;border-radius:8px;font-size:8px;color:#fff;font-weight:900;padding:1px 4px;min-width:14px;text-align:center;border:1.5px solid #0d1117}
+
+/* Child tab bar — playful */
+.child-tabs{background:#0d1117;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.child-tabs-inner{height:49px;display:flex}
+.child-safe-bottom{height:34px;background:#0d1117}
+.child-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;position:relative;padding-top:4px}
+.child-tab-icon{font-size:20px;color:rgba(255,255,255,.3);line-height:1;position:relative;z-index:1}
+.child-tab-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.28);text-transform:uppercase;letter-spacing:.03em;position:relative;z-index:1}
+.child-tab.active .child-tab-blob{opacity:1;transform:scale(1)}
+.child-tab.active .child-tab-icon{color:#fff}
+.child-tab.active .child-tab-label{color:#fff}
+.child-tab-blob{position:absolute;top:4px;left:50%;transform:translateX(-50%) scale(.6);width:40px;height:34px;border-radius:50%;opacity:0;transition:all .2s;z-index:0}
+
+/* Back header */
+.mob-back-header{height:56px;background:#0d1117;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0}
+.mob-back-btn{width:36px;height:36px;border-radius:20px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:17px;color:#f0f6ff;cursor:pointer;flex-shrink:0}
+.mob-back-title{flex:1;text-align:center;font-size:15px;font-weight:800;color:#f0f6ff}
+.mob-back-actions{display:flex;gap:6px}
+
+/* Context tabs (sub nav) */
+.mob-context-tabs{height:44px;background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);display:flex;flex-shrink:0}
+.mob-ctx-tab{flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#8b949e;cursor:pointer;letter-spacing:.03em;border-bottom:2px solid transparent;margin-bottom:-1px}
+.mob-ctx-tab.active{color:#f0f6ff;border-bottom-color:#50e890}
+
+/* Breadcrumb header */
+.mob-breadcrumb-header{height:56px;background:#0d1117;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 16px;gap:6px;flex-shrink:0}
+.mob-breadcrumb{font-size:12px;color:#8b949e;display:flex;align-items:center;gap:4px;flex:1;overflow:hidden}
+.mob-breadcrumb-back{font-size:17px;color:#f0f6ff;cursor:pointer;margin-right:2px}
+.mob-breadcrumb-sep{color:#8b949e}
+.mob-breadcrumb-current{font-size:13px;font-weight:700;color:#f0f6ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Sticky bottom action */
+.mob-sticky-action{background:#0d1117;border-top:1px solid rgba(255,255,255,.06);padding:12px 16px;flex-shrink:0}
+.mob-action-btn{width:100%;height:48px;border-radius:14px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:system-ui}
+.mob-action-btn.green{background:#50e890;color:#052e16}
+.mob-action-btn.sky{background:#38bdf8;color:#082f49}
+.mob-safe-bottom-sm{height:18px}
+
+/* Modal shells */
+.modal-scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:5;display:flex;align-items:flex-end}
+.bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:#161b22;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.08);z-index:6;padding-bottom:34px}
+.sheet-drag-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0}
+.sheet-header{padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sheet-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sheet-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.sheet-item:last-child{border-bottom:none}
+.sheet-item-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sheet-item-label{font-size:13px;font-weight:600;color:#f0f6ff}
+.sheet-item-sub{font-size:11px;color:#8b949e;margin-top:1px}
+
+/* Full-screen modal */
+.fullscreen-modal{position:absolute;inset:0;background:#0f1118;z-index:8;display:flex;flex-direction:column}
+.fsm-header{height:56px;background:#0f1118;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0}
+.fsm-close{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:17px;color:#f0f6ff;cursor:pointer}
+.fsm-title{font-size:15px;font-weight:800;color:#f0f6ff}
+.fsm-action{font-size:13px;font-weight:700;color:#50e890;cursor:pointer}
+.fsm-content{flex:1;overflow-y:auto;padding:20px 16px}
+.fsm-field{margin-bottom:16px}
+.fsm-label{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.fsm-input{width:100%;height:44px;border-radius:10px;background:#161b22;border:1px solid rgba(255,255,255,.1);padding:0 14px;font-size:14px;color:#f0f6ff;font-family:system-ui}
+.fsm-textarea{width:100%;height:80px;border-radius:10px;background:#161b22;border:1px solid rgba(255,255,255,.1);padding:10px 14px;font-size:13px;color:#f0f6ff;font-family:system-ui;resize:none}
+.fsm-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.fsm-toggle-label{font-size:13px;font-weight:600;color:#f0f6ff}
+.fsm-toggle{width:44px;height:24px;background:#50e890;border-radius:12px;position:relative;cursor:pointer}
+.fsm-toggle-knob{position:absolute;top:3px;right:3px;width:18px;height:18px;background:#fff;border-radius:50%}
+.fsm-toggle.off{background:rgba(255,255,255,.15)}
+.fsm-toggle.off .fsm-toggle-knob{right:auto;left:3px}
+
+/* Fullscreen play shell */
+.play-shell{background:linear-gradient(160deg,#0a0e1a 0%,#0d1b2a 40%,#0a1a0e 100%);position:absolute;inset:0;display:flex;flex-direction:column}
+.play-star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
+.play-top-bar{height:60px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 10px;flex-shrink:0;position:relative;z-index:2}
+.play-exit-btn{width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:16px;color:rgba(255,255,255,.7);cursor:pointer}
+.play-xp-bar-wrap{display:flex;align-items:center;gap:8px}
+.play-xp-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.6)}
+.play-xp-track{width:100px;height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
+.play-xp-fill{height:100%;background:linear-gradient(90deg,#50e890,#38bdf8);border-radius:4px;width:62%}
+.play-content-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;padding:16px}
+.play-question-card{background:rgba(255,255,255,.07);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:24px;width:100%;max-width:320px;text-align:center}
+.play-question-emoji{font-size:48px;margin-bottom:12px}
+.play-question-text{font-size:16px;font-weight:700;color:#f0f6ff;line-height:1.4}
+.play-bottom-actions{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;position:relative;z-index:2;flex-shrink:0}
+.play-answer-btn{height:52px;border-radius:16px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:system-ui}
+.play-answer-btn.a{background:rgba(80,232,144,.15);border:1.5px solid rgba(80,232,144,.4);color:#50e890}
+.play-answer-btn.b{background:rgba(56,189,248,.15);border:1.5px solid rgba(56,189,248,.4);color:#38bdf8}
+.play-safe-btm{height:34px}
+
+/* Onboarding shell */
+.onboarding-shell{background:#0f1118;position:absolute;inset:0;display:flex;flex-direction:column}
+.ob-progress-area{height:60px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px;flex-shrink:0}
+.ob-dots{display:flex;gap:6px;align-items:center}
+.ob-dot{width:8px;height:8px;border-radius:4px;background:rgba(255,255,255,.2)}
+.ob-dot.active{width:20px;background:#50e890}
+.ob-content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.ob-emoji{font-size:64px;margin-bottom:20px;line-height:1}
+.ob-title{font-size:22px;font-weight:900;color:#f0f6ff;margin-bottom:12px;line-height:1.2}
+.ob-subtitle{font-size:14px;color:#8b949e;line-height:1.6;max-width:280px}
+.ob-bottom{padding:0 24px;flex-shrink:0}
+.ob-continue-btn{width:100%;height:52px;border-radius:16px;border:none;background:#50e890;color:#052e16;font-size:15px;font-weight:800;cursor:pointer;font-family:system-ui;margin-bottom:12px}
+.ob-skip{text-align:center;font-size:13px;color:#8b949e;cursor:pointer;padding:4px;margin-bottom:8px}
+.ob-safe-btm{height:34px}
+
+/* Spec styles */
+.spec-wrap{background:#1a1f2b;border-radius:16px;padding:28px;border:1px solid rgba(255,255,255,.08)}
+.spec-h2{font-size:14px;font-weight:800;color:#f0f6ff;margin:20px 0 10px;letter-spacing:.01em}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#8b949e;margin-bottom:10px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}
+.spec-table th{background:rgba(255,255,255,.05);padding:9px 14px;text-align:left;font-weight:700;color:#8b949e;border-bottom:2px solid rgba(255,255,255,.08);text-transform:uppercase;font-size:10px;letter-spacing:.08em}
+.spec-table td{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:#c9d1d9;vertical-align:top;font-size:12px}
+.spec-table tr:last-child td{border-bottom:none}
+.spec-table td code{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#50e890}
+.spec-code-block{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px 16px;font-family:monospace;font-size:11.5px;color:#c9d1d9;margin-bottom:16px;line-height:1.7;overflow-x:auto;white-space:pre}
+.spec-tag{display:inline-block;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;margin-right:4px;margin-bottom:4px}
+.spec-tag.green{background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
+.spec-tag.sky{background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.3)}
+.spec-tag.violet{background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.3)}
+.spec-tag.coral{background:rgba(255,123,107,.15);color:#ff7b6b;border:1px solid rgba(255,123,107,.3)}
+.spec-tag.gold{background:rgba(255,209,102,.15);color:#ffd166;border:1px solid rgba(255,209,102,.3)}
+.spec-section-divider{height:1px;background:rgba(255,255,255,.06);margin:20px 0}
+
+/* Route map grid */
+.route-map{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.route-map-col{background:rgba(255,255,255,.03);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,.06)}
+.route-map-col-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.route-map-item{font-size:11px;color:#8b949e;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:4px}
+.route-map-item:last-child{border-bottom:none}
+.route-map-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>mobile-route-shells-v2.html</strong> — Mobile route shell system. Defines the consistent structural skeleton for all mobile routes.<br>
+  4 shell types: (1) <strong>Root Shell</strong> — bottom tabs + fixed header, for top-level tabs of each persona; (2) <strong>Child Route Shell</strong> — back header replacing bottom tabs context, for detail/drill-down screens; (3) <strong>Modal Shell</strong> — bottom sheet or full-screen modal; (4) <strong>Fullscreen Shell</strong> — for immersive experiences (play screen, onboarding).<br>
+  Phone frame: 375×812px, border-radius 36px, notch at top. Safe area insets: top 44px, bottom 34px (iPhone notch+home bar).
+</div>
+
+<!-- Tab navigation -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab(1)">1 · Root Shells</button>
+  <button class="tab-btn" onclick="showTab(2)">2 · Child Route Shells</button>
+  <button class="tab-btn" onclick="showTab(3)">3 · Modal Shells</button>
+  <button class="tab-btn" onclick="showTab(4)">4 · Fullscreen Shell</button>
+  <button class="tab-btn" onclick="showTab(5)">5 · Spec</button>
+</div>
+
+<!-- ─── TAB 1: ROOT SHELLS ─── -->
+<div class="screen active" id="screen-1">
+  <div class="section-label">Root shells — top-level persona home containers (4 personas, 2×2 grid)</div>
+  <div class="phones-2x2">
+
+    <!-- Child Root Shell -->
+    <div>
+      <div class="phone-label">Child Root Shell</div>
+      <div class="phone">
+        <!-- Status bar + notch -->
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full-bleed world map area (no top header) -->
+        <div class="world-map-placeholder" style="flex:1;min-height:0">
+          <!-- Stars -->
+          <div class="play-star" style="width:2px;height:2px;top:8%;left:12%"></div>
+          <div class="play-star" style="width:3px;height:3px;top:15%;left:55%;animation-delay:.4s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:28%;left:80%;animation-delay:.8s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:42%;left:25%;animation-delay:1.2s"></div>
+          <div class="play-star" style="width:3px;height:3px;top:60%;left:70%;animation-delay:.6s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:72%;left:40%;animation-delay:1s"></div>
+          <!-- Islands -->
+          <div class="map-island" style="width:80px;height:60px;background:#1a4a2e;top:15%;left:8%;border-radius:60% 40% 50% 55%"></div>
+          <div class="map-island" style="width:60px;height:50px;background:#2a3a1a;top:35%;left:60%;border-radius:50% 60% 40% 55%"></div>
+          <div class="map-island" style="width:90px;height:65px;background:#1a2a4a;top:55%;left:20%;border-radius:55% 45% 60% 40%"></div>
+          <!-- Path nodes -->
+          <div class="map-path-node" style="width:44px;height:44px;background:#ffd166;top:18%;left:18%;font-size:16px;">🏠</div>
+          <div class="map-path-node" style="width:40px;height:40px;background:#9b72ff;top:38%;left:65%;font-size:14px;">📚</div>
+          <div class="map-path-node" style="width:40px;height:40px;background:#58e8c1;border-color:rgba(88,232,193,.5);top:60%;left:28%;font-size:14px;">⚡</div>
+          <div class="map-path-node" style="width:36px;height:36px;background:rgba(255,255,255,.1);top:72%;left:65%;font-size:12px;border-color:rgba(255,255,255,.2)">🔒</div>
+          <!-- Map label -->
+          <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.08em;text-transform:uppercase">World Map</div>
+          <!-- XP strip -->
+          <div style="position:absolute;top:50px;left:16px;right:16px;background:rgba(0,0,0,.4);border-radius:12px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px">🦊</span>
+              <span style="font-size:12px;font-weight:800;color:#ffd166">Zara</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:#50e890;font-weight:700">⚡ 340 XP</span>
+              <span style="font-size:11px;color:#ff7b6b;font-weight:700">🔥 7</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Child bottom tab bar (playful blobs) -->
+        <div class="child-tabs">
+          <div class="child-tabs-inner">
+            <div class="child-tab active">
+              <div class="child-tab-blob" style="background:#ffd166;transform:translateX(-50%) scale(1)"></div>
+              <div class="child-tab-icon">🏠</div>
+              <div class="child-tab-label">Home</div>
+            </div>
+            <div class="child-tab">
+              <div class="child-tab-blob" style="background:#9b72ff"></div>
+              <div class="child-tab-icon">📚</div>
+              <div class="child-tab-label">Learn</div>
+            </div>
+            <div class="child-tab">
+              <div class="child-tab-blob" style="background:#50e890"></div>
+              <div class="child-tab-icon">⚡</div>
+              <div class="child-tab-label">Quest</div>
+            </div>
+            <div class="child-tab">
+              <div class="child-tab-blob" style="background:#58e8c1"></div>
+              <div class="child-tab-icon">🏅</div>
+              <div class="child-tab-label">Badges</div>
+            </div>
+            <div class="child-tab">
+              <div class="child-tab-blob" style="background:#ff7b6b"></div>
+              <div class="child-tab-icon">👤</div>
+              <div class="child-tab-label">Me</div>
+            </div>
+          </div>
+          <div class="child-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Root Shell -->
+    <div>
+      <div class="phone-label">Teacher Root Shell</div>
+      <div class="phone" style="--accent:#38bdf8">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-header">
+          <div class="mob-header-left">
+            <span class="mob-header-logo">WQ</span>
+            <span class="mob-header-sub">Riverside Elem.</span>
+          </div>
+          <div class="mob-header-right">
+            <div class="mob-icon-btn">
+              🔔
+              <div class="mob-notif-badge">3</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-content" style="padding:12px">
+          <!-- Quick stats -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div class="content-card" style="text-align:center;padding:12px 10px">
+              <div style="font-size:22px;font-weight:900;color:#38bdf8">24</div>
+              <div style="font-size:10px;color:#8b949e;font-weight:700;margin-top:2px">Students</div>
+            </div>
+            <div class="content-card" style="text-align:center;padding:12px 10px">
+              <div style="font-size:22px;font-weight:900;color:#50e890">87%</div>
+              <div style="font-size:10px;color:#8b949e;font-weight:700;margin-top:2px">On Track</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Needs Attention</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+              <div style="width:28px;height:28px;border-radius:50%;background:#9b72ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0">MK</div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:700;color:#f0f6ff">Marcus K.</div>
+                <div style="font-size:10px;color:#ff7b6b">Struggling with fractions</div>
+              </div>
+              <span style="font-size:11px;color:#ff7b6b">⚠️</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+              <div style="width:28px;height:28px;border-radius:50%;background:#58e8c1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#052e16;flex-shrink:0">AL</div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:700;color:#f0f6ff">Aisha L.</div>
+                <div style="font-size:10px;color:#ffd166">No activity 3 days</div>
+              </div>
+              <span style="font-size:11px;color:#ffd166">⏰</span>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Today's Queue</div>
+            <div class="placeholder-row"></div>
+            <div class="placeholder-row w70"></div>
+          </div>
+        </div>
+
+        <div class="mob-tabs">
+          <div class="mob-tabs-inner">
+            <div class="mob-tab active" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">🏠</div>
+              <div class="mob-tab-label">Home</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">👥</div>
+              <div class="mob-tab-label">Students</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8;position:relative">
+              <div class="mob-tab-icon">📋</div>
+              <div class="mob-tab-label">Queue</div>
+              <div class="tab-badge">5</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">✉️</div>
+              <div class="mob-tab-label">Messages</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">☰</div>
+              <div class="mob-tab-label">More</div>
+            </div>
+          </div>
+          <div class="mob-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parent Root Shell -->
+    <div>
+      <div class="phone-label">Parent Root Shell</div>
+      <div class="phone" style="--accent:#a78bfa">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-header">
+          <div class="mob-header-left">
+            <div>
+              <div class="mob-header-greeting">Hi, Sarah 👋</div>
+              <div style="font-size:10px;color:#8b949e;margin-top:1px">2 children linked</div>
+            </div>
+          </div>
+          <div class="mob-header-right">
+            <div class="mob-icon-btn">⚙️</div>
+          </div>
+        </div>
+
+        <div class="mob-content" style="padding:12px">
+          <!-- Child selector chips -->
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="background:#a78bfa;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;display:flex;align-items:center;gap:4px">🦊 Zara</div>
+            <div style="background:rgba(255,255,255,.07);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:#8b949e;display:flex;align-items:center;gap:4px;border:1px solid rgba(255,255,255,.08)">🐬 Leo</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div class="content-card" style="text-align:center;padding:12px 10px">
+              <div style="font-size:20px;font-weight:900;color:#a78bfa">14m</div>
+              <div style="font-size:10px;color:#8b949e;font-weight:700;margin-top:2px">Today</div>
+            </div>
+            <div class="content-card" style="text-align:center;padding:12px 10px">
+              <div style="font-size:20px;font-weight:900;color:#50e890">+12%</div>
+              <div style="font-size:10px;color:#8b949e;font-weight:700;margin-top:2px">This Week</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Latest Activity</div>
+            <div class="placeholder-row"></div>
+            <div class="placeholder-row w85"></div>
+            <div class="placeholder-row w50"></div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">School Update</div>
+            <div class="placeholder-row w70"></div>
+          </div>
+        </div>
+
+        <div class="mob-tabs">
+          <div class="mob-tabs-inner">
+            <div class="mob-tab active" style="--accent:#a78bfa">
+              <div class="mob-tab-icon">🏠</div>
+              <div class="mob-tab-label">Home</div>
+            </div>
+            <div class="mob-tab" style="--accent:#a78bfa">
+              <div class="mob-tab-icon">📈</div>
+              <div class="mob-tab-label">Progress</div>
+            </div>
+            <div class="mob-tab" style="--accent:#a78bfa">
+              <div class="mob-tab-icon">🏫</div>
+              <div class="mob-tab-label">School</div>
+            </div>
+            <div class="mob-tab" style="--accent:#a78bfa">
+              <div class="mob-tab-icon">📊</div>
+              <div class="mob-tab-label">Reports</div>
+            </div>
+            <div class="mob-tab" style="--accent:#a78bfa">
+              <div class="mob-tab-icon">⚙️</div>
+              <div class="mob-tab-label">Settings</div>
+            </div>
+          </div>
+          <div class="mob-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Owner Root Shell -->
+    <div>
+      <div class="phone-label">Owner Root Shell</div>
+      <div class="phone" style="--accent:#50e890">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-header">
+          <div class="mob-header-left">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="mob-header-logo" style="font-size:13px">WonderQuest</span>
+                <span class="mob-env-badge">PROD</span>
+              </div>
+              <div style="font-size:10px;color:#8b949e;margin-top:1px">Owner Dashboard</div>
+            </div>
+          </div>
+          <div class="mob-header-right">
+            <span class="mob-mfa-badge">🔐</span>
+            <div class="mob-icon-btn">🔔</div>
+          </div>
+        </div>
+
+        <!-- P0 incident banner -->
+        <div style="background:rgba(239,68,68,.12);border-bottom:1px solid rgba(239,68,68,.3);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-size:12px">🚨</span>
+          <span style="font-size:11px;font-weight:700;color:#fca5a5">P0 Active — Route /play latency spike</span>
+          <span style="font-size:10px;color:#ef4444;margin-left:auto;font-weight:700">VIEW</span>
+        </div>
+
+        <div class="mob-content" style="padding:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div class="content-card" style="text-align:center;padding:12px 10px">
+              <div style="font-size:20px;font-weight:900;color:#50e890">99.1%</div>
+              <div style="font-size:10px;color:#8b949e;font-weight:700;margin-top:2px">Uptime</div>
+            </div>
+            <div class="content-card" style="text-align:center;padding:12px 10px">
+              <div style="font-size:20px;font-weight:900;color:#ffd166">2,847</div>
+              <div style="font-size:10px;color:#8b949e;font-weight:700;margin-top:2px">Active Now</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Release Status</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:11px;color:#8b949e">v2.4.1-rc2</span>
+              <span style="font-size:11px;background:rgba(80,232,144,.15);color:#50e890;border-radius:6px;padding:2px 8px;font-weight:700">STAGING</span>
+            </div>
+            <div class="placeholder-row w70"></div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Feedback Queue</div>
+            <div class="placeholder-row"></div>
+            <div class="placeholder-row w50"></div>
+          </div>
+        </div>
+
+        <div class="mob-tabs">
+          <div class="mob-tabs-inner">
+            <div class="mob-tab active" style="--accent:#50e890">
+              <div class="mob-tab-icon">🏠</div>
+              <div class="mob-tab-label">Home</div>
+            </div>
+            <div class="mob-tab" style="--accent:#50e890;position:relative">
+              <!-- P0 incident: routes tab turns red -->
+              <div class="mob-tab-icon" style="color:#ef4444">🛣️</div>
+              <div class="mob-tab-label" style="color:#ef4444">Routes</div>
+              <div class="tab-badge">⚠️</div>
+            </div>
+            <div class="mob-tab" style="--accent:#50e890">
+              <div class="mob-tab-icon">💬</div>
+              <div class="mob-tab-label">Feedback</div>
+            </div>
+            <div class="mob-tab" style="--accent:#50e890">
+              <div class="mob-tab-icon">🚀</div>
+              <div class="mob-tab-label">Release</div>
+            </div>
+            <div class="mob-tab" style="--accent:#50e890">
+              <div class="mob-tab-icon">☰</div>
+              <div class="mob-tab-label">More</div>
+            </div>
+          </div>
+          <div class="mob-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phones-2x2 -->
+</div>
+
+<!-- ─── TAB 2: CHILD ROUTE SHELLS ─── -->
+<div class="screen" id="screen-2">
+  <div class="section-label">Child route shells — back-nav header patterns for drill-down screens</div>
+  <div class="phones-row">
+
+    <!-- Standard Child Back Header -->
+    <div>
+      <div class="phone-label">Standard Back Header (Subject Detail)</div>
+      <div class="phone">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-back-header">
+          <div class="mob-back-btn">←</div>
+          <div class="mob-back-title">Mathematics</div>
+          <div class="mob-back-actions">
+            <div class="mob-icon-btn">ⓘ</div>
+          </div>
+        </div>
+
+        <!-- Context sub-tabs -->
+        <div class="mob-context-tabs">
+          <div class="mob-ctx-tab active">Skills</div>
+          <div class="mob-ctx-tab">Quests</div>
+          <div class="mob-ctx-tab">Progress</div>
+        </div>
+
+        <div class="mob-content child-bg" style="padding:14px">
+          <!-- Band pill -->
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:20px;padding:5px 12px;margin-bottom:14px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#9b72ff"></div>
+            <span style="font-size:11px;font-weight:700;color:#9b72ff">Band K–1</span>
+          </div>
+          <!-- Skill cards -->
+          <div class="content-card" style="margin-bottom:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:800;color:#f0f6ff">Counting to 20</span>
+              <span style="font-size:11px;background:rgba(80,232,144,.15);color:#50e890;border-radius:6px;padding:2px 8px;font-weight:700">Mastered</span>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border-radius:6px;height:8px;overflow:hidden">
+              <div style="width:100%;height:100%;background:linear-gradient(90deg,#50e890,#38bdf8)"></div>
+            </div>
+          </div>
+          <div class="content-card" style="margin-bottom:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:800;color:#f0f6ff">Addition to 10</span>
+              <span style="font-size:11px;background:rgba(255,209,102,.15);color:#ffd166;border-radius:6px;padding:2px 8px;font-weight:700">In Progress</span>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border-radius:6px;height:8px;overflow:hidden">
+              <div style="width:65%;height:100%;background:linear-gradient(90deg,#ffd166,#ff7b6b)"></div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:800;color:#f0f6ff">Subtraction</span>
+              <span style="font-size:11px;background:rgba(255,255,255,.08);color:#8b949e;border-radius:6px;padding:2px 8px;font-weight:700">Locked</span>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border-radius:6px;height:8px;overflow:hidden">
+              <div style="width:0%;height:100%;background:#9b72ff"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Context-specific bottom tabs replace main tabs -->
+        <div class="mob-tabs">
+          <div class="mob-tabs-inner">
+            <div class="mob-tab active" style="--accent:#9b72ff">
+              <div class="mob-tab-icon">🎯</div>
+              <div class="mob-tab-label">Skills</div>
+            </div>
+            <div class="mob-tab" style="--accent:#9b72ff">
+              <div class="mob-tab-icon">⚡</div>
+              <div class="mob-tab-label">Quests</div>
+            </div>
+            <div class="mob-tab" style="--accent:#9b72ff">
+              <div class="mob-tab-icon">📈</div>
+              <div class="mob-tab-label">Progress</div>
+            </div>
+          </div>
+          <div class="mob-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Detail Back Header -->
+    <div>
+      <div class="phone-label">Teacher Detail Header (Student View)</div>
+      <div class="phone" style="--accent:#38bdf8">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-back-header">
+          <div class="mob-back-btn">←</div>
+          <div class="mob-back-title">Marcus</div>
+          <div class="mob-back-actions">
+            <div class="mob-icon-btn">🔔</div>
+            <div class="mob-icon-btn">✉️</div>
+          </div>
+        </div>
+
+        <div class="mob-context-tabs">
+          <div class="mob-ctx-tab active" style="border-bottom-color:#38bdf8">Overview</div>
+          <div class="mob-ctx-tab">Skills</div>
+          <div class="mob-ctx-tab">Interventions</div>
+          <div class="mob-ctx-tab">Messages</div>
+        </div>
+
+        <div class="mob-content" style="padding:14px">
+          <!-- Student header card -->
+          <div class="content-card" style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#9b72ff,#38bdf8);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;flex-shrink:0">M</div>
+            <div>
+              <div style="font-size:14px;font-weight:800;color:#f0f6ff">Marcus K.</div>
+              <div style="font-size:11px;color:#8b949e">Grade 2 · Room 4B</div>
+              <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+                <div style="width:6px;height:6px;border-radius:50%;background:#50e890"></div>
+                <span style="font-size:10px;color:#50e890;font-weight:700">Active Today</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+            <div class="content-card" style="text-align:center;padding:10px 6px">
+              <div style="font-size:18px;font-weight:900;color:#ff7b6b">62%</div>
+              <div style="font-size:9px;color:#8b949e;font-weight:700">Math</div>
+            </div>
+            <div class="content-card" style="text-align:center;padding:10px 6px">
+              <div style="font-size:18px;font-weight:900;color:#50e890">78%</div>
+              <div style="font-size:9px;color:#8b949e;font-weight:700">Reading</div>
+            </div>
+            <div class="content-card" style="text-align:center;padding:10px 6px">
+              <div style="font-size:18px;font-weight:900;color:#ffd166">5</div>
+              <div style="font-size:9px;color:#8b949e;font-weight:700">Streak</div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Recommended Action</div>
+            <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px 12px">
+              <div style="font-size:12px;font-weight:700;color:#fca5a5;margin-bottom:4px">⚠️ Fractions — Below Grade Level</div>
+              <div style="font-size:11px;color:#8b949e;line-height:1.5">Marcus scored below 65% on 3 consecutive fraction skills. Suggest targeted practice.</div>
+            </div>
+          </div>
+          <div class="content-card" style="margin-top:8px">
+            <div class="content-card-title">Recent Sessions</div>
+            <div class="placeholder-row"></div>
+            <div class="placeholder-row w70"></div>
+          </div>
+        </div>
+
+        <div class="mob-tabs">
+          <div class="mob-tabs-inner">
+            <div class="mob-tab active" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">📋</div>
+              <div class="mob-tab-label">Overview</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">🎯</div>
+              <div class="mob-tab-label">Skills</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">🔧</div>
+              <div class="mob-tab-label">Interventions</div>
+            </div>
+            <div class="mob-tab" style="--accent:#38bdf8">
+              <div class="mob-tab-icon">✉️</div>
+              <div class="mob-tab-label">Messages</div>
+            </div>
+          </div>
+          <div class="mob-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deep Drill-Down (3 levels) -->
+    <div>
+      <div class="phone-label">Deep Drill-Down (3 Levels, Breadcrumb)</div>
+      <div class="phone">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breadcrumb header -->
+        <div class="mob-breadcrumb-header">
+          <span class="mob-breadcrumb-back">←</span>
+          <div class="mob-breadcrumb">
+            <span style="color:#8b949e;font-size:11px">Skills</span>
+            <span class="mob-breadcrumb-sep">›</span>
+            <span class="mob-breadcrumb-current">Adding Fractions</span>
+          </div>
+        </div>
+
+        <!-- No sub-tabs — single purpose -->
+        <div class="mob-content" style="padding:14px;flex:1">
+          <div style="background:rgba(88,232,193,.1);border:1px solid rgba(88,232,193,.25);border-radius:14px;padding:14px;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:700;color:#58e8c1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Skill Detail</div>
+            <div style="font-size:16px;font-weight:900;color:#f0f6ff;margin-bottom:8px">Adding Fractions</div>
+            <div style="font-size:12px;color:#8b949e;line-height:1.5">Grade 2–3 · Mathematics · Prerequisite: Understanding of equal parts</div>
+          </div>
+
+          <div class="content-card" style="margin-bottom:8px">
+            <div class="content-card-title">Question Preview</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px;text-align:center;margin-bottom:8px">
+              <div style="font-size:24px;margin-bottom:8px">🍕</div>
+              <div style="font-size:13px;color:#f0f6ff;font-weight:600">What is ¼ + ¼?</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.25);border-radius:8px;padding:8px;text-align:center;font-size:12px;font-weight:700;color:#50e890">½ ✓</div>
+              <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px;text-align:center;font-size:12px;font-weight:600;color:#8b949e">¼</div>
+              <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px;text-align:center;font-size:12px;font-weight:600;color:#8b949e">¾</div>
+              <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px;text-align:center;font-size:12px;font-weight:600;color:#8b949e">1</div>
+            </div>
+          </div>
+
+          <div class="content-card" style="margin-bottom:8px">
+            <div class="content-card-title">Difficulty Settings</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">
+              <span style="font-size:12px;color:#f0f6ff;font-weight:600">Scaffold Mode</span>
+              <div style="display:flex;gap:4px">
+                <div style="padding:3px 10px;background:rgba(88,232,193,.2);border-radius:6px;font-size:11px;font-weight:700;color:#58e8c1">ON</div>
+                <div style="padding:3px 10px;background:rgba(255,255,255,.06);border-radius:6px;font-size:11px;font-weight:600;color:#8b949e">OFF</div>
+              </div>
+            </div>
+            <div class="placeholder-row w70"></div>
+          </div>
+          <div class="content-card">
+            <div class="content-card-title">Linked Standards</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <div style="background:rgba(255,255,255,.07);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;color:#8b949e">CCSS.MATH.2.NF.3</div>
+              <div style="background:rgba(255,255,255,.07);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;color:#8b949e">CCSS.MATH.3.NF.1</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky action — no bottom tabs -->
+        <div class="mob-sticky-action">
+          <button class="mob-action-btn green">Approve &amp; Publish</button>
+          <div class="mob-safe-bottom-sm"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phones-row -->
+</div>
+
+<!-- ─── TAB 3: MODAL SHELLS ─── -->
+<div class="screen" id="screen-3">
+  <div class="section-label">Modal shells — bottom sheet and full-screen modal patterns</div>
+  <div class="phones-row">
+
+    <!-- Bottom Sheet Modal -->
+    <div>
+      <div class="phone-label">Bottom Sheet (Partial Height, ~60%)</div>
+      <div class="phone">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- App behind sheet (dimmed) -->
+        <div style="flex:1;background:#0f1118;padding:14px;overflow:hidden;position:relative">
+          <div style="opacity:.4">
+            <div class="content-card" style="margin-bottom:8px">
+              <div class="content-card-title">Home Hub</div>
+              <div class="placeholder-row"></div>
+              <div class="placeholder-row w70"></div>
+            </div>
+            <div class="content-card">
+              <div class="placeholder-row"></div>
+              <div class="placeholder-row w85"></div>
+            </div>
+          </div>
+
+          <!-- Scrim -->
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:5"></div>
+
+          <!-- Bottom sheet -->
+          <div style="position:absolute;bottom:0;left:0;right:0;background:#161b22;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.08);z-index:6;border-bottom:none">
+            <div style="width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0"></div>
+            <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,.06)">
+              <div style="font-size:14px;font-weight:800;color:#f0f6ff">Choose a Subject</div>
+              <div style="font-size:11px;color:#8b949e;margin-top:2px">What would you like to practice today?</div>
+            </div>
+            <!-- Sheet items -->
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">
+              <div style="width:40px;height:40px;border-radius:12px;background:rgba(155,114,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🔢</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#f0f6ff">Mathematics</div>
+                <div style="font-size:11px;color:#8b949e">12 skills available</div>
+              </div>
+              <span style="margin-left:auto;color:#8b949e;font-size:14px">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">
+              <div style="width:40px;height:40px;border-radius:12px;background:rgba(88,232,193,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📖</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#f0f6ff">Reading</div>
+                <div style="font-size:11px;color:#8b949e">8 skills available</div>
+              </div>
+              <span style="margin-left:auto;color:#8b949e;font-size:14px">›</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer">
+              <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,209,102,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🔬</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#f0f6ff">Science</div>
+                <div style="font-size:11px;color:#8b949e;display:flex;align-items:center;gap:4px"><span style="background:rgba(255,209,102,.15);color:#ffd166;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700">COMING SOON</span></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">
+              <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,123,107,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✏️</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#f0f6ff">Writing</div>
+                <div style="font-size:11px;color:#8b949e">5 skills available</div>
+              </div>
+              <span style="margin-left:auto;color:#8b949e;font-size:14px">›</span>
+            </div>
+            <div style="height:34px;background:#161b22"></div>
+          </div>
+        </div>
+
+        <!-- Tab bar visible behind sheet -->
+        <div class="child-tabs" style="flex-shrink:0">
+          <div class="child-tabs-inner" style="opacity:.3">
+            <div class="child-tab"><div class="child-tab-icon">🏠</div><div class="child-tab-label">Home</div></div>
+            <div class="child-tab"><div class="child-tab-icon">📚</div><div class="child-tab-label">Learn</div></div>
+            <div class="child-tab"><div class="child-tab-icon">⚡</div><div class="child-tab-label">Quest</div></div>
+            <div class="child-tab"><div class="child-tab-icon">🏅</div><div class="child-tab-label">Badges</div></div>
+            <div class="child-tab"><div class="child-tab-icon">👤</div><div class="child-tab-label">Me</div></div>
+          </div>
+          <div class="child-safe-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-Screen Modal -->
+    <div>
+      <div class="phone-label">Full-Screen Modal (Settings / Form)</div>
+      <div class="phone">
+        <div class="status-bar-combined">
+          <div class="status-notch"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full-screen modal takes entire frame -->
+        <div class="fullscreen-modal" style="position:relative;flex:1">
+          <div class="fsm-header">
+            <div class="fsm-close">✕</div>
+            <div class="fsm-title">Privacy Settings</div>
+            <div class="fsm-action">Save</div>
+          </div>
+          <div class="fsm-content">
+            <div class="fsm-field">
+              <div class="fsm-label">Display Name</div>
+              <div style="height:44px;border-radius:10px;background:#161b22;border:1px solid rgba(255,255,255,.1);padding:0 14px;font-size:14px;color:#f0f6ff;display:flex;align-items:center">Zara M.</div>
+            </div>
+            <div class="fsm-field">
+              <div class="fsm-label">Email Notifications</div>
+              <div style="background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+                <div class="fsm-toggle-row" style="padding:12px 14px">
+                  <div>
+                    <div class="fsm-toggle-label">Weekly Reports</div>
+                    <div style="font-size:11px;color:#8b949e;margin-top:2px">Sent every Sunday</div>
+                  </div>
+                  <div class="fsm-toggle"><div class="fsm-toggle-knob"></div></div>
+                </div>
+                <div class="fsm-toggle-row" style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.05)">
+                  <div>
+                    <div class="fsm-toggle-label">Achievement Alerts</div>
+                    <div style="font-size:11px;color:#8b949e;margin-top:2px">When child earns badges</div>
+                  </div>
+                  <div class="fsm-toggle"><div class="fsm-toggle-knob"></div></div>
+                </div>
+                <div class="fsm-toggle-row" style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.05);border-bottom:none">
+                  <div>
+                    <div class="fsm-toggle-label">Teacher Messages</div>
+                    <div style="font-size:11px;color:#8b949e;margin-top:2px">Immediate push + email</div>
+                  </div>
+                  <div class="fsm-toggle off"><div class="fsm-toggle-knob"></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="fsm-field">
+              <div class="fsm-label">Data Sharing</div>
+              <div style="background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+                <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+                  <div class="fsm-toggle-label">Share progress with teacher</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;line-height:1.5">Teachers can see your child's skill progress and session history.</div>
+                  <div style="margin-top:8px;display:flex;gap:6px">
+                    <div style="padding:4px 12px;background:rgba(80,232,144,.15);border:1px solid rgba(80,232,144,.3);border-radius:8px;font-size:11px;font-weight:700;color:#50e890">Enabled</div>
+                    <div style="padding:4px 12px;background:rgba(255,255,255,.06);border-radius:8px;font-size:11px;font-weight:600;color:#8b949e">Disabled</div>
+                  </div>
+                </div>
+                <div style="padding:12px 14px">
+                  <div class="fsm-toggle-label">Anonymous analytics</div>
+                  <div style="font-size:11px;color:#8b949e;margin-top:3px;line-height:1.5">Helps improve WonderQuest for all learners.</div>
+                  <div style="margin-top:8px;display:flex;gap:6px">
+                    <div style="padding:4px 12px;background:rgba(80,232,144,.15);border:1px solid rgba(80,232,144,.3);border-radius:8px;font-size:11px;font-weight:700;color:#50e890">Enabled</div>
+                    <div style="padding:4px 12px;background:rgba(255,255,255,.06);border-radius:8px;font-size:11px;font-weight:600;color:#8b949e">Disabled</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="fsm-field">
+              <div class="fsm-label">Account Actions</div>
+              <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px">
+                <div style="font-size:13px;font-weight:700;color:#fca5a5;margin-bottom:4px">Delete Account</div>
+                <div style="font-size:11px;color:#8b949e;line-height:1.5">All data will be permanently deleted. This cannot be undone.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sheet dismiss annotation -->
+    <div style="align-self:flex-start;margin-top:80px">
+      <div style="background:#fff;border-radius:12px;padding:16px;max-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+        <div style="font-size:11px;font-weight:800;color:#1a1440;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Sheet Notes</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;margin-bottom:10px">
+          <strong>Dismiss:</strong> Swipe down or tap scrim<br><br>
+          <strong>Height:</strong> ~60% of viewport<br><br>
+          <strong>Bg:</strong> <code style="background:#f0f4f8;border-radius:3px;padding:1px 4px;font-size:10px">#161b22</code><br><br>
+          <strong>Radius:</strong> 20px top corners only<br><br>
+          <strong>Scrim:</strong> <code style="background:#f0f4f8;border-radius:3px;padding:1px 4px;font-size:10px">rgba(0,0,0,.6)</code>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:#1a1440;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Full-Screen Modal Notes</div>
+        <div style="font-size:11px;color:#555;line-height:1.6">
+          <strong>Dismiss:</strong> ✕ close button top-left<br><br>
+          <strong>Used for:</strong> Settings, privacy, large forms, confirmations<br><br>
+          <strong>Bg:</strong> <code style="background:#f0f4f8;border-radius:3px;padding:1px 4px;font-size:10px">#0f1118</code> full-bleed
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phones-row -->
+</div>
+
+<!-- ─── TAB 4: FULLSCREEN SHELL ─── -->
+<div class="screen" id="screen-4">
+  <div class="section-label">Fullscreen shells — immersive play and onboarding variants</div>
+  <div class="phones-row">
+
+    <!-- Play Shell -->
+    <div>
+      <div class="phone-label">Play Shell (Child Gameplay — No Nav)</div>
+      <div class="phone" style="overflow:hidden">
+        <!-- Entire phone is the play shell -->
+        <div class="play-shell">
+          <!-- Stars background -->
+          <div class="play-star" style="width:2px;height:2px;top:5%;left:10%"></div>
+          <div class="play-star" style="width:3px;height:3px;top:10%;left:50%;animation-delay:.3s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:18%;left:85%;animation-delay:.7s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:30%;left:20%;animation-delay:1s"></div>
+          <div class="play-star" style="width:3px;height:3px;top:45%;left:75%;animation-delay:.5s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:62%;left:35%;animation-delay:.9s"></div>
+          <div class="play-star" style="width:2px;height:2px;top:75%;left:65%;animation-delay:1.3s"></div>
+          <div class="play-star" style="width:3px;height:3px;top:85%;left:15%;animation-delay:.4s"></div>
+
+          <!-- Notch area blended -->
+          <div style="height:44px;flex-shrink:0;position:relative;z-index:2">
+            <div style="width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;margin:0 auto"></div>
+          </div>
+
+          <!-- Top bar: exit + XP only -->
+          <div class="play-top-bar">
+            <div class="play-exit-btn">←</div>
+            <div class="play-xp-bar-wrap">
+              <div class="play-xp-label">XP</div>
+              <div class="play-xp-track">
+                <div class="play-xp-fill"></div>
+              </div>
+              <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.6)">340</div>
+            </div>
+          </div>
+
+          <!-- Progress strip -->
+          <div style="display:flex;justify-content:center;gap:6px;padding:0 24px 12px;position:relative;z-index:2;flex-shrink:0">
+            <div style="flex:1;height:4px;border-radius:2px;background:#50e890"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:#50e890"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:#50e890"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.15)"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.15)"></div>
+          </div>
+
+          <!-- Content area: question -->
+          <div class="play-content-area">
+            <div class="play-question-card">
+              <div class="play-question-emoji">🍕</div>
+              <div style="font-size:13px;color:#8b949e;margin-bottom:8px;font-weight:600">Question 4 of 5</div>
+              <div class="play-question-text">Which picture shows one half (½) of the pizza?</div>
+            </div>
+          </div>
+
+          <!-- Answer buttons — no nav, no header -->
+          <div class="play-bottom-actions">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button class="play-answer-btn a" style="height:64px;font-size:20px;border-radius:16px">🍕<br><span style="font-size:11px;font-weight:700">½ left</span></button>
+              <button class="play-answer-btn b" style="height:64px;font-size:20px;border-radius:16px">🍕<br><span style="font-size:11px;font-weight:700">½ right</span></button>
+              <button style="height:64px;font-size:20px;border-radius:16px;border:1.5px solid rgba(255,123,107,.4);background:rgba(255,123,107,.15);color:#ff7b6b;font-family:system-ui;cursor:pointer">🍕<br><span style="font-size:11px;font-weight:700">¼ only</span></button>
+              <button style="height:64px;font-size:20px;border-radius:16px;border:1.5px solid rgba(255,209,102,.4);background:rgba(255,209,102,.15);color:#ffd166;font-family:system-ui;cursor:pointer">🍕<br><span style="font-size:11px;font-weight:700">all of it</span></button>
+            </div>
+          </div>
+          <div class="play-safe-btm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding Shell -->
+    <div>
+      <div class="phone-label">Onboarding Shell (Forward-Only Flow)</div>
+      <div class="phone">
+        <div class="status-bar-combined" style="background:#0f1118">
+          <div class="status-notch" style="background:#000"></div>
+          <div class="status-row">
+            <span class="status-time">9:41</span>
+            <div class="status-icons">
+              <span class="status-icon">📶</span>
+              <span class="status-icon">🔋</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="onboarding-shell" style="position:relative;flex:1">
+          <!-- Progress dots — top -->
+          <div class="ob-progress-area">
+            <div class="ob-dots">
+              <div class="ob-dot" style="background:rgba(80,232,144,.5)"></div>
+              <div class="ob-dot" style="background:rgba(80,232,144,.5)"></div>
+              <div class="ob-dot active"></div>
+              <div class="ob-dot"></div>
+              <div class="ob-dot"></div>
+            </div>
+          </div>
+
+          <!-- Step indicator -->
+          <div style="text-align:center;font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.1em">Step 3 of 5</div>
+
+          <!-- Content -->
+          <div class="ob-content">
+            <div class="ob-emoji">🦊</div>
+            <div class="ob-title">Choose Your<br>Learning Buddy</div>
+            <div class="ob-subtitle">Your buddy will cheer you on, celebrate your wins, and guide you on your learning adventure!</div>
+
+            <!-- Avatar picker -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;width:100%">
+              <div style="background:rgba(255,209,102,.15);border:2px solid #ffd166;border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer">
+                <div style="font-size:28px;margin-bottom:4px">🦊</div>
+                <div style="font-size:10px;font-weight:700;color:#ffd166">Fox</div>
+              </div>
+              <div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer">
+                <div style="font-size:28px;margin-bottom:4px">🐬</div>
+                <div style="font-size:10px;font-weight:600;color:#8b949e">Dolphin</div>
+              </div>
+              <div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer">
+                <div style="font-size:28px;margin-bottom:4px">🦉</div>
+                <div style="font-size:10px;font-weight:600;color:#8b949e">Owl</div>
+              </div>
+              <div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer">
+                <div style="font-size:28px;margin-bottom:4px">🐉</div>
+                <div style="font-size:10px;font-weight:600;color:#8b949e">Dragon</div>
+              </div>
+              <div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer">
+                <div style="font-size:28px;margin-bottom:4px">🦁</div>
+                <div style="font-size:10px;font-weight:600;color:#8b949e">Lion</div>
+              </div>
+              <div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer">
+                <div style="font-size:28px;margin-bottom:4px">🐧</div>
+                <div style="font-size:10px;font-weight:600;color:#8b949e">Penguin</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom: Continue + Skip -->
+          <div class="ob-bottom">
+            <button class="ob-continue-btn">Continue →</button>
+            <div class="ob-skip">Skip for now</div>
+            <div class="ob-safe-btm"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Annotation card -->
+    <div style="align-self:flex-start;margin-top:80px">
+      <div style="background:#fff;border-radius:12px;padding:16px;max-width:220px;box-shadow:0 4px 16px rgba(0,0,0,.1)">
+        <div style="font-size:11px;font-weight:800;color:#1a1440;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Play Shell Rules</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;margin-bottom:12px">
+          ✗ No top header<br>
+          ✗ No bottom tabs<br>
+          ✓ Exit button top-left (subtle)<br>
+          ✓ XP bar top-right<br>
+          ✓ Progress strip (questions)<br>
+          ✓ Full-bleed dark gradient<br>
+          ✓ Action buttons only at bottom<br>
+          ✓ Safe area respected
+        </div>
+        <div style="font-size:11px;font-weight:800;color:#1a1440;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Onboarding Shell Rules</div>
+        <div style="font-size:11px;color:#555;line-height:1.6">
+          ✓ Progress dots top<br>
+          ✗ No back button (forward-only)<br>
+          ✓ Large content area<br>
+          ✓ Continue CTA at bottom<br>
+          ✓ Skip only on non-critical steps<br>
+          ✓ Safe area bottom respected
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phones-row -->
+</div>
+
+<!-- ─── TAB 5: SPEC ─── -->
+<div class="screen" id="screen-5">
+  <div class="spec-wrap">
+
+    <div class="spec-h2">Shell Anatomy</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Shell Type</th>
+          <th>Header</th>
+          <th>Bottom Nav</th>
+          <th>Scrolling</th>
+          <th>Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Root</strong></td>
+          <td>Fixed header (adult personas) or none (child)</td>
+          <td>Bottom tabs (5 tabs)</td>
+          <td>Content area scrolls</td>
+          <td>Top-level routes for each persona</td>
+        </tr>
+        <tr>
+          <td><strong>Child Route</strong></td>
+          <td>Back header (← title + actions)</td>
+          <td>Context tabs or none</td>
+          <td>Content area scrolls</td>
+          <td>Detail / drill-down screens</td>
+        </tr>
+        <tr>
+          <td><strong>Bottom Sheet</strong></td>
+          <td>Drag handle + optional title</td>
+          <td>n/a (sits above main tabs)</td>
+          <td>Sheet content scrolls</td>
+          <td>Quick pickers, action menus</td>
+        </tr>
+        <tr>
+          <td><strong>Full-Screen Modal</strong></td>
+          <td>✕ Close + title + action</td>
+          <td>n/a</td>
+          <td>Content scrolls</td>
+          <td>Settings, privacy controls, large forms</td>
+        </tr>
+        <tr>
+          <td><strong>Play / Fullscreen</strong></td>
+          <td>Minimal or none (exit only)</td>
+          <td>None</td>
+          <td>No scroll (fixed layout)</td>
+          <td>Gameplay, onboarding, immersive flows</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-divider"></div>
+
+    <div class="spec-h2">Safe Area Rules (iOS)</div>
+    <div class="spec-code-block">/* Safe area insets — iPhone notch + home bar */
+padding-top: env(safe-area-inset-top, 44px);     /* status bar */
+padding-bottom: env(safe-area-inset-bottom, 34px); /* home bar */
+
+/* Tab bar composition */
+.mob-tabs-inner { height: 49px; }     /* interactive area */
+.mob-safe-bottom { height: 34px; }    /* home bar padding */
+/* Total tab bar visual height: 83px */
+
+/* All interactive targets: min 44×44px (WCAG 2.5.5) */</div>
+
+    <div class="spec-h2">Persona Header Variants</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Top Header</th>
+          <th>Active Tab Accent</th>
+          <th>Tab Count</th>
+          <th>Special Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="spec-tag gold">Child</span></td>
+          <td>None — world map is full-bleed</td>
+          <td><code>#ffd166</code> / per-tab color blobs</td>
+          <td>5 tabs</td>
+          <td>Playful blob/pill highlight under active tab; full-bleed content from notch</td>
+        </tr>
+        <tr>
+          <td><span class="spec-tag sky">Teacher</span></td>
+          <td>56px fixed — logo + school name + bell</td>
+          <td><code>#38bdf8</code> sky blue</td>
+          <td>5 tabs</td>
+          <td>Queue tab shows red badge with count; notification bell with badge</td>
+        </tr>
+        <tr>
+          <td><span class="spec-tag violet">Parent</span></td>
+          <td>56px fixed — greeting "Hi, Name 👋" + settings gear</td>
+          <td><code>#a78bfa</code> violet</td>
+          <td>5 tabs</td>
+          <td>Child switcher chips in header area; per-child content context</td>
+        </tr>
+        <tr>
+          <td><span class="spec-tag green">Owner</span></td>
+          <td>56px fixed — "WonderQuest" + PROD badge + 🔐 MFA + bell</td>
+          <td><code>#50e890</code> green</td>
+          <td>5 tabs</td>
+          <td>P0 incident mode: Routes tab icon turns red with ⚠️ badge; incident banner below header</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-divider"></div>
+
+    <div class="spec-h2">Back Header Variants</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Variant</th>
+          <th>Left</th>
+          <th>Center</th>
+          <th>Right</th>
+          <th>Bottom Nav</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Child Subject</td>
+          <td>Rounded pill ← (40px touch target)</td>
+          <td>Screen title (centered)</td>
+          <td>ⓘ help icon (optional)</td>
+          <td>3–4 context tabs (Skills / Quests / Progress)</td>
+        </tr>
+        <tr>
+          <td>Teacher Student Detail</td>
+          <td>← back</td>
+          <td>First name only</td>
+          <td>🔔 flag + ✉️ message icons</td>
+          <td>Overview / Skills / Interventions / Messages</td>
+        </tr>
+        <tr>
+          <td>Deep Drill-Down (3+ levels)</td>
+          <td>← + breadcrumb path</td>
+          <td>Current screen name</td>
+          <td>None</td>
+          <td>None — sticky action button at bottom</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-divider"></div>
+
+    <div class="spec-h2">Band Accent Colors</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Band</th>
+          <th>Grade</th>
+          <th>Color</th>
+          <th>Token</th>
+          <th>Used in</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="spec-tag gold">P0 Pre-K</span></td>
+          <td>Pre-Kindergarten</td>
+          <td>#ffd166 gold</td>
+          <td><code>--band-p0</code></td>
+          <td>Child tab blob (Home), band pill, progress bars</td>
+        </tr>
+        <tr>
+          <td><span class="spec-tag violet">P1 K–1</span></td>
+          <td>Kindergarten – Grade 1</td>
+          <td>#9b72ff violet</td>
+          <td><code>--band-p1</code></td>
+          <td>Subject detail header, skill cards, context tabs accent</td>
+        </tr>
+        <tr>
+          <td>P2 G2–3</td>
+          <td>Grade 2 – Grade 3</td>
+          <td><span style="color:#58e8c1">#58e8c1</span> mint</td>
+          <td><code>--band-p2</code></td>
+          <td>Skill detail ring, content cards</td>
+        </tr>
+        <tr>
+          <td><span class="spec-tag coral">P3 G4–5</span></td>
+          <td>Grade 4 – Grade 5</td>
+          <td>#ff7b6b coral</td>
+          <td><code>--band-p3</code></td>
+          <td>Advanced skill badges, challenge indicators</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section-divider"></div>
+
+    <div class="spec-h2">Route Map — Shell Assignment by Route</div>
+    <div class="route-map">
+      <div class="route-map-col">
+        <div class="route-map-col-title" style="color:#ffd166">Child</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/child/home → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/child/subjects → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/child/subjects/:id → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/child/badges → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#ff7b6b"></div>/child/play → Fullscreen</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#ffd166"></div>/child/onboarding → Fullscreen</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/child/quest-select → Modal</div>
+      </div>
+      <div class="route-map-col">
+        <div class="route-map-col-title" style="color:#38bdf8">Teacher</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/teacher/home → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/teacher/students → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/teacher/students/:id → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/teacher/students/:id/skill/:sk → Child Route (3-level)</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/teacher/queue/flag → Modal Sheet</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/teacher/message-compose → Full-Screen Modal</div>
+      </div>
+      <div class="route-map-col">
+        <div class="route-map-col-title" style="color:#a78bfa">Parent</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/parent/home → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/parent/progress → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/parent/child/:id → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/parent/skill/:id → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/parent/settings → Full-Screen Modal</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/parent/link-child → Full-Screen Modal</div>
+      </div>
+      <div class="route-map-col">
+        <div class="route-map-col-title" style="color:#50e890">Owner</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/owner/home → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#50e890"></div>/owner/routes → Root</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/owner/routes/:id → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#9b72ff"></div>/owner/release/:id → Child Route</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/owner/incident/:id → Full-Screen Modal</div>
+        <div class="route-map-item"><div class="route-map-dot" style="background:#58e8c1"></div>/owner/approve → Modal Sheet</div>
+      </div>
+    </div>
+
+    <div class="spec-section-divider"></div>
+
+    <div class="spec-h2">CSS Variables Reference</div>
+    <div class="spec-code-block">:root {
+  /* Base */
+  --bg-base:        #0d1117;
+  --bg-alt:         #0f1118;
+  --card-bg:        #161b22;
+  --card-bg-alt:    #161c26;
+
+  /* Text */
+  --text-primary:   #f0f6ff;
+  --text-muted:     #8b949e;
+  --text-secondary: #c9d1d9;
+
+  /* Borders */
+  --border:         rgba(255,255,255,.06);
+  --border-strong:  rgba(255,255,255,.12);
+
+  /* Persona accents */
+  --accent-child:   #50e890;   /* also owner */
+  --accent-teacher: #38bdf8;
+  --accent-parent:  #a78bfa;
+  --accent-owner:   #50e890;
+
+  /* Band colors */
+  --band-p0:  #ffd166;   /* Pre-K gold  */
+  --band-p1:  #9b72ff;   /* K–1 violet  */
+  --band-p2:  #58e8c1;   /* G2–3 mint   */
+  --band-p3:  #ff7b6b;   /* G4–5 coral  */
+
+  /* Shell dimensions */
+  --status-bar-height:   44px;
+  --header-height:       56px;
+  --tab-bar-inner:       49px;
+  --safe-area-bottom:    34px;
+  --tab-bar-total:       83px;  /* inner + safe */
+  --back-btn-size:       36px;
+  --touch-target-min:    44px;
+}</div>
+
+  </div><!-- /spec-wrap -->
+</div>
+
+<script>
+function showTab(n) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  var s = document.getElementById('screen-' + n);
+  if (s) s.classList.add('active');
+  var btns = document.querySelectorAll('.tab-btn');
+  if (btns[n-1]) btns[n-1].classList.add('active');
+}
+</script>
+
+</body>
+</html>

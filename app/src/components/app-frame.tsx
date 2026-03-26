@@ -3,71 +3,72 @@ import type { ReactNode } from "react";
 import { DisplayModeToggle } from "@/components/display-mode-toggle";
 
 const navItems = [
-  { href: "/", label: "Home", icon: "🏠" },
+  { href: "/", label: "Launchpad", icon: "🏠" },
   { href: "/child", label: "Child", icon: "👶" },
-  { href: "/parent", label: "Parent", icon: "👨‍👩‍👧" },
-  { href: "/teacher", label: "Teacher", icon: "🎓" },
-  { href: "/owner", label: "Owner", icon: "🔑" },
+  { href: "/parent", label: "Family", icon: "👨‍👩‍👧" },
+  { href: "/teacher", label: "Classroom", icon: "🎓" },
+  { href: "/owner", label: "Ops", icon: "🔑" },
+  { href: "/design-system", label: "Design System", icon: "🎨" },
 ];
 
 const audienceMeta = {
   home: {
-    label: "Platform home",
-    shortLabel: "Home",
-    title: "Adaptive learning that feels like a favorite game.",
-    detail: "Multi-device prototype with separate child, parent, teacher, and owner paths.",
+    label: "Platform launchpad",
+    shortLabel: "Launchpad",
+    title: "One product, five clear routes, and a child-first center of gravity.",
+    detail: "Child, family, classroom, and ops experiences stay distinct while sharing the same product language.",
   },
   kid: {
-    label: "Kid journey",
+    label: "Child journey",
     shortLabel: "Child",
-    title: "Play-first learning with quick rewards and fast recovery loops.",
-    detail: "Designed to feel energetic, visual, and easy to re-enter on any device.",
+    title: "Play-first learning with bold visuals, soft recovery, and instant re-entry.",
+    detail: "The child route should feel alive before any adult dashboard asks for attention.",
   },
   parent: {
-    label: "Parent view",
-    shortLabel: "Parent",
-    title: "Calmer household visibility with time, effectiveness, and next-step signals.",
-    detail: "Fast access now, stronger family account controls later.",
+    label: "Family view",
+    shortLabel: "Family",
+    title: "A calmer family hub for progress, celebration, and next-step guidance.",
+    detail: "Built to support the child route without turning home into a report card.",
   },
   teacher: {
-    label: "Teacher view",
-    shortLabel: "Teacher",
-    title: "Aggregate instructional visibility without exposing peer-to-peer child interactions.",
-    detail: "Built for classroom and school insight, not public comparison.",
+    label: "Classroom view",
+    shortLabel: "Classroom",
+    title: "Instructional visibility for class momentum, support lanes, and guided next moves.",
+    detail: "Designed for classroom action, not public comparison or noisy admin clutter.",
   },
   owner: {
-    label: "Owner view",
-    shortLabel: "Owner",
-    title: "Prototype command center for traction, content coverage, and product signal quality.",
-    detail: "Operational visibility for launch, testing, and backlog shaping.",
+    label: "Ops view",
+    shortLabel: "Ops",
+    title: "A product operations console for launch signal, feedback flow, and content readiness.",
+    detail: "Operational visibility first, wiring depth second.",
   },
 } as const;
 
 const audienceRoutes = {
   home: [
-    { href: "/child", label: "Start child" },
-    { href: "/parent", label: "Parent setup" },
-    { href: "/teacher", label: "Teacher view" },
+    { href: "/child", label: "Launch child route" },
+    { href: "/parent", label: "Open family hub" },
+    { href: "/teacher", label: "Open classroom view" },
   ],
   kid: [
-    { href: "/child", label: "Child setup" },
+    { href: "/child", label: "Setup" },
     { href: "/play", label: "Play loop" },
-    { href: "/parent", label: "Parent link" },
+    { href: "/parent", label: "Family support" },
   ],
   parent: [
-    { href: "/parent", label: "Parent setup" },
-    { href: "/child", label: "Child access" },
-    { href: "/owner", label: "Owner route" },
+    { href: "/parent", label: "Family hub" },
+    { href: "/child", label: "Child route" },
+    { href: "/owner", label: "Ops view" },
   ],
   teacher: [
-    { href: "/teacher", label: "Teacher dashboard" },
+    { href: "/teacher", label: "Classroom board" },
     { href: "/child", label: "Child path" },
-    { href: "/owner", label: "Owner route" },
+    { href: "/owner", label: "Ops view" },
   ],
   owner: [
-    { href: "/owner", label: "Owner console" },
-    { href: "/teacher", label: "Teacher route" },
-    { href: "/parent", label: "Parent path" },
+    { href: "/owner", label: "Ops console" },
+    { href: "/teacher", label: "Classroom route" },
+    { href: "/parent", label: "Family route" },
   ],
 } as const;
 
@@ -165,31 +166,31 @@ export function AppFrame({
     <div className={`app-frame theme-${audience}`}>
       <div className="app-backdrop" />
       <header className="app-chrome">
-        <div className="app-brand">
-          <Link className="app-brand-mark" href="/">
-            WonderQuest Learning
-          </Link>
-          <div className="app-brand-copy">
-            <div className="app-copy-topline">
-              <strong>{meta.title}</strong>
-              <span className="app-audience-pill">{meta.label}</span>
+          <div className="app-brand">
+            <Link className="app-brand-mark" href="/">
+              WonderQuest Learning
+            </Link>
+            <div className="app-brand-copy">
+              <div className="app-copy-topline">
+                <strong>{meta.title}</strong>
+                <span className="app-audience-pill">{meta.label}</span>
+              </div>
+              <span>{meta.detail}</span>
             </div>
-            <span>{meta.detail}</span>
+            <div className="app-signal-row">
+              <span className="app-signal-pill">Mode: {meta.shortLabel}</span>
+              <span className="app-signal-pill">UI-first rebuild</span>
+              <span className="app-signal-pill">Real route data</span>
+            </div>
           </div>
-          <div className="app-signal-row">
-            <span className="app-signal-pill">Audience mode: {meta.shortLabel}</span>
-            <span className="app-signal-pill">Mobile-first UI</span>
-            <span className="app-signal-pill">Supabase live flows</span>
-          </div>
-        </div>
 
-        <div className="app-utility">
-          <div className="app-utility-copy">
-            <span>Web-first prototype</span>
-            <strong>Ready across phone, tablet, and laptop screens.</strong>
-          </div>
-          <DisplayModeToggle />
-          <nav aria-label="Primary" className="app-nav">
+          <div className="app-utility">
+            <div className="app-utility-copy">
+              <span>Shipped app shell</span>
+              <strong>Shared route chrome across phone, tablet, and desktop.</strong>
+            </div>
+            <DisplayModeToggle />
+            <nav aria-label="Primary" className="app-nav">
             {navItems.map((item) => {
               const isActive = currentPath === item.href;
 

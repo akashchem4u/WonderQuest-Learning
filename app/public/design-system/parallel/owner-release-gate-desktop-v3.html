@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Release Gate Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Owner shell */
+.owner-shell{display:flex;max-width:960px;background:#0d1117;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);min-height:620px}
+.owner-sb{width:200px;background:#010409;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05)}
+.sb-logo{padding:18px 14px 12px;font-size:13px;font-weight:900;color:#f0f6ff;border-bottom:1px solid rgba(255,255,255,.05)}
+.sb-logo span{color:#50e890}
+.sb-sect{padding:10px 10px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.2)}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;margin:1px 4px;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer}
+.sb-item.active{background:rgba(80,232,144,.1);color:#50e890}
+.sb-icon{font-size:13px;width:16px;text-align:center}
+.sb-badge{font-size:9px;font-weight:800;background:#f59e0b;color:#1a1440;padding:1px 4px;border-radius:4px;margin-left:auto}
+.sb-spacer{flex:1}
+.sb-footer{padding:10px;border-top:1px solid rgba(255,255,255,.05);font-size:10px;color:rgba(255,255,255,.3)}
+
+.owner-main{flex:1;background:#0d1117;padding:18px 20px;overflow-y:auto}
+
+/* Score ring */
+.score-ring-wrap{display:flex;align-items:center;gap:20px;background:#161b22;border-radius:14px;padding:18px 20px;margin-bottom:16px;border:1px solid rgba(255,255,255,.05)}
+.score-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;border:4px solid #f59e0b}
+.sr-n{font-size:26px;font-weight:900;color:#f0f6ff;line-height:1}
+.sr-l{font-size:10px;color:rgba(255,255,255,.4);font-weight:700}
+.gate-title{font-size:16px;font-weight:900;color:#f0f6ff}
+.gate-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;line-height:1.4}
+.gate-status{display:inline-block;font-size:11px;font-weight:800;padding:3px 12px;border-radius:8px;margin-top:6px}
+.gs-blocked{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.gs-ready{background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
+
+/* Gate categories */
+.gate-cats{display:flex;flex-direction:column;gap:10px}
+.gate-cat{background:#161b22;border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.05)}
+.gc-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer}
+.gc-icon{font-size:18px}
+.gc-name{font-size:13px;font-weight:700;color:#f0f6ff;flex:1}
+.gc-score-pill{font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px}
+.gsp-pass{background:rgba(80,232,144,.15);color:#50e890}
+.gsp-warn{background:rgba(245,158,11,.15);color:#f59e0b}
+.gsp-fail{background:rgba(248,81,73,.15);color:#f85149}
+
+.gc-rows{display:flex;flex-direction:column;gap:5px}
+.gc-row{display:flex;align-items:flex-start;gap:8px}
+.gc-check{font-size:13px;flex-shrink:0;margin-top:1px}
+.gc-text{font-size:11px;color:rgba(255,255,255,.6);flex:1;line-height:1.4}
+.gc-val{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);flex-shrink:0}
+.gc-val-fail{color:#f85149}
+.gc-val-warn{color:#f59e0b}
+
+.blocker-card{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.25);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:11px;color:#f85149;line-height:1.4}
+.warn-card{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:11px;color:#f59e0b;line-height:1.4}
+
+/* Sign-off */
+.signoff-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.signoff-row:last-child{border-bottom:none}
+.so-av{width:24px;height:24px;border-radius:50%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff;flex-shrink:0}
+.so-name{font-size:11px;color:rgba(255,255,255,.65);flex:1}
+.so-status{font-size:10px;font-weight:700}
+.so-signed{color:#50e890}
+.so-pending{color:rgba(255,255,255,.3)}
+
+/* Launch button */
+.launch-btn{width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:800;font-family:system-ui;text-align:center;margin-top:14px}
+.lb-blocked{background:#161b22;color:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.08);cursor:not-allowed}
+.lb-ready{background:#50e890;color:#010409;border:none;cursor:pointer}
+.lb-tooltip{font-size:10px;color:rgba(255,255,255,.25);text-align:center;margin-top:6px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-release-gate-desktop-v3.html</strong><br>
+  Release gate — automated checklist blocking or allowing a new product version launch.<br>
+  <strong>Gate categories (5):</strong> Quality (test coverage, P0 bugs) | Performance (p95 latency, Lighthouse scores) | Content (question bank validation, COPPA scan) | Privacy (FERPA audit, data residency) | Stakeholder sign-off (founder + lead eng + curriculum).<br>
+  <strong>Overall score:</strong> Weighted 0–100. Score ≥ 90 = gate open. &lt; 90 = blocked.<br>
+  <strong>Blockers:</strong> Any failed category item = hard blocker. Warnings = soft warnings, don't block gate alone.<br>
+  <strong>Launch button:</strong> Disabled if any blocker. Enabled only when score ≥ 90 and all blockers cleared. Requires founder confirmation click.<br>
+  <strong>Deployment:</strong> Launch button triggers CI/CD pipeline. Not a manual upload.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('blocked')">Gate — Blocked</button>
+  <button class="tab-btn" onclick="showTab('ready')">Gate — Ready</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Gate Blocked ───────────────────────────────────────────────── -->
+<div id="tab-blocked" class="screen active">
+  <p class="section-title">Release gate — v2.5 blocked (1 blocker)</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-sect">Ops</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item"><span class="sb-icon">📡</span>Route Health</div>
+      <div class="sb-item active"><span class="sb-icon">🚀</span>Release Gate</div>
+      <div class="sb-item"><span class="sb-icon">💬</span>Feedback <span class="sb-badge">3</span></div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">Avi M. · Owner</div>
+    </div>
+    <div class="owner-main">
+      <div class="score-ring-wrap">
+        <div class="score-ring">
+          <div class="sr-n">71</div>
+          <div class="sr-l">/ 100</div>
+        </div>
+        <div>
+          <div class="gate-title">Release Gate — v2.5 "Assignment Engine"</div>
+          <div class="gate-sub">Target release: April 1, 2026 · Last checked: 8 minutes ago · CI/CD build #247</div>
+          <div class="gate-status gs-blocked">🔒 BLOCKED — 1 hard blocker · 1 warning</div>
+        </div>
+        <div style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.3);text-align:right">
+          Score threshold: 90<br>
+          Current: 71<br>
+          Gap: 19 points
+        </div>
+      </div>
+
+      <div class="gate-cats">
+        <div class="gate-cat">
+          <div class="gc-header">
+            <div class="gc-icon">🧪</div>
+            <div class="gc-name">Quality</div>
+            <span class="gc-score-pill gsp-pass">25/25 ✓</span>
+          </div>
+          <div class="gc-rows">
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Test coverage ≥ 80%</div><div class="gc-val">84%</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Zero open P0 bugs</div><div class="gc-val">0 open</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Zero open P1 bugs</div><div class="gc-val">0 open</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Regression suite passes</div><div class="gc-val">312/312</div></div>
+          </div>
+        </div>
+
+        <div class="gate-cat" style="border-color:rgba(248,81,73,.3)">
+          <div class="gc-header">
+            <div class="gc-icon">⚡</div>
+            <div class="gc-name">Performance</div>
+            <span class="gc-score-pill gsp-fail">6/25 ✗ BLOCKER</span>
+          </div>
+          <div class="gc-rows">
+            <div class="gc-row"><div class="gc-check">❌</div><div class="gc-text">p95 latency ≤ 200ms (all critical routes)</div><div class="gc-val gc-val-fail">210ms ✗</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">p99 latency ≤ 500ms</div><div class="gc-val">348ms ✓</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Lighthouse mobile ≥ 85</div><div class="gc-val">88 ✓</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Load test: 5k concurrent users</div><div class="gc-val">Passed</div></div>
+          </div>
+          <div class="blocker-card">⛔ BLOCKER: Adaptive engine p95 = 210ms, exceeds 200ms threshold. Caused by N+1 query in assignment priority lookup (PR #892). Must fix before launch. <a style="color:#f85149;font-weight:700;cursor:pointer;text-decoration:underline">View detail →</a></div>
+        </div>
+
+        <div class="gate-cat" style="border-color:rgba(245,158,11,.2)">
+          <div class="gc-header">
+            <div class="gc-icon">📚</div>
+            <div class="gc-name">Content</div>
+            <span class="gc-score-pill gsp-warn">16/20 ⚠</span>
+          </div>
+          <div class="gc-rows">
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Question bank validation (new questions)</div><div class="gc-val">Passed</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">COPPA scan — no PII in question text</div><div class="gc-val">Clean</div></div>
+            <div class="gc-row"><div class="gc-check">⚠️</div><div class="gc-text">Curriculum review — Fractions: Mixed Numbers</div><div class="gc-val gc-val-warn">Pending</div></div>
+          </div>
+          <div class="warn-card">⚠ WARNING: Curriculum review pending for 1 new skill. Not a hard blocker — that skill will be locked at launch. Review expected within 3 days.</div>
+        </div>
+
+        <div class="gate-cat">
+          <div class="gc-header">
+            <div class="gc-icon">🔒</div>
+            <div class="gc-name">Privacy &amp; Compliance</div>
+            <span class="gc-score-pill gsp-pass">20/20 ✓</span>
+          </div>
+          <div class="gc-rows">
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">FERPA audit — no new student PII exposure</div><div class="gc-val">Clean</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">COPPA compliance</div><div class="gc-val">Clean</div></div>
+            <div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">Data residency — US-only verified</div><div class="gc-val">Verified</div></div>
+          </div>
+        </div>
+
+        <div class="gate-cat">
+          <div class="gc-header">
+            <div class="gc-icon">✍️</div>
+            <div class="gc-name">Stakeholder Sign-off</div>
+            <span class="gc-score-pill gsp-pass">10/10 ✓</span>
+          </div>
+          <div class="gc-rows">
+            <div class="signoff-row"><div class="so-av">A</div><div class="so-name">Avi M. — Founder</div><div class="so-status so-signed">✓ Signed Mar 22</div></div>
+            <div class="signoff-row"><div class="so-av" style="background:#475569">K</div><div class="so-name">Kavya R. — Lead Engineer</div><div class="so-status so-signed">✓ Signed Mar 21</div></div>
+            <div class="signoff-row"><div class="so-av" style="background:#9b72ff">C</div><div class="so-name">Chen W. — Curriculum Lead</div><div class="so-status so-signed">✓ Signed Mar 20</div></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="launch-btn lb-blocked">🚀 Launch v2.5 — Blocked</button>
+      <div class="lb-tooltip">Fix the performance blocker, then re-run gate check. Gate re-checks automatically on next CI/CD build.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Gate Ready ─────────────────────────────────────────────────── -->
+<div id="tab-ready" class="screen">
+  <p class="section-title">Release gate — v2.5 all clear, ready to launch</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-item active" style="color:#50e890"><span class="sb-icon">🚀</span>Release Gate</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">Avi M.</div>
+    </div>
+    <div class="owner-main">
+      <div class="score-ring-wrap" style="border-color:rgba(80,232,144,.2)">
+        <div class="score-ring" style="border-color:#50e890">
+          <div class="sr-n" style="color:#50e890">94</div>
+          <div class="sr-l">/ 100</div>
+        </div>
+        <div>
+          <div class="gate-title">Release Gate — v2.5 "Assignment Engine"</div>
+          <div class="gate-sub">All blockers resolved · Build #251 · Last checked 3 minutes ago</div>
+          <div class="gate-status gs-ready">✅ GATE OPEN — Ready to launch</div>
+        </div>
+      </div>
+      <div class="gate-cats">
+        <div class="gate-cat"><div class="gc-header"><div class="gc-icon">🧪</div><div class="gc-name">Quality</div><span class="gc-score-pill gsp-pass">25/25 ✓</span></div></div>
+        <div class="gate-cat">
+          <div class="gc-header"><div class="gc-icon">⚡</div><div class="gc-name">Performance</div><span class="gc-score-pill gsp-pass">25/25 ✓</span></div>
+          <div class="gc-rows"><div class="gc-row"><div class="gc-check">✅</div><div class="gc-text">p95 latency ≤ 200ms — N+1 query fixed (PR #896)</div><div class="gc-val">188ms ✓</div></div></div>
+        </div>
+        <div class="gate-cat"><div class="gc-header"><div class="gc-icon">📚</div><div class="gc-name">Content</div><span class="gc-score-pill gsp-pass">20/20 ✓</span></div></div>
+        <div class="gate-cat"><div class="gc-header"><div class="gc-icon">🔒</div><div class="gc-name">Privacy &amp; Compliance</div><span class="gc-score-pill gsp-pass">20/20 ✓</span></div></div>
+        <div class="gate-cat"><div class="gc-header"><div class="gc-icon">✍️</div><div class="gc-name">Stakeholder Sign-off</div><span class="gc-score-pill gsp-pass">10/10 ✓</span></div></div>
+      </div>
+      <button class="launch-btn lb-ready">🚀 Launch v2.5 — Trigger Production Deployment</button>
+      <div class="lb-tooltip" style="color:rgba(80,232,144,.5)">Clicking will trigger the CI/CD production pipeline. Confirmation dialog will follow. Rollback available within 15 min.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-release-gate-desktop-v3.html<br>
+      <strong>Route:</strong> /console/release-gate<br>
+      <strong>Score formula:</strong> Quality (25) + Performance (25) + Content (20) + Privacy (20) + Sign-off (10) = 100. Gate open at ≥ 90.
+    </div>
+    <h2 class="spec-h2">Gate Categories &amp; Weights</h2>
+    <table class="spec-table">
+      <tr><th>Category</th><th>Max pts</th><th>Hard blocker rule</th></tr>
+      <tr><td>Quality</td><td>25</td><td>Any P0 bug OR coverage &lt; 80% = hard blocker</td></tr>
+      <tr><td>Performance</td><td>25</td><td>Any critical route p95 &gt; 200ms = hard blocker</td></tr>
+      <tr><td>Content</td><td>20</td><td>COPPA scan fail = hard blocker. Pending review = warning</td></tr>
+      <tr><td>Privacy / Compliance</td><td>20</td><td>Any FERPA/COPPA issue = hard blocker</td></tr>
+      <tr><td>Stakeholder sign-off</td><td>10</td><td>Fewer than 3/3 sign-offs = hard blocker</td></tr>
+    </table>
+    <h2 class="spec-h2">Gate Check Triggers</h2>
+    <p class="spec-p">Gate automatically re-checks on every CI/CD build push. Manual "Re-run gate" button available on this page. Results update in near real-time (gate check service runs in ~90s). Launch button activates only when all conditions met — no override mechanism.</p>
+    <h2 class="spec-h2">Launch Confirmation Flow</h2>
+    <p class="spec-p">Clicking "Launch" → confirmation modal: "Deploy v2.5 to production? This will push to all users. You can roll back within 15 minutes via /console/deployments." → Two-click confirm (click button + type version number). → CI/CD pipeline triggered → Deployment tracked at /console/deployments with real-time progress.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

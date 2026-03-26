@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Child Next Quest Card — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; font-weight: 900; background: #100b2e; color: #e8e0ff; min-height: 100vh; width: 375px; margin: 0 auto; }
+.hint-box { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin: 12px; font-size: 11px; color: #ffd166; line-height: 1.6; }
+.hint-box strong { font-size: 12px; }
+.tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 2px solid #2a1f6e; background: #100b2e; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; padding: 10px 14px; font-size: 12px; color: #7a60c0; cursor: pointer; background: #1a1245; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; white-space: nowrap; }
+.tab.active { background: #9b72ff; color: #fff; }
+.tab:hover:not(.active) { background: #221852; }
+.panel { display: none; min-height: calc(100vh - 80px); }
+.panel.active { display: block; }
+
+/* Next Quest main */
+.quest-screen { min-height: calc(100vh - 80px); display: flex; flex-direction: column; align-items: center; padding: 24px 16px 32px; }
+.world-badge { background: #2a1f6e; border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #9b72ff; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+.quest-card { background: linear-gradient(160deg, #1a1245, #2a1860); border-radius: 24px; padding: 24px 20px 28px; width: 100%; border: 2px solid #9b72ff60; text-align: center; margin-bottom: 20px; position: relative; overflow: hidden; }
+.quest-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, #9b72ff20, transparent); }
+.quest-world-emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+.quest-world-name { font-size: 14px; color: #7a60c0; margin-bottom: 4px; }
+.quest-node-name { font-size: 22px; color: #e8e0ff; margin-bottom: 14px; line-height: 1.3; }
+.progress-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; }
+.p-dot { width: 10px; height: 10px; border-radius: 50%; }
+.p-dot.done { background: #58e8c1; }
+.p-dot.current { background: #9b72ff; box-shadow: 0 0 6px #9b72ff80; }
+.p-dot.next { background: #2a1f6e; border: 2px solid #9b72ff; }
+.reward-preview { background: #2a1f00; border: 1.5px solid #ffd16680; border-radius: 12px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #ffd166; margin-bottom: 20px; }
+.cta-big { display: block; width: 100%; padding: 18px; border-radius: 16px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 20px; cursor: pointer; text-align: center; background: linear-gradient(135deg, #9b72ff, #7040e0); color: #fff; box-shadow: 0 4px 20px #9b72ff40; }
+.cta-big:active { transform: scale(.97); }
+.cta-secondary { display: block; width: 100%; padding: 13px; border-radius: 12px; border: 2px solid #2a1f6e; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 14px; cursor: pointer; text-align: center; background: transparent; color: #9b72ff; margin-top: 10px; }
+.streak-mini { display: flex; align-items: center; gap: 6px; background: #1a1245; border-radius: 20px; padding: 6px 14px; font-size: 13px; color: #58e8c1; margin-top: 14px; border: 1px solid #58e8c130; }
+
+/* World picker */
+.picker-screen { padding: 16px; }
+.picker-title { font-size: 16px; color: #e8e0ff; margin-bottom: 14px; text-align: center; }
+.world-pick-card { background: #1a1245; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; border: 1.5px solid #2a1f6e; cursor: pointer; }
+.world-pick-card.active-pick { border-color: #9b72ff; background: linear-gradient(135deg, #1a1245, #221860); }
+.world-pick-card.locked-pick { opacity: .5; cursor: default; }
+.wp-emoji { font-size: 32px; }
+.wp-name { font-size: 15px; color: #e8e0ff; }
+.wp-sub { font-size: 12px; color: #7a60c0; margin-top: 2px; }
+.wp-prog { margin-top: 6px; background: #2a1f6e; border-radius: 20px; height: 6px; overflow: hidden; }
+.wp-prog-fill { height: 100%; border-radius: 20px; background: #9b72ff; }
+.active-chip { background: #9b72ff; color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+.locked-chip2 { background: #2a1f6e; color: #5a5080; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+
+/* Daily challenge */
+.challenge-screen { padding: 16px; }
+.challenge-card { background: linear-gradient(135deg, #1a0a30, #2a1860); border-radius: 20px; padding: 24px 18px; border: 2px solid #ffd16660; text-align: center; margin-bottom: 16px; }
+.challenge-emoji { font-size: 48px; display: block; margin-bottom: 10px; }
+.challenge-title { font-size: 18px; color: #ffd166; margin-bottom: 8px; }
+.challenge-desc { font-size: 14px; color: #9b80d0; line-height: 1.5; margin-bottom: 16px; }
+.reward-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px; }
+.reward-chip { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; font-size: 13px; padding: 6px 14px; border-radius: 20px; }
+.cta-gold { background: linear-gradient(135deg, #ffd166, #e0a020); color: #100b2e; font-size: 18px; }
+
+/* Empty / new state */
+.empty-screen { min-height: calc(100vh - 80px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; text-align: center; }
+.welcome-emoji { font-size: 72px; display: block; margin-bottom: 16px; }
+.welcome-title { font-size: 24px; color: #e8e0ff; margin-bottom: 10px; }
+.welcome-sub { font-size: 15px; color: #9b80d0; margin-bottom: 28px; line-height: 1.6; }
+.start-btn { background: linear-gradient(135deg, #9b72ff, #7040e0); color: #fff; font-size: 20px; padding: 18px 40px; border-radius: 16px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; cursor: pointer; box-shadow: 0 4px 20px #9b72ff40; }
+
+.spec-block { background: #1a1245; border-radius: 12px; padding: 18px; border: 1px solid #2a1f6e; line-height: 1.7; margin: 12px; }
+.spec-block h3 { color: #9b72ff; margin-bottom: 8px; font-size: 14px; }
+.spec-block p { font-size: 12px; color: #7a60c0; margin-bottom: 8px; }
+.spec-block ul { margin-left: 16px; font-size: 12px; color: #7a60c0; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>Engineering Routes — child-next-quest-card-v2</strong><br>
+  GET /child/next-quest returns { world_name, world_emoji, node_name, progress_dots[], reward_stars_waiting, daily_challenge? }<br>
+  POST /child/session/start { node_id } · No timers, no grade labels, dominant single CTA. Max 8 words per label for pre-reader.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('nextquest',this)">Next Quest</button>
+  <button class="tab" onclick="show('picker',this)">Choose World</button>
+  <button class="tab" onclick="show('challenge',this)">Daily Challenge</button>
+  <button class="tab" onclick="show('empty',this)">New / Empty</button>
+  <button class="tab" onclick="show('spec',this)">Spec</button>
+</div>
+
+<div id="nextquest" class="panel active">
+  <div class="quest-screen">
+    <div class="world-badge">
+      <span>🌊</span> Ocean World
+    </div>
+
+    <div class="quest-card">
+      <span class="quest-world-emoji">🌊</span>
+      <div class="quest-world-name">Ocean World</div>
+      <div class="quest-node-name">Coral Reef Words</div>
+
+      <div class="progress-dots">
+        <div class="p-dot done"></div>
+        <div class="p-dot done"></div>
+        <div class="p-dot done"></div>
+        <div class="p-dot current"></div>
+        <div class="p-dot next"></div>
+        <div class="p-dot next"></div>
+      </div>
+
+      <div class="reward-preview">
+        ⭐⭐⭐ Stars waiting for you!
+      </div>
+
+      <button class="cta-big">Play Now!</button>
+      <button class="cta-secondary">Choose a Different World</button>
+    </div>
+
+    <div class="streak-mini">
+      🔥 14-day streak · Play today to keep it!
+    </div>
+  </div>
+</div>
+
+<div id="picker" class="panel">
+  <div class="picker-screen">
+    <div class="picker-title">Choose Your World</div>
+
+    <div class="world-pick-card">
+      <div class="wp-emoji">🌙</div>
+      <div style="flex:1">
+        <div class="wp-name">Dream World</div>
+        <div class="wp-sub">All adventures done!</div>
+        <div class="wp-prog"><div class="wp-prog-fill" style="width:100%;background:#58e8c1"></div></div>
+      </div>
+      <span style="font-size:18px">✅</span>
+    </div>
+
+    <div class="world-pick-card active-pick">
+      <div class="wp-emoji">🌊</div>
+      <div style="flex:1">
+        <div class="wp-name">Ocean World</div>
+        <div class="wp-sub">11 of 20 adventures done</div>
+        <div class="wp-prog"><div class="wp-prog-fill" style="width:55%"></div></div>
+      </div>
+      <span class="active-chip">Playing</span>
+    </div>
+
+    <div class="world-pick-card">
+      <div class="wp-emoji">🔥</div>
+      <div style="flex:1">
+        <div class="wp-name">Fire World</div>
+        <div class="wp-sub">2 of 18 adventures done</div>
+        <div class="wp-prog"><div class="wp-prog-fill" style="width:11%"></div></div>
+      </div>
+    </div>
+
+    <div class="world-pick-card locked-pick" onclick="alert('Coming soon — keep playing to unlock Star World!')">
+      <div class="wp-emoji" style="filter:grayscale(1)">⭐</div>
+      <div style="flex:1">
+        <div class="wp-name" style="color:#5a5080">Star World</div>
+        <div class="wp-sub" style="color:#3a3060">Keep playing to unlock!</div>
+      </div>
+      <span class="locked-chip2">Soon!</span>
+    </div>
+
+    <div class="world-pick-card locked-pick" onclick="alert('Coming soon!')">
+      <div class="wp-emoji" style="filter:grayscale(1)">☁️</div>
+      <div style="flex:1">
+        <div class="wp-name" style="color:#5a5080">Cloud World</div>
+        <div class="wp-sub" style="color:#3a3060">Keep playing to unlock!</div>
+      </div>
+      <span class="locked-chip2">Soon!</span>
+    </div>
+  </div>
+</div>
+
+<div id="challenge" class="panel">
+  <div class="challenge-screen">
+    <div class="challenge-card">
+      <span class="challenge-emoji">⚡</span>
+      <div class="challenge-title">Today's Special Challenge!</div>
+      <div class="challenge-desc">Find all the ocean animals hiding in the letters! Extra stars and a surprise badge waiting for you.</div>
+      <div class="reward-row">
+        <span class="reward-chip">⭐ +30 XP</span>
+        <span class="reward-chip">🏅 Bonus Badge</span>
+      </div>
+      <button class="cta-btn cta-gold" style="display:block;width:100%;padding:16px;border-radius:14px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:18px;cursor:pointer">Start the Challenge!</button>
+    </div>
+
+    <div style="text-align:center;font-size:13px;color:#7a60c0;margin-bottom:12px">Or go back to your regular adventure</div>
+
+    <div class="world-pick-card active-pick" style="justify-content:center">
+      <div class="wp-emoji">🌊</div>
+      <div>
+        <div class="wp-name">Continue Ocean World</div>
+        <div class="wp-sub">Coral Reef Words — next up</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="empty" class="panel">
+  <div class="empty-screen">
+    <span class="welcome-emoji">🚀</span>
+    <div class="welcome-title">Welcome to WonderQuest!</div>
+    <div class="welcome-sub">Your first adventure is waiting. Pick a world and start exploring — let's go!</div>
+    <button class="start-btn">Start My First Adventure!</button>
+    <div style="margin-top:20px;font-size:13px;color:#5a5080">No pressure — go at your own pace!</div>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <div class="spec-block">
+    <h3>child-next-quest-card-v2 — Specification</h3>
+    <p><strong>Persona:</strong> Child · Mobile 375px · Nunito 900 · #100b2e bg</p>
+    <p><strong>API:</strong> GET /child/next-quest → { world_name, world_emoji, node_name, progress_dots[], reward_stars_waiting, daily_challenge? }</p>
+    <p><strong>API:</strong> POST /child/session/start { node_id } → redirect to session</p>
+    <ul>
+      <li>Next Quest: dominant single CTA "Play Now!", world name, node name (friendly), progress dots, reward preview</li>
+      <li>Progress dots: done=mint, current=violet glow, next=outlined — NO percentages or counts shown to child</li>
+      <li>Choose Different: world picker compact with locked worlds showing "keep playing" not "not available"</li>
+      <li>Daily Challenge: special bonus card with extra reward preview, opt-in — never required</li>
+      <li>Empty/New state: welcoming, no pressure framing, single big CTA</li>
+      <li>No timers, no grade labels, no accuracy %, streak shown as encouragement not pressure</li>
+      <li>Node names: friendly adventure-style names only (max 8 words for pre-reader compatibility)</li>
+      <li>Reward preview: stars waiting phrasing — always positive, replay can't lose stars</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

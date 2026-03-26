@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Child Detail — Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f5f0e8; font-family: 'Sora', sans-serif; min-height: 100vh; padding: 20px; }
+
+/* ── Hint Box ── */
+.hint-box { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 14px 18px; max-width: 1160px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.7; }
+.hint-box strong { color: #b06000; }
+
+/* ── Tab switcher (outer, above frame) ── */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 1160px; margin-left: auto; margin-right: auto; }
+.tab-btn { background: #e2dcd0; color: #2c7a6e; border: 1.5px solid #c0b8a8; border-radius: 20px; padding: 7px 18px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #2c7a6e; color: #fff; border-color: #2c7a6e; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* ── Desktop frame ── */
+.desktop-frame { max-width: 1160px; margin: 0 auto; background: #f5f0e8; border-radius: 16px; border: 2px solid #c8b898; overflow: hidden; box-shadow: 0 8px 40px rgba(44,122,110,.12); min-height: 700px; }
+
+/* ── Top nav ── */
+.top-nav { background: #2c7a6e; padding: 0 24px; display: flex; align-items: center; height: 54px; gap: 0; }
+.nav-brand { color: #fff; font-size: 17px; font-weight: 700; margin-right: 32px; display: flex; align-items: center; gap: 8px; }
+.nav-brand .dot { width: 10px; height: 10px; background: #ffd166; border-radius: 50%; }
+.nav-item { color: rgba(255,255,255,.75); font-size: 13px; padding: 0 16px; height: 100%; display: flex; align-items: center; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+.nav-item.active, .nav-item:hover { color: #fff; border-bottom-color: #ffd166; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.child-selector { background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.35); border-radius: 20px; padding: 5px 14px; font-size: 13px; color: #fff; font-family: 'Sora', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; }
+.child-selector option { color: #2c7a6e; background: #fff; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 15px; border: 2px solid rgba(255,255,255,.4); }
+
+/* ── Subnav ── */
+.subnav { background: #fff; border-bottom: 1px solid #d8ccb8; padding: 0 24px; display: flex; align-items: center; height: 42px; gap: 4px; }
+.subnav-back { display: flex; align-items: center; gap: 5px; color: #2c7a6e; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0 14px 0 0; border-right: 1px solid #d8ccb8; margin-right: 14px; }
+.subnav-title { font-size: 14px; font-weight: 700; color: #2a1a0a; }
+.subnav-right { margin-left: auto; display: flex; gap: 8px; }
+.subnav-btn { background: #f0ece4; border: 1.5px solid #c8b898; border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #2c7a6e; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; }
+.subnav-btn.primary { background: #2c7a6e; color: #fff; border-color: #2c7a6e; }
+
+/* ── 2-col layout ── */
+.detail-grid { display: grid; grid-template-columns: 280px 1fr; min-height: 640px; }
+
+/* ── Left sidebar ── */
+.left-sidebar { background: #ede8dc; border-right: 1px solid #d0c8b8; padding: 20px 16px; overflow-y: auto; }
+
+.child-card { background: #fff; border-radius: 16px; border: 1px solid #d8ccb8; padding: 18px 16px; margin-bottom: 14px; text-align: center; }
+.child-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #2c7a6e, #1a4a3a); display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 10px; border: 3px solid #d0f0ea; }
+.child-name { font-size: 17px; font-weight: 700; color: #2a1a0a; }
+.child-age { font-size: 12px; color: #6a5a3a; margin-top: 3px; }
+.child-world-chip { display: inline-flex; align-items: center; gap: 5px; background: #d0f0ea; border-radius: 12px; padding: 4px 12px; font-size: 11px; font-weight: 600; color: #1a5a4e; margin-top: 8px; }
+
+.quick-stats { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.stat-chip { background: #fff; border: 1px solid #d8ccb8; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+.stat-chip .stat-icon { font-size: 20px; flex-shrink: 0; }
+.stat-chip .stat-body { }
+.stat-chip .stat-val { font-size: 14px; font-weight: 700; color: #2a1a0a; }
+.stat-chip .stat-lbl { font-size: 11px; color: #6a5a3a; margin-top: 1px; }
+
+.sidebar-section-label { font-size: 10px; font-weight: 700; color: #8a7a5a; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+
+.recent-badge { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.badge-icon { font-size: 32px; flex-shrink: 0; }
+.badge-info { flex: 1; }
+.badge-name { font-size: 12px; font-weight: 700; color: #2a1a0a; }
+.badge-date { font-size: 11px; color: #8a7a5a; margin-top: 2px; }
+.badge-new { display: inline-block; background: #ffd166; color: #6a4a00; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 1px 7px; margin-top: 4px; }
+
+/* ── Main content ── */
+.main-content { padding: 24px; overflow-y: auto; background: #f5f0e8; }
+
+/* Shared section label */
+.section-label { font-size: 11px; font-weight: 700; color: #8a7a5a; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+
+/* ─ Tab 1: Overview ─ */
+.overview-hero-card { background: linear-gradient(135deg, #1a4a3a 0%, #2c7a6e 100%); border-radius: 18px; padding: 22px 24px; margin-bottom: 20px; color: #fff; }
+.hero-top-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.hero-emoji { font-size: 32px; }
+.hero-heading { font-size: 18px; font-weight: 700; }
+.hero-sub { font-size: 13px; color: rgba(255,255,255,.85); margin-top: 4px; line-height: 1.5; }
+
+.wins-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.win-card { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; padding: 16px; display: flex; gap: 12px; align-items: flex-start; }
+.win-icon { font-size: 28px; flex-shrink: 0; }
+.win-body { flex: 1; }
+.win-title { font-size: 13px; font-weight: 700; color: #2a1a0a; }
+.win-desc { font-size: 12px; color: #6a5a3a; margin-top: 4px; line-height: 1.4; }
+.strength-chip { display: inline-flex; align-items: center; gap: 4px; background: #d0f0e0; border-radius: 10px; padding: 3px 10px; font-size: 10px; font-weight: 700; color: #1a5030; margin-top: 6px; }
+
+.support-section { margin-bottom: 20px; }
+.support-card { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; border-left: 4px solid #e0a030; padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+.support-icon { font-size: 24px; flex-shrink: 0; }
+.support-body { flex: 1; }
+.support-area-label { font-size: 10px; font-weight: 700; color: #c07800; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+.support-title { font-size: 13px; font-weight: 700; color: #2a1a0a; }
+.support-note { font-size: 12px; color: #6a5a3a; margin-top: 4px; line-height: 1.4; }
+
+.sparkline-section { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; padding: 16px; margin-bottom: 20px; }
+.sparkline-title { font-size: 13px; font-weight: 700; color: #2a1a0a; margin-bottom: 12px; }
+.sparkline-bars { display: flex; align-items: flex-end; gap: 8px; height: 60px; }
+.spark-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.spark-bar { width: 100%; background: #2c7a6e; border-radius: 4px 4px 0 0; min-height: 8px; transition: height .3s; }
+.spark-day { font-size: 9px; color: #8a7a5a; margin-top: 4px; }
+
+.next-focus-card { background: linear-gradient(135deg, #e8f8f4, #d0f0ea); border-radius: 14px; border: 1px solid #a8e0d0; padding: 18px; display: flex; align-items: center; gap: 16px; }
+.next-focus-icon { font-size: 36px; flex-shrink: 0; }
+.next-focus-body { flex: 1; }
+.next-focus-label { font-size: 10px; font-weight: 700; color: #2c7a6e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.next-focus-title { font-size: 15px; font-weight: 700; color: #1a3a30; }
+.next-focus-desc { font-size: 12px; color: #4a6a5a; margin-top: 4px; line-height: 1.4; }
+.next-focus-cta { background: #2c7a6e; color: #fff; border: none; border-radius: 20px; padding: 8px 18px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+/* ─ Tab 2: Skill Detail ─ */
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-chip { background: #e8e0d0; border: 1.5px solid #c8b898; border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 600; color: #5a4a2a; font-family: 'Sora', sans-serif; cursor: pointer; transition: all .2s; }
+.filter-chip.active { background: #2c7a6e; color: #fff; border-color: #2c7a6e; }
+
+.skill-list-card { background: #fff; border-radius: 16px; border: 1px solid #d8ccb8; overflow: hidden; margin-bottom: 16px; }
+.skill-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #ede5d5; }
+.skill-row:last-child { border-bottom: none; }
+.skill-emoji { font-size: 22px; flex-shrink: 0; }
+.skill-info { flex: 1; min-width: 0; }
+.skill-name { font-size: 13px; font-weight: 700; color: #2a1a0a; }
+.skill-note { font-size: 11px; color: #6a5a3a; margin-top: 3px; line-height: 1.4; }
+.tier-label { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.tier-label.support { background: #fff4d0; color: #c07800; }
+.tier-label.growing { background: #d0f0ea; color: #1a7060; }
+.tier-label.strength { background: #d0f0e0; color: #1a5030; }
+.trend-dots { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+.trend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.trend-dot.filled { background: #2c7a6e; }
+.trend-dot.outline { background: transparent; border: 2px solid #b8c8c0; }
+
+.tier-legend { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; padding: 16px; }
+.tier-legend-title { font-size: 12px; font-weight: 700; color: #2a1a0a; margin-bottom: 12px; }
+.legend-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #ede5d5; }
+.legend-row:last-child { border-bottom: none; }
+.legend-badge { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.legend-desc { font-size: 12px; color: #5a4a2a; line-height: 1.4; }
+
+/* ─ Tab 3: Sessions ─ */
+.session-card { background: #fff; border-radius: 16px; border: 1px solid #d8ccb8; padding: 18px; margin-bottom: 12px; }
+.session-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.session-world-icon { font-size: 28px; flex-shrink: 0; }
+.session-header-info { flex: 1; }
+.session-world-name { font-size: 14px; font-weight: 700; color: #2a1a0a; }
+.session-date { font-size: 11px; color: #8a7a5a; margin-top: 2px; }
+.session-chips { display: flex; gap: 6px; flex-shrink: 0; }
+.session-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600; }
+.chip-stars { background: #fff8d0; color: #8a6000; }
+.chip-time { background: #e8e0d0; color: #5a4a2a; }
+.session-highlights { padding-left: 0; list-style: none; margin-bottom: 12px; }
+.session-highlights li { font-size: 12px; color: #4a3a1a; padding: 4px 0; padding-left: 20px; position: relative; line-height: 1.4; }
+.session-highlights li::before { content: "✦"; position: absolute; left: 0; color: #2c7a6e; font-size: 10px; top: 5px; }
+.session-expand-btn { background: none; border: none; color: #2c7a6e; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; }
+
+/* Expanded session */
+.session-expanded { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d8ccb8; display: none; }
+.session-expanded.open { display: block; }
+.expanded-label { font-size: 10px; font-weight: 700; color: #8a7a5a; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.expanded-skill { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #ede5d5; }
+.expanded-skill:last-child { border-bottom: none; }
+.exp-skill-emoji { font-size: 16px; }
+.exp-skill-name { font-size: 12px; font-weight: 700; color: #2a1a0a; }
+.exp-skill-note { font-size: 11px; color: #6a5a3a; }
+.badge-earned-card { background: linear-gradient(135deg, #fff8d0, #fff4b0); border-radius: 12px; border: 1px solid #e8d060; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.badge-earned-icon { font-size: 28px; }
+.badge-earned-info { flex: 1; }
+.badge-earned-label { font-size: 10px; font-weight: 700; color: #8a6000; text-transform: uppercase; letter-spacing: .4px; }
+.badge-earned-name { font-size: 13px; font-weight: 700; color: #4a3000; margin-top: 2px; }
+.xp-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.xp-chip { background: #d0f0ea; border-radius: 10px; padding: 4px 12px; font-size: 12px; font-weight: 700; color: #1a5a4a; }
+
+/* ─ Tab 4: Practice ─ */
+.practice-intro-card { background: linear-gradient(135deg, #e8f8f4, #d0f0ea); border-radius: 14px; border: 1px solid #a8e0d0; padding: 18px; margin-bottom: 20px; }
+.practice-intro-title { font-size: 15px; font-weight: 700; color: #1a3a30; margin-bottom: 6px; }
+.practice-intro-text { font-size: 13px; color: #3a6a5a; line-height: 1.5; }
+
+.practice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.practice-card { background: #fff; border-radius: 16px; border: 1px solid #d8ccb8; padding: 18px; }
+.practice-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.practice-icon { font-size: 28px; flex-shrink: 0; }
+.practice-header-info { flex: 1; }
+.practice-title { font-size: 14px; font-weight: 700; color: #2a1a0a; }
+.practice-time-chip { display: inline-flex; align-items: center; background: #ede8dc; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: 600; color: #5a4a2a; margin-top: 3px; }
+.practice-steps { padding-left: 16px; margin-bottom: 12px; }
+.practice-steps li { font-size: 12px; color: #4a3a1a; padding: 4px 0; line-height: 1.4; }
+.practice-skill-tag { display: inline-flex; align-items: center; gap: 4px; background: #d0f0ea; border-radius: 10px; padding: 3px 10px; font-size: 10px; font-weight: 700; color: #1a5a4a; margin-bottom: 8px; }
+.practice-why-note { font-size: 11px; color: #5a4a2a; background: #f8f4ec; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; line-height: 1.4; border-left: 3px solid #e0c060; }
+.practice-save-btn { background: transparent; border: 1.5px solid #2c7a6e; border-radius: 20px; padding: 6px 14px; font-size: 11px; font-family: 'Sora', sans-serif; font-weight: 600; color: #2c7a6e; cursor: pointer; transition: all .2s; }
+.practice-save-btn:hover { background: #2c7a6e; color: #fff; }
+
+.practice-note-card { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+.practice-note-icon { font-size: 22px; }
+.practice-note-text { font-size: 12px; color: #5a4a2a; line-height: 1.4; }
+
+.teacher-tip-card { background: #e8f8f4; border-radius: 14px; border: 1px solid #a8e0d0; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+.teacher-tip-icon { font-size: 24px; flex-shrink: 0; }
+.teacher-tip-body { flex: 1; }
+.teacher-tip-label { font-size: 10px; font-weight: 700; color: #1a6050; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.teacher-tip-text { font-size: 12px; color: #2a4a3a; line-height: 1.5; }
+
+/* ─ Tab 5: Spec ─ */
+.spec-content { max-width: 900px; }
+.spec-section { background: #fff; border-radius: 14px; border: 1px solid #d8ccb8; padding: 20px; margin-bottom: 16px; }
+.spec-section h3 { font-size: 13px; font-weight: 700; color: #2c7a6e; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+.spec-section p, .spec-section li { font-size: 12px; color: #4a3a1a; line-height: 1.7; }
+.spec-section ul, .spec-section ol { padding-left: 18px; }
+.spec-section code { font-family: monospace; background: #f0ece4; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #2c7a6e; }
+.spec-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+.spec-table th { background: #ede8dc; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #5a4a2a; text-transform: uppercase; letter-spacing: .4px; }
+.spec-table td { padding: 8px 12px; border-bottom: 1px solid #ede5d5; color: #4a3a1a; line-height: 1.4; }
+.spec-table tr:last-child td { border-bottom: none; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .wins-grid { grid-template-columns: 1fr; }
+  .practice-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .left-sidebar { border-right: none; border-bottom: 1px solid #d0c8b8; padding: 14px 12px; }
+  .quick-stats { flex-direction: row; flex-wrap: wrap; }
+  .quick-stats .stat-chip { flex: 1; min-width: 120px; }
+  .child-card { display: flex; align-items: center; gap: 12px; text-align: left; }
+  .child-avatar { width: 48px; height: 48px; font-size: 22px; margin: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Outer tab switcher ── -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('overview')">1 — Child Overview</button>
+  <button class="tab-btn" onclick="show('skills')">2 — Skill Detail</button>
+  <button class="tab-btn" onclick="show('sessions')">3 — Recent Sessions</button>
+  <button class="tab-btn" onclick="show('practice')">4 — Home Practice</button>
+  <button class="tab-btn" onclick="show('spec')">5 — Spec</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 1 — Child Overview
+════════════════════════════════════════════ -->
+<div id="tab-overview" class="tab active">
+  <div class="hint-box">
+    <strong>Tab 1 — Child Overview</strong><br>
+    Left sidebar: child card (avatar, name, age) + 3 quick-stat chips (streak, stars, current world) + latest badge earned.<br>
+    Main: hero summary card (warm parent language) → wins section (2–3 strength cards) → support section (1–2 forward-looking cards) → 7-day activity sparkline (positive framing only) → next-focus card.<br>
+    <strong>Parent rules enforced:</strong> No accuracy %, no raw scores, no "missed"/"behind". Tier = "support area" / "growing strength" / "strength". World names only (never grade labels).
+  </div>
+
+  <div class="desktop-frame">
+    <!-- Nav -->
+    <div class="top-nav">
+      <div class="nav-brand"><span class="dot"></span> WonderQuest</div>
+      <div class="nav-item active">My Children</div>
+      <div class="nav-item">Weekly Reports</div>
+      <div class="nav-item">Notifications</div>
+      <div class="nav-right">
+        <select class="child-selector">
+          <option>👧 Emma (age 7)</option>
+          <option>👦 Theo (age 5)</option>
+        </select>
+        <div class="nav-avatar">🧑</div>
+      </div>
+    </div>
+    <!-- Subnav -->
+    <div class="subnav">
+      <div class="subnav-back">← Back</div>
+      <span class="subnav-title">Emma · Child Overview</span>
+      <div class="subnav-right">
+        <button class="subnav-btn">Weekly Report</button>
+        <button class="subnav-btn primary">Print Summary</button>
+      </div>
+    </div>
+    <!-- 2-col grid -->
+    <div class="detail-grid">
+      <!-- Left sidebar -->
+      <div class="left-sidebar">
+        <div class="child-card">
+          <div class="child-avatar">🧒</div>
+          <div class="child-name">Emma</div>
+          <div class="child-age">Age 7 · 2nd year</div>
+          <div class="child-world-chip">🌊 Ocean World</div>
+        </div>
+
+        <div class="sidebar-section-label">This Week</div>
+        <div class="quick-stats">
+          <div class="stat-chip">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-body">
+              <div class="stat-val">12-day streak</div>
+              <div class="stat-lbl">Consecutive days playing</div>
+            </div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-body">
+              <div class="stat-val">847 stars</div>
+              <div class="stat-lbl">Total stars earned</div>
+            </div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-icon">🗺️</div>
+            <div class="stat-body">
+              <div class="stat-val">Ocean World</div>
+              <div class="stat-lbl">Current adventure world</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-section-label" style="margin-top:8px;">Latest Badge</div>
+        <div class="recent-badge">
+          <div class="badge-icon">🐚</div>
+          <div class="badge-info">
+            <div class="badge-name">Ocean Explorer</div>
+            <div class="badge-date">Earned Mar 20, 2026</div>
+            <div class="badge-new">NEW</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="main-content">
+        <!-- Hero -->
+        <div class="overview-hero-card">
+          <div class="hero-top-row">
+            <div class="hero-emoji">🌊</div>
+            <div>
+              <div class="hero-heading">Emma had a great week in Ocean World!</div>
+              <div class="hero-sub">She dove deep into reading adventures this week — building confidence with longer words and earning her Ocean Explorer badge along the way. You can be really proud of her effort! 🌟</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wins -->
+        <div class="section-label">Emma's Strengths This Week</div>
+        <div class="wins-grid">
+          <div class="win-card">
+            <div class="win-icon">📚</div>
+            <div class="win-body">
+              <div class="win-title">Reading Fluency</div>
+              <div class="win-desc">Sailing through longer sentences with growing confidence! Emma is reading more smoothly than ever.</div>
+              <div class="strength-chip">⭐ Strength</div>
+            </div>
+          </div>
+          <div class="win-card">
+            <div class="win-icon">🔤</div>
+            <div class="win-body">
+              <div class="win-title">Letter Recognition</div>
+              <div class="win-desc">Nailing tricky letter pairs every time. This is becoming a real superpower for Emma!</div>
+              <div class="strength-chip">⭐ Strength</div>
+            </div>
+          </div>
+          <div class="win-card">
+            <div class="win-icon">💬</div>
+            <div class="win-body">
+              <div class="win-title">Sight Words</div>
+              <div class="win-desc">Recognizing high-frequency words on the fly — great progress that makes reading so much more fun.</div>
+              <div class="strength-chip">🌱 Growing Strength</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Support areas -->
+        <div class="support-section">
+          <div class="section-label">Focus Areas — Building Together</div>
+          <div class="support-card">
+            <div class="support-icon">🎵</div>
+            <div class="support-body">
+              <div class="support-area-label">Support Area</div>
+              <div class="support-title">Phoneme Blending</div>
+              <div class="support-note">Next focus: connecting sounds in longer words 🎯 — a short practice each day makes a big difference here!</div>
+            </div>
+          </div>
+          <div class="support-card">
+            <div class="support-icon">✏️</div>
+            <div class="support-body">
+              <div class="support-area-label">Support Area</div>
+              <div class="support-title">Vowel Patterns</div>
+              <div class="support-note">Emma is building familiarity with vowel teams — she's getting closer every session! Great home practice opportunity. 🏠</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sparkline -->
+        <div class="sparkline-section">
+          <div class="sparkline-title">7-Day Activity Pattern 📊</div>
+          <div class="sparkline-bars">
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:55%"></div><div class="spark-day">Sun</div></div>
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:80%"></div><div class="spark-day">Mon</div></div>
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:65%"></div><div class="spark-day">Tue</div></div>
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:90%"></div><div class="spark-day">Wed</div></div>
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:75%"></div><div class="spark-day">Thu</div></div>
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:100%"></div><div class="spark-day">Fri</div></div>
+            <div class="spark-bar-wrap"><div class="spark-bar" style="height:60%"></div><div class="spark-day">Sat</div></div>
+          </div>
+        </div>
+
+        <!-- Next focus -->
+        <div class="section-label">Up Next</div>
+        <div class="next-focus-card">
+          <div class="next-focus-icon">🌟</div>
+          <div class="next-focus-body">
+            <div class="next-focus-label">Recommended Next</div>
+            <div class="next-focus-title">Star World ✨</div>
+            <div class="next-focus-desc">Emma is ready to explore Star World, where she'll practice rhyming patterns and build on her growing phoneme skills in a brand-new adventure setting.</div>
+          </div>
+          <button class="next-focus-cta">See Practice Ideas →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 2 — Skill Detail
+════════════════════════════════════════════ -->
+<div id="tab-skills" class="tab">
+  <div class="hint-box">
+    <strong>Tab 2 — Skill Detail</strong><br>
+    Filter chips: All / Strengths / Support Areas. Skill list rows: emoji + name + tier badge + forward-looking note + 4-week trend dots (NO red, NO down-arrows).<br>
+    Tier colors: <strong>support</strong> = amber (#c07800 / #fff4d0) · <strong>growing strength</strong> = teal (#1a7060 / #d0f0ea) · <strong>strength</strong> = green (#1a5030 / #d0f0e0).<br>
+    Legend below explains each tier in parent-friendly language. No accuracy %, no raw scores shown anywhere.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><span class="dot"></span> WonderQuest</div>
+      <div class="nav-item">My Children</div>
+      <div class="nav-item active">Skill Detail</div>
+      <div class="nav-right">
+        <select class="child-selector">
+          <option>👧 Emma (age 7)</option>
+          <option>👦 Theo (age 5)</option>
+        </select>
+        <div class="nav-avatar">🧑</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">← Overview</div>
+      <span class="subnav-title">Emma · All Skills</span>
+      <div class="subnav-right">
+        <button class="subnav-btn">Export</button>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="left-sidebar">
+        <div class="child-card">
+          <div class="child-avatar">🧒</div>
+          <div class="child-name">Emma</div>
+          <div class="child-age">Age 7 · 2nd year</div>
+          <div class="child-world-chip">🌊 Ocean World</div>
+        </div>
+        <div class="quick-stats">
+          <div class="stat-chip"><div class="stat-icon">🔥</div><div class="stat-body"><div class="stat-val">12-day streak</div></div></div>
+          <div class="stat-chip"><div class="stat-icon">⭐</div><div class="stat-body"><div class="stat-val">847 stars</div></div></div>
+          <div class="stat-chip"><div class="stat-icon">🗺️</div><div class="stat-body"><div class="stat-val">Ocean World</div></div></div>
+        </div>
+        <div class="sidebar-section-label" style="margin-top:8px;">Latest Badge</div>
+        <div class="recent-badge">
+          <div class="badge-icon">🐚</div>
+          <div class="badge-info">
+            <div class="badge-name">Ocean Explorer</div>
+            <div class="badge-date">Earned Mar 20, 2026</div>
+            <div class="badge-new">NEW</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="filter-row">
+          <button class="filter-chip active" onclick="filterSkills('all', this)">All Skills</button>
+          <button class="filter-chip" onclick="filterSkills('strength', this)">Strengths</button>
+          <button class="filter-chip" onclick="filterSkills('support', this)">Support Areas</button>
+        </div>
+
+        <div class="skill-list-card">
+          <div class="skill-row" data-tier="strength">
+            <div class="skill-emoji">📚</div>
+            <div class="skill-info">
+              <div class="skill-name">Reading Fluency</div>
+              <div class="skill-note">Emma is reading longer passages smoothly — keep celebrating this!</div>
+            </div>
+            <div class="tier-label strength">Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="strength">
+            <div class="skill-emoji">🔤</div>
+            <div class="skill-info">
+              <div class="skill-name">Letter Recognition 🔤</div>
+              <div class="skill-note">Consistently identifying all letters — this is a real superpower!</div>
+            </div>
+            <div class="tier-label strength">Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="growing">
+            <div class="skill-emoji">👁️</div>
+            <div class="skill-info">
+              <div class="skill-name">Sight Words</div>
+              <div class="skill-note">Making steady progress — Emma is locking in more words every week.</div>
+            </div>
+            <div class="tier-label growing">Growing Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="growing">
+            <div class="skill-emoji">🎭</div>
+            <div class="skill-info">
+              <div class="skill-name">Story Comprehension</div>
+              <div class="skill-note">Emma is connecting ideas across a story — growing nicely!</div>
+            </div>
+            <div class="tier-label growing">Growing Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="growing">
+            <div class="skill-emoji">🎶</div>
+            <div class="skill-info">
+              <div class="skill-name">Rhyming Patterns</div>
+              <div class="skill-note">Getting more confident — a few more sessions and this will really click!</div>
+            </div>
+            <div class="tier-label growing">Growing Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="support">
+            <div class="skill-emoji">🎵</div>
+            <div class="skill-info">
+              <div class="skill-name">Phoneme Blending</div>
+              <div class="skill-note">Next focus: connecting sounds in longer words 🎯 — great home practice opportunity!</div>
+            </div>
+            <div class="tier-label support">Support Area</div>
+            <div class="trend-dots">
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="support">
+            <div class="skill-emoji">✏️</div>
+            <div class="skill-info">
+              <div class="skill-name">Vowel Patterns</div>
+              <div class="skill-note">Building familiarity with vowel teams — she's getting closer every session!</div>
+            </div>
+            <div class="tier-label support">Support Area</div>
+            <div class="trend-dots">
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot outline"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="strength">
+            <div class="skill-emoji">🔠</div>
+            <div class="skill-info">
+              <div class="skill-name">Beginning Sounds</div>
+              <div class="skill-note">Emma nails beginning sounds — a solid foundation for everything else!</div>
+            </div>
+            <div class="tier-label strength">Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="growing">
+            <div class="skill-emoji">🔡</div>
+            <div class="skill-info">
+              <div class="skill-name">Ending Sounds</div>
+              <div class="skill-note">Progressing well — ending sounds are getting more consistent each week.</div>
+            </div>
+            <div class="tier-label growing">Growing Strength</div>
+            <div class="trend-dots">
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+              <div class="trend-dot filled"></div>
+            </div>
+          </div>
+          <div class="skill-row" data-tier="support">
+            <div class="skill-emoji">📖</div>
+            <div class="skill-info">
+              <div class="skill-name">Multi-syllable Words</div>
+              <div class="skill-note">Longer words are the next adventure — Emma is starting to tackle them!</div>
+            </div>
+            <div class="tier-label support">Support Area</div>
+            <div class="trend-dots">
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot outline"></div>
+              <div class="trend-dot filled"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tier legend -->
+        <div class="tier-legend">
+          <div class="tier-legend-title">What do these tiers mean?</div>
+          <div class="legend-row">
+            <div class="legend-badge" style="background:#fff4d0; color:#c07800;">Support Area</div>
+            <div class="legend-desc">Emma is building this skill — great focus area for home practice together.</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-badge" style="background:#d0f0ea; color:#1a7060;">Growing Strength</div>
+            <div class="legend-desc">Emma is making steady progress here — keep encouraging her!</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-badge" style="background:#d0f0e0; color:#1a5030;">Strength</div>
+            <div class="legend-desc">Emma has really got this one! 🌟 Celebrate it with her.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 3 — Recent Sessions
+════════════════════════════════════════════ -->
+<div id="tab-sessions" class="tab">
+  <div class="hint-box">
+    <strong>Tab 3 — Recent Sessions</strong><br>
+    Filter chips: This Week / Last 2 Weeks / This Month. Session cards show: world name + date + highlight bullets (parent language) + stars earned chip + approx duration.<br>
+    <strong>Rules:</strong> Stars OK, raw accuracy NOT shown. Duration is approximate ("~15 min"). No scores. Expand arrow reveals skill practice list, badge earned, and XP chip.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><span class="dot"></span> WonderQuest</div>
+      <div class="nav-item">My Children</div>
+      <div class="nav-item active">Sessions</div>
+      <div class="nav-right">
+        <select class="child-selector">
+          <option>👧 Emma (age 7)</option>
+          <option>👦 Theo (age 5)</option>
+        </select>
+        <div class="nav-avatar">🧑</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">← Overview</div>
+      <span class="subnav-title">Emma · Recent Sessions</span>
+    </div>
+    <div class="detail-grid">
+      <div class="left-sidebar">
+        <div class="child-card">
+          <div class="child-avatar">🧒</div>
+          <div class="child-name">Emma</div>
+          <div class="child-age">Age 7 · 2nd year</div>
+          <div class="child-world-chip">🌊 Ocean World</div>
+        </div>
+        <div class="quick-stats">
+          <div class="stat-chip"><div class="stat-icon">🔥</div><div class="stat-body"><div class="stat-val">12-day streak</div></div></div>
+          <div class="stat-chip"><div class="stat-icon">⭐</div><div class="stat-body"><div class="stat-val">847 stars</div></div></div>
+          <div class="stat-chip"><div class="stat-icon">🗺️</div><div class="stat-body"><div class="stat-val">Ocean World</div></div></div>
+        </div>
+        <div class="sidebar-section-label" style="margin-top:8px;">Latest Badge</div>
+        <div class="recent-badge">
+          <div class="badge-icon">🐚</div>
+          <div class="badge-info">
+            <div class="badge-name">Ocean Explorer</div>
+            <div class="badge-date">Earned Mar 20, 2026</div>
+            <div class="badge-new">NEW</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="filter-row">
+          <button class="filter-chip active">This Week</button>
+          <button class="filter-chip">Last 2 Weeks</button>
+          <button class="filter-chip">This Month</button>
+        </div>
+
+        <!-- Session 1 — expanded -->
+        <div class="session-card" id="session-1">
+          <div class="session-header">
+            <div class="session-world-icon">🌊</div>
+            <div class="session-header-info">
+              <div class="session-world-name">Ocean World — Deep Dive Adventure</div>
+              <div class="session-date">Friday, March 20, 2026</div>
+            </div>
+            <div class="session-chips">
+              <span class="session-chip chip-stars">⭐ +6 stars earned</span>
+              <span class="session-chip chip-time">⏱ ~18 min</span>
+            </div>
+          </div>
+          <ul class="session-highlights">
+            <li>Practiced sight words and nailed 5 in a row!</li>
+            <li>Earned the Ocean Explorer badge 🐚</li>
+            <li>Hit a 10-streak bonus for the first time</li>
+          </ul>
+          <button class="session-expand-btn" onclick="toggleExpand('session-1-detail', this)">▾ See full details</button>
+          <div class="session-expanded open" id="session-1-detail">
+            <div class="expanded-label">Skills Practiced</div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">👁️</span><span class="exp-skill-name">Sight Words</span>&nbsp;·&nbsp;<span class="exp-skill-note">Strong session — great momentum!</span></div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">📚</span><span class="exp-skill-name">Reading Fluency</span>&nbsp;·&nbsp;<span class="exp-skill-note">Read two full passages smoothly.</span></div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">🔠</span><span class="exp-skill-name">Beginning Sounds</span>&nbsp;·&nbsp;<span class="exp-skill-note">Quick warm-up — Emma breezes through these!</span></div>
+            <div class="badge-earned-card">
+              <div class="badge-earned-icon">🐚</div>
+              <div class="badge-earned-info">
+                <div class="badge-earned-label">Badge Earned</div>
+                <div class="badge-earned-name">Ocean Explorer 🌊</div>
+              </div>
+            </div>
+            <div class="xp-row">
+              <div class="xp-chip">+120 XP earned this session</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session 2 -->
+        <div class="session-card" id="session-2">
+          <div class="session-header">
+            <div class="session-world-icon">🌊</div>
+            <div class="session-header-info">
+              <div class="session-world-name">Ocean World — Coral Reef Challenge</div>
+              <div class="session-date">Thursday, March 19, 2026</div>
+            </div>
+            <div class="session-chips">
+              <span class="session-chip chip-stars">⭐ +4 stars earned</span>
+              <span class="session-chip chip-time">⏱ ~14 min</span>
+            </div>
+          </div>
+          <ul class="session-highlights">
+            <li>Worked on vowel patterns — making real progress!</li>
+            <li>Tried phoneme blending in a fun matching game</li>
+            <li>Kept her 11-day streak going 🔥</li>
+          </ul>
+          <button class="session-expand-btn" onclick="toggleExpand('session-2-detail', this)">▸ See full details</button>
+          <div class="session-expanded" id="session-2-detail">
+            <div class="expanded-label">Skills Practiced</div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">✏️</span><span class="exp-skill-name">Vowel Patterns</span>&nbsp;·&nbsp;<span class="exp-skill-note">Building familiarity — great effort!</span></div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">🎵</span><span class="exp-skill-name">Phoneme Blending</span>&nbsp;·&nbsp;<span class="exp-skill-note">Exploring longer word sounds — next focus area.</span></div>
+            <div class="xp-row"><div class="xp-chip">+85 XP earned this session</div></div>
+          </div>
+        </div>
+
+        <!-- Session 3 -->
+        <div class="session-card" id="session-3">
+          <div class="session-header">
+            <div class="session-world-icon">🌊</div>
+            <div class="session-header-info">
+              <div class="session-world-name">Ocean World — Sunken Ship Stories</div>
+              <div class="session-date">Wednesday, March 18, 2026</div>
+            </div>
+            <div class="session-chips">
+              <span class="session-chip chip-stars">⭐ +5 stars earned</span>
+              <span class="session-chip chip-time">⏱ ~20 min</span>
+            </div>
+          </div>
+          <ul class="session-highlights">
+            <li>Read a full Ocean World mini-story end to end!</li>
+            <li>Practiced story comprehension — identifying key events</li>
+            <li>Unlocked a new ocean creature collectible 🐠</li>
+          </ul>
+          <button class="session-expand-btn" onclick="toggleExpand('session-3-detail', this)">▸ See full details</button>
+          <div class="session-expanded" id="session-3-detail">
+            <div class="expanded-label">Skills Practiced</div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">🎭</span><span class="exp-skill-name">Story Comprehension</span>&nbsp;·&nbsp;<span class="exp-skill-note">Really connecting ideas — proud moment!</span></div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">📚</span><span class="exp-skill-name">Reading Fluency</span>&nbsp;·&nbsp;<span class="exp-skill-note">Best fluency session yet this week.</span></div>
+            <div class="xp-row"><div class="xp-chip">+105 XP earned this session</div></div>
+          </div>
+        </div>
+
+        <!-- Session 4 -->
+        <div class="session-card" id="session-4">
+          <div class="session-header">
+            <div class="session-world-icon">🌊</div>
+            <div class="session-header-info">
+              <div class="session-world-name">Ocean World — Wave Rider Words</div>
+              <div class="session-date">Monday, March 17, 2026</div>
+            </div>
+            <div class="session-chips">
+              <span class="session-chip chip-stars">⭐ +3 stars earned</span>
+              <span class="session-chip chip-time">⏱ ~12 min</span>
+            </div>
+          </div>
+          <ul class="session-highlights">
+            <li>Quick session focused on letter recognition warm-up</li>
+            <li>Practiced ending sounds in a wave-catching mini-game</li>
+            <li>Kept up the streak on a busy Monday!</li>
+          </ul>
+          <button class="session-expand-btn" onclick="toggleExpand('session-4-detail', this)">▸ See full details</button>
+          <div class="session-expanded" id="session-4-detail">
+            <div class="expanded-label">Skills Practiced</div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">🔤</span><span class="exp-skill-name">Letter Recognition</span>&nbsp;·&nbsp;<span class="exp-skill-note">Consistent as always!</span></div>
+            <div class="expanded-skill"><span class="exp-skill-emoji">🔡</span><span class="exp-skill-name">Ending Sounds</span>&nbsp;·&nbsp;<span class="exp-skill-note">Getting more consistent each week.</span></div>
+            <div class="xp-row"><div class="xp-chip">+60 XP earned this session</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 4 — Home Practice Ideas
+════════════════════════════════════════════ -->
+<div id="tab-practice" class="tab">
+  <div class="hint-box">
+    <strong>Tab 4 — Home Practice Ideas</strong><br>
+    3–4 practice cards auto-generated weekly from Emma's skill tier data. Each card: emoji + title + time chip + numbered steps + skill tag + "why this helps" note + Save Idea button.<br>
+    Bottom: refresh note (ideas update weekly) + optional teacher tip card (light teal bg). No jargon, plain parent language throughout.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><span class="dot"></span> WonderQuest</div>
+      <div class="nav-item">My Children</div>
+      <div class="nav-item active">Home Practice</div>
+      <div class="nav-right">
+        <select class="child-selector">
+          <option>👧 Emma (age 7)</option>
+          <option>👦 Theo (age 5)</option>
+        </select>
+        <div class="nav-avatar">🧑</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">← Overview</div>
+      <span class="subnav-title">Emma · Home Practice Ideas</span>
+      <div class="subnav-right">
+        <button class="subnav-btn">Week of Mar 17–23</button>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="left-sidebar">
+        <div class="child-card">
+          <div class="child-avatar">🧒</div>
+          <div class="child-name">Emma</div>
+          <div class="child-age">Age 7 · 2nd year</div>
+          <div class="child-world-chip">🌊 Ocean World</div>
+        </div>
+        <div class="quick-stats">
+          <div class="stat-chip"><div class="stat-icon">🔥</div><div class="stat-body"><div class="stat-val">12-day streak</div></div></div>
+          <div class="stat-chip"><div class="stat-icon">⭐</div><div class="stat-body"><div class="stat-val">847 stars</div></div></div>
+          <div class="stat-chip"><div class="stat-icon">🗺️</div><div class="stat-body"><div class="stat-val">Ocean World</div></div></div>
+        </div>
+        <div class="sidebar-section-label" style="margin-top:8px;">Latest Badge</div>
+        <div class="recent-badge">
+          <div class="badge-icon">🐚</div>
+          <div class="badge-info">
+            <div class="badge-name">Ocean Explorer</div>
+            <div class="badge-date">Earned Mar 20, 2026</div>
+            <div class="badge-new">NEW</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="practice-intro-card">
+          <div class="practice-intro-title">Here are some ideas to support Emma at home this week 🏠</div>
+          <div class="practice-intro-text">These activities are quick, low-pressure, and based on Emma's recent sessions in Ocean World. Even 10 minutes a day makes a real difference — and they're designed to be fun for both of you!</div>
+        </div>
+
+        <div class="practice-grid">
+          <!-- Card 1 -->
+          <div class="practice-card">
+            <div class="practice-header">
+              <div class="practice-icon">🎵</div>
+              <div class="practice-header-info">
+                <div class="practice-title">Sound Stretching Game</div>
+                <div class="practice-time-chip">⏱ ~10 min</div>
+              </div>
+            </div>
+            <ol class="practice-steps">
+              <li>Pick 5 short words together (e.g. "ship", "rock", "fish").</li>
+              <li>Say a word slowly and stretch out each sound together — "sss-hh-ip!"</li>
+              <li>Take turns guessing what the stretched word is.</li>
+              <li>Celebrate each one with a high-five! 🙌</li>
+            </ol>
+            <div class="practice-skill-tag">Supports: Phoneme Blending</div>
+            <div class="practice-why-note">Why this helps: Emma is building confidence connecting sounds in longer words — hearing them stretched out helps that click happen naturally.</div>
+            <button class="practice-save-btn">Save Idea 💾</button>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="practice-card">
+            <div class="practice-header">
+              <div class="practice-icon">📖</div>
+              <div class="practice-header-info">
+                <div class="practice-title">Ocean Word Hunt</div>
+                <div class="practice-time-chip">⏱ ~10 min</div>
+              </div>
+            </div>
+            <ol class="practice-steps">
+              <li>Find a picture book or magazine page together.</li>
+              <li>Hunt for words that have a vowel team (like "ee", "ai", "oa").</li>
+              <li>Circle them or point them out — no writing needed!</li>
+              <li>Bonus: try reading just those words out loud.</li>
+            </ol>
+            <div class="practice-skill-tag">Supports: Vowel Patterns</div>
+            <div class="practice-why-note">Why this helps: Emma is building familiarity with vowel combinations. Spotting them in real books makes the pattern feel natural and rewarding.</div>
+            <button class="practice-save-btn">Save Idea 💾</button>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="practice-card">
+            <div class="practice-header">
+              <div class="practice-icon">🃏</div>
+              <div class="practice-header-info">
+                <div class="practice-title">Sight Word Flashcard Dash</div>
+                <div class="practice-time-chip">⏱ ~8 min</div>
+              </div>
+            </div>
+            <ol class="practice-steps">
+              <li>Write 8–10 sight words on index cards (e.g. "the", "said", "they").</li>
+              <li>Hold up one card at a time — Emma reads it fast.</li>
+              <li>Make it silly: she earns a point for each one, you guess one too!</li>
+              <li>Track her record each week to see progress.</li>
+            </ol>
+            <div class="practice-skill-tag">Supports: Sight Words</div>
+            <div class="practice-why-note">Why this helps: Recognizing these common words automatically frees up Emma's brain to focus on understanding stories — a big deal for fluency!</div>
+            <button class="practice-save-btn">Save Idea 💾</button>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="practice-card">
+            <div class="practice-header">
+              <div class="practice-icon">🌊</div>
+              <div class="practice-header-info">
+                <div class="practice-title">Read-Aloud Story Time</div>
+                <div class="practice-time-chip">⏱ ~15 min</div>
+              </div>
+            </div>
+            <ol class="practice-steps">
+              <li>Choose any book Emma enjoys — ocean theme even better!</li>
+              <li>Take turns: you read a page, she reads a page.</li>
+              <li>After each page, ask: "What happened? What do you think comes next?"</li>
+              <li>End with "What was your favorite part?"</li>
+            </ol>
+            <div class="practice-skill-tag">Supports: Reading Fluency · Story Comprehension</div>
+            <div class="practice-why-note">Why this helps: Reading together builds fluency, comprehension, and most importantly — a love of stories. This one goes a long way!</div>
+            <button class="practice-save-btn">Save Idea 💾</button>
+          </div>
+        </div>
+
+        <div class="practice-note-card">
+          <div class="practice-note-icon">✨</div>
+          <div class="practice-note-text">These ideas are based on Emma's recent sessions and current skill focus areas. They'll refresh each week as Emma grows! No pressure — even one activity makes a difference.</div>
+        </div>
+
+        <div class="teacher-tip-card">
+          <div class="teacher-tip-icon">🐙</div>
+          <div class="teacher-tip-body">
+            <div class="teacher-tip-label">Teacher Tip from Ms. Rivera</div>
+            <div class="teacher-tip-text">After reading together, ask Emma about her favorite ocean creature and have her describe it in a few sentences. It's a wonderful way to build vocabulary and her confidence in expressing ideas out loud!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 5 — Spec
+════════════════════════════════════════════ -->
+<div id="tab-spec" class="tab">
+  <div class="hint-box">
+    <strong>Tab 5 — Engineering Spec</strong><br>
+    API routes, layout breakpoints, parent language rules, tier label reference, session data rules, and practice idea generation notes.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><span class="dot"></span> WonderQuest</div>
+      <div class="nav-item active">Spec</div>
+      <div class="nav-right">
+        <div class="nav-avatar">🧑</div>
+      </div>
+    </div>
+    <div class="detail-grid" style="grid-template-columns: 1fr;">
+      <div class="main-content spec-content">
+
+        <div class="spec-section">
+          <h3>API Routes</h3>
+          <ul>
+            <li><code>GET /parent/child/:id/overview</code> — child card, quick stats, hero summary, wins, support areas, sparkline data, next-focus recommendation</li>
+            <li><code>GET /parent/child/:id/skills</code> — full skill list with tier labels, forward-looking notes, 4-week trend data (activity booleans only)</li>
+            <li><code>GET /parent/child/:id/sessions</code> — paginated session list; fields: world name, date, highlight strings, stars earned (int), duration bucket, skills practiced list, badge earned (nullable)</li>
+            <li><code>GET /parent/child/:id/practice</code> — weekly practice ideas; auto-generated from SNS tier data; teacher overrides included if present</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Desktop Layout</h3>
+          <ul>
+            <li>Outer shell: <code>max-width: 1160px</code> centered desktop frame</li>
+            <li>2-col CSS grid: <code>grid-template-columns: 280px 1fr</code></li>
+            <li>Left sidebar: child card + quick stat chips + recent badge</li>
+            <li>Responsive breakpoint at <code>768px</code>: sidebar collapses to top strip (grid becomes single col), stat chips flex-wrap to row</li>
+            <li>Secondary breakpoint at <code>900px</code>: wins grid and practice grid collapse from 2-col to 1-col</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Parent Language Rules (STRICT — enforced across all tabs)</h3>
+          <ul>
+            <li><strong>NEVER</strong> show accuracy %, raw scores, or numeric performance figures</li>
+            <li><strong>NEVER</strong> use the words "missed", "behind", "failed", "wrong", or "weak"</li>
+            <li><strong>NEVER</strong> use grade labels (e.g. "Kindergarten level", "Grade 2") — use world names only</li>
+            <li><strong>ALWAYS</strong> use forward-looking, growth-oriented language ("building", "exploring", "next focus", "great progress")</li>
+            <li><strong>ALWAYS</strong> frame support areas as opportunities, not deficits</li>
+            <li>Session duration shown as approximate bucket only ("~15 min") — never exact seconds</li>
+            <li>Stars earned per session are fine to show; no other numeric performance metric is permitted</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Tier Label Reference</h3>
+          <table class="spec-table">
+            <tr>
+              <th>Tier</th>
+              <th>Label (Parent-Facing)</th>
+              <th>Text Color</th>
+              <th>Background</th>
+              <th>Parent Description</th>
+            </tr>
+            <tr>
+              <td>support</td>
+              <td>Support Area</td>
+              <td><code>#c07800</code></td>
+              <td><code>#fff4d0</code></td>
+              <td>Emma is building this skill — great focus area for home practice</td>
+            </tr>
+            <tr>
+              <td>growing</td>
+              <td>Growing Strength</td>
+              <td><code>#1a7060</code></td>
+              <td><code>#d0f0ea</code></td>
+              <td>Emma is making steady progress here — keep encouraging her!</td>
+            </tr>
+            <tr>
+              <td>strength</td>
+              <td>Strength</td>
+              <td><code>#1a5030</code></td>
+              <td><code>#d0f0e0</code></td>
+              <td>Emma has really got this one! 🌟</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="spec-section">
+          <h3>Session Data Rules</h3>
+          <ul>
+            <li>Stars earned per session: show as integer (e.g. "+6 stars earned") ✅</li>
+            <li>Duration: show as approximate bucket only — <code>"~15 min"</code>, <code>"~10 min"</code> etc. ✅</li>
+            <li>Accuracy %: <strong>NEVER shown</strong> ❌</li>
+            <li>Raw score or correct/incorrect counts: <strong>NEVER shown</strong> ❌</li>
+            <li>Session highlights: human-readable strings generated server-side in parent language</li>
+            <li>Expanded detail: skill name + forward-looking note + badge earned (nullable) + XP earned (OK to show XP)</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>World Names (ONLY valid world references)</h3>
+          <ul>
+            <li>Dream World · Ocean World · Fire World · Star World · Crystal World</li>
+            <li>Forbidden: any grade label, reading level label, or age bracket label as a world identifier</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Practice Ideas — Generation Rules</h3>
+          <ul>
+            <li>Auto-generated weekly from the child's current SNS tier data — prioritizes <code>support</code> tier skills</li>
+            <li>Each practice card maps to exactly one (or two) skills via <code>practice_skill_tags[]</code></li>
+            <li>Teacher can override or append practice cards via the teacher dashboard — teacher-authored cards are flagged with <code>source: "teacher"</code> and shown with the teacher tip styling</li>
+            <li>Practice cards refresh every Monday at 00:00 UTC</li>
+            <li>Steps are plain language, no edu-jargon — max 4 steps per card</li>
+            <li>Time estimate is a bucket string: <code>"~8 min"</code> / <code>"~10 min"</code> / <code>"~15 min"</code></li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Child Selector Dropdown (Nav)</h3>
+          <ul>
+            <li>Populated from <code>GET /parent/children</code> — returns all linked children for the authenticated parent</li>
+            <li>Switching child re-fetches all tab data for the new <code>child_id</code></li>
+            <li>Default child: first in list, or last viewed (stored in localStorage)</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(tab) {
+  // Hide all tabs and deactivate all buttons
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+  // Show selected tab and activate button
+  const tabEl = document.getElementById('tab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+
+  // Activate the clicked button (match by index)
+  const tabMap = { overview: 0, skills: 1, sessions: 2, practice: 3, spec: 4 };
+  const btns = document.querySelectorAll('.tab-btn');
+  const idx = tabMap[tab];
+  if (btns[idx]) btns[idx].classList.add('active');
+}
+
+function toggleExpand(detailId, btn) {
+  const detail = document.getElementById(detailId);
+  if (!detail) return;
+  const isOpen = detail.classList.toggle('open');
+  btn.textContent = isOpen ? '▾ Hide details' : '▸ See full details';
+}
+
+function filterSkills(tier, clickedChip) {
+  // Update active chip
+  const chips = clickedChip.closest('.filter-row').querySelectorAll('.filter-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  clickedChip.classList.add('active');
+
+  // Filter rows
+  const rows = document.querySelectorAll('.skill-row[data-tier]');
+  rows.forEach(row => {
+    if (tier === 'all') {
+      row.style.display = '';
+    } else if (tier === 'strength') {
+      row.style.display = (row.dataset.tier === 'strength' || row.dataset.tier === 'growing') ? '' : 'none';
+    } else if (tier === 'support') {
+      row.style.display = row.dataset.tier === 'support' ? '' : 'none';
+    }
+  });
+}
+</script>
+</body>
+</html>

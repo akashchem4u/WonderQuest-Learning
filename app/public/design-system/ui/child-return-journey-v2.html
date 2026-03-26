@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Return Journey v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', 'Segoe UI', sans-serif; background: #1a1630; color: #e0d8f8; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #0e0c1e; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1a1630; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; color: #776aaa; }
+  .tab.active { background: #100b2e; color: #e0d8f8; }
+  .panel { display: none; padding: 20px 16px 40px; background: #100b2e; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; font-family: 'Segoe UI', sans-serif; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 780px; background: #100b2e; border-radius: 40px; border: 8px solid #2a2050; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 60px rgba(155,114,255,0.15); overflow: hidden; flex-shrink: 0; font-family: 'Nunito', sans-serif; }
+  .phone-inner { height: 100%; overflow-y: auto; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #665599; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-family: 'Segoe UI', sans-serif; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #8878c0; background: #100b2e; }
+
+  /* Stars bg */
+  .stars-bg { position: relative; background: #100b2e; overflow: hidden; }
+  .stars-bg::before { content: '✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧'; position: absolute; top: 8px; left: 0; right: 0; font-size: 10px; color: #3a2f60; letter-spacing: 14px; white-space: nowrap; overflow: hidden; }
+
+  /* Welcome back hero */
+  .welcome-hero { padding: 32px 24px 24px; text-align: center; position: relative; }
+  .hero-emoji { font-size: 56px; margin-bottom: 12px; display: block; animation: bounceIn 0.6s ease; }
+  .hero-greeting { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 8px; line-height: 1.2; }
+  .hero-sub { font-size: 15px; color: #b0a0e0; line-height: 1.5; }
+
+  /* Days-away pill */
+  .away-pill { display: inline-block; background: #1e1650; border: 1.5px solid #9b72ff; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 800; color: #c8b0ff; margin: 12px auto 0; }
+
+  /* Streak card */
+  .streak-card { margin: 0 16px 16px; background: linear-gradient(135deg, #1e1650, #2a1a70); border-radius: 20px; padding: 16px; border: 1px solid #3a2880; }
+  .streak-row { display: flex; align-items: center; gap: 12px; }
+  .streak-icon { font-size: 32px; }
+  .streak-title { font-size: 15px; font-weight: 900; color: #ffd166; }
+  .streak-sub { font-size: 12px; color: #9988cc; margin-top: 2px; }
+  .streak-count { margin-left: auto; text-align: center; }
+  .streak-num { font-size: 32px; font-weight: 900; color: #ffd166; }
+  .streak-lbl { font-size: 10px; color: #9988cc; text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* Pick up where you left off */
+  .resume-card { margin: 0 16px 16px; background: #1e1650; border-radius: 20px; padding: 16px; border: 1px solid #3a2880; }
+  .resume-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #7766aa; margin-bottom: 10px; }
+  .resume-skill-row { display: flex; align-items: center; gap: 12px; }
+  .resume-band-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .resume-skill { font-size: 15px; font-weight: 800; color: #fff; flex: 1; }
+  .resume-world { font-size: 12px; color: #9988cc; margin-top: 2px; }
+  .resume-progress { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .resume-bar-bg { flex: 1; background: #2e2260; border-radius: 8px; height: 8px; overflow: hidden; }
+  .resume-bar-fill { height: 100%; border-radius: 8px; }
+  .resume-nodes { font-size: 11px; color: #9988cc; white-space: nowrap; font-weight: 700; }
+
+  /* CTA button */
+  .cta-btn { margin: 0 16px 16px; background: #9b72ff; color: #fff; border-radius: 18px; padding: 16px; text-align: center; font-size: 17px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 20px rgba(155,114,255,0.4); }
+  .cta-btn.gold { background: linear-gradient(135deg, #ffd166, #f0b800); color: #1a1400; box-shadow: 0 4px 20px rgba(255,209,102,0.4); }
+
+  /* What's new section */
+  .whats-new { margin: 0 16px 16px; }
+  .new-card { background: #1e1650; border-radius: 16px; padding: 14px; border: 1px solid #3a2880; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+  .new-icon { font-size: 24px; flex-shrink: 0; }
+  .new-title { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 3px; }
+  .new-body { font-size: 12px; color: #9988cc; line-height: 1.5; }
+  .new-badge { display: inline-block; background: #ff7b6b22; color: #ff9988; border: 1px solid #ff7b6b44; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800; margin-top: 4px; }
+  .new-badge.mint { background: #58e8c122; color: #58e8c1; border-color: #58e8c144; }
+  .new-badge.gold { background: #ffd16622; color: #ffd166; border-color: #ffd16644; }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; font-family: 'Segoe UI', sans-serif; }
+  .spec-table th { background: #1e1650; padding: 8px 12px; text-align: left; font-weight: 700; font-size: 12px; color: #9988cc; border-bottom: 2px solid #2e2460; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #1e1a38; vertical-align: top; line-height: 1.5; color: #c0b0e0; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-violet { background: #2e1e60; color: #c8a8ff; }
+  .pill-gold { background: #2a1e00; color: #ffd166; }
+  .pill-mint { background: #0a2a1e; color: #58e8c1; }
+
+  /* Animations */
+  @keyframes bounceIn { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+  @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes glowPulse { 0%,100%{box-shadow:0 0 10px rgba(155,114,255,0.3)} 50%{box-shadow:0 0 24px rgba(155,114,255,0.7)} }
+  @keyframes shimmer { 0%{opacity:0.7} 50%{opacity:1} 100%{opacity:0.7} }
+
+  h2 { font-size: 18px; font-weight: 900; color: #e0d8f8; margin-bottom: 6px; font-family: 'Nunito', sans-serif; }
+  h3 { font-size: 14px; font-weight: 800; color: #a090d0; margin: 20px 0 8px; font-family: 'Nunito', sans-serif; }
+  p { font-size: 13px; color: #8878c0; line-height: 1.6; margin-bottom: 12px; font-family: 'Segoe UI', sans-serif; }
+  ul { font-size: 13px; color: #8878c0; line-height: 1.7; padding-left: 18px; margin-bottom: 12px; font-family: 'Segoe UI', sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('short-away')">Short Away (1–2 days)</button>
+  <button class="tab" onclick="show('long-away')">Long Away (7+ days)</button>
+  <button class="tab" onclick="show('streak-broken')">Streak Lost State</button>
+  <button class="tab" onclick="show('new-content')">New Content Unlocked</button>
+  <button class="tab" onclick="show('spec')">Spec Notes</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 1 -->
+<div id="short-away" class="panel active">
+  <div class="hint"><strong>Panel 1 — Short Away (1–2 days):</strong> Child returns after 1–2 days away. Warm welcome back, show streak intact, resume current skill, single CTA. Child theme: dark cosmic #100b2e, Nunito 900, violet band. No shame about missing days — celebrate the return. 375px phone frame.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">1 day away — streak intact</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <!-- Welcome hero -->
+          <div class="welcome-hero stars-bg">
+            <span class="hero-emoji" style="animation:floatY 3s ease infinite;">🦄</span>
+            <div class="hero-greeting">Welcome back,<br>Maya! 🎉</div>
+            <div class="hero-sub">Your adventure was waiting for you!</div>
+            <div class="away-pill">✦ Back after 1 day ✦</div>
+          </div>
+
+          <!-- Streak intact -->
+          <div class="streak-card">
+            <div class="streak-row">
+              <div class="streak-icon">🔥</div>
+              <div>
+                <div class="streak-title">Streak still going!</div>
+                <div class="streak-sub">You didn't break it — amazing! ✨</div>
+              </div>
+              <div class="streak-count">
+                <div class="streak-num">7</div>
+                <div class="streak-lbl">days</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resume card -->
+          <div class="resume-card">
+            <div class="resume-label">Pick up where you left off</div>
+            <div class="resume-skill-row">
+              <div class="resume-band-dot" style="background:#9b72ff;"></div>
+              <div>
+                <div class="resume-skill">Comparing Numbers</div>
+                <div class="resume-world">🌌 Number Galaxy · K–1 Violet</div>
+              </div>
+            </div>
+            <div class="resume-progress">
+              <div class="resume-bar-bg"><div class="resume-bar-fill" style="width:60%; background:linear-gradient(90deg,#9b72ff,#c8a8ff);"></div></div>
+              <div class="resume-nodes">3 of 5 ✦</div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="cta-btn" style="animation:glowPulse 2s ease infinite;">▶ Jump back in!</div>
+
+          <!-- Choose different -->
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">or choose a different quest</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">2 days away — with nudge</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <div class="welcome-hero stars-bg">
+            <span class="hero-emoji" style="animation:floatY 3s ease infinite 0.4s;">🐉</span>
+            <div class="hero-greeting">Hey Leo,<br>you're back! 🌟</div>
+            <div class="hero-sub">We saved your spot. Ready to explore?</div>
+            <div class="away-pill">✦ Back after 2 days ✦</div>
+          </div>
+
+          <!-- Streak intact -->
+          <div class="streak-card">
+            <div class="streak-row">
+              <div class="streak-icon">🔥</div>
+              <div>
+                <div class="streak-title">Still on your streak!</div>
+                <div class="streak-sub">Keep it going — you're on a roll!</div>
+              </div>
+              <div class="streak-count">
+                <div class="streak-num">12</div>
+                <div class="streak-lbl">days</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="resume-card">
+            <div class="resume-label">Continue your quest</div>
+            <div class="resume-skill-row">
+              <div class="resume-band-dot" style="background:#58e8c1;"></div>
+              <div>
+                <div class="resume-skill">Word Problems</div>
+                <div class="resume-world">🌿 Story Jungle · G2–3 Mint</div>
+              </div>
+            </div>
+            <div class="resume-progress">
+              <div class="resume-bar-bg"><div class="resume-bar-fill" style="width:80%; background:linear-gradient(90deg,#58e8c1,#a0f4e0);"></div></div>
+              <div class="resume-nodes">4 of 5 ✦</div>
+            </div>
+          </div>
+
+          <!-- So close callout -->
+          <div style="margin:0 16px 16px; background:#1a3020; border:1px solid #58e8c144; border-radius:16px; padding:12px 14px; display:flex; gap:10px; align-items:center;">
+            <span style="font-size:22px;">⚡</span>
+            <div style="font-size:13px; color:#58e8c1; font-weight:800;">So close! One more node to finish this skill!</div>
+          </div>
+
+          <div class="cta-btn" style="background:linear-gradient(135deg,#58e8c1,#2ec49a); color:#0a2a1a; animation:glowPulse 2s ease infinite;">▶ Finish the quest!</div>
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">start something new instead</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 2 -->
+<div id="long-away" class="panel">
+  <div class="hint"><strong>Panel 2 — Long Away (7+ days):</strong> Child returns after a week or more. Bigger celebration for coming back. Streak is likely reset (show encouragingly, no shame). Offer both "resume where I left off" and "start fresh." Show any new content unlocked while away.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">7 days away — gentle return</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <div class="welcome-hero stars-bg">
+            <span class="hero-emoji" style="font-size:64px; animation:bounceIn 0.8s ease;">🎉</span>
+            <div class="hero-greeting">Maya!<br>You're BACK! ✨</div>
+            <div class="hero-sub">We missed your adventures. The quest world has been waiting!</div>
+            <div class="away-pill">✦ Back after 7 days ✦</div>
+          </div>
+
+          <!-- New start option -->
+          <div style="margin:0 16px 12px; background:#1e1650; border-radius:20px; padding:16px; border:2px solid #9b72ff;">
+            <div style="font-size:12px; font-weight:800; color:#7766aa; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;">🌟 Ready for a fresh start?</div>
+            <div style="font-size:14px; font-weight:800; color:#fff; margin-bottom:6px;">Start today's quest</div>
+            <div style="font-size:12px; color:#9988cc; margin-bottom:12px;">A brand new adventure picked just for you — right where your skills are now.</div>
+            <div class="cta-btn" style="margin:0; padding:13px; font-size:15px; animation:glowPulse 2s ease infinite;">✨ Start today's quest</div>
+          </div>
+
+          <!-- Or resume -->
+          <div style="margin:0 16px 12px; background:#1a1430; border-radius:20px; padding:14px; border:1px solid #2e2460;">
+            <div style="font-size:12px; font-weight:800; color:#7766aa; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;">Resume old quest</div>
+            <div class="resume-skill-row">
+              <div class="resume-band-dot" style="background:#9b72ff;"></div>
+              <div>
+                <div class="resume-skill">Comparing Numbers</div>
+                <div class="resume-world">🌌 Number Galaxy · 3 of 5 nodes</div>
+              </div>
+            </div>
+            <div style="margin-top:10px; text-align:center; font-size:13px; color:#9b72ff; font-weight:800; cursor:pointer;">continue this quest →</div>
+          </div>
+
+          <!-- What's new -->
+          <div class="whats-new">
+            <div style="font-size:12px; font-weight:800; color:#7766aa; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:10px; padding-left:2px;">While you were away ✦</div>
+            <div class="new-card">
+              <div class="new-icon">🏆</div>
+              <div>
+                <div class="new-title">New trophy waiting!</div>
+                <div class="new-body">You earned the "Explorer" badge — claim it now!</div>
+                <div class="new-badge gold">Unclaimed</div>
+              </div>
+            </div>
+            <div class="new-card">
+              <div class="new-icon">🌿</div>
+              <div>
+                <div class="new-title">New world unlocked</div>
+                <div class="new-body">Story Jungle is now open for your band — check it out!</div>
+                <div class="new-badge mint">New</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">14+ days — big return celebration</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <div class="welcome-hero stars-bg" style="padding-bottom:16px;">
+            <span class="hero-emoji" style="font-size:72px;">🌟</span>
+            <div class="hero-greeting" style="font-size:28px;">THE<br>EXPLORER<br>RETURNS! 🚀</div>
+            <div class="hero-sub">Two whole weeks — the quest world has SO much to show you!</div>
+            <div class="away-pill" style="border-color:#ffd166; color:#ffd166;">✦ Back after 14 days ✦</div>
+          </div>
+
+          <!-- Celebration callout -->
+          <div style="margin:0 16px 14px; background:linear-gradient(135deg,#2a1a00,#1a1200); border:2px solid #ffd166; border-radius:20px; padding:16px; text-align:center;">
+            <div style="font-size:32px; margin-bottom:8px;">🎊</div>
+            <div style="font-size:16px; font-weight:900; color:#ffd166; margin-bottom:6px;">Epic comeback!</div>
+            <div style="font-size:13px; color:#aa8844; line-height:1.5;">Adventures don't expire. Your progress is safe and everything you learned is still with you!</div>
+          </div>
+
+          <div style="margin:0 16px 16px; background:#1e1650; border-radius:20px; padding:14px; border:2px solid #9b72ff;">
+            <div style="font-size:14px; font-weight:900; color:#fff; margin-bottom:8px;">✨ Jump into today's quest</div>
+            <div style="font-size:12px; color:#9988cc; margin-bottom:12px;">Picked fresh based on where you are now — best way to pick up momentum.</div>
+            <div class="cta-btn" style="margin:0; padding:13px; font-size:15px; animation:glowPulse 2s ease infinite;">Let's do this! 🚀</div>
+          </div>
+
+          <div style="text-align:center; margin-bottom:8px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">see my whole progress map →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 3 -->
+<div id="streak-broken" class="panel">
+  <div class="hint"><strong>Panel 3 — Streak Lost State:</strong> Child returns but the streak was reset. NEVER shame — only encourage. Show a fun "start a new streak" CTA. The broken streak must feel like a new opportunity, not a punishment. No language like "you broke your streak" — instead "time to start a new one!"</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Streak reset — encouraging reframe</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <div class="welcome-hero stars-bg">
+            <span class="hero-emoji" style="animation:floatY 3s ease infinite;">🌱</span>
+            <div class="hero-greeting">Fresh start,<br>Maya! 💫</div>
+            <div class="hero-sub">Every great explorer starts a new chapter sometimes.</div>
+            <div class="away-pill">✦ Back after 4 days ✦</div>
+          </div>
+
+          <!-- New streak encouragement — NOT shame -->
+          <div style="margin:0 16px 16px; background:linear-gradient(135deg,#1a2a0a,#0e1a06); border:1.5px solid #58e8c1; border-radius:20px; padding:16px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="font-size:32px;">🌱</div>
+              <div>
+                <div style="font-size:15px; font-weight:900; color:#58e8c1; margin-bottom:4px;">New streak starting now!</div>
+                <div style="font-size:12px; color:#2a6a3a; line-height:1.5;">Your biggest streak ever started with day 1. This could be the one! 🚀</div>
+              </div>
+            </div>
+            <!-- Day 1 indicator -->
+            <div style="margin-top:12px; display:flex; gap:6px; align-items:center;">
+              <div style="width:32px; height:32px; border-radius:50%; background:#58e8c1; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:#0a2a1a;">1</div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#1a3020; border:1.5px dashed #58e8c144; display:flex; align-items:center; justify-content:center; font-size:12px; color:#2a5030;">2</div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#1a3020; border:1.5px dashed #58e8c144; display:flex; align-items:center; justify-content:center; font-size:12px; color:#2a5030;">3</div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#1a3020; border:1.5px dashed #58e8c144; display:flex; align-items:center; justify-content:center; font-size:12px; color:#2a5030;">4</div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#1a3020; border:1.5px dashed #58e8c144; display:flex; align-items:center; justify-content:center; font-size:12px; color:#2a5030;">5</div>
+              <div style="font-size:13px; color:#2a6a3a; margin-left:4px; font-weight:700;">→ 🏆</div>
+            </div>
+          </div>
+
+          <div class="resume-card">
+            <div class="resume-label">Your quest is still here</div>
+            <div class="resume-skill-row">
+              <div class="resume-band-dot" style="background:#9b72ff;"></div>
+              <div>
+                <div class="resume-skill">Comparing Numbers</div>
+                <div class="resume-world">🌌 Number Galaxy · 3 of 5 nodes</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-btn" style="background:linear-gradient(135deg,#58e8c1,#2ec49a); color:#0a2a1a; animation:glowPulse 2s ease infinite;">🌱 Start day 1 — let's go!</div>
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">see full progress map</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEVER say list -->
+    <div style="max-width:400px;">
+      <div style="font-size:14px; font-weight:800; color:#e0d8f8; margin-bottom:12px; font-family:'Nunito',sans-serif;">Streak reset language rules</div>
+      <table class="spec-table">
+        <tr><th>NEVER say</th><th>Instead say</th></tr>
+        <tr><td>"You broke your streak"</td><td>"Fresh start!" / "New streak starting"</td></tr>
+        <tr><td>"You lost your X-day streak"</td><td>"Time to build an even bigger one!"</td></tr>
+        <tr><td>"Streak gone" / "Reset"</td><td>"New chapter" / "Day 1!"</td></tr>
+        <tr><td>Show red X or broken fire icon</td><td>Show green sprout 🌱 or new seed</td></tr>
+        <tr><td>Compare to old streak number</td><td>Show future milestone: "5 days → 🏆"</td></tr>
+        <tr><td>Any guilt/shame language</td><td>Always forward-looking, always warm</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 4 -->
+<div id="new-content" class="panel">
+  <div class="hint"><strong>Panel 4 — New Content Unlocked While Away:</strong> When the child was gone, new quests/worlds/badges became available. Show as a discovery moment — "While you were away..." section. Don't overwhelm — max 2–3 items. Lead with resume CTA, then show new discoveries as bonus.</div>
+
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">New world + trophy unlocked while away</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="status-bar"><span>9:41</span><span>✦ ✦ ✦</span></div>
+
+          <div class="welcome-hero stars-bg">
+            <span class="hero-emoji" style="animation:floatY 3s ease infinite;">🦄</span>
+            <div class="hero-greeting">Welcome back,<br>Maya! ✨</div>
+            <div class="hero-sub">Something new is waiting for you!</div>
+            <div class="away-pill">✦ Back after 3 days ✦</div>
+          </div>
+
+          <!-- Primary CTA first -->
+          <div class="resume-card">
+            <div class="resume-label">Continue your quest</div>
+            <div class="resume-skill-row">
+              <div class="resume-band-dot" style="background:#9b72ff;"></div>
+              <div>
+                <div class="resume-skill">Comparing Numbers</div>
+                <div class="resume-world">🌌 Number Galaxy · 3 of 5 nodes</div>
+              </div>
+            </div>
+          </div>
+          <div class="cta-btn" style="animation:glowPulse 2s ease infinite;">▶ Continue quest</div>
+
+          <!-- Discoveries -->
+          <div class="whats-new">
+            <div style="font-size:13px; font-weight:900; color:#ffd166; margin-bottom:10px; padding:0 2px;">✦ Discoveries while you were away</div>
+            <div class="new-card" style="border-color:#ffd16644; background:linear-gradient(135deg,#1e1a00,#1a1400);">
+              <div class="new-icon">🏆</div>
+              <div>
+                <div class="new-title" style="color:#ffd166;">Trophy earned: Explorer!</div>
+                <div class="new-body">You hit 5 skills mastered — a huge milestone. Tap to claim your trophy!</div>
+                <div class="new-badge gold">Tap to claim</div>
+              </div>
+            </div>
+            <div class="new-card" style="border-color:#9b72ff44;">
+              <div class="new-icon">🌌</div>
+              <div>
+                <div class="new-title">New zone: Constellation Cove</div>
+                <div class="new-body">A brand new skill world opened in your band — 8 new adventures to explore!</div>
+                <div class="new-badge">New zone</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:center; margin-bottom:16px; font-size:13px; color:#7766aa; cursor:pointer; font-weight:700;">see full progress map →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ PANEL 5 -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Panel 5 — Spec Notes:</strong> Canonical spec for child return journey. Route: /play (return state, detected on session start if last_session > threshold). Child theme throughout.</div>
+
+  <h2>Child Return Journey — Spec</h2>
+
+  <h3>Return state triggers</h3>
+  <table class="spec-table">
+    <tr><th>Days since last session</th><th>State</th><th>Tone</th><th>Primary CTA</th></tr>
+    <tr><td>0–1 day</td><td>Normal session start (no return screen)</td><td>—</td><td>Normal play entry</td></tr>
+    <tr><td>2–3 days</td><td>Short away</td><td>Warm welcome + streak check</td><td>"Jump back in!"</td></tr>
+    <tr><td>4–6 days</td><td>Medium away</td><td>Gentle return + streak reframe if broken</td><td>"Continue / Fresh start"</td></tr>
+    <tr><td>7–13 days</td><td>Long away</td><td>Big return celebration + new content</td><td>"Start today's quest"</td></tr>
+    <tr><td>14+ days</td><td>Epic return</td><td>Max celebration, no shame, full reorientation</td><td>"Let's do this!"</td></tr>
+  </table>
+
+  <h3>Streak rules</h3>
+  <table class="spec-table">
+    <tr><th>Condition</th><th>Display</th></tr>
+    <tr><td>Streak intact (returned within grace period)</td><td>🔥 "Streak still going!" — show current count</td></tr>
+    <tr><td>Streak broken (returned after grace period)</td><td>🌱 "Fresh start!" — show day-1 progress bar toward next milestone</td></tr>
+    <tr><td>No streak yet (new user)</td><td>🌱 "Start your first streak!" — same new-streak UI</td></tr>
+  </table>
+
+  <h3>Resume vs. fresh start</h3>
+  <ul>
+    <li>2–3 day away: show resume only (single CTA)</li>
+    <li>4–6 day away: show resume primary + "start fresh" secondary link</li>
+    <li>7+ day away: show "start today's quest" primary + resume as secondary option</li>
+    <li>Never force the child to decide between options upfront — lead with the recommended action</li>
+  </ul>
+
+  <h3>"While you were away" items</h3>
+  <ul>
+    <li>Show max 2–3 items — unclaimed trophies first, new content second</li>
+    <li>Only show if away 3+ days</li>
+    <li>Never block resume CTA — discoveries appear below the primary action</li>
+    <li>Unclaimed trophies: tap → opens trophy claim animation inline</li>
+  </ul>
+
+  <h3>Design tokens</h3>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+    <tr><td>bg</td><td>#100b2e</td><td>Child dark cosmic background</td></tr>
+    <tr><td>surface</td><td>#1e1650</td><td>Cards, resume cards</td></tr>
+    <tr><td>accent</td><td>#9b72ff</td><td>Violet — primary CTA glow, active elements</td></tr>
+    <tr><td>streak-active</td><td>#ffd166</td><td>Fire / streak active color</td></tr>
+    <tr><td>streak-new</td><td>#58e8c1</td><td>Green — new streak start</td></tr>
+    <tr><td>font</td><td>Nunito 900</td><td>All child-facing text, extra-bold</td></tr>
+    <tr><td>frame-width</td><td>375px</td><td>Phone frame canonical width (child)</td></tr>
+  </table>
+
+  <div class="hint"><strong>Single source of truth:</strong> This file is canonical for the child return/re-entry journey screen. Route: /play entry gate when returning after 2+ days.</div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

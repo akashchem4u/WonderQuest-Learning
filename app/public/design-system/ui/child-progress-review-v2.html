@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Child Progress Review v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #1a1230; color: #e8e0ff; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #2a1f4e; color: #9b72ff; transition: background .2s, color .2s; }
+  .tab.active { background: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { background: #3a2a6e; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Phone frame ── */
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 720px; background: #100b2e; border-radius: 36px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.7), 0 0 0 2px #2a1f5e; position: relative; flex-shrink: 0; }
+  .phone-label { font-size: 11px; color: #9b72ff; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Stars background ── */
+  .stars-bg { position: absolute; inset: 0; pointer-events: none; }
+  .star { position: absolute; border-radius: 50%; background: #fff; }
+
+  /* ── Session Complete Screen ── */
+  .session-complete { min-height: 720px; display: flex; flex-direction: column; align-items: center; padding: 48px 24px 32px; position: relative; overflow: hidden; }
+  .sc-world-name { font-size: 13px; font-weight: 700; color: #58e8c1; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+  .sc-celebration { font-size: 72px; margin-bottom: 8px; animation: pop 0.6s ease-out; }
+  @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+  .sc-headline { font-size: 28px; font-weight: 900; color: #fff; text-align: center; line-height: 1.2; margin-bottom: 6px; }
+  .sc-subline { font-size: 15px; color: #c0b0f0; text-align: center; margin-bottom: 32px; }
+
+  .sc-stat-row { display: flex; gap: 12px; width: 100%; margin-bottom: 32px; }
+  .sc-stat { flex: 1; background: rgba(155,114,255,.15); border: 1.5px solid rgba(155,114,255,.3); border-radius: 16px; padding: 14px 8px; text-align: center; }
+  .sc-stat-val { font-size: 26px; font-weight: 900; color: #ffd166; }
+  .sc-stat-lbl { font-size: 11px; color: #9b72ff; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+
+  .sc-skill-earned { width: 100%; background: rgba(88,232,193,.1); border: 1.5px solid rgba(88,232,193,.3); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .sc-skill-icon { font-size: 28px; }
+  .sc-skill-text { flex: 1; }
+  .sc-skill-label { font-size: 10px; color: #58e8c1; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+  .sc-skill-name { font-size: 15px; font-weight: 900; color: #fff; margin-top: 2px; }
+
+  .sc-cta-row { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: auto; }
+  .btn-primary { width: 100%; padding: 18px; border-radius: 24px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 17px; cursor: pointer; }
+  .btn-teal { background: linear-gradient(135deg, #58e8c1, #2fc4a0); color: #0a2e26; }
+  .btn-violet { background: linear-gradient(135deg, #9b72ff, #6a3fd4); color: #fff; }
+  .btn-ghost { background: rgba(255,255,255,.08); color: #c0b0f0; font-size: 15px; padding: 14px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,.12); font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; }
+
+  /* ── Reward Screen ── */
+  .reward-screen { min-height: 720px; display: flex; flex-direction: column; align-items: center; padding: 40px 24px 32px; position: relative; overflow: hidden; }
+  .reward-header { text-align: center; margin-bottom: 28px; }
+  .reward-header h2 { font-size: 26px; font-weight: 900; color: #ffd166; }
+  .reward-header p { font-size: 14px; color: #c0b0f0; margin-top: 4px; }
+
+  .badge-display { width: 148px; height: 148px; border-radius: 50%; background: radial-gradient(circle, #ffd166 0%, #e6a800 60%, #c07800 100%); display: flex; align-items: center; justify-content: center; font-size: 64px; margin: 0 auto 16px; box-shadow: 0 0 40px rgba(255,209,102,.5), 0 0 80px rgba(255,209,102,.2); animation: glow-pulse 2s ease-in-out infinite; }
+  @keyframes glow-pulse { 0%,100% { box-shadow: 0 0 40px rgba(255,209,102,.5), 0 0 80px rgba(255,209,102,.2); } 50% { box-shadow: 0 0 60px rgba(255,209,102,.8), 0 0 100px rgba(255,209,102,.4); } }
+  .badge-name { font-size: 20px; font-weight: 900; color: #fff; text-align: center; margin-bottom: 4px; }
+  .badge-desc { font-size: 13px; color: #9b72ff; text-align: center; margin-bottom: 28px; }
+
+  .xp-bar-section { width: 100%; margin-bottom: 28px; }
+  .xp-bar-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .xp-bar-label span:first-child { color: #ffd166; }
+  .xp-bar-label span:last-child { color: #9b72ff; }
+  .xp-bar-track { width: 100%; height: 14px; background: rgba(155,114,255,.2); border-radius: 8px; overflow: hidden; }
+  .xp-bar-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #9b72ff, #ffd166); transition: width 1.2s ease-out; }
+  .xp-bar-gained { font-size: 11px; color: #ffd166; text-align: right; margin-top: 4px; font-weight: 700; }
+
+  .streak-card { width: 100%; background: rgba(255,209,102,.1); border: 1.5px solid rgba(255,209,102,.3); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .streak-flame { font-size: 32px; }
+  .streak-text h3 { font-size: 16px; font-weight: 900; color: #ffd166; }
+  .streak-text p { font-size: 12px; color: #c0b0f0; margin-top: 2px; }
+
+  /* ── World Complete Screen ── */
+  .world-complete { min-height: 720px; background: radial-gradient(ellipse at 50% 20%, #2a3a6e 0%, #100b2e 60%, #06040f 100%); display: flex; flex-direction: column; align-items: center; padding: 32px 24px; position: relative; overflow: hidden; }
+  .wc-fanfare { font-size: 48px; text-align: center; margin-bottom: 8px; }
+  .wc-title { font-size: 13px; font-weight: 700; color: #58e8c1; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+  .wc-world-name { font-size: 32px; font-weight: 900; color: #fff; text-align: center; margin-bottom: 24px; }
+  .wc-skills-section { width: 100%; margin-bottom: 24px; }
+  .wc-skills-title { font-size: 12px; font-weight: 700; color: #9b72ff; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+  .wc-skill-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(88,232,193,.15); border: 1.5px solid rgba(88,232,193,.4); border-radius: 20px; padding: 6px 12px; margin: 4px; font-size: 13px; font-weight: 700; color: #58e8c1; }
+  .wc-next-world { width: 100%; background: rgba(155,114,255,.15); border: 2px solid rgba(155,114,255,.4); border-radius: 20px; padding: 20px; margin-bottom: 24px; text-align: center; }
+  .wc-next-label { font-size: 11px; color: #9b72ff; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .wc-next-emoji { font-size: 40px; margin-bottom: 6px; }
+  .wc-next-name { font-size: 20px; font-weight: 900; color: #fff; }
+  .wc-next-sub { font-size: 13px; color: #c0b0f0; margin-top: 4px; }
+  .wc-cta-stack { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+
+  /* ── Replay vs Continue ── */
+  .replay-screen { min-height: 720px; display: flex; flex-direction: column; padding: 40px 24px 32px; position: relative; }
+  .replay-header { margin-bottom: 24px; }
+  .replay-header h2 { font-size: 24px; font-weight: 900; color: #fff; }
+  .replay-header p { font-size: 14px; color: #9b72ff; margin-top: 4px; }
+
+  .replay-option { width: 100%; background: rgba(255,255,255,.05); border: 2px solid transparent; border-radius: 20px; padding: 20px; margin-bottom: 12px; cursor: pointer; transition: border-color .2s, background .2s; text-align: left; }
+  .replay-option:hover { background: rgba(155,114,255,.1); border-color: rgba(155,114,255,.4); }
+  .replay-option.selected { background: rgba(155,114,255,.15); border-color: #9b72ff; }
+  .ro-icon { font-size: 36px; margin-bottom: 8px; }
+  .ro-title { font-size: 17px; font-weight: 900; color: #fff; }
+  .ro-desc { font-size: 13px; color: #9b72ff; margin-top: 4px; line-height: 1.4; }
+
+  .replay-hint { background: rgba(88,232,193,.08); border: 1px solid rgba(88,232,193,.2); border-radius: 12px; padding: 12px 14px; margin-bottom: 24px; font-size: 13px; color: #58e8c1; }
+  .replay-hint strong { font-weight: 900; }
+
+  /* ── Spec tab ── */
+  .spec-section { background: #0d1117; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #ffd166; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #9b72ff; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #2a1f5e; }
+  td { padding: 8px 8px; border-bottom: 1px solid #1a1530; color: #c0b0f0; vertical-align: top; }
+  td:first-child { color: #fff; font-weight: 700; }
+  code { background: #1a1530; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #58e8c1; }
+
+  /* ── Star utility ── */
+  .s { position: absolute; border-radius: 50%; background: #fff; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('session-complete')">Session Complete</button>
+  <button class="tab" onclick="show('earned-rewards')">Earned Rewards</button>
+  <button class="tab" onclick="show('world-complete')">World Complete</button>
+  <button class="tab" onclick="show('replay-continue')">Replay vs Continue</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SESSION COMPLETE -->
+<div id="session-complete" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Session Complete screen</strong><br>
+    Shown after every session regardless of score. Calm, celebratory — never punishing. Stats pulled from
+    <code>POST /session/end</code> response: <code>{ xp_earned, skills_practiced[], nodes_completed, streak_days }</code>.
+    CTA "Keep Going →" only if another node available today; otherwise "See you tomorrow 👋".
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Normal session complete -->
+    <div>
+      <div class="phone-label">Session complete — mid-world</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 10%, #1e3a5e 0%, #100b2e 55%, #06040f 100%);">
+        <!-- Stars -->
+        <div class="stars-bg">
+          <div class="s" style="width:2px;height:2px;top:8%;left:15%;opacity:.7"></div>
+          <div class="s" style="width:3px;height:3px;top:12%;left:70%;opacity:.9"></div>
+          <div class="s" style="width:2px;height:2px;top:20%;left:40%;opacity:.5"></div>
+          <div class="s" style="width:2px;height:2px;top:30%;left:88%;opacity:.6"></div>
+          <div class="s" style="width:1px;height:1px;top:45%;left:55%;opacity:.4"></div>
+          <div class="s" style="width:2px;height:2px;top:55%;left:10%;opacity:.7"></div>
+        </div>
+        <div class="session-complete">
+          <div class="sc-world-name">🌊 Ocean World · Node 4</div>
+          <div class="sc-celebration">🎉</div>
+          <div class="sc-headline">Great Quest!</div>
+          <div class="sc-subline">You crushed it today ✨</div>
+
+          <div class="sc-stat-row">
+            <div class="sc-stat">
+              <div class="sc-stat-val">+45</div>
+              <div class="sc-stat-lbl">XP</div>
+            </div>
+            <div class="sc-stat">
+              <div class="sc-stat-val">6</div>
+              <div class="sc-stat-lbl">Stars</div>
+            </div>
+            <div class="sc-stat">
+              <div class="sc-stat-val">3🔥</div>
+              <div class="sc-stat-lbl">Streak</div>
+            </div>
+          </div>
+
+          <div class="sc-skill-earned">
+            <div class="sc-skill-icon">✏️</div>
+            <div class="sc-skill-text">
+              <div class="sc-skill-label">Skill practiced</div>
+              <div class="sc-skill-name">Writing complete sentences</div>
+            </div>
+            <div style="font-size:20px">✅</div>
+          </div>
+
+          <div class="sc-cta-row">
+            <button class="btn-primary btn-teal">Keep Going →</button>
+            <button class="btn-ghost">I'm done for now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- End-of-day state -->
+    <div>
+      <div class="phone-label">End-of-day — no more nodes today</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 10%, #1e3a5e 0%, #100b2e 55%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:2px;height:2px;top:6%;left:22%;opacity:.6"></div>
+          <div class="s" style="width:3px;height:3px;top:18%;left:78%;opacity:.8"></div>
+          <div class="s" style="width:2px;height:2px;top:35%;left:55%;opacity:.5"></div>
+          <div class="s" style="width:2px;height:2px;top:50%;left:8%;opacity:.6"></div>
+        </div>
+        <div class="session-complete">
+          <div class="sc-world-name">🌊 Ocean World · Node 4</div>
+          <div class="sc-celebration">🌙</div>
+          <div class="sc-headline">Quest done for today!</div>
+          <div class="sc-subline">Rest up — adventure continues tomorrow ⭐</div>
+
+          <div class="sc-stat-row">
+            <div class="sc-stat">
+              <div class="sc-stat-val">+45</div>
+              <div class="sc-stat-lbl">XP</div>
+            </div>
+            <div class="sc-stat">
+              <div class="sc-stat-val">6</div>
+              <div class="sc-stat-lbl">Stars</div>
+            </div>
+            <div class="sc-stat">
+              <div class="sc-stat-val">3🔥</div>
+              <div class="sc-stat-lbl">Streak</div>
+            </div>
+          </div>
+
+          <div class="sc-skill-earned">
+            <div class="sc-skill-icon">✏️</div>
+            <div class="sc-skill-text">
+              <div class="sc-skill-label">Skill practiced</div>
+              <div class="sc-skill-name">Writing complete sentences</div>
+            </div>
+            <div style="font-size:20px">✅</div>
+          </div>
+
+          <div class="sc-cta-row">
+            <button class="btn-primary btn-violet" style="background:linear-gradient(135deg,#2a1f5e,#1a1540);color:#9b72ff;border:2px solid rgba(155,114,255,.3);">See you tomorrow 👋</button>
+            <button class="btn-ghost">Play again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ EARNED REWARDS -->
+<div id="earned-rewards" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Earned Rewards</strong><br>
+    Shown inline after session-complete stat row, or on dedicated reward screen if badge unlocked.
+    Badge unlock criteria in <code>badges</code> table. XP bar animates from prior level to new total on mount (1.2s ease-out).
+    Streak card only shown if <code>streak_days ≥ 2</code>.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Badge unlocked -->
+    <div>
+      <div class="phone-label">New badge unlocked</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 0%, #2a1a4e 0%, #100b2e 60%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:2px;height:2px;top:4%;left:20%;opacity:.7"></div>
+          <div class="s" style="width:3px;height:3px;top:10%;left:75%;opacity:.9"></div>
+          <div class="s" style="width:2px;height:2px;top:22%;left:45%;opacity:.5"></div>
+          <div class="s" style="width:1px;height:1px;top:38%;left:12%;opacity:.6"></div>
+          <div class="s" style="width:2px;height:2px;top:60%;left:85%;opacity:.4"></div>
+        </div>
+        <div class="reward-screen">
+          <div class="reward-header">
+            <div style="font-size:14px;color:#ffd166;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">✨ New Badge!</div>
+            <h2>You earned this! 🏆</h2>
+            <p>Keep it up, explorer!</p>
+          </div>
+
+          <div class="badge-display">🐠</div>
+          <div class="badge-name">Ocean Explorer</div>
+          <div class="badge-desc">Completed 3 Ocean World quests in a row</div>
+
+          <div class="xp-bar-section">
+            <div class="xp-bar-label">
+              <span>⚡ Level 4</span>
+              <span>Level 5 →</span>
+            </div>
+            <div class="xp-bar-track">
+              <div class="xp-bar-fill" style="width: 72%;"></div>
+            </div>
+            <div class="xp-bar-gained">+45 XP earned today!</div>
+          </div>
+
+          <div class="streak-card">
+            <div class="streak-flame">🔥</div>
+            <div class="streak-text">
+              <h3>3-Day Streak!</h3>
+              <p>Come back tomorrow to make it 4!</p>
+            </div>
+          </div>
+
+          <button class="btn-primary btn-teal" style="width:100%;">Awesome! Keep Going →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- XP only, no new badge -->
+    <div>
+      <div class="phone-label">XP gain — no new badge</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 0%, #2a1a4e 0%, #100b2e 60%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:2px;height:2px;top:5%;left:30%;opacity:.6"></div>
+          <div class="s" style="width:3px;height:3px;top:15%;left:80%;opacity:.8"></div>
+          <div class="s" style="width:2px;height:2px;top:28%;left:50%;opacity:.5"></div>
+        </div>
+        <div class="reward-screen" style="padding-top:48px;">
+          <div style="text-align:center;margin-bottom:32px;">
+            <div style="font-size:64px;margin-bottom:8px;">⭐</div>
+            <div style="font-size:22px;font-weight:900;color:#fff;">6 Stars Earned!</div>
+            <div style="font-size:14px;color:#9b72ff;margin-top:4px;">You're on a roll!</div>
+          </div>
+
+          <div class="xp-bar-section">
+            <div class="xp-bar-label">
+              <span>⚡ Level 4</span>
+              <span>155 / 200 XP</span>
+            </div>
+            <div class="xp-bar-track">
+              <div class="xp-bar-fill" style="width: 77%;"></div>
+            </div>
+            <div class="xp-bar-gained">+45 XP · 45 more to Level 5!</div>
+          </div>
+
+          <!-- Badges collection mini strip -->
+          <div style="margin-bottom:24px;">
+            <div style="font-size:12px;color:#9b72ff;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Your Badges</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <div style="width:52px;height:52px;background:rgba(255,209,102,.15);border:2px solid rgba(255,209,102,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;">🐠</div>
+              <div style="width:52px;height:52px;background:rgba(155,114,255,.15);border:2px solid rgba(155,114,255,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;">⭐</div>
+              <div style="width:52px;height:52px;background:rgba(88,232,193,.15);border:2px solid rgba(88,232,193,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;">🔥</div>
+              <div style="width:52px;height:52px;background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,.2);">?</div>
+              <div style="width:52px;height:52px;background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:rgba(255,255,255,.2);">?</div>
+            </div>
+          </div>
+
+          <div class="streak-card">
+            <div class="streak-flame">🔥</div>
+            <div class="streak-text">
+              <h3>3-Day Streak!</h3>
+              <p>Tomorrow: Make it 4!</p>
+            </div>
+          </div>
+
+          <button class="btn-primary btn-teal" style="width:100%;margin-top:auto;">Keep Going →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ WORLD COMPLETE -->
+<div id="world-complete" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · World Complete</strong><br>
+    Triggered when <code>world.nodes_remaining === 0</code>. Full-screen celebration before routing to world picker.
+    Show all skills mastered in this world as chips. Next world teaser uses world name + emoji from CMS — never grade label.
+    Route: <code>GET /child/:id/next-world</code> returns <code>{ world_name, world_emoji, world_id }</code>.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- World complete -->
+    <div>
+      <div class="phone-label">World complete — all nodes done</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 10%, #1e4a3a 0%, #100b2e 60%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:3px;height:3px;top:5%;left:15%;opacity:.9"></div>
+          <div class="s" style="width:2px;height:2px;top:8%;left:60%;opacity:.7"></div>
+          <div class="s" style="width:2px;height:2px;top:15%;left:85%;opacity:.6"></div>
+          <div class="s" style="width:3px;height:3px;top:25%;left:30%;opacity:.8"></div>
+          <div class="s" style="width:1px;height:1px;top:40%;left:70%;opacity:.5"></div>
+          <div class="s" style="width:2px;height:2px;top:55%;left:20%;opacity:.6"></div>
+          <div class="s" style="width:2px;height:2px;top:65%;left:90%;opacity:.4"></div>
+          <div class="s" style="width:1px;height:1px;top:75%;left:50%;opacity:.5"></div>
+        </div>
+        <div class="world-complete">
+          <div class="wc-fanfare">🏆🌊🏆</div>
+          <div class="wc-title">World Complete!</div>
+          <div class="wc-world-name">Ocean World</div>
+
+          <div class="wc-skills-section">
+            <div class="wc-skills-title">Skills you mastered 🎓</div>
+            <div>
+              <span class="wc-skill-chip">✏️ Complete sentences</span>
+              <span class="wc-skill-chip">📖 Reading fluency</span>
+              <span class="wc-skill-chip">🔤 Phonics patterns</span>
+              <span class="wc-skill-chip">📝 Story sequencing</span>
+            </div>
+          </div>
+
+          <div class="wc-next-world">
+            <div class="wc-next-label">Up Next</div>
+            <div class="wc-next-emoji">🔥</div>
+            <div class="wc-next-name">Fire World</div>
+            <div class="wc-next-sub">New quests are waiting for you!</div>
+          </div>
+
+          <div class="wc-cta-stack">
+            <button class="btn-primary btn-violet">Enter Fire World 🔥</button>
+            <button class="btn-ghost">See my badges first</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Band complete (P3 max celebration) -->
+    <div>
+      <div class="phone-label">Band complete — highest world done</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 10%, #3a1a1a 0%, #100b2e 60%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:3px;height:3px;top:4%;left:10%;opacity:.9"></div>
+          <div class="s" style="width:2px;height:2px;top:9%;left:55%;opacity:.8"></div>
+          <div class="s" style="width:3px;height:3px;top:18%;left:88%;opacity:.7"></div>
+          <div class="s" style="width:2px;height:2px;top:30%;left:40%;opacity:.9"></div>
+          <div class="s" style="width:1px;height:1px;top:42%;left:72%;opacity:.5"></div>
+          <div class="s" style="width:2px;height:2px;top:52%;left:15%;opacity:.7"></div>
+          <div class="s" style="width:3px;height:3px;top:62%;left:82%;opacity:.6"></div>
+          <div class="s" style="width:2px;height:2px;top:72%;left:35%;opacity:.5"></div>
+          <div class="s" style="width:1px;height:1px;top:80%;left:60%;opacity:.4"></div>
+        </div>
+        <div class="world-complete" style="background:none;">
+          <div class="wc-fanfare" style="font-size:52px;">🎆🏆🎆</div>
+          <div class="wc-title" style="color:#ff7b6b;">All Worlds Complete!</div>
+          <div class="wc-world-name" style="font-size:26px;">You're a WonderQuest<br>Champion!</div>
+
+          <div style="width:100%;background:rgba(255,123,107,.1);border:2px solid rgba(255,123,107,.4);border-radius:20px;padding:20px;margin-bottom:24px;text-align:center;">
+            <div style="font-size:64px;margin-bottom:8px;">🌟</div>
+            <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;">All Skills Unlocked!</div>
+            <div style="font-size:13px;color:#c0b0f0;">You finished every quest in WonderQuest!</div>
+          </div>
+
+          <div class="wc-cta-stack">
+            <button class="btn-primary" style="background:linear-gradient(135deg,#ff7b6b,#e04a38);color:#fff;">See My Trophy Case 🏆</button>
+            <button class="btn-ghost">Play favourite quests again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ REPLAY VS CONTINUE -->
+<div id="replay-continue" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Replay vs Continue choice</strong><br>
+    Shown if child taps "Play again" on session-complete screen. Two options: replay the same node (lower-difficulty remix)
+    or continue to the next node. <code>replay_available</code> is always true. <code>next_node_available</code> is false
+    if world is complete. Teacher-recommended skill flag surfaced as contextual hint — not prescriptive.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Standard replay/continue picker -->
+    <div>
+      <div class="phone-label">Replay vs continue choice</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 10%, #1a2a4e 0%, #100b2e 60%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:2px;height:2px;top:5%;left:25%;opacity:.6"></div>
+          <div class="s" style="width:3px;height:3px;top:12%;left:75%;opacity:.8"></div>
+          <div class="s" style="width:2px;height:2px;top:22%;left:55%;opacity:.5"></div>
+          <div class="s" style="width:1px;height:1px;top:38%;left:15%;opacity:.6"></div>
+        </div>
+        <div class="replay-screen">
+          <div class="replay-header">
+            <h2>What next, Explorer?</h2>
+            <p>Ocean World · Node 4 complete 🌊</p>
+          </div>
+
+          <div class="replay-hint">
+            <strong>💡 Your teacher says:</strong> Extra practice on this skill would help!
+          </div>
+
+          <div>
+            <div class="replay-option selected" onclick="this.classList.add('selected');this.nextElementSibling.classList.remove('selected')">
+              <div class="ro-icon">🔄</div>
+              <div class="ro-title">Play this again</div>
+              <div class="ro-desc">Try the same quest with new questions — great for extra practice!</div>
+            </div>
+            <div class="replay-option" onclick="this.classList.add('selected');this.previousElementSibling.classList.remove('selected')">
+              <div class="ro-icon">🚀</div>
+              <div class="ro-title">Next quest!</div>
+              <div class="ro-desc">Move on to Node 5 — unlock new skills and get closer to finishing Ocean World!</div>
+            </div>
+          </div>
+
+          <button class="btn-primary btn-teal" style="width:100%;margin-top:auto;">Let's Go! 🎮</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next node not available (world end) -->
+    <div>
+      <div class="phone-label">Last node in world — only replay</div>
+      <div class="phone" style="background: radial-gradient(ellipse at 50% 10%, #1a2a4e 0%, #100b2e 60%, #06040f 100%);">
+        <div class="stars-bg">
+          <div class="s" style="width:2px;height:2px;top:7%;left:30%;opacity:.7"></div>
+          <div class="s" style="width:3px;height:3px;top:14%;left:70%;opacity:.8"></div>
+          <div class="s" style="width:2px;height:2px;top:26%;left:48%;opacity:.5"></div>
+        </div>
+        <div class="replay-screen">
+          <div class="replay-header">
+            <h2>What next, Explorer?</h2>
+            <p>Ocean World · Final Node! 🏁</p>
+          </div>
+
+          <div style="width:100%;background:rgba(88,232,193,.08);border:2px solid rgba(88,232,193,.25);border-radius:20px;padding:20px;margin-bottom:16px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:6px;">🌊✅</div>
+            <div style="font-size:15px;font-weight:900;color:#58e8c1;">You finished Ocean World!</div>
+            <div style="font-size:13px;color:#c0b0f0;margin-top:4px;">Start the next world or replay your favourite quests</div>
+          </div>
+
+          <div>
+            <div class="replay-option">
+              <div class="ro-icon">🔄</div>
+              <div class="ro-title">Play this again</div>
+              <div class="ro-desc">Replay Ocean World's last quest for extra practice!</div>
+            </div>
+            <div class="replay-option">
+              <div class="ro-icon">🔥</div>
+              <div class="ro-title">Enter Fire World!</div>
+              <div class="ro-desc">Your next big adventure is ready — new world, new skills!</div>
+            </div>
+          </div>
+
+          <button class="btn-primary btn-violet" style="width:100%;margin-top:auto;">Choose your adventure!</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Spec Reference — child-progress-review-v2</strong><br>
+    Full token reference, screen decision tree, XP system, and reading-load rules.
+  </div>
+
+  <div class="spec-section">
+    <h3>// SCREEN ROUTING DECISION TREE</h3>
+    <table>
+      <tr><th>Condition</th><th>Screen shown</th><th>Notes</th></tr>
+      <tr><td>Session ended, nodes remaining</td><td>Session Complete → Keep Going CTA</td><td>Standard mid-world flow</td></tr>
+      <tr><td>Session ended, no more nodes today</td><td>Session Complete → See you tomorrow CTA</td><td><code>next_node_available: false</code></td></tr>
+      <tr><td>Badge unlocked this session</td><td>Session Complete → Earned Rewards (badge variant)</td><td>Intercept before routing</td></tr>
+      <tr><td>All nodes in world complete</td><td>World Complete → next world teaser</td><td><code>world.nodes_remaining === 0</code></td></tr>
+      <tr><td>All worlds complete</td><td>Band Complete max celebration</td><td>Trophy case route: <code>/child/:id/trophies</code></td></tr>
+      <tr><td>Child taps "Play again"</td><td>Replay vs Continue picker</td><td>Always available; next-node option gated on availability</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// SESSION END API RESPONSE</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Usage</th></tr>
+      <tr><td><code>xp_earned</code></td><td>number</td><td>XP bar animation delta</td></tr>
+      <tr><td><code>xp_total</code></td><td>number</td><td>Absolute XP for level calculation</td></tr>
+      <tr><td><code>level</code></td><td>number</td><td>Current level after this session</td></tr>
+      <tr><td><code>level_threshold</code></td><td>number</td><td>XP needed for next level</td></tr>
+      <tr><td><code>stars_earned</code></td><td>number</td><td>Stars earned this session (0–6)</td></tr>
+      <tr><td><code>streak_days</code></td><td>number</td><td>Show streak card if ≥ 2</td></tr>
+      <tr><td><code>skills_practiced[]</code></td><td>string[]</td><td>Skill chips on session complete</td></tr>
+      <tr><td><code>badge_unlocked</code></td><td>Badge | null</td><td>Non-null triggers badge reward screen</td></tr>
+      <tr><td><code>next_node_available</code></td><td>boolean</td><td>Controls CTA variant</td></tr>
+      <tr><td><code>world_complete</code></td><td>boolean</td><td>Triggers world-complete screen</td></tr>
+      <tr><td><code>all_worlds_complete</code></td><td>boolean</td><td>Triggers band-complete max celebration</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// XP LEVEL SYSTEM</h3>
+    <table>
+      <tr><th>Level</th><th>XP Threshold</th><th>Badge unlocked</th></tr>
+      <tr><td>1</td><td>0 – 49</td><td>🌱 Seedling</td></tr>
+      <tr><td>2</td><td>50 – 119</td><td>⭐ Star Finder</td></tr>
+      <tr><td>3</td><td>120 – 219</td><td>🔥 Flame Keeper</td></tr>
+      <tr><td>4</td><td>220 – 349</td><td>🌊 Ocean Diver</td></tr>
+      <tr><td>5</td><td>350 – 499</td><td>🚀 Space Traveller</td></tr>
+      <tr><td>6+</td><td>+200 per level</td><td>Unique per band</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>child-bg</td><td><code>#100b2e</code></td><td>Base dark cosmic background</td></tr>
+      <tr><td>p1-violet</td><td><code>#9b72ff</code></td><td>Primary CTA, XP bar, chips</td></tr>
+      <tr><td>p2-mint</td><td><code>#58e8c1</code></td><td>Continue CTA, skill earned banner</td></tr>
+      <tr><td>p0-gold</td><td><code>#ffd166</code></td><td>XP values, streak, badge glow</td></tr>
+      <tr><td>p3-coral</td><td><code>#ff7b6b</code></td><td>Band-complete, max celebration</td></tr>
+      <tr><td>font-child</td><td>Nunito 900</td><td>All child-facing text</td></tr>
+      <tr><td>star-bg</td><td>white dots, CSS-only</td><td>2–4 stars per screen, 1–3px</td></tr>
+      <tr><td>badge-glow</td><td>radial gold shadow</td><td>40px base, 80px ambient, pulse anim</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// READING LOAD RULES (child-facing)</h3>
+    <table>
+      <tr><th>Rule</th><th>Max</th></tr>
+      <tr><td>CTA button text</td><td>8 words</td></tr>
+      <tr><td>Headline text</td><td>5 words</td></tr>
+      <tr><td>Subline / descriptor</td><td>10 words</td></tr>
+      <tr><td>Skill chip label</td><td>4 words</td></tr>
+      <tr><td>No skill IDs or grade labels</td><td>—</td></tr>
+      <tr><td>Emoji-first hierarchy</td><td>Always lead with emoji</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// WORLD NAMING RULES</h3>
+    <table>
+      <tr><th>Rule</th><th>Detail</th></tr>
+      <tr><td>Never expose band/grade labels</td><td>No "Pre-K", "G2–3", "P1" to child</td></tr>
+      <tr><td>Names come from CMS</td><td><code>worlds.display_name</code> field</td></tr>
+      <tr><td>Fallback emoji per band</td><td>P0=☁️ P1=🌊 P2=🔥 P3=⚡</td></tr>
+      <tr><td>World complete hero name</td><td>Same CMS display_name, large type</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

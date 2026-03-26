@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Owner Incident Postmortem Card (#284)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --card:      #161b22;
+      --accent:    #50e890;
+      --text:      #f0f6ff;
+      --border:    rgba(255,255,255,.06);
+      --muted:     #8b949e;
+      --coral:     #ff6b6b;
+      --gold:      #f0c040;
+      --p0:        #ff4d4d;
+      --p1:        #ff9900;
+      --p2:        #f0c040;
+      --green:     #3fb950;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      line-height: 1.5;
+    }
+
+    /* ── Engineering hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      color: #333;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .hint-box strong { font-weight: 700; }
+
+    /* ── Page shell ── */
+    .page-wrapper {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 28px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .page-header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    /* ── Tab nav ── */
+    .tab-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 14px 22px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      min-height: 48px;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; padding: 28px 24px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Chips / badges ── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .chip-p0  { background: rgba(255,77,77,.18);   color: #ff6e6e; }
+    .chip-p1  { background: rgba(255,153,0,.18);   color: #ffaa33; }
+    .chip-p2  { background: rgba(240,192,64,.18);  color: #f0c040; }
+    .chip-resolved { background: rgba(63,185,80,.18); color: #3fb950; }
+    .chip-postmortem { background: rgba(80,232,144,.15); color: var(--accent); }
+    .chip-open { background: rgba(255,153,0,.18); color: #ffaa33; }
+    .chip-mitigated { background: rgba(88,166,255,.18); color: #79b8ff; }
+
+    /* ── Incident header ── */
+    .incident-header {
+      margin-bottom: 24px;
+    }
+    .incident-id {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .incident-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .incident-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Impact box ── */
+    .impact-box {
+      border-left: 3px solid var(--coral);
+      background: rgba(255,107,107,.08);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* ── Root cause box ── */
+    .rootcause-box {
+      border-left: 3px solid var(--gold);
+      background: rgba(240,192,64,.08);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* ── Timeline ── */
+    .timeline {
+      list-style: none;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 62px;
+      top: 10px;
+      bottom: 10px;
+      width: 1px;
+      background: var(--border);
+    }
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 8px 0;
+      position: relative;
+    }
+    .timeline-time {
+      flex-shrink: 0;
+      width: 58px;
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      padding-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    .timeline-dot {
+      flex-shrink: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 5px;
+      position: relative;
+      z-index: 1;
+    }
+    .timeline-dot.muted { background: var(--muted); }
+    .timeline-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── Action items ── */
+    .action-list {
+      list-style: none;
+      margin-bottom: 28px;
+    }
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .action-item:last-child { border-bottom: none; }
+    .action-icon {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+    .action-icon.done { background: rgba(63,185,80,.2); color: #3fb950; }
+    .action-icon.open { background: rgba(139,148,158,.15); color: var(--muted); border: 1px solid var(--muted); }
+    .action-body { flex: 1; }
+    .action-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .action-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .action-status {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-top: 3px;
+    }
+    .action-status.done { background: rgba(63,185,80,.15); color: #3fb950; }
+    .action-status.open { background: rgba(255,153,0,.15); color: #ffaa33; }
+
+    /* ── CTA button ── */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      background: var(--accent);
+      color: #0d1117;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 44px;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── Incident list (Tab 2) ── */
+    .incident-list { list-style: none; margin-bottom: 20px; }
+    .incident-card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      transition: border-color .15s;
+    }
+    .incident-card:hover { border-color: rgba(255,255,255,.14); }
+    .incident-card-id {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      min-width: 110px;
+    }
+    .incident-card-title {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+      min-width: 160px;
+    }
+    .incident-card-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .incident-card-ttr {
+      font-size: 13px;
+      color: var(--muted);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Summary footer ── */
+    .summary-footer {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .summary-stat { text-align: center; }
+    .summary-stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      display: block;
+      line-height: 1.2;
+    }
+    .summary-stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Spec tab (Tab 3) ── */
+    .spec-section { margin-bottom: 28px; }
+    .spec-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+    }
+    .spec-row:last-child { border-bottom: none; }
+    .spec-key {
+      flex-shrink: 0;
+      width: 120px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      padding-top: 1px;
+    }
+    .spec-val {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .spec-mono {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      color: #d2a679;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-x: auto;
+    }
+    .rules-list {
+      list-style: none;
+      counter-reset: rules;
+    }
+    .rules-list li {
+      counter-increment: rules;
+      display: flex;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .rules-list li::before {
+      content: counter(rules);
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(80,232,144,.15);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .rules-list li:last-child { border-bottom: none; }
+
+    .props-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .props-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .props-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      color: var(--text);
+      vertical-align: top;
+    }
+    .props-table td:first-child { color: var(--accent); font-family: monospace; font-size: 12px; }
+    .props-table td:nth-child(2) { color: var(--muted); font-family: monospace; font-size: 12px; }
+    .props-table tr:last-child td { border-bottom: none; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .tab-btn { padding: 12px 16px; font-size: 13px; }
+      .tab-panel { padding: 20px 16px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .incident-card { gap: 12px; }
+      .incident-card-title { min-width: 100%; order: 3; }
+      .spec-key { width: 90px; }
+      .timeline::before { left: 56px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrapper">
+
+    <!-- Engineering Hint Box -->
+    <div class="hint-box" role="note" aria-label="Engineering hint">
+      <strong>Engineering hint</strong> — owner-incident-postmortem-card-v2 |
+      <strong>Persona:</strong> Owner |
+      <strong>Route:</strong> /owner/incidents/[incident_id]/postmortem |
+      <strong>DB:</strong> incidents { id, title, severity ENUM('P0','P1','P2'), status ENUM('open','mitigated','resolved','postmortem_complete'), detected_at, mitigated_at, resolved_at, affected_users_count INT, root_cause TEXT, impact_summary TEXT, timeline JSONB[], action_items JSONB[], responders TEXT[] } |
+      <strong>Privacy:</strong> affected_users_count = aggregate only; no child PII in incident records
+    </div>
+
+    <!-- Page Header -->
+    <header class="page-header">
+      <h1>Incident Postmortem</h1>
+      <p>WonderQuest Owner Dashboard — Incident Management &amp; Review</p>
+    </header>
+
+    <!-- Main Card -->
+    <div class="card" role="main">
+
+      <!-- Tab Navigation -->
+      <nav class="tab-nav" role="tablist" aria-label="Postmortem sections">
+        <button
+          class="tab-btn active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-postmortem"
+          id="tab-postmortem"
+          onclick="showTab('postmortem')"
+        >Postmortem</button>
+        <button
+          class="tab-btn"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-incidents"
+          id="tab-incidents"
+          onclick="showTab('incidents')"
+        >Incident List</button>
+        <button
+          class="tab-btn"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-spec"
+          id="tab-spec"
+          onclick="showTab('spec')"
+        >Spec</button>
+      </nav>
+
+      <!-- ────────────────────────────────────────────
+           TAB 1 — Postmortem
+      ──────────────────────────────────────────── -->
+      <div
+        class="tab-panel active"
+        id="panel-postmortem"
+        role="tabpanel"
+        aria-labelledby="tab-postmortem"
+      >
+
+        <!-- Incident Header -->
+        <div class="incident-header">
+          <p class="incident-id">INC-2026-003</p>
+          <h2 class="incident-title">Audio Playback Failure on iOS 17.3</h2>
+          <div class="incident-chips">
+            <span class="chip chip-p0" aria-label="Severity P0 Critical">P0 Critical</span>
+            <span class="chip chip-resolved">Resolved</span>
+            <span class="chip chip-postmortem">Postmortem Complete</span>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row" role="list" aria-label="Incident statistics">
+          <div class="stat-box" role="listitem">
+            <p class="stat-label">Time to Resolve</p>
+            <p class="stat-value">2h 33m</p>
+            <p class="stat-sub">Detected → Resolved</p>
+          </div>
+          <div class="stat-box" role="listitem">
+            <p class="stat-label">Affected Sessions</p>
+            <p class="stat-value">~340</p>
+            <p class="stat-sub">Aggregate count only</p>
+          </div>
+          <div class="stat-box" role="listitem">
+            <p class="stat-label">Detection Method</p>
+            <p class="stat-value" style="font-size:15px;">Auto</p>
+            <p class="stat-sub">Alerting system</p>
+          </div>
+          <div class="stat-box" role="listitem">
+            <p class="stat-label">Responders</p>
+            <p class="stat-value">3</p>
+            <p class="stat-sub">On-call + escalations</p>
+          </div>
+        </div>
+
+        <!-- Impact Summary -->
+        <p class="section-label">Impact Summary</p>
+        <div class="impact-box" role="region" aria-label="Impact summary">
+          Audio playback was non-functional for learners accessing WonderQuest on iOS 17.3 devices.
+          Approximately 340 learning sessions were interrupted during the window 02:14–04:47 UTC.
+          Phonics and read-aloud activities were disproportionately affected. No child PII was
+          exposed or logged during the incident window. A hotfix was deployed within the SLA
+          window for P0 incidents.
+        </div>
+
+        <!-- Timeline -->
+        <p class="section-label">Incident Timeline (UTC)</p>
+        <ol class="timeline" aria-label="Incident timeline">
+          <li class="timeline-item">
+            <span class="timeline-time">02:14</span>
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <span class="timeline-text">
+              <strong>Alert fired</strong> — Automated monitoring detected elevated audio error rate on iOS clients; PagerDuty alert dispatched to on-call rotation.
+            </span>
+          </li>
+          <li class="timeline-item">
+            <span class="timeline-time">02:19</span>
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <span class="timeline-text">
+              <strong>On-call acknowledged</strong> — On-call engineer accepted the alert and began triage; war room channel opened.
+            </span>
+          </li>
+          <li class="timeline-item">
+            <span class="timeline-time">02:51</span>
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <span class="timeline-text">
+              <strong>Root cause identified</strong> — Safari 17 AudioContext policy change confirmed as the breaking factor; iOS lead escalated to platform team.
+            </span>
+          </li>
+          <li class="timeline-item">
+            <span class="timeline-time">03:20</span>
+            <span class="timeline-dot muted" aria-hidden="true"></span>
+            <span class="timeline-text">
+              <strong>Hotfix drafted</strong> — User-gesture unlock wrapper added to AudioContext initialization; PR opened against main.
+            </span>
+          </li>
+          <li class="timeline-item">
+            <span class="timeline-time">04:02</span>
+            <span class="timeline-dot muted" aria-hidden="true"></span>
+            <span class="timeline-text">
+              <strong>Staging validated</strong> — Automated regression suite and manual smoke test on iOS 17.3 simulator confirmed fix; QA sign-off recorded.
+            </span>
+          </li>
+          <li class="timeline-item">
+            <span class="timeline-time">04:47</span>
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <span class="timeline-text">
+              <strong>Production deploy</strong> — Hotfix merged and deployed; error rate returned to baseline; incident marked resolved.
+            </span>
+          </li>
+        </ol>
+
+        <!-- Root Cause -->
+        <p class="section-label">Root Cause</p>
+        <div class="rootcause-box" role="region" aria-label="Root cause analysis">
+          Safari 17 (shipped with iOS 17.3) enforces a stricter
+          <strong>AudioContext autoplay policy</strong> that suspends the AudioContext until a
+          direct user gesture event is received. WonderQuest's audio engine initialized the
+          AudioContext during module load — before any user interaction — which caused
+          <code style="background:rgba(240,192,64,.12);padding:1px 5px;border-radius:3px;font-size:13px;">AudioContext.state</code>
+          to remain <code style="background:rgba(240,192,64,.12);padding:1px 5px;border-radius:3px;font-size:13px;">"suspended"</code>
+          indefinitely on iOS 17.3. This behavior was not covered by the existing browser compatibility matrix,
+          and no iOS 17 device was included in the automated regression suite.
+        </div>
+
+        <!-- Action Items -->
+        <p class="section-label">Action Items</p>
+        <ul class="action-list" aria-label="Postmortem action items">
+          <li class="action-item">
+            <span class="action-icon done" aria-label="Done">✓</span>
+            <div class="action-body">
+              <p class="action-title">Deploy AudioContext user-gesture unlock hotfix</p>
+              <p class="action-meta">Owner: iOS Platform · Due: 2026-01-14 · Resolved 2026-01-14</p>
+            </div>
+            <span class="action-status done">Done</span>
+          </li>
+          <li class="action-item">
+            <span class="action-icon done" aria-label="Done">✓</span>
+            <div class="action-body">
+              <p class="action-title">Add iOS 17.3 to browser compatibility test matrix</p>
+              <p class="action-meta">Owner: QA · Due: 2026-01-18 · Resolved 2026-01-17</p>
+            </div>
+            <span class="action-status done">Done</span>
+          </li>
+          <li class="action-item">
+            <span class="action-icon open" aria-label="Open">○</span>
+            <div class="action-body">
+              <p class="action-title">Write automated end-to-end audio test covering AudioContext lifecycle</p>
+              <p class="action-meta">Owner: Engineering · Due: 2026-02-01 · In progress</p>
+            </div>
+            <span class="action-status open">Open</span>
+          </li>
+          <li class="action-item">
+            <span class="action-icon open" aria-label="Open">○</span>
+            <div class="action-body">
+              <p class="action-title">Reduce audio error alert threshold from 5% to 2% to improve detection speed</p>
+              <p class="action-meta">Owner: Infrastructure · Due: 2026-02-15 · Not started</p>
+            </div>
+            <span class="action-status open">Open</span>
+          </li>
+        </ul>
+
+        <!-- CTA -->
+        <button class="btn-primary" type="button" aria-label="Mark this postmortem as complete">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 8.5l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Mark Postmortem Complete
+        </button>
+
+      </div><!-- /panel-postmortem -->
+
+
+      <!-- ────────────────────────────────────────────
+           TAB 2 — Incident List
+      ──────────────────────────────────────────── -->
+      <div
+        class="tab-panel"
+        id="panel-incidents"
+        role="tabpanel"
+        aria-labelledby="tab-incidents"
+      >
+
+        <p class="section-label" style="margin-bottom:16px;">All Incidents</p>
+
+        <ul class="incident-list" aria-label="Incident list">
+
+          <!-- INC-2026-003 -->
+          <li class="incident-card">
+            <span class="incident-card-id">INC-2026-003</span>
+            <span class="incident-card-title">Audio Playback Failure on iOS 17.3</span>
+            <div class="incident-card-chips">
+              <span class="chip chip-p0">P0</span>
+              <span class="chip chip-resolved">Resolved</span>
+              <span class="chip chip-postmortem">Postmortem</span>
+            </div>
+            <span class="incident-card-ttr">TTR 2h 33m</span>
+          </li>
+
+          <!-- INC-2026-002 -->
+          <li class="incident-card">
+            <span class="incident-card-id">INC-2026-002</span>
+            <span class="incident-card-title">Progress Sync Delay on Slow Connections</span>
+            <div class="incident-card-chips">
+              <span class="chip chip-p1">P1</span>
+              <span class="chip chip-resolved">Resolved</span>
+              <span class="chip chip-postmortem">Postmortem</span>
+            </div>
+            <span class="incident-card-ttr">TTR 47m</span>
+          </li>
+
+          <!-- INC-2026-001 -->
+          <li class="incident-card">
+            <span class="incident-card-id">INC-2026-001</span>
+            <span class="incident-card-title">Avatar Asset CDN Cache Miss</span>
+            <div class="incident-card-chips">
+              <span class="chip chip-p2">P2</span>
+              <span class="chip chip-resolved">Resolved</span>
+              <span class="chip chip-postmortem">Postmortem</span>
+            </div>
+            <span class="incident-card-ttr">TTR 1h 12m</span>
+          </li>
+
+        </ul>
+
+        <!-- Summary Footer -->
+        <div class="summary-footer" role="region" aria-label="Incident summary statistics">
+          <div class="summary-stat">
+            <span class="summary-stat-value">3</span>
+            <p class="summary-stat-label">Total Incidents</p>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-stat-value" style="color:#3fb950;">All</span>
+            <p class="summary-stat-label">Resolved</p>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-stat-value">1h 31m</span>
+            <p class="summary-stat-label">Avg TTR</p>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-stat-value" style="color:#3fb950;">0</span>
+            <p class="summary-stat-label">Open P0s</p>
+          </div>
+        </div>
+
+      </div><!-- /panel-incidents -->
+
+
+      <!-- ────────────────────────────────────────────
+           TAB 3 — Spec
+      ──────────────────────────────────────────── -->
+      <div
+        class="tab-panel"
+        id="panel-spec"
+        role="tabpanel"
+        aria-labelledby="tab-spec"
+      >
+
+        <!-- Component Identity -->
+        <div class="spec-section">
+          <h3>Component</h3>
+          <div class="spec-row">
+            <span class="spec-key">Name</span>
+            <span class="spec-val" style="font-family:monospace;color:var(--accent);">IncidentPostmortemCard</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Design Item</span>
+            <span class="spec-val">#284 — Owner Incident Postmortem Card</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Route</span>
+            <span class="spec-val" style="font-family:monospace;">/owner/incidents/[incident_id]/postmortem</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Auth</span>
+            <span class="spec-val">Owner only — requires <code style="font-family:monospace;font-size:12px;">role: 'owner'</code> JWT claim; redirects to /login on failure</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Version</span>
+            <span class="spec-val">v2</span>
+          </div>
+        </div>
+
+        <!-- Props -->
+        <div class="spec-section">
+          <h3>Props</h3>
+          <table class="props-table" aria-label="Component props">
+            <thead>
+              <tr>
+                <th>Prop</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>incidentId</td>
+                <td>string</td>
+                <td>Unique incident identifier (e.g. "INC-2026-003")</td>
+              </tr>
+              <tr>
+                <td>incident</td>
+                <td>Incident</td>
+                <td>Full incident record from DB (see schema below)</td>
+              </tr>
+              <tr>
+                <td>onComplete</td>
+                <td>() =&gt; void</td>
+                <td>Callback invoked when "Mark Postmortem Complete" is confirmed</td>
+              </tr>
+              <tr>
+                <td>readOnly</td>
+                <td>boolean?</td>
+                <td>Hides action button when postmortem is already complete</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- DB Schema -->
+        <div class="spec-section">
+          <h3>DB Schema</h3>
+          <pre class="spec-mono" aria-label="Database schema for incidents table">incidents {
+  id                  UUID PRIMARY KEY,
+  title               TEXT NOT NULL,
+  severity            ENUM('P0', 'P1', 'P2') NOT NULL,
+  status              ENUM('open', 'mitigated', 'resolved', 'postmortem_complete') NOT NULL,
+  detected_at         TIMESTAMPTZ NOT NULL,
+  mitigated_at        TIMESTAMPTZ,
+  resolved_at         TIMESTAMPTZ,
+  affected_users_count INT,           -- aggregate only; no individual user refs
+  root_cause          TEXT,
+  impact_summary      TEXT,
+  timeline            JSONB[],        -- [{ time, event, detail }]
+  action_items        JSONB[],        -- [{ id, title, owner, due, status }]
+  responders          TEXT[]          -- staff identifiers only, no child data
+}</pre>
+        </div>
+
+        <!-- Rules -->
+        <div class="spec-section">
+          <h3>Rules</h3>
+          <ol class="rules-list" aria-label="Specification rules">
+            <li>
+              <strong>TTR definition</strong> — Time to Resolve (TTR) is calculated as
+              <code style="font-family:monospace;font-size:12px;">resolved_at − detected_at</code>. If
+              <code style="font-family:monospace;font-size:12px;">resolved_at</code> is null, TTR is not shown.
+            </li>
+            <li>
+              <strong>Postmortem complete requirements</strong> — Status may only be set to
+              <code style="font-family:monospace;font-size:12px;">postmortem_complete</code> when all JSONB action items have an
+              <code style="font-family:monospace;font-size:12px;">owner</code> and <code style="font-family:monospace;font-size:12px;">due</code>
+              date assigned, and the root cause field is non-empty.
+            </li>
+            <li>
+              <strong>SLA by severity</strong> — P0 incidents must have a postmortem opened within 24 hours of resolution.
+              P1 within 72 hours. P2 within 7 days.
+            </li>
+            <li>
+              <strong>No child PII</strong> — The incidents table must never contain individual child identifiers,
+              names, session IDs, or any PII. <code style="font-family:monospace;font-size:12px;">affected_users_count</code>
+              stores aggregated integers only.
+            </li>
+            <li>
+              <strong>Blameless postmortem</strong> — Root cause and timeline fields must not reference individual
+              staff names in a blaming context. Responder attribution is stored separately in
+              <code style="font-family:monospace;font-size:12px;">responders[]</code> for internal audit only and not
+              displayed in the UI.
+            </li>
+            <li>
+              <strong>No session-level data</strong> — Incident records track affected session counts as integers.
+              Session-level logs are stored in a separate audit system and are not joined into this view.
+            </li>
+            <li>
+              <strong>Owner-only view</strong> — This component and route are strictly Owner-persona gated.
+              Child and parent personas must never receive access to incident data, even in read-only mode.
+            </li>
+          </ol>
+        </div>
+
+      </div><!-- /panel-spec -->
+
+    </div><!-- /card -->
+
+  </div><!-- /page-wrapper -->
+
+  <script>
+    /**
+     * showTab(t) — WonderQuest tab switcher pattern
+     * Activates the named tab panel and updates ARIA state.
+     * @param {string} t - tab name matching id prefix
+     */
+    function showTab(t) {
+      // Deactivate all panels and buttons
+      document.querySelectorAll('.tab-panel').forEach(function(p) {
+        p.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+
+      // Activate target panel
+      var panel = document.getElementById('panel-' + t);
+      var btn   = document.getElementById('tab-' + t);
+      if (panel) panel.classList.add('active');
+      if (btn)   { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
+    }
+
+    // Keyboard navigation for tab buttons (arrow keys)
+    document.querySelector('.tab-nav').addEventListener('keydown', function(e) {
+      var btns = Array.from(document.querySelectorAll('.tab-btn'));
+      var idx  = btns.indexOf(document.activeElement);
+      if (idx === -1) return;
+      var next = -1;
+      if (e.key === 'ArrowRight') next = (idx + 1) % btns.length;
+      if (e.key === 'ArrowLeft')  next = (idx - 1 + btns.length) % btns.length;
+      if (next !== -1) { e.preventDefault(); btns[next].focus(); btns[next].click(); }
+    });
+  </script>
+
+</body>
+</html>

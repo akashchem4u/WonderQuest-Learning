@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Early Learner Play States (Ages 2–5)</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Bitter:wght@700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0e1a2e;--bg2:#132240;
+  --s:rgba(255,255,255,0.07);--s-md:rgba(255,255,255,0.11);--s-hi:rgba(255,255,255,0.16);
+  --b:rgba(255,255,255,0.13);--b-hi:rgba(255,255,255,0.28);
+  --gold:#ffd166;--gold2:#ffb340;
+  --violet:#9b72ff;--violet2:#c4a5ff;
+  --mint:#58e8c1;--mint2:#2dd4a0;
+  --coral:#ff7b6b;--sky:#4ab5ff;--pink:#ff6bce;
+  --sun:#ffec6e;--grass:#6ee47a;--ocean:#4ab5ff;
+  --text:#fff;--text2:rgba(255,255,255,0.7);--text3:rgba(255,255,255,0.38);
+  --fc:'Nunito',sans-serif;--fd:'Bitter',serif;
+  --es:cubic-bezier(0.34,1.56,0.64,1);--eo:cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fc);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* BG */
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.bg::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 70% 50% at 15% 15%,rgba(88,232,193,.18) 0%,transparent 55%),
+  radial-gradient(ellipse 60% 40% at 85% 80%,rgba(255,209,102,.14) 0%,transparent 55%),
+  radial-gradient(ellipse 40% 60% at 50% 50%,rgba(155,114,255,.08) 0%,transparent 65%);}
+
+/* LAYOUT */
+.page{position:relative;z-index:1;padding:18px;}
+.pg-title{text-align:center;margin-bottom:6px;}
+.pg-title h1{font-family:var(--fd);font-size:21px;color:#fff;}
+.pg-title h1 span{color:var(--gold);}
+.pg-title p{font-size:11px;color:var(--text3);margin-top:3px;}
+
+/* TAB NAV */
+.tab-nav{display:flex;gap:6px;overflow-x:auto;padding:10px 0 14px;scrollbar-width:none;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:7px 13px;border-radius:20px;background:var(--s);border:1.5px solid var(--b);font-size:11px;font-weight:800;color:var(--text2);cursor:pointer;font-family:var(--fc);white-space:nowrap;transition:all 140ms var(--es);}
+.tab-btn.active{background:rgba(88,232,193,0.15);border-color:var(--mint);color:#fff;}
+
+.panels{position:relative;}
+.panel{display:none;animation:up .3s var(--eo) both;}
+.panel.active{display:block;}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* SHARED WRAPPER — simulate mobile */
+.sw{max-width:380px;margin:0 auto;}
+.state-tag{display:inline-flex;align-items:center;gap:5px;background:var(--s);border:1px solid var(--b);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+
+/* TOP BAR — shared play chrome */
+.play-topbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.p-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid var(--gold);background:rgba(255,209,102,.15);flex-shrink:0;}
+.p-name{font-size:13px;font-weight:800;color:var(--gold);}
+.p-stars{display:flex;align-items:center;gap:4px;margin-left:auto;font-size:13px;font-weight:900;color:var(--gold);}
+.p-stars span{font-size:16px;}
+
+/* PROGRESS */
+.prog-wrap{margin-bottom:14px;}
+.prog-track{height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--mint),var(--sun));transition:width .5s var(--eo);}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);font-weight:700;margin-bottom:5px;}
+
+/* QUESTION CARD — EARLY LEARNER */
+.q-outer{background:var(--s-md);border:2px solid var(--b);border-radius:24px;overflow:hidden;margin-bottom:14px;}
+.q-scene{min-height:160px;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;}
+/* scene backgrounds per type */
+.scene-count{background:linear-gradient(180deg,#1a3a5c,#0e2035);}
+.scene-letter{background:linear-gradient(180deg,#2a1a5c,#100b2e);}
+.scene-phonics{background:linear-gradient(180deg,#1a3a2c,#0e2820);}
+.scene-picture{background:linear-gradient(180deg,#3a1a2a,#200b18);}
+.q-prompt-bar{background:rgba(0,0,0,.35);padding:12px 18px;text-align:center;}
+.q-prompt{font-size:21px;font-weight:900;color:#fff;line-height:1.3;}
+.q-sub-prompt{font-size:13px;color:var(--text2);margin-top:4px;}
+
+/* COUNTING OBJECTS */
+.count-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;}
+.count-obj{font-size:42px;animation:popIn .3s var(--es) both;cursor:pointer;transition:transform 120ms var(--es);}
+.count-obj:hover{transform:scale(1.15);}
+@keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* BIG LETTER */
+.big-letter{font-family:var(--fd);font-size:110px;font-weight:700;color:var(--violet2);text-shadow:0 0 40px rgba(155,114,255,.5);animation:float 2s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.letter-word{font-size:18px;font-weight:800;color:var(--text2);margin-top:6px;}
+
+/* PHONICS WAVE */
+.sound-wave{display:flex;align-items:flex-end;gap:5px;height:48px;justify-content:center;}
+.wave-bar{width:8px;border-radius:4px;background:var(--mint);animation:wave 0.8s ease-in-out infinite;}
+.wave-bar:nth-child(1){height:20px;animation-delay:0s;}
+.wave-bar:nth-child(2){height:38px;animation-delay:.1s;}
+.wave-bar:nth-child(3){height:28px;animation-delay:.2s;}
+.wave-bar:nth-child(4){height:44px;animation-delay:.3s;}
+.wave-bar:nth-child(5){height:32px;animation-delay:.4s;}
+.wave-bar:nth-child(6){height:24px;animation-delay:.5s;}
+.wave-bar:nth-child(7){height:38px;animation-delay:.6s;}
+@keyframes wave{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.4)}}
+
+/* PICTURE CARD */
+.picture-card{width:120px;height:120px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:72px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);animation:float 2s ease-in-out infinite;}
+
+/* ANSWER BUTTONS — EARLY LEARNER (large tap targets) */
+.ans-grid-big{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.ans-big{background:var(--s-md);border:3px solid var(--b);border-radius:22px;padding:18px 10px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all 180ms var(--es);min-height:90px;}
+.ans-big:hover{background:var(--s-hi);border-color:var(--b-hi);transform:scale(1.04);}
+.ans-big:active{transform:scale(0.96);}
+.ans-big.correct{background:rgba(88,232,193,.2);border-color:var(--mint);}
+.ans-big.wrong{background:rgba(255,123,107,.15);border-color:rgba(255,123,107,.4);}
+.ans-emoji{font-size:36px;}
+.ans-word{font-size:15px;font-weight:900;color:#fff;}
+
+/* Single-row 2-choice for phonics */
+.ans-grid-phonics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.ans-phonics{background:var(--s-md);border:3px solid var(--b);border-radius:22px;padding:20px 10px;cursor:pointer;text-align:center;transition:all 180ms var(--es);}
+.ans-phonics:hover{transform:scale(1.04);}
+.ans-phonics-word{font-size:22px;font-weight:900;color:#fff;}
+.ans-phonics-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+
+/* LISTEN AGAIN */
+.listen-bar{display:flex;align-items:center;gap:10px;background:rgba(88,232,193,.08);border:1.5px solid rgba(88,232,193,.22);border-radius:16px;padding:11px 16px;margin-bottom:12px;cursor:pointer;transition:background 140ms;}
+.listen-bar:hover{background:rgba(88,232,193,.14);}
+.listen-ico{font-size:22px;}
+.listen-label{font-size:13px;font-weight:800;color:var(--mint);flex:1;}
+.listen-label span{font-size:11px;font-weight:600;color:var(--text3);display:block;margin-top:1px;}
+
+/* ── CELEBRATION STATE ── */
+.celeb-wrap{text-align:center;padding:24px 16px;}
+.celeb-em{font-size:90px;display:block;animation:bigBounce .6s var(--es);}
+@keyframes bigBounce{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+.celeb-title{font-size:32px;font-weight:900;color:var(--gold);margin-bottom:6px;}
+.celeb-sub{font-size:15px;color:var(--text2);margin-bottom:16px;}
+.celeb-pts{font-size:42px;font-weight:900;color:var(--mint);animation:popIn .4s var(--es) .2s both;}
+.stars-row{display:flex;gap:8px;justify-content:center;margin:12px 0;font-size:30px;}
+.star-anim{animation:starPop .4s var(--es) both;}
+.star-anim:nth-child(2){animation-delay:.1s;}
+.star-anim:nth-child(3){animation-delay:.2s;}
+@keyframes starPop{from{transform:scale(0) rotate(-30deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.celeb-streak{display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:900;color:var(--gold);}
+
+/* ── GENTLE RECOVERY STATE ── */
+.recov-wrap{text-align:center;padding:20px 16px;}
+.recov-em{font-size:70px;display:block;animation:gentleWiggle .8s ease;}
+@keyframes gentleWiggle{0%{transform:rotate(0)}20%{transform:rotate(-5deg)}40%{transform:rotate(5deg)}60%{transform:rotate(-3deg)}80%{transform:rotate(3deg)}100%{transform:rotate(0)}}
+.recov-title{font-size:24px;font-weight:900;color:var(--gold);margin-bottom:4px;}
+.recov-sub{font-size:14px;color:var(--text2);margin-bottom:14px;}
+.correct-answer-show{background:rgba(88,232,193,.12);border:2px solid rgba(88,232,193,.3);border-radius:18px;padding:16px;margin-bottom:14px;}
+.ca-label{font-size:11px;font-weight:700;color:var(--mint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.ca-answer{font-size:36px;}
+.ca-word{font-size:18px;font-weight:900;color:#fff;margin-top:6px;}
+
+/* ── EXPLAINER STATE ── */
+.explainer-scene{background:rgba(155,114,255,.1);border:2px solid rgba(155,114,255,.25);border-radius:22px;padding:18px;margin-bottom:12px;}
+.exp-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.exp-character{font-size:40px;animation:float 2s ease-in-out infinite;}
+.exp-bubble{background:rgba(255,255,255,.08);border-radius:14px;padding:10px 14px;flex:1;}
+.exp-bubble-text{font-size:14px;color:#fff;font-weight:700;line-height:1.5;}
+.exp-visual{display:flex;gap:14px;align-items:center;justify-content:center;padding:12px 0;font-size:38px;}
+.exp-visual .arrow{font-size:22px;color:var(--text3);}
+
+/* ── NO-AUDIO FALLBACK ── */
+.no-audio-banner{display:flex;align-items:center;gap:8px;background:rgba(255,209,102,.08);border:1.5px solid rgba(255,209,102,.22);border-radius:14px;padding:10px 14px;margin-bottom:12px;}
+.no-audio-ico{font-size:20px;}
+.no-audio-text{font-size:12px;font-weight:700;color:var(--gold);}
+.no-audio-text span{display:block;font-size:10px;color:var(--text3);font-weight:600;margin-top:2px;}
+.visual-cue-card{background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.15);border-radius:18px;padding:16px;text-align:center;margin-bottom:12px;}
+.vc-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.vc-em{font-size:52px;}
+.vc-word{font-size:16px;font-weight:900;color:#fff;margin-top:6px;}
+.vc-arrows{font-size:24px;margin-top:6px;}
+
+/* ── SESSION COMPLETE ── */
+.complete-bg{background:linear-gradient(135deg,rgba(255,209,102,.15),rgba(88,232,193,.08));border:2px solid rgba(255,209,102,.25);border-radius:26px;padding:24px;text-align:center;}
+.trophy-anim{font-size:80px;display:block;animation:trophyRise .8s var(--es) both;}
+@keyframes trophyRise{from{transform:translateY(30px) scale(.5);opacity:0}60%{transform:translateY(-10px) scale(1.1)}to{transform:translateY(0) scale(1);opacity:1}}
+.complete-title{font-size:28px;font-weight:900;color:var(--gold);margin-bottom:6px;}
+.complete-sub{font-size:14px;color:var(--text2);margin-bottom:18px;}
+.complete-stars{display:flex;gap:10px;justify-content:center;font-size:40px;margin-bottom:18px;}
+.complete-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px;}
+.cs-tile{background:rgba(255,255,255,.07);border-radius:14px;padding:10px;text-align:center;}
+.cs-v{font-size:22px;font-weight:900;color:#fff;}
+.cs-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+.level-up-strip{background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.lu-ico{font-size:24px;}
+.lu-text{font-size:13px;font-weight:800;color:var(--violet2);}
+.lu-text span{display:block;font-size:11px;color:var(--text2);font-weight:600;}
+
+/* BTNS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:var(--fc);font-weight:900;transition:all 120ms var(--es);border-radius:18px;padding:16px;font-size:17px;width:100%;}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0e0b1a;}
+.btn-gold:hover{transform:scale(1.02);}
+.btn-violet{background:var(--violet);color:#fff;}
+.btn-mint{background:var(--mint);color:#0e0b1a;}
+.btn-ghost{background:var(--s);border:1.5px solid var(--b-hi);color:var(--text2);font-size:13px;padding:12px;}
+.btn:active{transform:scale(0.96);}
+
+/* CONFETTI dots */
+.confetti{position:absolute;top:0;left:0;width:100%;pointer-events:none;overflow:hidden;height:120px;}
+.cc{position:absolute;width:8px;height:8px;border-radius:50%;animation:fall linear forwards;}
+@keyframes fall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(130px) rotate(720deg);opacity:0}}
+
+/* HINT BOX */
+.hint{display:flex;align-items:flex-start;gap:8px;background:rgba(255,209,102,.07);border:1px solid rgba(255,209,102,.18);border-radius:12px;padding:10px 14px;margin-top:12px;}
+.hint-ico{font-size:14px;flex-shrink:0;margin-top:1px;}
+.hint-txt{font-size:11px;color:rgba(255,209,102,.8);line-height:1.5;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="page">
+
+  <div class="pg-title">
+    <h1>Wonder<span>Quest</span> — Early Learner Play</h1>
+    <p>Ages 2–5 · PREK Band · Visual-first · 9 Play States · Minimal reading required</p>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="show(0)">① Counting</button>
+    <button class="tab-btn" onclick="show(1)">② Letter Recognition</button>
+    <button class="tab-btn" onclick="show(2)">③ Phonics / Sound</button>
+    <button class="tab-btn" onclick="show(3)">④ Picture–Word</button>
+    <button class="tab-btn" onclick="show(4)">⑤ Correct Celebration</button>
+    <button class="tab-btn" onclick="show(5)">⑥ Wrong — Gentle Recovery</button>
+    <button class="tab-btn" onclick="show(6)">⑦ Explainer</button>
+    <button class="tab-btn" onclick="show(7)">⑧ No-Audio Fallback</button>
+    <button class="tab-btn" onclick="show(8)">⑨ Session Complete</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ════ STATE 1 — COUNTING ════ -->
+    <div class="panel active">
+      <div class="sw">
+        <div class="state-tag">State 1 · Counting Question</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div>
+          <div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Question 3</span><span>of 8</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:37%"></div></div>
+        </div>
+
+        <!-- Question card -->
+        <div class="q-outer">
+          <div class="q-scene scene-count">
+            <!-- Counting objects — large, tappable -->
+            <div class="count-grid">
+              <span class="count-obj" style="animation-delay:.05s">🦆</span>
+              <span class="count-obj" style="animation-delay:.1s">🦆</span>
+              <span class="count-obj" style="animation-delay:.15s">🦆</span>
+              <span class="count-obj" style="animation-delay:.2s">🦆</span>
+              <span class="count-obj" style="animation-delay:.25s">🦆</span>
+            </div>
+          </div>
+          <div class="q-prompt-bar">
+            <div class="q-prompt">How many ducks? 🦆</div>
+            <div class="q-sub-prompt">Tap the right number!</div>
+          </div>
+        </div>
+
+        <!-- Audio bar -->
+        <div class="listen-bar">
+          <span class="listen-ico">🔊</span>
+          <div class="listen-label">Hear the question again
+            <span>Tap to listen</span>
+          </div>
+          <span style="font-size:20px;color:var(--text3)">▶</span>
+        </div>
+
+        <!-- Answer grid — big tap targets with number + emoji -->
+        <div class="ans-grid-big">
+          <div class="ans-big">
+            <span class="ans-emoji">3️⃣</span>
+            <span class="ans-word">3</span>
+          </div>
+          <div class="ans-big correct">
+            <span class="ans-emoji">5️⃣</span>
+            <span class="ans-word">5</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">4️⃣</span>
+            <span class="ans-word">4</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">2️⃣</span>
+            <span class="ans-word">2</span>
+          </div>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Objects animate in one-by-one with staggered popIn (child can count them as they appear). Objects are tappable/highlightable to help counting. Answer buttons use large number emoji + numeral text. No letter-labeled (A/B/C) buttons for PREK.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 2 — LETTER RECOGNITION ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 2 · Letter Recognition</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Question 4</span><span>of 8</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:50%"></div></div>
+        </div>
+
+        <div class="q-outer">
+          <div class="q-scene scene-letter" style="flex-direction:column">
+            <div class="big-letter">B</div>
+            <div class="letter-word">B is for… 🐝</div>
+          </div>
+          <div class="q-prompt-bar">
+            <div class="q-prompt">Which word starts with B?</div>
+            <div class="q-sub-prompt">Listen and tap! 👆</div>
+          </div>
+        </div>
+
+        <div class="listen-bar">
+          <span class="listen-ico">🔊</span>
+          <div class="listen-label">Hear the letter sound
+            <span>Tap to listen · "buh"</span>
+          </div>
+          <span style="font-size:20px;color:var(--text3)">▶</span>
+        </div>
+
+        <div class="ans-grid-big">
+          <div class="ans-big correct">
+            <span class="ans-emoji">🐝</span>
+            <span class="ans-word">Bee</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">🍎</span>
+            <span class="ans-word">Apple</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">🌙</span>
+            <span class="ans-word">Moon</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">🐟</span>
+            <span class="ans-word">Fish</span>
+          </div>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Letter is massive (110px) — it IS the visual. Floats gently. Each answer button shows emoji picture FIRST, word second. Voice reads each option aloud on hover (PREK band setting). Letter-sound audio plays automatically when question loads.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 3 — PHONICS / SOUND MATCHING ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 3 · Phonics / Sound Matching</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Question 5</span><span>of 8</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:62%"></div></div>
+        </div>
+
+        <div class="q-outer">
+          <div class="q-scene scene-phonics" style="flex-direction:column;gap:12px">
+            <div class="sound-wave"></div>
+            <div style="font-size:18px;font-weight:900;color:var(--mint)">🎵 Listen to the sound!</div>
+          </div>
+          <div class="q-prompt-bar">
+            <div class="q-prompt">What sound did you hear?</div>
+            <div class="q-sub-prompt">Tap the right picture 👆</div>
+          </div>
+        </div>
+
+        <!-- Big listen button -->
+        <div class="listen-bar" style="background:rgba(88,232,193,.12);border-color:rgba(88,232,193,.35)">
+          <span class="listen-ico" style="font-size:28px">🔊</span>
+          <div class="listen-label" style="font-size:15px">Play sound again
+            <span>Tap to hear · "moo"</span>
+          </div>
+          <span style="font-size:24px;color:var(--mint)">▶</span>
+        </div>
+
+        <!-- 2 large picture choices -->
+        <div class="ans-grid-phonics">
+          <div class="ans-phonics">
+            <div style="font-size:52px;margin-bottom:8px">🐄</div>
+            <div class="ans-phonics-word">Cow</div>
+            <div class="ans-phonics-sub">says "moo"</div>
+          </div>
+          <div class="ans-phonics correct" style="background:rgba(88,232,193,.15);border-color:var(--mint)">
+            <div style="font-size:52px;margin-bottom:8px">🐄</div>
+            <div class="ans-phonics-word" style="color:var(--mint)">Cow ✓</div>
+            <div class="ans-phonics-sub">says "moo"</div>
+          </div>
+        </div>
+        <div class="ans-grid-phonics">
+          <div class="ans-phonics">
+            <div style="font-size:52px;margin-bottom:8px">🐕</div>
+            <div class="ans-phonics-word">Dog</div>
+            <div class="ans-phonics-sub">says "woof"</div>
+          </div>
+          <div class="ans-phonics">
+            <div style="font-size:52px;margin-bottom:8px">🐱</div>
+            <div class="ans-phonics-word">Cat</div>
+            <div class="ans-phonics-sub">says "meow"</div>
+          </div>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Sound wave animation plays while audio is active. Auto-plays when question loads. "Play again" is prominent — children will tap many times. Answers are large picture+word. Can have 2 or 4 answer choices depending on band difficulty. Sub-text shows the phoneme mapping ("says moo").</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 4 — PICTURE–WORD ASSOCIATION ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 4 · Picture–Word Association</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Question 6</span><span>of 8</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:75%"></div></div>
+        </div>
+
+        <div class="q-outer">
+          <div class="q-scene scene-picture">
+            <div class="picture-card">🌈</div>
+          </div>
+          <div class="q-prompt-bar">
+            <div class="q-prompt">What is this called?</div>
+            <div class="q-sub-prompt">Tap the word you hear! 🎧</div>
+          </div>
+        </div>
+
+        <div class="listen-bar">
+          <span class="listen-ico">🔊</span>
+          <div class="listen-label">Hear the question
+            <span>Tap to listen again</span>
+          </div>
+          <span style="font-size:20px;color:var(--text3)">▶</span>
+        </div>
+
+        <!-- Word choices — extra large text for emerging readers -->
+        <div class="ans-grid-big">
+          <div class="ans-big correct">
+            <span class="ans-emoji" style="font-size:28px">🌈</span>
+            <span class="ans-word" style="font-size:20px">Rainbow</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji" style="font-size:28px">⭐</span>
+            <span class="ans-word" style="font-size:20px">Star</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji" style="font-size:28px">🌙</span>
+            <span class="ans-word" style="font-size:20px">Moon</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji" style="font-size:28px">☁️</span>
+            <span class="ans-word" style="font-size:20px">Cloud</span>
+          </div>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: The picture IS the question — it floats in the scene card. Each answer button shows a small icon of what the word represents + the word in very large text. Voice reads each word aloud when hovered (hover or press-and-hold on mobile). This helps non-readers participate fully.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 5 — CORRECT CELEBRATION ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 5 · Correct Answer Celebration</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>13</span></div>
+        </div>
+
+        <!-- Confetti -->
+        <div class="confetti" id="conf"></div>
+
+        <div class="celeb-wrap">
+          <span class="celeb-em">🎉</span>
+          <div class="celeb-title">Amazing! 🌟</div>
+          <div class="celeb-sub">You got it right, Mia!</div>
+          <div class="celeb-pts">+1 ⭐</div>
+          <div class="stars-row">
+            <span class="star-anim">⭐</span>
+            <span class="star-anim">⭐</span>
+            <span class="star-anim">⭐</span>
+          </div>
+          <!-- What was correct — reinforce -->
+          <div style="background:rgba(88,232,193,.1);border:2px solid rgba(88,232,193,.25);border-radius:20px;padding:16px;margin-bottom:18px">
+            <div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">The answer was</div>
+            <div style="font-size:48px;margin-bottom:4px">🌈</div>
+            <div style="font-size:20px;font-weight:900;color:#fff">Rainbow!</div>
+          </div>
+          <!-- Streak badge -->
+          <div class="celeb-streak">🔥 3 in a row! Keep going!</div>
+        </div>
+        <button class="btn btn-gold">Next question! →</button>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Celebration is full-screen takeover — big emoji bounce, confetti rain, star count-up animation, audio cheer sound. Correct answer is SHOWN again (reinforcing learning). Streak shown if applicable. For PREK: auto-advance after 2.5s OR on any tap. Keep joyful but calm — no overwhelming flash effects.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 6 — GENTLE RECOVERY ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 6 · Wrong Answer — Gentle Recovery</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+
+        <div class="recov-wrap">
+          <span class="recov-em">🤔</span>
+          <div class="recov-title">Oops! Let's try again!</div>
+          <div class="recov-sub">That's okay — look at the right one!</div>
+
+          <!-- Show correct answer visually -->
+          <div class="correct-answer-show">
+            <div class="ca-label">✨ The answer is…</div>
+            <div class="ca-answer">5️⃣</div>
+            <div style="font-size:26px;margin:6px 0">🦆🦆🦆🦆🦆</div>
+            <div class="ca-word">Five ducks!</div>
+          </div>
+
+          <!-- Retry button — prominent -->
+          <button class="btn btn-violet" style="margin-bottom:10px">🔁 Try again!</button>
+          <button class="btn btn-ghost" style="font-size:14px">Next question →</button>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: NO red X, no harsh "Wrong!" language. Use "Oops!" + thinking emoji. ALWAYS show the correct answer visually (emoji + word + picture) so child learns even from mistakes. Voice reads the correct answer aloud automatically. Retry button is large and primary. For PREK: retry attempt still earns a partial star.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 7 — EXPLAINER ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 7 · Explainer — After Wrong Answer</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+
+        <!-- Explainer card -->
+        <div class="explainer-scene">
+          <div class="exp-top">
+            <span class="exp-character">🦉</span>
+            <div class="exp-bubble">
+              <div class="exp-bubble-text">"Let's count the ducks together! Point at each one…"</div>
+            </div>
+          </div>
+          <!-- Visual counting aid -->
+          <div style="text-align:center;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Count with me! 👆</div>
+            <div style="font-size:38px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <span style="animation:popIn .3s var(--es) .1s both">🦆</span>
+              <span style="animation:popIn .3s var(--es) .2s both">🦆</span>
+              <span style="animation:popIn .3s var(--es) .3s both">🦆</span>
+              <span style="animation:popIn .3s var(--es) .4s both">🦆</span>
+              <span style="animation:popIn .3s var(--es) .5s both">🦆</span>
+            </div>
+            <div style="font-size:20px;font-weight:900;color:var(--mint);margin-top:8px">1… 2… 3… 4… 5! 🎉</div>
+          </div>
+          <div class="exp-visual">
+            <span style="font-size:36px">5️⃣</span>
+            <span class="arrow">=</span>
+            <span style="font-size:36px">🦆🦆🦆🦆🦆</span>
+          </div>
+        </div>
+
+        <!-- Listen again -->
+        <div class="listen-bar">
+          <span class="listen-ico">🔊</span>
+          <div class="listen-label">Hear owl explain it
+            <span>Tap to listen again</span>
+          </div>
+          <span style="font-size:20px;color:var(--text3)">▶</span>
+        </div>
+
+        <button class="btn btn-gold" style="margin-bottom:10px">I got it! Next question 🚀</button>
+        <button class="btn btn-ghost">🔁 Try this question again</button>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Owl character is the explainer mascot (consistent across PREK band). Speech bubble for dialogue. Explainer re-creates the question visually with step-by-step animation. Numbers pop in one-by-one with audio counting. Child can tap each object to hear it counted. Replay button prominent. Voice auto-plays on entry.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 8 — NO-AUDIO FALLBACK ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 8 · No-Audio Fallback Mode</div>
+        <div class="play-topbar">
+          <div class="p-av">🐼</div><div class="p-name">Mia</div>
+          <div class="p-stars">⭐ <span>12</span></div>
+        </div>
+
+        <!-- No audio banner -->
+        <div class="no-audio-banner">
+          <span class="no-audio-ico">🔇</span>
+          <div class="no-audio-text">Playing without sound
+            <span>All questions use pictures only — no audio needed</span>
+          </div>
+        </div>
+
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Question 3</span><span>of 8</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:37%"></div></div>
+        </div>
+
+        <!-- Visual-only question card -->
+        <div class="q-outer">
+          <div class="q-scene scene-count">
+            <div class="count-grid">
+              <span class="count-obj">🦆</span>
+              <span class="count-obj">🦆</span>
+              <span class="count-obj">🦆</span>
+            </div>
+          </div>
+          <div class="q-prompt-bar" style="padding:14px 18px">
+            <!-- Visual cue card replaces audio -->
+            <div class="visual-cue-card" style="margin:0;padding:12px">
+              <div class="vc-label">The question is:</div>
+              <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+                <div class="vc-em">🦆</div>
+                <div style="font-size:28px;color:var(--text3)">= ?</div>
+              </div>
+              <div style="font-size:16px;font-weight:900;color:#fff;margin-top:6px">How many ducks?</div>
+              <div class="vc-arrows" style="margin-top:4px">👆 Tap the number</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ans-grid-big">
+          <div class="ans-big">
+            <span class="ans-emoji">🦆</span>
+            <span class="ans-word">1</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">🦆🦆</span>
+            <span class="ans-word">2</span>
+          </div>
+          <div class="ans-big correct">
+            <span class="ans-emoji">🦆🦆🦆</span>
+            <span class="ans-word">3</span>
+          </div>
+          <div class="ans-big">
+            <span class="ans-emoji">🦆🦆🦆🦆</span>
+            <span class="ans-word">4</span>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:8px">
+          <button class="btn btn-ghost btn-sm" style="width:auto;padding:8px 18px;font-size:12px">🔊 Turn audio on</button>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: No-audio mode is triggered when device has no audio permission or user taps mute. Banner appears at top (non-blocking). All prompts shift to visual-only: text question replaces audio cue, answer buttons show mini emoji representations of each quantity (e.g. 3 ducks = answer "3"). "Turn audio on" always available.</span></div>
+      </div>
+    </div>
+
+    <!-- ════ STATE 9 — SESSION COMPLETE ════ -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 9 · Session Complete · Celebration</div>
+
+        <div class="confetti" id="conf2"></div>
+
+        <div class="complete-bg">
+          <span class="trophy-anim">🏆</span>
+          <div class="complete-title">You did it, Mia!</div>
+          <div class="complete-sub">Amazing adventurer! All done for today! 🎉</div>
+
+          <!-- Star result -->
+          <div class="complete-stars">
+            <span class="star-anim">⭐</span>
+            <span class="star-anim">⭐</span>
+            <span class="star-anim">⭐</span>
+          </div>
+
+          <!-- Stats — visual, minimal text -->
+          <div class="complete-stats">
+            <div class="cs-tile">
+              <div class="cs-v" style="color:var(--gold)">+5 ⭐</div>
+              <div class="cs-l">Stars Earned</div>
+            </div>
+            <div class="cs-tile">
+              <div class="cs-v" style="color:var(--mint)">6 / 8</div>
+              <div class="cs-l">Correct</div>
+            </div>
+            <div class="cs-tile">
+              <div class="cs-v" style="color:var(--violet2)">🔥 3</div>
+              <div class="cs-l">Best Streak</div>
+            </div>
+          </div>
+
+          <!-- Level-up strip -->
+          <div class="level-up-strip">
+            <span class="lu-ico">🆙</span>
+            <div class="lu-text">Level 3 — Reached!
+              <span>You're a Counting Champion 🐣</span>
+            </div>
+          </div>
+
+          <!-- New skill unlocked -->
+          <div style="background:rgba(88,232,193,.1);border:1px solid rgba(88,232,193,.25);border-radius:14px;padding:12px;margin-bottom:18px;text-align:left">
+            <div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">🆕 New skill unlocked</div>
+            <div style="font-size:14px;color:#fff;font-weight:700">Counting to 5 🦆</div>
+          </div>
+
+          <button class="btn btn-gold" style="margin-bottom:10px">🎮 Play again!</button>
+          <button class="btn btn-ghost" style="font-size:14px;padding:14px">🏠 Done for now</button>
+        </div>
+
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Trophy rises with bounce. Stars animate in one-by-one. Stats are emoji-first, number second. Level-up and new skill badges appear if earned. Primary CTA is "Play again" (gold, large). Voice reads "Amazing! You did it!" on entry. Session complete auto-shares to parent notification if parent linked.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /panels -->
+</div>
+
+<script>
+const tabs=document.querySelectorAll('.tab-btn');
+const panels=document.querySelectorAll('.panel');
+function show(i){tabs.forEach((t,j)=>t.classList.toggle('active',i===j));panels.forEach((p,j)=>p.classList.toggle('active',i===j));}
+// Confetti
+function makeConfetti(id){
+  const c=document.getElementById(id);if(!c)return;
+  const colors=['#ffd166','#9b72ff','#58e8c1','#ff7b6b','#4ab5ff','#ff6bce'];
+  for(let i=0;i<24;i++){const d=document.createElement('div');d.className='cc';
+    d.style.cssText=`left:${Math.random()*100}%;width:${Math.random()*8+4}px;height:${Math.random()*8+4}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};animation:fall ${Math.random()*1.5+1}s linear ${Math.random()*0.5}s forwards`;
+    c.appendChild(d);}
+}
+makeConfetti('conf');makeConfetti('conf2');
+</script>
+</body>
+</html>

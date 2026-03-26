@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slow-Paced Pre-K Audio UI v2 — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+  .hint-box { background: #2a1f00; border: 2px solid #ffd166; border-radius: 12px; padding: 14px 18px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.6; }
+  .hint-box strong { font-weight: 900; font-size: 14px; }
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .tab { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 20px; color: #9b72ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { border-color: #9b72ff; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* Pre-K Play Screen */
+  .prek-screen { background: #1e1540; border-radius: 20px; max-width: 375px; margin: 0 auto; min-height: 560px; padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+
+  /* Big coach area */
+  .coach-top { display: flex; align-items: center; gap: 14px; width: 100%; background: #2d2060; border-radius: 16px; padding: 14px 18px; }
+  .coach-big-avatar { width: 60px; height: 60px; border-radius: 50%; background: #3a2d6e; border: 3px solid #9b72ff; display: flex; align-items: center; justify-content: center; font-size: 34px; flex-shrink: 0; }
+  .coach-speech { flex: 1; background: #1e1540; border-radius: 12px; padding: 12px 14px; font-size: 15px; font-weight: 900; color: #e0d4ff; line-height: 1.5; position: relative; }
+  .coach-speech::before { content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%); border: 6px solid transparent; border-right-color: #1e1540; }
+
+  /* Large scene image area */
+  .scene-area { width: 100%; background: linear-gradient(135deg, #2d2060, #1e3070); border-radius: 18px; height: 160px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .scene-emoji { font-size: 80px; }
+  .scene-stars { position: absolute; top: 10px; right: 16px; font-size: 20px; }
+
+  /* Word display (highlighted) */
+  .word-display { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 10px; }
+  .word-chip { background: #2d2060; border-radius: 12px; padding: 8px 16px; font-size: 20px; font-weight: 900; color: #e0d4ff; border: 2px solid transparent; transition: all 0.3s; }
+  .word-chip.active { background: #ffd166; color: #100b2e; border-color: #ffd166; transform: scale(1.12); box-shadow: 0 4px 16px rgba(255,209,102,0.4); }
+  .word-chip.spoken { background: #2d1f5e; color: #9b72ff; border-color: #3a2d6e; }
+
+  /* Big replay button */
+  .big-replay { width: 100%; background: #9b72ff; border: none; border-radius: 18px; color: #fff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 20px; padding: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.2s; }
+  .big-replay:hover { background: #b998ff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(155,114,255,0.4); }
+  .big-replay-icon { font-size: 32px; }
+
+  /* Answer buttons (large for Pre-K) */
+  .big-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  .big-answer { background: #2d2060; border: 3px solid #3a2d6e; border-radius: 18px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .big-answer:hover { border-color: #9b72ff; transform: scale(1.03); }
+  .big-answer .a-emoji { font-size: 50px; margin-bottom: 8px; }
+  .big-answer .a-label { font-size: 16px; font-weight: 900; color: #e0d4ff; }
+
+  /* Speed toggle */
+  .speed-toggle { display: flex; align-items: center; gap: 12px; background: #2d2060; border-radius: 14px; padding: 14px 18px; width: 100%; }
+  .speed-label { font-size: 14px; font-weight: 900; color: #fff; flex: 1; }
+  .speed-options { display: flex; gap: 6px; }
+  .speed-opt { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 10px; color: #6b5a9e; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 14px; cursor: pointer; transition: all 0.2s; }
+  .speed-opt.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .speed-opt:hover:not(.active) { border-color: #9b72ff; color: #9b72ff; }
+
+  /* Spec */
+  .spec-section { background: #1e1540; border-radius: 16px; padding: 20px; margin-bottom: 16px; max-width: 375px; margin-left: auto; margin-right: auto; }
+  .spec-section h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2d1f5e; font-size: 13px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #9b72ff; font-weight: 700; }
+  .spec-value { color: #e0d4ff; text-align: right; max-width: 55%; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>API Routes — Slow-Paced Pre-K Audio UI</strong><br>
+  GET /api/voice/prek-config → {pace:"slow"|"normal", wordPauseMs: 800}<br>
+  POST /api/voice/pace → {pace:"slow"|"normal", childId}<br>
+  GET /api/voice/word-timestamps/{questionId} → [{word, startMs, endMs}]<br>
+  POST /api/voice/replay → replays at configured pace
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('active')">Slow Pace Active</button>
+  <button class="tab" onclick="show('highlight')">Word Highlight</button>
+  <button class="tab" onclick="show('replay')">Replay Prompt</button>
+  <button class="tab" onclick="show('toggle')">Speed Toggle</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- SLOW PACE ACTIVE -->
+<div id="active" class="panel active">
+  <div class="prek-screen">
+    <div class="coach-top">
+      <div class="coach-big-avatar">🦉</div>
+      <div class="coach-speech">Which animal says <strong>WOOF</strong>?</div>
+    </div>
+    <div class="scene-area">
+      <div class="scene-emoji">🐶</div>
+      <div class="scene-stars">🌟 🌟</div>
+    </div>
+    <div class="big-answers">
+      <div class="big-answer">
+        <div class="a-emoji">🐶</div>
+        <div class="a-label">Dog</div>
+      </div>
+      <div class="big-answer">
+        <div class="a-emoji">🐱</div>
+        <div class="a-label">Cat</div>
+      </div>
+      <div class="big-answer">
+        <div class="a-emoji">🐮</div>
+        <div class="a-label">Cow</div>
+      </div>
+      <div class="big-answer">
+        <div class="a-emoji">🦆</div>
+        <div class="a-label">Duck</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;width:100%;justify-content:center;">
+      <div style="background:#2d2060;border-radius:10px;padding:6px 14px;font-size:12px;font-weight:900;color:#9b72ff;">🐢 Slow pace on</div>
+      <div style="background:#2d2060;border-radius:10px;padding:6px 14px;font-size:12px;font-weight:900;color:#ffd166;">+0.8s pauses</div>
+    </div>
+  </div>
+  <p style="text-align:center;color:#9b72ff;font-size:12px;font-weight:700;margin-top:12px;">Slow pace — larger targets, extended pauses between words</p>
+</div>
+
+<!-- WORD HIGHLIGHT -->
+<div id="highlight" class="panel">
+  <div class="prek-screen">
+    <div class="coach-top">
+      <div class="coach-big-avatar">🦉</div>
+      <div class="coach-speech">Which animal says <strong style="color:#ffd166;font-size:18px;text-shadow:0 0 12px rgba(255,209,102,0.5);">WOOF</strong>?</div>
+    </div>
+    <div class="scene-area">
+      <div class="scene-emoji">🐶</div>
+    </div>
+    <div class="word-display">
+      <div class="word-chip spoken">Which</div>
+      <div class="word-chip spoken">animal</div>
+      <div class="word-chip spoken">says</div>
+      <div class="word-chip active">WOOF</div>
+      <div class="word-chip" style="color:#4a3d6e;">?</div>
+    </div>
+    <div class="big-replay">
+      <span class="big-replay-icon">↩️</span>
+      Hear it again!
+    </div>
+  </div>
+  <p style="text-align:center;color:#ffd166;font-size:12px;font-weight:700;margin-top:12px;">Word highlight — current spoken word glows gold, past words dim</p>
+</div>
+
+<!-- REPLAY PROMPT -->
+<div id="replay" class="panel">
+  <div class="prek-screen">
+    <div class="coach-top" style="border: 3px solid #ffd166;">
+      <div class="coach-big-avatar" style="border-color:#ffd166;">🦉</div>
+      <div class="coach-speech">Want to hear it again?</div>
+    </div>
+    <div class="scene-area">
+      <div class="scene-emoji">🐶</div>
+    </div>
+    <div class="big-replay" style="background:#ffd166;color:#100b2e;font-size:22px;padding:24px;box-shadow:0 6px 24px rgba(255,209,102,0.5);animation:replay-bounce 2s ease-in-out infinite;">
+      <span class="big-replay-icon">🔊</span>
+      Hear it again!
+    </div>
+    <style>@keyframes replay-bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }</style>
+    <div class="big-answers" style="opacity:0.6;">
+      <div class="big-answer"><div class="a-emoji">🐶</div><div class="a-label">Dog</div></div>
+      <div class="big-answer"><div class="a-emoji">🐱</div><div class="a-label">Cat</div></div>
+      <div class="big-answer"><div class="a-emoji">🐮</div><div class="a-label">Cow</div></div>
+      <div class="big-answer"><div class="a-emoji">🦆</div><div class="a-label">Duck</div></div>
+    </div>
+  </div>
+  <p style="text-align:center;color:#ffd166;font-size:12px;font-weight:700;margin-top:12px;">Replay prompt — large gold button pulses, coach invites replay</p>
+</div>
+
+<!-- SPEED TOGGLE -->
+<div id="toggle" class="panel">
+  <div class="prek-screen">
+    <div class="coach-top">
+      <div class="coach-big-avatar">🦉</div>
+      <div class="coach-speech">How fast should I talk?</div>
+    </div>
+    <div class="speed-toggle">
+      <span style="font-size:20px;">🐢</span>
+      <div class="speed-label">Slow &amp; careful</div>
+      <div class="speed-options">
+        <button class="speed-opt active" onclick="setSpeed(this)">Slow</button>
+        <button class="speed-opt" onclick="setSpeed(this)">Normal</button>
+      </div>
+    </div>
+    <div style="background:#2d2060;border-radius:14px;padding:16px;width:100%;">
+      <div style="font-size:13px;font-weight:700;color:#9b72ff;margin-bottom:10px;">What slow pace does:</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">⏸️</span><span style="font-size:13px;font-weight:700;color:#e0d4ff;">Longer pauses between words (0.8s)</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">✨</span><span style="font-size:13px;font-weight:700;color:#e0d4ff;">Each word highlights as it's spoken</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">🔊</span><span style="font-size:13px;font-weight:700;color:#e0d4ff;">Big replay button always visible</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">🔤</span><span style="font-size:13px;font-weight:700;color:#e0d4ff;">Extra-large text (20px+)</span></div>
+      </div>
+    </div>
+    <div class="scene-area" style="height:120px;">
+      <div style="font-size:60px;">🐶</div>
+    </div>
+    <div class="big-replay">
+      <span class="big-replay-icon">🔊</span>
+      Hear the question!
+    </div>
+  </div>
+  <p style="text-align:center;color:#9b72ff;font-size:12px;font-weight:700;margin-top:12px;">Speed toggle — can be changed anytime, saved per child profile</p>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>Slow Pace Settings</h3>
+    <div class="spec-row"><span class="spec-label">Word pause</span><span class="spec-value">800ms between words (vs 200ms normal)</span></div>
+    <div class="spec-row"><span class="spec-label">Speech rate</span><span class="spec-value">0.75x TTS speed</span></div>
+    <div class="spec-row"><span class="spec-label">Auto-replay</span><span class="spec-value">Prompted after 3s no answer</span></div>
+    <div class="spec-row"><span class="spec-label">Word sync</span><span class="spec-value">Via word-timestamps API</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Pre-K Sizing</h3>
+    <div class="spec-row"><span class="spec-label">Answer buttons</span><span class="spec-value">Min 80×100px per tap target</span></div>
+    <div class="spec-row"><span class="spec-label">Replay button</span><span class="spec-value">Full-width, 64px tall</span></div>
+    <div class="spec-row"><span class="spec-label">Word chips</span><span class="spec-value">20px font, 8px vertical padding</span></div>
+    <div class="spec-row"><span class="spec-label">Coach speech</span><span class="spec-value">15px / 900 weight, clear bubble</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Word Highlight</h3>
+    <div class="spec-row"><span class="spec-label">Active word</span><span class="spec-value">#ffd166 bg, scale 1.12, glow shadow</span></div>
+    <div class="spec-row"><span class="spec-label">Spoken word</span><span class="spec-value">#2d1f5e bg, muted violet text</span></div>
+    <div class="spec-row"><span class="spec-label">Upcoming</span><span class="spec-value">#2d2060 bg, default text</span></div>
+    <div class="spec-row"><span class="spec-label">Transition</span><span class="spec-value">0.3s ease-in-out on all properties</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function setSpeed(btn) {
+  btn.closest('.speed-options').querySelectorAll('.speed-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

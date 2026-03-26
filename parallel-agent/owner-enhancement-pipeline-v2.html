@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Enhancement Pipeline — WonderQuest #282</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#f0f6ff;font-family:'Inter',sans-serif;padding:24px;min-height:100vh}
+.hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:16px;margin-bottom:24px;color:#333;font-size:13px;line-height:1.6}
+.hint strong{color:#b45309}
+h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.subtitle{color:#8b949e;font-size:14px;margin-bottom:24px}
+.tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.tab-btn{padding:8px 18px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#8b949e;font-size:14px;font-weight:500;cursor:pointer;min-height:44px;transition:all .15s}
+.tab-btn.active{background:#50e890;color:#0d1117;border-color:#50e890}
+.screen{display:none}.screen.active{display:block}
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.chip-green{background:rgba(80,232,144,.15);color:#50e890}
+.chip-amber{background:rgba(245,158,11,.15);color:#f59e0b}
+.chip-coral{background:rgba(255,123,107,.15);color:#ff7b6b}
+.chip-violet{background:rgba(155,114,255,.15);color:#9b72ff}
+.chip-blue{background:rgba(56,189,248,.15);color:#38bdf8}
+.chip-gray{background:rgba(139,148,158,.15);color:#8b949e}
+.chip-gold{background:rgba(255,209,102,.15);color:#ffd166}
+.chip-mint{background:rgba(88,232,193,.15);color:#58e8c1}
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#8b949e;font-size:13px;cursor:pointer;min-height:36px}
+.filter-btn.active,.filter-btn:hover{background:rgba(80,232,144,.12);color:#50e890;border-color:#50e890}
+/* Pipeline */
+.pipeline-wrap{overflow-x:auto;padding-bottom:12px}
+.pipeline{display:flex;gap:12px;min-width:980px}
+.p-col{flex:1;min-width:155px}
+.p-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:6px;text-align:center;margin-bottom:10px}
+.e-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px;margin-bottom:10px}
+.e-title{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:8px}
+.e-meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.e-foot{font-size:11px;color:#8b949e}
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:16px;text-align:center}
+.stat-num{font-size:28px;font-weight:700;color:#50e890}
+.stat-label{font-size:11px;color:#8b949e;margin-top:4px}
+/* Bar chart */
+.bar-chart{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.bar-row{display:flex;align-items:center;gap:10px}
+.bar-label{width:120px;font-size:12px;color:#8b949e;text-align:right;flex-shrink:0}
+.bar-track{flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#0d1117}
+.bar-n{font-size:12px;color:#8b949e;width:20px;text-align:right;flex-shrink:0}
+/* Timeline */
+.timeline{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:600px){.timeline{grid-template-columns:1fr}}
+.tl-item{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px}
+.tl-ver{font-size:16px;font-weight:700;margin-bottom:6px}
+.tl-n{font-size:26px;font-weight:700;color:#50e890}
+.tl-sub{font-size:11px;color:#8b949e;margin-top:4px;line-height:1.5}
+.card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:20px;margin-bottom:16px}
+/* Spec */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:600px){.spec-grid{grid-template-columns:1fr}}
+.spec-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px}
+.spec-card h3{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.spec-card p{font-size:13px;color:#c9d1d9;line-height:1.6}
+pre{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:14px;font-size:12px;overflow-x:auto;line-height:1.6;color:#58e8c1;font-family:monospace}
+.rules-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:16px;margin-top:14px}
+.rules-card h3{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.rule-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start}
+.rule-row:last-child{border-bottom:none}
+.rule-num{width:22px;height:22px;border-radius:50%;background:rgba(80,232,144,.15);color:#50e890;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rule-text{font-size:13px;color:#c9d1d9;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering hint — owner-enhancement-pipeline-v2</strong> | Persona: Owner | Route: <code>/owner/product/enhancements</code> | DB: <code>enhancement_items { id, title, source_feedback_ids[], category ENUM('ux','feature','content','accessibility','performance','compliance'), priority ENUM('p0','p1','p2','p3'), status ENUM('backlog','under_review','scoped','in_dev','in_qa','shipped','deferred'), target_release, owner_name, created_at, shipped_at }</code> | Privacy: Enhancement titles must not contain child PII; feedback source = role/cohort only | Lifecycle: backlog → under_review → scoped → in_dev → in_qa → shipped (or → deferred)
+</div>
+
+<h1>Enhancement Pipeline</h1>
+<p class="subtitle">Item #282 — Owner · Track all feature requests and UX enhancements from backlog to shipped</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('board')">Pipeline Board</button>
+  <button class="tab-btn" onclick="showTab('metrics')">Metrics</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: BOARD -->
+<div id="board" class="screen active">
+  <div class="filter-bar" role="group" aria-label="Filter enhancements by category">
+    <button class="filter-btn active" onclick="filterCards(this,'all')">All</button>
+    <button class="filter-btn" onclick="filterCards(this,'ux')">UX</button>
+    <button class="filter-btn" onclick="filterCards(this,'feature')">Feature</button>
+    <button class="filter-btn" onclick="filterCards(this,'content')">Content</button>
+    <button class="filter-btn" onclick="filterCards(this,'accessibility')">Accessibility</button>
+    <button class="filter-btn" onclick="filterCards(this,'performance')">Performance</button>
+    <button class="filter-btn" onclick="filterCards(this,'compliance')">Compliance</button>
+  </div>
+
+  <div class="pipeline-wrap">
+    <div class="pipeline" id="pipelineBoard">
+      <div class="p-col">
+        <div class="p-head">Backlog</div>
+        <div class="e-card" data-cat="feature">
+          <div class="e-title">Parent dashboard dark mode</div>
+          <div class="e-meta"><span class="chip chip-blue">Feature</span><span class="chip chip-gray">P2</span></div>
+          <div class="e-foot">3 feedback items · No release yet</div>
+        </div>
+        <div class="e-card" data-cat="feature">
+          <div class="e-title">Interest refresh auto-trigger on theme switch</div>
+          <div class="e-meta"><span class="chip chip-blue">Feature</span><span class="chip chip-violet">P1</span><span class="chip chip-gray">v2.7</span></div>
+          <div class="e-foot">2 feedback items</div>
+        </div>
+      </div>
+      <div class="p-col">
+        <div class="p-head">Under Review</div>
+        <div class="e-card" data-cat="ux">
+          <div class="e-title">Hint button 44px tap target — mobile</div>
+          <div class="e-meta"><span class="chip chip-amber">UX</span><span class="chip chip-gold">P0</span><span class="chip chip-gray">v2.5</span></div>
+          <div class="e-foot">5 feedback items · Accessibility team</div>
+        </div>
+        <div class="e-card" data-cat="performance">
+          <div class="e-title">Quest celebration animation — iPad lag</div>
+          <div class="e-meta"><span class="chip chip-mint">Performance</span><span class="chip chip-violet">P1</span><span class="chip chip-gray">v2.6</span></div>
+          <div class="e-foot">4 feedback items</div>
+        </div>
+      </div>
+      <div class="p-col">
+        <div class="p-head">Scoped</div>
+        <div class="e-card" data-cat="content">
+          <div class="e-title">P3 content gap — Social Studies</div>
+          <div class="e-meta"><span class="chip chip-coral">Content</span><span class="chip chip-gold">P0</span><span class="chip chip-gray">v2.6</span></div>
+          <div class="e-foot">7 feedback items · Content team</div>
+        </div>
+        <div class="e-card" data-cat="ux">
+          <div class="e-title">Voice speed — persist across sessions</div>
+          <div class="e-meta"><span class="chip chip-amber">UX</span><span class="chip chip-violet">P1</span><span class="chip chip-gray">v2.6</span></div>
+          <div class="e-foot">6 feedback items</div>
+        </div>
+      </div>
+      <div class="p-col">
+        <div class="p-head">In Dev</div>
+        <div class="e-card" data-cat="accessibility">
+          <div class="e-title">High contrast mode — child play screen</div>
+          <div class="e-meta"><span class="chip chip-blue">Accessibility</span><span class="chip chip-gold">P0</span><span class="chip chip-gray">v2.6</span></div>
+          <div class="e-foot">3 feedback items · WCAG AAA target</div>
+        </div>
+        <div class="e-card" data-cat="feature">
+          <div class="e-title">Theme rotation interest-tag match algorithm</div>
+          <div class="e-meta"><span class="chip chip-blue">Feature</span><span class="chip chip-violet">P1</span><span class="chip chip-gray">v2.6</span></div>
+          <div class="e-foot">4 feedback items</div>
+        </div>
+      </div>
+      <div class="p-col">
+        <div class="p-head">In QA</div>
+        <div class="e-card" data-cat="compliance">
+          <div class="e-title">Benchmark disclaimer keyword auto-trigger</div>
+          <div class="e-meta"><span class="chip chip-coral">Compliance</span><span class="chip chip-gold">P0</span><span class="chip chip-gray">v2.5</span></div>
+          <div class="e-foot">2 items · Legal sign-off done</div>
+        </div>
+        <div class="e-card" data-cat="ux">
+          <div class="e-title">Parent quiet hours enforcement log</div>
+          <div class="e-meta"><span class="chip chip-amber">UX</span><span class="chip chip-violet">P1</span><span class="chip chip-gray">v2.5</span></div>
+          <div class="e-foot">3 feedback items</div>
+        </div>
+      </div>
+      <div class="p-col">
+        <div class="p-head">Shipped ✓</div>
+        <div class="e-card" data-cat="ux">
+          <div class="e-title">Theme rotation — defer during active quest</div>
+          <div class="e-meta"><span class="chip chip-amber">UX</span><span class="chip chip-violet">P1</span><span class="chip chip-green">v2.5 ✓</span></div>
+          <div class="e-foot">Shipped Mar 10, 2026</div>
+        </div>
+        <div class="e-card" data-cat="accessibility">
+          <div class="e-title">Touch targets ≥44px — all elements</div>
+          <div class="e-meta"><span class="chip chip-blue">Accessibility</span><span class="chip chip-gold">P0</span><span class="chip chip-green">v2.5 ✓</span></div>
+          <div class="e-foot">Shipped Mar 10, 2026</div>
+        </div>
+        <div class="e-card" data-cat="content">
+          <div class="e-title">P3 Arts theme — Painter's World</div>
+          <div class="e-meta"><span class="chip chip-coral">Content</span><span class="chip chip-violet">P1</span><span class="chip chip-green">v2.5 ✓</span></div>
+          <div class="e-foot">Shipped Mar 10, 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: METRICS -->
+<div id="metrics" class="screen">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num">24</div><div class="stat-label">Total Enhancements</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#ffd166">8</div><div class="stat-label">Shipped This Release</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#9b72ff">6</div><div class="stat-label">In Flight (Dev+QA)</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#8b949e">2</div><div class="stat-label">Deferred</div></div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">By Category</h3>
+    <div class="bar-chart">
+      <div class="bar-row"><span class="bar-label">UX</span><div class="bar-track"><div class="bar-fill" style="width:29%;background:#f59e0b">UX</div></div><span class="bar-n">7</span></div>
+      <div class="bar-row"><span class="bar-label">Feature</span><div class="bar-track"><div class="bar-fill" style="width:21%;background:#38bdf8">Feature</div></div><span class="bar-n">5</span></div>
+      <div class="bar-row"><span class="bar-label">Content</span><div class="bar-track"><div class="bar-fill" style="width:17%;background:#ff7b6b">Content</div></div><span class="bar-n">4</span></div>
+      <div class="bar-row"><span class="bar-label">Accessibility</span><div class="bar-track"><div class="bar-fill" style="width:17%;background:#58e8c1">A11y</div></div><span class="bar-n">4</span></div>
+      <div class="bar-row"><span class="bar-label">Performance</span><div class="bar-track"><div class="bar-fill" style="width:8%;background:#9b72ff">Perf</div></div><span class="bar-n">2</span></div>
+      <div class="bar-row"><span class="bar-label">Compliance</span><div class="bar-track"><div class="bar-fill" style="width:8%;background:#ffd166">Comp</div></div><span class="bar-n">2</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Release Timeline</h3>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-ver">v2.5</div><span class="chip chip-green" style="margin-bottom:8px;display:inline-flex">Shipped</span><div class="tl-n">8</div><div class="tl-sub">enhancements shipped<br/>Mar 10, 2026</div></div>
+      <div class="tl-item"><div class="tl-ver">v2.6</div><span class="chip chip-amber" style="margin-bottom:8px;display:inline-flex">In Flight</span><div class="tl-n">5</div><div class="tl-sub">enhancements in dev/QA<br/>Target: Apr 15, 2026</div></div>
+      <div class="tl-item"><div class="tl-ver">v2.7</div><span class="chip chip-gray" style="margin-bottom:8px;display:inline-flex">Planned</span><div class="tl-n">4</div><div class="tl-sub">scoped / backlog<br/>Target: Jun 1, 2026</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div><div style="font-size:12px;color:#8b949e;margin-bottom:4px">Avg. backlog → shipped</div><div style="font-size:28px;font-weight:700;color:#50e890">18 days</div></div>
+    <div><div style="font-size:12px;color:#8b949e;margin-bottom:4px">Feedback → feature rate</div><div style="font-size:28px;font-weight:700;color:#9b72ff">34%</div></div>
+  </div>
+</div>
+
+<!-- TAB 3: SPEC -->
+<div id="spec" class="screen">
+  <div class="spec-grid">
+    <div class="spec-card"><h3>Component</h3><p><strong>EnhancementPipeline</strong></p><p style="margin-top:6px">Route: <code>/owner/product/enhancements</code></p><p>Auth: Owner only</p></div>
+    <div class="spec-card"><h3>Props</h3><p><code>release_filter?: string</code></p><p><code>category_filter?: string</code></p><p><code>show_deferred?: boolean</code></p></div>
+  </div>
+  <div class="spec-card" style="margin-top:14px">
+    <h3>DB Schema</h3>
+    <pre>enhancement_items {
+  id                UUID PRIMARY KEY,
+  title             TEXT NOT NULL,
+  source_feedback_ids UUID[],        -- FK → feedback_items.id
+  category          ENUM('ux','feature','content',
+                         'accessibility','performance','compliance'),
+  priority          ENUM('p0','p1','p2','p3'),
+  status            ENUM('backlog','under_review','scoped',
+                         'in_dev','in_qa','shipped','deferred'),
+  target_release    TEXT,
+  owner_name        TEXT,
+  notes             TEXT,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  shipped_at        TIMESTAMPTZ
+}</pre>
+  </div>
+  <div class="rules-card">
+    <h3>Priority Definitions</h3>
+    <div class="rule-row"><div class="rule-num">P0</div><div class="rule-text"><strong>Blocker</strong> — accessibility violation, compliance/legal issue, or production crash</div></div>
+    <div class="rule-row"><div class="rule-num">P1</div><div class="rule-text"><strong>High</strong> — significant UX friction or content gap affecting multiple users</div></div>
+    <div class="rule-row"><div class="rule-num">P2</div><div class="rule-text"><strong>Medium</strong> — moderate impact, scheduled in upcoming release</div></div>
+    <div class="rule-row"><div class="rule-num">P3</div><div class="rule-text"><strong>Nice to have</strong> — low urgency, backlog until capacity available</div></div>
+  </div>
+  <div class="rules-card">
+    <h3>Business Rules</h3>
+    <div class="rule-row"><div class="rule-num">1</div><div class="rule-text">Enhancement titles/descriptions must never contain child PII</div></div>
+    <div class="rule-row"><div class="rule-num">2</div><div class="rule-text">source_feedback_ids links to classified items only — raw feedback never referenced directly</div></div>
+    <div class="rule-row"><div class="rule-num">3</div><div class="rule-text">P0 items must have a target_release assigned within 48h of creation</div></div>
+    <div class="rule-row"><div class="rule-num">4</div><div class="rule-text">Deferred items require a notes field explaining deferral reason</div></div>
+    <div class="rule-row"><div class="rule-num">5</div><div class="rule-text">Accessibility and compliance items auto-tagged P0 minimum</div></div>
+    <div class="rule-row"><div class="rule-num">6</div><div class="rule-text">Owner-only view — not visible to Teacher, Parent, or Child personas</div></div>
+  </div>
+</div>
+
+<script>
+function showTab(t){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function filterCards(btn,cat){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.e-card').forEach(c=>{
+    c.style.display=(cat==='all'||c.dataset.cat===cat)?'block':'none';
+  });
+}
+</script>
+</body>
+</html>

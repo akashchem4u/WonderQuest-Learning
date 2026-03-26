@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Command Center Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Owner tokens */
+.owner-shell{display:flex;max-width:960px;background:#0d1117;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);height:640px}
+.owner-sb{width:200px;background:#010409;display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05)}
+.sb-logo{padding:18px 14px 12px;font-size:13px;font-weight:900;color:#f0f6ff;border-bottom:1px solid rgba(255,255,255,.05)}
+.sb-logo span{color:#50e890}
+.sb-sect{padding:10px 10px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.2)}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;margin:1px 4px;font-size:12px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer}
+.sb-item.active{background:rgba(80,232,144,.1);color:#50e890}
+.sb-icon{font-size:13px;width:16px;text-align:center}
+.sb-badge{font-size:9px;font-weight:800;background:#f59e0b;color:#1a1440;padding:1px 4px;border-radius:4px;margin-left:auto}
+.sb-spacer{flex:1}
+.sb-footer{padding:10px;border-top:1px solid rgba(255,255,255,.05);font-size:10px;color:rgba(255,255,255,.3)}
+
+.owner-main{flex:1;background:#0d1117;padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.page-title{font-size:15px;font-weight:900;color:#f0f6ff}
+.page-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px}
+
+/* Period selector */
+.period-chips{display:flex;gap:5px}
+.pchip{padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.pchip-active{background:#50e890;color:#010409}
+.pchip-inactive{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+
+/* Stat row */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stat-card{background:#161b22;border-radius:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.05)}
+.sc-n{font-size:18px;font-weight:900;color:#f0f6ff}
+.sc-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.3);margin-top:2px}
+.sc-d{font-size:10px;font-weight:700;margin-top:2px}
+.dg{color:#50e890} .da{color:#f59e0b} .dr{color:#f85149}
+
+/* Grid 2-col + 3-col */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.card{background:#161b22;border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35);margin-bottom:8px}
+
+/* Growth chart */
+.growth-chart{display:flex;gap:4px;align-items:flex-end;height:50px}
+.gc-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.gc-bar{border-radius:2px 2px 0 0;width:100%;min-height:4px}
+.gc-label{font-size:8px;color:rgba(255,255,255,.25)}
+
+/* School table */
+.school-table{width:100%;border-collapse:collapse;font-size:11px}
+.school-table th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.25);border-bottom:1px solid rgba(255,255,255,.06)}
+.school-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.65)}
+.school-table tr:last-child td{border-bottom:none}
+.school-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+
+/* Cohort rows */
+.cohort-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.cohort-row:last-child{border-bottom:none;padding-bottom:0}
+.cr-label{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.cr-bar{background:rgba(255,255,255,.08);border-radius:3px;height:5px;width:80px}
+.cr-fill{height:5px;border-radius:3px;background:#50e890}
+.cr-n{font-size:10px;font-weight:700;color:rgba(255,255,255,.5);width:30px;text-align:right}
+
+/* Revenue chart */
+.rev-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
+.rev-row:last-child{border-bottom:none}
+.rev-label{color:rgba(255,255,255,.5)}
+.rev-n{font-weight:700;color:#50e890}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-command-center-desktop-v3.html</strong><br>
+  Owner command center — deep business analytics (distinct from home which is daily ops snapshot).<br>
+  <strong>Data shown:</strong> MAU growth | MRR/ARR trends | School cohort analysis | Band adoption by school | Retention curves | Session activity trends | Top schools by engagement.<br>
+  <strong>Period selector:</strong> 7d / 30d / 90d / All time.<br>
+  <strong>Privacy:</strong> School-level aggregates only. No individual teacher/parent/student data in owner analytics. School names shown (B2B contract relationship). Student counts per school shown as aggregate (no individual names).<br>
+  <strong>Data source:</strong> Analytics data warehouse (daily snapshots + hourly for engagement metrics). Not real-time — typical lag 4–6 hours.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('cc')">Command Center</button>
+  <button class="tab-btn" onclick="showTab('schools')">Schools View</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Command Center ─────────────────────────────────────────────── -->
+<div id="tab-cc" class="screen active">
+  <p class="section-title">Owner command center — business analytics</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-sect">Ops</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item"><span class="sb-icon">📡</span>Route Health</div>
+      <div class="sb-item"><span class="sb-icon">🚀</span>Release Gate</div>
+      <div class="sb-item"><span class="sb-icon">💬</span>Feedback <span class="sb-badge">3</span></div>
+      <div class="sb-sect">Analytics</div>
+      <div class="sb-item active"><span class="sb-icon">📊</span>Command Center</div>
+      <div class="sb-item"><span class="sb-icon">👥</span>Users</div>
+      <div class="sb-item"><span class="sb-icon">🏫</span>Schools</div>
+      <div class="sb-sect">Product</div>
+      <div class="sb-item"><span class="sb-icon">🧪</span>Experiments</div>
+      <div class="sb-item"><span class="sb-icon">📋</span>Content</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">Avi M. · Owner</div>
+    </div>
+    <div class="owner-main">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div class="page-title">📊 Command Center</div>
+          <div class="page-sub">Business analytics · Data lag ~4h · Analytics warehouse</div>
+        </div>
+        <div class="period-chips">
+          <button class="pchip pchip-inactive">7d</button>
+          <button class="pchip pchip-active">30d</button>
+          <button class="pchip pchip-inactive">90d</button>
+          <button class="pchip pchip-inactive">All</button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-n">4,820</div>
+          <div class="sc-l">MAU (30d)</div>
+          <div class="sc-d dg">↑12% vs prior</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-n">$18.4K</div>
+          <div class="sc-l">MRR</div>
+          <div class="sc-d dg">↑$800 (+4.5%)</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-n">$220.8K</div>
+          <div class="sc-l">ARR (run rate)</div>
+          <div class="sc-d dg">↑$9.6K</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-n">142</div>
+          <div class="sc-l">Active schools</div>
+          <div class="sc-d dg">↑3 this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-n">68%</div>
+          <div class="sc-l">D30 retention</div>
+          <div class="sc-d dg">↑4pp vs prior 30d</div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="ct">📈 MAU Growth — Last 12 Months</div>
+          <div class="growth-chart">
+            <div class="gc-col"><div class="gc-bar" style="height:14px;background:#50e890;opacity:.5"></div><div class="gc-label">A</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:18px;background:#50e890;opacity:.5"></div><div class="gc-label">M</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:20px;background:#50e890;opacity:.5"></div><div class="gc-label">J</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:16px;background:#50e890;opacity:.5"></div><div class="gc-label">J</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:14px;background:#50e890;opacity:.5"></div><div class="gc-label">A</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:22px;background:#50e890;opacity:.6"></div><div class="gc-label">S</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:28px;background:#50e890;opacity:.65"></div><div class="gc-label">O</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:32px;background:#50e890;opacity:.7"></div><div class="gc-label">N</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:30px;background:#50e890;opacity:.7"></div><div class="gc-label">D</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:36px;background:#50e890;opacity:.75"></div><div class="gc-label">J</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:42px;background:#50e890;opacity:.85"></div><div class="gc-label">F</div></div>
+            <div class="gc-col"><div class="gc-bar" style="height:50px;background:#50e890"></div><div class="gc-label" style="color:#50e890;font-weight:700">M</div></div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.2);margin-top:4px">Peak: 4,820 MAU (Mar 2026)</div>
+        </div>
+
+        <div class="card">
+          <div class="ct">💰 MRR Components</div>
+          <div class="rev-row"><div class="rev-label">School subscriptions</div><div class="rev-n">$16,200</div></div>
+          <div class="rev-row"><div class="rev-label">District licences</div><div class="rev-n">$1,800</div></div>
+          <div class="rev-row"><div class="rev-label">Individual family plans</div><div class="rev-n">$400</div></div>
+          <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:6px;margin-top:2px;display:flex;justify-content:space-between">
+            <div style="font-size:11px;color:rgba(255,255,255,.5)">Total MRR</div>
+            <div style="font-size:13px;font-weight:900;color:#50e890">$18,400</div>
+          </div>
+          <div style="margin-top:8px">
+            <div style="font-size:10px;color:rgba(255,255,255,.25);margin-bottom:4px">Churn this month: 0 schools</div>
+            <div style="font-size:10px;color:#50e890;font-weight:700">Net new MRR: +$800</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g3">
+        <div class="card">
+          <div class="ct">🏫 School Cohorts</div>
+          <div class="cohort-row"><div class="cr-label">Active (≥10 sessions/mo)</div><div class="cr-bar"><div class="cr-fill" style="width:75%"></div></div><div class="cr-n">107</div></div>
+          <div class="cohort-row"><div class="cr-label">Light (1–9 sessions/mo)</div><div class="cr-bar"><div class="cr-fill" style="width:20%;background:#f59e0b"></div></div><div class="cr-n">28</div></div>
+          <div class="cohort-row"><div class="cr-label">Dormant (0 sessions)</div><div class="cr-bar"><div class="cr-fill" style="width:5%;background:#f85149"></div></div><div class="cr-n">7</div></div>
+        </div>
+
+        <div class="card">
+          <div class="ct">🎯 D7 / D30 Retention</div>
+          <div style="display:flex;gap:12px;align-items:flex-end;height:44px;margin-bottom:6px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">88%</div>
+              <div style="width:28px;height:38px;background:#50e890;border-radius:3px 3px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.25)">D7</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">68%</div>
+              <div style="width:28px;height:28px;background:#50e890;opacity:.7;border-radius:3px 3px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.25)">D30</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="font-size:9px;color:rgba(255,255,255,.3)">48%</div>
+              <div style="width:28px;height:20px;background:#50e890;opacity:.5;border-radius:3px 3px 0 0"></div>
+              <div style="font-size:9px;color:rgba(255,255,255,.25)">D90</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.2)">D30 ↑4pp vs prior period</div>
+        </div>
+
+        <div class="card">
+          <div class="ct">📚 Band Adoption</div>
+          <div class="cohort-row"><div class="cr-label" style="color:#ffd166">P0 Pre-K</div><div class="cr-bar"><div class="cr-fill" style="width:20%;background:#ffd166"></div></div><div class="cr-n">820</div></div>
+          <div class="cohort-row"><div class="cr-label" style="color:#9b72ff">P1 K–1</div><div class="cr-bar"><div class="cr-fill" style="width:42%;background:#9b72ff"></div></div><div class="cr-n">1,780</div></div>
+          <div class="cohort-row"><div class="cr-label" style="color:#58e8c1">P2 G2–3</div><div class="cr-bar"><div class="cr-fill" style="width:70%;background:#58e8c1"></div></div><div class="cr-n">3,020</div></div>
+          <div class="cohort-row"><div class="cr-label" style="color:#ff7b6b">P3 G4–5</div><div class="cr-bar"><div class="cr-fill" style="width:28%;background:#ff7b6b"></div></div><div class="cr-n">1,200</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Schools View ───────────────────────────────────────────────── -->
+<div id="tab-schools" class="screen">
+  <p class="section-title">Schools view — top schools by engagement</p>
+  <div class="owner-shell">
+    <div class="owner-sb">
+      <div class="sb-logo">WQ <span>Console</span></div>
+      <div class="sb-sect">Analytics</div>
+      <div class="sb-item"><span class="sb-icon">📊</span>Command Center</div>
+      <div class="sb-item active"><span class="sb-icon">🏫</span>Schools</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">Avi M.</div>
+    </div>
+    <div class="owner-main">
+      <div>
+        <div class="page-title">🏫 Schools</div>
+        <div class="page-sub">142 active schools · School-level aggregates only</div>
+      </div>
+      <div class="card" style="max-width:100%">
+        <div class="ct">Top Schools by Sessions (30d)</div>
+        <table class="school-table">
+          <tr><th>School</th><th>Students</th><th>Teachers</th><th>Sessions (30d)</th><th>Avg streak</th><th>Status</th></tr>
+          <tr><td>Maple Ridge Elementary</td><td>248</td><td>8</td><td>2,140</td><td>5.2d</td><td><span class="school-dot" style="background:#50e890"></span>Active</td></tr>
+          <tr><td>Sunnybrook K-5</td><td>184</td><td>6</td><td>1,820</td><td>4.8d</td><td><span class="school-dot" style="background:#50e890"></span>Active</td></tr>
+          <tr><td>Lincoln Park Primary</td><td>312</td><td>11</td><td>1,640</td><td>3.9d</td><td><span class="school-dot" style="background:#50e890"></span>Active</td></tr>
+          <tr><td>Crestwood Academy</td><td>96</td><td>3</td><td>890</td><td>4.2d</td><td><span class="school-dot" style="background:#50e890"></span>Active</td></tr>
+          <tr><td>Riverside Elementary</td><td>144</td><td>5</td><td>420</td><td>2.1d</td><td><span class="school-dot" style="background:#f59e0b"></span>Light</td></tr>
+          <tr><td>Harbor View School</td><td>210</td><td>7</td><td>80</td><td>0.8d</td><td><span class="school-dot" style="background:#f85149"></span>At risk</td></tr>
+        </table>
+        <div style="margin-top:10px;font-size:10px;color:rgba(255,255,255,.2)">School names and aggregate counts only. No individual teacher/student names visible in owner analytics.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-command-center-desktop-v3.html<br>
+      <strong>Route:</strong> /console/command-center<br>
+      <strong>Data source:</strong> Analytics warehouse (daily snapshot). 4–6 hour lag. NOT real-time.
+    </div>
+    <h2 class="spec-h2">Owner Analytics vs Ops</h2>
+    <table class="spec-table">
+      <tr><th>View</th><th>Scope</th><th>Refresh</th><th>Primary use</th></tr>
+      <tr><td>Owner home</td><td>Today's ops snapshot</td><td>60s (health)</td><td>Daily check-in, incidents</td></tr>
+      <tr><td>Command center</td><td>Business trends (30d / 90d)</td><td>Daily snapshot</td><td>Growth review, board reporting</td></tr>
+      <tr><td>Schools view</td><td>Per-school aggregates</td><td>Daily snapshot</td><td>Account health, CSM</td></tr>
+    </table>
+    <h2 class="spec-h2">Privacy at Owner Level</h2>
+    <p class="spec-p">Owner analytics shows school-level aggregates only. No individual teacher names, parent names, or student names. School names are shown (B2B contract relationship). Student counts per school are aggregate (total enrolled, not named). Owner cannot drill into individual user records from this view — requires separate admin tool with additional audit logging.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

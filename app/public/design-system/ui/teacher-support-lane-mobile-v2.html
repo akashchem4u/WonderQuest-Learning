@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Support Lane Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #e8ecf0; min-height: 100vh; padding: 24px 16px 40px; display: flex; flex-direction: column; align-items: center; }
+.page-title { font-size: 13px; font-weight: 800; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; width: 100%; max-width: 430px; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; width: 100%; max-width: 430px; }
+.tab { padding: 7px 10px; border-radius: 6px 6px 0 0; background: #d0d8e4; border: none; cursor: pointer; font-family: inherit; font-size: 10px; font-weight: 700; color: #607080; }
+.tab.active { background: #f0f4f8; color: #2a5080; }
+
+/* Phone */
+.phone { width: 390px; background: #f0f4f8; border-radius: 36px; border: 3px solid #c8d4e0; box-shadow: 0 12px 40px rgba(0,0,0,0.18); overflow: hidden; min-height: 700px; display: flex; flex-direction: column; }
+.status-bar { background: #2a5080; padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.7); }
+.phone-header { background: #2a5080; padding: 10px 16px 14px; display: flex; align-items: center; gap: 10px; }
+.back-btn { color: rgba(255,255,255,0.8); font-size: 18px; cursor: pointer; }
+.header-title { font-size: 16px; font-weight: 900; color: #fff; }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+.phone-body { flex: 1; overflow-y: auto; padding: 0 0 80px; }
+
+/* Support lane list */
+.lane-section-hdr { padding: 12px 16px 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; }
+.flag-hdr { color: #9a2a2a; }
+.watch-hdr { color: #c07800; }
+.lane-card { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #e8eef4; cursor: pointer; }
+.lane-card.flag { border-left: 3px solid #9a2a2a; }
+.lane-card.watch { border-left: 3px solid #c07800; }
+.lane-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.lane-name { font-size: 13px; font-weight: 700; color: #1c2430; }
+.lane-meta { font-size: 10px; color: #607080; margin-top: 2px; }
+.lane-badge { margin-left: auto; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.badge-f { background: #fff0f0; color: #9a2a2a; }
+.badge-w { background: #fff8e0; color: #7a5000; }
+
+/* Learner focus */
+.learner-focus-hdr { background: #fff; padding: 16px; border-bottom: 1px solid #e8eef4; }
+.lf-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.lf-av { width: 48px; height: 48px; border-radius: 50%; background: #9a2a2a; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.lf-name { font-size: 18px; font-weight: 900; color: #1c2430; }
+.lf-meta { font-size: 11px; color: #607080; margin-top: 2px; }
+.lf-flag { display: inline-block; padding: 2px 10px; background: #fff0f0; color: #9a2a2a; border-radius: 8px; font-size: 11px; font-weight: 700; margin-top: 4px; }
+.metric-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 12px 16px; }
+.metric-card { background: #fff; border: 1px solid #d0dae4; border-radius: 10px; padding: 10px; text-align: center; }
+.metric-val { font-size: 18px; font-weight: 900; color: #2a5080; }
+.metric-lbl { font-size: 9px; color: #607080; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Recent sessions */
+.section-title { font-size: 12px; font-weight: 800; color: #1c2430; padding: 12px 16px 8px; }
+.session-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f0f4f8; }
+.session-date { font-size: 10px; color: #607080; width: 52px; flex-shrink: 0; }
+.session-skill { font-size: 12px; font-weight: 700; color: #1c2430; }
+.session-score { margin-left: auto; font-size: 12px; font-weight: 800; }
+.score-good { color: #1a8050; }
+.score-mid { color: #c07800; }
+.score-low { color: #9a2a2a; }
+.session-dur { font-size: 10px; color: #607080; margin-top: 1px; }
+
+/* Skill snapshot */
+.skill-snap-card { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; margin: 12px 16px; padding: 14px; }
+.skill-snap-name { font-size: 13px; font-weight: 700; color: #1c2430; margin-bottom: 4px; }
+.skill-snap-band { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-bottom: 8px; }
+.skill-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.skill-bar { flex: 1; height: 8px; background: #e4eaf0; border-radius: 4px; overflow: hidden; }
+.skill-fill { height: 100%; border-radius: 4px; }
+.skill-fill-low { background: #9a2a2a; }
+.skill-fill-mid { background: #c07800; }
+.skill-fill-high { background: #1a8050; }
+.skill-pct { font-size: 11px; font-weight: 700; color: #607080; }
+.skill-trend { font-size: 10px; color: #607080; margin-top: 4px; }
+
+/* Intervention log */
+.log-section { padding: 12px 16px; }
+.log-entry { position: relative; padding-left: 20px; margin-bottom: 16px; }
+.log-entry::before { content: ''; position: absolute; left: 6px; top: 0; bottom: -16px; width: 2px; background: #d0dae4; }
+.log-entry:last-child::before { display: none; }
+.log-dot { position: absolute; left: 0; top: 4px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 2px #d0dae4; }
+.log-dot-note { background: #2a5080; }
+.log-dot-concern { background: #9a2a2a; }
+.log-dot-assign { background: #c07800; }
+.log-dot-meet { background: #1a8050; }
+.log-date { font-size: 10px; color: #607080; margin-bottom: 2px; }
+.log-text { font-size: 12px; color: #1c2430; line-height: 1.5; }
+.log-type { font-size: 10px; font-weight: 700; margin-top: 3px; }
+.log-type-note { color: #2a5080; }
+.log-type-concern { color: #9a2a2a; }
+.log-type-assign { color: #c07800; }
+
+/* Quick actions bar */
+.quick-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 390px; background: #fff; border-top: 1px solid #d0dae4; padding: 10px 16px 20px; display: flex; gap: 8px; }
+.qa-btn { flex: 1; padding: 10px 8px; border-radius: 10px; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border: none; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.qa-note { background: #e4eaf0; color: #2a5080; }
+.qa-assign { background: #fff8e0; color: #7a5000; }
+.qa-msg { background: #e8f8f0; color: #1a6040; }
+.qa-icon { font-size: 16px; }
+
+/* Spec */
+.spec-body { padding: 16px; overflow-y: auto; flex: 1; }
+.spec-block { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.spec-title { font-size: 13px; font-weight: 800; color: #2a5080; margin-bottom: 8px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.spec-list li { font-size: 11px; color: #445566; padding-left: 14px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #2a5080; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Teacher Support Lane Mobile v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> 390px mobile support-lane detail view. Single-learner focus with skill snapshot, session log, append-only intervention timeline, and quick-actions bar (Note / Assign / Message). All routing is contact-safe through WonderQuest.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Lane Overview</button>
+  <button class="tab" onclick="show('t2')">Learner Focus</button>
+  <button class="tab" onclick="show('t3')">Skill Snapshot</button>
+  <button class="tab" onclick="show('t4')">Intervention Log</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Support Lane Overview -->
+<div class="phone" id="t1" style="display:flex;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <span class="back-btn">←</span>
+    <div><div class="header-title">Support Lane</div><div class="header-sub">Year 3 · 10 learners flagged</div></div>
+  </div>
+  <div class="phone-body">
+    <div class="lane-section-hdr flag-hdr">🚩 Flag — 2+ Weeks Behind (4)</div>
+    <div class="lane-card flag"><div class="lane-av" style="background:#9a2a2a;">OK</div><div><div class="lane-name">Oliver K.</div><div class="lane-meta">Last active: 5 days ago · Place Value</div></div><span class="lane-badge badge-f">Flag</span></div>
+    <div class="lane-card flag"><div class="lane-av" style="background:#9a2a2a;">AH</div><div><div class="lane-name">Amara H.</div><div class="lane-meta">Last active: 8 days ago · Addition</div></div><span class="lane-badge badge-f">Flag</span></div>
+    <div class="lane-card flag"><div class="lane-av" style="background:#9a2a2a;">PT</div><div><div class="lane-name">Priya T.</div><div class="lane-meta">Last active: 11 days ago · Fractions</div></div><span class="lane-badge badge-f">Flag</span></div>
+    <div class="lane-card flag"><div class="lane-av" style="background:#9a2a2a;">DG</div><div><div class="lane-name">Declan G.</div><div class="lane-meta">Last active: 6 days ago · Number bonds</div></div><span class="lane-badge badge-f">Flag</span></div>
+
+    <div class="lane-section-hdr watch-hdr">⚠️ Watch — 1 Week Behind (6)</div>
+    <div class="lane-card watch"><div class="lane-av" style="background:#c07800;">JL</div><div><div class="lane-name">Jake L.</div><div class="lane-meta">Last active: 2 days ago · Fractions</div></div><span class="lane-badge badge-w">Watch</span></div>
+    <div class="lane-card watch"><div class="lane-av" style="background:#c07800;">MW</div><div><div class="lane-name">Mia W.</div><div class="lane-meta">Last active: 3 days ago · Times tables</div></div><span class="lane-badge badge-w">Watch</span></div>
+    <div class="lane-card watch"><div class="lane-av" style="background:#c07800;">PK</div><div><div class="lane-name">Penelope K.</div><div class="lane-meta">Last active: 1 day ago · Geometry</div></div><span class="lane-badge badge-w">Watch</span></div>
+    <div class="lane-card watch"><div class="lane-av" style="background:#c07800;">SB</div><div><div class="lane-name">Samuel B.</div><div class="lane-meta">Last active: 4 days ago · Place Value</div></div><span class="lane-badge badge-w">Watch</span></div>
+    <div class="lane-card watch"><div class="lane-av" style="background:#c07800;">EF</div><div><div class="lane-name">Emma F.</div><div class="lane-meta">Last active: 2 days ago · Measurement</div></div><span class="lane-badge badge-w">Watch</span></div>
+    <div class="lane-card watch"><div class="lane-av" style="background:#c07800;">RC</div><div><div class="lane-name">Ryan C.</div><div class="lane-meta">Last active: 5 days ago · Addition</div></div><span class="lane-badge badge-w">Watch</span></div>
+  </div>
+</div>
+
+<!-- TAB 2: Learner Focus -->
+<div class="phone" id="t2" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <span class="back-btn">←</span>
+    <div><div class="header-title">Oliver K.</div><div class="header-sub">Year 3 Maths</div></div>
+  </div>
+  <div class="phone-body">
+    <div class="learner-focus-hdr">
+      <div class="lf-top">
+        <div class="lf-av">OK</div>
+        <div>
+          <div class="lf-name">Oliver K.</div>
+          <div class="lf-meta">Year 3 · Room 12 · Ms Sharma</div>
+          <div class="lf-flag">Flag — 2+ weeks behind</div>
+        </div>
+      </div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-card"><div class="metric-val" style="color:#9a2a2a;">14d</div><div class="metric-lbl">Days Inactive</div></div>
+      <div class="metric-card"><div class="metric-val" style="color:#c07800;">42%</div><div class="metric-lbl">Avg Score</div></div>
+      <div class="metric-card"><div class="metric-val">3</div><div class="metric-lbl">Sessions W/K</div></div>
+    </div>
+    <div class="section-title">Recent Sessions</div>
+    <div class="session-item"><span class="session-date">18 Mar</span><div><div class="session-skill">Place Value</div><div class="session-dur">12 min</div></div><span class="session-score score-low">38%</span></div>
+    <div class="session-item"><span class="session-date">15 Mar</span><div><div class="session-skill">Addition Strategies</div><div class="session-dur">8 min</div></div><span class="session-score score-low">45%</span></div>
+    <div class="session-item"><span class="session-date">12 Mar</span><div><div class="session-skill">Number Bonds</div><div class="session-dur">14 min</div></div><span class="session-score score-mid">60%</span></div>
+    <div class="session-item"><span class="session-date">10 Mar</span><div><div class="session-skill">Counting On</div><div class="session-dur">10 min</div></div><span class="session-score score-low">40%</span></div>
+    <div class="section-title">Active Interventions</div>
+    <div style="padding:0 16px 16px;">
+      <div style="background:#fff8f8;border:1px solid #f0d0d0;border-left:3px solid #9a2a2a;border-radius:10px;padding:12px;">
+        <div style="font-size:12px;font-weight:800;color:#9a2a2a;margin-bottom:4px;">Place Value Support Plan</div>
+        <div style="font-size:11px;color:#607080;line-height:1.5;">Goal: Identify hundreds, tens, ones in 3-digit numbers. 3 sessions/week for 4 weeks. Review 2 Apr.</div>
+      </div>
+    </div>
+  </div>
+  <div class="quick-bar">
+    <button class="qa-btn qa-note"><span class="qa-icon">📝</span>Note</button>
+    <button class="qa-btn qa-assign"><span class="qa-icon">📚</span>Assign</button>
+    <button class="qa-btn qa-msg"><span class="qa-icon">💬</span>Message</button>
+  </div>
+</div>
+
+<!-- TAB 3: Skill Snapshot -->
+<div class="phone" id="t3" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <span class="back-btn">←</span>
+    <div><div class="header-title">Skill Snapshot</div><div class="header-sub">Oliver K. · 8-week view</div></div>
+  </div>
+  <div class="phone-body">
+    <div style="padding:12px 16px 0;font-size:11px;color:#607080;">Current performance across P0 core skills</div>
+
+    <div class="skill-snap-card">
+      <div class="skill-snap-name">Place Value to 1000</div>
+      <span class="skill-snap-band" style="background:#fff0f0;color:#9a2a2a;">P0 Core</span>
+      <div class="skill-bar-wrap"><div class="skill-bar"><div class="skill-fill skill-fill-low" style="width:38%"></div></div><span class="skill-pct">38%</span></div>
+      <div class="skill-trend">↓ Declining · Was 52% two weeks ago</div>
+    </div>
+    <div class="skill-snap-card">
+      <div class="skill-snap-name">Addition Strategies</div>
+      <span class="skill-snap-band" style="background:#fff0f0;color:#9a2a2a;">P0 Core</span>
+      <div class="skill-bar-wrap"><div class="skill-bar"><div class="skill-fill skill-fill-low" style="width:45%"></div></div><span class="skill-pct">45%</span></div>
+      <div class="skill-trend">→ Flat · No change last 3 weeks</div>
+    </div>
+    <div class="skill-snap-card">
+      <div class="skill-snap-name">Number Bonds to 20</div>
+      <span class="skill-snap-band" style="background:#fff0f0;color:#9a2a2a;">P0 Core</span>
+      <div class="skill-bar-wrap"><div class="skill-bar"><div class="skill-fill skill-fill-mid" style="width:60%"></div></div><span class="skill-pct">60%</span></div>
+      <div class="skill-trend">↑ Improving · +12% this month</div>
+    </div>
+    <div class="skill-snap-card">
+      <div class="skill-snap-name">Counting in 2s, 5s, 10s</div>
+      <span class="skill-snap-band" style="background:#fff8e0;color:#7a5000;">P1</span>
+      <div class="skill-bar-wrap"><div class="skill-bar"><div class="skill-fill skill-fill-mid" style="width:55%"></div></div><span class="skill-pct">55%</span></div>
+      <div class="skill-trend">→ Flat · Needs targeted practice</div>
+    </div>
+    <div class="skill-snap-card">
+      <div class="skill-snap-name">Subtraction (bridging 10)</div>
+      <span class="skill-snap-band" style="background:#fff0f0;color:#9a2a2a;">P0 Core</span>
+      <div class="skill-bar-wrap"><div class="skill-bar"><div class="skill-fill skill-fill-low" style="width:30%"></div></div><span class="skill-pct">30%</span></div>
+      <div class="skill-trend">↓ Declining · Most at-risk skill</div>
+    </div>
+  </div>
+  <div class="quick-bar">
+    <button class="qa-btn qa-note"><span class="qa-icon">📝</span>Note</button>
+    <button class="qa-btn qa-assign"><span class="qa-icon">📚</span>Assign</button>
+    <button class="qa-btn qa-msg"><span class="qa-icon">💬</span>Message</button>
+  </div>
+</div>
+
+<!-- TAB 4: Intervention Log -->
+<div class="phone" id="t4" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <span class="back-btn">←</span>
+    <div><div class="header-title">Intervention Log</div><div class="header-sub">Oliver K. · Append-only</div></div>
+  </div>
+  <div class="phone-body">
+    <div style="padding:10px 16px;background:#e8f0ff;font-size:10px;color:#2a5080;font-weight:700;">Append-only timeline — entries cannot be edited or deleted.</div>
+    <div class="log-section">
+      <div class="log-entry">
+        <div class="log-dot log-dot-concern"></div>
+        <div class="log-date">23 Mar 2026 · 9:14am · Ms Sharma</div>
+        <div class="log-text">Oliver missed Friday session again. Place value quiz score 38% — well below class average. Escalating to Watch+ review.</div>
+        <div class="log-type log-type-concern">⚠ Concern noted</div>
+      </div>
+      <div class="log-entry">
+        <div class="log-dot log-dot-assign"></div>
+        <div class="log-date">20 Mar 2026 · 2:30pm · Ms Sharma</div>
+        <div class="log-text">Assigned targeted Place Value pack (P0, 10 questions). Due 24 Mar. Adjusted difficulty to start from tens/ones before hundreds.</div>
+        <div class="log-type log-type-assign">📚 Assignment sent</div>
+      </div>
+      <div class="log-entry">
+        <div class="log-dot log-dot-note"></div>
+        <div class="log-date">18 Mar 2026 · 11:05am · Ms Sharma</div>
+        <div class="log-text">Observation: Oliver engaged well during paired activity but struggled independently. Confidence issue when working alone. Recommend short daily sessions rather than long weekly sessions.</div>
+        <div class="log-type log-type-note">📝 Observation</div>
+      </div>
+      <div class="log-entry">
+        <div class="log-dot log-dot-meet"></div>
+        <div class="log-date">15 Mar 2026 · 3:45pm · Ms Sharma</div>
+        <div class="log-text">Parent contact via WonderQuest messaging. Shared progress summary. Parent agreed to 10-min daily home practice. Next check-in: 29 Mar.</div>
+        <div class="log-type" style="color:#1a8050;">💬 Parent contact (WQ messaging)</div>
+      </div>
+      <div class="log-entry">
+        <div class="log-dot log-dot-note"></div>
+        <div class="log-date">10 Mar 2026 · 9:00am · Ms Sharma</div>
+        <div class="log-text">Placed on Flag tier. Oliver has missed 6 of 8 sessions over 2 weeks. Intervention plan initiated: Place Value Support Plan, 3 sessions/week for 4 weeks.</div>
+        <div class="log-type log-type-note">📌 Plan created</div>
+      </div>
+    </div>
+  </div>
+  <div class="quick-bar">
+    <button class="qa-btn qa-note"><span class="qa-icon">📝</span>Note</button>
+    <button class="qa-btn qa-assign"><span class="qa-icon">📚</span>Assign</button>
+    <button class="qa-btn qa-msg"><span class="qa-icon">💬</span>Message</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="phone" id="t5" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-title">Spec</div></div>
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Component Spec: Support Lane Mobile v2</div>
+      <ul class="spec-list">
+        <li>390px mobile, Sora, bg #f0f4f8, nav #2a5080</li>
+        <li>Tab 1: overview list split by tier — Flag (#9a2a2a) and Watch (#c07800) sections</li>
+        <li>Tab 2: single-learner focus — metrics row, recent sessions, active interventions</li>
+        <li>Tab 3: skill snapshot — per-skill progress bars, trend arrow, P0/P1 band labels</li>
+        <li>Tab 4: append-only intervention timeline — timestamped, color-coded by entry type</li>
+        <li>Fixed quick-actions bar on focus screens: Note / Assign / Message</li>
+        <li>Contact-safe: all parent messages route through WonderQuest only — no phone/email PII</li>
+        <li>Intervention log is read-only (append-only) — no edit or delete actions shown</li>
+        <li>Entry types: Observation (blue), Concern (red), Assignment (amber), Parent contact (green)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  ['t1','t2','t3','t4','t5'].forEach(t => {
+    const el = document.getElementById(t);
+    if(el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById(id);
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

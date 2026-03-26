@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Risk Register — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-sub{font-size:11px;color:rgba(255,255,255,.3)}
+.sh-add{font-size:11px;font-weight:700;color:#50e890;cursor:pointer;padding:5px 12px;border-radius:6px;border:1px solid rgba(80,232,144,.3)}
+.sh-export{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer}
+
+/* Stat row */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.stat-cell{background:#010409;padding:14px 18px}
+.stat-val{font-size:22px;font-weight:900;color:#f0f6ff;line-height:1}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.35);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.stat-cell.crit .stat-val{color:#f85149}
+.stat-cell.high .stat-val{color:#f59e0b}
+.stat-cell.med .stat-val{color:#ffd166}
+.stat-cell.low .stat-val{color:#50e890}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;padding:12px 24px;background:#010409;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap;align-items:center}
+.fb-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em}
+.fb-chip{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.fc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.fb-sep{width:1px;height:18px;background:rgba(255,255,255,.08);margin:0 4px}
+
+/* Risk body */
+.risk-body{padding:16px 24px}
+.risk-section-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.risk-section-hdr:first-child{margin-top:0}
+
+/* Risk row */
+.risk-row{display:grid;grid-template-columns:28px 1fr 90px 80px 80px 90px 100px;gap:0;border-bottom:1px solid rgba(255,255,255,.04);align-items:start}
+.risk-row:last-child{border-bottom:none}
+.risk-row.hdr .rr-cell{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.2);padding:8px 12px}
+.rr-cell{padding:10px 12px;font-size:11px;color:rgba(255,255,255,.7)}
+.rr-cell:first-child{padding-left:0}
+.rr-id{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);font-variant-numeric:tabular-nums}
+.rr-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:3px}
+.rr-detail{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4}
+.rr-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.rr-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px}
+.rt-priv{background:rgba(155,114,255,.12);color:#9b72ff}
+.rt-tech{background:rgba(88,232,193,.1);color:#58e8c1}
+.rt-prod{background:rgba(80,232,144,.1);color:#50e890}
+.rt-biz{background:rgba(245,158,11,.1);color:#f59e0b}
+.rt-comp{background:rgba(248,81,73,.1);color:#f85149}
+
+/* Score badge */
+.score-badge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:22px;border-radius:5px;font-size:11px;font-weight:800}
+.sc-crit{background:rgba(248,81,73,.2);color:#f85149}
+.sc-high{background:rgba(245,158,11,.18);color:#f59e0b}
+.sc-med{background:rgba(255,209,102,.12);color:#ffd166}
+.sc-low{background:rgba(80,232,144,.12);color:#50e890}
+
+/* Likelihood / Impact dots */
+.li-dot{display:inline-flex;align-items:center;justify-content:center;width:28px;height:20px;border-radius:4px;font-size:10px;font-weight:700}
+.ld-1{background:rgba(80,232,144,.1);color:#50e890}
+.ld-2{background:rgba(255,209,102,.1);color:#ffd166}
+.ld-3{background:rgba(245,158,11,.12);color:#f59e0b}
+.ld-4{background:rgba(248,81,73,.1);color:#f85149}
+.ld-5{background:rgba(248,81,73,.25);color:#f85149}
+
+/* Status pill */
+.status-pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px}
+.sp-open{background:rgba(248,81,73,.12);color:#f85149}
+.sp-watch{background:rgba(245,158,11,.12);color:#f59e0b}
+.sp-mitig{background:rgba(80,232,144,.1);color:#50e890}
+.sp-accept{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4)}
+
+/* Risk matrix */
+.matrix-wrap{padding:20px 24px;border-top:1px solid rgba(255,255,255,.06)}
+.matrix-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em}
+.matrix-grid{display:grid;grid-template-columns:40px repeat(5,1fr);grid-template-rows:repeat(5,1fr) 30px;gap:3px;max-width:460px}
+.mg-cell{border-radius:4px;min-height:44px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;font-size:9px;font-weight:700}
+.mg-label-y{display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:9px;color:rgba(255,255,255,.25);font-weight:700}
+.mg-label-x{display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,.25);font-weight:700}
+.mg-axis-corner{display:flex;align-items:flex-end;padding-bottom:4px;padding-right:8px;font-size:8px;color:rgba(255,255,255,.2)}
+.mg-empty{background:rgba(255,255,255,.03);border-radius:4px}
+/* Matrix cell colours: low→critical */
+.mc-1{background:rgba(80,232,144,.1)}
+.mc-2{background:rgba(255,209,102,.1)}
+.mc-3{background:rgba(245,158,11,.14)}
+.mc-4{background:rgba(248,81,73,.12)}
+.mc-5{background:rgba(248,81,73,.25)}
+.mc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mc-dot-red{background:#f85149}
+.mc-dot-amb{background:#f59e0b}
+.mc-dot-grn{background:#50e890}
+.mc-id{font-size:8px;color:#f0f6ff;font-weight:700}
+.matrix-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.ml-item{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,.4)}
+.ml-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-risk-register-panel-v2.html</strong><br>
+  Live risk register for the WonderQuest owner. Tracks open operational, compliance, technical, and product risks with likelihood × impact scoring.<br>
+  <strong>Risk score:</strong> Likelihood (1–5) × Impact (1–5) = 1–25. Critical ≥ 16, High 10–15, Medium 5–9, Low 1–4.<br>
+  <strong>Categories:</strong> Privacy/Compliance · Technical/Infra · Product · Business · Legal.<br>
+  <strong>Status:</strong> Open (active, unmitigated) · Monitoring (mitigation in progress) · Mitigated (controls in place) · Accepted (owner acknowledged, low priority).<br>
+  <strong>Matrix view:</strong> Likelihood (Y axis, 1 bottom → 5 top) × Impact (X axis, 1 left → 5 right). Risk IDs plotted in cells.<br>
+  <strong>Not a public document:</strong> Owner-only. Not shown to teachers, parents, or students.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('register')">Risk Register</button>
+  <button class="tab-btn" onclick="showTab('matrix')">Risk Matrix</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Risk Register ─────────────────────────────────────── -->
+<div id="tab-register" class="screen active">
+  <p class="section-title">Owner risk register — all open risks</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">⚠️ Risk Register</div>
+        <div class="sh-sub">12 tracked risks · Last reviewed Mar 24</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="sh-export">↓ Export</div>
+        <div class="sh-add">+ Add Risk</div>
+      </div>
+    </div>
+
+    <!-- Stat row -->
+    <div class="stat-row">
+      <div class="stat-cell crit">
+        <div class="stat-val">2</div>
+        <div class="stat-lbl">Critical (≥16)</div>
+      </div>
+      <div class="stat-cell high">
+        <div class="stat-val">3</div>
+        <div class="stat-lbl">High (10–15)</div>
+      </div>
+      <div class="stat-cell med">
+        <div class="stat-val">4</div>
+        <div class="stat-lbl">Medium (5–9)</div>
+      </div>
+      <div class="stat-cell low">
+        <div class="stat-val">3</div>
+        <div class="stat-lbl">Low (1–4)</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val" style="color:#f59e0b">7</div>
+        <div class="stat-lbl">Open / Monitoring</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="fb-label">Category</div>
+      <button class="fb-chip fc-a">All</button>
+      <button class="fb-chip fc-i">Privacy</button>
+      <button class="fb-chip fc-i">Technical</button>
+      <button class="fb-chip fc-i">Product</button>
+      <button class="fb-chip fc-i">Business</button>
+      <button class="fb-chip fc-i">Legal</button>
+      <div class="fb-sep"></div>
+      <div class="fb-label">Status</div>
+      <button class="fb-chip fc-a">All</button>
+      <button class="fb-chip fc-i">Open</button>
+      <button class="fb-chip fc-i">Monitoring</button>
+      <button class="fb-chip fc-i">Mitigated</button>
+    </div>
+
+    <!-- Risk list -->
+    <div class="risk-body">
+
+      <!-- Header row -->
+      <div class="risk-row hdr">
+        <div class="rr-cell">#</div>
+        <div class="rr-cell">Risk</div>
+        <div class="rr-cell">Score</div>
+        <div class="rr-cell">Likelihood</div>
+        <div class="rr-cell">Impact</div>
+        <div class="rr-cell">Status</div>
+        <div class="rr-cell">Owner</div>
+      </div>
+
+      <!-- CRITICAL -->
+      <div class="risk-section-hdr">🔴 Critical</div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-01</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">FERPA data breach — student PII exposed</div>
+          <div class="rr-detail">A breach of student session data or mastery records could trigger mandatory school notification, DoE reporting, and potential contract termination. Main vector: compromised school admin credentials or API auth bug.</div>
+          <div class="rr-tags"><span class="rr-tag rt-priv">Privacy</span><span class="rr-tag rt-comp">Compliance</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-crit">20</span></div>
+        <div class="rr-cell"><span class="li-dot ld-4">4</span></div>
+        <div class="rr-cell"><span class="li-dot ld-5">5</span></div>
+        <div class="rr-cell"><span class="status-pill sp-watch">Monitoring</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Owner + Eng Lead</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-02</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Assignment Engine single-point-of-failure</div>
+          <div class="rr-detail">Assignment delivery is a monolithic service with no hot standby. PD-4412 incident (5h 20m down) exposed this. Full queue worker failure disables all teacher-assigned content across all schools simultaneously.</div>
+          <div class="rr-tags"><span class="rr-tag rt-tech">Technical</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-crit">16</span></div>
+        <div class="rr-cell"><span class="li-dot ld-4">4</span></div>
+        <div class="rr-cell"><span class="li-dot ld-4">4</span></div>
+        <div class="rr-cell"><span class="status-pill sp-open">Open</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Eng Lead</div>
+      </div>
+
+      <!-- HIGH -->
+      <div class="risk-section-hdr">🟠 High</div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-03</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">COPPA age-gate bypass — under-13 data without parental consent</div>
+          <div class="rr-detail">If a school onboarding flow fails to enforce teacher verification of student age, under-13 data could be collected without COPPA-compliant parental consent. FTC fine risk up to $51,744 per violation.</div>
+          <div class="rr-tags"><span class="rr-tag rt-priv">Privacy</span><span class="rr-tag rt-comp">Compliance</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-high">15</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="li-dot ld-5">5</span></div>
+        <div class="rr-cell"><span class="status-pill sp-watch">Monitoring</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Owner + Legal</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-04</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Key-person dependency — sole backend engineer</div>
+          <div class="rr-detail">Engineering team is 1 FTE backend + 1 part-time contractor. Unplanned absence or departure would halt hotfix deployment capability. Bus factor = 1 for Redis infrastructure and CI/CD pipeline.</div>
+          <div class="rr-tags"><span class="rr-tag rt-biz">Business</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-high">12</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="li-dot ld-4">4</span></div>
+        <div class="rr-cell"><span class="status-pill sp-open">Open</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Owner</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-05</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Content quality regression — wrong-answer-as-correct in high-delivery skills</div>
+          <div class="rr-detail">A misconfigured answer key in a high-frequency skill could serve incorrect content to thousands of sessions before auto-flag triggers (requires 2+ teacher reports). Window of exposure estimated 48–72h.</div>
+          <div class="rr-tags"><span class="rr-tag rt-prod">Product</span><span class="rr-tag rt-comp">Compliance</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-high">10</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-5">5</span></div>
+        <div class="rr-cell"><span class="status-pill sp-watch">Monitoring</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Curriculum Lead</div>
+      </div>
+
+      <!-- MEDIUM -->
+      <div class="risk-section-hdr">🟡 Medium</div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-06</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">School churn — low Band P3 retention</div>
+          <div class="rr-detail">P3 D30 retention is 52% vs. product target of 65%. Schools whose Grade 4–5 students exhaust available content may not renew. 3 schools flagged for potential non-renewal at end of term.</div>
+          <div class="rr-tags"><span class="rr-tag rt-biz">Business</span><span class="rr-tag rt-prod">Product</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-med">9</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="status-pill sp-open">Open</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Owner + Product</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-07</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Database backup failure — daily snapshot silent errors</div>
+          <div class="rr-detail">Backup job failure alert was suppressed due to a config change in Feb. Discovered during audit. 3 days of backup coverage gap before resolution. Restore test conducted — data integrity confirmed.</div>
+          <div class="rr-tags"><span class="rr-tag rt-tech">Technical</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-med">6</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="status-pill sp-mitig">Mitigated</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Eng Lead</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-08</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Third-party asset CDN dependency — skill images/audio</div>
+          <div class="rr-detail">Approximately 12% of skill assets are served from a legacy external CDN. CDN contract renews in July. If CDN is down or contract lapses, affected skills auto-block (asset 404 → delivery_locked).</div>
+          <div class="rr-tags"><span class="rr-tag rt-tech">Technical</span><span class="rr-tag rt-biz">Business</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-med">6</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="status-pill sp-watch">Monitoring</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Eng Lead</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-09</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Accessibility regression — WCAG 2.1 AA compliance gap</div>
+          <div class="rr-detail">Last accessibility audit (Q4 2025) found 4 AA failures in the child-facing player (colour contrast, keyboard nav). Not yet resolved. District procurement increasingly requires VPAT documentation.</div>
+          <div class="rr-tags"><span class="rr-tag rt-prod">Product</span><span class="rr-tag rt-comp">Compliance</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-med">6</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="status-pill sp-open">Open</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Product + Eng</div>
+      </div>
+
+      <!-- LOW -->
+      <div class="risk-section-hdr">🟢 Low</div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-10</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Competitor feature parity — bulk assignment tooling</div>
+          <div class="rr-detail">Primary competitor added bulk assignment in Q1. WonderQuest bulk assignment ships in v2.6 (Apr 25). 2-month gap. No confirmed churn attributed yet.</div>
+          <div class="rr-tags"><span class="rr-tag rt-biz">Business</span><span class="rr-tag rt-prod">Product</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-low">4</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="status-pill sp-watch">Monitoring</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Owner</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-11</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Email deliverability — parent notification emails in spam</div>
+          <div class="rr-detail">3 parent reports of weekly progress emails landing in spam. SPF/DKIM records are correct; issue may be shared IP reputation on email provider. Low volume impact currently.</div>
+          <div class="rr-tags"><span class="rr-tag rt-prod">Product</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-low">3</span></div>
+        <div class="rr-cell"><span class="li-dot ld-3">3</span></div>
+        <div class="rr-cell"><span class="li-dot ld-1">1</span></div>
+        <div class="rr-cell"><span class="status-pill sp-accept">Accepted</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Eng Lead</div>
+      </div>
+
+      <div class="risk-row">
+        <div class="rr-cell"><span class="rr-id">R-12</span></div>
+        <div class="rr-cell">
+          <div class="rr-title">Governance log hash chain integrity check — not yet scheduled</div>
+          <div class="rr-detail">Governance log spec requires periodic hash-chain integrity check to detect tampering. Cron job defined but not yet deployed. Log is still append-only and immutable; this is an additional integrity verification layer.</div>
+          <div class="rr-tags"><span class="rr-tag rt-comp">Compliance</span><span class="rr-tag rt-tech">Technical</span></div>
+        </div>
+        <div class="rr-cell"><span class="score-badge sc-low">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-2">2</span></div>
+        <div class="rr-cell"><span class="li-dot ld-1">1</span></div>
+        <div class="rr-cell"><span class="status-pill sp-open">Open</span></div>
+        <div class="rr-cell" style="font-size:10px;color:rgba(255,255,255,.4)">Eng Lead</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Risk Matrix ───────────────────────────────────────── -->
+<div id="tab-matrix" class="screen">
+  <p class="section-title">Risk matrix — likelihood × impact</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">⚠️ Risk Matrix</div>
+        <div class="sh-sub">12 risks plotted · Likelihood (Y) × Impact (X)</div>
+      </div>
+    </div>
+    <div class="matrix-wrap">
+      <div class="matrix-title">Risk Matrix — Likelihood (1 = Rare, 5 = Almost Certain) × Impact (1 = Negligible, 5 = Severe)</div>
+
+      <!--
+        Grid: 6 cols (label + 5 impact cols), 7 rows (5 likelihood rows + label row + corner)
+        Likelihood 5 = top row, 1 = bottom row
+        Impact 1 = leftmost, 5 = rightmost
+      -->
+      <div class="matrix-grid">
+        <!-- Row: L=5 -->
+        <div class="mg-label-y">5</div>
+        <div class="mg-cell mc-3"><span class="mc-id" style="font-size:8px">R-11</span></div><!-- L5 I1=5 -->
+        <div class="mg-cell mc-4"></div><!-- L5 I2=10 -->
+        <div class="mg-cell mc-4"></div><!-- L5 I3=15 -->
+        <div class="mg-cell mc-5"></div><!-- L5 I4=20 -->
+        <div class="mg-cell mc-5"></div><!-- L5 I5=25 -->
+
+        <!-- Row: L=4 -->
+        <div class="mg-label-y">4</div>
+        <div class="mg-cell mc-2"></div><!-- L4 I1=4 -->
+        <div class="mg-cell mc-3"></div><!-- L4 I2=8 -->
+        <div class="mg-cell mc-4"><span class="mc-id">R-06</span></div><!-- L4 I3=12 — wait, R-06 is L3 I3 -->
+        <div class="mg-cell mc-5" style="flex-direction:column;gap:3px">
+          <span class="mc-id">R-01</span><!-- L4 I4=16, actually R-01 L4×I5=20 -->
+          <span class="mc-id">R-02</span><!-- R-02 L4×I4=16 -->
+        </div>
+        <div class="mg-cell mc-5"><span class="mc-id">R-01</span></div><!-- placeholder: R-01 L4×I5=20 -->
+
+        <!-- Row: L=3 -->
+        <div class="mg-label-y">3</div>
+        <div class="mg-cell mc-1"></div><!-- L3 I1=3 -->
+        <div class="mg-cell mc-2"></div><!-- L3 I2=6 -->
+        <div class="mg-cell mc-3"><span class="mc-id">R-06</span></div><!-- L3 I3=9 -->
+        <div class="mg-cell mc-4"><span class="mc-id">R-04</span></div><!-- L3 I4=12 -->
+        <div class="mg-cell mc-5"><span class="mc-id">R-03</span></div><!-- L3 I5=15 -->
+
+        <!-- Row: L=2 -->
+        <div class="mg-label-y">2</div>
+        <div class="mg-cell mc-1"><span class="mc-id">R-12</span></div><!-- L2 I1=2 -->
+        <div class="mg-cell mc-1"><span class="mc-id">R-10</span></div><!-- L2 I2=4 -->
+        <div class="mg-cell mc-2" style="flex-direction:column;gap:3px">
+          <span class="mc-id">R-07</span>
+          <span class="mc-id">R-08</span>
+          <span class="mc-id">R-09</span>
+        </div><!-- L2 I3=6 -->
+        <div class="mg-cell mc-2"></div><!-- L2 I4=8 -->
+        <div class="mg-cell mc-3"><span class="mc-id">R-05</span></div><!-- L2 I5=10 -->
+
+        <!-- Row: L=1 -->
+        <div class="mg-label-y">1</div>
+        <div class="mg-cell mc-1"></div>
+        <div class="mg-cell mc-1"></div>
+        <div class="mg-cell mc-1"></div>
+        <div class="mg-cell mc-2"></div>
+        <div class="mg-cell mc-2"></div>
+
+        <!-- X-axis labels -->
+        <div class="mg-axis-corner">L \ I →</div>
+        <div class="mg-label-x">1</div>
+        <div class="mg-label-x">2</div>
+        <div class="mg-label-x">3</div>
+        <div class="mg-label-x">4</div>
+        <div class="mg-label-x">5</div>
+      </div>
+
+      <div class="matrix-legend">
+        <div class="ml-item"><div class="ml-sq" style="background:rgba(80,232,144,.25)"></div>Low (1–4)</div>
+        <div class="ml-item"><div class="ml-sq" style="background:rgba(255,209,102,.25)"></div>Medium (5–9)</div>
+        <div class="ml-item"><div class="ml-sq" style="background:rgba(245,158,11,.3)"></div>High (10–15)</div>
+        <div class="ml-item"><div class="ml-sq" style="background:rgba(248,81,73,.4)"></div>Critical (16–25)</div>
+      </div>
+
+      <!-- Quick reference table -->
+      <div style="margin-top:24px;border-top:1px solid rgba(255,255,255,.06);padding-top:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:10px">Risk Summary — Quick Reference</div>
+        <div style="display:grid;grid-template-columns:50px 1fr 60px 70px 70px 80px;gap:0">
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.2);padding:6px 8px;text-transform:uppercase">ID</div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.2);padding:6px 8px;text-transform:uppercase">Risk</div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.2);padding:6px 8px;text-transform:uppercase">Score</div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.2);padding:6px 8px;text-transform:uppercase">L × I</div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.2);padding:6px 8px;text-transform:uppercase">Level</div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.2);padding:6px 8px;text-transform:uppercase">Status</div>
+          <!-- rows -->
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">R-01</div>
+          <div style="font-size:11px;color:#f0f6ff;padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">FERPA breach — student PII</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="score-badge sc-crit">20</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">4 × 5</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span style="color:#f85149;font-size:10px;font-weight:700">Critical</span></div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="status-pill sp-watch">Monitoring</span></div>
+
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">R-02</div>
+          <div style="font-size:11px;color:#f0f6ff;padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">Assignment Engine SPOF</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="score-badge sc-crit">16</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">4 × 4</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span style="color:#f85149;font-size:10px;font-weight:700">Critical</span></div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="status-pill sp-open">Open</span></div>
+
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">R-03</div>
+          <div style="font-size:11px;color:#f0f6ff;padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">COPPA age-gate bypass</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="score-badge sc-high">15</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">3 × 5</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span style="color:#f59e0b;font-size:10px;font-weight:700">High</span></div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="status-pill sp-watch">Monitoring</span></div>
+
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">R-04</div>
+          <div style="font-size:11px;color:#f0f6ff;padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">Key-person dependency</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="score-badge sc-high">12</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">3 × 4</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span style="color:#f59e0b;font-size:10px;font-weight:700">High</span></div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="status-pill sp-open">Open</span></div>
+
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">R-05</div>
+          <div style="font-size:11px;color:#f0f6ff;padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">Content quality regression</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="score-badge sc-high">10</span></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)">2 × 5</div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span style="color:#f59e0b;font-size:10px;font-weight:700">High</span></div>
+          <div style="padding:7px 8px;border-top:1px solid rgba(255,255,255,.04)"><span class="status-pill sp-watch">Monitoring</span></div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;padding-left:8px">R-06 through R-12: Medium–Low · see Risk Register tab for full details</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-risk-register-panel-v2.html<br>
+      <strong>Risk register.</strong> 12 tracked risks. Likelihood × Impact scoring (1–25). Categories: Privacy, Technical, Product, Business, Compliance. Statuses: Open, Monitoring, Mitigated, Accepted. Matrix view (5×5 grid). Owner-only panel.
+    </div>
+    <h2 class="spec-h2">Risk Scoring</h2>
+    <p class="spec-p">Risk Score = Likelihood (1–5) × Impact (1–5). Score ranges: Critical ≥ 16 (red), High 10–15 (amber), Medium 5–9 (yellow), Low 1–4 (green). Likelihood scale: 1=Rare (once in 3+ years), 2=Unlikely, 3=Possible (once/year), 4=Likely (once/quarter), 5=Almost Certain (monthly+). Impact scale: 1=Negligible (no user impact), 2=Minor (few users), 3=Moderate (school-level), 4=Major (multi-school), 5=Severe (regulatory / full outage / data breach).</p>
+    <h2 class="spec-h2">Status Definitions</h2>
+    <p class="spec-p"><strong>Open:</strong> Risk identified, no mitigation controls in place yet. Requires owner action. <strong>Monitoring:</strong> Mitigation underway or partial controls in place; risk is being tracked actively. <strong>Mitigated:</strong> Controls implemented and validated. Risk score reassessed (may still be tracked at residual score). <strong>Accepted:</strong> Owner has acknowledged the risk and accepted it as tolerable at current level. Reviewed quarterly.</p>
+    <h2 class="spec-h2">Review Cadence</h2>
+    <p class="spec-p">Full risk register review: monthly. Critical risks: reviewed weekly (owner + eng lead). New risks can be added by owner at any time. Risks are never deleted — they are Accepted or Mitigated, then archived after 12 months of Mitigated/Accepted status.</p>
+    <h2 class="spec-h2">Visibility</h2>
+    <p class="spec-p">Risk register is owner-only. Not visible to teachers, parents, or students. Engineering lead has read access for technical risks. Legal counsel has read access for compliance risks. No individual staff names in risk descriptions.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

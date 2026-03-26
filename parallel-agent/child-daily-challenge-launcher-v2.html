@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest #297 — Child Daily Challenge Launcher v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --card:     #161b22;
+      --accent:   #50e890;
+      --text:     #f0f6ff;
+      --border:   rgba(255,255,255,.06);
+      --muted:    #8b949e;
+      --p0:       #ffd166;
+      --p1:       #9b72ff;
+      --p2:       #58e8c1;
+      --p3:       #ff7b6b;
+      --band-accent: var(--p0);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 0 0 48px;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .eng-hint {
+      background: #fffbe6;
+      border: 2px solid #f0c000;
+      border-radius: 10px;
+      color: #3a2e00;
+      font-family: 'Inter', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 16px auto;
+      max-width: 900px;
+      padding: 14px 18px;
+    }
+    .eng-hint strong { font-weight: 700; }
+
+    /* ── Page Header ── */
+    .page-header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px 0;
+      max-width: 900px;
+      margin: 0 auto;
+      border-radius: 12px 12px 0 0;
+    }
+    .page-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .page-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: 44px;
+      padding: 10px 16px;
+      transition: color .2s, border-color .2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      border-bottom-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+    .tab-content.active { display: block; }
+
+    /* ── Controls row ── */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 8px; }
+    .control-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill-btn {
+      background: rgba(255,255,255,.05);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      min-height: 36px;
+      padding: 6px 14px;
+      transition: all .18s;
+    }
+    .pill-btn:hover { border-color: var(--accent); color: var(--text); }
+    .pill-btn.active { background: rgba(80,232,144,.12); border-color: var(--accent); color: var(--accent); }
+
+    /* ── Challenge Card ── */
+    .challenge-card-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    .challenge-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      max-width: 420px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.4);
+    }
+
+    /* themed gradient header */
+    .card-header {
+      padding: 28px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+    .card-header-space  { background: linear-gradient(135deg,#0d0d2b 0%,#1a1060 50%,#2d0b6b 100%); }
+    .card-header-animals{ background: linear-gradient(135deg,#0f3d1e 0%,#1a5c2e 50%,#0d3321 100%); }
+    .card-header-sports { background: linear-gradient(135deg,#2b0d0d 0%,#5c1a1a 50%,#7a2020 100%); }
+    .card-header-arts   { background: linear-gradient(135deg,#2b0d2b 0%,#5c1a5c 50%,#6b1060 100%); }
+    .card-header-ocean  { background: linear-gradient(135deg,#0d1e3d 0%,#1a3060 50%,#0d2244 100%); }
+    .card-header-building{background: linear-gradient(135deg,#2b1a0d 0%,#5c3d1a 50%,#7a4a14 100%); }
+
+    .today-badge {
+      background: linear-gradient(90deg,#c9a000,#ffd166);
+      border-radius: 20px;
+      color: #1a1000;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      padding: 4px 12px;
+      text-transform: uppercase;
+    }
+
+    .card-date {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,.55);
+      letter-spacing: .03em;
+    }
+
+    .mascot {
+      font-size: 64px;
+      line-height: 1;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,.5));
+    }
+
+    .quest-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .card-body {
+      padding: 20px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+    .chip {
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 12px;
+      white-space: nowrap;
+    }
+    .chip-subject {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.1);
+      color: var(--text);
+    }
+    .chip-band {
+      border: 1.5px solid;
+      background: transparent;
+    }
+    .chip-band-p0 { border-color: var(--p0); color: var(--p0); }
+    .chip-band-p1 { border-color: var(--p1); color: var(--p1); }
+    .chip-band-p2 { border-color: var(--p2); color: var(--p2); }
+    .chip-band-p3 { border-color: var(--p3); color: var(--p3); }
+
+    .chip-xp {
+      background: rgba(80,232,144,.12);
+      border: 1.5px solid rgba(80,232,144,.3);
+      color: var(--accent);
+      font-size: 13px;
+      padding: 6px 14px;
+    }
+
+    .cta-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 14px;
+      color: #051a0a;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      min-height: 52px;
+      padding: 12px 24px;
+      transition: transform .15s, box-shadow .15s;
+      width: 100%;
+    }
+    .cta-btn:hover  { box-shadow: 0 0 0 4px rgba(80,232,144,.25); transform: translateY(-1px); }
+    .cta-btn:active { transform: translateY(0); }
+
+    .alt-link {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      min-height: 44px;
+      padding: 8px;
+      text-align: center;
+      text-decoration: none;
+      transition: color .2s;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .alt-link:hover { color: var(--text); }
+
+    .hint-text {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* ── Tab 2 — States ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      margin-top: 28px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    .state-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .state-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .state-card-header {
+      padding: 14px 18px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .state-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .state-dot {
+      border-radius: 50%;
+      height: 8px;
+      width: 8px;
+      flex-shrink: 0;
+    }
+    .dot-available  { background: var(--accent); }
+    .dot-inprogress { background: var(--p0); }
+    .dot-completed  { background: var(--p2); }
+    .dot-skipped    { background: var(--muted); }
+    .dot-quiet      { background: var(--p1); }
+
+    .state-card-body {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .state-msg {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .state-sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* pulse animation for in-progress */
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0   rgba(255,209,102,.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(255,209,102,0); }
+      100% { box-shadow: 0 0 0 0   rgba(255,209,102,0); }
+    }
+    .pulse-demo {
+      animation: pulse-ring 2s ease infinite;
+      background: rgba(255,209,102,.1);
+      border: 2px solid var(--p0);
+      border-radius: 12px;
+      color: var(--p0);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 14px;
+      text-align: center;
+    }
+
+    .state-cta {
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      color: #051a0a;
+      cursor: default;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      min-height: 48px;
+      padding: 10px 20px;
+      pointer-events: none;
+      width: 100%;
+    }
+
+    .state-cta-muted {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--muted);
+      cursor: default;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: 48px;
+      padding: 10px 20px;
+      pointer-events: none;
+      width: 100%;
+      text-align: center;
+    }
+
+    .xp-chip-large {
+      background: rgba(88,232,193,.12);
+      border: 1.5px solid rgba(88,232,193,.35);
+      border-radius: 10px;
+      color: var(--p2);
+      font-size: 15px;
+      font-weight: 800;
+      padding: 10px 16px;
+      text-align: center;
+    }
+
+    /* ── Tab 3 — Spec ── */
+    .spec-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .spec-section-title {
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      padding: 12px 18px;
+      text-transform: uppercase;
+    }
+    .spec-body { padding: 18px; }
+
+    .spec-table {
+      border-collapse: collapse;
+      font-size: 13px;
+      width: 100%;
+    }
+    .spec-table th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      padding: 6px 12px 6px 0;
+      text-align: left;
+      text-transform: uppercase;
+      vertical-align: top;
+      white-space: nowrap;
+      width: 160px;
+    }
+    .spec-table td {
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 6px 0 6px 12px;
+      vertical-align: top;
+    }
+    .spec-table tr + tr th,
+    .spec-table tr + tr td {
+      border-top: 1px solid var(--border);
+    }
+
+    code {
+      background: rgba(255,255,255,.06);
+      border-radius: 5px;
+      color: var(--p2);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+    }
+
+    .rule-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      list-style: none;
+    }
+    .rule-list li {
+      align-items: flex-start;
+      color: var(--text);
+      display: flex;
+      font-size: 13px;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .rule-list li::before {
+      color: var(--accent);
+      content: '✓';
+      flex-shrink: 0;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    pre.schema-block {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--p2);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      overflow-x: auto;
+      padding: 16px;
+      white-space: pre;
+    }
+
+    .props-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .prop-row {
+      align-items: flex-start;
+      display: flex;
+      font-size: 13px;
+      gap: 10px;
+    }
+    .prop-name { color: var(--p0); font-weight: 700; white-space: nowrap; }
+    .prop-type { color: var(--muted); font-size: 12px; }
+    .prop-desc { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .eng-hint { margin: 12px; }
+      .tab-content { padding: 20px 16px; }
+      .state-cards { grid-template-columns: 1fr; }
+      .spec-table th { width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering Hint Box — always first -->
+  <div class="eng-hint">
+    <strong>Engineering hint — child-daily-challenge-launcher-v2</strong><br />
+    <strong>Persona:</strong> Child (all bands) &nbsp;|&nbsp;
+    <strong>Route:</strong> /child/home (daily challenge section)<br />
+    <strong>Props:</strong> { child_first_name, active_theme_family_id, current_band, daily_quest_name, daily_quest_subject, daily_xp_bonus, xp_label, challenge_date }<br />
+    <strong>DB:</strong> daily_challenges { id, child_id, challenge_date DATE, quest_id, status ENUM('available','started','completed','skipped'), completed_at TIMESTAMPTZ, xp_awarded INT }<br />
+    <strong>Privacy:</strong> First name only; no accuracy %; no timer; no penalty for skipping; challenge resets daily at midnight local time
+  </div>
+
+  <!-- Page header -->
+  <div style="max-width:900px;margin:0 auto;">
+    <div class="page-header">
+      <div class="page-title">WonderQuest Design System · #297</div>
+      <div class="page-name">Child Daily Challenge Launcher</div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('card')" id="tab-card">Daily Challenge Card</button>
+      <button class="tab-btn" onclick="showTab('states')" id="tab-states">States</button>
+      <button class="tab-btn" onclick="showTab('spec')" id="tab-spec">Spec</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       TAB 1 — Daily Challenge Card
+  ══════════════════════════════════════════════ -->
+  <div class="tab-content active" id="panel-card">
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label">Theme</div>
+        <div class="pill-row">
+          <button class="pill-btn active" onclick="setTheme('space',this)">🚀 Space</button>
+          <button class="pill-btn" onclick="setTheme('animals',this)">🦁 Animals</button>
+          <button class="pill-btn" onclick="setTheme('sports',this)">⚽ Sports</button>
+          <button class="pill-btn" onclick="setTheme('arts',this)">🎨 Arts</button>
+          <button class="pill-btn" onclick="setTheme('ocean',this)">🌊 Ocean</button>
+          <button class="pill-btn" onclick="setTheme('building',this)">🏗️ Building</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label">Band</div>
+        <div class="pill-row">
+          <button class="pill-btn active" onclick="setBand('p0',this)" style="color:var(--p0);border-color:var(--p0);">P0 Early</button>
+          <button class="pill-btn" onclick="setBand('p1',this)" style="color:var(--p1);border-color:var(--p1);">P1 Growing</button>
+          <button class="pill-btn" onclick="setBand('p2',this)" style="color:var(--p2);border-color:var(--p2);">P2 Fluent</button>
+          <button class="pill-btn" onclick="setBand('p3',this)" style="color:var(--p3);border-color:var(--p3);">P3 Advanced</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live challenge card -->
+    <div class="challenge-card-wrap">
+      <div class="challenge-card">
+
+        <div class="card-header card-header-space" id="card-header">
+          <div class="today-badge">Today's Challenge ⚡</div>
+          <div class="card-date" id="card-date">Tuesday, March 25</div>
+          <div class="mascot" id="card-mascot">🚀</div>
+          <div class="quest-name" id="card-quest-name">The Star Chart Mystery</div>
+        </div>
+
+        <div class="card-body">
+          <div class="chip-row">
+            <span class="chip chip-subject" id="card-subject-chip">📐 Math</span>
+            <span class="chip chip-band chip-band-p0" id="card-band-chip">P0 · Early Learner</span>
+          </div>
+
+          <div class="chip-row">
+            <span class="chip chip-xp" id="card-xp-chip">+20 Bonus Star Dust! ✨</span>
+          </div>
+
+          <button class="cta-btn" type="button">Accept Challenge! 🚀</button>
+
+          <button class="alt-link" type="button">Explore freely instead →</button>
+
+          <div class="hint-text">New challenge tomorrow ✨</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /panel-card -->
+
+  <!-- ══════════════════════════════════════════════
+       TAB 2 — States
+  ══════════════════════════════════════════════ -->
+  <div class="tab-content" id="panel-states">
+
+    <div class="section-label">Challenge States</div>
+    <div class="state-cards">
+
+      <!-- Available -->
+      <div class="state-card">
+        <div class="state-card-header">
+          <div class="state-dot dot-available"></div>
+          <div class="state-label" style="color:var(--accent);">Available — Not Yet Started</div>
+        </div>
+        <div class="state-card-body">
+          <div class="state-msg">Today's challenge is waiting! 🌟</div>
+          <div class="state-sub">status: <code>available</code> — The default state shown at the start of each day. No pressure to accept.</div>
+          <button class="state-cta" type="button">Accept Challenge! 🚀</button>
+          <button class="alt-link" type="button" style="pointer-events:none;">Explore freely instead →</button>
+        </div>
+      </div>
+
+      <!-- In Progress -->
+      <div class="state-card">
+        <div class="state-card-header">
+          <div class="state-dot dot-inprogress"></div>
+          <div class="state-label" style="color:var(--p0);">In Progress</div>
+        </div>
+        <div class="state-card-body">
+          <div class="state-msg">You're on today's challenge! 🔥<br/>Keep going, Emma!</div>
+          <div class="state-sub">status: <code>started</code> — Child accepted and has begun the quest. CTA routes back into the active quest session.</div>
+          <div class="pulse-demo">🔥 Quest in progress — tap to continue!</div>
+        </div>
+      </div>
+
+      <!-- Completed -->
+      <div class="state-card">
+        <div class="state-card-header">
+          <div class="state-dot dot-completed"></div>
+          <div class="state-label" style="color:var(--p2);">Completed</div>
+        </div>
+        <div class="state-card-body">
+          <div class="state-msg">CHALLENGE COMPLETE! 🏆<br/>Emma crushed it today!</div>
+          <div class="state-sub">status: <code>completed</code> — XP awarded on completion. No accuracy % shown. Celebratory framing only.</div>
+          <div class="xp-chip-large">+20 Bonus Star Dust earned! ✨</div>
+          <div class="hint-text" style="font-size:13px;font-weight:600;color:var(--text);">See you tomorrow! 🌟</div>
+        </div>
+      </div>
+
+      <!-- Skipped / Expired -->
+      <div class="state-card">
+        <div class="state-card-header">
+          <div class="state-dot dot-skipped"></div>
+          <div class="state-label" style="color:var(--muted);">Skipped / Expired</div>
+        </div>
+        <div class="state-card-body">
+          <div class="state-msg">New challenge unlocks at midnight! 🌙</div>
+          <div class="state-sub">status: <code>skipped</code> or day boundary passed — Zero negative language. No shame. No penalty. xp_awarded remains null.</div>
+          <div class="state-cta-muted">See you tomorrow ✨</div>
+          <div class="hint-text">Challenges reset every day — a fresh start is always coming!</div>
+        </div>
+      </div>
+
+      <!-- Quiet Hours -->
+      <div class="state-card">
+        <div class="state-card-header">
+          <div class="state-dot dot-quiet"></div>
+          <div class="state-label" style="color:var(--p1);">Quiet Hours (before 7 am)</div>
+        </div>
+        <div class="state-card-body">
+          <div class="state-msg">Good morning! 🌅</div>
+          <div class="state-sub">CTA suppressed between midnight reset and 7 am local time. Challenge card is visible but the accept button is hidden to encourage healthy sleep habits.</div>
+          <div class="state-cta-muted">Available after 7 am 🌅</div>
+          <div class="hint-text">Your challenge is ready and waiting — no rush!</div>
+        </div>
+      </div>
+
+    </div><!-- /state-cards -->
+
+  </div><!-- /panel-states -->
+
+  <!-- ══════════════════════════════════════════════
+       TAB 3 — Spec
+  ══════════════════════════════════════════════ -->
+  <div class="tab-content" id="panel-spec">
+
+    <!-- Component identity -->
+    <div class="spec-section">
+      <div class="spec-section-title">Component Identity</div>
+      <div class="spec-body">
+        <table class="spec-table">
+          <tr><th>Component</th><td><code>DailyChallengeCard</code></td></tr>
+          <tr><th>Design System ID</th><td>#297</td></tr>
+          <tr><th>Route</th><td><code>/child/home</code> — daily challenge section</td></tr>
+          <tr><th>Auth</th><td>Child session required; parent JWT not accepted</td></tr>
+          <tr><th>Persona</th><td>Child — all bands (P0 Early, P1 Growing, P2 Fluent, P3 Advanced)</td></tr>
+          <tr><th>Renders in</th><td>Child home screen, below the greeting header, above the subject grid</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Props -->
+    <div class="spec-section">
+      <div class="spec-section-title">Props</div>
+      <div class="spec-body">
+        <div class="props-list">
+          <div class="prop-row"><span class="prop-name">child_first_name</span><span class="prop-type">string</span><span class="prop-desc">Display name only — never last name or full name</span></div>
+          <div class="prop-row"><span class="prop-name">active_theme_family_id</span><span class="prop-type">string</span><span class="prop-desc">One of: space · animals · sports · arts · ocean · building — drives gradient and mascot</span></div>
+          <div class="prop-row"><span class="prop-name">current_band</span><span class="prop-type">string</span><span class="prop-desc">P0 | P1 | P2 | P3 — used to select age-appropriate quest; drives band chip colour</span></div>
+          <div class="prop-row"><span class="prop-name">daily_quest_name</span><span class="prop-type">string</span><span class="prop-desc">Human-readable quest title, e.g. "The Star Chart Mystery"</span></div>
+          <div class="prop-row"><span class="prop-name">daily_quest_subject</span><span class="prop-type">string</span><span class="prop-desc">Subject label shown in the subject chip, e.g. "Math", "Reading"</span></div>
+          <div class="prop-row"><span class="prop-name">daily_xp_bonus</span><span class="prop-type">number</span><span class="prop-desc">Integer XP bonus for completing the daily challenge, e.g. 20</span></div>
+          <div class="prop-row"><span class="prop-name">xp_label</span><span class="prop-type">string</span><span class="prop-desc">Theme-appropriate XP currency name, e.g. "Star Dust", "Explorer Points"</span></div>
+          <div class="prop-row"><span class="prop-name">challenge_date</span><span class="prop-type">Date</span><span class="prop-desc">ISO date string for the active challenge day; used to render the friendly date label</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DB Schema -->
+    <div class="spec-section">
+      <div class="spec-section-title">DB Schema — daily_challenges</div>
+      <div class="spec-body">
+        <pre class="schema-block">CREATE TABLE daily_challenges (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  child_id       UUID NOT NULL REFERENCES children(id),
+  challenge_date DATE NOT NULL,
+  quest_id       UUID NOT NULL REFERENCES quests(id),
+  status         ENUM('available','started','completed','skipped')
+                 NOT NULL DEFAULT 'available',
+  completed_at   TIMESTAMPTZ,
+  xp_awarded     INT,            -- NULL until status = 'completed'
+  UNIQUE (child_id, challenge_date)
+);</pre>
+      </div>
+    </div>
+
+    <!-- Rules -->
+    <div class="spec-section">
+      <div class="spec-section-title">Behaviour Rules</div>
+      <div class="spec-body">
+        <ul class="rule-list">
+          <li>Challenge is <strong>optional</strong> — skipping carries zero penalty, no negative language is ever shown</li>
+          <li>No countdown timer, no streak pressure counter, no accuracy percentage displayed anywhere on this card</li>
+          <li>Challenge resets daily at <strong>midnight local time</strong> — a new row with status <code>available</code> is created server-side</li>
+          <li>Only one active challenge per child per day — enforced by the UNIQUE constraint on (child_id, challenge_date)</li>
+          <li><strong>Quiet hours</strong> (midnight – 6:59 am local): card renders but the Accept CTA is hidden; replaced with a soft "Available after 7 am" message</li>
+          <li>xp_awarded is only written to the DB when status transitions to <code>completed</code>; it remains NULL for skipped or in-progress rows</li>
+          <li>Quest selected for the day must match child's <code>current_band</code> — no cross-band assignments</li>
+          <li>Privacy: only <code>child_first_name</code> (first name) is rendered — no last name, no email, no parent name</li>
+          <li>"Explore freely instead" link is always visible alongside the CTA — it routes to the main subject grid with no challenge context attached</li>
+          <li>All touch targets are ≥ 44 × 44 px; component meets WCAG 2.1 AA colour contrast for both text and interactive elements</li>
+          <li>Card is fully mobile-responsive; max-width 420 px centered on wide viewports, full-width on narrow</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- State machine -->
+    <div class="spec-section">
+      <div class="spec-section-title">State Machine</div>
+      <div class="spec-body">
+        <table class="spec-table">
+          <tr><th>Status</th><th>CTA Visible</th><th>XP Chip</th><th>Alt Link</th><th>Notes</th></tr>
+          <tr><td><code>available</code></td><td>Yes — "Accept Challenge! 🚀"</td><td>Teaser chip (+N xp_label)</td><td>Yes</td><td>Default on load</td></tr>
+          <tr><td><code>started</code></td><td>Yes — "Continue Quest 🔥"</td><td>Teaser chip</td><td>No</td><td>Pulse animation hint</td></tr>
+          <tr><td><code>completed</code></td><td>No — replaced by completion message</td><td>Earned chip</td><td>No</td><td>xp_awarded confirmed</td></tr>
+          <tr><td><code>skipped</code></td><td>No — midnight message shown</td><td>Hidden</td><td>No</td><td>No shame language</td></tr>
+          <tr><td>Quiet hours</td><td>No — "Available after 7 am 🌅"</td><td>Hidden</td><td>No</td><td>Overrides available state</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /panel-spec -->
+
+  <script>
+    /* ── Tab switcher ── */
+    function showTab(t) {
+      document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('panel-' + t).classList.add('active');
+      document.getElementById('tab-' + t).classList.add('active');
+    }
+
+    /* ── Theme data ── */
+    const themes = {
+      space:    { header: 'card-header-space',    mascot: '🚀', quest: 'The Star Chart Mystery',     subject: '📐 Math'     },
+      animals:  { header: 'card-header-animals',  mascot: '🦁', quest: 'The Great Animal Migration', subject: '🔬 Science'  },
+      sports:   { header: 'card-header-sports',   mascot: '⚽', quest: 'The Championship Code',      subject: '📊 Stats'    },
+      arts:     { header: 'card-header-arts',     mascot: '🎨', quest: 'Colors of the Rainbow World',subject: '🎭 Arts'     },
+      ocean:    { header: 'card-header-ocean',    mascot: '🐋', quest: 'The Deep Sea Secret',         subject: '🔬 Science'  },
+      building: { header: 'card-header-building', mascot: '🏗️', quest: 'Build the Tallest Tower',    subject: '📐 Math'     },
+    };
+
+    const bands = {
+      p0: { label: 'P0 · Early Learner',  chipClass: 'chip-band-p0' },
+      p1: { label: 'P1 · Growing',         chipClass: 'chip-band-p1' },
+      p2: { label: 'P2 · Fluent',          chipClass: 'chip-band-p2' },
+      p3: { label: 'P3 · Advanced',        chipClass: 'chip-band-p3' },
+    };
+
+    let currentTheme = 'space';
+    let currentBand  = 'p0';
+
+    function renderCard() {
+      const th = themes[currentTheme];
+      const ba = bands[currentBand];
+
+      // Header gradient
+      const header = document.getElementById('card-header');
+      header.className = 'card-header ' + th.header;
+
+      // Mascot & quest name
+      document.getElementById('card-mascot').textContent    = th.mascot;
+      document.getElementById('card-quest-name').textContent = th.quest;
+
+      // Subject chip
+      document.getElementById('card-subject-chip').textContent = th.subject;
+
+      // Band chip
+      const bandChip = document.getElementById('card-band-chip');
+      bandChip.className = 'chip chip-band ' + ba.chipClass;
+      bandChip.textContent = ba.label;
+    }
+
+    function setTheme(theme, btn) {
+      currentTheme = theme;
+      document.querySelectorAll('.controls .pill-row').forEach((row, idx) => {
+        if (idx === 0) row.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+      });
+      btn.classList.add('active');
+      renderCard();
+    }
+
+    function setBand(band, btn) {
+      currentBand = band;
+      // deactivate all band pills
+      const bandRow = document.querySelectorAll('.controls .pill-row')[1];
+      bandRow.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderCard();
+    }
+
+    /* ── Set today's date ── */
+    (function setDate() {
+      const d = new Date(2026, 2, 25); // March 25, 2026
+      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      document.getElementById('card-date').textContent = label;
+    })();
+  </script>
+</body>
+</html>

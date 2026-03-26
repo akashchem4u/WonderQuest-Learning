@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Reward Cabinet v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #100b2e; min-height: 100vh; font-family: 'Nunito', sans-serif; color: #fff; }
+.eng-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 16px 20px; }
+.tab-btn { padding: 8px 14px; background: #1e1a40; border: 2px solid #2e2a50; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.page-wrap { max-width: 1000px; margin: 0 auto; padding: 28px 32px 60px; }
+.page-title { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #b8a0e8; font-weight: 700; margin-bottom: 28px; }
+
+/* Totals header */
+.totals-bar { display: flex; gap: 12px; margin-bottom: 28px; }
+.total-pill { display: flex; align-items: center; gap: 10px; background: #1a1060; border: 2px solid #2a2060; border-radius: 14px; padding: 12px 18px; }
+.tp-icon { font-size: 28px; }
+.tp-val { font-size: 24px; font-weight: 900; color: #fff; line-height: 1; }
+.tp-label { font-size: 11px; color: #7a6090; font-weight: 700; margin-top: 2px; }
+
+/* Cabinet shelf */
+.shelf { margin-bottom: 28px; }
+.shelf-title { font-size: 13px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.shelf-count { font-size: 11px; font-weight: 700; color: #5a4080; }
+.shelf-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Reward item */
+.reward-item {
+  width: 100px; height: 110px;
+  border-radius: 18px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+.reward-item:hover { transform: translateY(-4px) scale(1.04); }
+.reward-item .ri-emoji { font-size: 38px; margin-bottom: 8px; animation: ri-float 3s ease-in-out infinite; }
+.reward-item:nth-child(2) .ri-emoji { animation-delay: 0.4s; }
+.reward-item:nth-child(3) .ri-emoji { animation-delay: 0.8s; }
+@keyframes ri-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.reward-item .ri-name { font-size: 11px; font-weight: 900; color: #fff; text-align: center; line-height: 1.2; }
+.reward-item .ri-shine { position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.06) 55%, transparent 70%); pointer-events: none; }
+.reward-item .ri-new { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: #ff7b6b; border-radius: 50%; animation: blink 1.5s ease-in-out infinite; }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+
+/* Reward type colors */
+.rt-star { background: linear-gradient(135deg, #2a2010, #1a1060); border: 2px solid #ffd166; }
+.rt-badge { background: linear-gradient(135deg, #1a1060, #2a1880); border: 2px solid #9b72ff; }
+.rt-trophy { background: linear-gradient(135deg, #2a1808, #1a1060); border: 2px solid #ff9d3b; }
+.rt-world { background: linear-gradient(135deg, #0a2a15, #1a1060); border: 2px solid #50e890; }
+.rt-locked { background: #1a1060; border: 2px dashed #2a2060; opacity: 0.35; cursor: default; }
+.rt-locked:hover { transform: none; }
+
+/* Star total progress */
+.star-progress {
+  background: #1a1060; border: 1px solid #2a2060; border-radius: 16px;
+  padding: 18px; margin-bottom: 24px;
+}
+.sp-title { font-size: 13px; font-weight: 900; color: #ffd166; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.sp-milestones { display: flex; align-items: center; gap: 0; position: relative; }
+.sp-line { flex: 1; height: 4px; background: #2a2060; }
+.sp-line.done { background: #ffd166; }
+.sp-milestone { width: 28px; height: 28px; border-radius: 50%; background: #2a2060; border: 2px solid #4a3010; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #6a5030; flex-shrink: 0; position: relative; }
+.sp-milestone.done { background: #ffd166; border-color: #ffd166; color: #1a1000; }
+.sp-milestone.current { background: #2a2010; border-color: #ffd166; color: #ffd166; animation: ms-pulse 1.5s ease-in-out infinite; }
+@keyframes ms-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,209,102,0.4); } 50% { box-shadow: 0 0 0 6px rgba(255,209,102,0); } }
+.sp-milestone .ms-label { position: absolute; bottom: -18px; font-size: 9px; font-weight: 700; color: #6a5030; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.sp-milestone.done .ms-label { color: #ffd166; }
+
+/* Spec */
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-reward-cabinet-v2.html</strong><br>
+  Desktop 1000px • 3 tabs: Cabinet (default) / Milestone view / Spec<br>
+  "Cabinet" metaphor: shelves grouped by type (Stars / Badges / Trophies / World completions)<br>
+  Each reward item: 100×110px card with emoji + name + float animation<br>
+  Star milestone progress bar: milestone dots along a line (10/25/50/100/200★)<br>
+  New dot indicator on recently-earned items • Locked items 35% opacity
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('cabinet')">Cabinet</button>
+  <button class="tab-btn" onclick="showTab('milestones')">Star Milestones</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- CABINET -->
+<div id="screen-cabinet" class="screen active">
+  <div class="page-wrap">
+    <div class="page-title">Your Reward Cabinet ✨</div>
+    <div class="page-sub">Everything you've collected on your adventure — every single item stays here forever!</div>
+
+    <div class="totals-bar">
+      <div class="total-pill"><span class="tp-icon">⭐</span><div><div class="tp-val">42</div><div class="tp-label">Stars total</div></div></div>
+      <div class="total-pill"><span class="tp-icon">🏅</span><div><div class="tp-val">3</div><div class="tp-label">Badges earned</div></div></div>
+      <div class="total-pill"><span class="tp-icon">🏆</span><div><div class="tp-val">2</div><div class="tp-label">Trophies</div></div></div>
+      <div class="total-pill"><span class="tp-icon">🌍</span><div><div class="tp-val">2</div><div class="tp-label">Worlds complete</div></div></div>
+    </div>
+
+    <!-- Stars shelf -->
+    <div class="shelf">
+      <div class="shelf-title">⭐ Stars <span class="shelf-count">42 collected</span></div>
+      <div style="background:#1a1060;border:2px solid #ffd166;border-radius:16px;padding:16px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:48px">⭐</div>
+        <div style="flex:1">
+          <div style="font-size:22px;font-weight:900;color:#ffd166">42 Stars</div>
+          <div style="height:10px;background:#2a2060;border-radius:6px;overflow:hidden;margin:8px 0"><div style="height:100%;width:84%;background:linear-gradient(90deg,#ffd166,#ffb020);border-radius:6px"></div></div>
+          <div style="font-size:12px;font-weight:700;color:#b8a060">8 more to reach the 50-star milestone!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badges shelf -->
+    <div class="shelf">
+      <div class="shelf-title">🏅 Badges <span class="shelf-count">3 earned</span></div>
+      <div class="shelf-row">
+        <div class="reward-item rt-badge"><div class="ri-new"></div><div class="ri-shine"></div><span class="ri-emoji">🌟</span><div class="ri-name">First Quest!</div></div>
+        <div class="reward-item rt-world"><div class="ri-shine"></div><span class="ri-emoji">🌲</span><div class="ri-name">Forest Explorer</div></div>
+        <div class="reward-item rt-trophy" style="border-color:#ff9d3b"><div class="ri-new"></div><div class="ri-shine"></div><span class="ri-emoji">🔥</span><div class="ri-name">On Fire!</div></div>
+        <div class="reward-item rt-locked"><span class="ri-emoji" style="animation:none">💎</span><div class="ri-name" style="color:#5a4080">Crystal Master</div></div>
+        <div class="reward-item rt-locked"><span class="ri-emoji" style="animation:none">🏆</span><div class="ri-name" style="color:#5a4080">World Champ</div></div>
+        <div class="reward-item rt-locked"><span class="ri-emoji" style="animation:none">💯</span><div class="ri-name" style="color:#5a4080">100 Stars</div></div>
+      </div>
+    </div>
+
+    <!-- Trophies shelf -->
+    <div class="shelf">
+      <div class="shelf-title">🏆 Trophies <span class="shelf-count">2 earned</span></div>
+      <div class="shelf-row">
+        <div class="reward-item rt-trophy"><div class="ri-shine"></div><span class="ri-emoji">🏆</span><div class="ri-name">Enchanted Forest Trophy</div></div>
+        <div class="reward-item rt-trophy"><div class="ri-shine"></div><span class="ri-emoji">🌊</span><div class="ri-name">Ocean Kingdom Trophy</div></div>
+        <div class="reward-item rt-locked"><span class="ri-emoji" style="animation:none">💎</span><div class="ri-name" style="color:#5a4080">Crystal Caverns Trophy</div></div>
+        <div class="reward-item rt-locked"><span class="ri-emoji" style="animation:none">🌋</span><div class="ri-name" style="color:#5a4080">Volcano Island Trophy</div></div>
+      </div>
+    </div>
+
+    <!-- Worlds shelf -->
+    <div class="shelf">
+      <div class="shelf-title">🌍 Worlds Explored <span class="shelf-count">2 of 4</span></div>
+      <div class="shelf-row">
+        <div class="reward-item rt-world"><div class="ri-shine"></div><span class="ri-emoji">🌲</span><div class="ri-name">Enchanted Forest</div></div>
+        <div class="reward-item rt-world"><div class="ri-shine"></div><span class="ri-emoji">🌊</span><div class="ri-name">Ocean Kingdom</div></div>
+        <div class="reward-item" style="background:linear-gradient(135deg,#1a1060,#2a1880);border:2px solid #9b72ff;opacity:0.8"><span class="ri-emoji">💎</span><div class="ri-name">Crystal Caverns<br><span style="color:#9b72ff;font-size:10px">58% done</span></div></div>
+        <div class="reward-item rt-locked"><span class="ri-emoji" style="animation:none">🌋</span><div class="ri-name" style="color:#5a4080">Volcano Island</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MILESTONES -->
+<div id="screen-milestones" class="screen">
+  <div class="page-wrap">
+    <div class="page-title">Star Milestones ⭐</div>
+    <div class="page-sub">Collect stars to unlock milestone rewards!</div>
+
+    <div class="star-progress">
+      <div class="sp-title">⭐ Your Star Journey · 42 collected</div>
+      <div class="sp-milestones" style="padding: 10px 0 28px">
+        <div class="sp-milestone done" style="font-size:9px">✓<div class="ms-label">10⭐</div></div>
+        <div class="sp-line done"></div>
+        <div class="sp-milestone done" style="font-size:9px">✓<div class="ms-label">25⭐</div></div>
+        <div class="sp-line done"></div>
+        <div class="sp-milestone current">★<div class="ms-label">50⭐</div></div>
+        <div class="sp-line"></div>
+        <div class="sp-milestone">⭐<div class="ms-label">100⭐</div></div>
+        <div class="sp-line"></div>
+        <div class="sp-milestone">⭐<div class="ms-label">200⭐</div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:#1a2a15;border:2px solid #50e890;border-radius:16px;padding:16px;display:flex;gap:14px;align-items:center">
+        <span style="font-size:32px">✓</span>
+        <div>
+          <div style="font-size:15px;font-weight:900;color:#50e890">10 Stars — EARNED!</div>
+          <div style="font-size:12px;font-weight:700;color:#80c8a0">Unlocked: Beginner Explorer badge</div>
+        </div>
+      </div>
+      <div style="background:#1a2a15;border:2px solid #50e890;border-radius:16px;padding:16px;display:flex;gap:14px;align-items:center">
+        <span style="font-size:32px">✓</span>
+        <div>
+          <div style="font-size:15px;font-weight:900;color:#50e890">25 Stars — EARNED!</div>
+          <div style="font-size:12px;font-weight:700;color:#80c8a0">Unlocked: Silver Star frame for your avatar</div>
+        </div>
+      </div>
+      <div style="background:#2a2010;border:2px solid #ffd166;border-radius:16px;padding:16px;display:flex;gap:14px;align-items:center;animation:ms-glow 2s ease-in-out infinite">
+        <span style="font-size:32px">🎯</span>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:900;color:#ffd166">50 Stars — SO CLOSE!</div>
+          <div style="font-size:12px;font-weight:700;color:#c8a050">Unlocks: Gold Star Collector badge</div>
+          <div style="height:6px;background:#2a2060;border-radius:4px;overflow:hidden;margin-top:8px"><div style="height:100%;width:84%;background:#ffd166;border-radius:4px"></div></div>
+          <div style="font-size:11px;font-weight:700;color:#ffd166;margin-top:4px">42/50 · 8 more!</div>
+        </div>
+      </div>
+      <div style="background:#1a1060;border:2px solid #2a2060;border-radius:16px;padding:16px;display:flex;gap:14px;align-items:center;opacity:0.5">
+        <span style="font-size:32px">⭐</span>
+        <div>
+          <div style="font-size:15px;font-weight:900;color:#c4a0ff">100 Stars</div>
+          <div style="font-size:12px;font-weight:700;color:#7a6090">Unlocks: Diamond Star Champion badge</div>
+        </div>
+      </div>
+      <div style="background:#1a1060;border:2px solid #2a2060;border-radius:16px;padding:16px;display:flex;gap:14px;align-items:center;opacity:0.5">
+        <span style="font-size:32px">🌟</span>
+        <div>
+          <div style="font-size:15px;font-weight:900;color:#c4a0ff">200 Stars</div>
+          <div style="font-size:12px;font-weight:700;color:#7a6090">Unlocks: Legendary Quester title!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="screen-spec" class="screen">
+  <div class="page-wrap">
+    <div class="spec-section">
+      <div class="spec-title">Cabinet shelves</div>
+      <div class="spec-row"><span class="spec-key">Stars</span><span class="spec-val">Progress bar to next milestone, current total</span></div>
+      <div class="spec-row"><span class="spec-key">Badges</span><span class="spec-val">100×110px cards, earned float + gradient, locked 35%</span></div>
+      <div class="spec-row"><span class="spec-key">Trophies</span><span class="spec-val">One per world, earned on world completion</span></div>
+      <div class="spec-row"><span class="spec-key">Worlds</span><span class="spec-val">Shows % progress for current world, locked for future</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Star milestone bar</div>
+      <div class="spec-row"><span class="spec-key">Milestones</span><span class="spec-val">10 / 25 / 50 / 100 / 200 stars</span></div>
+      <div class="spec-row"><span class="spec-key">Done dot</span><span class="spec-val">Gold fill, ✓ inside</span></div>
+      <div class="spec-row"><span class="spec-key">Current dot</span><span class="spec-val">Gold outline + pulse animation</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Stars</span><span class="spec-val">Never decrease — cabinet is always growing</span></div>
+      <div class="spec-row"><span class="spec-key">Items</span><span class="spec-val">Never removed — "forever" messaging reinforced</span></div>
+      <div class="spec-row"><span class="spec-key">Accuracy</span><span class="spec-val">Never shown or associated with rewards</span></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes ms-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,209,102,0); } 50% { box-shadow: 0 0 12px rgba(255,209,102,0.2); } }
+</style>
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Quiet Hours Detail</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a1a2e; min-height: 100vh; max-width: 375px; margin: 0 auto; }
+  nav { background: #2c7a6e; color: #fff; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 12px; }
+  nav .back { font-size: 1.1rem; cursor: pointer; }
+  nav .title { font-weight: 700; font-size: 1rem; }
+  .tabs { display: flex; background: #e8e2d6; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 11px 16px; cursor: pointer; font-size: .78rem; font-weight: 600; color: #5a5a7a; border-bottom: 2.5px solid transparent; white-space: nowrap; }
+  .tab.active { color: #2c7a6e; border-bottom-color: #2c7a6e; background: #f5f0e8; }
+  .panel { display: none; padding: 20px 16px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; border-radius: 10px; padding: 12px 14px; font-size: .78rem; margin-bottom: 20px; line-height: 1.5; }
+  .hint strong { color: #ffe599; }
+  h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: .82rem; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .card h3 { font-size: .92rem; font-weight: 700; color: #2c7a6e; margin-bottom: 14px; }
+  .time-pair { display: flex; gap: 10px; }
+  .time-block { flex: 1; }
+  .time-block label { font-size: .78rem; color: #6b7280; font-weight: 500; display: block; margin-bottom: 6px; }
+  .time-select { width: 100%; background: #f8f5f0; border: 2px solid #d1d5db; border-radius: 10px; padding: 10px 12px; font-size: .9rem; font-family: 'Sora', sans-serif; color: #1a1a2e; appearance: none; }
+  .time-select:focus { outline: none; border-color: #2c7a6e; }
+  .window-badge { display: inline-flex; align-items: center; gap: 6px; background: #edf7f5; color: #2c7a6e; border-radius: 20px; padding: 6px 14px; font-size: .8rem; font-weight: 700; margin-top: 12px; }
+  .day-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .day-btn { padding: 10px 0; border-radius: 10px; text-align: center; font-size: .8rem; font-weight: 600; cursor: pointer; border: 2px solid #d1d5db; background: #fff; color: #6b7280; transition: all .2s; }
+  .day-btn.active { background: #2c7a6e; color: #fff; border-color: #2c7a6e; }
+  .select-all { font-size: .78rem; color: #2c7a6e; font-weight: 600; text-align: right; margin-bottom: 10px; cursor: pointer; text-decoration: underline; }
+  .timeline { display: flex; flex-direction: column; gap: 12px; }
+  .tl-row { display: flex; align-items: center; gap: 12px; }
+  .tl-time { font-size: .78rem; color: #6b7280; width: 58px; text-align: right; flex-shrink: 0; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .dot-quiet { background: #c07800; }
+  .dot-active { background: #2c7a6e; }
+  .dot-bundle { background: #ffd166; border: 2px solid #c07800; }
+  .tl-line { width: 2px; height: 24px; background: #d1d5db; margin-left: 5px; }
+  .tl-label { font-size: .82rem; font-weight: 500; color: #374151; }
+  .tl-sub { font-size: .74rem; color: #6b7280; }
+  .preview-bar { position: relative; height: 32px; background: #2c7a6e; border-radius: 20px; overflow: hidden; margin: 16px 0 8px; }
+  .quiet-zone { position: absolute; height: 100%; background: #c07800; opacity: .7; }
+  .preview-labels { display: flex; justify-content: space-between; font-size: .72rem; color: #6b7280; }
+  .bypass-banner { background: #fff5f5; border: 1.5px solid #9a2a2a; border-radius: 12px; padding: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .bypass-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+  .bypass-text .bt-title { font-weight: 700; color: #9a2a2a; font-size: .88rem; margin-bottom: 4px; }
+  .bypass-text .bt-desc { font-size: .79rem; color: #6b7280; line-height: 1.5; }
+  .override-list { display: flex; flex-direction: column; gap: 10px; }
+  .override-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #f8f5f0; border-radius: 10px; }
+  .override-name { font-size: .85rem; font-weight: 600; color: #1a1a2e; }
+  .override-sub { font-size: .74rem; color: #6b7280; margin-top: 2px; }
+  .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #d1d5db; border-radius: 22px; transition: .3s; }
+  .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: #2c7a6e; }
+  input:checked + .slider:before { transform: translateX(18px); }
+  .save-btn { width: 100%; background: #2c7a6e; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: .95rem; font-weight: 700; font-family: 'Sora', sans-serif; cursor: pointer; margin-top: 8px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .spec-table th { background: #2c7a6e; color: #fff; padding: 8px 12px; text-align: left; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  .spec-table tr:nth-child(even) td { background: #f9f7f3; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="back">←</span>
+  <span class="title">Quiet Hours</span>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('setup')">Quiet Hours Setup</div>
+  <div class="tab" onclick="show('days')">Day Configuration</div>
+  <div class="tab" onclick="show('preview')">Preview Schedule</div>
+  <div class="tab" onclick="show('emergency')">Emergency Override</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- PANEL 1: Quiet Hours Setup -->
+<div id="setup" class="panel active">
+  <div class="hint"><strong>Quiet Hours:</strong> Notifications are queued and delivered as a bundle when quiet hours end. <strong>Urgent teacher messages always come through.</strong></div>
+  <h2>Quiet Hours Setup</h2>
+  <p class="sub">Set the window when WonderQuest holds non-urgent notifications.</p>
+  <div class="card">
+    <h3>🌙 Time Window</h3>
+    <div class="time-pair">
+      <div class="time-block">
+        <label>Quiet From</label>
+        <select class="time-select">
+          <option>7:00 PM</option><option>7:30 PM</option><option>8:00 PM</option>
+          <option>8:30 PM</option><option selected>9:00 PM</option><option>9:30 PM</option>
+          <option>10:00 PM</option>
+        </select>
+      </div>
+      <div class="time-block">
+        <label>Quiet Until</label>
+        <select class="time-select">
+          <option>5:30 AM</option><option>6:00 AM</option><option>6:30 AM</option>
+          <option selected>7:00 AM</option><option>7:30 AM</option><option>8:00 AM</option>
+        </select>
+      </div>
+    </div>
+    <div class="window-badge">🌙 9:00 PM – 7:00 AM · 10 hours</div>
+  </div>
+  <div class="card">
+    <h3>📦 Bundle Delivery</h3>
+    <div style="font-size:.85rem; color:#374151; line-height:1.6; margin-bottom:12px;">When quiet hours end, all held notifications are delivered as a single morning bundle.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#edf7f5;border-radius:10px;">
+      <div>
+        <div style="font-weight:700;color:#2c7a6e;font-size:.88rem;">Morning Bundle</div>
+        <div style="font-size:.76rem;color:#6b7280;">Delivers at 7:05 AM</div>
+      </div>
+      <span style="font-size:1.4rem;">📬</span>
+    </div>
+  </div>
+  <button class="save-btn">Save Quiet Hours</button>
+</div>
+
+<!-- PANEL 2: Day Configuration -->
+<div id="days" class="panel">
+  <div class="hint"><strong>Day Config:</strong> Toggle which days of the week quiet hours should be active. Tap a day to toggle it. Tap "Select All" to enable every day.</div>
+  <h2>Day Configuration</h2>
+  <p class="sub">Choose which days your quiet hours window is active.</p>
+  <div class="card">
+    <h3>📅 Days Active</h3>
+    <div class="select-all" onclick="toggleAll()">Select All</div>
+    <div class="day-grid">
+      <div class="day-btn active" onclick="toggleDay(this)">Mon</div>
+      <div class="day-btn active" onclick="toggleDay(this)">Tue</div>
+      <div class="day-btn active" onclick="toggleDay(this)">Wed</div>
+      <div class="day-btn active" onclick="toggleDay(this)">Thu</div>
+      <div class="day-btn active" onclick="toggleDay(this)">Fri</div>
+      <div class="day-btn active" onclick="toggleDay(this)">Sat</div>
+      <div class="day-btn active" onclick="toggleDay(this)">Sun</div>
+    </div>
+    <div style="margin-top:14px; font-size:.8rem; color:#6b7280;">Active: <strong style="color:#2c7a6e">Every day</strong></div>
+  </div>
+  <div class="card">
+    <h3>🏫 School Week vs Weekend</h3>
+    <div style="display:flex;gap:10px;">
+      <button style="flex:1;padding:10px;border-radius:10px;border:2px solid #2c7a6e;background:#edf7f5;color:#2c7a6e;font-family:'Sora',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;">School Days Only</button>
+      <button style="flex:1;padding:10px;border-radius:10px;border:2px solid #d1d5db;background:#fff;color:#6b7280;font-family:'Sora',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;">Every Day</button>
+    </div>
+  </div>
+  <button class="save-btn">Save Day Config</button>
+</div>
+
+<!-- PANEL 3: Preview Schedule -->
+<div id="preview" class="panel">
+  <div class="hint"><strong>Preview:</strong> This shows when notifications will fire vs. be held on a typical weekday based on your current settings.</div>
+  <h2>Preview Schedule</h2>
+  <p class="sub">See when notifications fire vs. are held throughout the day.</p>
+  <div class="card">
+    <h3>📊 24-Hour View (Weekday)</h3>
+    <div class="preview-labels"><span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span></div>
+    <div class="preview-bar">
+      <!-- Quiet zone 0–7am = ~29% of 24h, and 9pm–midnight = ~12.5% -->
+      <div class="quiet-zone" style="left:0;width:29.2%;"></div>
+      <div class="quiet-zone" style="left:87.5%;width:12.5%;"></div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:.76rem;margin-bottom:4px;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#2c7a6e;display:inline-block;"></span> Notifications fire</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#c07800;opacity:.8;display:inline-block;"></span> Held (quiet hours)</span>
+    </div>
+  </div>
+  <div class="card">
+    <h3>⏰ Key Notification Times</h3>
+    <div class="timeline">
+      <div class="tl-row">
+        <div>
+          <div class="tl-time">7:05 AM</div>
+        </div>
+        <div class="tl-dot dot-bundle"></div>
+        <div>
+          <div class="tl-label">Morning Bundle</div>
+          <div class="tl-sub">All held notifications from overnight</div>
+        </div>
+      </div>
+      <div style="width:2px;height:18px;background:#e5e7eb;margin-left:126px;"></div>
+      <div class="tl-row">
+        <div>
+          <div class="tl-time">After school</div>
+        </div>
+        <div class="tl-dot dot-active"></div>
+        <div>
+          <div class="tl-label">Badge & Activity Alerts</div>
+          <div class="tl-sub">Immediate push when Mia plays</div>
+        </div>
+      </div>
+      <div style="width:2px;height:18px;background:#e5e7eb;margin-left:126px;"></div>
+      <div class="tl-row">
+        <div>
+          <div class="tl-time">Anytime</div>
+        </div>
+        <div class="tl-dot" style="background:#9a2a2a;"></div>
+        <div>
+          <div class="tl-label">Urgent Teacher Messages</div>
+          <div class="tl-sub">Always immediate — bypasses quiet hours</div>
+        </div>
+      </div>
+      <div style="width:2px;height:18px;background:#e5e7eb;margin-left:126px;"></div>
+      <div class="tl-row">
+        <div>
+          <div class="tl-time">9:00 PM</div>
+        </div>
+        <div class="tl-dot dot-quiet"></div>
+        <div>
+          <div class="tl-label">Quiet Hours Begin</div>
+          <div class="tl-sub">Non-urgent notifications held</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 4: Emergency Override -->
+<div id="emergency" class="panel">
+  <div class="hint"><strong>Emergency Override:</strong> Certain communications always reach you immediately. These rules protect families and cannot be fully disabled.</div>
+  <h2>Emergency Override</h2>
+  <p class="sub">These notification types are never held, even during quiet hours.</p>
+  <div class="bypass-banner" style="margin-bottom:16px;">
+    <span class="bypass-icon">🚨</span>
+    <div class="bypass-text">
+      <div class="bt-title">Teacher urgent messages always come through</div>
+      <div class="bt-desc">When your child's teacher marks a message as urgent, it will always reach you immediately — regardless of quiet hours, mute settings, or channel preferences.</div>
+    </div>
+  </div>
+  <div class="override-list">
+    <div class="override-item">
+      <div>
+        <div class="override-name">📣 Urgent Teacher Message</div>
+        <div class="override-sub">Teacher-flagged urgent communications</div>
+      </div>
+      <span style="font-size:.75rem;font-weight:700;color:#9a2a2a;background:#ffe4e4;padding:4px 10px;border-radius:20px;">Always On</span>
+    </div>
+    <div class="override-item">
+      <div>
+        <div class="override-name">🏫 School Announcements</div>
+        <div class="override-sub">Admin-level school communications</div>
+      </div>
+      <span style="font-size:.75rem;font-weight:700;color:#9a2a2a;background:#ffe4e4;padding:4px 10px;border-radius:20px;">Always On</span>
+    </div>
+    <div class="override-item">
+      <div>
+        <div class="override-name">🔐 Account Security</div>
+        <div class="override-sub">Login, password, account changes</div>
+      </div>
+      <span style="font-size:.75rem;font-weight:700;color:#9a2a2a;background:#ffe4e4;padding:4px 10px;border-radius:20px;">Always On</span>
+    </div>
+    <div class="override-item">
+      <div>
+        <div class="override-name">🌟 Major Milestones</div>
+        <div class="override-sub">Significant learning achievements</div>
+      </div>
+      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+    </div>
+  </div>
+  <div style="margin-top:20px; padding:14px; background:#f8f5f0; border-radius:12px; font-size:.8rem; color:#6b7280; line-height:1.6;">
+    WonderQuest routes all teacher-to-parent communications through our platform. Your personal contact details are never shared with schools or teachers.
+  </div>
+</div>
+
+<!-- PANEL 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Spec:</strong> Design and data contract for quiet hours detail screen.</div>
+  <h2>Specification</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Screen</td><td>parent-quiet-hours-detail-v2</td></tr>
+    <tr><td>Viewport</td><td>375px mobile</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#f5f0e8</td></tr>
+    <tr><td>Nav</td><td>#2c7a6e, back arrow + title</td></tr>
+    <tr><td>Time picker</td><td>Dropdown selects, from/to, 30-min intervals</td></tr>
+    <tr><td>Day toggles</td><td>All 7 days, grid layout, tap to toggle</td></tr>
+    <tr><td>Preview</td><td>24h bar chart showing quiet vs active zones</td></tr>
+    <tr><td>Emergency bypass</td><td>Hardcoded always-on types + configurable milestones</td></tr>
+    <tr><td>Bundle delivery</td><td>Held notifications fire 5 min after quiet hours end</td></tr>
+    <tr><td>Design tokens</td><td>Hint: #2a1f00 bg / #ffd166 border</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleDay(el) { el.classList.toggle('active'); }
+function toggleAll() {
+  document.querySelectorAll('.day-btn').forEach(d => d.classList.add('active'));
+}
+</script>
+</body>
+</html>

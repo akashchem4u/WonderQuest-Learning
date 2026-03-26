@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Goals Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a1a2e; min-height: 100vh; max-width: 375px; margin: 0 auto; }
+  nav { background: #2c7a6e; color: #fff; padding: 0 16px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-weight: 700; font-size: 1rem; }
+  nav .week-label { font-size: .8rem; opacity: .85; }
+  .tabs { display: flex; background: #e8e2d6; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 11px 16px; cursor: pointer; font-size: .78rem; font-weight: 600; color: #5a5a7a; border-bottom: 2.5px solid transparent; white-space: nowrap; }
+  .tab.active { color: #2c7a6e; border-bottom-color: #2c7a6e; background: #f5f0e8; }
+  .panel { display: none; padding: 20px 16px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; border-radius: 10px; padding: 12px 14px; font-size: .78rem; margin-bottom: 20px; line-height: 1.5; }
+  .hint strong { color: #ffe599; }
+  h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: .82rem; margin-bottom: 20px; }
+  .week-progress { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .wp-ring { width: 56px; height: 56px; border-radius: 50%; background: conic-gradient(#2c7a6e 240deg, #e5e7eb 240deg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .wp-inner { width: 42px; height: 42px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: #2c7a6e; }
+  .wp-body .wp-title { font-weight: 700; font-size: .95rem; color: #1a1a2e; }
+  .wp-body .wp-sub { font-size: .78rem; color: #6b7280; margin-top: 2px; }
+  .goals-list { display: flex; flex-direction: column; gap: 14px; }
+  .goal-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.07); border-left: 4px solid #d1d5db; transition: border-color .2s; }
+  .goal-card.done { border-left-color: #2c7a6e; background: #f0fdf4; }
+  .gc-top { display: flex; align-items: flex-start; gap: 12px; }
+  .gc-emoji { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+  .gc-body { flex: 1; }
+  .gc-title { font-weight: 700; font-size: .9rem; color: #1a1a2e; margin-bottom: 3px; }
+  .gc-desc { font-size: .8rem; color: #6b7280; line-height: 1.4; }
+  .gc-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .done-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .check-box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #d1d5db; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .check-box.checked { background: #2c7a6e; border-color: #2c7a6e; }
+  .check-label { font-size: .8rem; font-weight: 600; color: #374151; }
+  .reminder-toggle { display: flex; align-items: center; gap: 6px; font-size: .76rem; color: #6b7280; cursor: pointer; }
+  .toggle { position: relative; display: inline-block; width: 34px; height: 18px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #d1d5db; border-radius: 18px; transition: .3s; }
+  .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: #2c7a6e; }
+  input:checked + .slider:before { transform: translateX(16px); }
+  .add-goal-btn { width: 100%; background: transparent; border: 2px dashed #b2d8d2; border-radius: 14px; padding: 14px; font-size: .88rem; font-weight: 600; color: #2c7a6e; font-family: 'Sora', sans-serif; cursor: pointer; margin-top: 4px; }
+  /* Celebration overlay */
+  .celebrate-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 100; max-width: 375px; margin: 0 auto; }
+  .celebrate-overlay.show { display: flex; }
+  .celebrate-card { background: #fff; border-radius: 20px; padding: 28px 24px; text-align: center; margin: 0 20px; }
+  .cc-emoji { font-size: 3rem; margin-bottom: 12px; }
+  .cc-title { font-size: 1.2rem; font-weight: 800; color: #2c7a6e; margin-bottom: 8px; }
+  .cc-sub { font-size: .85rem; color: #6b7280; margin-bottom: 20px; line-height: 1.5; }
+  .cc-btn { background: #2c7a6e; color: #fff; border: none; border-radius: 12px; padding: 12px 28px; font-size: .9rem; font-weight: 700; font-family: 'Sora', sans-serif; cursor: pointer; }
+  /* Detail panel */
+  .detail-card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .detail-card h3 { font-size: .9rem; font-weight: 700; color: #2c7a6e; margin-bottom: 14px; }
+  .step-list { display: flex; flex-direction: column; gap: 8px; }
+  .step-item { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: #f8f5f0; border-radius: 10px; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: #2c7a6e; color: #fff; display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 800; flex-shrink: 0; }
+  .step-text { font-size: .83rem; color: #374151; }
+  .reminder-section { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .reminder-section h3 { font-size: .9rem; font-weight: 700; color: #2c7a6e; margin-bottom: 14px; }
+  .time-select { width: 100%; background: #f8f5f0; border: 2px solid #d1d5db; border-radius: 10px; padding: 10px 12px; font-size: .9rem; font-family: 'Sora', sans-serif; color: #1a1a2e; margin-bottom: 12px; }
+  .day-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .day-chip { padding: 5px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; cursor: pointer; border: 2px solid #d1d5db; background: #fff; color: #6b7280; }
+  .day-chip.on { background: #2c7a6e; color: #fff; border-color: #2c7a6e; }
+  .save-btn { width: 100%; background: #2c7a6e; color: #fff; border: none; border-radius: 12px; padding: 13px; font-size: .92rem; font-weight: 700; font-family: 'Sora', sans-serif; cursor: pointer; }
+  .wrap-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .ws-card { background: #fff; border-radius: 12px; padding: 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .ws-val { font-size: 1.6rem; font-weight: 800; color: #2c7a6e; }
+  .ws-label { font-size: .74rem; color: #6b7280; margin-top: 3px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .spec-table th { background: #2c7a6e; color: #fff; padding: 8px 12px; text-align: left; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  .spec-table tr:nth-child(even) td { background: #f9f7f3; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🌟 WonderQuest</span>
+  <span class="week-label">Week of Mar 17–23</span>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('goals')">Goals Home</div>
+  <div class="tab" onclick="show('detail')">Goal Detail</div>
+  <div class="tab" onclick="show('reminder')">Set Reminder</div>
+  <div class="tab" onclick="show('wrap')">Weekly Wrap-Up</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- PANEL 1: Goals Home -->
+<div id="goals" class="panel active">
+  <div class="hint"><strong>Home Practice Goals:</strong> These 3 goals are suggested by Ms. Chen and based on what Mia is working on in class. Mark them done to celebrate progress!</div>
+  <div class="week-progress">
+    <div class="wp-ring">
+      <div class="wp-inner">2/3</div>
+    </div>
+    <div class="wp-body">
+      <div class="wp-title">2 of 3 goals done this week! 🎉</div>
+      <div class="wp-sub">One more to unlock the weekly celebration</div>
+    </div>
+  </div>
+  <div class="goals-list">
+    <!-- Goal 1 - Done -->
+    <div class="goal-card done" id="gc1">
+      <div class="gc-top">
+        <span class="gc-emoji">📖</span>
+        <div class="gc-body">
+          <div class="gc-title">Read together for 10 minutes</div>
+          <div class="gc-desc">Pick any book Mia loves — the goal is enjoying reading together, not finishing the whole book!</div>
+        </div>
+      </div>
+      <div class="gc-actions">
+        <div class="done-check" onclick="toggleGoal('gc1')">
+          <div class="check-box checked" id="cb1">✓</div>
+          <span class="check-label" style="color:#2c7a6e;">Done! ⭐</span>
+        </div>
+        <div class="reminder-toggle"><span>Remind me</span><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
+      </div>
+    </div>
+    <!-- Goal 2 - Done -->
+    <div class="goal-card done" id="gc2">
+      <div class="gc-top">
+        <span class="gc-emoji">🔢</span>
+        <div class="gc-body">
+          <div class="gc-title">Play WonderQuest for 15 minutes</div>
+          <div class="gc-desc">Let Mia pick her favorite world in the app — she'll naturally work on number sense and reading skills.</div>
+        </div>
+      </div>
+      <div class="gc-actions">
+        <div class="done-check" onclick="toggleGoal('gc2')">
+          <div class="check-box checked" id="cb2">✓</div>
+          <span class="check-label" style="color:#2c7a6e;">Done! ⭐</span>
+        </div>
+        <div class="reminder-toggle"><span>Remind me</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
+      </div>
+    </div>
+    <!-- Goal 3 - Not done -->
+    <div class="goal-card" id="gc3">
+      <div class="gc-top">
+        <span class="gc-emoji">🔤</span>
+        <div class="gc-body">
+          <div class="gc-title">Practice 5 new words together</div>
+          <div class="gc-desc">Mia's teacher suggested these words: "adventure, brave, curious, gentle, wonder" — pick your favorites!</div>
+        </div>
+      </div>
+      <div class="gc-actions">
+        <div class="done-check" onclick="toggleGoal('gc3')">
+          <div class="check-box" id="cb3"></div>
+          <span class="check-label">Mark done</span>
+        </div>
+        <div class="reminder-toggle"><span>Remind me</span><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
+      </div>
+    </div>
+  </div>
+  <button class="add-goal-btn">+ Add a custom goal</button>
+</div>
+
+<!-- PANEL 2: Goal Detail -->
+<div id="detail" class="panel">
+  <div class="hint"><strong>Goal Detail:</strong> Tap any goal on the Goals Home tab to see more context, step-by-step tips, and the skill it supports.</div>
+  <h2>Practice 5 New Words</h2>
+  <p class="sub">Vocabulary · Suggested by Ms. Chen</p>
+  <div class="detail-card">
+    <h3>🎯 Why This Goal Matters</h3>
+    <div style="font-size:.85rem;color:#374151;line-height:1.6;">Mia is in the Growing tier for Vocabulary — and extra word practice at home is one of the best ways to help her reach Strength tier. Even 5 minutes makes a real difference!</div>
+  </div>
+  <div class="detail-card">
+    <h3>📋 Step-by-Step Tips</h3>
+    <div class="step-list">
+      <div class="step-item"><div class="step-num">1</div><div class="step-text">Pick 5 words from the list below (or use Mia's favorites)</div></div>
+      <div class="step-item"><div class="step-num">2</div><div class="step-text">Read each word aloud together and look at it written out</div></div>
+      <div class="step-item"><div class="step-num">3</div><div class="step-text">Make up a fun sentence using the word together</div></div>
+      <div class="step-item"><div class="step-num">4</div><div class="step-text">Let Mia draw a picture for her favorite word</div></div>
+      <div class="step-item"><div class="step-num">5</div><div class="step-text">Come back to your favorite word tomorrow for a quick review!</div></div>
+    </div>
+  </div>
+  <div class="detail-card">
+    <h3>📝 This Week's Word List</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <span style="background:#dbeafe;color:#1e40af;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600;">adventure</span>
+      <span style="background:#dbeafe;color:#1e40af;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600;">brave</span>
+      <span style="background:#dbeafe;color:#1e40af;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600;">curious</span>
+      <span style="background:#dbeafe;color:#1e40af;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600;">gentle</span>
+      <span style="background:#dbeafe;color:#1e40af;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600;">wonder</span>
+    </div>
+  </div>
+  <button class="save-btn">Mark Goal as Done ✓</button>
+</div>
+
+<!-- PANEL 3: Set Reminder -->
+<div id="reminder" class="panel">
+  <div class="hint"><strong>Reminders:</strong> Set a daily reminder to help make home practice a habit. Reminders respect your quiet hours settings.</div>
+  <h2>Set Reminder</h2>
+  <p class="sub">Get a gentle nudge at the right time each day.</p>
+  <div class="reminder-section">
+    <h3>⏰ Reminder Time</h3>
+    <select class="time-select">
+      <option>4:00 PM — After school</option>
+      <option>4:30 PM</option>
+      <option selected>5:00 PM — After homework</option>
+      <option>6:00 PM</option>
+      <option>7:00 PM — Before bedtime routine</option>
+      <option>7:30 PM</option>
+    </select>
+    <div style="font-size:.78rem;color:#6b7280;">Current setting: <strong style="color:#2c7a6e">5:00 PM daily</strong></div>
+  </div>
+  <div class="reminder-section">
+    <h3>📅 Days to Remind</h3>
+    <div class="day-chips">
+      <span class="day-chip on" onclick="this.classList.toggle('on')">Mon</span>
+      <span class="day-chip on" onclick="this.classList.toggle('on')">Tue</span>
+      <span class="day-chip on" onclick="this.classList.toggle('on')">Wed</span>
+      <span class="day-chip on" onclick="this.classList.toggle('on')">Thu</span>
+      <span class="day-chip on" onclick="this.classList.toggle('on')">Fri</span>
+      <span class="day-chip" onclick="this.classList.toggle('on')">Sat</span>
+      <span class="day-chip" onclick="this.classList.toggle('on')">Sun</span>
+    </div>
+    <div style="margin-top:10px;font-size:.78rem;color:#6b7280;">Reminders set for: <strong style="color:#2c7a6e">Weekdays</strong></div>
+  </div>
+  <div class="reminder-section">
+    <h3>💬 Reminder Message</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;"><input type="radio" name="reminder-msg" checked> "Time for Mia's WonderQuest practice!"</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;"><input type="radio" name="reminder-msg"> "Mia's learning goals are ready for today!"</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:.85rem;cursor:pointer;"><input type="radio" name="reminder-msg"> Custom message...</label>
+    </div>
+  </div>
+  <button class="save-btn">Save Reminder</button>
+</div>
+
+<!-- PANEL 4: Weekly Wrap-Up -->
+<div id="wrap" class="panel">
+  <div class="hint"><strong>Weekly Wrap-Up:</strong> A snapshot of how home practice went this week. All framing celebrates what Mia accomplished!</div>
+  <h2>Weekly Wrap-Up</h2>
+  <p class="sub">March 17–23, 2026 — Mia's home practice highlights.</p>
+  <div class="wrap-stats">
+    <div class="ws-card"><div class="ws-val">2/3</div><div class="ws-label">Goals completed</div></div>
+    <div class="ws-card"><div class="ws-val">5</div><div class="ws-label">Practice days</div></div>
+    <div class="ws-card"><div class="ws-val">45</div><div class="ws-label">Minutes practiced</div></div>
+    <div class="ws-card"><div class="ws-val">3</div><div class="ws-label">Badges unlocked</div></div>
+  </div>
+  <div style="background:linear-gradient(135deg,#2c7a6e,#1a5049);border-radius:16px;padding:20px;color:#fff;margin-bottom:14px;">
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:6px;">🎉 Great week, Mia!</div>
+    <div style="font-size:.85rem;opacity:.9;line-height:1.6;">Mia completed reading practice and her WonderQuest sessions — and Ms. Chen noticed the difference in class! One more goal next week and she's earned a special reward.</div>
+  </div>
+  <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.07);margin-bottom:14px;">
+    <div style="font-weight:700;font-size:.9rem;color:#2c7a6e;margin-bottom:10px;">Next Week's Goals Preview</div>
+    <div style="font-size:.83rem;color:#374151;line-height:1.8;">
+      📖 Read together for 10 minutes daily<br>
+      🔤 Try the Phonics Quest challenge in app<br>
+      🌟 Share one thing Mia learned today
+    </div>
+  </div>
+  <button class="save-btn">Share This Wrap-Up with Mia 🎉</button>
+</div>
+
+<!-- PANEL 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Spec:</strong> Design and data contract for goals planner screen.</div>
+  <h2>Specification</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Screen</td><td>parent-child-goals-planner-v2</td></tr>
+    <tr><td>Viewport</td><td>375px mobile</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#f5f0e8</td></tr>
+    <tr><td>Goals</td><td>3 per week, emoji + description + mark-done + reminder toggle</td></tr>
+    <tr><td>Completion</td><td>Celebration overlay on final goal completion</td></tr>
+    <tr><td>Reminder</td><td>Time picker, day-of-week chips, pre-written messages</td></tr>
+    <tr><td>Wrap-Up</td><td>4-stat grid, celebration card, next week preview</td></tr>
+    <tr><td>Framing</td><td>Forward-looking, no missed-day framing, positive only</td></tr>
+    <tr><td>Design tokens</td><td>Hint: #2a1f00 / #ffd166</td></tr>
+  </table>
+</div>
+
+<!-- Celebration overlay -->
+<div class="celebrate-overlay" id="celebrate-overlay">
+  <div class="celebrate-card">
+    <div class="cc-emoji">🎉</div>
+    <div class="cc-title">All 3 Goals Done!</div>
+    <div class="cc-sub">Mia smashed all her goals this week! Ms. Chen will hear about this — what an amazing effort!</div>
+    <button class="cc-btn" onclick="closeCelebrate()">See Weekly Wrap-Up →</button>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleGoal(id) {
+  const card = document.getElementById(id);
+  const cbId = id.replace('gc','cb');
+  const cb = document.getElementById(cbId);
+  const isDone = card.classList.contains('done');
+  if (isDone) {
+    card.classList.remove('done');
+    cb.innerHTML = '';
+    cb.classList.remove('checked');
+    cb.nextElementSibling.textContent = 'Mark done';
+    cb.nextElementSibling.style.color = '';
+  } else {
+    card.classList.add('done');
+    cb.innerHTML = '✓';
+    cb.classList.add('checked');
+    cb.nextElementSibling.textContent = 'Done! ⭐';
+    cb.nextElementSibling.style.color = '#2c7a6e';
+    // Check if all done
+    const allDone = ['gc1','gc2','gc3'].every(gid => document.getElementById(gid).classList.contains('done'));
+    if (allDone) document.getElementById('celebrate-overlay').classList.add('show');
+  }
+}
+function closeCelebrate() {
+  document.getElementById('celebrate-overlay').classList.remove('show');
+  document.querySelectorAll('.tab')[3].click();
+}
+</script>
+</body>
+</html>

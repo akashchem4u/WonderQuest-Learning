@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Remediation Ladder — WonderQuest #293</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --card:      #161b22;
+      --accent:    #50e890;
+      --text:      #f0f6ff;
+      --border:    rgba(255,255,255,.06);
+      --muted:     #8b949e;
+      --teacher:   #38bdf8;
+      --watch:     #f5c542;
+      --action:    #f59e0b;
+      --urgent:    #f87171;
+      --watch-bg:  rgba(245,197,66,.08);
+      --action-bg: rgba(245,158,11,.08);
+      --urgent-bg: rgba(248,113,113,.08);
+      --radius:    10px;
+      --radius-sm: 6px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Engineering Hint Box ─────────────────────────────────── */
+    .hint-box {
+      background: #2a2200;
+      border: 1.5px solid #f5c542;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #f5e8a0;
+    }
+    .hint-box strong {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #f5c542;
+      margin-bottom: 6px;
+    }
+    .hint-box code {
+      font-family: 'Courier New', monospace;
+      background: rgba(245,197,66,.12);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    /* ── Page header ─────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .page-header-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: rgba(56,189,248,.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 22px;
+    }
+    .page-header-text h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .page-header-text p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .badge-persona {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(56,189,248,.12);
+      color: var(--teacher);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(56,189,248,.25);
+      margin-top: 6px;
+    }
+
+    /* ── Tab nav ─────────────────────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 18px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      white-space: nowrap;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Ladder Rung ─────────────────────────────────────────── */
+    .rung {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .rung-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+    .rung-header:hover { filter: brightness(1.05); }
+    .rung.watch  { background: var(--watch-bg);  border-color: rgba(245,197,66,.18); }
+    .rung.action { background: var(--action-bg); border-color: rgba(245,158,11,.20); }
+    .rung.urgent { background: var(--urgent-bg); border-color: rgba(248,113,113,.20); }
+
+    .rung-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .rung.watch  .rung-dot { background: var(--watch); }
+    .rung.action .rung-dot { background: var(--action); }
+    .rung.urgent .rung-dot { background: var(--urgent); }
+
+    .rung-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+    .rung.watch  .rung-label { color: var(--watch); }
+    .rung.action .rung-label { color: var(--action); }
+    .rung.urgent .rung-label { color: var(--urgent); }
+
+    .rung-count {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 2px;
+    }
+    .rung.watch  .rung-count { background: rgba(245,197,66,.15); color: var(--watch); }
+    .rung.action .rung-count { background: rgba(245,158,11,.15); color: var(--action); }
+    .rung.urgent .rung-count { background: rgba(248,113,113,.15); color: var(--urgent); }
+
+    .rung-desc {
+      font-size: 12px;
+      color: var(--muted);
+      flex: 1;
+    }
+    .rung-chevron {
+      font-size: 16px;
+      color: var(--muted);
+      transition: transform .2s;
+      margin-left: auto;
+    }
+    .rung.open .rung-chevron { transform: rotate(180deg); }
+
+    .rung-body {
+      display: none;
+      padding: 0 20px 20px;
+    }
+    .rung.open .rung-body { display: block; }
+
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .student-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px 6px 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      min-height: 44px;
+    }
+    .student-chip:hover,
+    .student-chip.selected {
+      border-color: rgba(80,232,144,.35);
+      background: rgba(80,232,144,.07);
+    }
+    .student-chip .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(56,189,248,.20);
+      color: var(--teacher);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .action-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(80,232,144,.08);
+      border: 1px solid rgba(80,232,144,.20);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    /* ── Student Action Panel ────────────────────────────────── */
+    .student-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-top: 10px;
+    }
+    .student-panel h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .student-panel h3 span.tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .meta-item {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .meta-item .meta-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .meta-item .meta-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .next-step-box {
+      background: rgba(80,232,144,.06);
+      border: 1px solid rgba(80,232,144,.18);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .next-step-box .ns-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: rgba(80,232,144,.6);
+      margin-bottom: 4px;
+    }
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: filter .15s, opacity .15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-primary   { background: var(--accent); color: #0d1117; }
+    .btn-secondary { background: rgba(56,189,248,.12); color: var(--teacher); border: 1px solid rgba(56,189,248,.25); }
+    .btn-ghost     { background: rgba(255,255,255,.05); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger    { background: rgba(248,113,113,.12); color: var(--urgent); border: 1px solid rgba(248,113,113,.25); }
+
+    /* ── Resolution Log ──────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      background: var(--card);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+    tbody td {
+      padding: 12px 16px;
+      vertical-align: middle;
+      color: var(--text);
+    }
+    .flag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px;
+    }
+    .flag-low_engagement { background: rgba(245,158,11,.12); color: var(--action); }
+    .flag-revisit_pattern { background: rgba(245,197,66,.12); color: var(--watch); }
+    .flag-quest_exit_early { background: rgba(248,113,113,.12); color: var(--urgent); }
+    .flag-not_started { background: rgba(248,113,113,.15); color: #fca5a5; }
+
+    .resolve-note {
+      font-size: 12px;
+      color: var(--muted);
+      max-width: 240px;
+    }
+
+    /* ── Spec Tab ────────────────────────────────────────────── */
+    .spec-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    .spec-section h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--teacher);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .spec-section h2::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .spec-item { font-size: 13px; line-height: 1.5; }
+    .spec-item .sk { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .spec-item .sv { color: var(--text); font-weight: 500; }
+
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #a5f3a0;
+      overflow-x: auto;
+      white-space: pre;
+      margin-top: 8px;
+    }
+
+    .rule-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .rule-list li {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .rule-list li::before {
+      content: attr(data-n);
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: rgba(80,232,144,.12);
+      color: var(--accent);
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .lang-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .lang-table th {
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .lang-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .lang-table tr:last-child td { border-bottom: none; }
+    .prohibited { color: var(--urgent); font-weight: 600; }
+    .approved   { color: var(--accent); font-weight: 600; }
+
+    /* ── Modal overlay for "Mark Resolved" ──────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 460px;
+    }
+    .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .modal p  { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .modal textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 10px 12px;
+      resize: vertical;
+      min-height: 90px;
+      margin-bottom: 16px;
+    }
+    .modal textarea:focus { outline: 2px solid rgba(80,232,144,.4); border-color: transparent; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ── Toast ───────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--card);
+      border: 1px solid rgba(80,232,144,.3);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 200;
+      transition: transform .3s ease;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .page-header-text h1 { font-size: 18px; }
+      .tab-btn { padding: 10px 12px; font-size: 13px; }
+      .rung-desc { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering Hint Box -->
+  <div class="hint-box" role="note" aria-label="Engineering hint">
+    <strong>Engineering hint — WonderQuest Design System #293</strong>
+    <strong style="display:inline;font-size:11px;text-transform:none;letter-spacing:0;color:#f5e8a0;">teacher-remediation-ladder-v2</strong>&nbsp;|&nbsp;
+    <strong style="display:inline;color:#f5e8a0;">Persona:</strong> Teacher&nbsp;|&nbsp;
+    <strong style="display:inline;color:#f5e8a0;">Route:</strong> <code>/teacher/support/remediation</code>&nbsp;|&nbsp;
+    <strong style="display:inline;color:#f5e8a0;">Auth:</strong> Teacher role required<br /><br />
+    <strong style="display:inline;color:#f5e8a0;">DB table:</strong> <code>student_support_flags { id, student_id, flag_type ENUM('low_engagement','revisit_pattern','quest_exit_early','not_started'), flag_severity ENUM('watch','action','urgent'), created_at, resolved_at, resolution_notes }</code><br /><br />
+    <strong style="display:inline;color:#f5e8a0;">Privacy:</strong> Student first names only · NO accuracy % · flags = engagement signals only (never "struggling" or "below average") · positive framing always<br />
+    <strong style="display:inline;color:#f5e8a0;">FERPA:</strong> School-linked only; not externally disclosed
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-icon" aria-hidden="true">🪜</div>
+    <div class="page-header-text">
+      <h1>Support Ladder</h1>
+      <p>Students who may benefit from a little extra attention — based on engagement signals</p>
+      <span class="badge-persona">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Teacher View
+      </span>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <nav class="tab-nav" role="tablist" aria-label="Support Ladder tabs">
+    <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-ladder"   id="btn-ladder"   onclick="showTab('ladder')">Support Ladder</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-resolved" id="btn-resolved" onclick="showTab('resolved')">Resolution Log</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-spec"     id="btn-spec"     onclick="showTab('spec')">Spec</button>
+  </nav>
+
+  <!-- ══ TAB 1: Support Ladder ══════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-ladder" role="tabpanel" aria-labelledby="btn-ladder">
+
+    <!-- WATCH rung -->
+    <div class="rung watch" id="rung-watch">
+      <div class="rung-header" onclick="toggleRung('watch')" role="button" tabindex="0" aria-expanded="true" aria-controls="body-watch"
+           onkeydown="if(event.key==='Enter'||event.key===' ')toggleRung('watch')">
+        <span class="rung-dot" aria-hidden="true"></span>
+        <span class="rung-label">Watch</span>
+        <span class="rung-count">4 students</span>
+        <span class="rung-desc">Revisiting some quests — keep an eye on engagement</span>
+        <span class="rung-chevron" aria-hidden="true">▾</span>
+      </div>
+      <div class="rung-body" id="body-watch">
+        <div class="chips-row" role="list" aria-label="Watch-rung students">
+          <button class="student-chip" role="listitem" onclick="openPanel('watch','Amara')" aria-expanded="false" aria-controls="panel-watch-Amara">
+            <span class="avatar" aria-hidden="true">A</span>Amara
+          </button>
+          <button class="student-chip" role="listitem" onclick="openPanel('watch','Leo')" aria-expanded="false" aria-controls="panel-watch-Leo">
+            <span class="avatar" aria-hidden="true">L</span>Leo
+          </button>
+          <button class="student-chip" role="listitem" onclick="openPanel('watch','Priya')" aria-expanded="false" aria-controls="panel-watch-Priya">
+            <span class="avatar" aria-hidden="true">P</span>Priya
+          </button>
+          <button class="student-chip" role="listitem" onclick="openPanel('watch','Marcus')" aria-expanded="false" aria-controls="panel-watch-Marcus">
+            <span class="avatar" aria-hidden="true">M</span>Marcus
+          </button>
+          <span class="action-chip" aria-label="Recommended action">
+            ✦ Check in during next session
+          </span>
+        </div>
+
+        <!-- Per-student panels -->
+        <div id="panel-watch-Amara"  class="student-panel" style="display:none" aria-label="Amara support detail">
+          <h3>Amara <span class="tag" style="background:rgba(245,197,66,.12);color:var(--watch)">Watch</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 24</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">2</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Revisit pattern</div></div>
+          </div>
+          <div class="next-step-box"><div class="ns-label">Recommended next step</div>Try: Reading Quest at their current band — short session to rebuild momentum</div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="alert('Platform message sent to Amara\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Amara','watch')">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div id="panel-watch-Leo" class="student-panel" style="display:none" aria-label="Leo support detail">
+          <h3>Leo <span class="tag" style="background:rgba(245,197,66,.12);color:var(--watch)">Watch</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 23</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">3</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Revisit pattern</div></div>
+          </div>
+          <div class="next-step-box"><div class="ns-label">Recommended next step</div>Try: Math Quest at their current band — revisiting familiar content builds confidence</div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="alert('Platform message sent to Leo\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Leo','watch')">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div id="panel-watch-Priya" class="student-panel" style="display:none" aria-label="Priya support detail">
+          <h3>Priya <span class="tag" style="background:rgba(245,197,66,.12);color:var(--watch)">Watch</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 22</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">2</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Revisit pattern</div></div>
+          </div>
+          <div class="next-step-box"><div class="ns-label">Recommended next step</div>Try: Science Quest at their current band — a new topic may spark fresh engagement</div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="alert('Platform message sent to Priya\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Priya','watch')">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div id="panel-watch-Marcus" class="student-panel" style="display:none" aria-label="Marcus support detail">
+          <h3>Marcus <span class="tag" style="background:rgba(245,197,66,.12);color:var(--watch)">Watch</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 24</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">1</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Revisit pattern</div></div>
+          </div>
+          <div class="next-step-box"><div class="ns-label">Recommended next step</div>Try: Reading Quest at their current band — a familiar format to re-engage on their own terms</div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="alert('Platform message sent to Marcus\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Marcus','watch')">Mark Resolved</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTION rung -->
+    <div class="rung action open" id="rung-action">
+      <div class="rung-header" onclick="toggleRung('action')" role="button" tabindex="0" aria-expanded="true" aria-controls="body-action"
+           onkeydown="if(event.key==='Enter'||event.key===' ')toggleRung('action')">
+        <span class="rung-dot" aria-hidden="true"></span>
+        <span class="rung-label">Action</span>
+        <span class="rung-count">2 students</span>
+        <span class="rung-desc">Low engagement this week — consider a check-in</span>
+        <span class="rung-chevron" aria-hidden="true">▾</span>
+      </div>
+      <div class="rung-body" id="body-action">
+        <div class="chips-row" role="list" aria-label="Action-rung students">
+          <button class="student-chip" role="listitem" onclick="openPanel('action','Jordan')" aria-expanded="false" aria-controls="panel-action-Jordan">
+            <span class="avatar" aria-hidden="true">J</span>Jordan
+          </button>
+          <button class="student-chip" role="listitem" onclick="openPanel('action','Sofia')" aria-expanded="false" aria-controls="panel-action-Sofia">
+            <span class="avatar" aria-hidden="true">S</span>Sofia
+          </button>
+          <span class="action-chip" aria-label="Recommended action">
+            ✦ Schedule a brief check-in
+          </span>
+        </div>
+
+        <div id="panel-action-Jordan" class="student-panel" style="display:none" aria-label="Jordan support detail">
+          <h3>Jordan <span class="tag" style="background:rgba(245,158,11,.12);color:var(--action)">Action</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 20</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">0</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Low engagement</div></div>
+          </div>
+          <div class="next-step-box"><div class="ns-label">Recommended next step</div>Try: A short Story Quest at their current band — low-stakes entry to rebuild a habit</div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="alert('Platform message sent to Jordan\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Jordan','action')">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div id="panel-action-Sofia" class="student-panel" style="display:none" aria-label="Sofia support detail">
+          <h3>Sofia <span class="tag" style="background:rgba(245,158,11,.12);color:var(--action)">Action</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 19</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">1</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Quest exit early</div></div>
+          </div>
+          <div class="next-step-box"><div class="ns-label">Recommended next step</div>Try: Math Quest at their current band — a brief, achievable quest to re-anchor engagement</div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" onclick="alert('Platform message sent to Sofia\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Sofia','action')">Mark Resolved</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- URGENT rung -->
+    <div class="rung urgent open" id="rung-urgent">
+      <div class="rung-header" onclick="toggleRung('urgent')" role="button" tabindex="0" aria-expanded="true" aria-controls="body-urgent"
+           onkeydown="if(event.key==='Enter'||event.key===' ')toggleRung('urgent')">
+        <span class="rung-dot" aria-hidden="true"></span>
+        <span class="rung-label">Urgent</span>
+        <span class="rung-count">1 student</span>
+        <span class="rung-desc">Not started this week — may need extra support</span>
+        <span class="rung-chevron" aria-hidden="true">▾</span>
+      </div>
+      <div class="rung-body" id="body-urgent">
+        <div class="chips-row" role="list" aria-label="Urgent-rung students">
+          <button class="student-chip" role="listitem" onclick="openPanel('urgent','Eli')" aria-expanded="false" aria-controls="panel-urgent-Eli">
+            <span class="avatar" aria-hidden="true">E</span>Eli
+          </button>
+          <span class="action-chip" aria-label="Recommended action" style="border-color:rgba(248,113,113,.30);background:rgba(248,113,113,.07);color:var(--urgent)">
+            ✦ Personal outreach recommended
+          </span>
+        </div>
+
+        <div id="panel-urgent-Eli" class="student-panel" style="display:none" aria-label="Eli support detail">
+          <h3>Eli <span class="tag" style="background:rgba(248,113,113,.12);color:var(--urgent)">Urgent</span></h3>
+          <div class="meta-grid">
+            <div class="meta-item"><div class="meta-label">Last session</div><div class="meta-value">Mar 17</div></div>
+            <div class="meta-item"><div class="meta-label">Quests explored this week</div><div class="meta-value">0</div></div>
+            <div class="meta-item"><div class="meta-label">Signal</div><div class="meta-value">Not started</div></div>
+          </div>
+          <div class="next-step-box" style="border-color:rgba(248,113,113,.25);background:rgba(248,113,113,.06);color:#fca5a5;"><div class="ns-label" style="color:rgba(252,165,165,.55)">Recommended next step</div>Reach out to check in — Eli may just be getting started and a warm invitation can go a long way</div>
+          <div class="panel-actions">
+            <button class="btn btn-danger"    onclick="alert('Platform message sent to Eli\'s family.')">✉ Send Message</button>
+            <button class="btn btn-ghost"     onclick="openResolve('Eli','urgent')">Mark Resolved</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--muted);margin-top:20px;">
+      Signals are based on session engagement patterns only. No accuracy data is used or displayed.
+      Student names shown are first names only per privacy policy.
+    </p>
+  </div><!-- /tab-ladder -->
+
+  <!-- ══ TAB 2: Resolution Log ════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-resolved" role="tabpanel" aria-labelledby="btn-resolved">
+    <div class="table-wrap" role="region" aria-label="Resolved flags log">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Student</th>
+            <th scope="col">Flag type</th>
+            <th scope="col">Resolved</th>
+            <th scope="col">Resolution notes</th>
+          </tr>
+        </thead>
+        <tbody id="resolved-tbody">
+          <tr>
+            <td><strong>Noah</strong></td>
+            <td><span class="flag-badge flag-low_engagement">low_engagement</span></td>
+            <td style="color:var(--muted);white-space:nowrap">Mar 21, 2026</td>
+            <td class="resolve-note">Had a brief check-in — student mentioned they were on a school trip last week. Back on track now.</td>
+          </tr>
+          <tr>
+            <td><strong>Isla</strong></td>
+            <td><span class="flag-badge flag-revisit_pattern">revisit_pattern</span></td>
+            <td style="color:var(--muted);white-space:nowrap">Mar 20, 2026</td>
+            <td class="resolve-note">Suggested a new quest band. Student completed two quests the following day.</td>
+          </tr>
+          <tr>
+            <td><strong>Kai</strong></td>
+            <td><span class="flag-badge flag-quest_exit_early">quest_exit_early</span></td>
+            <td style="color:var(--muted);white-space:nowrap">Mar 19, 2026</td>
+            <td class="resolve-note">Sent a platform message; family responded that device time was limited that week. Monitoring resumed.</td>
+          </tr>
+          <tr>
+            <td><strong>Zara</strong></td>
+            <td><span class="flag-badge flag-not_started">not_started</span></td>
+            <td style="color:var(--muted);white-space:nowrap">Mar 17, 2026</td>
+            <td class="resolve-note">Coordinated with family — student was at a family event. Welcomed back with a recommended quest.</td>
+          </tr>
+          <tr>
+            <td><strong>Theo</strong></td>
+            <td><span class="flag-badge flag-low_engagement">low_engagement</span></td>
+            <td style="color:var(--muted);white-space:nowrap">Mar 15, 2026</td>
+            <td class="resolve-note">Engaged student in a live session. Re-introduced Reading Quest at current band. Great response.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:16px;">
+      Resolved flags are retained for teacher reference only and are not externally disclosed (FERPA).
+    </p>
+  </div><!-- /tab-resolved -->
+
+  <!-- ══ TAB 3: Spec ══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+
+    <!-- Component metadata -->
+    <div class="spec-section">
+      <h2>Component</h2>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="sk">Name</div><div class="sv">RemediationLadder</div></div>
+        <div class="spec-item"><div class="sk">File</div><div class="sv">teacher-remediation-ladder-v2.html</div></div>
+        <div class="spec-item"><div class="sk">Design System ID</div><div class="sv">#293</div></div>
+        <div class="spec-item"><div class="sk">Route</div><div class="sv">/teacher/support/remediation</div></div>
+        <div class="spec-item"><div class="sk">Auth</div><div class="sv">Teacher role required</div></div>
+        <div class="spec-item"><div class="sk">Persona</div><div class="sv">Teacher (#38bdf8)</div></div>
+      </div>
+      <div class="spec-item" style="margin-top:8px"><div class="sk">Props</div></div>
+      <div class="code-block">RemediationLadder({
+  classId: string,          // current teacher's class
+  weekStart: ISO8601Date,   // start of reporting window
+  onResolve: (flagId, notes) => void,
+  onMessage: (studentId) => void
+})</div>
+    </div>
+
+    <!-- DB schema -->
+    <div class="spec-section">
+      <h2>DB Schema</h2>
+      <div class="code-block">CREATE TABLE student_support_flags (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id     UUID NOT NULL REFERENCES students(id),
+  flag_type      ENUM('low_engagement','revisit_pattern',
+                       'quest_exit_early','not_started') NOT NULL,
+  flag_severity  ENUM('watch','action','urgent') NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at    TIMESTAMPTZ,
+  resolution_notes TEXT
+);</div>
+    </div>
+
+    <!-- Flag type definitions -->
+    <div class="spec-section">
+      <h2>Flag Type Definitions</h2>
+      <table class="lang-table">
+        <thead><tr><th>flag_type</th><th>Trigger condition (engagement-based)</th><th>Default severity</th></tr></thead>
+        <tbody>
+          <tr><td><code>low_engagement</code></td><td>Fewer than 2 quest sessions in a 7-day window</td><td>action</td></tr>
+          <tr><td><code>revisit_pattern</code></td><td>Student revisited the same quest band ≥3 times without progressing</td><td>watch</td></tr>
+          <tr><td><code>quest_exit_early</code></td><td>Student exited a quest before the midpoint on ≥2 occasions in a week</td><td>action</td></tr>
+          <tr><td><code>not_started</code></td><td>Zero quest activity for 7+ calendar days</td><td>urgent</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+        All flags are derived exclusively from session and engagement data. No assessment scores, accuracy rates, or correctness data are used.
+      </p>
+    </div>
+
+    <!-- Privacy + FERPA -->
+    <div class="spec-section">
+      <h2>Privacy &amp; FERPA</h2>
+      <ul class="rule-list">
+        <li data-n="1">Display student first names only — never last names, IDs, or photos.</li>
+        <li data-n="2">Accuracy percentages and assessment scores must never appear in this view.</li>
+        <li data-n="3">Flags are derived from engagement signals only; no academic outcome data is surfaced.</li>
+        <li data-n="4">Resolution notes are stored server-side and visible to the assigned teacher only.</li>
+        <li data-n="5">Student support data is school-linked and is not disclosed to external parties (FERPA §99.31).</li>
+        <li data-n="6">All data is scoped to the authenticated teacher's assigned class; cross-class queries are rejected at the API layer.</li>
+      </ul>
+    </div>
+
+    <!-- Language rules -->
+    <div class="spec-section">
+      <h2>Language Rules</h2>
+      <table class="lang-table">
+        <thead><tr><th>Prohibited term</th><th>Approved alternative</th></tr></thead>
+        <tbody>
+          <tr><td class="prohibited">struggling</td><td class="approved">needs a check-in / may benefit from extra support</td></tr>
+          <tr><td class="prohibited">behind</td><td class="approved">earlier in their journey</td></tr>
+          <tr><td class="prohibited">below average</td><td class="approved">(omit entirely — never quantify relative to peers)</td></tr>
+          <tr><td class="prohibited">incorrect / wrong</td><td class="approved">(omit — engagement flags only, not accuracy)</td></tr>
+          <tr><td class="prohibited">failing</td><td class="approved">not yet started / just getting started</td></tr>
+          <tr><td class="prohibited">low performer</td><td class="approved">student who may benefit from a warm invite to re-engage</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+        All copy must use positive, supportive framing. Automated text generation for recommendation cards must pass a prohibited-term filter before rendering.
+      </p>
+    </div>
+
+    <!-- Business rules -->
+    <div class="spec-section">
+      <h2>Business Rules</h2>
+      <ul class="rule-list">
+        <li data-n="1">A student may appear on at most one rung at a time — the highest applicable severity wins.</li>
+        <li data-n="2">Flags auto-expire after 14 days if no teacher action is taken; an audit record is retained.</li>
+        <li data-n="3">Marking a flag resolved requires a non-empty resolution note (minimum 10 characters).</li>
+        <li data-n="4">A resolved flag moves to the Resolution Log immediately on the client; re-flagging requires a new DB record.</li>
+        <li data-n="5">Platform messages triggered from this view are logged against the flag record for continuity.</li>
+        <li data-n="6">Rung counts are refreshed nightly; real-time WebSocket updates are out of scope for v2.</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-spec -->
+
+  <!-- ══ Resolve Modal ════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="resolve-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h3 id="modal-title">Mark as Resolved</h3>
+      <p id="modal-subtitle">Add a brief note about how this was addressed.</p>
+      <textarea id="resolve-notes" placeholder="e.g. Had a check-in with the student — back on track." aria-label="Resolution notes"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeResolve()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmResolve()">Save &amp; Resolve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ── Tab switching ─────────────────────────────────────────────
+    function showTab(t) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.getElementById('tab-' + t).classList.add('active');
+      const btn = document.getElementById('btn-' + t);
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
+
+    // ── Rung toggle ───────────────────────────────────────────────
+    function toggleRung(name) {
+      const rung = document.getElementById('rung-' + name);
+      const header = rung.querySelector('.rung-header');
+      const isOpen = rung.classList.contains('open');
+      rung.classList.toggle('open', !isOpen);
+      header.setAttribute('aria-expanded', String(!isOpen));
+    }
+
+    // Open rungs on load for action/urgent
+    window.addEventListener('DOMContentLoaded', () => {
+      ['action','urgent'].forEach(n => {
+        const rung = document.getElementById('rung-' + n);
+        if (rung) {
+          rung.classList.add('open');
+          rung.querySelector('.rung-header').setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    // ── Student panel open/close ──────────────────────────────────
+    let _activePanel = null;
+
+    function openPanel(rung, name) {
+      const panelId = 'panel-' + rung + '-' + name;
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+
+      // Close previously open panel in same rung body
+      const allPanels = panel.closest('.rung-body').querySelectorAll('.student-panel');
+      allPanels.forEach(p => { if (p !== panel) p.style.display = 'none'; });
+
+      // Update chip selected state
+      const allChips = panel.closest('.rung-body').querySelectorAll('.student-chip');
+      allChips.forEach(c => {
+        const isThis = c.getAttribute('aria-controls') === panelId;
+        c.classList.toggle('selected', isThis);
+        c.setAttribute('aria-expanded', isThis && panel.style.display !== 'none' ? 'false' : 'false');
+      });
+
+      const isVisible = panel.style.display !== 'none';
+      panel.style.display = isVisible ? 'none' : 'block';
+      panel.closest('.rung-body')
+           .querySelector('[aria-controls="' + panelId + '"]')
+           ?.setAttribute('aria-expanded', String(!isVisible));
+
+      if (!isVisible) {
+        _activePanel = { rung, name, panelId };
+      } else {
+        _activePanel = null;
+      }
+    }
+
+    // ── Resolve modal ─────────────────────────────────────────────
+    let _resolveTarget = null;
+
+    function openResolve(name, rung) {
+      _resolveTarget = { name, rung };
+      document.getElementById('modal-subtitle').textContent =
+        'Add a brief note about how you supported ' + name + '.';
+      document.getElementById('resolve-notes').value = '';
+      document.getElementById('resolve-modal').classList.add('open');
+      document.getElementById('resolve-notes').focus();
+    }
+
+    function closeResolve() {
+      document.getElementById('resolve-modal').classList.remove('open');
+      _resolveTarget = null;
+    }
+
+    function confirmResolve() {
+      const notes = document.getElementById('resolve-notes').value.trim();
+      if (notes.length < 10) {
+        document.getElementById('resolve-notes').style.outline = '2px solid var(--urgent)';
+        document.getElementById('resolve-notes').focus();
+        setTimeout(() => { document.getElementById('resolve-notes').style.outline = ''; }, 1500);
+        return;
+      }
+      if (!_resolveTarget) return;
+
+      const { name, rung } = _resolveTarget;
+
+      // Remove chip from ladder
+      const allChips = document.querySelectorAll('#tab-ladder .student-chip');
+      allChips.forEach(chip => {
+        if (chip.textContent.trim() === name) chip.remove();
+      });
+
+      // Hide panel
+      const panelId = 'panel-' + rung + '-' + name;
+      const panel = document.getElementById(panelId);
+      if (panel) panel.style.display = 'none';
+
+      // Add row to resolution log
+      const flagMap = {
+        watch:  'revisit_pattern',
+        action: 'low_engagement',
+        urgent: 'not_started'
+      };
+      const today = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><strong>${name}</strong></td>
+        <td><span class="flag-badge flag-${flagMap[rung]}">${flagMap[rung]}</span></td>
+        <td style="color:var(--muted);white-space:nowrap">${today}</td>
+        <td class="resolve-note">${escapeHtml(notes)}</td>`;
+      document.getElementById('resolved-tbody').prepend(row);
+
+      closeResolve();
+      showToast(name + ' moved to Resolution Log.');
+    }
+
+    // ── Escape HTML for user-typed content ────────────────────────
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Close modal on overlay click ──────────────────────────────
+    document.getElementById('resolve-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeResolve();
+    });
+
+    // ── Close modal on Escape ─────────────────────────────────────
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeResolve();
+    });
+  </script>
+</body>
+</html>

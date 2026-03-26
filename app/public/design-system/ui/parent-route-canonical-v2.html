@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Parent Route Canonical v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream:    #f5f0e8;
+      --cream2:   #ede7d9;
+      --teal:     #2c7a6e;
+      --teal-lt:  #3d9e8f;
+      --teal-bg:  rgba(44,122,110,.08);
+      --ink:      #1c1c1e;
+      --mid:      #4b5563;
+      --faint:    #9ca3af;
+      --white:    #ffffff;
+      --gold:     #ffd166;
+      --violet:   #9b72ff;
+      --mint:     #58e8c1;
+      --coral:    #ff7b6b;
+      --radius:   16px;
+      --shadow:   0 2px 12px rgba(0,0,0,.07);
+    }
+    body { font-family: 'Sora', sans-serif; background: #e8e2d6; min-height: 100vh; }
+
+    /* ── TABS ── */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: #fff; border-bottom: 1.5px solid #ddd8ce;
+      display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 14px 20px;
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--faint); background: transparent; border: none;
+      border-bottom: 3px solid transparent; cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: var(--teal); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #92670e; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ═══════════════════════════════════════
+       DESKTOP FRAME
+    ═══════════════════════════════════════ */
+    .desktop-frame {
+      background: var(--cream); min-height: 100vh;
+    }
+    .desktop-topbar {
+      background: #fff; border-bottom: 1px solid #ddd8ce;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 60px;
+    }
+    .topbar-logo { font-size: 16px; font-weight: 700; color: var(--ink); }
+    .topbar-logo span { color: var(--teal); }
+    .topbar-child-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--cream); border: 1px solid #ddd8ce; border-radius: 24px;
+      padding: 6px 14px 6px 8px; cursor: pointer;
+    }
+    .chip-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .chip-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .chip-caret { color: var(--faint); font-size: 11px; margin-left: 4px; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .topbar-icon { width: 36px; height: 36px; background: var(--cream); border-radius: 10px; border: 1px solid #ddd8ce; display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; }
+
+    .desktop-body {
+      display: grid; grid-template-columns: 300px 1fr; gap: 0;
+      max-width: 1200px; margin: 0 auto; padding: 32px 40px; gap: 28px;
+    }
+
+    /* LEFT: Summary rail */
+    .summary-rail {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .rail-card {
+      background: #fff; border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,.05);
+    }
+    .rail-card-title { font-size: 11px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+
+    /* KPI stack */
+    .kpi-stack { display: flex; flex-direction: column; gap: 12px; }
+    .kpi-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding-bottom: 12px; border-bottom: 1px solid #f0ece4;
+    }
+    .kpi-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .kpi-label { font-size: 12px; color: var(--mid); }
+    .kpi-sublabel { font-size: 10px; color: var(--faint); margin-top: 2px; }
+    .kpi-val { font-size: 18px; font-weight: 700; color: var(--ink); text-align: right; }
+    .kpi-delta { font-size: 10px; font-weight: 600; margin-top: 2px; text-align: right; }
+    .kpi-delta.up { color: var(--teal); }
+    .kpi-delta.same { color: var(--faint); }
+
+    /* Status line */
+    .status-line {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(44,122,110,.07); border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.green { background: var(--teal); }
+    .status-dot.amber { background: var(--gold); }
+    .status-text { font-size: 12px; color: var(--ink); font-weight: 500; }
+
+    /* What changed pills */
+    .changed-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .changed-pill {
+      font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+    }
+    .pill-new { background: rgba(44,122,110,.1); color: var(--teal); }
+    .pill-review { background: rgba(255,209,102,.15); color: #7a5200; }
+    .pill-support { background: rgba(255,123,107,.1); color: #b84a3e; }
+
+    /* Try at home */
+    .try-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding-bottom: 12px; border-bottom: 1px solid #f0ece4;
+    }
+    .try-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .try-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .try-text { flex: 1; }
+    .try-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .try-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+    .try-band { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; display: inline-block; margin-top: 4px; }
+    .band-p0 { background: rgba(255,209,102,.15); color: #7a5200; }
+    .band-p1 { background: rgba(155,114,255,.12); color: #5b3fb5; }
+
+    /* RIGHT: Main content */
+    .main-content { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Section header */
+    .section-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .section-hdr h2 { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .section-hdr a { font-size: 12px; color: var(--teal); font-weight: 600; text-decoration: none; }
+
+    /* Support / strengths / next step */
+    .sns-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .sns-card { background: #fff; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,.05); }
+    .sns-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .sns-label.support { color: #b84a3e; }
+    .sns-label.strength { color: var(--teal); }
+    .sns-label.next { color: #6b52c8; }
+    .sns-skill { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+    .sns-detail { font-size: 11px; color: var(--mid); line-height: 1.5; }
+    .sns-cta { margin-top: 12px; padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+    .sns-cta.support { background: rgba(255,123,107,.1); color: #b84a3e; }
+    .sns-cta.strength { background: rgba(44,122,110,.1); color: var(--teal); }
+    .sns-cta.next { background: rgba(107,82,200,.1); color: #6b52c8; }
+
+    /* Weekly bar chart */
+    .week-chart { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,.05); }
+    .chart-bars { display: flex; align-items: flex-end; gap: 10px; height: 80px; margin: 14px 0 8px; }
+    .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .chart-bar { width: 100%; border-radius: 6px 6px 0 0; background: var(--teal); opacity: .7; transition: opacity .2s; }
+    .chart-bar:hover { opacity: 1; }
+    .chart-bar.today { opacity: 1; background: var(--teal); }
+    .chart-bar.low { background: #ddd8ce; opacity: 1; }
+    .chart-day { font-size: 10px; color: var(--faint); }
+
+    /* Access manager entry */
+    .access-card {
+      background: #fff; border-radius: var(--radius); padding: 18px 20px;
+      box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,.05);
+      display: flex; align-items: center; gap: 16px; cursor: pointer;
+    }
+    .access-icon { font-size: 28px; }
+    .access-text { flex: 1; }
+    .access-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .access-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+    .access-arrow { color: var(--faint); font-size: 18px; }
+
+    /* Bottom nav */
+    .desktop-bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: #fff; border-top: 1px solid #ddd8ce;
+      display: flex; justify-content: center; gap: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .bnav-tab {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 10px 32px; font-size: 10px; color: var(--faint); cursor: pointer;
+      border-top: 2px solid transparent; transition: all .2s;
+    }
+    .bnav-tab.active { color: var(--teal); border-top-color: var(--teal); }
+    .bnav-icon { font-size: 20px; }
+
+    /* ═══════════════════════════════════════
+       MOBILE FRAME
+    ═══════════════════════════════════════ */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; }
+    .phone-frame {
+      width: 375px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25); border: 1px solid #ddd8ce;
+      position: relative; font-family: 'Sora', sans-serif;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: #fff; border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--cream); min-height: 812px; position: relative; }
+
+    /* Mobile topbar */
+    .mob-topbar {
+      background: #fff; border-bottom: 1px solid #ddd8ce;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 46px 16px 12px;
+    }
+    .mob-topbar-logo { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .mob-topbar-logo span { color: var(--teal); }
+    .mob-topbar-right { display: flex; align-items: center; gap: 10px; }
+    .mob-icon-btn { width: 32px; height: 32px; background: var(--cream); border-radius: 8px; border: 1px solid #ddd8ce; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
+    /* Mobile child chip strip */
+    .mob-chip-strip {
+      background: #fff; border-bottom: 1px solid #ddd8ce;
+      display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none;
+    }
+    .mob-chip-strip::-webkit-scrollbar { display: none; }
+    .mob-child-chip {
+      flex-shrink: 0; display: flex; align-items: center; gap: 7px;
+      background: var(--cream); border: 1.5px solid #ddd8ce; border-radius: 20px;
+      padding: 5px 12px 5px 6px; cursor: pointer;
+    }
+    .mob-child-chip.active { border-color: var(--teal); background: rgba(44,122,110,.06); }
+    .chip-av { width: 22px; height: 22px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    .chip-nm { font-size: 12px; font-weight: 600; color: var(--ink); }
+
+    /* Mobile scroll body */
+    .mob-body { padding: 16px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Mobile KPI card */
+    .mob-kpi-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+    .mob-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mob-kpi-cell {}
+    .mob-kpi-label { font-size: 10px; color: var(--faint); margin-bottom: 2px; }
+    .mob-kpi-val { font-size: 20px; font-weight: 700; color: var(--ink); }
+    .mob-kpi-delta { font-size: 10px; color: var(--teal); font-weight: 600; }
+
+    /* Mobile status line */
+    .mob-status-line {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(44,122,110,.07); border-radius: 10px; padding: 9px 12px;
+    }
+    .mob-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+    .mob-status-text { font-size: 12px; color: var(--ink); font-weight: 500; }
+
+    /* Mobile section card */
+    .mob-section-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+    .mob-card-title { font-size: 11px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+    /* Mobile support/strength row */
+    .mob-sns-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid #f0ece4;
+    }
+    .mob-sns-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .mob-sns-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .mob-sns-dot.support { background: #ff7b6b; }
+    .mob-sns-dot.strength { background: var(--teal); }
+    .mob-sns-dot.next { background: var(--violet); }
+    .mob-sns-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .mob-sns-sub { font-size: 11px; color: var(--mid); margin-top: 1px; }
+
+    /* Mobile try at home row */
+    .mob-try-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid #f0ece4;
+    }
+    .mob-try-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .mob-try-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .mob-try-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .mob-try-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+
+    /* Mobile action footer */
+    .mob-action-footer {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #ddd8ce;
+      padding: 10px 16px 24px;
+    }
+    .mob-bnav { display: flex; justify-content: space-around; margin-bottom: 10px; }
+    .mob-bnav-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; color: var(--faint); }
+    .mob-bnav-tab.active { color: var(--teal); }
+    .mob-bnav-icon { font-size: 20px; }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; background: #f5f0e8; min-height: 100vh; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--mid); margin-bottom: 28px; }
+    .spec-section { margin-bottom: 28px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+    .spec-row { background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-row-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+    .spec-row-desc { font-size: 12px; color: var(--mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid #f0ece4; }
+    .spec-table th { color: var(--faint); font-weight: 600; background: #faf7f2; }
+    .spec-table td { color: var(--ink); }
+    .spec-table td code { background: rgba(44,122,110,.08); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--teal); }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Desktop — Full</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Mobile — Full</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Child Switcher</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Support / Strengths / Next</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Access Manager Entry</button>
+</div>
+
+<!-- TAB 1: DESKTOP -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>👨‍👩‍👧 Parent Route Canonical — Desktop</strong>
+    Single source of truth for <code>/parent</code>. One coherent route — not separate partial mocks. Left rail: child switcher chip + KPI stack + status line + what changed + try at home. Right: support/strengths/next step, weekly chart, access manager entry. Answer: how is my child doing, what changed, what next.
+  </div>
+
+  <div class="desktop-frame">
+    <!-- Topbar -->
+    <div class="desktop-topbar">
+      <div class="topbar-logo">Wonder<span>Quest</span> — Parent</div>
+      <div class="topbar-child-chip">
+        <div class="chip-avatar">🐉</div>
+        <span class="chip-name">Aria</span>
+        <span class="chip-caret">▾</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-icon">🔔</div>
+        <div class="topbar-icon">⚙️</div>
+      </div>
+    </div>
+
+    <div class="desktop-body">
+      <!-- LEFT: Summary rail -->
+      <div class="summary-rail">
+
+        <!-- KPI card -->
+        <div class="rail-card">
+          <div class="rail-card-title">This Week</div>
+          <div class="kpi-stack">
+            <div class="kpi-row">
+              <div>
+                <div class="kpi-label">Time playing</div>
+                <div class="kpi-sublabel">Total session time</div>
+              </div>
+              <div>
+                <div class="kpi-val">42 min</div>
+                <div class="kpi-delta up">↑ +8 min vs last week</div>
+              </div>
+            </div>
+            <div class="kpi-row">
+              <div>
+                <div class="kpi-label">Effective time</div>
+                <div class="kpi-sublabel">Engaged, not idle</div>
+              </div>
+              <div>
+                <div class="kpi-val">36 min</div>
+                <div class="kpi-delta up">↑ strong</div>
+              </div>
+            </div>
+            <div class="kpi-row">
+              <div>
+                <div class="kpi-label">Skills practiced</div>
+                <div class="kpi-sublabel">Distinct skill areas</div>
+              </div>
+              <div>
+                <div class="kpi-val">7</div>
+                <div class="kpi-delta same">→ same as last week</div>
+              </div>
+            </div>
+            <div class="kpi-row">
+              <div>
+                <div class="kpi-label">Next up</div>
+                <div class="kpi-sublabel">Recommended focus</div>
+              </div>
+              <div>
+                <div class="kpi-val" style="font-size:13px;font-weight:700;">Counting to 20</div>
+                <div class="kpi-delta" style="color:#6b52c8;">★ K–1 goal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status line -->
+        <div class="rail-card" style="padding:14px 16px;">
+          <div class="status-line">
+            <div class="status-dot green"></div>
+            <div class="status-text">Aria is making great progress this week 🌟</div>
+          </div>
+        </div>
+
+        <!-- What changed -->
+        <div class="rail-card">
+          <div class="rail-card-title">What changed</div>
+          <div class="changed-pills">
+            <span class="changed-pill pill-new">🆕 Counting to 20</span>
+            <span class="changed-pill pill-new">🆕 Rhyming words</span>
+            <span class="changed-pill pill-review">↻ Adding with 10</span>
+            <span class="changed-pill pill-support">⚑ Letter sounds</span>
+          </div>
+        </div>
+
+        <!-- Try at home -->
+        <div class="rail-card">
+          <div class="rail-card-title">Try at home</div>
+          <div class="try-row">
+            <div class="try-icon">🔢</div>
+            <div class="try-text">
+              <div class="try-title">Count stairs together</div>
+              <div class="try-sub">Count each step out loud when going up or down.</div>
+              <span class="try-band band-p1">K–1</span>
+            </div>
+          </div>
+          <div class="try-row">
+            <div class="try-icon">📖</div>
+            <div class="try-text">
+              <div class="try-title">Rhyme game at dinner</div>
+              <div class="try-sub">Take turns saying words that rhyme with "cat".</div>
+              <span class="try-band band-p0">Pre-K</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Main content -->
+      <div class="main-content">
+
+        <!-- Support / Strengths / Next Step -->
+        <div>
+          <div class="section-hdr">
+            <h2>Skills snapshot</h2>
+            <a href="#">See all skills →</a>
+          </div>
+          <div class="sns-grid">
+            <div class="sns-card">
+              <div class="sns-label support">⚑ Needs support</div>
+              <div class="sns-skill">Letter sounds (B, D, P)</div>
+              <div class="sns-detail">Aria is mixing up B, D, and P. This is very common at this stage — keep practicing with pictures.</div>
+              <button class="sns-cta support">Get activity tips</button>
+            </div>
+            <div class="sns-card">
+              <div class="sns-label strength">✓ Strength</div>
+              <div class="sns-skill">Counting to 10</div>
+              <div class="sns-detail">Solid with 1–10. Ready to stretch to 15–20 this week in quests.</div>
+              <button class="sns-cta strength">See what's next</button>
+            </div>
+            <div class="sns-card">
+              <div class="sns-label next">→ Next milestone</div>
+              <div class="sns-skill">Adding within 5</div>
+              <div class="sns-detail">This is the K–1 goal for this month. Aria is almost ready — 2–3 more play sessions should unlock it.</div>
+              <button class="sns-cta next">Start quest now</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly chart -->
+        <div class="week-chart">
+          <div class="section-hdr">
+            <h2>Weekly engagement</h2>
+            <span style="font-size:11px;color:var(--faint);">Tap a bar for day detail</span>
+          </div>
+          <div class="chart-bars">
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height:45px;"></div>
+              <div class="chart-day">Mon</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height:60px;"></div>
+              <div class="chart-day">Tue</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar low" style="height:15px;"></div>
+              <div class="chart-day">Wed</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height:70px;"></div>
+              <div class="chart-day">Thu</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height:55px;"></div>
+              <div class="chart-day">Fri</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar today" style="height:80px;"></div>
+              <div class="chart-day" style="color:var(--teal);font-weight:600;">Sat</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar low" style="height:8px;"></div>
+              <div class="chart-day">Sun</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--faint);">Bar height = engagement level. Not accuracy. Low bars are OK — rest days happen.</div>
+        </div>
+
+        <!-- Access manager entry -->
+        <div>
+          <div class="section-hdr" style="margin-bottom:0;">
+            <h2>Account &amp; access</h2>
+          </div>
+        </div>
+        <div class="access-card">
+          <div class="access-icon">👥</div>
+          <div class="access-text">
+            <div class="access-title">Manage children &amp; permissions</div>
+            <div class="access-sub">Add a child, update band level, set screen-time limits, PIN resets</div>
+          </div>
+          <div class="access-arrow">›</div>
+        </div>
+        <div class="access-card">
+          <div class="access-icon">🔔</div>
+          <div class="access-text">
+            <div class="access-title">Notification preferences</div>
+            <div class="access-sub">Weekly digest, milestone alerts, bedtime mode schedule</div>
+          </div>
+          <div class="access-arrow">›</div>
+        </div>
+        <div class="access-card">
+          <div class="access-icon">🏫</div>
+          <div class="access-text">
+            <div class="access-title">Connected classroom</div>
+            <div class="access-sub">Linked teacher: Ms. Rivera · Jefferson Elementary</div>
+          </div>
+          <div class="access-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom nav (desktop shows it for responsive preview) -->
+    <div class="desktop-bottom-nav">
+      <div class="bnav-tab active"><div class="bnav-icon">🏠</div>Home</div>
+      <div class="bnav-tab"><div class="bnav-icon">📚</div>Skills</div>
+      <div class="bnav-tab"><div class="bnav-icon">👨‍👩‍👧</div>Family</div>
+      <div class="bnav-tab"><div class="bnav-icon">⚙️</div>Settings</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: MOBILE -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>📱 Parent Route Canonical — Mobile (375px)</strong>
+    Calm, immediately useful. Child chip strip top. KPI 2×2 grid. Status line. Support/strength/next compact rows. Try-at-home. Weekly bar chart. Access manager entry. 4-tab bottom nav. Safe-area inset at bottom.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <!-- Topbar -->
+        <div class="mob-topbar">
+          <div class="mob-topbar-logo">Wonder<span>Quest</span></div>
+          <div class="mob-topbar-right">
+            <div class="mob-icon-btn">🔔</div>
+            <div class="mob-icon-btn">⚙️</div>
+          </div>
+        </div>
+
+        <!-- Child chip strip -->
+        <div class="mob-chip-strip">
+          <div class="mob-child-chip active">
+            <div class="chip-av">🐉</div>
+            <div class="chip-nm">Aria</div>
+          </div>
+          <div class="mob-child-chip">
+            <div class="chip-av" style="background:#9b72ff;">🦊</div>
+            <div class="chip-nm">Leo</div>
+          </div>
+          <div class="mob-child-chip" style="background:rgba(44,122,110,.06);border-style:dashed;">
+            <div class="chip-nm" style="color:var(--teal);">+ Add child</div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="mob-body">
+
+          <!-- KPI 2×2 -->
+          <div class="mob-kpi-card">
+            <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">This Week</div>
+            <div class="mob-kpi-grid">
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Time playing</div>
+                <div class="mob-kpi-val">42 min</div>
+                <div class="mob-kpi-delta">↑ +8 min</div>
+              </div>
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Effective time</div>
+                <div class="mob-kpi-val">36 min</div>
+                <div class="mob-kpi-delta">↑ strong</div>
+              </div>
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Skills practiced</div>
+                <div class="mob-kpi-val">7</div>
+                <div class="mob-kpi-delta" style="color:var(--faint);">→ same</div>
+              </div>
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Next up</div>
+                <div class="mob-kpi-val" style="font-size:14px;">Counting 20</div>
+                <div class="mob-kpi-delta" style="color:#6b52c8;">★ K–1 goal</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status line -->
+          <div class="mob-status-line">
+            <div class="mob-status-dot"></div>
+            <div class="mob-status-text">Aria is making great progress this week 🌟</div>
+          </div>
+
+          <!-- Skills snapshot -->
+          <div class="mob-section-card">
+            <div class="mob-card-title">Skills snapshot</div>
+            <div class="mob-sns-row">
+              <div class="mob-sns-dot support"></div>
+              <div>
+                <div class="mob-sns-label">Letter sounds (B, D, P)</div>
+                <div class="mob-sns-sub">Needs support · common at this stage</div>
+              </div>
+            </div>
+            <div class="mob-sns-row">
+              <div class="mob-sns-dot strength"></div>
+              <div>
+                <div class="mob-sns-label">Counting to 10</div>
+                <div class="mob-sns-sub">Strength · ready to stretch</div>
+              </div>
+            </div>
+            <div class="mob-sns-row">
+              <div class="mob-sns-dot next"></div>
+              <div>
+                <div class="mob-sns-label">Adding within 5</div>
+                <div class="mob-sns-sub">Next milestone · K–1 goal this month</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Try at home -->
+          <div class="mob-section-card">
+            <div class="mob-card-title">Try at home</div>
+            <div class="mob-try-row">
+              <div class="mob-try-icon">🔢</div>
+              <div>
+                <div class="mob-try-title">Count stairs together</div>
+                <div class="mob-try-sub">Count each step out loud.</div>
+              </div>
+            </div>
+            <div class="mob-try-row">
+              <div class="mob-try-icon">📖</div>
+              <div>
+                <div class="mob-try-title">Rhyme game at dinner</div>
+                <div class="mob-try-sub">Take turns rhyming with "cat".</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Access entry -->
+          <div class="access-card" style="box-shadow:0 1px 8px rgba(0,0,0,.06);">
+            <div class="access-icon">👥</div>
+            <div class="access-text">
+              <div class="access-title">Manage children &amp; access</div>
+              <div class="access-sub">Children, permissions, PINs, screen time</div>
+            </div>
+            <div class="access-arrow">›</div>
+          </div>
+
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="mob-action-footer">
+          <div class="mob-bnav">
+            <div class="mob-bnav-tab active"><div class="mob-bnav-icon">🏠</div>Home</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">📚</div>Skills</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">👨‍👩‍👧</div>Family</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">⚙️</div>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: CHILD SWITCHER -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>👶 Child Switcher — Inline Expand</strong>
+    No modal. Tap a chip → card content swaps inline. Tap "+" to enter linked-child flow (not shown here). Switcher row is always visible at top. Max 4 children shown before "+N more" overflow chip.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="min-height:600px;">
+        <div class="mob-topbar">
+          <div class="mob-topbar-logo">Wonder<span>Quest</span></div>
+        </div>
+
+        <!-- Chip strip: Leo active (switched) -->
+        <div class="mob-chip-strip">
+          <div class="mob-child-chip">
+            <div class="chip-av">🐉</div>
+            <div class="chip-nm">Aria</div>
+          </div>
+          <div class="mob-child-chip active">
+            <div class="chip-av" style="background:#9b72ff;">🦊</div>
+            <div class="chip-nm">Leo</div>
+          </div>
+          <div class="mob-child-chip">
+            <div class="chip-av" style="background:#ff7b6b;">🐻</div>
+            <div class="chip-nm">Sam</div>
+          </div>
+          <div class="mob-child-chip" style="background:rgba(44,122,110,.06);border-style:dashed;">
+            <div class="chip-nm" style="color:var(--teal);">+ Add</div>
+          </div>
+        </div>
+
+        <!-- Switched content for Leo -->
+        <div class="mob-body" style="padding-top:12px;">
+          <div style="font-size:11px;color:var(--faint);text-align:center;margin-bottom:8px;">Showing: Leo (K–1 · P1 Violet)</div>
+          <div class="mob-kpi-card">
+            <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">This Week</div>
+            <div class="mob-kpi-grid">
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Time playing</div>
+                <div class="mob-kpi-val">28 min</div>
+                <div class="mob-kpi-delta" style="color:var(--faint);">→ same</div>
+              </div>
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Effective time</div>
+                <div class="mob-kpi-val">22 min</div>
+                <div class="mob-kpi-delta">↑ ok</div>
+              </div>
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Skills practiced</div>
+                <div class="mob-kpi-val">4</div>
+                <div class="mob-kpi-delta" style="color:var(--faint);">→ same</div>
+              </div>
+              <div class="mob-kpi-cell">
+                <div class="mob-kpi-label">Next up</div>
+                <div class="mob-kpi-val" style="font-size:13px;">Place value</div>
+                <div class="mob-kpi-delta" style="color:#9b72ff;">★ K–1</div>
+              </div>
+            </div>
+          </div>
+          <div class="mob-status-line" style="background:rgba(155,114,255,.07);">
+            <div class="mob-status-dot" style="background:#9b72ff;"></div>
+            <div class="mob-status-text">Leo had a shorter week — that's okay.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: SUPPORT / STRENGTHS / NEXT STEP -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>📊 Support / Strengths / Next Step Stack</strong>
+    Three-cell skill snapshot. Never shows accuracy %. Never shows "missed" framing. Support = skill that needs more reps (positive framing). Strength = skill going well. Next = milestone the child is close to reaching. Desktop: 3-column card grid. Mobile: vertical rows with colored dots.
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">SNS Stack — Rules</div>
+    <div class="spec-sub">Three-cell summary always shown at top of right-rail on desktop, top of main scroll on mobile.</div>
+
+    <div class="spec-section">
+      <h3>Cell Rules</h3>
+      <table class="spec-table">
+        <thead><tr><th>Cell</th><th>Label</th><th>Color</th><th>Framing rule</th></tr></thead>
+        <tbody>
+          <tr><td>Support</td><td>⚑ Needs support</td><td><code>#ff7b6b</code></td><td>Positive: "Aria is still building X" not "Aria failed X"</td></tr>
+          <tr><td>Strength</td><td>✓ Strength</td><td><code>#2c7a6e</code></td><td>Celebratory: "Solid with X — ready to stretch"</td></tr>
+          <tr><td>Next</td><td>→ Next milestone</td><td><code>#9b72ff</code></td><td>Forward-looking: "X is the next K–1 goal"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>What NOT to show</h3>
+      <div class="spec-row"><div class="spec-row-desc">❌ Accuracy percentages (e.g. "63% correct")<br>❌ Missed-day counts (e.g. "didn't play for 3 days")<br>❌ Rankings or comparisons to other children<br>❌ Raw attempt counts</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: ACCESS MANAGER ENTRY -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>🔑 Access Manager Entry — Spec</strong>
+    Entry-point cards at bottom of parent route. Tap routes to <code>/parent/access</code>. Three cards: children &amp; permissions, notification preferences, connected classroom. No inline editing on this route — all editing in dedicated sub-route.
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">Access Manager Entry Points</div>
+    <div class="spec-sub">Bottom section of <code>/parent</code>. Links to <code>/parent/access</code>.</div>
+
+    <div class="spec-section">
+      <h3>Entry Cards</h3>
+      <table class="spec-table">
+        <thead><tr><th>Icon</th><th>Title</th><th>Subtitle</th><th>Routes to</th></tr></thead>
+        <tbody>
+          <tr><td>👥</td><td>Manage children &amp; permissions</td><td>Add child, band level, screen-time limits, PIN resets</td><td><code>/parent/access</code></td></tr>
+          <tr><td>🔔</td><td>Notification preferences</td><td>Weekly digest, milestone alerts, bedtime mode</td><td><code>/parent/settings/notifications</code></td></tr>
+          <tr><td>🏫</td><td>Connected classroom</td><td>Linked teacher name + school</td><td><code>/parent/settings/classroom</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Source files merged</h3>
+      <div class="spec-row"><div class="spec-row-desc">parent-family-center.html · parent-summary-rail.html · parent-mobile-snapshot.html · parent-access-manager.html · parent-settings.html</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

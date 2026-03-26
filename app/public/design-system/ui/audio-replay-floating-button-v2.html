@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Replay Floating Button v2 — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+  .hint-box { background: #2a1f00; border: 2px solid #ffd166; border-radius: 12px; padding: 14px 18px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.6; }
+  .hint-box strong { font-weight: 900; font-size: 14px; }
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .tab { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 20px; color: #9b72ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { border-color: #9b72ff; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* Mock Play Screen */
+  .play-screen { background: #1e1540; border-radius: 20px; max-width: 375px; margin: 0 auto; height: 520px; position: relative; overflow: hidden; padding: 20px; }
+  .play-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .xp-badge { background: #ffd166; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 900; color: #100b2e; }
+  .progress-dots { display: flex; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #3a2d6e; }
+  .dot.done { background: #9b72ff; }
+  .dot.current { background: #ffd166; }
+  .question-area { background: #2d2060; border-radius: 18px; padding: 20px; text-align: center; margin-bottom: 16px; }
+  .q-emoji { font-size: 48px; margin-bottom: 10px; }
+  .q-text { font-size: 15px; font-weight: 700; color: #e0d4ff; line-height: 1.5; }
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .answer-btn { background: #2d2060; border: 2px solid #3a2d6e; border-radius: 14px; padding: 16px; font-size: 28px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .answer-btn:hover { border-color: #9b72ff; transform: scale(1.03); }
+
+  /* FAB base */
+  .fab-wrap { position: absolute; bottom: 24px; right: 20px; }
+  .fab { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 28px; position: relative; transition: transform 0.2s; }
+  .fab:hover { transform: scale(1.08); }
+  .fab:active { transform: scale(0.96); }
+
+  /* READY state */
+  .fab-ready { background: #9b72ff; box-shadow: 0 4px 20px rgba(155,114,255,0.4); }
+  .fab-label-ready { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 900; color: #9b72ff; white-space: nowrap; }
+
+  /* PLAYING state — rings */
+  .fab-playing { background: #ffd166; box-shadow: 0 4px 20px rgba(255,209,102,0.4); }
+  .ring { position: absolute; border-radius: 50%; border: 3px solid #ffd166; animation: ring-out 1.6s ease-out infinite; }
+  .ring-1 { width: 60px; height: 60px; animation-delay: 0s; }
+  .ring-2 { width: 60px; height: 60px; animation-delay: 0.5s; }
+  .ring-3 { width: 60px; height: 60px; animation-delay: 1s; }
+  @keyframes ring-out {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  .fab-label-playing { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 900; color: #ffd166; white-space: nowrap; }
+
+  /* JUST PLAYED — checkmark flash */
+  .fab-played { background: #58e8c1; box-shadow: 0 4px 20px rgba(88,232,193,0.4); animation: check-pop 0.3s ease-out; }
+  @keyframes check-pop { 0% { transform: scale(0.8); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .fab-label-played { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 900; color: #58e8c1; white-space: nowrap; }
+
+  /* UNAVAILABLE */
+  .fab-unavailable { background: #2a2040; box-shadow: none; cursor: not-allowed; opacity: 0.45; }
+  .fab-label-unavailable { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 900; color: #4a3d6e; white-space: nowrap; }
+
+  /* Spec */
+  .spec-section { background: #1e1540; border-radius: 16px; padding: 20px; margin-bottom: 16px; max-width: 375px; margin-left: auto; margin-right: auto; }
+  .spec-section h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2d1f5e; font-size: 13px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #9b72ff; font-weight: 700; }
+  .spec-value { color: #e0d4ff; text-align: right; max-width: 55%; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>API Routes — Audio Replay Floating Button</strong><br>
+  GET /api/voice/status → {state: "idle"|"playing"|"complete"|"unavailable"}<br>
+  POST /api/voice/replay → {questionId} — triggers audio replay<br>
+  GET /api/voice/available → {hasAudio: bool, audioUrl: string|null}<br>
+  WS /ws/voice/events → stream: {event: "started"|"ended"|"error"}
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('ready')">Ready State</button>
+  <button class="tab" onclick="show('playing')">Playing State</button>
+  <button class="tab" onclick="show('played')">Just Played</button>
+  <button class="tab" onclick="show('unavailable')">Unavailable</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- READY STATE -->
+<div id="ready" class="panel active">
+  <div class="play-screen">
+    <div class="play-top">
+      <div class="xp-badge">+12 XP</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot current"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+    <div class="question-area">
+      <div class="q-emoji">🌧️</div>
+      <div class="q-text">Which one gives us rain?</div>
+    </div>
+    <div class="answers">
+      <div class="answer-btn">☁️</div>
+      <div class="answer-btn">🌞</div>
+      <div class="answer-btn">⛄</div>
+      <div class="answer-btn">🌈</div>
+    </div>
+    <div class="fab-wrap">
+      <button class="fab fab-ready" aria-label="Play audio for this question">🔊</button>
+      <span class="fab-label-ready">Hear it!</span>
+    </div>
+  </div>
+  <p style="text-align:center;color:#9b72ff;font-size:12px;font-weight:700;margin-top:32px;">Ready — tap to play audio narration</p>
+</div>
+
+<!-- PLAYING STATE -->
+<div id="playing" class="panel">
+  <div class="play-screen">
+    <div class="play-top">
+      <div class="xp-badge">+12 XP</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot current"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+    <div class="question-area" style="border: 2px solid #ffd166;">
+      <div class="q-emoji">🌧️</div>
+      <div class="q-text">Which one gives us rain?</div>
+    </div>
+    <div class="answers">
+      <div class="answer-btn" style="opacity:0.6;pointer-events:none;">☁️</div>
+      <div class="answer-btn" style="opacity:0.6;pointer-events:none;">🌞</div>
+      <div class="answer-btn" style="opacity:0.6;pointer-events:none;">⛄</div>
+      <div class="answer-btn" style="opacity:0.6;pointer-events:none;">🌈</div>
+    </div>
+    <div class="fab-wrap">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <button class="fab fab-playing" aria-label="Audio playing" style="position:relative;z-index:1;">🔊</button>
+      <span class="fab-label-playing">Playing…</span>
+    </div>
+  </div>
+  <p style="text-align:center;color:#ffd166;font-size:12px;font-weight:700;margin-top:32px;">Playing — 3 rings animate outward, answers locked</p>
+</div>
+
+<!-- JUST PLAYED -->
+<div id="played" class="panel">
+  <div class="play-screen">
+    <div class="play-top">
+      <div class="xp-badge">+12 XP</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot current"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+    <div class="question-area">
+      <div class="q-emoji">🌧️</div>
+      <div class="q-text">Which one gives us rain?</div>
+    </div>
+    <div class="answers">
+      <div class="answer-btn">☁️</div>
+      <div class="answer-btn">🌞</div>
+      <div class="answer-btn">⛄</div>
+      <div class="answer-btn">🌈</div>
+    </div>
+    <div class="fab-wrap">
+      <button class="fab fab-played" aria-label="Audio complete, tap to replay">✓</button>
+      <span class="fab-label-played">Heard it!</span>
+    </div>
+  </div>
+  <p style="text-align:center;color:#58e8c1;font-size:12px;font-weight:700;margin-top:32px;">Just played — mint checkmark, tap again to replay</p>
+</div>
+
+<!-- UNAVAILABLE -->
+<div id="unavailable" class="panel">
+  <div class="play-screen">
+    <div class="play-top">
+      <div class="xp-badge">+12 XP</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot current"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+    <div class="question-area">
+      <div class="q-emoji">🌧️</div>
+      <div class="q-text">Which one gives us rain?</div>
+    </div>
+    <div class="answers">
+      <div class="answer-btn">☁️</div>
+      <div class="answer-btn">🌞</div>
+      <div class="answer-btn">⛄</div>
+      <div class="answer-btn">🌈</div>
+    </div>
+    <div class="fab-wrap">
+      <button class="fab fab-unavailable" disabled aria-label="Audio unavailable">🔕</button>
+      <span class="fab-label-unavailable">No audio</span>
+    </div>
+  </div>
+  <p style="text-align:center;color:#4a3d6e;font-size:12px;font-weight:700;margin-top:32px;">Unavailable — greyed out FAB, non-interactive</p>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>FAB Dimensions</h3>
+    <div class="spec-row"><span class="spec-label">Size</span><span class="spec-value">60×60px circular</span></div>
+    <div class="spec-row"><span class="spec-label">Position</span><span class="spec-value">bottom: 24px, right: 20px (fixed)</span></div>
+    <div class="spec-row"><span class="spec-label">z-index</span><span class="spec-value">100 (above content)</span></div>
+    <div class="spec-row"><span class="spec-label">Label</span><span class="spec-value">11px text 22px below center</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>State Colors</h3>
+    <div class="spec-row"><span class="spec-label">ready</span><span class="spec-value">#9b72ff bg, violet shadow</span></div>
+    <div class="spec-row"><span class="spec-label">playing</span><span class="spec-value">#ffd166 bg, gold rings animate</span></div>
+    <div class="spec-row"><span class="spec-label">just played</span><span class="spec-value">#58e8c1 bg, checkmark icon</span></div>
+    <div class="spec-row"><span class="spec-label">unavailable</span><span class="spec-value">#2a2040 bg, opacity 0.45</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Ring Animation</h3>
+    <div class="spec-row"><span class="spec-label">Rings</span><span class="spec-value">3 rings, staggered 0.5s delay</span></div>
+    <div class="spec-row"><span class="spec-label">Duration</span><span class="spec-value">1.6s each, infinite loop</span></div>
+    <div class="spec-row"><span class="spec-label">Scale</span><span class="spec-value">1x → 2.2x + fade to 0</span></div>
+    <div class="spec-row"><span class="spec-label">Color</span><span class="spec-value">#ffd166 border, 3px width</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

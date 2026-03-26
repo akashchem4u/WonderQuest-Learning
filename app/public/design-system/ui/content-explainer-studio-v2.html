@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Explainer Studio v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #10161e;
+      --card:      #141e28;
+      --border:    #1e2e3e;
+      --accent:    #58c8f0;
+      --accent-bg: rgba(88,200,240,.1);
+      --accent-dim:rgba(88,200,240,.25);
+      --text:      #d0e8f0;
+      --muted:     #7a9ab0;
+      --faint:     #2a3e52;
+      --violet:    #9b72ff;
+      --violet-bg: rgba(155,114,255,.12);
+      --green:     #4ade80;
+      --green-bg:  rgba(74,222,128,.1);
+      --amber:     #f59e0b;
+      --amber-bg:  rgba(245,158,11,.1);
+      --red:       #f87171;
+      --red-bg:    rgba(248,113,113,.1);
+      --gold:      #f0c040;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TAB BAR ── */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(16,22,30,.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--border);
+      display: flex; align-items: stretch; gap: 0;
+      padding: 0 32px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 16px 22px;
+      border: none; background: transparent;
+      color: var(--muted);
+      font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 500;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color .2s, border-color .2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── PAGE WRAPPER ── */
+    .page-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 32px 60px;
+    }
+
+    /* ── ENGINEERING HINT BOX ── */
+    .eng-hint {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      color: #5a4000;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+    .eng-hint strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #3d2900;
+    }
+    .eng-hint code {
+      background: rgba(0,0,0,.08);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ── CARDS / CHIPS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .chip-accent  { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-dim); }
+    .chip-violet  { background: var(--violet-bg); color: var(--violet); border-color: rgba(155,114,255,.3); }
+    .chip-green   { background: var(--green-bg); color: var(--green); border-color: rgba(74,222,128,.25); }
+    .chip-amber   { background: var(--amber-bg); color: var(--amber); border-color: rgba(245,158,11,.25); }
+    .chip-red     { background: var(--red-bg); color: var(--red); border-color: rgba(248,113,113,.25); }
+    .chip-muted   { background: var(--faint); color: var(--muted); }
+    .chip-outline { background: transparent; color: var(--muted); border-color: var(--border); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #0a1420; }
+    .btn-outline  { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+    .btn-ghost    { background: var(--faint); color: var(--text); }
+    .btn-danger   { background: var(--red-bg); color: var(--red); border: 1.5px solid rgba(248,113,113,.3); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── SECTION HEADINGS ── */
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ═══════════════════════════════════════════
+       TAB 1 — SCRIPT EDITOR
+    ═══════════════════════════════════════════ */
+    .studio-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .breadcrumb {
+      font-size: 20px; font-weight: 700; color: var(--text);
+    }
+    .breadcrumb span { color: var(--muted); font-weight: 400; }
+
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 560px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Left col */
+    .editor-left { display: flex; flex-direction: column; gap: 16px; }
+
+    .script-meta-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .script-meta-row .node-name {
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+
+    .script-toolbar {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--faint);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+    .toolbar-btn {
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: none; background: transparent;
+      color: var(--muted);
+      font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .toolbar-btn:hover { background: var(--border); color: var(--text); }
+    .toolbar-sep {
+      width: 1px; height: 18px;
+      background: var(--border); margin: 0 2px;
+    }
+
+    .script-textarea {
+      width: 100%;
+      min-height: 260px;
+      background: #0c1520;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Courier New', 'Consolas', monospace;
+      font-size: 13.5px;
+      line-height: 1.8;
+      padding: 16px;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .script-textarea:focus { border-color: var(--accent); }
+
+    .script-rules-sidebar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .rules-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .rule-badges { display: flex; flex-direction: column; gap: 7px; }
+    .rule-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text);
+    }
+    .rule-badge .rule-icon {
+      font-size: 13px; width: 20px; text-align: center;
+      flex-shrink: 0;
+    }
+    .rule-badge.pass .rule-icon { color: var(--green); }
+    .rule-badge.fail .rule-icon { color: var(--red); }
+
+    .char-count-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--muted);
+    }
+    .char-count-row .count { color: var(--accent); font-weight: 600; }
+
+    .editor-actions { display: flex; gap: 10px; }
+
+    /* Right col — Preview */
+    .editor-right { display: flex; flex-direction: column; gap: 14px; }
+
+    .preview-controls {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .view-chip {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: transparent; color: var(--muted);
+      cursor: pointer; transition: all .2s;
+    }
+    .view-chip.active {
+      background: var(--accent-bg); color: var(--accent);
+      border-color: var(--accent-dim);
+    }
+
+    .preview-frame-wrap {
+      display: flex; justify-content: center;
+    }
+    .preview-frame {
+      width: 320px;
+      background: #0c1828;
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      padding: 20px 16px;
+      min-height: 460px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    .preview-frame::before {
+      content: '';
+      display: block;
+      width: 80px; height: 6px;
+      background: var(--faint);
+      border-radius: 3px;
+      margin: 0 auto 18px;
+    }
+    .preview-content { font-size: 14px; line-height: 1.9; color: var(--text); }
+    .preview-content p { margin-bottom: 10px; }
+    .word-card {
+      display: inline-block;
+      background: var(--accent);
+      color: #0a1420;
+      font-size: 22px; font-weight: 700;
+      border-radius: 12px;
+      padding: 8px 22px;
+      margin: 6px 0;
+    }
+    .voice-coach-icon {
+      position: absolute;
+      top: 14px; right: 14px;
+      width: 34px; height: 34px;
+      background: var(--violet);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,.5); }
+      50%       { box-shadow: 0 0 0 8px rgba(155,114,255,0); }
+    }
+
+    .preview-note {
+      font-size: 11px; color: var(--muted);
+      text-align: center;
+      padding: 6px 0;
+    }
+
+    /* ═══════════════════════════════════════════
+       TAB 2 — MEDIA HINTS
+    ═══════════════════════════════════════════ */
+    .hints-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .hints-header h2 { font-size: 18px; font-weight: 700; }
+
+    .hint-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+    .hint-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      gap: 14px; align-items: center;
+    }
+    .hint-card.flagged { border-left: 4px solid var(--red); }
+
+    .hint-thumb {
+      width: 80px; height: 60px;
+      background: var(--faint);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .hint-info { min-width: 0; }
+    .hint-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+    .hint-trigger { font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+    .hint-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .flagged-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--red-bg); color: var(--red);
+      border: 1px solid rgba(248,113,113,.25);
+      border-radius: 20px; font-size: 11px; font-weight: 600;
+      padding: 2px 8px;
+    }
+
+    .hint-actions { display: flex; flex-direction: column; gap: 6px; }
+
+    /* Add hint form */
+    .add-hint-form {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+      margin-bottom: 16px;
+    }
+    .add-hint-form.open { display: block; }
+    .form-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 8px; display: block;
+    }
+    .type-radio-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .type-radio-card {
+      padding: 8px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all .2s;
+      background: transparent;
+      font-family: 'Sora', sans-serif;
+    }
+    .type-radio-card.selected {
+      border-color: var(--accent); color: var(--accent);
+      background: var(--accent-bg);
+    }
+    .form-select {
+      width: 100%;
+      background: #0c1520;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px; font-family: 'Sora', sans-serif;
+      padding: 9px 12px;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    .form-select:focus { border-color: var(--accent); }
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted); font-size: 13px;
+      margin-bottom: 14px;
+      cursor: pointer; transition: border-color .2s;
+    }
+    .upload-zone:hover { border-color: var(--accent); color: var(--text); }
+    .upload-zone .upload-icon { font-size: 28px; margin-bottom: 8px; }
+    .form-input {
+      width: 100%;
+      background: #0c1520;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px; font-family: 'Sora', sans-serif;
+      padding: 9px 12px;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); }
+
+    .hint-rules-card {
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-dim);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px; color: var(--accent);
+      line-height: 1.7;
+    }
+    .hint-rules-card strong { display: block; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; }
+
+    /* ═══════════════════════════════════════════
+       TAB 3 — PREVIEW & TEST
+    ═══════════════════════════════════════════ */
+    .preview-test-header { margin-bottom: 20px; }
+    .preview-test-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+
+    .scenario-row {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .scenario-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: transparent; color: var(--muted);
+      font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .2s;
+      font-family: 'Sora', sans-serif;
+    }
+    .scenario-chip.active {
+      background: var(--accent-bg); color: var(--accent);
+      border-color: var(--accent-dim);
+    }
+    .scenario-chip:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+
+    .preview-test-layout {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .device-frame {
+      width: 375px;
+      margin: 0 auto;
+      background: #0c1828;
+      border: 2px solid var(--border);
+      border-radius: 28px;
+      padding: 24px 16px;
+      min-height: 520px;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,.45);
+    }
+    .device-frame::before {
+      content: '';
+      display: block;
+      width: 90px; height: 6px;
+      background: var(--faint);
+      border-radius: 3px;
+      margin: 0 auto 20px;
+    }
+
+    .device-question-emoji { font-size: 48px; text-align: center; margin-bottom: 10px; }
+    .device-question-text {
+      font-size: 16px; font-weight: 600; text-align: center;
+      margin-bottom: 18px; color: var(--text); line-height: 1.5;
+    }
+    .answer-cards-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 16px;
+    }
+    .answer-card {
+      background: var(--faint);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .answer-card:hover { border-color: var(--accent); color: var(--accent); }
+    .answer-card.correct { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+    .answer-card.incorrect { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+
+    .coach-bubble {
+      background: var(--violet-bg);
+      border: 1px solid rgba(155,114,255,.3);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 12px; color: #c4aeff;
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-top: 12px;
+    }
+    .coach-bubble .coach-icon { font-size: 18px; flex-shrink: 0; }
+
+    .explainer-intro-card {
+      position: absolute;
+      inset: 16px;
+      background: rgba(12,24,40,.95);
+      border: 1.5px solid var(--accent-dim);
+      border-radius: 20px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; padding: 24px;
+      text-align: center;
+    }
+    .explainer-intro-card .intro-emoji { font-size: 40px; }
+    .explainer-intro-card h3 { font-size: 16px; font-weight: 700; }
+    .explainer-intro-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .intro-dismiss {
+      margin-top: 8px;
+      padding: 8px 20px;
+      background: var(--accent);
+      color: #0a1420; font-weight: 700; font-size: 13px;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: 'Sora', sans-serif;
+    }
+
+    /* Test log */
+    .test-log-panel { display: flex; flex-direction: column; gap: 14px; }
+    .test-log {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      min-height: 200px;
+    }
+    .log-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 10px;
+    }
+    .log-entry {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12px; color: var(--muted);
+      padding: 5px 0; border-bottom: 1px solid var(--faint);
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      flex-shrink: 0; margin-top: 4px;
+    }
+    .log-dot.info   { background: var(--accent); }
+    .log-dot.warn   { background: var(--amber); }
+    .log-dot.error  { background: var(--red); }
+    .log-dot.good   { background: var(--green); }
+    .log-time { color: var(--faint); font-size: 11px; flex-shrink: 0; }
+
+    /* Validation */
+    .validation-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .validation-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; padding: 5px 0;
+      border-bottom: 1px solid var(--faint);
+    }
+    .validation-item:last-child { border-bottom: none; }
+    .v-icon { font-size: 14px; flex-shrink: 0; }
+    .v-text { flex: 1; }
+    .v-text.warn  { color: var(--amber); }
+    .v-text.error { color: var(--red); }
+    .v-text.ok    { color: var(--text); }
+
+    .readiness-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 700;
+    }
+    .readiness-chip.blocked {
+      background: var(--red-bg); color: var(--red);
+      border: 1.5px solid rgba(248,113,113,.3);
+    }
+    .readiness-chip.ready {
+      background: var(--green-bg); color: var(--green);
+      border: 1.5px solid rgba(74,222,128,.25);
+    }
+
+    /* ═══════════════════════════════════════════
+       TAB 4 — QA CHECKS & PUBLISH GATE
+    ═══════════════════════════════════════════ */
+    .qa-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .qa-header h2 { font-size: 18px; font-weight: 700; }
+
+    .qa-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .qa-checklist { display: flex; flex-direction: column; gap: 16px; }
+
+    .qa-section-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .qa-section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .qa-item {
+      display: flex; align-items: flex-start; gap: 9px;
+      font-size: 13px; padding: 6px 0;
+      border-bottom: 1px solid var(--faint);
+      line-height: 1.5;
+    }
+    .qa-item:last-child { border-bottom: none; }
+    .qa-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .qa-label { flex: 1; }
+    .qa-label.warn  { color: var(--amber); }
+    .qa-label.error { color: var(--red); }
+    .qa-label.ok    { color: var(--text); }
+
+    /* QA Right column */
+    .qa-right { display: flex; flex-direction: column; gap: 16px; }
+
+    .qa-verdict-card {
+      border-radius: 12px;
+      padding: 22px;
+      border: 2px solid;
+    }
+    .qa-verdict-card.blocked {
+      background: var(--red-bg); border-color: rgba(248,113,113,.4);
+    }
+    .qa-verdict-card.approved {
+      background: var(--green-bg); border-color: rgba(74,222,128,.3);
+    }
+    .verdict-label {
+      font-size: 22px; font-weight: 800;
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+    }
+    .verdict-label.blocked { color: var(--red); }
+    .verdict-label.approved { color: var(--green); }
+    .verdict-detail { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    .publish-gate-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .publish-gate-card .gate-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 4px;
+    }
+
+    .qa-history-mini {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .history-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: 10px;
+    }
+    .history-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--faint);
+      font-size: 12px;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0; margin-top: 4px;
+    }
+    .history-content { flex: 1; }
+    .history-action { font-weight: 600; color: var(--text); }
+    .history-meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+    /* ═══════════════════════════════════════════
+       TAB 5 — SPEC
+    ═══════════════════════════════════════════ */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .spec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .spec-card.full { grid-column: 1 / -1; }
+    .spec-card-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .spec-row {
+      display: flex; flex-direction: column; gap: 6px;
+      font-size: 13px; line-height: 1.7; color: var(--muted);
+    }
+    .spec-row code {
+      background: var(--faint);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 12px;
+      color: var(--accent);
+      font-family: 'Courier New', monospace;
+    }
+    .spec-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--faint);
+    }
+    .spec-item:last-child { border-bottom: none; }
+    .spec-bullet {
+      color: var(--accent); font-weight: 700; flex-shrink: 0;
+    }
+    .spec-text { flex: 1; }
+
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .token-swatch {
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+    }
+    .token-swatch .token-name { font-weight: 600; margin-bottom: 3px; }
+    .token-swatch .token-val { color: var(--muted); font-family: 'Courier New', monospace; font-size: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ TAB BAR ══════════ -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1')">✏️ Script Editor</button>
+  <button class="tab-btn" onclick="show('tab2')">🖼️ Media Hints</button>
+  <button class="tab-btn" onclick="show('tab3')">▶️ Preview & Test</button>
+  <button class="tab-btn" onclick="show('tab4')">✅ QA & Publish Gate</button>
+  <button class="tab-btn" onclick="show('tab5')">⚙️ Spec</button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — SCRIPT EDITOR
+══════════════════════════════════════════ -->
+<div id="tab1" class="panel active">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙️ Engineering — Script Editor</strong>
+      Script is stored as plain text with inline tokens: <code>[WORD: "x"]</code> renders as a highlighted word card; <code>[PAUSE]</code> inserts a voice-coach pause beat. On <code>PUT /content/explainer/:id/script</code>, auto-check runs synchronously — returns rule violations in the response body. Character limit is 400. Word-per-sentence limit: P0 = 8 words, P1 = 15 words. Live preview renders tokens client-side via JS <code>parseTokens()</code>.
+    </div>
+
+    <!-- Studio Header -->
+    <div class="studio-header">
+      <div class="breadcrumb">
+        <span>Content Admin /</span> Explainer Studio
+      </div>
+      <span class="chip chip-accent">Sight Words (P1)</span>
+      <span class="chip chip-violet">Band: Purple Path</span>
+    </div>
+
+    <!-- 2-col Editor Layout -->
+    <div class="editor-layout">
+
+      <!-- LEFT: Script Editor -->
+      <div class="editor-left">
+
+        <!-- Meta row -->
+        <div class="script-meta-row">
+          <span class="node-name">Ocean World — Node 3</span>
+          <span class="chip chip-outline">v2.1</span>
+          <span class="chip chip-amber">Draft</span>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="script-toolbar">
+          <button class="toolbar-btn"><strong>B</strong></button>
+          <button class="toolbar-btn"><em>I</em></button>
+          <div class="toolbar-sep"></div>
+          <button class="toolbar-btn">😊 Emoji</button>
+          <button class="toolbar-btn">▸ Pause</button>
+          <button class="toolbar-btn">◼ Highlight</button>
+          <div class="toolbar-sep"></div>
+          <button class="toolbar-btn" style="color:var(--accent);">[WORD]</button>
+        </div>
+
+        <!-- Script textarea -->
+        <textarea class="script-textarea" id="scriptBody">👋 Hey explorer! Let's look at some special words.
+
+These are called SIGHT words — we know them by heart! 💜
+
+Can you say this word?
+[WORD: "the"]
+
+Great! Now let's try:
+[WORD: "and"]
+
+You're doing amazing! ⭐</textarea>
+
+        <!-- Rules sidebar -->
+        <div class="script-rules-sidebar">
+          <div class="rules-title">Auto-check rules</div>
+          <div class="rule-badges">
+            <div class="rule-badge pass">
+              <span class="rule-icon">✓</span>
+              <span>Max 8 words/sentence (P0 rule)</span>
+            </div>
+            <div class="rule-badge pass">
+              <span class="rule-icon">✓</span>
+              <span>Emoji-first rule on opening line</span>
+            </div>
+            <div class="rule-badge pass">
+              <span class="rule-icon">✓</span>
+              <span>No timer references detected</span>
+            </div>
+            <div class="rule-badge pass">
+              <span class="rule-icon">✓</span>
+              <span>Friendly, encouraging tone</span>
+            </div>
+            <div class="rule-badge fail">
+              <span class="rule-icon">✗</span>
+              <span>Sentence 2: 11 words — exceeds P0 limit</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Char count + actions -->
+        <div class="char-count-row">
+          <span>Script length:</span>
+          <span><span class="count">247</span> / 400 characters</span>
+        </div>
+
+        <div class="editor-actions">
+          <button class="btn btn-outline">💾 Save Draft</button>
+          <button class="btn btn-primary">Run QA Check →</button>
+        </div>
+
+      </div><!-- /editor-left -->
+
+      <!-- RIGHT: Live Preview -->
+      <div class="editor-right">
+
+        <div class="preview-controls">
+          <span style="font-size:12px;color:var(--muted);margin-right:4px;">View as:</span>
+          <button class="view-chip active" onclick="setView(this,'child')">Child View</button>
+          <button class="view-chip" onclick="setView(this,'adult')">Adult View</button>
+        </div>
+
+        <div class="preview-frame-wrap">
+          <div class="preview-frame">
+            <div class="voice-coach-icon">🎙️</div>
+            <div class="preview-content" id="livePreview">
+              <p>👋 Hey explorer! Let's look at some special words.</p>
+              <p>These are called SIGHT words — we know them by heart! 💜</p>
+              <p>Can you say this word?</p>
+              <div class="word-card">the</div>
+              <p>Great! Now let's try:</p>
+              <div class="word-card">and</div>
+              <p>You're doing amazing! ⭐</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="preview-note">Preview shows approximate child rendering</p>
+
+      </div><!-- /editor-right -->
+    </div><!-- /editor-layout -->
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — MEDIA HINTS
+══════════════════════════════════════════ -->
+<div id="tab2" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙️ Engineering — Media Hints</strong>
+      Hints are stored per-node. <code>POST /content/explainer/:id/hints</code> accepts: <code>type</code> (image|audio|animation|video), <code>triggerCondition</code>, <code>fileUrl</code>, <code>altText</code>, <code>transcript</code> (required for audio). Max 2 hints per question. QA auto-flags hints that reference the correct answer text directly. Audio hints without <code>transcript</code> are a hard block at publish time. Flagged hints block QA approval.
+    </div>
+
+    <div class="hints-header">
+      <h2>Media Hints — Sight Words Node 3</h2>
+      <button class="btn btn-primary btn-sm" onclick="toggleAddForm()">+ Add Hint</button>
+    </div>
+
+    <!-- Add hint form (collapsed) -->
+    <div class="add-hint-form" id="addHintForm">
+      <div class="section-title" style="margin-bottom:14px;">New Media Hint</div>
+
+      <label class="form-label">Hint Type</label>
+      <div class="type-radio-row">
+        <button class="type-radio-card selected" onclick="selectType(this)">🖼️ Image</button>
+        <button class="type-radio-card" onclick="selectType(this)">🔊 Audio</button>
+        <button class="type-radio-card" onclick="selectType(this)">✨ Animation</button>
+        <button class="type-radio-card" onclick="selectType(this)">🎬 Video</button>
+      </div>
+
+      <label class="form-label">Trigger Condition</label>
+      <select class="form-select">
+        <option>Always show</option>
+        <option>After 1st wrong pick</option>
+        <option selected>After 2nd wrong pick</option>
+        <option>On request</option>
+      </select>
+
+      <label class="form-label">File / URL</label>
+      <div class="upload-zone">
+        <div class="upload-icon">📂</div>
+        Drag & drop file here, or click to browse
+        <div style="font-size:11px;margin-top:6px;color:var(--faint);">Accepted: PNG, JPG, GIF, MP3, MP4 · Max 5 MB</div>
+      </div>
+
+      <label class="form-label">Alt Text / Description (accessibility)</label>
+      <input type="text" class="form-input" placeholder="e.g. Illustration of the word 'the' in a sentence" />
+
+      <button class="btn btn-primary">💾 Save Hint</button>
+      <button class="btn btn-ghost" style="margin-left:8px;" onclick="toggleAddForm()">Cancel</button>
+    </div>
+
+    <!-- Hint list -->
+    <div class="hint-list">
+
+      <!-- Hint 1: Image -->
+      <div class="hint-card">
+        <div class="hint-thumb">🖼️</div>
+        <div class="hint-info">
+          <div class="hint-title">Sight word "the" — picture card</div>
+          <div class="hint-trigger">Trigger: After 2nd wrong pick · Question: Q1</div>
+          <div class="hint-chips">
+            <span class="chip chip-accent">Image</span>
+            <span class="chip chip-green">Active</span>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-ghost btn-sm">Edit</button>
+          <button class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </div>
+
+      <!-- Hint 2: Audio -->
+      <div class="hint-card">
+        <div class="hint-thumb" style="font-size:28px;">🔊</div>
+        <div class="hint-info">
+          <div class="hint-title">Pronunciation audio — "the"</div>
+          <div class="hint-trigger">Trigger: After 1st wrong pick · Question: Q1</div>
+          <div class="hint-chips">
+            <span class="chip chip-violet">Audio</span>
+            <span class="chip chip-green">Active</span>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-ghost btn-sm">▶ Play</button>
+          <button class="btn btn-ghost btn-sm">Edit</button>
+        </div>
+      </div>
+
+      <!-- Hint 3: Animation (flagged) -->
+      <div class="hint-card flagged">
+        <div class="hint-thumb" style="font-size:28px;">✨</div>
+        <div class="hint-info">
+          <div class="hint-title">Animated word highlight — "and"</div>
+          <div class="hint-trigger">Trigger: Always show · Question: Q2</div>
+          <div class="hint-chips">
+            <span class="chip chip-amber">Animation</span>
+            <span class="chip chip-red">Flagged</span>
+            <span class="flagged-badge">🚩 Flagged for review</span>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-ghost btn-sm">Edit</button>
+          <button class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </div>
+
+      <!-- Hint 4: Audio (draft) -->
+      <div class="hint-card">
+        <div class="hint-thumb" style="font-size:28px;">🔊</div>
+        <div class="hint-info">
+          <div class="hint-title">Pronunciation audio — "and"</div>
+          <div class="hint-trigger">Trigger: On request · Question: Q2</div>
+          <div class="hint-chips">
+            <span class="chip chip-violet">Audio</span>
+            <span class="chip chip-muted">Draft</span>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-ghost btn-sm">▶ Play</button>
+          <button class="btn btn-ghost btn-sm">Edit</button>
+        </div>
+      </div>
+
+      <!-- Hint 5: Image -->
+      <div class="hint-card">
+        <div class="hint-thumb">🖼️</div>
+        <div class="hint-info">
+          <div class="hint-title">Sight word context sentence — "and"</div>
+          <div class="hint-trigger">Trigger: After 2nd wrong pick · Question: Q2</div>
+          <div class="hint-chips">
+            <span class="chip chip-accent">Image</span>
+            <span class="chip chip-green">Active</span>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-ghost btn-sm">Edit</button>
+          <button class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </div>
+
+    </div><!-- /hint-list -->
+
+    <!-- Hint rules card -->
+    <div class="hint-rules-card">
+      <strong>Hint Display Rules</strong>
+      Max 2 hints per question &nbsp;·&nbsp; Hints must not give away the correct answer directly &nbsp;·&nbsp; Audio hints must include a written transcript &nbsp;·&nbsp; Flagged hints block QA approval until resolved
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — PREVIEW & TEST
+══════════════════════════════════════════ -->
+<div id="tab3" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙️ Engineering — Preview & Test</strong>
+      Preview renders content client-side from the current draft state — no separate API call needed. Scenario chips switch between <code>childBand</code> contexts (P0/P1) which changes word-limit validation and coach behaviour. Clicking answer cards fires a synthetic <code>answerSelected</code> event captured by the test logger. The explainer intro overlay appears on first-visit based on <code>session.firstVisit = true</code> flag. Publish-readiness chip reads from the same validation ruleset as QA auto-check.
+    </div>
+
+    <div class="preview-test-header">
+      <h2>Preview & Test — Sight Words Node 3</h2>
+    </div>
+
+    <!-- Scenario chips -->
+    <div class="scenario-row">
+      <button class="scenario-chip active" onclick="pickScenario(this)">Normal Play</button>
+      <button class="scenario-chip" onclick="pickScenario(this)">After Wrong Pick</button>
+      <button class="scenario-chip" onclick="pickScenario(this)">Coach Mode</button>
+      <button class="scenario-chip" onclick="pickScenario(this)">Pre-Reader (P0)</button>
+      <button class="scenario-chip" onclick="pickScenario(this)">K-1 (P1)</button>
+    </div>
+
+    <div class="preview-test-layout">
+
+      <!-- Device frame -->
+      <div>
+        <div class="device-frame" id="deviceFrame">
+          <div class="device-question-emoji">🌊</div>
+          <div class="device-question-text">Which word is — "the"?</div>
+
+          <div class="answer-cards-grid">
+            <div class="answer-card" id="ac1" onclick="pickAnswer(this,'correct')">the</div>
+            <div class="answer-card" id="ac2" onclick="pickAnswer(this,'incorrect')">and</div>
+            <div class="answer-card" id="ac3" onclick="pickAnswer(this,'incorrect')">see</div>
+            <div class="answer-card" id="ac4" onclick="pickAnswer(this,'incorrect')">you</div>
+          </div>
+
+          <div class="coach-bubble" id="coachBubble" style="display:none;">
+            <span class="coach-icon">🎙️</span>
+            <span>Look for the word that starts with a "t" — like "the"! You've got this! 💜</span>
+          </div>
+
+          <!-- Intro overlay -->
+          <div class="explainer-intro-card" id="introCard">
+            <div class="intro-emoji">👋</div>
+            <h3>Let's explore Sight Words!</h3>
+            <p>These are special words we remember by heart. Look for each word carefully — you can do it!</p>
+            <button class="intro-dismiss" onclick="dismissIntro()">Let's go! ⭐</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:center;margin-top:16px;">
+          <div id="readinessChip" class="readiness-chip blocked">
+            ❌ Not ready to publish — 1 blocker
+          </div>
+        </div>
+      </div>
+
+      <!-- Test log + validation -->
+      <div class="test-log-panel">
+
+        <div class="test-log">
+          <div class="log-title">Event Log</div>
+          <div id="eventLog">
+            <div class="log-entry">
+              <div class="log-dot info"></div>
+              <div>
+                <div>Question rendered</div>
+                <div class="log-time">0.0s</div>
+              </div>
+            </div>
+            <div class="log-entry">
+              <div class="log-dot info"></div>
+              <div>
+                <div>Explainer intro overlay shown</div>
+                <div class="log-time">0.1s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="validation-card">
+          <div class="log-title">Auto Validation</div>
+          <div class="validation-item">
+            <span class="v-icon">✅</span>
+            <span class="v-text ok">Question text ≤ 15 words</span>
+          </div>
+          <div class="validation-item">
+            <span class="v-icon">✅</span>
+            <span class="v-text ok">Correct answer marked</span>
+          </div>
+          <div class="validation-item">
+            <span class="v-icon">✅</span>
+            <span class="v-text ok">All answer options distinct</span>
+          </div>
+          <div class="validation-item">
+            <span class="v-icon">⚠️</span>
+            <span class="v-text warn">Hint image missing alt text</span>
+          </div>
+          <div class="validation-item">
+            <span class="v-icon">❌</span>
+            <span class="v-text error">Audio hint transcript missing (hard block)</span>
+          </div>
+        </div>
+
+      </div><!-- /test-log-panel -->
+    </div><!-- /preview-test-layout -->
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4 — QA CHECKS & PUBLISH GATE
+══════════════════════════════════════════ -->
+<div id="tab4" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙️ Engineering — QA & Publish Gate</strong>
+      <code>POST /content/explainer/:id/qa-submit</code> runs all checks server-side and returns a <code>qaReport</code> object. Hard blocks prevent the "Send to Owner Review" action entirely — the button is <code>disabled</code> until all hard blocks are resolved. Owner approval is a separate step; content-admins cannot self-publish. QA history entries are append-only. The "Assign for Fix" action creates a <code>contentTask</code> record referencing the blocker ID.
+    </div>
+
+    <div class="qa-header">
+      <h2>QA Review — Sight Words Node 3</h2>
+      <span class="chip chip-muted">Not yet reviewed</span>
+    </div>
+
+    <div class="qa-layout">
+
+      <!-- Left: checklist -->
+      <div class="qa-checklist">
+
+        <div class="qa-section-card">
+          <div class="qa-section-title">Content Quality</div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">All questions have correct answer marked</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">No duplicate answer options</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">Question text within word limits</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">⚠️</span>
+            <span class="qa-label warn">1 question has borderline length — 14 words (P0 max: 8)</span>
+          </div>
+        </div>
+
+        <div class="qa-section-card">
+          <div class="qa-section-title">Media &amp; Accessibility</div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">All images have alt text</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">❌</span>
+            <span class="qa-label error">2 audio hints missing transcripts — HARD BLOCK</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">No copyrighted media detected</span>
+          </div>
+        </div>
+
+        <div class="qa-section-card">
+          <div class="qa-section-title">Tone &amp; Safety</div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">No timer references</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">No grade labels used</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">No wrong-answer shame language</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">Child-safe vocabulary throughout</span>
+          </div>
+        </div>
+
+        <div class="qa-section-card">
+          <div class="qa-section-title">Script Rules</div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">Emoji-first pattern followed on opening line</span>
+          </div>
+          <div class="qa-item">
+            <span class="qa-icon">✅</span>
+            <span class="qa-label ok">Sentence length rules met (P1 context)</span>
+          </div>
+        </div>
+
+      </div><!-- /qa-checklist -->
+
+      <!-- Right: verdict + gate -->
+      <div class="qa-right">
+
+        <div class="qa-verdict-card blocked">
+          <div class="verdict-label blocked">BLOCKED</div>
+          <div class="verdict-detail">
+            1 hard block must be resolved before this node can be sent to owner review.<br><br>
+            <strong style="color:var(--red);">▸ 2 audio hints are missing transcripts</strong><br>
+            <span style="font-size:12px;">Add transcripts to all audio hints, then re-run QA.</span>
+          </div>
+        </div>
+
+        <div class="publish-gate-card">
+          <div class="gate-title">Publish Gate Actions</div>
+          <button class="btn btn-primary" disabled>Send to Owner Review</button>
+          <button class="btn btn-outline">📄 Export QA Report</button>
+          <button class="btn btn-ghost">👤 Assign Blocker for Fix</button>
+        </div>
+
+        <div class="qa-history-mini">
+          <div class="history-title">QA History</div>
+          <div class="history-item">
+            <div class="history-dot" style="background:var(--amber);"></div>
+            <div class="history-content">
+              <div class="history-action">Auto-check run</div>
+              <div class="history-meta">System · 3 warnings, 1 hard block · Mar 22, 2026</div>
+            </div>
+          </div>
+          <div class="history-item">
+            <div class="history-dot" style="background:var(--muted);"></div>
+            <div class="history-content">
+              <div class="history-action">Draft saved</div>
+              <div class="history-meta">content.admin@wq · v2.1 created · Mar 22, 2026</div>
+            </div>
+          </div>
+          <div class="history-item">
+            <div class="history-dot" style="background:var(--green);"></div>
+            <div class="history-content">
+              <div class="history-action">v2.0 approved by owner</div>
+              <div class="history-meta">owner.review@wq · Previous version · Mar 15, 2026</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /qa-right -->
+    </div><!-- /qa-layout -->
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5 — SPEC
+══════════════════════════════════════════ -->
+<div id="tab5" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙️ Engineering — Spec Reference</strong>
+      This tab is the canonical spec for the Explainer Studio. All API routes, script token formats, QA rules, and design tokens are defined here. Content-admins cannot publish directly — all publish actions route through owner approval. Hard QA blocks gate the "Send to Owner Review" button client-side and server-side.
+    </div>
+
+    <div class="spec-grid">
+
+      <!-- API Routes -->
+      <div class="spec-card">
+        <div class="spec-card-title">API Routes</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-bullet">GET</span>
+            <span class="spec-text"><code>GET /content/explainer/:id</code> — fetch full explainer node (script + hints + QA state)</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">PUT</span>
+            <span class="spec-text"><code>PUT /content/explainer/:id/script</code> — save script; returns rule violations synchronously</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">POST</span>
+            <span class="spec-text"><code>POST /content/explainer/:id/hints</code> — add or update a media hint</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">POST</span>
+            <span class="spec-text"><code>POST /content/explainer/:id/qa-submit</code> — run full QA check; returns <code>qaReport</code></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Script Token Format -->
+      <div class="spec-card">
+        <div class="spec-card-title">Script Token Format</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-bullet">•</span>
+            <span class="spec-text"><code>[WORD: "x"]</code> — renders as a large highlighted word card in child view</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">•</span>
+            <span class="spec-text"><code>[PAUSE]</code> — inserts a voice-coach beat pause (500ms default)</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">•</span>
+            <span class="spec-text">Emoji inline — rendered as-is; emoji-first rule requires opening line to begin with emoji</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">•</span>
+            <span class="spec-text">Plain text — rendered with Sora font, sized by band context (P0 larger)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hard QA Blocks -->
+      <div class="spec-card">
+        <div class="spec-card-title">Hard QA Blocks (Publish Gated)</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-bullet">❌</span>
+            <span class="spec-text">Missing correct answer on any question</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">❌</span>
+            <span class="spec-text">Audio hint without written transcript</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">❌</span>
+            <span class="spec-text">Duplicate answer options in any question</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">❌</span>
+            <span class="spec-text">Prohibited or copyrighted content detected</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">❌</span>
+            <span class="spec-text">Shame language or grade labels in script or question text</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warnings (non-blocking) -->
+      <div class="spec-card">
+        <div class="spec-card-title">Warnings (Non-Blocking)</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-bullet">⚠️</span>
+            <span class="spec-text">Borderline word length — sentence near but under limit</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">⚠️</span>
+            <span class="spec-text">Image hint missing alt text (accessibility advisory)</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">⚠️</span>
+            <span class="spec-text">Flagged hint card — requires manual review before next publish</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-bullet">⚠️</span>
+            <span class="spec-text">Script character count above 350 (approaching 400 max)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Publish Gate Flow -->
+      <div class="spec-card full">
+        <div class="spec-card-title">Publish Gate Flow &amp; Word Limit Rules</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div class="spec-row">
+            <div class="spec-item">
+              <span class="spec-bullet">1.</span>
+              <span class="spec-text">Content-admin creates / edits script and hints → saves draft (auto-check runs)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">2.</span>
+              <span class="spec-text">Content-admin submits to QA via <code>qa-submit</code> endpoint</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">3.</span>
+              <span class="spec-text">If hard blocks exist: blocked. Content-admin must resolve and re-submit.</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">4.</span>
+              <span class="spec-text">If all blocks cleared: "Send to Owner Review" becomes enabled</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">5.</span>
+              <span class="spec-text">Owner approves or requests changes — content-admin cannot self-publish</span>
+            </div>
+          </div>
+          <div class="spec-row">
+            <div class="spec-item">
+              <span class="spec-bullet">P0</span>
+              <span class="spec-text">Pre-reader band: max <strong>8 words/sentence</strong>; auto-check on every save</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">P1</span>
+              <span class="spec-text">K-1 band: max <strong>15 words/sentence</strong>; auto-check on every save</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">•</span>
+              <span class="spec-text">Media hints: max <strong>2 per question</strong>; hints must not directly reveal answer</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-bullet">•</span>
+              <span class="spec-text">Script character limit: <strong>400 characters</strong> total</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design Tokens -->
+      <div class="spec-card full">
+        <div class="spec-card-title">Design Tokens</div>
+        <div class="token-grid">
+          <div class="token-swatch" style="background:#10161e;border:1px solid #1e2e3e;">
+            <div class="token-name">Background</div>
+            <div class="token-val">--bg · #10161e</div>
+          </div>
+          <div class="token-swatch" style="background:#141e28;border:1px solid #1e2e3e;">
+            <div class="token-name">Card Background</div>
+            <div class="token-val">--card · #141e28</div>
+          </div>
+          <div class="token-swatch" style="background:#1e2e3e;">
+            <div class="token-name">Border</div>
+            <div class="token-val">--border · #1e2e3e</div>
+          </div>
+          <div class="token-swatch" style="background:rgba(88,200,240,.15);border:1px solid rgba(88,200,240,.3);">
+            <div class="token-name" style="color:#58c8f0;">Accent Cyan</div>
+            <div class="token-val" style="color:#7a9ab0;">--accent · #58c8f0</div>
+          </div>
+          <div class="token-swatch" style="background:#1e2e3e;">
+            <div class="token-name" style="color:#d0e8f0;">Text</div>
+            <div class="token-val">--text · #d0e8f0</div>
+          </div>
+          <div class="token-swatch" style="background:#1e2e3e;">
+            <div class="token-name" style="color:#7a9ab0;">Muted</div>
+            <div class="token-val">--muted · #7a9ab0</div>
+          </div>
+          <div class="token-swatch" style="background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);">
+            <div class="token-name" style="color:#9b72ff;">Violet</div>
+            <div class="token-val" style="color:#7a9ab0;">--violet · #9b72ff</div>
+          </div>
+          <div class="token-swatch" style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);">
+            <div class="token-name" style="color:#4ade80;">Success</div>
+            <div class="token-val" style="color:#7a9ab0;">--green · #4ade80</div>
+          </div>
+          <div class="token-swatch" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);">
+            <div class="token-name" style="color:#f87171;">Error / Block</div>
+            <div class="token-val" style="color:#7a9ab0;">--red · #f87171</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--muted);">Font: <strong style="color:var(--text);">Sora</strong> (Google Fonts) — weights 300, 400, 500, 600, 700</div>
+      </div>
+
+    </div><!-- /spec-grid -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+  /* ── Tab switcher ── */
+  function show(tabId) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    const idx = ['tab1','tab2','tab3','tab4','tab5'].indexOf(tabId);
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+
+  /* ── View toggle (Tab 1) ── */
+  function setView(btn, view) {
+    document.querySelectorAll('.view-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  /* ── Add hint form toggle (Tab 2) ── */
+  function toggleAddForm() {
+    const form = document.getElementById('addHintForm');
+    form.classList.toggle('open');
+  }
+
+  /* ── Hint type selector (Tab 2) ── */
+  function selectType(btn) {
+    document.querySelectorAll('.type-radio-card').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  /* ── Scenario picker (Tab 3) ── */
+  function pickScenario(chip) {
+    document.querySelectorAll('.scenario-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+
+    const scenario = chip.textContent.trim();
+    const coach = document.getElementById('coachBubble');
+    const log = document.getElementById('eventLog');
+
+    if (scenario === 'After Wrong Pick' || scenario === 'Coach Mode') {
+      coach.style.display = 'flex';
+      appendLog('info', 'Coach mode activated — hint bubble shown');
+    } else {
+      coach.style.display = 'none';
+    }
+
+    appendLog('info', `Scenario switched to: ${scenario}`);
+  }
+
+  /* ── Answer card interaction (Tab 3) ── */
+  function pickAnswer(card, state) {
+    // Reset all cards first
+    document.querySelectorAll('.answer-card').forEach(c => {
+      c.classList.remove('correct', 'incorrect');
+    });
+
+    card.classList.add(state);
+
+    if (state === 'correct') {
+      appendLog('good', 'Correct pick → celebration triggered');
+      document.getElementById('readinessChip').className = 'readiness-chip blocked';
+      document.getElementById('readinessChip').textContent = '❌ Not ready to publish — 1 blocker';
+    } else {
+      appendLog('warn', 'Wrong pick → hint 1 triggered');
+      document.getElementById('coachBubble').style.display = 'flex';
+    }
+  }
+
+  /* ── Dismiss intro overlay (Tab 3) ── */
+  function dismissIntro() {
+    const card = document.getElementById('introCard');
+    card.style.display = 'none';
+    appendLog('info', 'Explainer intro dismissed by child');
+  }
+
+  /* ── Append to event log (Tab 3) ── */
+  let logTimer = 0.2;
+  function appendLog(type, message) {
+    logTimer += 0.3;
+    const log = document.getElementById('eventLog');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+      <div class="log-dot ${type}"></div>
+      <div>
+        <div>${message}</div>
+        <div class="log-time">${logTimer.toFixed(1)}s</div>
+      </div>
+    `;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  }
+</script>
+
+</body>
+</html>

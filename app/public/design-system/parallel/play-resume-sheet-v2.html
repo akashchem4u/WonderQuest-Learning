@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-resume-sheet-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-resume-sheet-v2.html               ║
+     ║                                                              ║
+     ║  Bottom sheet shown when child returns to a PAUSED session.  ║
+     ║  Appears when reopening the app to a mid-session state.      ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Same Day       : paused <2h ago, "Pick up where…"  ║
+     ║  Tab 2 — Next Day       : paused yesterday, "Welcome back!" ║
+     ║  Tab 3 — Stale Session  : paused 3+ days ago, offer fresh   ║
+     ║  Tab 4 — Spec           : staleness rules, context restore   ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+
+  /* Dimmed play content behind sheet */
+  .play-behind {
+    position: absolute; inset: 0;
+    padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+    filter: brightness(0.2) blur(2px);
+  }
+  .pb-topbar { display: flex; align-items: center; justify-content: space-between; }
+  .pb-segs { display: flex; gap: 4px; flex: 1; }
+  .pb-seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .pb-seg.filled { background: #9b72ff; }
+  .pb-star { background: #1a1440; border-radius: 20px; padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px; }
+  .pb-hero { background: #1a1440; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .pb-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  .pb-choice { background: #1a1440; border-radius: 14px; height: 76px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; }
+
+  /* Scrim */
+  .scrim { position: absolute; inset: 0; background: rgba(8,5,20,0.55); z-index: 5; }
+
+  /* Resume sheet */
+  .resume-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+    border-radius: 24px 24px 0 0;
+    background: linear-gradient(180deg, #1a1040 0%, #100b2e 100%);
+    border-top: 2px solid #9b72ff44;
+    box-shadow: 0 -8px 32px #00000066;
+  }
+  .resume-sheet::before {
+    content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); margin: 10px auto 0;
+  }
+  .rs-body { padding: 14px 20px 32px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Question preview card */
+  .q-preview {
+    background: #221960; border: 1.5px solid #9b72ff44; border-radius: 14px;
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+  }
+  .qp-emoji { font-size: 2rem; flex-shrink: 0; }
+  .qp-text { display: flex; flex-direction: column; gap: 3px; }
+  .qp-label { font-size: 0.68rem; font-weight: 900; letter-spacing: 0.07em; text-transform: uppercase; color: #9b72ff; }
+  .qp-q { font-size: 0.9rem; font-weight: 900; color: #fff; }
+  .qp-prog { font-size: 0.72rem; font-weight: 700; color: #9080c0; }
+
+  /* Star count row */
+  .star-row {
+    display: flex; align-items: center; gap: 8px;
+    background: #1a1440; border: 1.5px solid #9b72ff33; border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .sr-icon { font-size: 1.2rem; }
+  .sr-text { font-size: 0.82rem; font-weight: 700; color: #c0a8ff; }
+  .sr-val { font-size: 1rem; font-weight: 900; color: #ffd166; margin-left: auto; }
+
+  /* Headline */
+  .rs-title { font-size: 1.1rem; font-weight: 900; color: #fff; }
+  .rs-sub { font-size: 0.82rem; font-weight: 700; color: #9080c0; line-height: 1.4; }
+
+  /* CTAs */
+  .rs-cta-primary {
+    height: 54px; border-radius: 27px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-cta-secondary {
+    height: 46px; border-radius: 23px;
+    background: transparent; border: 1.5px solid #2a1f60; color: #9080c0;
+    font-size: 0.86rem; font-weight: 700; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Fresh start option */
+  .fresh-card {
+    background: #1e1440; border: 1.5px solid #2a2060; border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .fresh-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #6050a0; }
+  .fresh-desc { font-size: 0.8rem; font-weight: 700; color: #9080c0; }
+  .btn-fresh {
+    height: 44px; border-radius: 22px; border: none;
+    background: #1a1440; border: 1.5px solid #2a2060; color: #b89eff;
+    font-size: 0.86rem; font-weight: 900; cursor: pointer;
+    margin-top: 2px;
+  }
+
+  /* Star safe note */
+  .star-safe-note {
+    background: #1a2a15; border: 1.5px solid #50e89044; border-radius: 10px;
+    padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .ssn-text { font-size: 0.76rem; font-weight: 700; color: #90e890; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-resume-sheet-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Same Day</button>
+  <button class="tab-btn" onclick="showTab('t2')">Next Day</button>
+  <button class="tab-btn" onclick="showTab('t3')">Stale Session</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Same Day ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Same Day — Paused &lt;2h Ago</h4>
+    "Pick up right where you left off!" Warm, minimal friction.
+    Question preview: which Q they're on + current question text.
+    Stars earned so far shown. Resume is the obvious primary CTA.
+    No "fresh start" option (session is too recent).
+  </div>
+  <div class="phone">
+    <div class="play-behind">
+      <div class="pb-topbar">
+        <div class="pb-segs">
+          <div class="pb-seg filled"></div><div class="pb-seg filled"></div>
+          <div class="pb-seg"></div><div class="pb-seg"></div><div class="pb-seg"></div>
+        </div>
+        <div class="pb-star">⭐ 4</div>
+      </div>
+      <div class="pb-hero"><div style="font-size:2.5rem">🐝</div></div>
+      <div class="pb-choices">
+        <div class="pb-choice">B</div><div class="pb-choice">S</div>
+        <div class="pb-choice">D</div><div class="pb-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="resume-sheet">
+      <div class="rs-body">
+        <div class="rs-title">Welcome back! 👋</div>
+        <div class="rs-sub">Pick up right where you left off!</div>
+        <div class="q-preview">
+          <div class="qp-emoji">🐝</div>
+          <div class="qp-text">
+            <div class="qp-label">Question 3 of 5</div>
+            <div class="qp-q">What letter does "bee" start with?</div>
+            <div class="qp-prog">Beginning Sounds · K-1</div>
+          </div>
+        </div>
+        <div class="star-row">
+          <div class="sr-icon">⭐</div>
+          <div class="sr-text">Stars earned so far</div>
+          <div class="sr-val">4 ⭐</div>
+        </div>
+        <button class="rs-cta-primary">▶ Resume — Q3 of 5</button>
+        <button class="rs-cta-secondary">Start a new session instead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Next Day ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Next Day — Paused Yesterday</h4>
+    "Welcome back!" greeting. Stars still safe. Question preview still shown.
+    Option to continue OR start fresh (offered as equal secondary).
+    Coach message reminds child they were doing great.
+  </div>
+  <div class="phone">
+    <div class="play-behind">
+      <div class="pb-topbar">
+        <div class="pb-segs">
+          <div class="pb-seg filled"></div><div class="pb-seg filled"></div>
+          <div class="pb-seg"></div><div class="pb-seg"></div><div class="pb-seg"></div>
+        </div>
+        <div class="pb-star">⭐ 4</div>
+      </div>
+      <div class="pb-hero"><div style="font-size:2.5rem">🐝</div></div>
+      <div class="pb-choices">
+        <div class="pb-choice">B</div><div class="pb-choice">S</div>
+        <div class="pb-choice">D</div><div class="pb-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="resume-sheet">
+      <div class="rs-body">
+        <div class="rs-title">Great to see you again! 🌟</div>
+        <div class="rs-sub">You were in the middle of a session yesterday. Want to finish it?</div>
+        <div class="q-preview">
+          <div class="qp-emoji">🐝</div>
+          <div class="qp-text">
+            <div class="qp-label">Saved — Question 3 of 5</div>
+            <div class="qp-q">"bee" — beginning sound?</div>
+            <div class="qp-prog">Beginning Sounds · K-1</div>
+          </div>
+        </div>
+        <div class="star-row">
+          <div class="sr-icon">🛡</div>
+          <div class="sr-text">Stars still safe from yesterday</div>
+          <div class="sr-val">4 ⭐</div>
+        </div>
+        <button class="rs-cta-primary">▶ Continue from Q3</button>
+        <div class="fresh-card">
+          <div class="fresh-label">Or start fresh</div>
+          <div class="fresh-desc">Begin a brand new session (your saved stars are still kept!)</div>
+          <button class="btn-fresh">Start a new session →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Stale Session ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Stale Session — Paused 3+ Days Ago</h4>
+    Session is old — "fresh start" is recommended but child can still resume.
+    Star-safe note always shown (kept stars even though session is old).
+    Primary CTA shifts to "Start fresh" (new session); secondary is "Continue old session."
+  </div>
+  <div class="phone">
+    <div class="play-behind">
+      <div class="pb-topbar">
+        <div class="pb-segs">
+          <div class="pb-seg filled"></div><div class="pb-seg"></div>
+          <div class="pb-seg"></div><div class="pb-seg"></div><div class="pb-seg"></div>
+        </div>
+        <div class="pb-star">⭐ 2</div>
+      </div>
+      <div class="pb-hero"><div style="font-size:2.5rem">🔢</div></div>
+      <div class="pb-choices">
+        <div class="pb-choice">6</div><div class="pb-choice">7</div>
+        <div class="pb-choice">8</div><div class="pb-choice">9</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="resume-sheet">
+      <div class="rs-body">
+        <div class="rs-title">Welcome back! 🌟</div>
+        <div class="rs-sub">You have an old session from a few days ago. Want to start fresh today?</div>
+        <div class="star-safe-note">
+          <div class="ssn-text">🛡 Your ⭐ 2 stars from that session are still saved!</div>
+        </div>
+        <div class="q-preview" style="opacity:0.6;">
+          <div class="qp-emoji">🔢</div>
+          <div class="qp-text">
+            <div class="qp-label">Old session — Q2 of 5</div>
+            <div class="qp-q">Math — Simple Addition · K-1</div>
+            <div class="qp-prog">Saved 4 days ago</div>
+          </div>
+        </div>
+        <button class="rs-cta-primary">✨ Start today's new session</button>
+        <button class="rs-cta-secondary">Continue old session from Q2</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Staleness Rules</h4>
+      <ul>
+        <li>Same Day (&lt;2h): resume primary, no fresh-start option</li>
+        <li>Next Day (2h–48h): resume primary, fresh start as secondary</li>
+        <li>Recent (2–7 days): fresh start shifts to primary, resume secondary</li>
+        <li>Old (7+ days): fresh start only — don't show old session preview</li>
+        <li>Time from: session-paused-at timestamp in local storage</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Context Restore</h4>
+      <ul>
+        <li>On resume: restore exact question state (question text + choices + progress)</li>
+        <li>Restore: star count, progress segs, skill context</li>
+        <li>Question preview shows: question text + Q# + skill name + band</li>
+        <li>If session data corrupt: fall back to "Start fresh" only</li>
+        <li class="dont">❌ Never restore to a mid-wrong-answer state</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star Safety</h4>
+      <ul>
+        <li>Stars from paused session are ALWAYS kept regardless of staleness</li>
+        <li>Same Day: star row shows "Stars earned so far: N ⭐"</li>
+        <li>Next Day: star row shows "Stars still safe from yesterday: N ⭐"</li>
+        <li>Stale: star-safe banner "Your ⭐ N stars from that session are saved!"</li>
+        <li class="dont">❌ Never forfeit stars from abandoned sessions</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Layout</h4>
+      <ul>
+        <li>Sheet: same bottom sheet pattern as pause sheet (24px 24px 0 0 radius)</li>
+        <li>Same Day: ~40% height; Next Day: ~50%; Stale: ~50%</li>
+        <li>Question preview: 2rem emoji + question text + Q# + skill</li>
+        <li>Fresh-start card: contained within sheet, not a separate overlay</li>
+        <li>Primary CTA always 54px; secondary always 46px</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

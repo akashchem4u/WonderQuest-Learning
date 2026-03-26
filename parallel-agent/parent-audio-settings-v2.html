@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parent Audio Settings v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --green: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --gold: #ffd166;
+      --violet: #9b72ff;
+      --mint: #58e8c1;
+      --coral: #ff7b6b;
+      --parent: #a78bfa;
+      --text-muted: rgba(240,246,255,.5);
+      --card2: #1c2330;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+
+    /* ── Hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .page-header .icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--parent), #7c3aed);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Tab switcher ── */
+    .tab-bar {
+      display: flex; gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn.active {
+      background: var(--parent);
+      color: #fff;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Child selector ── */
+    .child-tabs {
+      display: flex; gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .child-tab {
+      padding: 8px 20px;
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .child-tab.active {
+      border-color: var(--parent);
+      color: var(--parent);
+      background: rgba(167,139,250,.1);
+    }
+    .child-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* ── Cards ── */
+    .settings-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .settings-card.section-label {
+      padding: 0;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 12px 20px;
+      background: rgba(255,255,255,.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+    .section-body { padding: 4px 0; }
+
+    /* ── Master toggle card ── */
+    .master-toggle-card {
+      background: var(--card);
+      border: 2px solid rgba(167,139,250,.25);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .master-toggle-card .left { flex: 1; }
+    .master-toggle-card .label {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .master-toggle-card .sublabel {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ── Toggle row ── */
+    .toggle-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 20px;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      transition: opacity .2s;
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-row.disabled { opacity: .38; pointer-events: none; }
+    .toggle-row .icon-wrap {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .toggle-row .content { flex: 1; }
+    .toggle-row .title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .toggle-row .desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .toggle-row .right {
+      display: flex; flex-direction: column;
+      align-items: flex-end; gap: 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ── Toggle switch ── */
+    .toggle-switch {
+      position: relative;
+      width: 48px; height: 27px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.15);
+      border-radius: 27px;
+      transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 21px; height: 21px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    input:checked + .toggle-slider { background: var(--parent); }
+    input:checked + .toggle-slider::before { transform: translateX(21px); }
+
+    /* Master toggle green */
+    .master-toggle input:checked + .toggle-slider { background: var(--green); }
+
+    /* ── Volume slider ── */
+    .vol-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 4px 20px 16px;
+      transition: opacity .2s;
+    }
+    .vol-wrap.disabled { opacity: .38; pointer-events: none; }
+    .vol-label { font-size: 12px; color: var(--text-muted); min-width: 32px; }
+    .vol-slider {
+      -webkit-appearance: none;
+      flex: 1;
+      height: 4px;
+      border-radius: 4px;
+      background: rgba(255,255,255,.15);
+      outline: none;
+      cursor: pointer;
+    }
+    .vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--parent);
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(167,139,250,.25);
+    }
+
+    /* ── Preview button ── */
+    .preview-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--parent);
+      background: rgba(167,139,250,.12);
+      color: var(--parent);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .preview-btn:hover { background: rgba(167,139,250,.22); }
+    .preview-btn:active { transform: scale(.96); }
+
+    /* ── Pill selector ── */
+    .pill-selector {
+      display: flex; gap: 6px;
+    }
+    .pill-opt {
+      padding: 7px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .pill-opt.active {
+      border-color: var(--parent);
+      background: rgba(167,139,250,.15);
+      color: var(--parent);
+    }
+
+    /* ── Dropdown ── */
+    .wq-select {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      min-width: 160px;
+    }
+
+    /* ── Time pickers ── */
+    .time-row {
+      display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap;
+    }
+    .time-label { font-size: 13px; color: var(--text-muted); }
+    .time-input {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      width: 110px;
+    }
+    .time-input::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.5); }
+
+    /* ── Checkbox row ── */
+    .checkbox-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 14px;
+      cursor: pointer;
+    }
+    .checkbox-row input[type=checkbox] { accent-color: var(--parent); width: 16px; height: 16px; cursor: pointer; }
+    .checkbox-row span { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Audio off banner ── */
+    .audio-off-banner {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 8px 0;
+      display: none;
+    }
+    .audio-off-banner.show { display: block; }
+
+    /* ── Save button ── */
+    .save-row {
+      display: flex; align-items: center; gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .save-btn {
+      padding: 13px 32px;
+      background: linear-gradient(135deg, var(--parent), #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .save-btn:hover { opacity: .9; }
+    .save-btn:active { transform: scale(.97); }
+    .save-note { font-size: 13px; color: var(--text-muted); }
+    .save-confirm {
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 600;
+      display: none;
+    }
+    .save-confirm.show { display: inline; }
+
+    /* ═══════════════════════════════
+       TAB 2 — AUDIO PREVIEW
+    ═══════════════════════════════ */
+    .preview-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .phone-frame {
+      width: 320px;
+      background: #0d1117;
+      border: 2px solid rgba(167,139,250,.3);
+      border-radius: 36px;
+      padding: 32px 20px 28px;
+      position: relative;
+      box-shadow: 0 24px 60px rgba(0,0,0,.6);
+    }
+    .phone-notch {
+      width: 100px; height: 10px;
+      background: rgba(255,255,255,.1);
+      border-radius: 10px;
+      margin: 0 auto 28px;
+    }
+    .question-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 18px 18px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .question-emoji { font-size: 36px; margin-bottom: 10px; }
+    .question-text {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .question-text .word {
+      display: inline-block;
+      padding: 1px 2px;
+      border-radius: 3px;
+      transition: background .15s;
+    }
+    .question-text .word.highlight {
+      background: rgba(167,139,250,.35);
+      color: var(--parent);
+    }
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 32px;
+      margin: 12px 0;
+    }
+    .wave-bar {
+      width: 4px;
+      background: var(--parent);
+      border-radius: 4px;
+      opacity: .3;
+      height: 8px;
+    }
+    .wave-bar.playing {
+      opacity: 1;
+      animation: waveAnim .6s ease-in-out infinite alternate;
+    }
+    @keyframes waveAnim {
+      from { height: 4px; }
+      to { height: 24px; }
+    }
+    .wave-bar:nth-child(1)  { animation-delay: 0s; }
+    .wave-bar:nth-child(2)  { animation-delay: .08s; }
+    .wave-bar:nth-child(3)  { animation-delay: .16s; }
+    .wave-bar:nth-child(4)  { animation-delay: .24s; }
+    .wave-bar:nth-child(5)  { animation-delay: .32s; }
+    .wave-bar:nth-child(6)  { animation-delay: .4s; }
+    .wave-bar:nth-child(7)  { animation-delay: .32s; }
+    .wave-bar:nth-child(8)  { animation-delay: .24s; }
+    .wave-bar:nth-child(9)  { animation-delay: .16s; }
+    .wave-bar:nth-child(10) { animation-delay: .08s; }
+
+    .answer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .answer-btn-demo {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      font-size: 22px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .answer-btn-demo:hover { border-color: var(--parent); background: rgba(167,139,250,.1); }
+    .answer-btn-demo.correct {
+      border-color: var(--green);
+      background: rgba(80,232,144,.12);
+      animation: popCorrect .4s;
+    }
+    @keyframes popCorrect {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .preview-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .preview-play-btn {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--parent), #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+      min-width: 240px;
+      text-align: center;
+    }
+    .preview-play-btn:hover { opacity: .88; }
+    .preview-play-btn.playing {
+      background: linear-gradient(135deg, var(--coral), #c2410c);
+    }
+    .speed-toggle-btn {
+      padding: 9px 22px;
+      border: 1px solid var(--mint);
+      background: rgba(88,232,193,.08);
+      color: var(--mint);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .speed-toggle-btn:hover { background: rgba(88,232,193,.18); }
+    .speed-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(167,139,250,.15);
+      color: var(--parent);
+    }
+
+    /* ═══════════════════════════════
+       TAB 3 — SPEC
+    ═══════════════════════════════ */
+    .spec-section {
+      margin-bottom: 24px;
+    }
+    .spec-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--parent);
+      margin-bottom: 12px;
+    }
+    .code-block {
+      background: #0a0e14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #8b949e;
+      overflow-x: auto;
+      line-height: 1.7;
+      white-space: pre;
+    }
+    .code-block .kw  { color: #ff7b72; }
+    .code-block .ty  { color: #79c0ff; }
+    .code-block .str { color: #a5d6ff; }
+
+    .spec-row {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .spec-row strong { color: var(--parent); }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .tag-gold  { background: rgba(255,209,102,.15); color: var(--gold); }
+    .tag-green { background: rgba(80,232,144,.15);  color: var(--green); }
+    .tag-mint  { background: rgba(88,232,193,.15);  color: var(--mint); }
+    .tag-coral { background: rgba(255,123,107,.15); color: var(--coral); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .tab-btn { font-size: 12px; padding: 9px 4px; }
+      .master-toggle-card { flex-direction: column; align-items: flex-start; }
+      .phone-frame { width: 100%; max-width: 320px; }
+      .time-row { flex-direction: column; align-items: flex-start; }
+      .save-row { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hint box -->
+  <div class="hint-box">
+    ITEM 232 &middot; parent-audio-settings-v2.html &middot; WonderQuest parallel-agent build
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="icon">🔊</div>
+    <div>
+      <h1>Audio Settings</h1>
+      <p>Control sound, voice readout, and music for each child</p>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('settings')">&#9881; Settings</button>
+    <button class="tab-btn" onclick="showTab('preview')">&#9654; Preview</button>
+    <button class="tab-btn" onclick="showTab('spec')">&#128203; Spec</button>
+  </div>
+
+  <!-- ════════════════════════════════
+       TAB 1 — SETTINGS
+  ════════════════════════════════ -->
+  <div id="screen-settings" class="screen active">
+
+    <!-- Child selector -->
+    <div class="child-tabs">
+      <button class="child-tab active" onclick="selectChild('emma', this)">
+        <div class="child-avatar" style="background:rgba(255,209,102,.2);color:#ffd166;">E</div>
+        Emma
+      </button>
+      <button class="child-tab" onclick="selectChild('noah', this)">
+        <div class="child-avatar" style="background:rgba(88,232,193,.2);color:#58e8c1;">N</div>
+        Noah
+      </button>
+      <button class="child-tab" onclick="selectChild('lily', this)">
+        <div class="child-avatar" style="background:rgba(255,123,107,.2);color:#ff7b6b;">L</div>
+        Lily
+      </button>
+    </div>
+
+    <!-- SECTION 1: Master toggle -->
+    <div class="master-toggle-card">
+      <div class="left">
+        <div class="label" id="masterLabel">Sound for Emma</div>
+        <div class="sublabel">When off, Emma can still play all questions using text and images. No content is hidden.</div>
+      </div>
+      <label class="toggle-switch master-toggle">
+        <input type="checkbox" id="masterToggle" checked onchange="handleMasterToggle()" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Audio off banner -->
+    <div class="audio-off-banner" id="audioOffBanner">
+      🔇 Audio is off — turn on above to adjust settings
+    </div>
+
+    <!-- SECTION 2: Individual controls -->
+    <div class="settings-card section-label" id="subSettings">
+      <div class="section-header">Individual Audio Controls</div>
+      <div class="section-body">
+
+        <!-- Question Readout -->
+        <div class="toggle-row">
+          <div class="icon-wrap" style="background:rgba(167,139,250,.12);">🔊</div>
+          <div class="content">
+            <div class="title">Question Readout</div>
+            <div class="desc">Read questions and answers aloud</div>
+          </div>
+          <div class="right">
+            <label class="toggle-switch">
+              <input type="checkbox" id="readoutToggle" checked onchange="handleReadoutToggle()" />
+              <span class="toggle-slider"></span>
+            </label>
+            <button class="preview-btn" onclick="previewVoice()">&#9654; Preview voice</button>
+          </div>
+        </div>
+
+        <!-- Background Music -->
+        <div class="toggle-row">
+          <div class="icon-wrap" style="background:rgba(255,209,102,.12);">🎵</div>
+          <div class="content">
+            <div class="title">Background Music</div>
+            <div class="desc">Gentle background music during play</div>
+          </div>
+          <div class="right">
+            <label class="toggle-switch">
+              <input type="checkbox" id="musicToggle" checked onchange="handleMusicToggle()" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="vol-wrap" id="volWrap">
+          <span class="vol-label">🔈</span>
+          <input type="range" class="vol-slider" id="musicVolume" min="0" max="100" value="50"
+                 oninput="document.getElementById('volPct').textContent = this.value + '%'" />
+          <span class="vol-label" id="volPct">50%</span>
+        </div>
+
+        <!-- Sound Effects -->
+        <div class="toggle-row">
+          <div class="icon-wrap" style="background:rgba(88,232,193,.12);">🎮</div>
+          <div class="content">
+            <div class="title">Sound Effects</div>
+            <div class="desc">Button taps, transitions, and interactions</div>
+          </div>
+          <div class="right">
+            <label class="toggle-switch">
+              <input type="checkbox" id="sfxToggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Celebration Sounds -->
+        <div class="toggle-row">
+          <div class="icon-wrap" style="background:rgba(255,123,107,.12);">🎉</div>
+          <div class="content">
+            <div class="title">Celebration Sounds</div>
+            <div class="desc">Sounds when completing skills and earning stars</div>
+          </div>
+          <div class="right">
+            <label class="toggle-switch">
+              <input type="checkbox" id="celebToggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 3: Voice settings (visible when readout ON) -->
+    <div class="settings-card section-label" id="voiceSection">
+      <div class="section-header">Voice Settings</div>
+      <div class="section-body">
+
+        <!-- Voice speed -->
+        <div class="toggle-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
+          <div style="font-size:15px; font-weight:600;">Voice Speed</div>
+          <div class="pill-selector">
+            <button class="pill-opt active" id="pillNormal" onclick="setSpeed('normal')">Normal (0.9&times;)</button>
+            <button class="pill-opt" id="pillSlow" onclick="setSpeed('slow')">Slow (0.75&times;)</button>
+          </div>
+        </div>
+
+        <!-- Lock speed -->
+        <div class="toggle-row">
+          <div class="icon-wrap" style="background:rgba(255,209,102,.1);">🔒</div>
+          <div class="content">
+            <div class="title">Lock to Slow</div>
+            <div class="desc">Emma can't change this speed setting</div>
+          </div>
+          <div class="right">
+            <label class="toggle-switch">
+              <input type="checkbox" id="lockSpeedToggle" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Reading highlight -->
+        <div class="toggle-row">
+          <div class="icon-wrap" style="background:rgba(80,232,144,.1);">✨</div>
+          <div class="content">
+            <div class="title">Reading Highlight</div>
+            <div class="desc">Highlight words as they're read</div>
+          </div>
+          <div class="right">
+            <label class="toggle-switch">
+              <input type="checkbox" id="highlightToggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Voice language -->
+        <div class="toggle-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+          <div style="font-size:15px; font-weight:600;">Voice Language</div>
+          <div style="font-size:12px; color:var(--text-muted);">Accent preference — all voices read in English</div>
+          <select class="wq-select" id="voiceLocale">
+            <option value="en-GB">English UK &#127468;&#127463;</option>
+            <option value="en-US">English US &#127482;&#127480;</option>
+            <option value="en-AU">English AU &#127462;&#127482;</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 4: Scheduling -->
+    <div class="settings-card section-label">
+      <div class="section-header">Scheduling &middot; Quiet Hours</div>
+      <div class="section-body">
+        <div class="toggle-row" style="flex-direction:column; align-items:flex-start; gap:12px;">
+          <div style="font-size:15px; font-weight:600;">Quiet Hours Window</div>
+          <div style="font-size:12px; color:var(--text-muted);">All audio muted during this time</div>
+          <div class="time-row">
+            <span class="time-label">From</span>
+            <input class="time-input" type="time" id="quietStart" value="20:00" />
+            <span class="time-label">to</span>
+            <input class="time-input" type="time" id="quietEnd" value="07:00" />
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="quietMusicOnly" />
+            <span>Apply quiet hours to music only (keep readout active)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save -->
+    <div class="save-row">
+      <button class="save-btn" onclick="handleSave()">Save Settings</button>
+      <span class="save-note">Changes apply next session</span>
+      <span class="save-confirm" id="saveConfirm">&#10003; Saved!</span>
+    </div>
+
+  </div><!-- /settings screen -->
+
+  <!-- ════════════════════════════════
+       TAB 2 — AUDIO PREVIEW
+  ════════════════════════════════ -->
+  <div id="screen-preview" class="screen">
+    <div class="preview-wrap">
+
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+
+        <div class="question-card">
+          <div class="question-emoji">&#129504;</div>
+          <div class="question-text" id="questionWords">
+            <span class="word" id="w0">Which</span>&nbsp;<span class="word" id="w1">animal</span>&nbsp;<span class="word" id="w2">has</span>&nbsp;<span class="word" id="w3">a</span>&nbsp;<span class="word" id="w4">trunk?</span>&nbsp;<span style="font-size:22px;">🐘</span>
+          </div>
+          <div class="waveform" id="waveform">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+        </div>
+
+        <div class="answer-grid">
+          <div class="answer-btn-demo" id="ans0" onclick="selectAnswer(0)">🐘</div>
+          <div class="answer-btn-demo" id="ans1" onclick="selectAnswer(1)">🦒</div>
+          <div class="answer-btn-demo" id="ans2" onclick="selectAnswer(2)">🐬</div>
+          <div class="answer-btn-demo" id="ans3" onclick="selectAnswer(3)">🦁</div>
+        </div>
+      </div>
+
+      <div class="preview-controls">
+        <div class="speed-badge" id="previewSpeedBadge">Normal speed (0.9&times;)</div>
+        <button class="preview-play-btn" id="previewPlayBtn" onclick="togglePreviewPlay()">
+          &#9654; Preview with current settings
+        </button>
+        <button class="speed-toggle-btn" id="previewSpeedToggle" onclick="togglePreviewSpeed()">
+          Try Slow Speed (0.75&times;)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       TAB 3 — SPEC
+  ════════════════════════════════ -->
+  <div id="screen-spec" class="screen">
+
+    <div class="spec-section">
+      <h3>DB Schema</h3>
+      <div class="code-block"><span class="kw">CREATE TABLE</span> child_audio_prefs (
+  child_id               <span class="ty">UUID</span>                          <span class="kw">PRIMARY KEY</span>,
+  audio_master           <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">true</span>,
+  readout_enabled        <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">true</span>,
+  music_enabled          <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">true</span>,
+  music_volume           <span class="ty">INT</span>                           <span class="kw">DEFAULT</span> <span class="str">50</span>
+                           <span class="kw">CHECK</span> (music_volume <span class="kw">BETWEEN</span> <span class="str">0</span> <span class="kw">AND</span> <span class="str">100</span>),
+  sfx_enabled            <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">true</span>,
+  celebration_sounds     <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">true</span>,
+  voice_speed            <span class="ty">ENUM</span>(<span class="str">'normal'</span>, <span class="str">'slow'</span>)         <span class="kw">DEFAULT</span> <span class="str">'normal'</span>,
+  voice_speed_locked     <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">false</span>,
+  reading_highlight      <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">false</span>,
+  voice_locale           <span class="ty">ENUM</span>(<span class="str">'en-GB'</span>, <span class="str">'en-US'</span>, <span class="str">'en-AU'</span>) <span class="kw">DEFAULT</span> <span class="str">'en-GB'</span>,
+  quiet_hours_start      <span class="ty">TIME</span>,
+  quiet_hours_end        <span class="ty">TIME</span>,
+  quiet_hours_music_only <span class="ty">BOOLEAN</span>                       <span class="kw">DEFAULT</span> <span class="str">false</span>,
+  updated_by_parent_id   <span class="ty">UUID</span>,
+  updated_at             <span class="ty">TIMESTAMPTZ</span>
+);</div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Voice Technology</h3>
+      <div class="spec-row">
+        <span class="tag tag-gold">MVP</span>
+        Pre-recorded audio assets served per locale. File naming convention: <strong>q_{id}_{locale}.mp3</strong>
+      </div>
+      <div class="spec-row">
+        <span class="tag tag-mint">Fallback</span>
+        Web Speech API <strong>speechSynthesis</strong> — used when a pre-recorded asset is unavailable or the device CDN is blocked. Rate and voice filtered by <strong>voice_locale</strong> and <strong>voice_speed</strong>.
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Quiet Hours Logic</h3>
+      <div class="spec-row">
+        <span class="tag tag-coral">Server-side</span>
+        If <strong>NOW()::TIME BETWEEN quiet_hours_start AND quiet_hours_end</strong>, audio assets are not served. Enforced at CDN origin; no client-side bypass is possible.
+      </div>
+      <div class="spec-row">
+        <span class="tag tag-green">Client-side</span>
+        TTS blocked via a pre-session flag injected into the session token payload: <strong>audio_allowed: false</strong>. All <code>speechSynthesis.speak()</code> calls are no-ops when the flag is false.
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Privacy</h3>
+      <div class="spec-row">
+        No audio recordings are ever made on-device or server-side. No voice biometrics are collected. Voice locale is a purely functional preference (accent selection) and is not stored as identifying information.
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>WCAG 1.4.2 Compliance</h3>
+      <div class="spec-row">
+        Parent can disable all audio via the master toggle. Child can stop readout mid-play using an in-session stop button (accessible via keyboard and pointer). Background music never auto-starts above the user's system volume.
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Child Control Boundary</h3>
+      <div class="spec-row">
+        <strong>Child-adjustable:</strong> Voice speed only, if <strong>voice_speed_locked = false</strong>. All other controls are parent-only and are not surfaced in the child UI.
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Apply Timing</h3>
+      <div class="spec-row">
+        Settings are persisted immediately on save but take effect at the <strong>next session start</strong>. An in-progress session is not disrupted — changes are queued for the next <strong>session_init</strong> API call.
+      </div>
+    </div>
+
+  </div><!-- /spec screen -->
+
+  <script>
+    // ── Tab switcher ──────────────────────────────────────
+    function showTab(t) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('screen-' + t).classList.add('active');
+      const idx = { settings: 0, preview: 1, spec: 2 };
+      document.querySelectorAll('.tab-btn')[idx[t]].classList.add('active');
+    }
+
+    // ── Child selector ─────────────────────────────────────
+    const childNames = { emma: 'Emma', noah: 'Noah', lily: 'Lily' };
+    let activeChild = 'emma';
+
+    function selectChild(name, el) {
+      activeChild = name;
+      document.querySelectorAll('.child-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      const lbl = document.getElementById('masterLabel');
+      lbl.textContent = 'Sound for ' + childNames[name];
+      const sub = document.getElementById('subSettings');
+      sub.querySelector('.toggle-row .desc').textContent = ''; // reset
+      // Update "Lock to Slow" sublabel to match child
+      document.querySelectorAll('#voiceSection .toggle-row .desc')[0]
+        ? (document.querySelectorAll('#voiceSection .toggle-row')[1].querySelector('.desc').textContent =
+            childNames[name] + " can't change this speed setting")
+        : null;
+    }
+
+    // ── Master toggle ─────────────────────────────────────
+    function handleMasterToggle() {
+      const on = document.getElementById('masterToggle').checked;
+      document.getElementById('audioOffBanner').classList.toggle('show', !on);
+      const sub = document.getElementById('subSettings');
+      const voice = document.getElementById('voiceSection');
+      sub.style.opacity = on ? '1' : '0.35';
+      sub.style.pointerEvents = on ? '' : 'none';
+      voice.style.opacity = on ? '1' : '0.35';
+      voice.style.pointerEvents = on ? '' : 'none';
+    }
+
+    // ── Readout toggle → show/hide voice section ──────────
+    function handleReadoutToggle() {
+      const on = document.getElementById('readoutToggle').checked;
+      document.getElementById('voiceSection').style.display = on ? 'block' : 'none';
+    }
+
+    // ── Music toggle → enable/disable volume row ──────────
+    function handleMusicToggle() {
+      const on = document.getElementById('musicToggle').checked;
+      document.getElementById('volWrap').classList.toggle('disabled', !on);
+    }
+
+    // ── Voice speed pills ─────────────────────────────────
+    let currentSpeed = 'normal';
+
+    function setSpeed(s) {
+      currentSpeed = s;
+      document.getElementById('pillNormal').classList.toggle('active', s === 'normal');
+      document.getElementById('pillSlow').classList.toggle('active', s === 'slow');
+    }
+
+    // ── Preview voice (Web Speech API) ────────────────────
+    function previewVoice() {
+      if (!('speechSynthesis' in window)) {
+        alert('Speech synthesis is not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const locale = document.getElementById('voiceLocale').value;
+      const rate = currentSpeed === 'slow' ? 0.75 : 0.9;
+      const utter = new SpeechSynthesisUtterance('Which animal has a trunk?');
+      utter.lang = locale;
+      utter.rate = rate;
+      window.speechSynthesis.speak(utter);
+    }
+
+    // ── Save ──────────────────────────────────────────────
+    function handleSave() {
+      const el = document.getElementById('saveConfirm');
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    // ── Preview tab: TTS + word highlight simulation ──────
+    let previewPlaying = false;
+    let previewSlow = false;
+    let highlightInterval = null;
+
+    function togglePreviewPlay() {
+      if (previewPlaying) {
+        stopPreview();
+      } else {
+        startPreview();
+      }
+    }
+
+    function startPreview() {
+      previewPlaying = true;
+      const btn = document.getElementById('previewPlayBtn');
+      btn.classList.add('playing');
+      btn.textContent = '\u23F9 Stop preview';
+
+      // Activate waveform
+      document.querySelectorAll('.wave-bar').forEach(b => b.classList.add('playing'));
+
+      // Word-by-word highlight
+      const words = document.querySelectorAll('#questionWords .word');
+      words.forEach(w => w.classList.remove('highlight'));
+      let i = 0;
+      const delay = previewSlow ? 620 : 430;
+      highlightInterval = setInterval(() => {
+        words.forEach(w => w.classList.remove('highlight'));
+        if (i < words.length) {
+          words[i].classList.add('highlight');
+          i++;
+        } else {
+          stopPreview();
+        }
+      }, delay);
+
+      // TTS
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance('Which animal has a trunk?');
+        utter.rate = previewSlow ? 0.75 : 0.9;
+        const localeEl = document.getElementById('voiceLocale');
+        utter.lang = localeEl ? localeEl.value : 'en-GB';
+        utter.onend = stopPreview;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function stopPreview() {
+      previewPlaying = false;
+      const btn = document.getElementById('previewPlayBtn');
+      btn.classList.remove('playing');
+      btn.textContent = '\u25B6 Preview with current settings';
+      document.querySelectorAll('.wave-bar').forEach(b => b.classList.remove('playing'));
+      document.querySelectorAll('#questionWords .word').forEach(w => w.classList.remove('highlight'));
+      if (highlightInterval) { clearInterval(highlightInterval); highlightInterval = null; }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function togglePreviewSpeed() {
+      previewSlow = !previewSlow;
+      const toggleBtn = document.getElementById('previewSpeedToggle');
+      const badge = document.getElementById('previewSpeedBadge');
+      if (previewSlow) {
+        toggleBtn.textContent = 'Try Normal Speed (0.9\u00D7)';
+        badge.textContent = 'Slow speed (0.75\u00D7)';
+        badge.style.background = 'rgba(88,232,193,.15)';
+        badge.style.color = 'var(--mint)';
+      } else {
+        toggleBtn.textContent = 'Try Slow Speed (0.75\u00D7)';
+        badge.textContent = 'Normal speed (0.9\u00D7)';
+        badge.style.background = 'rgba(167,139,250,.15)';
+        badge.style.color = 'var(--parent)';
+      }
+      if (previewPlaying) { stopPreview(); startPreview(); }
+    }
+
+    function selectAnswer(idx) {
+      document.querySelectorAll('.answer-btn-demo').forEach(b => b.classList.remove('correct'));
+      if (idx === 0) {
+        document.getElementById('ans0').classList.add('correct');
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Class Summary Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #c8d4e0; color: #1a2a3e; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #b8c8d8; color: #2a5080; transition: background .2s; }
+  .tab.active { background: #2a5080; color: #fff; }
+  .tab:hover:not(.active) { background: #a8b8cc; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Desktop frame ── */
+  .desktop-frame { background: #f0f4f8; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,.18), 0 0 0 2px #c8d4e0; min-height: 560px; }
+  .frame-label { font-size: 11px; color: #2a5080; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Top nav ── */
+  .top-nav { background: #2a5080; padding: 0 28px; height: 52px; display: flex; align-items: center; gap: 20px; }
+  .nav-logo { font-size: 15px; font-weight: 700; color: #fff; }
+  .nav-link { font-size: 13px; color: rgba(255,255,255,.65); font-weight: 600; cursor: pointer; padding: 4px 0; border-bottom: 2px solid transparent; }
+  .nav-link.active { color: #fff; border-bottom-color: #ffd166; }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; color: rgba(255,255,255,.75); }
+
+  /* ── Subnav row ── */
+  .subnav { background: #2261a0; padding: 0 28px; height: 40px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .subnav-chip { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; cursor: pointer; border: none; font-family: 'Sora', sans-serif; }
+  .snc-active { background: #fff; color: #2a5080; }
+  .snc-idle { background: rgba(255,255,255,.12); color: rgba(255,255,255,.8); }
+
+  /* ── Hero KPI row ── */
+  .kpi-row { display: flex; gap: 12px; padding: 20px 28px 0; }
+  .kpi-card { flex: 1; background: #fff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .kpi-val { font-size: 28px; font-weight: 700; }
+  .kpi-lbl { font-size: 11px; color: #6a7a8e; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+  .kpi-delta { font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .delta-good { color: #1a8050; }
+  .delta-warn { color: #c07800; }
+  .delta-flat { color: #6a7a8e; }
+
+  /* ── Main grid ── */
+  .main-grid { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; padding: 16px 28px 28px; }
+
+  /* ── Student list panel ── */
+  .student-panel { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .panel-header { padding: 14px 16px 10px; border-bottom: 1px solid #e8eef4; }
+  .panel-header h3 { font-size: 14px; font-weight: 700; color: #1a2a3e; }
+  .panel-header p { font-size: 12px; color: #6a7a8e; margin-top: 2px; }
+
+  .student-list-item { padding: 10px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-left: 3px solid transparent; border-bottom: 1px solid #f4f6f8; transition: background .1s; }
+  .student-list-item:hover { background: #f4f8fc; }
+  .student-list-item.selected { background: #edf3fa; border-left-color: #2a5080; }
+  .sli-flag { border-left-color: #9a2a2a !important; }
+  .sli-watch { border-left-color: #c07800 !important; }
+  .sli-strong { border-left-color: #1a8050 !important; }
+  .sli-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .sli-name { font-size: 13px; font-weight: 700; color: #1a2a3e; }
+  .sli-detail { font-size: 11px; color: #6a7a8e; margin-top: 1px; }
+  .sli-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 12px; margin-left: auto; flex-shrink: 0; }
+  .badge-f { background: #fce8e8; color: #9a2a2a; }
+  .badge-w { background: #fef6e4; color: #c07800; }
+  .badge-s { background: #e8f5ee; color: #1a8050; }
+
+  /* ── Center content ── */
+  .center-panel { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── Skill distribution chart ── */
+  .skill-dist-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .sdc-title { font-size: 14px; font-weight: 700; color: #1a2a3e; margin-bottom: 14px; }
+  .skill-dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sdr-label { font-size: 12px; font-weight: 700; color: #1a2a3e; width: 160px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sdr-bar { flex: 1; height: 20px; background: #f0f4f8; border-radius: 4px; overflow: hidden; display: flex; }
+  .bar-support { background: #e07070; }
+  .bar-progress { background: #f0c030; }
+  .bar-strength { background: #50b880; }
+  .sdr-pct-row { display: flex; gap: 4px; width: 100px; flex-shrink: 0; font-size: 11px; font-weight: 700; justify-content: flex-end; }
+
+  /* ── Weekly trend ── */
+  .trend-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .trend-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .trend-title { font-size: 14px; font-weight: 700; color: #1a2a3e; }
+  .week-selector { display: flex; gap: 6px; }
+  .ws-btn { padding: 4px 10px; border-radius: 8px; border: 1.5px solid #d0dce8; background: #fff; font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700; color: #2a5080; cursor: pointer; }
+  .ws-btn.active { background: #2a5080; color: #fff; border-color: #2a5080; }
+  .bar-chart-row { display: flex; gap: 8px; align-items: flex-end; height: 80px; margin-bottom: 8px; }
+  .bc-group { display: flex; gap: 2px; align-items: flex-end; flex: 1; }
+  .bc-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .bc-label { font-size: 10px; color: #6a7a8e; text-align: center; flex: 1; margin-top: 4px; }
+
+  /* ── Right panel ── */
+  .right-panel { display: flex; flex-direction: column; gap: 12px; }
+  .info-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .info-card h3 { font-size: 13px; font-weight: 700; color: #1a2a3e; margin-bottom: 10px; }
+
+  /* ── Band pie proxy ── */
+  .band-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .band-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .band-label { font-size: 12px; flex: 1; color: #4a5a6e; }
+  .band-bar-track { flex: 2; height: 8px; background: #f0f4f8; border-radius: 4px; overflow: hidden; }
+  .band-bar-fill { height: 100%; border-radius: 4px; }
+  .band-count { font-size: 12px; font-weight: 700; color: #1a2a3e; width: 20px; text-align: right; }
+
+  /* ── SNS summary ── */
+  .sns-row { display: flex; gap: 8px; }
+  .sns-box { flex: 1; border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .sns-val { font-size: 22px; font-weight: 700; }
+  .sns-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+
+  /* ── Engagement table ── */
+  .eng-table { font-size: 12px; width: 100%; }
+  .eng-table td { padding: 6px 4px; border-bottom: 1px solid #f0f4f8; }
+  .eng-table td:first-child { color: #6a7a8e; }
+  .eng-table td:last-child { font-weight: 700; text-align: right; }
+
+  /* ── Spec ── */
+  .spec-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #d8e0ea; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #2a5080; margin-bottom: 12px; letter-spacing: .06em; }
+  table.spec-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.spec-tbl th { text-align: left; color: #6a7a8e; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #e0e8f0; }
+  table.spec-tbl td { padding: 8px 8px; border-bottom: 1px solid #eef2f6; color: #4a5a6e; vertical-align: top; }
+  table.spec-tbl td:first-child { color: #1a2a3e; font-weight: 600; }
+  code { background: #e8eef4; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #2a5080; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('class-overview')">Class Overview</button>
+  <button class="tab" onclick="show('skill-breakdown')">Skill Breakdown</button>
+  <button class="tab" onclick="show('engagement')">Engagement</button>
+  <button class="tab" onclick="show('empty-states')">Low-Data / Empty</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CLASS OVERVIEW -->
+<div id="class-overview" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Teacher Class Summary — Desktop</strong><br>
+    Full-width desktop view. Min width 1024px. Route: <code>/teacher/class-summary</code>.
+    Data from <code>GET /teacher/:id/class-summary?week=current</code>. Responsive 3-col grid:
+    left=student list with tier filters, center=skill distribution + weekly trend, right=SNS + band dist + quick actions.
+    TODAY divider only on current-week entries.
+  </div>
+
+  <div class="frame-label">Class Summary Desktop — Active week · Ms. Chen · 2nd Grade</div>
+  <div class="desktop-frame">
+    <!-- Top nav -->
+    <div class="top-nav">
+      <div class="nav-logo">⭐ WonderQuest</div>
+      <div class="nav-link">Home</div>
+      <div class="nav-link active">Class Summary</div>
+      <div class="nav-link">Support Lane</div>
+      <div class="nav-link">Reports</div>
+      <div class="nav-right">
+        <span>👩‍🏫 Ms. Chen</span>
+        <span>·</span>
+        <span>Riverside Elementary</span>
+      </div>
+    </div>
+
+    <!-- Subnav -->
+    <div class="subnav">
+      <button class="subnav-chip snc-active">This week</button>
+      <button class="subnav-chip snc-idle">Last week</button>
+      <button class="subnav-chip snc-idle">Last 4 weeks</button>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="subnav-chip snc-idle">📊 Export</button>
+        <button class="subnav-chip snc-idle">📧 Email parents</button>
+      </div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#2a5080;">24</div>
+        <div class="kpi-lbl">Total students</div>
+        <div class="kpi-delta delta-flat">→ No change</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#1a8050;">18</div>
+        <div class="kpi-lbl">Active this week</div>
+        <div class="kpi-delta delta-good">↑ +3 vs last week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#9a2a2a;">3</div>
+        <div class="kpi-lbl">Flag (≥2 wks support)</div>
+        <div class="kpi-delta delta-warn">↑ +1 this week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#c07800;">5</div>
+        <div class="kpi-lbl">Watch (1 wk support)</div>
+        <div class="kpi-delta delta-flat">→ Same</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#1a8050;">16</div>
+        <div class="kpi-lbl">Strong (strength tier)</div>
+        <div class="kpi-delta delta-good">↑ +2 vs last week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color:#2a5080;">4.2</div>
+        <div class="kpi-lbl">Avg sessions/week</div>
+        <div class="kpi-delta delta-good">↑ +0.6 vs last week</div>
+      </div>
+    </div>
+
+    <!-- 3-col main grid -->
+    <div class="main-grid">
+
+      <!-- Left: Student list -->
+      <div class="student-panel">
+        <div class="panel-header">
+          <h3>Students</h3>
+          <p>24 total · Flag first</p>
+        </div>
+        <!-- Filter chips -->
+        <div style="padding:8px 10px;display:flex;gap:4px;flex-wrap:wrap;background:#f4f8fc;border-bottom:1px solid #e8eef4;">
+          <button style="padding:3px 8px;border-radius:12px;border:none;background:#2a5080;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:#fff;">All</button>
+          <button style="padding:3px 8px;border-radius:12px;border:1px solid #d0dce8;background:#fce8e8;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:#9a2a2a;">🚩3</button>
+          <button style="padding:3px 8px;border-radius:12px;border:1px solid #d0dce8;background:#fef6e4;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:#c07800;">👁5</button>
+          <button style="padding:3px 8px;border-radius:12px;border:1px solid #d0dce8;background:#e8f5ee;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:#1a8050;">💪16</button>
+        </div>
+        <!-- List (abbreviated) -->
+        <div style="overflow-y:auto;max-height:360px;">
+          <div style="padding:5px 16px 3px;font-size:10px;font-weight:700;color:#9a2a2a;text-transform:uppercase;letter-spacing:.06em;">🚩 Flag</div>
+          <div class="student-list-item sli-flag selected">
+            <div class="sli-avatar" style="background:#fce8e8;">👦</div>
+            <div><div class="sli-name">Marcus T.</div><div class="sli-detail">Phonics · 3 wks</div></div>
+            <span class="sli-badge badge-f">Flag</span>
+          </div>
+          <div class="student-list-item sli-flag">
+            <div class="sli-avatar" style="background:#fce8e8;">👧</div>
+            <div><div class="sli-name">Aisha K.</div><div class="sli-detail">Reading · 2 wks</div></div>
+            <span class="sli-badge badge-f">Flag</span>
+          </div>
+          <div class="student-list-item sli-flag">
+            <div class="sli-avatar" style="background:#fce8e8;">👦</div>
+            <div><div class="sli-name">Leo B.</div><div class="sli-detail">Math · 2 wks</div></div>
+            <span class="sli-badge badge-f">Flag</span>
+          </div>
+          <div style="padding:5px 16px 3px;font-size:10px;font-weight:700;color:#c07800;text-transform:uppercase;letter-spacing:.06em;">👁 Watch</div>
+          <div class="student-list-item sli-watch">
+            <div class="sli-avatar" style="background:#fef6e4;">👦</div>
+            <div><div class="sli-name">Dylan R.</div><div class="sli-detail">Writing · 1 wk</div></div>
+            <span class="sli-badge badge-w">Watch</span>
+          </div>
+          <div class="student-list-item sli-watch">
+            <div class="sli-avatar" style="background:#fef6e4;">👧</div>
+            <div><div class="sli-name">Priya S.</div><div class="sli-detail">Comprehension · 1 wk</div></div>
+            <span class="sli-badge badge-w">Watch</span>
+          </div>
+          <div style="padding:5px 16px 3px;font-size:10px;font-weight:700;color:#1a8050;text-transform:uppercase;letter-spacing:.06em;">💪 Strong</div>
+          <div class="student-list-item sli-strong">
+            <div class="sli-avatar" style="background:#e8f5ee;">👧</div>
+            <div><div class="sli-name">Sofia M.</div><div class="sli-detail">Writing · moved up 🎉</div></div>
+            <span class="sli-badge badge-s">Strong</span>
+          </div>
+          <div class="student-list-item sli-strong">
+            <div class="sli-avatar" style="background:#e8f5ee;">👦</div>
+            <div><div class="sli-name">James K.</div><div class="sli-detail">All skills · strength</div></div>
+            <span class="sli-badge badge-s">Strong</span>
+          </div>
+          <div style="padding:8px 16px;font-size:12px;color:#6a7a8e;text-align:center;">+ 14 more strong students</div>
+        </div>
+      </div>
+
+      <!-- Center: Skill distribution + trend -->
+      <div class="center-panel">
+        <div class="skill-dist-card">
+          <div class="sdc-title">Skill distribution this week</div>
+          <div class="skill-dist-row">
+            <div class="sdr-label">Phonics patterns</div>
+            <div class="sdr-bar">
+              <div class="bar-support" style="width:20%"></div>
+              <div class="bar-progress" style="width:30%"></div>
+              <div class="bar-strength" style="width:50%"></div>
+            </div>
+            <div class="sdr-pct-row">
+              <span style="color:#e07070;">20%</span>
+              <span style="color:#f0c030;">30%</span>
+              <span style="color:#50b880;">50%</span>
+            </div>
+          </div>
+          <div class="skill-dist-row">
+            <div class="sdr-label">Reading fluency</div>
+            <div class="sdr-bar">
+              <div class="bar-support" style="width:12%"></div>
+              <div class="bar-progress" style="width:25%"></div>
+              <div class="bar-strength" style="width:63%"></div>
+            </div>
+            <div class="sdr-pct-row">
+              <span style="color:#e07070;">12%</span>
+              <span style="color:#f0c030;">25%</span>
+              <span style="color:#50b880;">63%</span>
+            </div>
+          </div>
+          <div class="skill-dist-row">
+            <div class="sdr-label">Writing sentences</div>
+            <div class="sdr-bar">
+              <div class="bar-support" style="width:25%"></div>
+              <div class="bar-progress" style="width:40%"></div>
+              <div class="bar-strength" style="width:35%"></div>
+            </div>
+            <div class="sdr-pct-row">
+              <span style="color:#e07070;">25%</span>
+              <span style="color:#f0c030;">40%</span>
+              <span style="color:#50b880;">35%</span>
+            </div>
+          </div>
+          <div class="skill-dist-row">
+            <div class="sdr-label">Comprehension</div>
+            <div class="sdr-bar">
+              <div class="bar-support" style="width:8%"></div>
+              <div class="bar-progress" style="width:22%"></div>
+              <div class="bar-strength" style="width:70%"></div>
+            </div>
+            <div class="sdr-pct-row">
+              <span style="color:#e07070;">8%</span>
+              <span style="color:#f0c030;">22%</span>
+              <span style="color:#50b880;">70%</span>
+            </div>
+          </div>
+          <div class="skill-dist-row">
+            <div class="sdr-label">Vocabulary</div>
+            <div class="sdr-bar">
+              <div class="bar-support" style="width:15%"></div>
+              <div class="bar-progress" style="width:35%"></div>
+              <div class="bar-strength" style="width:50%"></div>
+            </div>
+            <div class="sdr-pct-row">
+              <span style="color:#e07070;">15%</span>
+              <span style="color:#f0c030;">35%</span>
+              <span style="color:#50b880;">50%</span>
+            </div>
+          </div>
+          <!-- Legend -->
+          <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:#6a7a8e;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#e07070;border-radius:2px;display:inline-block;"></span>Support</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#f0c030;border-radius:2px;display:inline-block;"></span>Progress</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#50b880;border-radius:2px;display:inline-block;"></span>Strength</span>
+          </div>
+        </div>
+
+        <!-- Weekly trend chart -->
+        <div class="trend-card">
+          <div class="trend-header">
+            <div class="trend-title">Class tier trend (5 weeks)</div>
+            <div class="week-selector">
+              <button class="ws-btn">Phonics</button>
+              <button class="ws-btn active">All skills avg</button>
+              <button class="ws-btn">Reading</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-end;">
+            <div style="flex:1;">
+              <div class="bar-chart-row">
+                <!-- W1 -->
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;">
+                  <div style="width:24px;background:#50b880;border-radius:2px;height:44px;"></div>
+                  <div style="width:24px;background:#f0c030;border-radius:2px;height:20px;"></div>
+                  <div style="width:24px;background:#e07070;border-radius:2px;height:16px;"></div>
+                </div>
+                <!-- W2 -->
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;">
+                  <div style="width:24px;background:#50b880;border-radius:2px;height:46px;"></div>
+                  <div style="width:24px;background:#f0c030;border-radius:2px;height:18px;"></div>
+                  <div style="width:24px;background:#e07070;border-radius:2px;height:16px;"></div>
+                </div>
+                <!-- W3 -->
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;">
+                  <div style="width:24px;background:#50b880;border-radius:2px;height:48px;"></div>
+                  <div style="width:24px;background:#f0c030;border-radius:2px;height:18px;"></div>
+                  <div style="width:24px;background:#e07070;border-radius:2px;height:14px;"></div>
+                </div>
+                <!-- W4 -->
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;">
+                  <div style="width:24px;background:#50b880;border-radius:2px;height:52px;"></div>
+                  <div style="width:24px;background:#f0c030;border-radius:2px;height:16px;"></div>
+                  <div style="width:24px;background:#e07070;border-radius:2px;height:12px;"></div>
+                </div>
+                <!-- W5 (current) -->
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;position:relative;">
+                  <div style="position:absolute;top:-14px;font-size:10px;font-weight:700;color:#ffd166;background:#2a5080;padding:2px 6px;border-radius:8px;white-space:nowrap;">This week</div>
+                  <div style="width:24px;background:#50b880;border-radius:2px;height:54px;border:2px solid rgba(26,128,80,.6);"></div>
+                  <div style="width:24px;background:#f0c030;border-radius:2px;height:16px;"></div>
+                  <div style="width:24px;background:#e07070;border-radius:2px;height:10px;"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;margin-top:8px;justify-content:center;">
+                <div style="font-size:10px;color:#6a7a8e;flex:1;text-align:center;">W1</div>
+                <div style="font-size:10px;color:#6a7a8e;flex:1;text-align:center;">W2</div>
+                <div style="font-size:10px;color:#6a7a8e;flex:1;text-align:center;">W3</div>
+                <div style="font-size:10px;color:#6a7a8e;flex:1;text-align:center;">W4</div>
+                <div style="font-size:10px;color:#ffd166;flex:1;text-align:center;font-weight:700;">W5</div>
+              </div>
+            </div>
+            <div style="background:#f4f8fc;border-radius:10px;padding:12px 14px;width:140px;flex-shrink:0;">
+              <div style="font-size:11px;color:#6a7a8e;font-weight:600;margin-bottom:8px;">This week</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <div style="width:8px;height:8px;background:#50b880;border-radius:2px;"></div>
+                <div style="font-size:12px;color:#1a2a3e;font-weight:700;">67% Strong</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <div style="width:8px;height:8px;background:#f0c030;border-radius:2px;"></div>
+                <div style="font-size:12px;color:#1a2a3e;">21% Progress</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="width:8px;height:8px;background:#e07070;border-radius:2px;"></div>
+                <div style="font-size:12px;color:#1a2a3e;">12% Support</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right panel -->
+      <div class="right-panel">
+        <!-- SNS summary -->
+        <div class="info-card">
+          <h3>Support / Watch / Strong</h3>
+          <div class="sns-row">
+            <div class="sns-box" style="background:#fce8e8;">
+              <div class="sns-val" style="color:#9a2a2a;">3</div>
+              <div class="sns-lbl" style="color:#9a2a2a;">🚩 Flag</div>
+            </div>
+            <div class="sns-box" style="background:#fef6e4;">
+              <div class="sns-val" style="color:#c07800;">5</div>
+              <div class="sns-lbl" style="color:#c07800;">👁 Watch</div>
+            </div>
+            <div class="sns-box" style="background:#e8f5ee;">
+              <div class="sns-val" style="color:#1a8050;">16</div>
+              <div class="sns-lbl" style="color:#1a8050;">💪 Strong</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Band distribution -->
+        <div class="info-card">
+          <h3>Band distribution</h3>
+          <div class="band-row">
+            <div class="band-dot" style="background:#ffd166;"></div>
+            <div class="band-label">☁️ Dream World</div>
+            <div class="band-bar-track"><div class="band-bar-fill" style="width:20%;background:#ffd166;"></div></div>
+            <div class="band-count">5</div>
+          </div>
+          <div class="band-row">
+            <div class="band-dot" style="background:#9b72ff;"></div>
+            <div class="band-label">🌊 Ocean World</div>
+            <div class="band-bar-track"><div class="band-bar-fill" style="width:54%;background:#9b72ff;"></div></div>
+            <div class="band-count">13</div>
+          </div>
+          <div class="band-row">
+            <div class="band-dot" style="background:#58e8c1;"></div>
+            <div class="band-label">🔥 Fire World</div>
+            <div class="band-bar-track"><div class="band-bar-fill" style="width:20%;background:#58e8c1;"></div></div>
+            <div class="band-count">5</div>
+          </div>
+          <div class="band-row">
+            <div class="band-dot" style="background:#ff7b6b;"></div>
+            <div class="band-label">⚡ Storm World</div>
+            <div class="band-bar-track"><div class="band-bar-fill" style="width:4%;background:#ff7b6b;"></div></div>
+            <div class="band-count">1</div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="info-card">
+          <h3>Quick actions</h3>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button style="padding:10px 14px;border-radius:10px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:#2a5080;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;">📝 <span>Add note for a student</span></button>
+            <button style="padding:10px 14px;border-radius:10px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:#2a5080;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;">📧 <span>Message Flag parents</span></button>
+            <button style="padding:10px 14px;border-radius:10px;border:none;background:#2a5080;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;">📋 <span>Open Support Lane</span></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SKILL BREAKDOWN -->
+<div id="skill-breakdown" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Skill Breakdown view</strong><br>
+    Per-skill deep-dive. Shows each active skill in the class, sorted by support % descending.
+    Clicking a skill row filters the student list to only students in that skill + support tier.
+    Data: <code>GET /teacher/:id/class-summary/skills?week=current</code>.
+  </div>
+  <div class="frame-label">Skill breakdown — sorted by support % desc</div>
+  <div class="desktop-frame" style="min-height:400px;">
+    <div class="top-nav">
+      <div class="nav-logo">⭐ WonderQuest</div>
+      <div class="nav-link">Home</div>
+      <div class="nav-link active">Class Summary</div>
+      <div class="nav-link">Support Lane</div>
+      <div class="nav-right"><span>👩‍🏫 Ms. Chen</span></div>
+    </div>
+    <div class="subnav">
+      <button class="subnav-chip snc-idle">Overview</button>
+      <button class="subnav-chip snc-active">By skill</button>
+      <button class="subnav-chip snc-idle">By student</button>
+    </div>
+
+    <div style="padding:20px 28px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr style="border-bottom:2px solid #d8e4f0;">
+          <th style="text-align:left;padding:8px 12px;color:#6a7a8e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Skill</th>
+          <th style="padding:8px 12px;text-align:center;color:#e07070;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Support</th>
+          <th style="padding:8px 12px;text-align:center;color:#c07800;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Progress</th>
+          <th style="padding:8px 12px;text-align:center;color:#1a8050;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Strength</th>
+          <th style="padding:8px 12px;text-align:center;color:#6a7a8e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Distribution</th>
+          <th style="padding:8px 12px;color:#6a7a8e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Trend</th>
+          <th style="padding:8px 12px;color:#6a7a8e;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Action</th>
+        </tr>
+        <tr style="border-bottom:1px solid #e8eef4;cursor:pointer;" onmouseover="this.style.background='#f4f8fc'" onmouseout="this.style.background=''">
+          <td style="padding:12px;font-weight:700;">✏️ Writing sentences</td>
+          <td style="padding:12px;text-align:center;color:#e07070;font-weight:700;">6</td>
+          <td style="padding:12px;text-align:center;color:#c07800;font-weight:700;">10</td>
+          <td style="padding:12px;text-align:center;color:#1a8050;font-weight:700;">8</td>
+          <td style="padding:12px;">
+            <div style="height:12px;background:#e8eef4;border-radius:4px;overflow:hidden;display:flex;">
+              <div style="background:#e07070;width:25%;"></div>
+              <div style="background:#f0c030;width:42%;"></div>
+              <div style="background:#50b880;width:33%;"></div>
+            </div>
+          </td>
+          <td style="padding:12px;color:#e07070;font-size:12px;font-weight:700;">↑ support +2</td>
+          <td style="padding:12px;"><button style="padding:6px 12px;border-radius:8px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#2a5080;cursor:pointer;">View students</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #e8eef4;cursor:pointer;" onmouseover="this.style.background='#f4f8fc'" onmouseout="this.style.background=''">
+          <td style="padding:12px;font-weight:700;">🔤 Phonics patterns</td>
+          <td style="padding:12px;text-align:center;color:#e07070;font-weight:700;">5</td>
+          <td style="padding:12px;text-align:center;color:#c07800;font-weight:700;">7</td>
+          <td style="padding:12px;text-align:center;color:#1a8050;font-weight:700;">12</td>
+          <td style="padding:12px;">
+            <div style="height:12px;background:#e8eef4;border-radius:4px;overflow:hidden;display:flex;">
+              <div style="background:#e07070;width:21%;"></div>
+              <div style="background:#f0c030;width:29%;"></div>
+              <div style="background:#50b880;width:50%;"></div>
+            </div>
+          </td>
+          <td style="padding:12px;color:#c07800;font-size:12px;font-weight:700;">→ flat</td>
+          <td style="padding:12px;"><button style="padding:6px 12px;border-radius:8px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#2a5080;cursor:pointer;">View students</button></td>
+        </tr>
+        <tr style="border-bottom:1px solid #e8eef4;cursor:pointer;" onmouseover="this.style.background='#f4f8fc'" onmouseout="this.style.background=''">
+          <td style="padding:12px;font-weight:700;">📖 Reading fluency</td>
+          <td style="padding:12px;text-align:center;color:#e07070;font-weight:700;">3</td>
+          <td style="padding:12px;text-align:center;color:#c07800;font-weight:700;">6</td>
+          <td style="padding:12px;text-align:center;color:#1a8050;font-weight:700;">15</td>
+          <td style="padding:12px;">
+            <div style="height:12px;background:#e8eef4;border-radius:4px;overflow:hidden;display:flex;">
+              <div style="background:#e07070;width:12%;"></div>
+              <div style="background:#f0c030;width:25%;"></div>
+              <div style="background:#50b880;width:63%;"></div>
+            </div>
+          </td>
+          <td style="padding:12px;color:#1a8050;font-size:12px;font-weight:700;">↓ improving</td>
+          <td style="padding:12px;"><button style="padding:6px 12px;border-radius:8px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#2a5080;cursor:pointer;">View students</button></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ENGAGEMENT -->
+<div id="engagement" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Engagement tab</strong><br>
+    Sessions per student, streak data, completion rate. Shows at-risk engagement (0 sessions this week) highlighted.
+    Route: <code>/teacher/class-summary?view=engagement</code>. Sorted by sessions ascending (least engaged first).
+  </div>
+  <div class="frame-label">Engagement view — sessions + streaks</div>
+  <div class="desktop-frame" style="min-height:400px;">
+    <div class="top-nav"><div class="nav-logo">⭐ WonderQuest</div><div class="nav-link active">Class Summary</div><div class="nav-right"><span>👩‍🏫 Ms. Chen</span></div></div>
+    <div class="subnav">
+      <button class="subnav-chip snc-idle">Overview</button>
+      <button class="subnav-chip snc-idle">By skill</button>
+      <button class="subnav-chip snc-active">Engagement</button>
+    </div>
+
+    <div style="padding:20px 28px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+        <div class="kpi-card"><div class="kpi-val" style="color:#2a5080;">4.2</div><div class="kpi-lbl">Avg sessions / student</div></div>
+        <div class="kpi-card"><div class="kpi-val" style="color:#1a8050;">18</div><div class="kpi-lbl">Active this week</div></div>
+        <div class="kpi-card"><div class="kpi-val" style="color:#e07070;">6</div><div class="kpi-lbl">0 sessions this week</div></div>
+        <div class="kpi-card"><div class="kpi-val" style="color:#ffd166;">3.1</div><div class="kpi-lbl">Avg streak days</div></div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr style="border-bottom:2px solid #d8e4f0;">
+          <th style="text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;color:#6a7a8e;letter-spacing:.06em;">Student</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#6a7a8e;letter-spacing:.06em;">Sessions (wk)</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#6a7a8e;letter-spacing:.06em;">Streak</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#6a7a8e;letter-spacing:.06em;">Last active</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#6a7a8e;letter-spacing:.06em;">Tier</th>
+        </tr>
+        <!-- Zero sessions -->
+        <tr style="background:#fff8f8;border-bottom:1px solid #e8eef4;">
+          <td style="padding:10px 12px;font-weight:700;">👧 Aisha K.</td>
+          <td style="padding:10px;text-align:center;"><span style="background:#fee;color:#cc3333;font-weight:700;padding:3px 10px;border-radius:12px;font-size:12px;">0</span></td>
+          <td style="padding:10px;text-align:center;color:#6a7a8e;">– broken</td>
+          <td style="padding:10px;text-align:center;color:#cc3333;font-size:12px;font-weight:700;">5 days ago</td>
+          <td style="padding:10px;text-align:center;"><span style="background:#fce8e8;color:#9a2a2a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;">Flag</span></td>
+        </tr>
+        <tr style="background:#fff8f8;border-bottom:1px solid #e8eef4;">
+          <td style="padding:10px 12px;font-weight:700;">👦 Leo B.</td>
+          <td style="padding:10px;text-align:center;"><span style="background:#fee;color:#cc3333;font-weight:700;padding:3px 10px;border-radius:12px;font-size:12px;">0</span></td>
+          <td style="padding:10px;text-align:center;color:#6a7a8e;">– broken</td>
+          <td style="padding:10px;text-align:center;color:#cc3333;font-size:12px;font-weight:700;">4 days ago</td>
+          <td style="padding:10px;text-align:center;"><span style="background:#fce8e8;color:#9a2a2a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;">Flag</span></td>
+        </tr>
+        <!-- Normal rows -->
+        <tr style="border-bottom:1px solid #e8eef4;">
+          <td style="padding:10px 12px;font-weight:700;">👦 Marcus T.</td>
+          <td style="padding:10px;text-align:center;font-weight:700;">2</td>
+          <td style="padding:10px;text-align:center;">🔥 2 days</td>
+          <td style="padding:10px;text-align:center;color:#6a7a8e;">Today</td>
+          <td style="padding:10px;text-align:center;"><span style="background:#fce8e8;color:#9a2a2a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;">Flag</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid #e8eef4;">
+          <td style="padding:10px 12px;font-weight:700;">👧 Sofia M.</td>
+          <td style="padding:10px;text-align:center;font-weight:700;">6</td>
+          <td style="padding:10px;text-align:center;">🔥 7 days</td>
+          <td style="padding:10px;text-align:center;color:#6a7a8e;">Today</td>
+          <td style="padding:10px;text-align:center;"><span style="background:#e8f5ee;color:#1a8050;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;">Strong</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ EMPTY / LOW DATA -->
+<div id="empty-states" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Low-data / Early-week states</strong><br>
+    Early week (&lt;3 sessions per student): show partial data with "More data by Thursday" note.
+    No students enrolled: show setup wizard CTA. No sessions this week: show last-week data with banner.
+  </div>
+  <div class="frame-label">Early week — limited data state</div>
+  <div class="desktop-frame" style="min-height:300px;">
+    <div class="top-nav"><div class="nav-logo">⭐ WonderQuest</div><div class="nav-link active">Class Summary</div><div class="nav-right"><span>👩‍🏫 Ms. Chen · Monday</span></div></div>
+    <div style="padding:24px 28px;">
+      <div style="background:#fef6e4;border:1.5px solid rgba(192,120,0,.3);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+        <div style="font-size:28px;">📅</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#8a5500;">Early week — limited data</div>
+          <div style="font-size:13px;color:#8a5500;margin-top:3px;">Most students haven't played yet. Check back Thursday for a fuller picture. Showing last week's data below.</div>
+        </div>
+      </div>
+      <div style="opacity:.7;">
+        <div class="kpi-row" style="padding:0;margin-bottom:16px;">
+          <div class="kpi-card" style="flex:initial;min-width:140px;">
+            <div class="kpi-val" style="color:#2a5080;">24</div>
+            <div class="kpi-lbl">Students</div>
+          </div>
+          <div class="kpi-card" style="flex:initial;min-width:140px;">
+            <div class="kpi-val" style="color:#6a7a8e;">4</div>
+            <div class="kpi-lbl">Active so far</div>
+          </div>
+          <div class="kpi-card" style="flex:initial;min-width:140px;">
+            <div class="kpi-val" style="color:#6a7a8e;">—</div>
+            <div class="kpi-lbl">Tiers updating</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:#6a7a8e;font-style:italic;">Showing last week's skill distribution — updates as students play this week</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>// ROUTES & ENDPOINTS</h3>
+    <table class="spec-tbl">
+      <tr><th>Route</th><th>Method</th><th>Returns</th></tr>
+      <tr><td><code>/teacher/class-summary</code></td><td>GET (screen)</td><td>Class summary desktop view</td></tr>
+      <tr><td><code>GET /teacher/:id/class-summary</code></td><td>GET</td><td>KPIs, SNS counts, skill dist, trend 5w</td></tr>
+      <tr><td><code>GET /teacher/:id/class-summary/skills</code></td><td>GET</td><td>Per-skill breakdown with tier counts</td></tr>
+      <tr><td><code>GET /teacher/:id/class-summary/engagement</code></td><td>GET</td><td>Per-student sessions, streaks, last-active</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// LAYOUT GRID</h3>
+    <table class="spec-tbl">
+      <tr><th>Column</th><th>Width</th><th>Content</th></tr>
+      <tr><td>Left</td><td>280px fixed</td><td>Student list with tier-filter chips</td></tr>
+      <tr><td>Center</td><td>1fr (flex)</td><td>Skill distribution + 5-week trend chart</td></tr>
+      <tr><td>Right</td><td>300px fixed</td><td>SNS summary + band dist + quick actions</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table class="spec-tbl">
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>teacher-bg</td><td><code>#f0f4f8</code></td><td>Page background (cool steel)</td></tr>
+      <tr><td>teacher-nav</td><td><code>#2a5080</code></td><td>Top nav, primary CTA</td></tr>
+      <tr><td>flag-color</td><td><code>#9a2a2a</code></td><td>Flag tier rows, KPIs, left-border</td></tr>
+      <tr><td>watch-color</td><td><code>#c07800</code></td><td>Watch tier</td></tr>
+      <tr><td>strong-color</td><td><code>#1a8050</code></td><td>Strong tier</td></tr>
+      <tr><td>bar-support</td><td><code>#e07070</code></td><td>Skill dist bar — support segment</td></tr>
+      <tr><td>bar-progress</td><td><code>#f0c030</code></td><td>Skill dist bar — progress segment</td></tr>
+      <tr><td>bar-strength</td><td><code>#50b880</code></td><td>Skill dist bar — strength segment</td></tr>
+      <tr><td>min-width</td><td>1024px</td><td>3-col layout breaks to mobile below this</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Between Questions Pace v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Progress strip */
+  .progress-strip{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,.05)}
+  .star-count{display:flex;align-items:center;gap:4px;font-weight:900;font-size:14px;color:#ffd166}
+  .progress-dots{display:flex;gap:5px}
+  .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2)}
+  .dot.earned{background:#ffd166}
+  .dot.current{background:#9b72ff;box-shadow:0 0 6px #9b72ff}
+  .dot.locked{background:rgba(255,255,255,.1)}
+  .world-badge{font-size:11px;color:#58e8c1;font-weight:900;background:rgba(88,232,193,.1);padding:3px 8px;border-radius:10px}
+
+  /* Star earned chip */
+  .star-chip-area{display:flex;justify-content:center;padding:20px 16px 8px}
+  .star-chip{background:linear-gradient(135deg,#ffd166,#ffb300);color:#1a0d00;font-weight:900;font-size:16px;padding:10px 20px;border-radius:50px;display:inline-flex;align-items:center;gap:8px;animation:chipPop .5s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes chipPop{0%{transform:scale(0) translateY(20px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+  .star-chip .star-icon{font-size:20px}
+
+  /* Loading dots */
+  .loading-area{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px}
+  .loading-dots{display:flex;gap:8px}
+  .ldot{width:10px;height:10px;border-radius:50%;background:#9b72ff;animation:bounce 1.2s infinite}
+  .ldot:nth-child(2){animation-delay:.2s}
+  .ldot:nth-child(3){animation-delay:.4s}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-12px)}}
+  .loading-text{font-weight:900;font-size:13px;color:rgba(255,255,255,.6)}
+
+  /* Next up preview card */
+  .next-card{margin:8px 16px 16px;background:rgba(255,255,255,.06);border:2px solid rgba(155,114,255,.3);border-radius:20px;padding:16px;display:flex;align-items:center;gap:14px}
+  .next-emoji{font-size:36px;width:60px;height:60px;background:rgba(155,114,255,.15);border-radius:16px;display:flex;align-items:center;justify-content:center}
+  .next-info{}
+  .next-label{font-size:10px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .next-title{font-size:16px;font-weight:900;color:#fff;margin-top:2px}
+  .next-type{font-size:11px;color:#9b72ff;font-weight:700;margin-top:3px}
+
+  /* Hint-assisted state */
+  .hint-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,123,107,.15);border:1px solid #ff7b6b;border-radius:12px;padding:4px 10px;font-size:11px;color:#ff7b6b;font-weight:700;margin-top:6px}
+
+  /* Mini break prompt */
+  .break-prompt{margin:16px;background:linear-gradient(135deg,rgba(88,232,193,.1),rgba(155,114,255,.1));border:2px solid #58e8c1;border-radius:24px;padding:20px;text-align:center}
+  .break-owl{font-size:56px;margin-bottom:12px}
+  .break-title{font-size:20px;font-weight:900;color:#58e8c1;margin-bottom:6px}
+  .break-sub{font-size:13px;color:rgba(255,255,255,.7);line-height:1.5}
+  .break-actions{display:flex;gap:10px;margin-top:16px}
+  .btn-continue{flex:1;background:#9b72ff;color:#fff;border:none;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;cursor:pointer}
+  .btn-rest{flex:1;background:rgba(255,255,255,.08);color:#fff;border:2px solid rgba(255,255,255,.2);border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;cursor:pointer}
+  .stars-recap{display:flex;justify-content:space-around;margin:10px 0;padding:10px 0;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)}
+  .recap-item{text-align:center}
+  .recap-val{font-size:22px;font-weight:900;color:#ffd166}
+  .recap-lbl{font-size:10px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase}
+
+  /* End session preview */
+  .end-preview{margin:16px;background:rgba(255,209,102,.05);border:2px dashed #ffd166;border-radius:20px;padding:16px}
+  .end-title{font-size:15px;font-weight:900;color:#ffd166;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .preview-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .preview-row:last-child{border-bottom:none}
+  .preview-lbl{font-size:12px;color:rgba(255,255,255,.6)}
+  .preview-val{font-size:14px;font-weight:900;color:#fff}
+  .preview-val.gold{color:#ffd166}
+  .preview-val.mint{color:#58e8c1}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('after-correct')">After Correct</button>
+  <button class="tab" onclick="show('after-hint')">After Hint</button>
+  <button class="tab" onclick="show('mini-break')">Mini-Break Prompt</button>
+  <button class="tab" onclick="show('end-preview')">End-of-Session Preview</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-between-questions-pace-v2.html</code> — Between-question transitions · 375px mobile · child play flow
+</div>
+
+<!-- AFTER CORRECT -->
+<div id="after-correct" class="panel active">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 4</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot earned"></div><div class="dot current"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div class="star-chip-area">
+      <div class="star-chip"><span class="star-icon">⭐</span>Star earned!</div>
+    </div>
+    <div class="loading-area">
+      <div style="font-size:13px;color:rgba(255,255,255,.5);font-weight:700">Great work! Loading next...</div>
+      <div class="loading-dots">
+        <div class="ldot"></div><div class="ldot"></div><div class="ldot"></div>
+      </div>
+    </div>
+    <div class="next-card">
+      <div class="next-emoji">🔤</div>
+      <div class="next-info">
+        <div class="next-label">Next up</div>
+        <div class="next-title">Word Builder</div>
+        <div class="next-type">Spelling · Medium</div>
+      </div>
+    </div>
+    <div style="margin:0 16px">
+      <div class="stars-recap">
+        <div class="recap-item"><div class="recap-val">4</div><div class="recap-lbl">Stars</div></div>
+        <div class="recap-item"><div class="recap-val">5</div><div class="recap-lbl">Question</div></div>
+        <div class="recap-item"><div class="recap-val">3</div><div class="recap-lbl">To Go</div></div>
+      </div>
+    </div>
+    <div style="padding:12px 16px 0;text-align:center">
+      <div style="font-size:12px;color:rgba(255,255,255,.4)">✨ You're doing amazing! Keep going!</div>
+    </div>
+  </div>
+</div>
+
+<!-- AFTER HINT -->
+<div id="after-hint" class="panel">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 3</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div class="star-chip-area">
+      <div class="star-chip" style="background:linear-gradient(135deg,#ff7b6b,#ff5533)"><span class="star-icon">⭐</span>Good try!</div>
+    </div>
+    <div style="text-align:center;padding:4px 16px 12px">
+      <div class="hint-badge">🦉 Used a hint — that's learning!</div>
+    </div>
+    <div class="loading-area">
+      <div style="font-size:13px;color:rgba(255,255,255,.5);font-weight:700">Owl got you covered!</div>
+      <div class="loading-dots">
+        <div class="ldot" style="background:#ff7b6b"></div>
+        <div class="ldot" style="background:#ff7b6b"></div>
+        <div class="ldot" style="background:#ff7b6b"></div>
+      </div>
+    </div>
+    <div class="next-card" style="border-color:rgba(255,123,107,.3)">
+      <div class="next-emoji" style="background:rgba(255,123,107,.15)">🧩</div>
+      <div class="next-info">
+        <div class="next-label">Next up</div>
+        <div class="next-title">Sound Match</div>
+        <div class="next-type">Phonics · Easy</div>
+      </div>
+    </div>
+    <div style="margin:8px 16px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2);border-radius:14px;padding:12px">
+      <div style="font-size:12px;color:rgba(255,255,255,.6);font-weight:700">🌟 Hint-assist note</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px;line-height:1.5">Using hints is part of learning. Your star is safe — keep exploring!</div>
+    </div>
+    <div style="margin:0 16px">
+      <div class="stars-recap">
+        <div class="recap-item"><div class="recap-val">3</div><div class="recap-lbl">Stars</div></div>
+        <div class="recap-item"><div class="recap-val">4</div><div class="recap-lbl">Question</div></div>
+        <div class="recap-item"><div class="recap-val">4</div><div class="recap-lbl">To Go</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MINI-BREAK PROMPT -->
+<div id="mini-break" class="panel">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 5</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div style="padding:16px 16px 0;text-align:center">
+      <div style="font-size:11px;font-weight:900;color:#58e8c1;text-transform:uppercase;letter-spacing:.5px">5 Questions Done!</div>
+    </div>
+    <div class="break-prompt">
+      <div class="break-owl">🦉</div>
+      <div class="break-title">Amazing Focus!</div>
+      <div class="break-sub">You've done 5 questions in a row! Want to take a quick stretch break or keep going?</div>
+      <div class="stars-recap" style="border-color:rgba(88,232,193,.2)">
+        <div class="recap-item"><div class="recap-val" style="color:#58e8c1">5</div><div class="recap-lbl">Stars</div></div>
+        <div class="recap-item"><div class="recap-val">5</div><div class="recap-lbl">Done</div></div>
+        <div class="recap-item"><div class="recap-val">3</div><div class="recap-lbl">Left</div></div>
+      </div>
+      <div class="break-actions">
+        <button class="btn-rest">😌 Take a break</button>
+        <button class="btn-continue">🚀 Keep going!</button>
+      </div>
+    </div>
+    <div style="padding:0 16px;text-align:center">
+      <div style="font-size:11px;color:rgba(255,255,255,.35)">Your stars are saved no matter what!</div>
+    </div>
+  </div>
+</div>
+
+<!-- END-OF-SESSION PREVIEW -->
+<div id="end-preview" class="panel">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 8</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot earned"></div><div class="dot earned"></div><div class="dot earned"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div style="padding:16px;text-align:center">
+      <div style="font-size:13px;font-weight:900;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px">Session ending soon...</div>
+      <div style="font-size:28px;font-weight:900;color:#ffd166;margin-top:6px">1 Question Left!</div>
+    </div>
+    <div class="end-preview">
+      <div class="end-title">✨ Your Session So Far</div>
+      <div class="preview-row">
+        <span class="preview-lbl">Stars earned</span>
+        <span class="preview-val gold">⭐ 8</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-lbl">Streak</span>
+        <span class="preview-val gold">🔥 4 days</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-lbl">XP this session</span>
+        <span class="preview-val mint">+120 XP</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-lbl">Badge progress</span>
+        <span class="preview-val">🏅 Ocean Swimmer 80%</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-lbl">World explored</span>
+        <span class="preview-val">🌊 Level 3</span>
+      </div>
+    </div>
+    <div class="next-card" style="margin-top:0">
+      <div class="next-emoji">🎉</div>
+      <div class="next-info">
+        <div class="next-label">Last question</div>
+        <div class="next-title">Finish strong!</div>
+        <div class="next-type">Word Puzzle · Final</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: play-between-questions-pace-v2.html</h3>
+      <ul>
+        <li>375px mobile · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>Between-question transition states</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>After Correct:</strong> Gold star chip animates in, loading dots, next-question preview card, progress strip</li>
+        <li><strong>After Hint:</strong> Coral star chip, hint-assist badge, owl acknowledgment, no shame messaging</li>
+        <li><strong>Mini-Break Prompt:</strong> After 5 questions, owl prompt, stretch vs keep-going choice, stars saved guarantee</li>
+        <li><strong>End-of-Session Preview:</strong> Session stats summary, final question card, XP/badge tease</li>
+      </ul>
+      <h3>Child Rules Applied</h3>
+      <ul>
+        <li>NO timers, NO grade labels, NO shame</li>
+        <li>Stars are streak-safe — replaying can't lose stars</li>
+        <li>Hint use is positively framed ("that's learning!")</li>
+        <li>Break is optional — child controls pace</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P0 gold #ffd166</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">P3 coral #ff7b6b</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

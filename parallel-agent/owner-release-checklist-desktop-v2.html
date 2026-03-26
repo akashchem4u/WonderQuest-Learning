@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Owner Release Checklist (Desktop) v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --accent: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --muted: #8b949e;
+      --font: 'Inter', system-ui, sans-serif;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --status-complete: #50e890;
+      --status-progress: #f0a030;
+      --status-blocked: #e85050;
+      --status-pending: #8b949e;
+      --status-waived: #a371f7;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .hint-box {
+      background: #2a2200;
+      border: 1.5px solid #f0c030;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin: 24px auto;
+      max-width: 960px;
+      font-size: 12.5px;
+      color: #f0d060;
+      line-height: 1.7;
+    }
+    .hint-box strong { color: #ffe066; font-size: 13px; display: block; margin-bottom: 4px; }
+
+    /* ── Layout ── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      padding: 32px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .page-header .logo-mark {
+      width: 38px; height: 38px;
+      background: var(--accent);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 18px; color: #0d1117; flex-shrink: 0;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.3px;
+    }
+    .page-header .sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .badge-owner {
+      background: rgba(80,232,144,.12);
+      border: 1px solid rgba(80,232,144,.25);
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: .4px;
+    }
+
+    /* ── Tab Nav ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      padding-top: 20px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s, background .15s;
+      min-height: 44px;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(80,232,144,.06);
+    }
+    .tab-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Release Header Card ── */
+    .release-header-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .release-title-block h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.25px;
+    }
+    .release-title-block .target-date {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .progress-block {
+      margin-left: auto;
+      min-width: 220px;
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    .progress-meta .progress-count {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 14px;
+    }
+    .progress-bar-track {
+      height: 8px;
+      background: rgba(255,255,255,.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+
+    /* ── Blocked Banner ── */
+    .blocked-banner {
+      background: rgba(232,80,80,.12);
+      border: 1px solid rgba(232,80,80,.35);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      color: #ff9090;
+    }
+    .blocked-banner .icon { font-size: 16px; flex-shrink: 0; }
+
+    /* ── Category Section ── */
+    .category-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 20px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14.5px;
+      font-weight: 600;
+      min-height: 52px;
+      transition: background .15s;
+    }
+    .category-header:hover { background: rgba(255,255,255,.03); }
+    .category-header:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+    .category-icon { font-size: 17px; }
+    .category-name { flex: 1; }
+    .category-tally {
+      font-size: 12.5px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .category-tally .tally-num { font-weight: 700; color: var(--accent); }
+    .category-tally.has-blocked .tally-num { color: var(--status-blocked); }
+    .chevron {
+      width: 18px; height: 18px;
+      color: var(--muted);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+    .category-header[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+    .category-body {
+      border-top: 1px solid var(--border);
+      padding: 6px 0 10px;
+    }
+
+    /* ── Checklist Item ── */
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 20px;
+      transition: background .1s;
+    }
+    .checklist-item:hover { background: rgba(255,255,255,.025); }
+
+    .status-indicator {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .status-indicator.complete {
+      background: rgba(80,232,144,.18);
+      border: 1.5px solid var(--status-complete);
+      color: var(--status-complete);
+    }
+    .status-indicator.in_progress {
+      background: rgba(240,160,48,.14);
+      border: 1.5px solid var(--status-progress);
+      color: var(--status-progress);
+    }
+    .status-indicator.blocked {
+      background: rgba(232,80,80,.15);
+      border: 1.5px solid var(--status-blocked);
+      color: var(--status-blocked);
+    }
+    .status-indicator.pending {
+      background: rgba(139,148,158,.1);
+      border: 1.5px solid rgba(139,148,158,.35);
+      color: var(--status-pending);
+    }
+    .status-indicator.waived {
+      background: rgba(163,113,247,.15);
+      border: 1.5px solid var(--status-waived);
+      color: var(--status-waived);
+    }
+
+    .item-content { flex: 1; min-width: 0; }
+    .item-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .item-label.complete-label { color: #8b949e; text-decoration: none; }
+    .item-meta {
+      display: flex;
+      gap: 14px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .item-meta span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .item-meta .completed-by { color: rgba(80,232,144,.7); }
+    .item-note {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #ff9090;
+      background: rgba(232,80,80,.08);
+      border-radius: 4px;
+      padding: 4px 8px;
+      display: inline-block;
+    }
+    .item-note.note-progress {
+      color: #f0c060;
+      background: rgba(240,160,48,.08);
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .3px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+    .status-badge.complete { background: rgba(80,232,144,.12); color: var(--status-complete); border: 1px solid rgba(80,232,144,.2); }
+    .status-badge.in_progress { background: rgba(240,160,48,.12); color: var(--status-progress); border: 1px solid rgba(240,160,48,.2); }
+    .status-badge.blocked { background: rgba(232,80,80,.12); color: var(--status-blocked); border: 1px solid rgba(232,80,80,.2); }
+    .status-badge.pending { background: rgba(139,148,158,.1); color: var(--status-pending); border: 1px solid rgba(139,148,158,.2); }
+    .status-badge.waived { background: rgba(163,113,247,.12); color: var(--status-waived); border: 1px solid rgba(163,113,247,.2); }
+
+    /* ── Deploy Button ── */
+    .deploy-section {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .deploy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(139,148,158,.12);
+      border: 1.5px solid rgba(139,148,158,.25);
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 14.5px;
+      font-weight: 600;
+      padding: 13px 28px;
+      border-radius: var(--radius-sm);
+      cursor: not-allowed;
+      transition: none;
+      min-height: 48px;
+      letter-spacing: .2px;
+    }
+    .deploy-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .deploy-btn-help {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .deploy-btn-help strong { color: #ff9090; }
+
+    /* ── Tab 2: History ── */
+    .history-header {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+    .history-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .history-header-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 22px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14.5px;
+      font-weight: 600;
+      min-height: 52px;
+      transition: background .15s;
+      flex-wrap: wrap;
+    }
+    .history-header-row:hover { background: rgba(255,255,255,.03); }
+    .history-header-row:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+    .history-version {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .history-shipped {
+      font-size: 12.5px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .history-tally {
+      margin-left: auto;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(80,232,144,.1);
+      border: 1px solid rgba(80,232,144,.2);
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+    .history-body {
+      border-top: 1px solid var(--border);
+      padding: 16px 22px;
+    }
+    .history-body p {
+      font-size: 13.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .history-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .history-cat-tag {
+      font-size: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      color: var(--muted);
+    }
+    .history-cat-tag .cat-check { color: var(--accent); margin-right: 4px; }
+
+    /* ── Tab 3: Spec ── */
+    .spec-section {
+      margin-bottom: 28px;
+    }
+    .spec-section h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: .2px;
+    }
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    .spec-table tr { border-bottom: 1px solid var(--border); }
+    .spec-table tr:last-child { border-bottom: none; }
+    .spec-table td {
+      padding: 9px 12px;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .spec-table td:first-child {
+      color: var(--muted);
+      font-weight: 500;
+      width: 180px;
+      white-space: nowrap;
+    }
+    .spec-table td:last-child { color: var(--text); }
+
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12.5px;
+      color: #a5d6ff;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .rule-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rule-list li {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.5;
+      display: flex;
+      gap: 10px;
+    }
+    .rule-list li .rule-num {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 13px;
+      flex-shrink: 0;
+      min-width: 22px;
+    }
+
+    .gate-rule-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .gate-rule-list li {
+      font-size: 13.5px;
+      color: var(--text);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 12px;
+      background: rgba(232,80,80,.06);
+      border: 1px solid rgba(232,80,80,.15);
+      border-radius: var(--radius-sm);
+    }
+    .gate-rule-list li .gate-icon { color: #ff9090; flex-shrink: 0; }
+
+    .prop-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .prop-list li {
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      color: #a5d6ff;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 12px;
+    }
+    .prop-list li .prop-desc {
+      font-family: var(--font);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 660px) {
+      .release-header-card { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .progress-block { margin-left: 0; width: 100%; }
+      .page-header .sub { margin-left: 0; width: 100%; }
+      .spec-table td:first-child { width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering Hint Box -->
+  <div class="page-wrapper" style="padding-bottom: 0;">
+    <div class="hint-box" role="note" aria-label="Engineering hint">
+      <strong>Engineering hint — owner-release-checklist-desktop-v2</strong>
+      Persona: Owner &nbsp;|&nbsp; Route: /owner/releases/[version]/checklist &nbsp;|&nbsp;
+      DB: release_checklist_items { id, release_version TEXT, category TEXT, item_label TEXT,
+      status ENUM('pending','in_progress','complete','blocked','waived'), owner_role TEXT,
+      completed_by TEXT, completed_at TIMESTAMPTZ, notes TEXT } &nbsp;|&nbsp;
+      Privacy: No child PII in release records &nbsp;|&nbsp;
+      Gate: ALL items must be 'complete' or 'waived' before deploy button unlocks
+    </div>
+  </div>
+
+  <div class="page-wrapper">
+
+    <!-- Page Header -->
+    <header class="page-header">
+      <div class="logo-mark" aria-hidden="true">W</div>
+      <h1>Release Checklist</h1>
+      <span class="badge-owner">Owner</span>
+      <span class="sub">Pre-release gate &nbsp;·&nbsp; /owner/releases/[version]/checklist</span>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist" aria-label="Release checklist sections">
+      <button
+        class="tab-btn active"
+        id="tab-btn-checklist"
+        role="tab"
+        aria-selected="true"
+        aria-controls="tab-checklist"
+        onclick="showTab('checklist')"
+      >Checklist (v2.6)</button>
+      <button
+        class="tab-btn"
+        id="tab-btn-history"
+        role="tab"
+        aria-selected="false"
+        aria-controls="tab-history"
+        onclick="showTab('history')"
+      >History</button>
+      <button
+        class="tab-btn"
+        id="tab-btn-spec"
+        role="tab"
+        aria-selected="false"
+        aria-controls="tab-spec"
+        onclick="showTab('spec')"
+      >Spec</button>
+    </nav>
+
+    <!-- ══════════════════════════════ TAB 1: CHECKLIST ══════════════════════════════ -->
+    <section
+      class="tab-panel active"
+      id="tab-checklist"
+      role="tabpanel"
+      aria-labelledby="tab-btn-checklist"
+    >
+
+      <!-- Release Header Card -->
+      <div class="release-header-card">
+        <div class="release-title-block">
+          <h2>v2.6 Release Checklist</h2>
+          <p class="target-date">Target deploy date: <strong>April 15, 2026</strong></p>
+        </div>
+        <div class="progress-block" aria-label="Overall progress: 14 of 18 items complete">
+          <div class="progress-meta">
+            <span>Overall progress</span>
+            <span class="progress-count">14 / 18 complete</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width: 77.8%;" role="progressbar" aria-valuenow="14" aria-valuemin="0" aria-valuemax="18" aria-label="14 of 18 items complete"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blocked Banner -->
+      <div class="blocked-banner" role="alert" aria-live="polite">
+        <span class="icon" aria-hidden="true">⛔</span>
+        <span><strong>1 blocked item</strong> — Screen reader test. Resolve before deploy.</span>
+      </div>
+
+      <!-- ── Category 1: Engineering ── -->
+      <div class="category-section">
+        <button
+          class="category-header"
+          aria-expanded="true"
+          aria-controls="cat-body-engineering"
+          onclick="toggleCategory(this)"
+        >
+          <span class="category-icon" aria-hidden="true">⚙️</span>
+          <span class="category-name">Engineering</span>
+          <span class="category-tally"><span class="tally-num">3</span> / 4 complete</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="category-body" id="cat-body-engineering">
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">All P0 bugs resolved</div>
+              <div class="item-meta">
+                <span class="completed-by">jrodriguez@wq.dev</span>
+                <span>Apr 8, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Device coverage 100% on P0 features</div>
+              <div class="item-meta">
+                <span class="completed-by">kpatel@wq.dev</span>
+                <span>Apr 9, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Offline sync tested</div>
+              <div class="item-meta">
+                <span class="completed-by">jrodriguez@wq.dev</span>
+                <span>Apr 10, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator in_progress" aria-label="In Progress">~</div>
+            <div class="item-content">
+              <div class="item-label">Performance regression check</div>
+              <div class="item-meta">
+                <span>Assigned: kpatel@wq.dev</span>
+              </div>
+              <div class="item-note note-progress">In progress — benchmarks running, results expected Apr 13</div>
+            </div>
+            <span class="status-badge in_progress">In Progress</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Category 2: Content ── -->
+      <div class="category-section">
+        <button
+          class="category-header"
+          aria-expanded="true"
+          aria-controls="cat-body-content"
+          onclick="toggleCategory(this)"
+        >
+          <span class="category-icon" aria-hidden="true">📚</span>
+          <span class="category-name">Content</span>
+          <span class="category-tally"><span class="tally-num">2</span> / 3 complete</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="category-body" id="cat-body-content">
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">P3 Social Studies quest batch approved</div>
+              <div class="item-meta">
+                <span class="completed-by">mwilliams@wq.dev</span>
+                <span>Apr 7, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Arts pack Sketch Lab child safety sign-off</div>
+              <div class="item-meta">
+                <span class="completed-by">safety-team@wq.dev</span>
+                <span>Apr 8, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator in_progress" aria-label="In Progress">~</div>
+            <div class="item-content">
+              <div class="item-label">All new audio assets reviewed</div>
+              <div class="item-meta">
+                <span>Assigned: mwilliams@wq.dev</span>
+              </div>
+              <div class="item-note note-progress">In progress — 14 of 19 assets reviewed</div>
+            </div>
+            <span class="status-badge in_progress">In Progress</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Category 3: Accessibility ── -->
+      <div class="category-section">
+        <button
+          class="category-header"
+          aria-expanded="true"
+          aria-controls="cat-body-accessibility"
+          onclick="toggleCategory(this)"
+        >
+          <span class="category-icon" aria-hidden="true">♿</span>
+          <span class="category-name">Accessibility</span>
+          <span class="category-tally has-blocked"><span class="tally-num">3</span> / 4 complete · 1 blocked</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="category-body" id="cat-body-accessibility">
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">WCAG 2.1 AA audit complete</div>
+              <div class="item-meta">
+                <span class="completed-by">adesai@wq.dev</span>
+                <span>Apr 9, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">High contrast mode tested all devices</div>
+              <div class="item-meta">
+                <span class="completed-by">adesai@wq.dev</span>
+                <span>Apr 9, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Touch targets ≥44px verified</div>
+              <div class="item-meta">
+                <span class="completed-by">kpatel@wq.dev</span>
+                <span>Apr 10, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator blocked" aria-label="Blocked">✗</div>
+            <div class="item-content">
+              <div class="item-label">Screen reader test</div>
+              <div class="item-meta">
+                <span>Assigned: adesai@wq.dev</span>
+                <span style="color: #ff9090;">P0 — cannot be waived</span>
+              </div>
+              <div class="item-note">Blocked — needs iOS 17 device. Cannot be waived (P0 accessibility item).</div>
+            </div>
+            <span class="status-badge blocked">Blocked</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Category 4: Privacy & Compliance ── -->
+      <div class="category-section">
+        <button
+          class="category-header"
+          aria-expanded="true"
+          aria-controls="cat-body-privacy"
+          onclick="toggleCategory(this)"
+        >
+          <span class="category-icon" aria-hidden="true">🔒</span>
+          <span class="category-name">Privacy &amp; Compliance</span>
+          <span class="category-tally"><span class="tally-num">4</span> / 4 complete</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="category-body" id="cat-body-privacy">
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">COPPA review</div>
+              <div class="item-meta">
+                <span class="completed-by">legal@wq.dev</span>
+                <span>Apr 6, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">FERPA review</div>
+              <div class="item-meta">
+                <span class="completed-by">legal@wq.dev</span>
+                <span>Apr 6, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Benchmark disclaimer keyword triggers tested</div>
+              <div class="item-meta">
+                <span class="completed-by">jrodriguez@wq.dev</span>
+                <span>Apr 10, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Data minimization audit</div>
+              <div class="item-meta">
+                <span class="completed-by">legal@wq.dev</span>
+                <span>Apr 7, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Category 5: Sign-offs ── -->
+      <div class="category-section">
+        <button
+          class="category-header"
+          aria-expanded="true"
+          aria-controls="cat-body-signoffs"
+          onclick="toggleCategory(this)"
+        >
+          <span class="category-icon" aria-hidden="true">✍️</span>
+          <span class="category-name">Sign-offs</span>
+          <span class="category-tally"><span class="tally-num">1</span> / 3 complete</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="category-body" id="cat-body-signoffs">
+
+          <div class="checklist-item">
+            <div class="status-indicator complete" aria-label="Complete">✓</div>
+            <div class="item-content">
+              <div class="item-label complete-label">Content team</div>
+              <div class="item-meta">
+                <span class="completed-by">mwilliams@wq.dev</span>
+                <span>Apr 10, 2026</span>
+              </div>
+            </div>
+            <span class="status-badge complete">Complete</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator in_progress" aria-label="In Progress">~</div>
+            <div class="item-content">
+              <div class="item-label">Engineering lead</div>
+              <div class="item-meta">
+                <span>Assigned: jrodriguez@wq.dev</span>
+              </div>
+              <div class="item-note note-progress">In progress — awaiting performance regression results</div>
+            </div>
+            <span class="status-badge in_progress">In Progress</span>
+          </div>
+
+          <div class="checklist-item">
+            <div class="status-indicator pending" aria-label="Pending">○</div>
+            <div class="item-content">
+              <div class="item-label">Owner final approval</div>
+              <div class="item-meta">
+                <span>Assigned: owner</span>
+              </div>
+            </div>
+            <span class="status-badge pending">Pending</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Deploy Button -->
+      <div class="deploy-section">
+        <button
+          class="deploy-btn"
+          disabled
+          aria-disabled="true"
+          aria-describedby="deploy-help"
+        >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="5" y="9" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M7.5 9V7a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="10" cy="13" r="1" fill="currentColor"/>
+          </svg>
+          Deploy to Production
+        </button>
+        <p class="deploy-btn-help" id="deploy-help">
+          Deploy is locked. <strong>1 blocked item</strong> and <strong>2 in-progress items</strong> must be resolved before deploy unlocks.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════ TAB 2: HISTORY ══════════════════════════════ -->
+    <section
+      class="tab-panel"
+      id="tab-history"
+      role="tabpanel"
+      aria-labelledby="tab-btn-history"
+    >
+      <h2 class="history-header">Release History</h2>
+
+      <!-- v2.5 -->
+      <div class="history-item">
+        <button
+          class="history-header-row"
+          aria-expanded="false"
+          aria-controls="hist-body-v25"
+          onclick="toggleHistory(this)"
+        >
+          <span class="history-version">v2.5</span>
+          <span class="history-shipped">Shipped Mar 10, 2026</span>
+          <span class="history-tally">16 / 16 complete</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="width:18px;height:18px;color:var(--muted);transition:transform .2s;flex-shrink:0;">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="history-body" id="hist-body-v25" hidden>
+          <p>All 16 checklist items completed and signed off. Deploy authorized by owner on Mar 10, 2026 at 14:32 UTC.</p>
+          <div class="history-categories">
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Engineering (4/4)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Content (3/3)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Accessibility (4/4)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Privacy &amp; Compliance (3/3)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Sign-offs (2/2)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- v2.4 -->
+      <div class="history-item">
+        <button
+          class="history-header-row"
+          aria-expanded="false"
+          aria-controls="hist-body-v24"
+          onclick="toggleHistory(this)"
+        >
+          <span class="history-version">v2.4</span>
+          <span class="history-shipped">Shipped Jan 28, 2026</span>
+          <span class="history-tally">14 / 14 complete</span>
+          <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="width:18px;height:18px;color:var(--muted);transition:transform .2s;flex-shrink:0;">
+            <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="history-body" id="hist-body-v24" hidden>
+          <p>All 14 checklist items completed. 1 item waived (owner note on file). Deploy authorized by owner on Jan 28, 2026 at 11:05 UTC.</p>
+          <div class="history-categories">
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Engineering (4/4)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Content (2/2)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Accessibility (3/3)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Privacy &amp; Compliance (3/3)</span>
+            <span class="history-cat-tag"><span class="cat-check">✓</span>Sign-offs (2/2)</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════════════════ TAB 3: SPEC ══════════════════════════════ -->
+    <section
+      class="tab-panel"
+      id="tab-spec"
+      role="tabpanel"
+      aria-labelledby="tab-btn-spec"
+    >
+
+      <!-- Component Info -->
+      <div class="spec-section">
+        <h3>Component</h3>
+        <table class="spec-table" aria-label="Component specification">
+          <tbody>
+            <tr>
+              <td>Name</td>
+              <td>ReleaseChecklistDesktop</td>
+            </tr>
+            <tr>
+              <td>Route</td>
+              <td>/owner/releases/[version]/checklist</td>
+            </tr>
+            <tr>
+              <td>Auth</td>
+              <td>Owner only — redirects non-owner roles to /unauthorized</td>
+            </tr>
+            <tr>
+              <td>Version param</td>
+              <td>release_version (string, e.g. "v2.6") passed via URL segment</td>
+            </tr>
+            <tr>
+              <td>Loading state</td>
+              <td>Skeleton cards per category section while fetching checklist items</td>
+            </tr>
+            <tr>
+              <td>Error state</td>
+              <td>Inline error banner with retry; deploy button remains locked on fetch error</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Props -->
+      <div class="spec-section">
+        <h3>Props</h3>
+        <ul class="prop-list" aria-label="Component props">
+          <li>releaseVersion: string <span class="prop-desc">— semver string, e.g. "v2.6"</span></li>
+          <li>targetDate: ISO8601 string <span class="prop-desc">— planned deploy date</span></li>
+          <li>checklistItems: ChecklistItem[] <span class="prop-desc">— array from DB query</span></li>
+          <li>onDeployClick: () =&gt; void <span class="prop-desc">— fires only when gate passes</span></li>
+          <li>readOnly?: boolean <span class="prop-desc">— hides deploy button for read-only viewers</span></li>
+        </ul>
+      </div>
+
+      <!-- DB Schema -->
+      <div class="spec-section">
+        <h3>DB Schema — release_checklist_items</h3>
+        <div class="code-block" aria-label="Database schema">CREATE TABLE release_checklist_items (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  release_version  TEXT        NOT NULL,
+  category         TEXT        NOT NULL,
+  item_label       TEXT        NOT NULL,
+  status           TEXT        NOT NULL
+                   CHECK (status IN (
+                     'pending','in_progress','complete','blocked','waived'
+                   )),
+  owner_role       TEXT,
+  completed_by     TEXT,
+  completed_at     TIMESTAMPTZ,
+  notes            TEXT
+);
+
+-- Index for fast version lookups
+CREATE INDEX idx_rcl_version ON release_checklist_items (release_version);
+
+-- Privacy: no child PII columns in this table</div>
+      </div>
+
+      <!-- Gate Rules -->
+      <div class="spec-section">
+        <h3>Gate Rules</h3>
+        <ul class="gate-rule-list" aria-label="Deploy gate rules">
+          <li>
+            <span class="gate-icon" aria-hidden="true">⛔</span>
+            <span>ALL items must have status <strong>complete</strong> or <strong>waived</strong> before the deploy button unlocks.</span>
+          </li>
+          <li>
+            <span class="gate-icon" aria-hidden="true">⛔</span>
+            <span>Any item with status <strong>blocked</strong> prevents deploy regardless of all other items.</span>
+          </li>
+          <li>
+            <span class="gate-icon" aria-hidden="true">⛔</span>
+            <span>Waiver requires an owner-authored note stored in the <code>notes</code> column. Empty waivers are rejected at the API layer.</span>
+          </li>
+          <li>
+            <span class="gate-icon" aria-hidden="true">⛔</span>
+            <span><strong>P0 accessibility items cannot be waived.</strong> They must reach <strong>complete</strong> status. (Enforced both client-side and server-side.)</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Business Rules -->
+      <div class="spec-section">
+        <h3>Business Rules</h3>
+        <ul class="rule-list" aria-label="Business rules">
+          <li>
+            <span class="rule-num">BR1</span>
+            <span>Status transitions are append-only in the audit log. Items cannot be moved backward from <strong>complete</strong> to <strong>pending</strong> without an owner override and a mandatory reason note.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR2</span>
+            <span>Blocked items surface a banner at the top of the checklist tab and are highlighted in the affected category. The deploy button tooltip must reference the blocking item by label.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR3</span>
+            <span>The overall progress bar counts only <strong>complete</strong> and <strong>waived</strong> items as numerator. In-progress, pending, and blocked items are excluded from the count.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR4</span>
+            <span>Release history records are immutable after deploy. No status changes are permitted to items belonging to a shipped release.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR5</span>
+            <span>No child PII may appear in any release record field, including <code>notes</code>. The API validates this constraint server-side before persisting any update.</span>
+          </li>
+          <li>
+            <span class="rule-num">BR6</span>
+            <span>The deploy action triggers a server-side re-validation of all item statuses. If any item is non-terminal at the time of the deploy request, the API returns 409 Conflict and the UI shows an error banner.</span>
+          </li>
+        </ul>
+      </div>
+
+    </section>
+
+  </div><!-- /page-wrapper -->
+
+  <script>
+    function showTab(t) {
+      // Update panels
+      document.querySelectorAll('.tab-panel').forEach(function(p) {
+        p.classList.toggle('active', p.id === 'tab-' + t);
+      });
+      // Update buttons
+      document.querySelectorAll('.tab-btn').forEach(function(b) {
+        var isActive = b.id === 'tab-btn-' + t;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    function toggleCategory(btn) {
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      var bodyId = btn.getAttribute('aria-controls');
+      var body = document.getElementById(bodyId);
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      if (expanded) {
+        body.style.display = 'none';
+      } else {
+        body.style.display = '';
+      }
+    }
+
+    function toggleHistory(btn) {
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      var bodyId = btn.getAttribute('aria-controls');
+      var body = document.getElementById(bodyId);
+      var chevron = btn.querySelector('.chevron');
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      body.hidden = expanded;
+      if (chevron) {
+        chevron.style.transform = expanded ? '' : 'rotate(180deg)';
+      }
+    }
+  </script>
+
+</body>
+</html>

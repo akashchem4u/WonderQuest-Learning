@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 224 · child-audio-disabled-flow-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #f0f6ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 24px 20px 60px;
+    }
+
+    /* ── Engineering hint box ── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.10);
+      color: #a0aab4;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      background: #1e2530;
+      color: #f0f6ff;
+    }
+
+    .tab-btn.active {
+      background: #50e890;
+      border-color: #50e890;
+      color: #0d1117;
+      font-weight: 700;
+    }
+
+    /* ── Screen panels ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Section heading ── */
+    .section-heading {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 28px;
+    }
+
+    /* ── Phone frames row ── */
+    .frames-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .frame-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .frame-label {
+      font-size: 12px;
+      color: #8b949e;
+      text-align: center;
+      max-width: 200px;
+      line-height: 1.4;
+    }
+
+    .phone-frame {
+      width: 375px;
+      height: 667px;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 36px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+
+    /* Phone status bar */
+    .phone-status {
+      background: #0d1117;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+    }
+
+    .phone-status .time {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f0f6ff;
+    }
+
+    .phone-status .status-icons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 11px;
+      color: #f0f6ff;
+    }
+
+    /* Phone content area */
+    .phone-content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      position: relative;
+    }
+
+    /* Progress strip */
+    .progress-strip {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .progress-dot {
+      width: 28px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.12);
+    }
+
+    .progress-dot.done {
+      background: #50e890;
+    }
+
+    .progress-dot.current {
+      background: #ffd166;
+      width: 40px;
+    }
+
+    /* Question card */
+    .question-card {
+      background: #1c2230;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 18px 16px 14px;
+      position: relative;
+    }
+
+    .question-band-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      color: #9b72ff;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .question-text {
+      font-size: 17px;
+      font-weight: 600;
+      color: #f0f6ff;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+
+    /* Audio controls row */
+    .audio-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .speaker-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1565c0;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .hear-chip {
+      background: rgba(21, 101, 192, .25);
+      border: 1px solid rgba(21, 101, 192, .5);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #90caf9;
+      white-space: nowrap;
+    }
+
+    /* Waveform */
+    .waveform {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 24px;
+    }
+
+    .wave-bar {
+      width: 4px;
+      border-radius: 2px;
+      background: #1565c0;
+      opacity: .7;
+    }
+
+    .audio-readout {
+      font-size: 11px;
+      color: #90caf9;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Muted corner icon */
+    .muted-corner {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .tooltip-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .tooltip-text {
+      display: none;
+      position: absolute;
+      top: 26px;
+      right: 0;
+      background: #2d3748;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #f0f6ff;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+      width: 200px;
+      white-space: normal;
+      line-height: 1.4;
+    }
+
+    .tooltip-wrap:hover .tooltip-text {
+      display: block;
+    }
+
+    /* Amber warning chip */
+    .amber-chip {
+      background: rgba(255, 209, 102, .15);
+      border: 1px solid rgba(255, 209, 102, .4);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #ffd166;
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      line-height: 1.4;
+    }
+
+    .amber-chip .chip-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .amber-help-text {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    /* Answer buttons */
+    .answer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .answer-btn {
+      background: #1e2a3a;
+      border: 2px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 14px 10px;
+      color: #f0f6ff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color .15s, background .15s;
+      line-height: 1.3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .answer-btn .ans-emoji {
+      font-size: 22px;
+    }
+
+    .answer-btn:hover {
+      background: #243040;
+      border-color: #50e890;
+    }
+
+    /* bottom nav stub */
+    .phone-nav {
+      background: #0d1117;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 16px;
+      flex-shrink: 0;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+
+    .nav-icon {
+      font-size: 20px;
+      opacity: .45;
+    }
+
+    .nav-icon.active {
+      opacity: 1;
+    }
+
+    /* ─────────────────────────────────────────
+       TAB 2 — Parent Settings
+    ───────────────────────────────────────── */
+    .settings-layout {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .settings-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 24px;
+      flex: 1;
+      min-width: 320px;
+      max-width: 500px;
+    }
+
+    .settings-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 4px;
+    }
+
+    .settings-card-sub {
+      font-size: 12px;
+      color: #8b949e;
+      margin-bottom: 20px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 0;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+
+    .toggle-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .toggle-label {
+      font-size: 14px;
+      color: #f0f6ff;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-desc {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    /* Toggle switch */
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: #30363d;
+      position: relative;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .2s;
+    }
+
+    .toggle-switch.on {
+      background: #50e890;
+    }
+
+    .toggle-knob {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: left .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+
+    .toggle-switch.on .toggle-knob {
+      left: 22px;
+    }
+
+    .note-box {
+      background: rgba(80, 232, 144, .07);
+      border: 1px solid rgba(80, 232, 144, .2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #a8f0c8;
+      line-height: 1.55;
+      margin-top: 20px;
+    }
+
+    .privacy-box {
+      background: rgba(155, 114, 255, .08);
+      border: 1px solid rgba(155, 114, 255, .2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #c8b8ff;
+      line-height: 1.55;
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .privacy-icon {
+      font-size: 15px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* SQL block */
+    .sql-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 24px;
+      flex: 1;
+      min-width: 320px;
+      max-width: 500px;
+    }
+
+    .sql-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #8b949e;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      overflow-x: auto;
+      color: #c9d1d9;
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    }
+
+    pre .kw { color: #ff7b6b; }
+    pre .ty { color: #58e8c1; }
+    pre .cm { color: #6a737d; }
+    pre .vl { color: #ffd166; }
+
+    /* ─────────────────────────────────────────
+       TAB 3 — Accessibility & Fallback Rules
+    ───────────────────────────────────────── */
+    .spec-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 860px;
+    }
+
+    .spec-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .spec-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f6ff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spec-card-title .badge {
+      font-size: 10px;
+      background: #50e890;
+      color: #0d1117;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    .rule-item {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      color: #c9d1d9;
+      padding: 6px 0;
+      line-height: 1.5;
+    }
+
+    .rule-item .bullet {
+      color: #50e890;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+
+    /* Fallback list */
+    .fallback-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .fallback-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13px;
+      color: #c9d1d9;
+      line-height: 1.5;
+    }
+
+    .fallback-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #9b72ff;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .fallback-item:nth-child(1) .fallback-num { background: #ffd166; color: #0d1117; }
+    .fallback-item:nth-child(2) .fallback-num { background: #9b72ff; }
+    .fallback-item:nth-child(3) .fallback-num { background: #58e8c1; color: #0d1117; }
+    .fallback-item:nth-child(4) .fallback-num { background: #ff7b6b; }
+
+    /* Table */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .spec-table thead th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .spec-table tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+
+    .spec-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .spec-table td {
+      padding: 10px 12px;
+      color: #c9d1d9;
+      vertical-align: middle;
+    }
+
+    .spec-table td:first-child {
+      font-family: monospace;
+      font-size: 12px;
+      color: #58e8c1;
+    }
+
+    .badge-on {
+      background: rgba(80, 232, 144, .15);
+      border: 1px solid rgba(80, 232, 144, .3);
+      color: #50e890;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-off {
+      background: rgba(255, 123, 107, .12);
+      border: 1px solid rgba(255, 123, 107, .25);
+      color: #ff7b6b;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-always {
+      background: rgba(155, 114, 255, .12);
+      border: 1px solid rgba(155, 114, 255, .25);
+      color: #c8b8ff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-silent {
+      background: rgba(139, 148, 158, .12);
+      border: 1px solid rgba(139, 148, 158, .25);
+      color: #8b949e;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* API endpoints */
+    .endpoint-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      font-size: 13px;
+    }
+
+    .endpoint-row:last-child {
+      border-bottom: none;
+    }
+
+    .method-badge {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .method-get {
+      background: rgba(88, 232, 193, .15);
+      color: #58e8c1;
+      border: 1px solid rgba(88, 232, 193, .3);
+    }
+
+    .method-put {
+      background: rgba(255, 209, 102, .12);
+      color: #ffd166;
+      border: 1px solid rgba(255, 209, 102, .3);
+    }
+
+    .endpoint-path {
+      font-family: monospace;
+      font-size: 12px;
+      color: #c9d1d9;
+      margin-bottom: 2px;
+    }
+
+    .endpoint-desc {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    /* Divider label */
+    .divider-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0 4px;
+    }
+
+    .divider-label span {
+      font-size: 11px;
+      color: #8b949e;
+      white-space: nowrap;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,.06);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 224 · child-audio-disabled-flow-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('t1')">Audio Disabled States</button>
+    <button class="tab-btn" onclick="showTab('t2')">Parent Settings Panel</button>
+    <button class="tab-btn" onclick="showTab('t3')">Accessibility &amp; Fallback Rules</button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       TAB 1 — Audio Disabled States
+  ════════════════════════════════════════ -->
+  <div id="t1" class="screen active">
+    <p class="section-heading">Audio States</p>
+    <p class="section-sub">Three scenarios: audio enabled (baseline), disabled by parent setting, device audio unavailable.</p>
+
+    <div class="frames-row">
+
+      <!-- ── Frame 1: Audio Enabled (baseline) ── -->
+      <div class="frame-wrapper">
+        <div class="phone-frame">
+          <div class="phone-status">
+            <span class="time">9:41</span>
+            <div class="status-icons">
+              <span>●●●</span>
+              <span>WiFi</span>
+              <span>🔋</span>
+            </div>
+          </div>
+
+          <div class="phone-content">
+            <!-- Progress -->
+            <div class="progress-strip">
+              <div class="progress-dot done"></div>
+              <div class="progress-dot done"></div>
+              <div class="progress-dot current"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+            </div>
+
+            <!-- Question card -->
+            <div class="question-card">
+              <div class="question-band-tag">Explore · Animals</div>
+              <div class="question-text">Which animal makes a very loud roar and lives in the grasslands?</div>
+
+              <!-- Audio controls -->
+              <div class="audio-row" style="margin-bottom:10px;">
+                <button class="speaker-btn" title="Hear the question">🔊</button>
+                <div class="hear-chip">Hear the question</div>
+                <div class="waveform">
+                  <div class="wave-bar" style="height:8px;"></div>
+                  <div class="wave-bar" style="height:16px;"></div>
+                  <div class="wave-bar" style="height:12px;"></div>
+                  <div class="wave-bar" style="height:20px;"></div>
+                  <div class="wave-bar" style="height:10px;"></div>
+                  <div class="wave-bar" style="height:18px;"></div>
+                  <div class="wave-bar" style="height:8px;"></div>
+                </div>
+              </div>
+              <div class="audio-readout">🔊 Reading aloud...</div>
+            </div>
+
+            <!-- Answer buttons -->
+            <div class="answer-grid">
+              <button class="answer-btn">
+                <span class="ans-emoji">🦁</span>
+                Lion
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐘</span>
+                Elephant
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐧</span>
+                Penguin
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐟</span>
+                Fish
+              </button>
+            </div>
+          </div>
+
+          <div class="phone-nav">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-icon active">⭐</span>
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-icon">🏆</span>
+          </div>
+        </div>
+        <div class="frame-label" style="color:#50e890;">Audio enabled — baseline</div>
+        <div class="frame-label">Speaker button active · waveform shown · readout playing</div>
+      </div>
+
+      <!-- ── Frame 2: Audio Disabled by Parent ── -->
+      <div class="frame-wrapper">
+        <div class="phone-frame">
+          <div class="phone-status">
+            <span class="time">9:41</span>
+            <div class="status-icons">
+              <span>●●●</span>
+              <span>WiFi</span>
+              <span>🔋</span>
+            </div>
+          </div>
+
+          <div class="phone-content">
+            <!-- Progress -->
+            <div class="progress-strip">
+              <div class="progress-dot done"></div>
+              <div class="progress-dot done"></div>
+              <div class="progress-dot current"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+            </div>
+
+            <!-- Question card — no audio controls -->
+            <div class="question-card">
+              <div class="question-band-tag">Explore · Animals</div>
+              <div class="question-text">Which animal makes a very loud roar and lives in the grasslands?</div>
+              <!-- No speaker button, no hear chip, no waveform, no readout -->
+
+              <!-- Muted corner icon with tooltip -->
+              <div class="muted-corner">
+                <div class="tooltip-wrap">
+                  <span>🔇</span>
+                  <div class="tooltip-text">Audio is off — ask a parent to change this</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Answer buttons — identical to enabled state -->
+            <div class="answer-grid">
+              <button class="answer-btn">
+                <span class="ans-emoji">🦁</span>
+                Lion
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐘</span>
+                Elephant
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐧</span>
+                Penguin
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐟</span>
+                Fish
+              </button>
+            </div>
+          </div>
+
+          <div class="phone-nav">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-icon active">⭐</span>
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-icon">🏆</span>
+          </div>
+        </div>
+        <div class="frame-label" style="color:#ffd166;">Audio off — parent setting</div>
+        <div class="frame-label">Speaker + chip + waveform removed · 🔇 tooltip in corner</div>
+      </div>
+
+      <!-- ── Frame 3: Device Audio Unavailable ── -->
+      <div class="frame-wrapper">
+        <div class="phone-frame">
+          <div class="phone-status">
+            <span class="time">9:41</span>
+            <div class="status-icons">
+              <span>●●●</span>
+              <span>WiFi</span>
+              <span>🔋</span>
+            </div>
+          </div>
+
+          <div class="phone-content">
+            <!-- Progress -->
+            <div class="progress-strip">
+              <div class="progress-dot done"></div>
+              <div class="progress-dot done"></div>
+              <div class="progress-dot current"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+            </div>
+
+            <!-- Amber warning chip -->
+            <div class="amber-chip">
+              <span class="chip-icon">⚠️</span>
+              <div>
+                <div>Sound isn't working on this device</div>
+                <div class="amber-help-text">Ask a parent for help</div>
+              </div>
+            </div>
+
+            <!-- Question card — visual-only, audio elements replaced -->
+            <div class="question-card">
+              <div class="question-band-tag">Explore · Animals</div>
+              <div class="question-text">Which animal makes a very loud roar and lives in the grasslands?</div>
+              <!-- Audio chip replaced with visual equivalent -->
+              <div style="margin-top:8px; font-size:11px; color:#8b949e; display:flex; align-items:center; gap:5px;">
+                <span style="color:#ffd166;">📖</span>
+                Read the question above to play
+              </div>
+            </div>
+
+            <!-- Answer buttons — unchanged, play continues normally -->
+            <div class="answer-grid">
+              <button class="answer-btn">
+                <span class="ans-emoji">🦁</span>
+                Lion
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐘</span>
+                Elephant
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐧</span>
+                Penguin
+              </button>
+              <button class="answer-btn">
+                <span class="ans-emoji">🐟</span>
+                Fish
+              </button>
+            </div>
+          </div>
+
+          <div class="phone-nav">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-icon active">⭐</span>
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-icon">🏆</span>
+          </div>
+        </div>
+        <div class="frame-label" style="color:#ff7b6b;">Device audio unavailable</div>
+        <div class="frame-label">Amber warning · visual equivalent shown · play continues normally</div>
+      </div>
+
+    </div><!-- /frames-row -->
+  </div><!-- /t1 -->
+
+
+  <!-- ════════════════════════════════════════
+       TAB 2 — Parent Settings Panel
+  ════════════════════════════════════════ -->
+  <div id="t2" class="screen">
+    <p class="section-heading">Parent Settings Panel</p>
+    <p class="section-sub">Controls audio preferences per child. Changes take effect at the start of the next session.</p>
+
+    <div class="settings-layout">
+
+      <!-- Settings card -->
+      <div class="settings-card">
+        <div class="settings-card-title">Audio Settings for Mia</div>
+        <div class="settings-card-sub">These settings apply only to this child's sessions.</div>
+
+        <!-- Toggle: Read questions aloud -->
+        <div class="toggle-row">
+          <div class="toggle-label">
+            Read questions aloud
+            <span class="toggle-desc">A voice reads each question when it appears</span>
+          </div>
+          <div class="toggle-switch on" onclick="toggleSwitch(this)">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+
+        <!-- Toggle: Background music -->
+        <div class="toggle-row">
+          <div class="toggle-label">
+            Play background music
+            <span class="toggle-desc">Gentle music during adventure sessions</span>
+          </div>
+          <div class="toggle-switch on" onclick="toggleSwitch(this)">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+
+        <!-- Toggle: Sound effects -->
+        <div class="toggle-row">
+          <div class="toggle-label">
+            Sound effects
+            <span class="toggle-desc">Taps, transitions, and interactive sounds</span>
+          </div>
+          <div class="toggle-switch on" onclick="toggleSwitch(this)">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+
+        <!-- Toggle: Celebration sounds -->
+        <div class="toggle-row">
+          <div class="toggle-label">
+            Celebration sounds
+            <span class="toggle-desc">Fanfares when badges and rewards are earned</span>
+          </div>
+          <div class="toggle-switch" onclick="toggleSwitch(this)">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+
+        <!-- Note box -->
+        <div class="note-box">
+          When audio is off, all questions remain fully playable using text and visuals only. Your child won't miss any content.
+        </div>
+
+        <!-- Privacy note -->
+        <div class="privacy-box">
+          <span class="privacy-icon">🔒</span>
+          <span>Audio recordings are never made. Questions are read by pre-recorded voice or text-to-speech.</span>
+        </div>
+      </div>
+
+      <!-- DB schema card -->
+      <div class="sql-card">
+        <div class="sql-title">DB Schema Reference</div>
+        <pre><span class="kw">child_audio_prefs</span> (
+  child_id            <span class="ty">UUID</span>          <span class="kw">PRIMARY KEY</span>,
+  readout_enabled     <span class="ty">BOOLEAN</span>       <span class="kw">DEFAULT</span> <span class="vl">true</span>,
+  music_enabled       <span class="ty">BOOLEAN</span>       <span class="kw">DEFAULT</span> <span class="vl">true</span>,
+  sfx_enabled         <span class="ty">BOOLEAN</span>       <span class="kw">DEFAULT</span> <span class="vl">true</span>,
+  celebration_sounds  <span class="ty">BOOLEAN</span>       <span class="kw">DEFAULT</span> <span class="vl">true</span>,
+  updated_by_parent_id <span class="ty">UUID</span>,
+  updated_at          <span class="ty">TIMESTAMPTZ</span>
+)</pre>
+
+        <div style="margin-top:20px;">
+          <div class="sql-title">Column Notes</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+            <div style="font-size:12px; color:#c9d1d9; line-height:1.5; display:flex; gap:8px;">
+              <span style="color:#58e8c1; font-family:monospace; min-width:150px;">readout_enabled</span>
+              Controls voice readout of question text
+            </div>
+            <div style="font-size:12px; color:#c9d1d9; line-height:1.5; display:flex; gap:8px;">
+              <span style="color:#58e8c1; font-family:monospace; min-width:150px;">music_enabled</span>
+              Background ambient music toggle
+            </div>
+            <div style="font-size:12px; color:#c9d1d9; line-height:1.5; display:flex; gap:8px;">
+              <span style="color:#58e8c1; font-family:monospace; min-width:150px;">sfx_enabled</span>
+              UI interaction sound effects
+            </div>
+            <div style="font-size:12px; color:#c9d1d9; line-height:1.5; display:flex; gap:8px;">
+              <span style="color:#58e8c1; font-family:monospace; min-width:150px;">celebration_sounds</span>
+              Badge / level-up fanfare audio
+            </div>
+            <div style="font-size:12px; color:#c9d1d9; line-height:1.5; display:flex; gap:8px;">
+              <span style="color:#58e8c1; font-family:monospace; min-width:150px;">updated_by_parent_id</span>
+              Audit trail — which parent changed it
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /t2 -->
+
+
+  <!-- ════════════════════════════════════════
+       TAB 3 — Accessibility & Fallback Rules
+  ════════════════════════════════════════ -->
+  <div id="t3" class="screen">
+    <p class="section-heading">Accessibility &amp; Fallback Rules</p>
+    <p class="section-sub">Engineering spec for audio-independent gameplay and graceful degradation.</p>
+
+    <div class="spec-layout">
+
+      <!-- WCAG + audio independence -->
+      <div class="spec-card">
+        <div class="spec-card-title">
+          Audio Independence Rule
+          <span class="badge">WCAG 1.2.1</span>
+        </div>
+        <div class="rule-item">
+          <span class="bullet">→</span>
+          <span>WCAG 1.2.1: Audio-only content must have a text alternative. All WonderQuest question content satisfies this by design.</span>
+        </div>
+        <div class="rule-item">
+          <span class="bullet">→</span>
+          <span>All question content is text-first. Audio is an enhancement layer — never the primary delivery mechanism.</span>
+        </div>
+        <div class="rule-item">
+          <span class="bullet">→</span>
+          <span>No question type requires audio to answer. Images, text, and emoji are always sufficient to play.</span>
+        </div>
+      </div>
+
+      <!-- Fallback hierarchy -->
+      <div class="spec-card">
+        <div class="spec-card-title">Fallback Hierarchy</div>
+        <ol class="fallback-list">
+          <li class="fallback-item">
+            <div class="fallback-num">1</div>
+            <div>
+              <div style="font-weight:600; color:#ffd166; margin-bottom:2px;">Pre-recorded voice asset (primary)</div>
+              <div style="color:#8b949e;">Stored audio file streamed from CDN. Fastest, most consistent quality.</div>
+            </div>
+          </li>
+          <li class="fallback-item">
+            <div class="fallback-num">2</div>
+            <div>
+              <div style="font-weight:600; color:#c8b8ff; margin-bottom:2px;">Web Speech API TTS</div>
+              <div style="color:#8b949e;">
+                <code style="font-family:monospace; font-size:11px; color:#c8b8ff;">speechSynthesis</code>, rate 0.9 — fallback when asset unavailable or fetch fails.
+              </div>
+            </div>
+          </li>
+          <li class="fallback-item">
+            <div class="fallback-num">3</div>
+            <div>
+              <div style="font-weight:600; color:#58e8c1; margin-bottom:2px;">Text display only (silent fallback)</div>
+              <div style="color:#8b949e;">When both audio sources fail. All UI audio elements hidden. Play continues fully.</div>
+            </div>
+          </li>
+          <li class="fallback-item">
+            <div class="fallback-num">4</div>
+            <div>
+              <div style="font-weight:600; color:#ff7b6b; margin-bottom:2px;">Never block gameplay</div>
+              <div style="color:#8b949e;">Audio failure must never prevent a child from answering or advancing.</div>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Hidden vs removed table -->
+      <div class="spec-card">
+        <div class="spec-card-title">What Is Hidden vs Removed When Audio Disabled</div>
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Element</th>
+              <th>Audio On</th>
+              <th>Audio Off</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Speaker button</td>
+              <td><span class="badge-on">Visible + tappable</span></td>
+              <td><span class="badge-off">Hidden (not greyed)</span></td>
+            </tr>
+            <tr>
+              <td>"Hear it again" chip</td>
+              <td><span class="badge-on">Visible</span></td>
+              <td><span class="badge-off">Hidden</span></td>
+            </tr>
+            <tr>
+              <td>Waveform animation</td>
+              <td><span class="badge-on">Shown</span></td>
+              <td><span class="badge-off">Hidden</span></td>
+            </tr>
+            <tr>
+              <td>Question text</td>
+              <td><span class="badge-always">Always shown</span></td>
+              <td><span class="badge-always">Always shown</span></td>
+            </tr>
+            <tr>
+              <td>Answer buttons</td>
+              <td><span class="badge-always">Always shown</span></td>
+              <td><span class="badge-always">Always shown</span></td>
+            </tr>
+            <tr>
+              <td>Celebration sounds</td>
+              <td><span class="badge-on">Play</span></td>
+              <td><span class="badge-silent">Silent</span></td>
+            </tr>
+            <tr>
+              <td>Background music</td>
+              <td><span class="badge-on">Plays</span></td>
+              <td><span class="badge-silent">Silent</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Parent preference API -->
+      <div class="spec-card">
+        <div class="spec-card-title">Parent Preference API</div>
+
+        <div class="endpoint-row">
+          <span class="method-badge method-get">GET</span>
+          <div>
+            <div class="endpoint-path">/api/children/:id/audio-prefs</div>
+            <div class="endpoint-desc">Read on session start. Preference is cached in child session object.</div>
+          </div>
+        </div>
+        <div class="endpoint-row">
+          <span class="method-badge method-put">PUT</span>
+          <div>
+            <div class="endpoint-path">/api/children/:id/audio-prefs</div>
+            <div class="endpoint-desc">Update from parent settings panel. Re-fetched on the child's next session start.</div>
+          </div>
+        </div>
+
+        <div class="divider-label">
+          <span>Device Audio Block Detection</span>
+          <div class="divider-line"></div>
+        </div>
+
+        <pre><span class="kw">async function</span> checkAudioAvailable() {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> ctx = <span class="kw">new</span> <span class="ty">AudioContext</span>();
+    <span class="kw">await</span> ctx.resume();
+    <span class="kw">return</span> ctx.state === <span class="vl">'running'</span>;
+  } <span class="kw">catch</span> { <span class="kw">return</span> <span class="vl">false</span>; }
+}</pre>
+
+        <div style="margin-top: 12px; font-size: 12px; color: #8b949e; line-height: 1.6;">
+          Called once on session init. If <code style="font-family:monospace; color:#58e8c1;">false</code>, device audio unavailable state is shown (Frame 3). Does not affect gameplay flow.
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /t3 -->
+
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', ['t1','t2','t3'][i] === t);
+      });
+      document.querySelectorAll('.screen').forEach(s => {
+        s.classList.toggle('active', s.id === t);
+      });
+    }
+
+    function toggleSwitch(el) {
+      el.classList.toggle('on');
+    }
+  </script>
+
+</body>
+</html>

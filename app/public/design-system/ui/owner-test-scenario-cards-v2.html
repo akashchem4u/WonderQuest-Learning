@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Test Scenarios — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #0d1117; color: #e8edf3; min-height: 100vh; }
+  .tab-bar { display: flex; background: #111820; border-bottom: 1px solid #1e2d3d; overflow-x: auto; }
+  .tab-btn { flex: 1; min-width: 130px; padding: 14px 10px; background: none; border: none; color: #5a7a90; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: #ffd166; border-bottom-color: #ffd166; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+  .page-title { font-size: 24px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #5a7a90; margin-bottom: 28px; }
+
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; }
+  .hint-label { font-size: 11px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .hint-box p { font-size: 13px; color: #e8c84a; line-height: 1.6; }
+
+  /* Scenario grid */
+  .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .scenario-card { background: #111820; border: 1.5px solid #1e2d3d; border-radius: 14px; padding: 24px; cursor: pointer; transition: all 0.2s; }
+  .scenario-card:hover, .scenario-card.active { border-color: #ffd166; background: rgba(255,209,102,0.04); }
+  .sc-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .sc-num { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #ffd166; flex-shrink: 0; }
+  .sc-title { font-size: 15px; font-weight: 700; color: #e8edf3; }
+  .sc-tag { font-size: 11px; font-weight: 500; color: #5a7a90; margin-top: 2px; }
+  .sc-desc { font-size: 13px; color: #8aa8c0; line-height: 1.5; margin-bottom: 14px; }
+  .sc-watch { display: flex; align-items: flex-start; gap: 10px; background: rgba(255,209,102,0.06); border: 1px solid rgba(255,209,102,0.2); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+  .sc-watch-text { font-size: 12px; color: #e8c84a; line-height: 1.5; }
+  .record-btn { width: 100%; background: none; border: 1.5px solid #ffd166; border-radius: 10px; padding: 12px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; color: #ffd166; cursor: pointer; transition: all 0.2s; }
+  .record-btn:hover { background: rgba(255,209,102,0.08); }
+  .record-btn.recorded { border-color: #6cc96c; color: #6cc96c; }
+
+  /* Detail */
+  .detail-card { background: #111820; border: 1px solid #1e2d3d; border-radius: 14px; padding: 28px; margin-bottom: 20px; }
+  .detail-label { font-size: 11px; font-weight: 600; color: #5a7a90; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 10px; }
+  .detail-title { font-size: 22px; font-weight: 700; color: #ffd166; margin-bottom: 6px; }
+  .detail-sub { font-size: 13px; color: #5a7a90; margin-bottom: 20px; }
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .steps-list li { display: flex; align-items: flex-start; gap: 14px; font-size: 13px; color: #c8d8e8; line-height: 1.5; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,209,102,0.15); border: 1px solid rgba(255,209,102,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #ffd166; flex-shrink: 0; margin-top: 1px; }
+
+  /* Record */
+  textarea { width: 100%; background: #111820; border: 1.5px solid #1e2d3d; border-radius: 10px; padding: 14px 16px; font-family: 'Sora', sans-serif; font-size: 13px; color: #e8edf3; resize: vertical; outline: none; min-height: 120px; margin-bottom: 14px; transition: border-color 0.2s; }
+  textarea:focus { border-color: #ffd166; }
+  ::placeholder { color: #3a5568; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .obs-tag { padding: 8px 14px; border-radius: 20px; border: 1.5px solid #1e2d3d; background: #111820; font-size: 12px; font-weight: 600; color: #5a7a90; cursor: pointer; }
+  .obs-tag.sel-friction { border-color: #ff5e5e; color: #ff5e5e; background: rgba(255,94,94,0.08); }
+  .obs-tag.sel-delight { border-color: #ffd166; color: #ffd166; background: rgba(255,209,102,0.08); }
+  .obs-tag.sel-confusion { border-color: #ff8c42; color: #ff8c42; background: rgba(255,140,66,0.08); }
+  .obs-tag.sel-success { border-color: #6cc96c; color: #6cc96c; background: rgba(108,201,108,0.08); }
+  .save-btn { background: linear-gradient(135deg, #ffd166, #d4a030); border: none; border-radius: 12px; padding: 14px 28px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #0d1117; cursor: pointer; }
+
+  /* Saved */
+  .obs-item { background: #111820; border: 1px solid #1e2d3d; border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+  .obs-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .obs-scenario { font-size: 12px; font-weight: 600; color: #ffd166; }
+  .obs-time { font-size: 11px; color: #3a5568; }
+  .obs-text { font-size: 13px; color: #c8d8e8; line-height: 1.6; margin-bottom: 10px; }
+  .obs-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .obs-chip { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .chip-friction { background: rgba(255,94,94,0.1); color: #ff5e5e; }
+  .chip-success { background: rgba(108,201,108,0.1); color: #6cc96c; }
+  .chip-confusion { background: rgba(255,140,66,0.1); color: #ff8c42; }
+
+  /* Spec */
+  .spec-block { background: #111820; border: 1px solid #1e2d3d; border-radius: 12px; padding: 24px; margin-bottom: 14px; }
+  .spec-block h3 { font-size: 13px; font-weight: 600; color: #ffd166; margin-bottom: 10px; }
+  .spec-block p, .spec-block li { font-size: 13px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('list')">Scenario List</button>
+  <button class="tab-btn" onclick="show('detail')">Scenario Detail</button>
+  <button class="tab-btn" onclick="show('record')">Record Observation</button>
+  <button class="tab-btn" onclick="show('saved')">Observations Saved</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- SCENARIO LIST -->
+<div id="list" class="tab-panel active">
+  <div class="container">
+    <div class="page-title">Owner Scenarios</div>
+    <div class="page-sub">Beta Phase 2 · Week of Mar 17–23, 2026 · Operator-level testing</div>
+    <div class="hint-box">
+      <div class="hint-label">Owner Testing Context</div>
+      <p>These scenarios simulate real operational situations. Run them as if you're responding to live conditions — not as a test. Note any tool gaps, missing data, or unclear signals.</p>
+    </div>
+
+    <div class="scenario-grid">
+      <div class="scenario-card active" onclick="show('detail')">
+        <div class="sc-header">
+          <div class="sc-num">1</div>
+          <div>
+            <div class="sc-title">Release Gate Review</div>
+            <div class="sc-tag">Governance · 20 min</div>
+          </div>
+        </div>
+        <div class="sc-desc">Review this week's release gate checklist. Identify any items that would cause you to delay the release.</div>
+        <div class="sc-watch">
+          <div class="sc-watch-text">👁️ Are gate criteria clearly defined? Can you make a go/no-go decision in under 5 minutes?</div>
+        </div>
+        <button class="record-btn" onclick="event.stopPropagation(); show('record')">Record Observation</button>
+      </div>
+
+      <div class="scenario-card" onclick="show('detail')">
+        <div class="sc-header">
+          <div class="sc-num">2</div>
+          <div>
+            <div class="sc-title">Alert Response</div>
+            <div class="sc-tag">Incident · 10 min</div>
+          </div>
+        </div>
+        <div class="sc-desc">A P1 alert fires at 2 PM. Use the alert feed to identify root cause, impacted segments, and initiate a response.</div>
+        <div class="sc-watch">
+          <div class="sc-watch-text">👁️ Time to identify cause. Is escalation path visible? Does the alert surface enough context?</div>
+        </div>
+        <button class="record-btn recorded" onclick="event.stopPropagation()">✓ Observation Recorded</button>
+      </div>
+
+      <div class="scenario-card" onclick="show('detail')">
+        <div class="sc-header">
+          <div class="sc-num">3</div>
+          <div>
+            <div class="sc-title">Feedback Triage</div>
+            <div class="sc-tag">Operations · 15 min</div>
+          </div>
+        </div>
+        <div class="sc-desc">Open the feedback triage queue. Categorize 10 items. Identify top 3 patterns this week. Assign one to a squad.</div>
+        <div class="sc-watch">
+          <div class="sc-watch-text">👁️ Is pattern detection built in? How many clicks to assign? Is SLA visible per item?</div>
+        </div>
+        <button class="record-btn" onclick="event.stopPropagation(); show('record')">Record Observation</button>
+      </div>
+
+      <div class="scenario-card" onclick="show('detail')">
+        <div class="sc-header">
+          <div class="sc-num">4</div>
+          <div>
+            <div class="sc-title">Route Health Check</div>
+            <div class="sc-tag">Monitoring · 10 min</div>
+          </div>
+        </div>
+        <div class="sc-desc">Review the route health dashboard across all user segments. Identify any segment below healthy threshold.</div>
+        <div class="sc-watch">
+          <div class="sc-watch-text">👁️ Can you see segment breakdown at a glance? Is the drill-down path obvious?</div>
+        </div>
+        <button class="record-btn" onclick="event.stopPropagation(); show('record')">Record Observation</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCENARIO DETAIL -->
+<div id="detail" class="tab-panel">
+  <div class="container">
+    <div class="detail-card">
+      <div class="detail-label">Scenario 1 of 4 · Owner Level</div>
+      <div class="detail-title">Release Gate Review</div>
+      <div class="detail-sub">Governance · Est. 20 min · Simulate a real pre-release check</div>
+
+      <div class="detail-label">Steps</div>
+      <ol class="steps-list">
+        <li><span class="step-num">1</span>Navigate to the Owner Command Center. Open the Release Gate section from the navigation.</li>
+        <li><span class="step-num">2</span>Review the checklist for the current sprint release (all items across Content, QA, Performance, UX).</li>
+        <li><span class="step-num">3</span>Identify any items marked at risk or incomplete.</li>
+        <li><span class="step-num">4</span>Simulate a go/no-go decision: decide whether you would release, delay, or escalate.</li>
+        <li><span class="step-num">5</span>Note what additional information you wish the gate had provided.</li>
+      </ol>
+
+      <div class="detail-label">Observation Prompts</div>
+      <div class="sc-watch" style="margin-bottom:0">
+        <div class="sc-watch-text">How long did the review take? · Were any criteria ambiguous? · Did confidence scores help or confuse? · What was missing that you needed to decide?</div>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">Key Signal</div>
+      <p>We want to know if the gate UI gives you enough signal to make a real business decision — or if you'd need to go elsewhere to get the full picture.</p>
+    </div>
+    <button class="save-btn" onclick="show('record')">Record Observation</button>
+  </div>
+</div>
+
+<!-- RECORD OBSERVATION -->
+<div id="record" class="tab-panel">
+  <div class="container" style="max-width:640px">
+    <div class="page-title">Record Observation</div>
+    <div class="page-sub" style="margin-bottom:20px">Scenario 1 — Release Gate Review</div>
+    <div class="hint-box">
+      <div class="hint-label">Owner Observations</div>
+      <p>Focus on decision quality. Did the tool give you what you needed to make a fast, confident operational call?</p>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:#5a7a90;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px">Observation</div>
+    <textarea placeholder="Describe your experience as an operator. What worked, what was missing, what would have helped you move faster?"></textarea>
+    <div style="font-size:11px;font-weight:600;color:#5a7a90;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px">Tags</div>
+    <div class="tag-row">
+      <div class="obs-tag" onclick="toggleObs(this,'sel-friction')">Friction</div>
+      <div class="obs-tag" onclick="toggleObs(this,'sel-delight')">Delight</div>
+      <div class="obs-tag" onclick="toggleObs(this,'sel-confusion')">Confusion</div>
+      <div class="obs-tag" onclick="toggleObs(this,'sel-success')">Success</div>
+    </div>
+    <button class="save-btn" onclick="show('saved')">Save Observation</button>
+  </div>
+</div>
+
+<!-- OBSERVATIONS SAVED -->
+<div id="saved" class="tab-panel">
+  <div class="container">
+    <div class="page-title">Saved Observations</div>
+    <div class="page-sub">2 observations recorded this week</div>
+
+    <div class="obs-item">
+      <div class="obs-meta">
+        <span class="obs-scenario">Scenario 2 — Alert Response</span>
+        <span class="obs-time">Today 2:47 PM</span>
+      </div>
+      <div class="obs-text">Alert fired and the feed surfaced it immediately — good. But the alert detail only showed error count, not which user segment was affected. Had to cross-reference the route health dashboard manually. Need segment breakdown inline on the alert card. Time to diagnosis: ~8 min. Should be under 3.</div>
+      <div class="obs-tags">
+        <span class="obs-chip chip-friction">Friction</span>
+        <span class="obs-chip chip-confusion">Confusion</span>
+      </div>
+    </div>
+
+    <div class="obs-item">
+      <div class="obs-meta">
+        <span class="obs-scenario">Scenario 3 — Feedback Triage</span>
+        <span class="obs-time">Mar 21 11:14 AM</span>
+      </div>
+      <div class="obs-text">Triage queue was well organized. Pattern tagging was automatic which saved significant time. Assigning to squad required 4 clicks — felt like it should be 1. SLA timer was visible but the color coding was unintuitive (green = at risk?). Overall functional but needs polish.</div>
+      <div class="obs-tags">
+        <span class="obs-chip chip-success">Success</span>
+        <span class="obs-chip chip-friction">Friction</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="container">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>owner-test-scenario-cards-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Test scenario cards for owner/operator beta testers. 4 scenarios: release gate review, alert response, feedback triage, and route health check.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #0d1117 · Gold: #ffd166</li>
+        <li>Viewport: Desktop 900px+ · Hint box: #2a1f00 / #ffd166</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Scenarios</h3>
+      <ul>
+        <li>Release Gate Review — governance go/no-go</li>
+        <li>Alert Response — P1 incident triage</li>
+        <li>Feedback Triage — queue categorization</li>
+        <li>Route Health Check — segment monitoring</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['list','detail','record','saved','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+  function toggleObs(el, cls) {
+    if (el.classList.contains(cls)) el.className = 'obs-tag';
+    else el.className = 'obs-tag ' + cls;
+  }
+</script>
+</body>
+</html>

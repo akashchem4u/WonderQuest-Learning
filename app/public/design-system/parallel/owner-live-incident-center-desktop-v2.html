@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Live Incident Center Desktop — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+
+/* Incident header banner */
+.inc-hdr{background:#010409;border-bottom:2px solid rgba(248,81,73,.4);padding:0 24px;height:60px;display:flex;align-items:center;gap:16px}
+.ih-p0{font-size:11px;font-weight:800;padding:3px 10px;border-radius:5px;background:rgba(248,81,73,.2);color:#f85149;flex-shrink:0}
+.ih-title{font-size:14px;font-weight:800;color:#f85149;flex:1}
+.ih-timer{font-size:12px;font-weight:700;color:rgba(248,81,73,.7);font-variant-numeric:tabular-nums}
+.ih-actions{display:flex;gap:8px}
+.iha-btn{padding:6px 14px;border-radius:7px;font-size:11px;font-weight:700;font-family:system-ui;cursor:pointer;border:none}
+.iha-resolve{background:rgba(80,232,144,.15);color:#50e890}
+.iha-update{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.iha-pd{background:rgba(248,81,73,.15);color:#f85149}
+
+/* No incident header */
+.clear-hdr{background:#010409;border-bottom:1px solid rgba(80,232,144,.15);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.ch-status{display:flex;align-items:center;gap:10px}
+.ch-dot{width:9px;height:9px;border-radius:50%;background:#50e890}
+.ch-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.ch-sub{font-size:11px;color:rgba(255,255,255,.3)}
+.ch-declare{font-size:11px;font-weight:700;color:#f85149;cursor:pointer}
+
+/* Status strip */
+.status-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.ss-cell{background:#0d1117;padding:14px 20px;display:flex;gap:8px;align-items:center}
+.ssc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ssc-n{font-size:18px;font-weight:900;color:#f0f6ff}
+.ssc-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.3)}
+
+/* Body */
+.inc-body{display:grid;grid-template-columns:1fr 360px;gap:0;min-height:580px}
+.inc-main{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06)}
+.inc-side{padding:18px 20px}
+
+/* Section headers */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card{background:#161b22;border-radius:12px;padding:16px 18px;margin-bottom:14px;border:1px solid rgba(255,255,255,.05)}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:10px}
+
+/* Incident detail */
+.inc-meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.imr-chip{background:#161b22;border-radius:6px;padding:6px 10px;border:1px solid rgba(255,255,255,.06)}
+.imrc-l{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.04em}
+.imrc-v{font-size:12px;font-weight:800;color:#f0f6ff;margin-top:1px}
+
+/* Updates timeline */
+.update-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.update-item:last-child{border-bottom:none}
+.ui-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.uid-update{background:#9b72ff}
+.uid-escalate{background:#f85149}
+.uid-ack{background:#f59e0b}
+.uid-open{background:rgba(255,255,255,.3)}
+.uid-resolve{background:#50e890}
+.ui-body{flex:1}
+.ui-text{font-size:12px;font-weight:700;color:rgba(255,255,255,.75)}
+.ui-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;line-height:1.4}
+.ui-time{font-size:10px;color:rgba(255,255,255,.25)}
+
+/* Add update form */
+.update-form{background:#161b22;border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.05)}
+.uf-label{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:8px}
+.uf-textarea{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 10px;font-size:12px;color:#f0f6ff;font-family:system-ui;resize:none;height:70px;outline:none}
+.uf-actions{display:flex;gap:8px;margin-top:8px}
+.ufa-btn{padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;font-family:system-ui;cursor:pointer;border:none}
+.ufa-post{background:#50e890;color:#010409}
+.ufa-resolve{background:rgba(80,232,144,.12);color:#50e890;border:1px solid rgba(80,232,144,.2)}
+
+/* Affected routes */
+.route-impact{display:flex;flex-direction:column;gap:5px}
+.ri-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.ri-row:last-child{border-bottom:none}
+.ri-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ri-name{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.ri-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.ris-down{background:rgba(248,81,73,.15);color:#f85149}
+.ris-deg{background:rgba(245,158,11,.12);color:#f59e0b}
+.ris-ok{background:rgba(80,232,144,.1);color:#50e890}
+
+/* Side panels */
+.side-panel{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sp-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:8px}
+.sp-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sp-row:last-child{border-bottom:none}
+.spr-label{color:rgba(255,255,255,.4)}
+.spr-val{color:#f0f6ff;font-weight:600}
+.on-call-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.on-call-row:last-child{border-bottom:none}
+.ocr-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.ocr-name{font-size:11px;color:rgba(255,255,255,.7);flex:1}
+.ocr-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.ocs-ack{background:rgba(80,232,144,.1);color:#50e890}
+.ocs-paged{background:rgba(245,158,11,.1);color:#f59e0b}
+
+/* Post-incident summary */
+.pi-card{background:#161b22;border-radius:12px;padding:18px 20px;margin-bottom:14px;border:1px solid rgba(80,232,144,.12)}
+.pi-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pi-resolved{font-size:13px;font-weight:800;color:#50e890}
+.pi-time{font-size:11px;color:rgba(255,255,255,.3)}
+.pi-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.pi-row:last-child{border-bottom:none;padding-bottom:0}
+.pi-label{color:rgba(255,255,255,.5)}
+.pi-val{color:#f0f6ff;font-weight:700}
+
+/* Incident history */
+.hist-row{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.hist-row:last-child{border-bottom:none}
+.hr-sev{font-size:9px;font-weight:800;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:1px}
+.hs-p0{background:rgba(248,81,73,.2);color:#f85149}
+.hs-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.hr-body{flex:1}
+.hr-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.7)}
+.hr-meta{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.hr-ttr{font-size:10px;font-weight:700;color:#50e890}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-live-incident-center-desktop-v2.html</strong><br>
+  Real-time incident management console for the owner. Distinct from route health (passive monitoring) — this is the active incident workspace.<br>
+  <strong>States:</strong> (A) Active P0 incident (red header + live timer + update log + add update form) | (B) All clear (no active incident + incident history) | (C) Post-incident summary (resolved view with time-to-resolve + impact summary).<br>
+  <strong>Layout:</strong> Incident header bar → status strip → main (timeline + add update) + sidebar (meta + affected routes + on-call team).<br>
+  <strong>Integration:</strong> PagerDuty for on-call paging. Updates posted here are also sent to #incidents Slack channel. Resolution closes PagerDuty incident.<br>
+  <strong>Teacher-facing status page:</strong> When P0 is declared, a public status update is auto-posted to the platform status page (teacher-visible). Content: generic "We're investigating an issue" (not technical details).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active P0 Incident</button>
+  <button class="tab-btn" onclick="showTab('clear')">All Clear</button>
+  <button class="tab-btn" onclick="showTab('resolved')">Post-Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Active P0 ───────────────────────────────────────────── -->
+<div id="tab-active" class="screen active">
+  <p class="section-title">Live incident center — active P0</p>
+  <div class="shell">
+    <div class="inc-hdr">
+      <span class="ih-p0">P0 INCIDENT</span>
+      <div class="ih-title">Assignment Engine Down — Queue Processing Failure</div>
+      <div class="ih-timer">⏱ 5h 23m</div>
+      <div class="ih-actions">
+        <button class="iha-btn iha-update">+ Add Update</button>
+        <button class="iha-btn iha-pd">PD-4412</button>
+        <button class="iha-btn iha-resolve">✓ Resolve</button>
+      </div>
+    </div>
+    <div class="status-strip">
+      <div class="ss-cell"><div class="ssc-dot" style="background:#f85149"></div><div><div class="ssc-n" style="color:#f85149">P0</div><div class="ssc-l">Severity</div></div></div>
+      <div class="ss-cell"><div class="ssc-dot" style="background:#f85149"></div><div><div class="ssc-n" style="color:#f85149">1</div><div class="ssc-l">Route Down</div></div></div>
+      <div class="ss-cell"><div class="ssc-dot" style="background:#f59e0b"></div><div><div class="ssc-n" style="color:#f59e0b">8–12</div><div class="ssc-l">Schools Affected</div></div></div>
+      <div class="ss-cell"><div class="ssc-dot" style="background:#50e890"></div><div><div class="ssc-n" style="color:#50e890">Engaged</div><div class="ssc-l">On-Call</div></div></div>
+    </div>
+    <div class="inc-body">
+      <div class="inc-main">
+        <div class="inc-meta-row">
+          <div class="imr-chip"><div class="imrc-l">Route</div><div class="imrc-v">Assignment Engine</div></div>
+          <div class="imr-chip"><div class="imrc-l">Started</div><div class="imrc-v">Today 6:10 AM</div></div>
+          <div class="imr-chip"><div class="imrc-l">PagerDuty</div><div class="imrc-v" style="color:#f59e0b">PD-4412</div></div>
+          <div class="imr-chip"><div class="imrc-l">SLA deadline</div><div class="imrc-v" style="color:#f59e0b">11:10 AM (1h rem)</div></div>
+        </div>
+
+        <div class="sec-hdr">Incident Timeline</div>
+        <div class="card">
+          <div class="update-item">
+            <div class="ui-dot uid-update"></div>
+            <div class="ui-body">
+              <div class="ui-text">Investigation update — root cause identified</div>
+              <div class="ui-sub">Redis queue consumer crashing on null task payloads introduced in v2.5.0. Fix in progress — hotfix branch created. ETA deploy 11:30 AM.</div>
+            </div>
+            <div class="ui-time">10:05 AM</div>
+          </div>
+          <div class="update-item">
+            <div class="ui-dot uid-update"></div>
+            <div class="ui-body">
+              <div class="ui-text">Investigation update — scoping impact</div>
+              <div class="ui-sub">Confirmed 9 schools affected. Play sessions and mastery scoring unaffected — only assignment delivery is impacted. Students can still play free sessions.</div>
+            </div>
+            <div class="ui-time">8:45 AM</div>
+          </div>
+          <div class="update-item">
+            <div class="ui-dot uid-ack"></div>
+            <div class="ui-body">
+              <div class="ui-text">Engineering on-call acknowledged</div>
+              <div class="ui-sub">Sam (Lead Engineer) acknowledged via PagerDuty. Joining incident call.</div>
+            </div>
+            <div class="ui-time">6:22 AM</div>
+          </div>
+          <div class="update-item">
+            <div class="ui-dot uid-escalate"></div>
+            <div class="ui-body">
+              <div class="ui-text">Escalated to on-call via PagerDuty · Slack #incidents notified</div>
+              <div class="ui-sub">Auto-triage escalated after 2+ P0 feedback reports. PD-4412 created.</div>
+            </div>
+            <div class="ui-time">6:15 AM</div>
+          </div>
+          <div class="update-item">
+            <div class="ui-dot uid-open"></div>
+            <div class="ui-body">
+              <div class="ui-text">Incident declared — P0 — Assignment Engine queue processing failure</div>
+              <div class="ui-sub">First teacher report received. Platform status page updated: "We're investigating an issue."</div>
+            </div>
+            <div class="ui-time">6:10 AM</div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">Add Update</div>
+        <div class="update-form">
+          <div class="uf-label">Post Incident Update</div>
+          <textarea class="uf-textarea" placeholder="Describe investigation progress, findings, or next steps. This posts to #incidents Slack automatically…"></textarea>
+          <div class="uf-actions">
+            <button class="ufa-btn ufa-post">Post Update</button>
+            <button class="ufa-btn ufa-resolve">Resolve Incident</button>
+          </div>
+        </div>
+      </div>
+      <div class="inc-side">
+        <div class="side-panel" style="border-color:rgba(248,81,73,.15)">
+          <div class="sp-title" style="color:rgba(248,81,73,.6)">Affected Routes</div>
+          <div class="route-impact">
+            <div class="ri-row"><div class="ri-dot" style="background:#f85149"></div><div class="ri-name">Assignment Engine</div><span class="ri-status ris-down">DOWN</span></div>
+            <div class="ri-row"><div class="ri-dot" style="background:#50e890"></div><div class="ri-name">Play Session</div><span class="ri-status ris-ok">OK</span></div>
+            <div class="ri-row"><div class="ri-dot" style="background:#50e890"></div><div class="ri-name">Adaptive Engine</div><span class="ri-status ris-ok">OK</span></div>
+            <div class="ri-row"><div class="ri-dot" style="background:#50e890"></div><div class="ri-name">Auth / SSO</div><span class="ri-status ris-ok">OK</span></div>
+            <div class="ri-row"><div class="ri-dot" style="background:#50e890"></div><div class="ri-name">All other routes</div><span class="ri-status ris-ok">OK</span></div>
+          </div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">On-Call Team</div>
+          <div class="on-call-row">
+            <div class="ocr-avatar" style="background:rgba(80,232,144,.15);color:#50e890">S</div>
+            <div class="ocr-name">Sam (Lead Eng)</div>
+            <span class="ocr-status ocs-ack">Acknowledged</span>
+          </div>
+          <div class="on-call-row">
+            <div class="ocr-avatar" style="background:rgba(245,158,11,.12);color:#f59e0b">J</div>
+            <div class="ocr-name">Jordan (Infra)</div>
+            <span class="ocr-status ocs-paged">Paged</span>
+          </div>
+          <div class="on-call-row">
+            <div class="ocr-avatar" style="background:rgba(155,114,255,.12);color:#9b72ff">A</div>
+            <div class="ocr-name">Alex (Backend)</div>
+            <span class="ocr-status ocs-ack">Acknowledged</span>
+          </div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Teacher Status Page</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);line-height:1.5">Platform status page auto-updated: "We are currently investigating an issue affecting some features. Play sessions continue to work normally." Refresh on resolve.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── All Clear ───────────────────────────────────────────── -->
+<div id="tab-clear" class="screen">
+  <p class="section-title">Live incident center — all clear</p>
+  <div class="shell">
+    <div class="clear-hdr">
+      <div class="ch-status">
+        <div class="ch-dot"></div>
+        <div class="ch-title">All Systems Operational</div>
+        <div class="ch-sub">No active incidents · Last incident resolved 7d ago</div>
+      </div>
+      <div class="ch-declare">+ Declare Incident</div>
+    </div>
+    <div class="status-strip">
+      <div class="ss-cell"><div class="ssc-dot" style="background:#50e890"></div><div><div class="ssc-n" style="color:#50e890">0</div><div class="ssc-l">Active Incidents</div></div></div>
+      <div class="ss-cell"><div class="ssc-dot" style="background:#50e890"></div><div><div class="ssc-n" style="color:#50e890">10</div><div class="ssc-l">Routes Healthy</div></div></div>
+      <div class="ss-cell"><div class="ssc-dot" style="background:#50e890"></div><div><div class="ssc-n" style="color:#50e890">99.8%</div><div class="ssc-l">30d Uptime</div></div></div>
+      <div class="ss-cell"><div class="ssc-dot" style="background:#50e890"></div><div><div class="ssc-n" style="color:#50e890">4</div><div class="ssc-l">Incidents 30d</div></div></div>
+    </div>
+    <div style="padding:20px 24px">
+      <div class="sec-hdr">Incident History — Last 30 Days</div>
+      <div class="card">
+        <div class="hist-row">
+          <span class="hr-sev hs-p0">P0</span>
+          <div class="hr-body"><div class="hr-title">SSO token expiry — Batch deploy misconfiguration</div><div class="hr-meta">Auth/SSO · Mar 24 · Resolved in 3h 18m · Hotfix v2.4.8</div></div>
+          <span class="hr-ttr">3h 18m</span>
+        </div>
+        <div class="hist-row">
+          <span class="hr-sev hs-p0">P0</span>
+          <div class="hr-body"><div class="hr-title">Assignment queue failure — Redis consumer crash</div><div class="hr-meta">Assignment Engine · Mar 17 · Resolved in 5h 45m · Hotfix v2.4.7</div></div>
+          <span class="hr-ttr">5h 45m</span>
+        </div>
+        <div class="hist-row">
+          <span class="hr-sev hs-p1">P1</span>
+          <div class="hr-body"><div class="hr-title">Mastery score calculation lag spike</div><div class="hr-meta">Mastery Score · Mar 10 · Resolved in 22h · DB query optimisation</div></div>
+          <span class="hr-ttr" style="color:#f59e0b">22h</span>
+        </div>
+        <div class="hist-row">
+          <span class="hr-sev hs-p1">P1</span>
+          <div class="hr-body"><div class="hr-title">Content CDN cache invalidation failure</div><div class="hr-meta">Content Delivery · Feb 28 · Resolved in 4h · CDN config rollback</div></div>
+          <span class="hr-ttr">4h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Post-Incident ───────────────────────────────────────── -->
+<div id="tab-resolved" class="screen">
+  <p class="section-title">Live incident center — post-incident summary (resolved)</p>
+  <div class="shell">
+    <div class="clear-hdr">
+      <div class="ch-status">
+        <div class="ch-dot"></div>
+        <div class="ch-title">Incident Resolved — All Systems Operational</div>
+        <div class="ch-sub">PD-4412 closed · Post-mortem scheduled</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#9b72ff;cursor:pointer">Schedule Post-Mortem →</div>
+    </div>
+    <div style="padding:20px 24px">
+      <div class="sec-hdr">Post-Incident Summary — PD-4412</div>
+      <div class="pi-card">
+        <div class="pi-header">
+          <div class="pi-resolved">✅ Incident Resolved</div>
+          <div class="pi-time">Today 11:30 AM · Resolved after 5h 20m</div>
+        </div>
+        <div class="pi-row"><div class="pi-label">Incident</div><div class="pi-val">P0 — Assignment Engine Queue Failure</div></div>
+        <div class="pi-row"><div class="pi-label">Root cause</div><div class="pi-val">Redis consumer null payload crash (v2.5.0 regression)</div></div>
+        <div class="pi-row"><div class="pi-label">Fix</div><div class="pi-val">Hotfix v2.5.1 — null guard in consumer loop</div></div>
+        <div class="pi-row"><div class="pi-label">Schools affected</div><div class="pi-val">9 confirmed</div></div>
+        <div class="pi-row"><div class="pi-label">Time to detect</div><div class="pi-val">5 min (teacher report)</div></div>
+        <div class="pi-row"><div class="pi-label">Time to acknowledge</div><div class="pi-val">12 min (on-call)</div></div>
+        <div class="pi-row"><div class="pi-label">Time to resolve</div><div class="pi-val" style="color:#50e890">5h 20m (SLA: 4h — missed by 1h 20m)</div></div>
+        <div class="pi-row"><div class="pi-label">SLA</div><div class="pi-val" style="color:#f59e0b">Missed — 4h P0 SLA</div></div>
+        <div class="pi-row"><div class="pi-label">Post-mortem</div><div class="pi-val" style="color:#9b72ff">Scheduled Thu 10 AM</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-live-incident-center-desktop-v2.html<br>
+      <strong>Active incident management workspace.</strong> 3 states: Active P0 / All Clear / Post-Incident Summary. Distinct from route health (passive monitoring).
+    </div>
+    <h2 class="spec-h2">Incident Declaration Flow</h2>
+    <p class="spec-p">"+ Declare Incident" (from All Clear state) opens a modal: severity (P0/P1/P2), route(s), description. On submit: PagerDuty alert created, #incidents Slack message sent, teacher-facing status page updated ("We're investigating"), incident center switches to Active state.</p>
+    <h2 class="spec-h2">Auto-Declaration</h2>
+    <p class="spec-p">Incidents can be auto-declared by the monitoring system (when route goes DOWN or error rate exceeds threshold). Auto-declared incidents appear with "Auto-detected" label in the timeline. Owner can add updates and resolve.</p>
+    <h2 class="spec-h2">Teacher Status Page</h2>
+    <p class="spec-p">On P0 declaration: auto-post to public status page: "We are currently investigating an issue. Play sessions continue to work normally." On resolution: auto-update: "This issue has been resolved." Individual route or technical details are NOT disclosed on the teacher-facing status page.</p>
+    <h2 class="spec-h2">Slack Integration</h2>
+    <p class="spec-p">All timeline updates are posted to #incidents Slack channel automatically. Resolution closes the thread with a summary. Post-mortem link added to thread on scheduling.</p>
+    <h2 class="spec-h2">Post-Mortem</h2>
+    <p class="spec-p">Post-incident summary auto-generates: root cause, affected schools, TTD/TTA/TTR metrics, SLA status. "Schedule Post-Mortem" creates a calendar invite for the engineering team. Post-mortem document template pre-filled with incident data.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

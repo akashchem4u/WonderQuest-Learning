@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-voice-coach-overlay-v3.html
+  ====================================================
+  Voice coach overlay component — shown when coach is speaking.
+  Five tabs: Idle / Speaking / Celebration / Wrong Support / Spec
+  - Coach personas: Coach Leo 🦁 (default), Buddy 🐧, Whisper 🦉, Zap 🤖
+  - Overlay is a bottom sheet (not full-screen) — 240px max height, slides up from bottom
+  - Idle: avatar only visible in bottom rail, small (44px), subtle pulse
+  - Speaking: overlay expands, wave-bars animate, speech bubble with text
+  - Celebration: gold glow on avatar, confetti-bob animation, big + positive message
+  - Wrong support: warm tone, no scolding, avatar looks encouraging not disappointed
+  - Speaking state: letter choices dimmed while coach talks (listen mode)
+  - Auto-dismisses after coach finishes speaking
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · Voice Coach Overlay v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --wrong: #ff7b6b;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Phone frame with overlay context */
+  .phone-frame {
+    width: 390px; height: 780px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #9b72ff22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column;
+    margin: 0 auto; position: relative;
+  }
+
+  /* Mock play content behind overlay */
+  .play-backdrop {
+    flex: 1; display: flex; flex-direction: column; padding: 20px;
+    gap: 14px; align-items: center; justify-content: center;
+  }
+  .backdrop-question {
+    font-size: 0.95rem; font-weight: 900; color: var(--text); text-align: center;
+  }
+  .backdrop-hero {
+    width: 140px; height: 140px; background: var(--card2); border-radius: 18px;
+    border: 2px solid var(--violet); display: flex; align-items: center;
+    justify-content: center; font-size: 64px;
+  }
+  .backdrop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .bk-card {
+    background: var(--card2); border: 2px solid #3a3060; border-radius: 12px;
+    height: 80px; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 4px; font-size: 1.8rem;
+    transition: opacity 0.3s;
+  }
+  .bk-card-label { font-size: 0.72rem; font-weight: 900; color: var(--muted); }
+
+  /* Speaking/overlay dim */
+  .dimmed-backdrop .bk-card { opacity: 0.35; }
+
+  /* ===== VOICE COACH OVERLAY ===== */
+  .coach-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, #12103a00 0%, #12103aee 20%, #1a1440 100%);
+    border-radius: 0 0 40px 40px;
+    padding: 20px 20px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    z-index: 10;
+  }
+
+  /* Coach avatar row */
+  .coach-row {
+    display: flex; align-items: flex-end; gap: 12px;
+  }
+  .coach-avatar {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; border: 3px solid var(--violet);
+    background: linear-gradient(135deg, #2a1858, #9b72ff44);
+    position: relative;
+  }
+  .coach-avatar.speaking {
+    animation: coach-speak 0.4s ease-in-out infinite alternate;
+    border-color: var(--correct);
+    background: linear-gradient(135deg, #0d2a1a, #50e89033);
+  }
+  .coach-avatar.celebrating {
+    animation: coach-celebrate 0.6s ease-in-out infinite alternate;
+    border-color: var(--gold);
+    background: linear-gradient(135deg, #2a1800, #ffd16633);
+    box-shadow: 0 0 20px rgba(255,209,102,0.4);
+  }
+  .coach-avatar.supporting {
+    border-color: var(--violet);
+    background: linear-gradient(135deg, #2a1858, #9b72ff33);
+  }
+
+  @keyframes coach-speak {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.06); }
+  }
+  @keyframes coach-celebrate {
+    0% { transform: scale(1) rotate(-5deg); }
+    100% { transform: scale(1.12) rotate(5deg); }
+  }
+
+  /* Speech bubble */
+  .speech-bubble {
+    flex: 1; background: var(--card); border-radius: 14px 14px 14px 4px;
+    padding: 12px 14px; border: 1px solid #3a3060;
+  }
+  .sb-text { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.45; }
+  .sb-accent { color: var(--violet); font-weight: 900; }
+  .sb-gold { color: var(--gold); font-weight: 900; }
+  .sb-correct { color: var(--correct); font-weight: 900; }
+
+  /* Wave bars during speech */
+  .wave-bars {
+    display: flex; align-items: flex-end; gap: 3px; height: 20px;
+    margin-top: 6px;
+  }
+  .wave-bar {
+    width: 4px; border-radius: 2px; background: var(--correct);
+    animation: wave-dance var(--dur, 0.8s) ease-in-out infinite alternate;
+    min-height: 4px;
+  }
+  .wave-bar:nth-child(1) { --dur: 0.6s; --max-h: 14px; animation-delay: 0s; }
+  .wave-bar:nth-child(2) { --dur: 0.4s; --max-h: 20px; animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { --dur: 0.7s; --max-h: 12px; animation-delay: 0.05s; }
+  .wave-bar:nth-child(4) { --dur: 0.5s; --max-h: 18px; animation-delay: 0.15s; }
+  .wave-bar:nth-child(5) { --dur: 0.6s; --max-h: 16px; animation-delay: 0.08s; }
+  @keyframes wave-dance {
+    0% { height: 4px; }
+    100% { height: var(--max-h, 14px); }
+  }
+
+  /* Idle dot pulse (in bottom bar) */
+  .coach-idle-dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a1858, #9b72ff44);
+    border: 2px solid var(--violet);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; animation: idle-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes idle-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(155,114,255,0); }
+  }
+
+  /* Bottom rail */
+  .bottom-rail {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 12px 20px 22px;
+    background: var(--card);
+    display: flex; align-items: center; justify-content: space-between;
+    border-radius: 0 0 40px 40px;
+    z-index: 5;
+  }
+
+  /* ===== Spec ===== */
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-gold { background: #ffd166; color: #1a0c00; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>🦁 Play · Voice Coach Overlay</h1>
+<p class="subtitle">v3 · Bottom sheet · Idle / Speaking / Celebration / Support</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('idle')">Idle</button>
+  <button class="tab-btn" onclick="showTab('speaking')">Speaking</button>
+  <button class="tab-btn" onclick="showTab('celebrate')">Celebration</button>
+  <button class="tab-btn" onclick="showTab('support')">Wrong Support</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== IDLE ===== -->
+<div id="tab-idle" class="screen active">
+  <div class="phone-frame">
+    <div class="play-backdrop">
+      <div class="backdrop-question">What sound does 🐝 start with?</div>
+      <div class="backdrop-hero">🐝</div>
+      <div class="backdrop-grid">
+        <div class="bk-card"><span>S</span><span class="bk-card-label">sss</span></div>
+        <div class="bk-card"><span>B</span><span class="bk-card-label">buh</span></div>
+        <div class="bk-card"><span>D</span><span class="bk-card-label">duh</span></div>
+        <div class="bk-card"><span>R</span><span class="bk-card-label">rrr</span></div>
+      </div>
+    </div>
+    <div class="bottom-rail">
+      <div class="coach-idle-dot">🦁</div>
+      <div style="display:flex; gap:8px;">
+        <button style="padding:10px 14px; border-radius: 12px; background: #2a2050; color: var(--violet); border: 1px solid #3a3060; font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;">🔊 Replay</button>
+        <button style="padding:10px 14px; border-radius: 12px; background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;">💡 Hint</button>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center; font-size:0.78rem; color:var(--muted); margin-top:12px;">Coach idle: 44px dot with gentle pulse ring, question is live</p>
+</div>
+
+<!-- ===== SPEAKING ===== -->
+<div id="tab-speaking" class="screen">
+  <div class="phone-frame">
+    <div class="play-backdrop dimmed-backdrop">
+      <div class="backdrop-question">What sound does 🐝 start with?</div>
+      <div class="backdrop-hero">🐝</div>
+      <div class="backdrop-grid">
+        <div class="bk-card"><span>S</span><span class="bk-card-label">sss</span></div>
+        <div class="bk-card"><span>B</span><span class="bk-card-label">buh</span></div>
+        <div class="bk-card"><span>D</span><span class="bk-card-label">duh</span></div>
+        <div class="bk-card"><span>R</span><span class="bk-card-label">rrr</span></div>
+      </div>
+    </div>
+    <div class="coach-overlay">
+      <div class="coach-row">
+        <div class="coach-avatar speaking">🦁</div>
+        <div class="speech-bubble">
+          <div class="sb-text">
+            <span class="sb-accent">Buh! Buh! Bee!</span><br>
+            Listen to the very beginning — what letter makes that sound?
+          </div>
+          <div class="wave-bars">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center; font-size:0.78rem; color:var(--muted); margin-top:12px;">Answer cards dimmed during speech — child listens first, then responds</p>
+</div>
+
+<!-- ===== CELEBRATION ===== -->
+<div id="tab-celebrate" class="screen">
+  <div class="phone-frame">
+    <div class="play-backdrop">
+      <div class="backdrop-question">What sound does 🐝 start with?</div>
+      <div class="backdrop-hero" style="border-color: var(--correct); background: #0d2a1a;">🐝</div>
+      <div class="backdrop-grid">
+        <div class="bk-card" style="opacity:0.35;">S</div>
+        <div class="bk-card" style="border-color: var(--correct); background: #0d2a1a;">
+          <span style="color:var(--correct); font-size:2.2rem; font-weight:900;">B</span>
+          <span class="bk-card-label" style="color:var(--correct);">buh ✓</span>
+        </div>
+        <div class="bk-card" style="opacity:0.35;">D</div>
+        <div class="bk-card" style="opacity:0.35;">R</div>
+      </div>
+    </div>
+    <div class="coach-overlay" style="background: linear-gradient(180deg, #12103a00 0%, #1a120aee 30%, #2a1800 100%);">
+      <div class="coach-row">
+        <div class="coach-avatar celebrating">🦁</div>
+        <div class="speech-bubble" style="border-color: rgba(255,209,102,0.3); background: #2a1800;">
+          <div class="sb-text">
+            <span class="sb-gold">✨ Buh-buh-bee! YES!</span><br>
+            B makes that sound — you heard it perfectly! <span style="font-size:1.1rem;">🎉</span>
+          </div>
+          <div class="wave-bars" style="margin-top:6px;">
+            <div class="wave-bar" style="background: var(--gold);"></div>
+            <div class="wave-bar" style="background: var(--gold);"></div>
+            <div class="wave-bar" style="background: var(--gold);"></div>
+            <div class="wave-bar" style="background: var(--gold);"></div>
+            <div class="wave-bar" style="background: var(--gold);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center; font-size:0.78rem; color:var(--muted); margin-top:12px;">Celebration: gold borders, avatar bounces/rotates, wave bars turn gold</p>
+</div>
+
+<!-- ===== WRONG SUPPORT ===== -->
+<div id="tab-support" class="screen">
+  <div class="phone-frame">
+    <div class="play-backdrop">
+      <div class="backdrop-question">What sound does 🐝 start with?</div>
+      <div class="backdrop-hero">🐝</div>
+      <div class="backdrop-grid">
+        <div class="bk-card" style="border-color: var(--wrong); background: #2a0e0e; color: var(--wrong);">
+          <span style="font-size:2.2rem; font-weight:900; color:var(--wrong);">S</span>
+        </div>
+        <div class="bk-card"><span>B</span><span class="bk-card-label">buh</span></div>
+        <div class="bk-card"><span>D</span><span class="bk-card-label">duh</span></div>
+        <div class="bk-card"><span>R</span><span class="bk-card-label">rrr</span></div>
+      </div>
+    </div>
+    <div class="coach-overlay">
+      <div class="coach-row">
+        <div class="coach-avatar supporting">🦁</div>
+        <div class="speech-bubble" style="border-color: rgba(155,114,255,0.25);">
+          <div class="sb-text">
+            Not quite — <span class="sb-accent">say "bee" slowly.</span><br>
+            What's the very first sound? Give it another try!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center; font-size:0.78rem; color:var(--muted); margin-top:12px;">Wrong support: coach looks encouraging, not disappointed. Violet border (not red).</p>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-voice-coach-overlay-v3 · Engineering Spec</h2>
+
+    <h3>Overlay Anatomy</h3>
+    <ul>
+      <li>Position: <code>position: absolute; bottom: 0;</code> — bottom sheet over play content</li>
+      <li>Background: gradient fade from transparent top to solid <code>#1a1440</code> bottom — plays content visible behind (blends, not occludes)</li>
+      <li>Height: auto, max ~200px, <code>padding: 20px 20px 24px</code></li>
+    </ul>
+
+    <h3>Coach States</h3>
+    <ul>
+      <li><span class="token tok-muted">Idle</span> 44px dot in bottom rail, <code>idle-pulse</code> ring animation, no overlay shown</li>
+      <li><span class="token tok-violet">Speaking</span> Overlay slides up, 56px avatar + speech bubble + wave bars, answer cards 35% opacity (listen mode)</li>
+      <li><span class="token tok-gold">Celebration</span> Gold border, <code>coach-celebrate</code> scale+rotate animation, gold wave bars, gold speech bubble tint</li>
+      <li><span class="token tok-muted">Wrong Support</span> Violet border (not red), encouraging tone, static avatar (not animated), other cards remain active</li>
+    </ul>
+
+    <h3>Wave Bars</h3>
+    <ul>
+      <li>5 bars, 4px wide, <code>wave-dance</code> keyframe using <code>--max-h</code> CSS var per bar</li>
+      <li>Each bar has staggered <code>animation-delay</code> for organic feel</li>
+      <li>Speaking state: green (<code>#50e890</code>)</li>
+      <li>Celebration state: gold (<code>#ffd166</code>)</li>
+      <li>Hidden when coach is not speaking</li>
+    </ul>
+
+    <h3>Listen Mode (During Speech)</h3>
+    <ul>
+      <li>Answer cards: <code>opacity: 0.35; pointer-events: none;</code> while coach speaks</li>
+      <li>Cards restore to full opacity + active when coach finishes</li>
+      <li>This prevents child from tapping an answer without hearing the question</li>
+    </ul>
+
+    <h3>Coach Personas (no visual change — same layout, different emoji + voice)</h3>
+    <ul>
+      <li>Coach Leo 🦁 — default, warm and encouraging</li>
+      <li>Buddy 🐧 — playful and silly</li>
+      <li>Whisper 🦉 — calm and soft-spoken</li>
+      <li>Zap 🤖 — enthusiastic and energetic</li>
+    </ul>
+
+    <h3>Auto-dismiss</h3>
+    <ul>
+      <li>Overlay stays visible while TTS is playing (tracked via audio event)</li>
+      <li>Auto-slides down when audio ends</li>
+      <li>Manual dismiss: tap outside overlay or tap avatar</li>
+      <li>Do NOT dismiss mid-speech if child taps a choice — wait for speech to end, then process tap</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

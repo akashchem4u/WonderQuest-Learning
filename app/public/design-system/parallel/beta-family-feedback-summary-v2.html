@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Family Feedback Summary — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px 16px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.7;max-width:1120px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ── Tab bar ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1120px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#50e890;color:#0d1117}
+.tab-btn:hover:not(.active){background:#eee}
+.screen{display:none;max-width:1120px}
+.screen.active{display:block}
+
+/* ── Dark shell ── */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:10px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-badge-amber{font-size:10px;font-weight:700;background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:2px 9px;letter-spacing:.04em}
+.sh-badge-owner{font-size:10px;font-weight:700;background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.2);border-radius:10px;padding:2px 9px;letter-spacing:.04em}
+.sh-sub{font-size:11px;color:rgba(255,255,255,.3)}
+.shell-body{padding:24px}
+
+/* ── Section label ── */
+.sec-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* ── Stat cards ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.stat-card{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:16px 18px}
+.sc-icon{font-size:18px;margin-bottom:8px}
+.sc-val{font-size:28px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:4px}
+.sc-val .sc-unit{font-size:14px;color:rgba(255,255,255,.35);font-weight:700}
+.sc-lbl{font-size:11px;color:#8b949e}
+.sc-sub{font-size:11px;color:#50e890;margin-top:4px;font-weight:600}
+
+/* ── Theme cards ── */
+.theme-list{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.theme-card{background:#161b22;border-radius:10px;border:1px solid rgba(255,255,255,.06);padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+.theme-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.dot-green{background:#50e890}
+.dot-amber{background:#f59e0b}
+.dot-violet{background:#a78bfa}
+.theme-body{flex:1}
+.theme-quote{font-size:13px;color:#f0f6ff;line-height:1.5;margin-bottom:6px}
+.theme-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;letter-spacing:.03em}
+.chip-positive{background:rgba(80,232,144,.12);color:#50e890;border:1px solid rgba(80,232,144,.2)}
+.chip-feature{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
+.chip-ux{background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}
+.chip-backlog{background:rgba(245,158,11,.08);color:#f59e0b;border:1px solid rgba(245,158,11,.15);font-style:italic}
+.chip-roadmap{background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.3)}
+
+/* ── Progress bars ── */
+.pbar-list{display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+.pbar-row{}
+.pbar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pbar-label{font-size:13px;color:#f0f6ff}
+.pbar-pct{font-size:12px;font-weight:700;color:#50e890}
+.pbar-track{height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#50e890,#3ecf78);transition:width .6s ease}
+.pbar-note{font-size:11px;color:#8b949e;margin-top:4px}
+
+/* ── Retention block ── */
+.retention-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.ret-card{background:#161b22;border-radius:10px;border:1px solid rgba(255,255,255,.06);padding:14px 18px}
+.ret-val{font-size:30px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:4px}
+.ret-lbl{font-size:11px;color:#8b949e}
+.ret-card.warn .ret-val{color:#f59e0b}
+.action-note{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 16px;font-size:12px;color:#f0c040;line-height:1.6}
+.action-note strong{color:#f59e0b}
+.drop-note{background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;font-size:12px;color:#8b949e;margin-bottom:12px;line-height:1.6}
+
+/* ── Tab 2 — Cohort breakdown ── */
+.cohort-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.cohort-card{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:18px 20px}
+.cohort-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.cohort-label{font-size:13px;font-weight:800;color:#f0f6ff}
+.cohort-size{font-size:11px;color:#8b949e}
+.cohort-badge-a{font-size:10px;font-weight:700;background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:2px 8px}
+.cohort-badge-b{font-size:10px;font-weight:700;background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.2);border-radius:8px;padding:2px 8px}
+.cohort-stat-row{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.cohort-stat{flex:1;min-width:80px}
+.cs-val{font-size:22px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:2px}
+.cs-lbl{font-size:10px;color:#8b949e}
+.cohort-theme{font-size:12px;color:#f0f6ff;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.5}
+.cohort-theme span{color:#8b949e;font-size:11px;display:block;margin-bottom:2px}
+.cohort-nps{display:flex;align-items:center;gap:6px}
+.nps-val{font-size:18px;font-weight:900;color:#50e890}
+.nps-lbl{font-size:11px;color:#8b949e}
+.cohort-card.warn-b .cs-val{color:#f59e0b}
+.cohort-insight{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18);border-radius:10px;padding:12px 16px;font-size:12px;color:#f0c040;line-height:1.7;margin-bottom:0}
+.cohort-insight strong{color:#f59e0b}
+
+/* ── Tab 3 — Spec ── */
+.spec-section{margin-bottom:24px}
+.spec-title{font-size:12px;font-weight:800;color:#f0f6ff;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.spec-title-icon{font-size:14px}
+.spec-row{display:flex;flex-direction:column;gap:6px}
+.spec-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.05)}
+.spec-key{font-size:11px;font-weight:700;color:#a78bfa;min-width:130px;flex-shrink:0;padding-top:1px}
+.spec-val{font-size:12px;color:#c9d1d9;line-height:1.6}
+.spec-val code{font-family:monospace;font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:#50e890}
+.divider{height:1px;background:rgba(255,255,255,.06);margin:20px 0}
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint">
+  <strong>ITEM 255</strong> · beta-family-feedback-summary-v2.html · WonderQuest parallel-agent build
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('summary')">Family Beta Summary</button>
+  <button class="tab-btn" onclick="showTab('cohort')">Cohort Breakdown</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — Family Beta Summary
+     ══════════════════════════════════════════ -->
+<div class="screen active" id="screen-summary">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">Family Beta Feedback — Week 3</div>
+        <div class="sh-badge-amber">BETA</div>
+        <div class="sh-badge-owner">OWNER ONLY</div>
+      </div>
+      <div class="sh-sub">24 family households · 31 children</div>
+    </div>
+    <div class="shell-body">
+
+      <!-- Section 1: Family stats -->
+      <div class="sec-lbl">Section 1 — Family Stats</div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-icon">🏠</div>
+          <div class="sc-val">24</div>
+          <div class="sc-lbl">Households</div>
+          <div class="sc-sub">Active this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon">💬</div>
+          <div class="sc-val">67</div>
+          <div class="sc-lbl">Feedback submitted</div>
+          <div class="sc-sub">Across all channels</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon">📊</div>
+          <div class="sc-val">+42</div>
+          <div class="sc-lbl">NPS proxy</div>
+          <div class="sc-sub" style="color:#50e890">&#x1F7E2; Positive</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon">⏱️</div>
+          <div class="sc-val">3.2 <span class="sc-unit">/ child</span></div>
+          <div class="sc-lbl">Weekly session avg</div>
+          <div class="sc-sub">Sessions per child</div>
+        </div>
+      </div>
+
+      <!-- Section 2: Parent sentiment -->
+      <div class="sec-lbl">Section 2 — Parent Sentiment · Key Themes</div>
+      <div class="theme-list">
+        <div class="theme-card">
+          <div class="theme-dot dot-green"></div>
+          <div class="theme-body">
+            <div class="theme-quote">"Easy to set up — parents love the onboarding"</div>
+            <div class="theme-meta">
+              <span class="chip chip-positive">Positive</span>
+            </div>
+          </div>
+        </div>
+        <div class="theme-card">
+          <div class="theme-dot dot-amber"></div>
+          <div class="theme-body">
+            <div class="theme-quote">"Want more subjects for older children (P3)"</div>
+            <div class="theme-meta">
+              <span class="chip chip-feature">Feature Request</span>
+            </div>
+          </div>
+        </div>
+        <div class="theme-card">
+          <div class="theme-dot dot-green"></div>
+          <div class="theme-body">
+            <div class="theme-quote">"Progress report helps me see what Emma is learning"</div>
+            <div class="theme-meta">
+              <span class="chip chip-positive">Positive</span>
+            </div>
+          </div>
+        </div>
+        <div class="theme-card">
+          <div class="theme-dot dot-amber"></div>
+          <div class="theme-body">
+            <div class="theme-quote">"Celebrations are a bit loud — want volume control"</div>
+            <div class="theme-meta">
+              <span class="chip chip-feature">Feature Request</span>
+              <span class="chip chip-backlog">Already in backlog</span>
+            </div>
+          </div>
+        </div>
+        <div class="theme-card">
+          <div class="theme-dot dot-violet"></div>
+          <div class="theme-body">
+            <div class="theme-quote">"Worried about screen time — want session length limits"</div>
+            <div class="theme-meta">
+              <span class="chip chip-ux">UX Concern</span>
+              <span class="chip chip-roadmap">In Roadmap</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Child experience -->
+      <div class="sec-lbl">Section 3 — Child Experience Feedback (as reported by parents)</div>
+      <div class="pbar-list">
+        <div class="pbar-row">
+          <div class="pbar-header">
+            <span class="pbar-label">"My child asks to play WonderQuest"</span>
+            <span class="pbar-pct">67% &nbsp;<span style="font-size:11px;color:#8b949e;font-weight:400">16/24 parents</span></span>
+          </div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:67%"></div></div>
+        </div>
+        <div class="pbar-row">
+          <div class="pbar-header">
+            <span class="pbar-label">"My child finds it challenging enough"</span>
+            <span class="pbar-pct">58% &nbsp;<span style="font-size:11px;color:#8b949e;font-weight:400">14/24 parents</span></span>
+          </div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:58%"></div></div>
+        </div>
+        <div class="pbar-row">
+          <div class="pbar-header">
+            <span class="pbar-label">"My child found quests fun"</span>
+            <span class="pbar-pct">88% &nbsp;<span style="font-size:11px;color:#8b949e;font-weight:400">21/24 parents</span></span>
+          </div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:88%"></div></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,.2);margin-bottom:28px;padding:0 2px">No individual child names shown. Percentages represent parent-reported responses.</div>
+
+      <!-- Section 4: Retention -->
+      <div class="sec-lbl">Section 4 — Retention Data</div>
+      <div class="retention-row">
+        <div class="ret-card">
+          <div class="ret-val">89%</div>
+          <div class="ret-lbl">W1 → W2 return rate</div>
+        </div>
+        <div class="ret-card warn">
+          <div class="ret-val">74%</div>
+          <div class="ret-lbl">W2 → W3 return rate</div>
+        </div>
+      </div>
+      <div class="drop-note">
+        Retention drop at week 3 — common pattern (mid-point fatigue). W2→W3 decline of 15 pp is within expected range for beta cohorts without mid-cycle engagement.
+      </div>
+      <div class="action-note">
+        <strong>Action taken:</strong> Week 3 re-engagement nudge sent to family cohort via push notification and parent email digest.
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — Cohort Breakdown
+     ══════════════════════════════════════════ -->
+<div class="screen" id="screen-cohort">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">Cohort Breakdown</div>
+        <div class="sh-badge-amber">BETA · WEEK 3</div>
+      </div>
+      <div class="sh-sub">2 cohorts · 24 households</div>
+    </div>
+    <div class="shell-body">
+
+      <div class="sec-lbl">Cohort-level metrics · n ≥ 10 required per cohort</div>
+      <div class="cohort-grid">
+
+        <!-- Cohort A -->
+        <div class="cohort-card">
+          <div class="cohort-hdr">
+            <span class="cohort-badge-a">COHORT A</span>
+            <span class="cohort-label">School-linked families</span>
+            <span class="cohort-size">14 households</span>
+          </div>
+          <div class="cohort-stat-row">
+            <div class="cohort-stat">
+              <div class="cs-val" style="color:#50e890">82%</div>
+              <div class="cs-lbl">W3 retention</div>
+            </div>
+            <div class="cohort-stat">
+              <div class="cs-val">+48</div>
+              <div class="cs-lbl">NPS proxy</div>
+            </div>
+          </div>
+          <div class="cohort-theme">
+            <span>Top theme</span>
+            "Want to see what teacher is doing"
+          </div>
+        </div>
+
+        <!-- Cohort B -->
+        <div class="cohort-card warn-b">
+          <div class="cohort-hdr">
+            <span class="cohort-badge-b">COHORT B</span>
+            <span class="cohort-label">Direct sign-up families</span>
+            <span class="cohort-size">10 households</span>
+          </div>
+          <div class="cohort-stat-row">
+            <div class="cohort-stat">
+              <div class="cs-val">60%</div>
+              <div class="cs-lbl">W3 retention</div>
+            </div>
+            <div class="cohort-stat">
+              <div class="cs-val">+33</div>
+              <div class="cs-lbl">NPS proxy</div>
+            </div>
+          </div>
+          <div class="cohort-theme">
+            <span>Top theme</span>
+            "Onboarding felt long"
+          </div>
+        </div>
+
+      </div>
+
+      <div class="cohort-insight">
+        <strong>Insight:</strong> Lower retention in Cohort B aligns with no teacher connection — families without classroom context need stronger home onboarding. A dedicated home-start onboarding variant is recommended before GA.
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — Spec
+     ══════════════════════════════════════════ -->
+<div class="screen" id="screen-spec">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">Spec</div>
+        <div class="sh-badge-owner">OWNER ONLY</div>
+      </div>
+      <div class="sh-sub">beta-family-feedback-summary-v2</div>
+    </div>
+    <div class="shell-body">
+
+      <!-- Privacy -->
+      <div class="spec-section">
+        <div class="spec-title"><span class="spec-title-icon">🔒</span> Privacy</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-key">Family names</span>
+            <span class="spec-val">No individual family names shown. Household identified by cohort label only (A / B) unless <code>tester_consent_to_name = true</code>.</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Child data</span>
+            <span class="spec-val">"As reported by parents" — not direct child measurement. No individual child performance data is stored or surfaced in this view.</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Cohort minimum</span>
+            <span class="spec-val">n = 10 required to show cohort-level metrics. Cohorts below threshold are suppressed entirely.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- NPS proxy -->
+      <div class="spec-section">
+        <div class="spec-title"><span class="spec-title-icon">📊</span> NPS Proxy</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-key">Send timing</span>
+            <span class="spec-val">Sent 24 h after each week's primary session. Suppressed if sent within the last 14 days.</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">Score bands</span>
+            <span class="spec-val">Promoter 9–10 &nbsp;·&nbsp; Passive 7–8 &nbsp;·&nbsp; Detractor 0–6</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- DB schema -->
+      <div class="spec-section">
+        <div class="spec-title"><span class="spec-title-icon">🗄️</span> Database</div>
+        <div class="spec-row">
+          <div class="spec-item">
+            <span class="spec-key">Table</span>
+            <span class="spec-val"><code>beta_family_summaries(week, cohort_label, households, feedback_count, nps_score, retention_rate, top_themes JSONB)</code></span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-key">GA visibility</span>
+            <span class="spec-val">Hidden after GA: <code>WHERE beta_phase_active = true</code></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('screen-' + t).classList.add('active');
+  var btns = document.querySelectorAll('.tab-btn');
+  var map = { summary: 0, cohort: 1, spec: 2 };
+  btns[map[t]].classList.add('active');
+}
+</script>
+</body>
+</html>

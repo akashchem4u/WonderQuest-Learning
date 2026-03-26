@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Empty State System v2</title>
+<style>
+  /* ── Design Tokens ── */
+  :root {
+    --bg:       #0d1117;
+    --card:     #161b22;
+    --accent:   #50e890;
+    --text:     #f0f6ff;
+    --muted:    #8b949e;
+    --border:   rgba(255,255,255,.06);
+    --p0:       #ffd166;
+    --p1:       #9b72ff;
+    --p2:       #58e8c1;
+    --p3:       #ff7b6b;
+    --teacher:  #38bdf8;
+    --parent:   #a78bfa;
+    --owner:    #50e890;
+    --radius:   12px;
+    --radius-sm:8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Engineering Hint Box ── */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #333;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .eng-hint strong { color: #7a5800; }
+
+  /* ── Layout ── */
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .page-header {
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .page-header p {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section Label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── Empty State Card (Adult) ── */
+  .es-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .es-icon-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    flex-shrink: 0;
+  }
+
+  .es-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .es-body {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 280px;
+  }
+
+  .es-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:hover { opacity: .85; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0d1117;
+  }
+  .btn-secondary {
+    background: rgba(80,232,144,.12);
+    color: var(--accent);
+    border: 1px solid rgba(80,232,144,.25);
+  }
+  .btn-muted {
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-teacher {
+    background: rgba(56,189,248,.12);
+    color: var(--teacher);
+    border: 1px solid rgba(56,189,248,.25);
+  }
+  .btn-owner {
+    background: rgba(80,232,144,.12);
+    color: var(--owner);
+    border: 1px solid rgba(80,232,144,.25);
+  }
+
+  /* ── Code pill / monospace ── */
+  .code-pill {
+    display: inline-block;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--p2);
+    letter-spacing: .04em;
+  }
+
+  /* ── Gallery Grid (Tab 1) ── */
+  .es-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .es-gallery { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 580px) { .es-gallery { grid-template-columns: 1fr; } }
+
+  /* ── Search Empty States Grid (Tab 2) ── */
+  .search-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 720px) { .search-grid { grid-template-columns: 1fr; } }
+
+  .search-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Bouncing magnifying glass */
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    40%       { transform: translateY(-10px); }
+    60%       { transform: translateY(-5px); }
+  }
+  .bounce-icon { animation: bounce 1.6s ease-in-out infinite; display: inline-block; font-size: 48px; }
+
+  .search-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .search-query-label {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .search-query-label span {
+    color: var(--text);
+    font-style: italic;
+  }
+
+  .spell-suggestion {
+    background: rgba(255,213,102,.08);
+    border: 1px solid rgba(255,213,102,.25);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--p0);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .spell-link {
+    color: var(--p0);
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .hint-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hint-list li {
+    font-size: 13px;
+    color: var(--muted);
+    padding-left: 16px;
+    position: relative;
+  }
+  .hint-list li::before {
+    content: '•';
+    position: absolute;
+    left: 4px;
+    color: var(--muted);
+  }
+
+  .recent-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .chip:hover { background: rgba(255,255,255,.1); color: var(--text); }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,213,102,.1);
+    border: 1px solid rgba(255,213,102,.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--p0);
+    font-weight: 500;
+  }
+  .filter-chip .remove {
+    cursor: pointer;
+    opacity: .7;
+    font-size: 13px;
+    line-height: 1;
+    transition: opacity .15s;
+  }
+  .filter-chip .remove:hover { opacity: 1; }
+
+  .filter-chip.p0 { background: rgba(255,213,102,.1); border-color: rgba(255,213,102,.3); color: var(--p0); }
+  .filter-chip.p3 { background: rgba(255,123,107,.1); border-color: rgba(255,123,107,.3); color: var(--p3); }
+
+  .date-range-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(88,232,193,.08);
+    border: 1px solid rgba(88,232,193,.2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--p2);
+    font-weight: 500;
+  }
+
+  .permission-lockout {
+    background: rgba(255,255,255,.03);
+    border: 1px dashed rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* ── Child Phone Frames (Tab 3) ── */
+  .child-frames-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1000px) { .child-frames-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 580px)  { .child-frames-grid { grid-template-columns: 1fr; } }
+
+  .phone-frame {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    background: #1c2230;
+    border-radius: 32px;
+    border: 3px solid rgba(255,255,255,.1);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+
+  .phone-notch {
+    height: 28px;
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .phone-notch-bar {
+    width: 60px;
+    height: 6px;
+    background: rgba(255,255,255,.15);
+    border-radius: 3px;
+  }
+
+  .phone-body {
+    padding: 20px 16px 28px;
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+  }
+
+  /* Sparkle animation */
+  @keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .3; transform: scale(.6); }
+  }
+  .sparkle-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sparkle-main { font-size: 52px; }
+  .sparkle-dot {
+    position: absolute;
+    font-size: 14px;
+    animation: sparkle 1.4s ease-in-out infinite;
+  }
+  .sparkle-dot:nth-child(2) { top: -8px;  right: -8px;  animation-delay: 0s; }
+  .sparkle-dot:nth-child(3) { top: -6px;  left: -10px;  animation-delay: .4s; }
+  .sparkle-dot:nth-child(4) { bottom: -4px; right: -12px; animation-delay: .8s; }
+
+  .child-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .child-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .child-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .btn-subject {
+    background: rgba(80,232,144,.15);
+    color: var(--accent);
+    border: 1px solid rgba(80,232,144,.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-subject:hover { background: rgba(80,232,144,.25); }
+
+  /* Badge silhouettes */
+  .mystery-badges {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 4px 0;
+  }
+  .mystery-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    border: 2px dashed rgba(255,255,255,.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    filter: blur(1px) grayscale(100%);
+    opacity: .4;
+  }
+
+  /* XP bar */
+  .xp-bar-wrap {
+    width: 100%;
+    background: rgba(255,255,255,.06);
+    border-radius: 20px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--p1), var(--accent));
+    border-radius: 20px;
+    width: 62%;
+    transition: width 1s ease;
+  }
+  .xp-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Spec Tab ── */
+  .spec-section {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .spec-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .spec-block-header {
+    padding: 14px 20px;
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .spec-block-header .tag {
+    background: rgba(80,232,144,.12);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .code-block {
+    padding: 20px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #a5d6a7;
+    background: rgba(0,0,0,.3);
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .code-kw   { color: #9b72ff; }
+  .code-str  { color: #ff7b6b; }
+  .code-type { color: #58e8c1; }
+  .code-cmt  { color: #556070; }
+
+  .guidelines-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .guidelines-table th {
+    background: rgba(255,255,255,.04);
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .guidelines-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .guidelines-table tr:last-child td { border-bottom: none; }
+  .guidelines-table td:first-child { color: var(--muted); white-space: nowrap; }
+  .guidelines-table td:nth-child(2) { color: var(--text); }
+  .guidelines-table td:nth-child(3) { color: var(--muted); }
+
+  .never-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+  }
+  .never-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(255,123,107,.05);
+    border: 1px solid rgba(255,123,107,.15);
+  }
+  .never-item .icon { color: var(--p3); font-size: 15px; }
+  .never-item .text { color: #f0c0bb; }
+
+  .do-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+  }
+  .do-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(80,232,144,.04);
+    border: 1px solid rgba(80,232,144,.15);
+  }
+  .do-item .icon { color: var(--accent); font-size: 15px; }
+  .do-item .text { color: #c0f0d8; }
+
+  .persona-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px;
+  }
+  .persona-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1.5px solid;
+  }
+  .persona-pill.child   { background: rgba(255,209,102,.1); border-color: var(--p0); color: var(--p0); }
+  .persona-pill.teacher { background: rgba(56,189,248,.1);  border-color: var(--teacher); color: var(--teacher); }
+  .persona-pill.parent  { background: rgba(167,139,250,.1); border-color: var(--parent); color: var(--parent); }
+  .persona-pill.owner   { background: rgba(80,232,144,.1);  border-color: var(--owner); color: var(--owner); }
+  .persona-pill.content { background: rgba(88,232,193,.1);  border-color: var(--p2); color: var(--p2); }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  /* Tooltip hint */
+  .sub-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Engineering Hint -->
+  <div class="eng-hint">
+    <strong>empty-state-system-v2.html</strong> — Empty state components. Shown when: table has 0 rows, list is empty, search returns 0 results, no notifications, no content yet. 3 categories: (1) First-Run empty (user hasn't set things up yet — encouraging, actionable), (2) Search/Filter empty (no results for query — suggests refinement), (3) No-data empty (data exists but period has no entries — factual, neutral). All adult empty states include a primary CTA. Child empty states use playful language and emoji. Never show 'No data' to children — use 'Nothing here yet, keep exploring!'.
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Empty State System</h1>
+    <p>UI patterns shown when lists, dashboards, or content areas have no data to display</p>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Empty State Gallery</button>
+    <button class="tab-btn" onclick="showTab(1)">Search Empty States</button>
+    <button class="tab-btn" onclick="showTab(2)">Child-Safe Empty States</button>
+    <button class="tab-btn" onclick="showTab(3)">Spec</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TAB 0 — Empty State Gallery
+  ═══════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-0">
+    <p class="section-label">6 variants · 2×3 grid · adult personas</p>
+
+    <div class="es-gallery">
+
+      <!-- 1. Review Queue Empty -->
+      <div class="es-card">
+        <div class="es-icon-circle" style="background:rgba(80,232,144,.1);">🎉</div>
+        <div class="es-title">You're all caught up!</div>
+        <div class="es-body">No items waiting for review. New content will appear here when submitted.</div>
+        <div class="es-actions">
+          <button class="btn btn-secondary">Browse Content Library</button>
+        </div>
+        <div class="sub-note">Context: teacher / content team</div>
+      </div>
+
+      <!-- 2. Notification Drawer Empty -->
+      <div class="es-card">
+        <div class="es-icon-circle" style="background:rgba(56,189,248,.1);">🔔</div>
+        <div class="es-title">No notifications</div>
+        <div class="es-body">You're up to date. We'll notify you of important updates here.</div>
+        <!-- No CTA — informational only -->
+        <div class="sub-note">Informational — no CTA</div>
+      </div>
+
+      <!-- 3. Student List Empty -->
+      <div class="es-card">
+        <div class="es-icon-circle" style="background:rgba(56,189,248,.12);">👥</div>
+        <div class="es-title">No students added yet</div>
+        <div class="es-body">Students will appear here once they join your class using your class code.</div>
+        <div class="es-actions">
+          <button class="btn btn-teacher">Copy Class Code</button>
+          <button class="btn btn-secondary">Invite Students</button>
+        </div>
+        <span class="code-pill">MR-4829</span>
+        <div class="sub-note">Class code · monospace pill</div>
+      </div>
+
+      <!-- 4. Intervention Queue Empty -->
+      <div class="es-card">
+        <div class="es-icon-circle" style="background:rgba(80,232,144,.1);">✅</div>
+        <div class="es-title">No active interventions</div>
+        <div class="es-body">All students are progressing well. Interventions are automatically suggested when patterns emerge.</div>
+        <div class="es-actions">
+          <button class="btn btn-secondary">View Class Analytics</button>
+        </div>
+      </div>
+
+      <!-- 5. Search Results Empty (compact) -->
+      <div class="es-card">
+        <div class="es-icon-circle" style="background:rgba(139,148,158,.1);">🔍</div>
+        <div class="es-title">No results found</div>
+        <div class="es-body">Try adjusting your search terms or filters.</div>
+        <div class="es-actions">
+          <button class="btn btn-muted">Clear Filters</button>
+        </div>
+        <div class="sub-note">See Tab 2 for full search patterns</div>
+      </div>
+
+      <!-- 6. Content Bundles Empty (Owner) -->
+      <div class="es-card">
+        <div class="es-icon-circle" style="background:rgba(80,232,144,.1);">📦</div>
+        <div class="es-title">No bundles yet</div>
+        <div class="es-body">Content bundles will appear here once the curriculum team creates them.</div>
+        <div class="es-actions">
+          <button class="btn btn-owner">View Content Pipeline</button>
+        </div>
+      </div>
+
+    </div><!-- /es-gallery -->
+  </div><!-- /tab-0 -->
+
+  <!-- ═══════════════════════════════════════════════
+       TAB 1 — Search Empty States
+  ═══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-1">
+    <p class="section-label">4 search-specific empty state patterns</p>
+
+    <div class="search-grid">
+
+      <!-- Global Search — No Results -->
+      <div class="search-card">
+        <div style="text-align:center; padding:8px 0;">
+          <span class="bounce-icon">🔍</span>
+        </div>
+        <div class="search-title" style="text-align:center;">No results for <span style="color:var(--muted); font-style:italic;">"fraxons"</span></div>
+
+        <div class="spell-suggestion">
+          <span>💡</span>
+          <span>Did you mean: <span class="spell-link">fractions</span>?</span>
+        </div>
+
+        <ul class="hint-list">
+          <li>Try shorter keywords</li>
+          <li>Check spelling or try a different term</li>
+          <li>Remove active filters to broaden results</li>
+        </ul>
+
+        <div>
+          <div class="sub-note" style="margin-bottom:8px;">Recent searches</div>
+          <div class="recent-chips">
+            <div class="chip">📚 multiplication</div>
+            <div class="chip">🔤 phonics</div>
+            <div class="chip">🧮 counting</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter-Applied Empty -->
+      <div class="search-card">
+        <div style="text-align:center; padding:4px 0;">
+          <span style="font-size:40px;">⚗️</span>
+        </div>
+        <div class="search-title" style="text-align:center;">No items match your current filters</div>
+
+        <div>
+          <div class="sub-note" style="margin-bottom:8px;">Active filters</div>
+          <div class="filter-chips">
+            <div class="filter-chip p0">P0 <span class="remove">×</span></div>
+            <div class="filter-chip p3">Blocked <span class="remove">×</span></div>
+          </div>
+        </div>
+
+        <div class="es-actions" style="justify-content:flex-start;">
+          <button class="btn btn-primary">Clear All Filters</button>
+          <button class="btn btn-muted">Adjust Filters</button>
+        </div>
+      </div>
+
+      <!-- Date Range Empty -->
+      <div class="search-card">
+        <div style="text-align:center; padding:4px 0;">
+          <span style="font-size:40px;">📅</span>
+        </div>
+        <div class="search-title" style="text-align:center;">No activity recorded in this period</div>
+
+        <div style="text-align:center;">
+          <div class="date-range-badge">
+            <span>📆</span>
+            <span>March 1 – March 7, 2026</span>
+          </div>
+        </div>
+
+        <div class="es-actions" style="flex-direction:column; align-items:flex-start;">
+          <button class="btn btn-secondary">↔ Try a wider date range</button>
+          <button class="btn btn-muted">View all time</button>
+        </div>
+      </div>
+
+      <!-- Permission-Filtered Empty -->
+      <div class="search-card">
+        <div style="text-align:center; padding:8px 0;">
+          <span style="font-size:48px;">🔒</span>
+        </div>
+        <div class="search-title" style="text-align:center;">No content available for your role</div>
+
+        <div class="permission-lockout">
+          Some items may be restricted to your current role.<br>
+          Contact your administrator to request access.
+        </div>
+
+        <!-- No CTA — permission issue -->
+        <div class="sub-note" style="text-align:center;">No CTA — permission issue requires admin action</div>
+      </div>
+
+    </div><!-- /search-grid -->
+  </div><!-- /tab-1 -->
+
+  <!-- ═══════════════════════════════════════════════
+       TAB 2 — Child-Safe Empty States
+  ═══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-2">
+    <p class="section-label">4 child-persona variants · phone frames · playful language · never negative framing</p>
+
+    <div class="child-frames-grid">
+
+      <!-- No Quests Available -->
+      <div>
+        <div class="sub-note" style="text-align:center; margin-bottom:10px;">No Quests Available</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-notch-bar"></div></div>
+          <div class="phone-body">
+            <div class="sparkle-wrap">
+              <span class="sparkle-main">🌟</span>
+              <span class="sparkle-dot">✨</span>
+              <span class="sparkle-dot">⭐</span>
+              <span class="sparkle-dot">💫</span>
+            </div>
+            <div class="child-title">More quests coming soon!</div>
+            <div class="child-body">You've completed everything for now — awesome job! ⭐</div>
+            <div class="child-body" style="font-size:12px;">Try exploring a different subject!</div>
+            <div class="child-cta-row">
+              <button class="btn-subject">Math</button>
+              <button class="btn-subject">Science</button>
+              <button class="btn-subject">ELA</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badge Collection Empty -->
+      <div>
+        <div class="sub-note" style="text-align:center; margin-bottom:10px;">Badge Collection Empty</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-notch-bar"></div></div>
+          <div class="phone-body">
+            <div style="font-size:48px;">🏅</div>
+            <div class="child-title">Your badge collection is waiting!</div>
+            <div class="child-body">Complete quests to earn your first badge!</div>
+            <div class="mystery-badges">
+              <div class="mystery-badge">🏆</div>
+              <div class="mystery-badge">🌈</div>
+              <div class="mystery-badge">🚀</div>
+            </div>
+            <div class="sub-note">Mystery badges unlock as you play</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Messages -->
+      <div>
+        <div class="sub-note" style="text-align:center; margin-bottom:10px;">No Messages</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-notch-bar"></div></div>
+          <div class="phone-body">
+            <div style="font-size:48px;">✉️</div>
+            <div class="child-title">No messages yet</div>
+            <div class="child-body">Your teacher may send you a message here!</div>
+            <!-- No CTA — children don't initiate messages to teachers -->
+            <div class="sub-note" style="margin-top:6px; font-size:11px; text-align:center;">No reply button — children don't initiate messages</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements — Nothing New -->
+      <div>
+        <div class="sub-note" style="text-align:center; margin-bottom:10px;">Achievements — Nothing New</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-notch-bar"></div></div>
+          <div class="phone-body">
+            <div style="font-size:48px;">🎯</div>
+            <div class="child-title">Keep playing to unlock more!</div>
+            <div class="child-body">You're so close to something amazing!</div>
+            <div style="width:100%; padding: 0 8px;">
+              <div class="xp-bar-wrap">
+                <div class="xp-bar-fill"></div>
+              </div>
+              <div class="xp-label" style="margin-top:5px; text-align:center;">120 XP away from your next level!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /child-frames-grid -->
+  </div><!-- /tab-2 -->
+
+  <!-- ═══════════════════════════════════════════════
+       TAB 3 — Spec
+  ═══════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-3">
+    <div class="spec-section">
+
+      <!-- Component Props -->
+      <div class="spec-block">
+        <div class="spec-block-header">
+          <span>EmptyStateProps</span>
+          <span class="tag">TypeScript</span>
+        </div>
+        <div class="code-block"><span class="code-kw">interface</span> <span class="code-type">EmptyStateProps</span> {
+  icon:         <span class="code-type">string</span>           <span class="code-cmt">// emoji character</span>
+  iconBg?:      <span class="code-type">string</span>           <span class="code-cmt">// CSS color for icon circle bg</span>
+  title:        <span class="code-type">string</span>           <span class="code-cmt">// headline text</span>
+  body:         <span class="code-type">string</span>           <span class="code-cmt">// supporting description</span>
+  cta?: {
+    label:      <span class="code-type">string</span>
+    action:     <span class="code-type">string</span>           <span class="code-cmt">// route or callback name</span>
+    variant:    <span class="code-str">'primary'</span> | <span class="code-str">'secondary'</span>
+  }
+  secondaryCta?: {
+    label:      <span class="code-type">string</span>
+    action:     <span class="code-type">string</span>
+  }
+  persona:      <span class="code-str">'child'</span> | <span class="code-str">'teacher'</span> | <span class="code-str">'parent'</span> | <span class="code-str">'owner'</span> | <span class="code-str">'content'</span>
+  animated?:    <span class="code-type">boolean</span>          <span class="code-cmt">// enables icon animation</span>
+}</div>
+      </div>
+
+      <!-- Category Reference -->
+      <div class="spec-block">
+        <div class="spec-block-header">
+          <span>Empty State Categories</span>
+          <span class="tag">3 types</span>
+        </div>
+        <table class="guidelines-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>When shown</th>
+              <th>Tone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>First-Run</td>
+              <td>User hasn't set things up yet. No data has ever existed.</td>
+              <td>Encouraging, actionable. Explain what will appear and how to start.</td>
+            </tr>
+            <tr>
+              <td>Search / Filter</td>
+              <td>Query or filter combination returns 0 results.</td>
+              <td>Neutral, helpful. Always provide a clear escape hatch (clear filters).</td>
+            </tr>
+            <tr>
+              <td>No-Data</td>
+              <td>Data exists in other periods but this period has no entries.</td>
+              <td>Factual, neutral. Show the period, suggest widening scope.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Copy Guidelines -->
+      <div class="spec-block">
+        <div class="spec-block-header">
+          <span>Copy Guidelines by Persona</span>
+          <span class="tag">Writing rules</span>
+        </div>
+        <table class="guidelines-table">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Tone &amp; pattern</th>
+              <th>Example title</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Adult (all)</td>
+              <td>Factual + actionable. "No [items]" + reason + next step.</td>
+              <td>"No students added yet"</td>
+            </tr>
+            <tr>
+              <td>Child</td>
+              <td>Celebratory / encouraging. Never "empty" / "no data" / "nothing".</td>
+              <td>"More quests coming soon!"</td>
+            </tr>
+            <tr>
+              <td>First-Run</td>
+              <td>Explain what will appear here when data exists.</td>
+              <td>"Students will appear here once they join…"</td>
+            </tr>
+            <tr>
+              <td>Search empty</td>
+              <td>Always include a "clear filters" escape hatch. Show spell-check if applicable.</td>
+              <td>"No results for 'fraxons'"</td>
+            </tr>
+            <tr>
+              <td>Permission</td>
+              <td>No CTA. Explain restriction, point to administrator.</td>
+              <td>"No content available for your role"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Never Do -->
+      <div class="spec-block">
+        <div class="spec-block-header">
+          <span>Never Do</span>
+          <span class="tag" style="background:rgba(255,123,107,.12); color:var(--p3);">Forbidden</span>
+        </div>
+        <div class="never-list">
+          <div class="never-item">
+            <span class="icon">✗</span>
+            <span class="text">Never use "Error loading data" in an empty state — that belongs in an error state component.</span>
+          </div>
+          <div class="never-item">
+            <span class="icon">✗</span>
+            <span class="text">Never show "No data" or bare null states to children — use positive framing always.</span>
+          </div>
+          <div class="never-item">
+            <span class="icon">✗</span>
+            <span class="text">Never show financial data, school admin context, or intervention labels in child-facing empty states.</span>
+          </div>
+          <div class="never-item">
+            <span class="icon">✗</span>
+            <span class="text">Never show a message reply / compose CTA in child messaging empty states.</span>
+          </div>
+          <div class="never-item">
+            <span class="icon">✗</span>
+            <span class="text">Never leave a search empty state without an escape hatch (clear filters, broaden date, etc.).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Always Do -->
+      <div class="spec-block">
+        <div class="spec-block-header">
+          <span>Always Do</span>
+          <span class="tag">Required</span>
+        </div>
+        <div class="do-list">
+          <div class="do-item">
+            <span class="icon">✓</span>
+            <span class="text">All adult empty states include a primary CTA (unless permission-blocked or purely informational).</span>
+          </div>
+          <div class="do-item">
+            <span class="icon">✓</span>
+            <span class="text">Icon circle uses a soft background matching the persona color — never a hard-filled circle.</span>
+          </div>
+          <div class="do-item">
+            <span class="icon">✓</span>
+            <span class="text">First-run empty states explain what will appear once data exists.</span>
+          </div>
+          <div class="do-item">
+            <span class="icon">✓</span>
+            <span class="text">Child empty states always use emoji, encouraging language, and positive framing.</span>
+          </div>
+          <div class="do-item">
+            <span class="icon">✓</span>
+            <span class="text">Use <code style="background:rgba(255,255,255,.06); padding:1px 6px; border-radius:4px; font-family:monospace; font-size:12px;">animated: true</code> for child empty states to improve delight.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Persona Color Reference -->
+      <div class="spec-block">
+        <div class="spec-block-header">
+          <span>Persona Color Reference</span>
+          <span class="tag">Tokens</span>
+        </div>
+        <div class="persona-pills">
+          <div class="persona-pill child">child — #ffd166</div>
+          <div class="persona-pill teacher">teacher — #38bdf8</div>
+          <div class="persona-pill parent">parent — #a78bfa</div>
+          <div class="persona-pill owner">owner — #50e890</div>
+          <div class="persona-pill content">content — #58e8c1</div>
+        </div>
+      </div>
+
+    </div><!-- /spec-section -->
+  </div><!-- /tab-3 -->
+
+</div><!-- /page-wrap -->
+
+<script>
+  function showTab(index) {
+    document.querySelectorAll('.tab-panel').forEach(function(panel, i) {
+      panel.classList.toggle('active', i === index);
+    });
+    document.querySelectorAll('.tab-btn').forEach(function(btn, i) {
+      btn.classList.toggle('active', i === index);
+    });
+  }
+</script>
+</body>
+</html>

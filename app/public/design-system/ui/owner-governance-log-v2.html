@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Governance Log v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#0d1117;color:#e2e8f0;min-height:100vh}
+  nav{background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;padding:0 24px;height:56px;gap:16px}
+  nav .logo{font-weight:700;font-size:17px;color:#ffd166}
+  nav .subtitle{font-size:13px;color:#8b949e}
+  nav .spacer{flex:1}
+  .nav-actions{display:flex;gap:10px;align-items:center}
+  .nav-badge{background:#21262d;border:1px solid #30363d;color:#8b949e;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+  .nav-badge.warn{background:rgba(192,120,0,.2);border-color:rgba(192,120,0,.4);color:#fbbf24}
+  .nav-btn{background:#21262d;border:1px solid #30363d;color:#e2e8f0;padding:6px 14px;border-radius:6px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;font-weight:500}
+  .nav-btn.primary{background:#ffd166;color:#0d1117;border-color:#ffd166;font-weight:700}
+  .tabs{display:flex;background:#161b22;border-bottom:1px solid #21262d;overflow-x:auto;padding:0 24px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:14px 18px;font-size:13px;font-weight:600;color:#8b949e;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;font-family:'Sora',sans-serif}
+  .tab.active{color:#ffd166;border-bottom-color:#ffd166}
+  .tab:hover:not(.active){color:#e2e8f0}
+  .panel{display:none;padding:28px;max-width:1000px;margin:0 auto}
+  .panel.active{display:block}
+  .hint{background:#1a1400;border:1.5px solid #ffd166;border-radius:10px;padding:10px 16px;font-size:11px;color:#ffd166;margin-bottom:24px;line-height:1.6}
+  .hint strong{font-weight:700}
+  .hint span{opacity:.7;font-weight:400}
+
+  /* Log layout */
+  .log-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .log-title{font-size:20px;font-weight:700;color:#e2e8f0}
+  .immutable-badge{background:rgba(88,232,193,.12);border:1px solid rgba(88,232,193,.3);color:#58e8c1;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700}
+  .spacer{flex:1}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .filter-chip{background:#161b22;border:1px solid #30363d;color:#8b949e;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:500;transition:all .15s}
+  .filter-chip.active{background:#ffd166;color:#0d1117;border-color:#ffd166;font-weight:700}
+  .filter-chip:hover:not(.active){border-color:#8b949e;color:#e2e8f0}
+
+  /* Log entry */
+  .log-entry{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:18px;margin-bottom:12px;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:start;transition:border-color .15s}
+  .log-entry:hover{border-color:#30363d}
+  .log-entry.pinned{border-color:rgba(255,209,102,.25);background:rgba(255,209,102,.04)}
+  .log-left{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:50px}
+  .log-date{font-size:11px;color:#8b949e;text-align:center;line-height:1.3}
+  .log-dot{width:10px;height:10px;border-radius:50%;margin:4px 0;flex-shrink:0}
+  .log-time{font-size:10px;color:#6e7681;text-align:center}
+  .log-body{flex:1}
+  .log-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .type-chip{padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap}
+  .type-decision{background:rgba(155,114,255,.2);color:#9b72ff;border:1px solid rgba(155,114,255,.3)}
+  .type-config{background:rgba(96,165,250,.2);color:#60a5fa;border:1px solid rgba(96,165,250,.3)}
+  .type-publish{background:rgba(88,232,193,.2);color:#58e8c1;border:1px solid rgba(88,232,193,.3)}
+  .type-rollback{background:rgba(248,113,113,.2);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+  .type-policy{background:rgba(255,209,102,.2);color:#ffd166;border:1px solid rgba(255,209,102,.3)}
+  .log-title-text{font-size:14px;font-weight:600;color:#e2e8f0}
+  .log-desc{font-size:13px;color:#8b949e;line-height:1.5;margin-bottom:10px}
+  .log-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .meta-pill{font-size:11px;color:#8b949e;display:flex;align-items:center;gap:4px}
+  .meta-pill strong{color:#c9d1d9}
+  .log-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .log-link{font-size:11px;color:#58a6ff;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px}
+  .log-link:hover{text-decoration:underline}
+  .seq-num{font-size:10px;color:#6e7681;font-weight:600}
+
+  /* Section headers */
+  .section-label{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.08em;padding:10px 0;border-bottom:1px solid #21262d;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .section-count{background:#21262d;color:#8b949e;padding:1px 8px;border-radius:10px;font-size:10px}
+
+  /* Detail view */
+  .detail-wrap{max-width:700px}
+  .detail-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:22px;margin-bottom:18px}
+  .detail-card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+  .detail-card-title{font-size:17px;font-weight:700;color:#e2e8f0;flex:1;line-height:1.4}
+  .detail-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .detail-meta-item{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 14px}
+  .detail-meta-label{font-size:10px;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .detail-meta-value{font-size:14px;font-weight:600;color:#e2e8f0}
+  .detail-section-title{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .desc-block{font-size:13px;color:#c9d1d9;line-height:1.6;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px}
+  .immutable-notice{background:rgba(88,232,193,.06);border:1px solid rgba(88,232,193,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:#58e8c1;display:flex;align-items:center;gap:8px;margin-top:16px}
+
+  /* Stats strip */
+  .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .stat-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:14px}
+  .stat-num{font-size:22px;font-weight:700;color:#ffd166;margin-bottom:4px}
+  .stat-label{font-size:12px;color:#8b949e}
+
+  /* Spec table */
+  .spec-table{width:100%;border-collapse:collapse;font-size:13px}
+  .spec-table th{text-align:left;padding:10px 14px;background:#161b22;color:#8b949e;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #21262d}
+  .spec-table td{padding:10px 14px;border-bottom:1px solid #21262d;color:#c9d1d9;vertical-align:top}
+  .spec-table tr:last-child td{border-bottom:none}
+  .spec-table td:first-child{color:#ffd166;font-weight:600;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">WonderQuest</div>
+  <div class="subtitle">Owner · Governance Log</div>
+  <div class="spacer"></div>
+  <div class="nav-actions">
+    <div class="nav-badge">217 entries</div>
+    <div class="nav-badge warn">Append-only</div>
+    <button class="nav-btn primary">+ New Entry</button>
+  </div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('gov-log')">Governance Log</div>
+  <div class="tab" onclick="show('decisions')">Decision Entries</div>
+  <div class="tab" onclick="show('config-changes')">Config Changes</div>
+  <div class="tab" onclick="show('publish-approvals')">Publish Approvals</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Governance Log (all types) -->
+<div class="panel active" id="gov-log">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/governance/log?type={decision|config|publish|rollback|policy}&page=1 · POST /owner/governance/log · GET /owner/governance/log/:id · (No DELETE or PATCH — append-only)</span>
+  </div>
+
+  <div class="log-header">
+    <div class="log-title">Governance Log</div>
+    <div class="immutable-badge">🔒 Append-only · No edits or deletions</div>
+    <div class="spacer"></div>
+    <div style="font-size:13px;color:#8b949e">217 entries · Last: 2 hours ago</div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-num">42</div>
+      <div class="stat-label">Decisions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">89</div>
+      <div class="stat-label">Config Changes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">71</div>
+      <div class="stat-label">Publish Approvals</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">15</div>
+      <div class="stat-label">Rollbacks</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-chip active">All Types</div>
+    <div class="filter-chip">Decision</div>
+    <div class="filter-chip">Config</div>
+    <div class="filter-chip">Publish</div>
+    <div class="filter-chip">Rollback</div>
+    <div class="filter-chip">Policy</div>
+  </div>
+
+  <div class="section-label">Today <div class="section-count">4</div></div>
+
+  <div class="log-entry pinned">
+    <div class="log-left">
+      <div class="log-date">Mar 23<br>2026</div>
+      <div class="log-dot" style="background:#9b72ff"></div>
+      <div class="log-time">11:42 AM</div>
+    </div>
+    <div class="log-body">
+      <div class="log-top">
+        <div class="type-chip type-decision">Decision</div>
+        <div class="log-title-text">Approve adaptive difficulty curve rollout to all P0 learners</div>
+      </div>
+      <div class="log-desc">After reviewing 3-week beta data showing 18% improvement in session completion, approved full rollout of adaptive difficulty v2 to all band P0 learners effective April 1. Rollout gated by content health score ≥ 85%.</div>
+      <div class="log-meta">
+        <div class="meta-pill"><strong>Author:</strong> R. Chen</div>
+        <div class="meta-pill"><strong>Reviewers:</strong> J. Kim, A. Patel</div>
+        <div class="meta-pill"><strong>Ref:</strong> WQ-D-042</div>
+      </div>
+    </div>
+    <div class="log-right">
+      <div class="seq-num">#217</div>
+      <div class="log-link">📄 View</div>
+    </div>
+  </div>
+
+  <div class="log-entry">
+    <div class="log-left">
+      <div class="log-date">Mar 23<br>2026</div>
+      <div class="log-dot" style="background:#60a5fa"></div>
+      <div class="log-time">9:15 AM</div>
+    </div>
+    <div class="log-body">
+      <div class="log-top">
+        <div class="type-chip type-config">Config Change</div>
+        <div class="log-title-text">Increase session timeout from 20m to 30m for teacher dashboard</div>
+      </div>
+      <div class="log-desc">Updated idle session timeout config for teacher-scoped tokens. Rationale: teachers frequently leave dashboard open during class without interaction. Logged by M. Okafor per request from 3 beta teachers.</div>
+      <div class="log-meta">
+        <div class="meta-pill"><strong>Author:</strong> M. Okafor</div>
+        <div class="meta-pill"><strong>Service:</strong> auth-service</div>
+        <div class="meta-pill"><strong>Ref:</strong> WQ-C-089</div>
+      </div>
+    </div>
+    <div class="log-right">
+      <div class="seq-num">#216</div>
+      <div class="log-link">📄 View</div>
+    </div>
+  </div>
+
+  <div class="log-entry">
+    <div class="log-left">
+      <div class="log-date">Mar 23<br>2026</div>
+      <div class="log-dot" style="background:#58e8c1"></div>
+      <div class="log-time">8:02 AM</div>
+    </div>
+    <div class="log-body">
+      <div class="log-top">
+        <div class="type-chip type-publish">Publish Approval</div>
+        <div class="log-title-text">Approve 18 new P1 word-builder questions for production</div>
+      </div>
+      <div class="log-desc">Content batch WQ-CB-071 reviewed and approved. 18 word-builder questions for band P1 (Grade K-1). All audio scripts reviewed, answer keys verified, no placeholder content detected.</div>
+      <div class="log-meta">
+        <div class="meta-pill"><strong>Approved by:</strong> T. Reyes</div>
+        <div class="meta-pill"><strong>Batch:</strong> WQ-CB-071</div>
+        <div class="meta-pill"><strong>Questions:</strong> 18</div>
+      </div>
+    </div>
+    <div class="log-right">
+      <div class="seq-num">#215</div>
+      <div class="log-link">📄 View</div>
+    </div>
+  </div>
+
+  <div class="log-entry">
+    <div class="log-left">
+      <div class="log-date">Mar 23<br>2026</div>
+      <div class="log-dot" style="background:#f87171"></div>
+      <div class="log-time">1:30 AM</div>
+    </div>
+    <div class="log-body">
+      <div class="log-top">
+        <div class="type-chip type-rollback">Rollback</div>
+        <div class="log-title-text">Rollback voice-coach-bridge v1.4.2 → v1.4.1</div>
+      </div>
+      <div class="log-desc">Automatic rollback triggered after latency spike on voice coach service detected at 1:28 AM. v1.4.2 introduced AVAudioSession changes causing 800ms+ delays. Rolled back to stable v1.4.1 pending hotfix.</div>
+      <div class="log-meta">
+        <div class="meta-pill"><strong>Triggered by:</strong> Alert WQ-A-038 (auto)</div>
+        <div class="meta-pill"><strong>Service:</strong> voice-coach-bridge</div>
+        <div class="meta-pill"><strong>Duration:</strong> 12 min impact</div>
+      </div>
+    </div>
+    <div class="log-right">
+      <div class="seq-num">#214</div>
+      <div class="log-link">📄 View</div>
+    </div>
+  </div>
+
+  <div class="section-label">Mar 22, 2026 <div class="section-count">6</div></div>
+
+  <div class="log-entry">
+    <div class="log-left">
+      <div class="log-date">Mar 22<br>2026</div>
+      <div class="log-dot" style="background:#ffd166"></div>
+      <div class="log-time">4:45 PM</div>
+    </div>
+    <div class="log-body">
+      <div class="log-top">
+        <div class="type-chip type-policy">Policy</div>
+        <div class="log-title-text">Update data retention policy: learner session logs now 18-month limit</div>
+      </div>
+      <div class="log-desc">Revised learner session log retention from 24 months to 18 months per legal review. Automated purge job scheduled monthly. Applies to all audience tiers. Effective April 1, 2026.</div>
+      <div class="log-meta">
+        <div class="meta-pill"><strong>Author:</strong> R. Chen</div>
+        <div class="meta-pill"><strong>Legal ref:</strong> LGL-2026-011</div>
+      </div>
+    </div>
+    <div class="log-right">
+      <div class="seq-num">#213</div>
+      <div class="log-link">📄 View</div>
+    </div>
+  </div>
+
+  <div class="log-entry">
+    <div class="log-left">
+      <div class="log-date">Mar 22<br>2026</div>
+      <div class="log-dot" style="background:#58e8c1"></div>
+      <div class="log-time">2:10 PM</div>
+    </div>
+    <div class="log-body">
+      <div class="log-top">
+        <div class="type-chip type-publish">Publish Approval</div>
+        <div class="log-title-text">Approve PreK shape scene content batch WQ-CB-070</div>
+      </div>
+      <div class="log-desc">14 PreK shape identification questions approved. Shapes: circle, square, triangle, star. All hint trace animations reviewed. Audio script warm and age-appropriate. No shame language detected.</div>
+      <div class="log-meta">
+        <div class="meta-pill"><strong>Approved by:</strong> L. Santos</div>
+        <div class="meta-pill"><strong>Batch:</strong> WQ-CB-070</div>
+        <div class="meta-pill"><strong>Questions:</strong> 14</div>
+      </div>
+    </div>
+    <div class="log-right">
+      <div class="seq-num">#212</div>
+      <div class="log-link">📄 View</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Decision Entries -->
+<div class="panel" id="decisions">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/governance/log?type=decision · GET /owner/governance/log/:id · POST /owner/governance/log (type: "decision") · GET /owner/governance/log?ref=WQ-D-*</span>
+  </div>
+
+  <div class="log-header">
+    <div class="log-title">Decision Entries</div>
+    <div class="immutable-badge">🔒 Append-only</div>
+    <div class="spacer"></div>
+    <div style="font-size:13px;color:#8b949e">42 decisions logged</div>
+  </div>
+
+  <div style="max-width:700px">
+    <div class="detail-wrap">
+      <!-- Expanded decision entry -->
+      <div class="detail-card">
+        <div class="detail-card-header">
+          <div class="type-chip type-decision">Decision</div>
+          <div class="detail-card-title">Approve adaptive difficulty curve rollout to all P0 learners</div>
+        </div>
+        <div class="detail-meta-grid">
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Reference</div>
+            <div class="detail-meta-value">WQ-D-042</div>
+          </div>
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Author</div>
+            <div class="detail-meta-value">R. Chen</div>
+          </div>
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Date</div>
+            <div class="detail-meta-value">Mar 23, 2026 · 11:42 AM</div>
+          </div>
+          <div class="detail-meta-item">
+            <div class="detail-meta-label">Reviewers</div>
+            <div class="detail-meta-value">J. Kim, A. Patel</div>
+          </div>
+        </div>
+        <div class="detail-section-title">Decision Body</div>
+        <div class="desc-block">After reviewing 3-week beta data (n=124 learners) showing 18% improvement in session completion rate and 11% increase in next-session return rate, we approve full rollout of adaptive difficulty v2 to all band P0 learners effective April 1, 2026. Rollout is gated by content health score ≥ 85% at time of deploy. Monitoring window: 2 weeks post-rollout. Rollback trigger: session completion rate drops more than 5% vs. prior 2-week baseline.</div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <div style="font-size:12px;color:#8b949e">Related roadmap item:</div>
+          <div style="font-size:12px;color:#58a6ff;cursor:pointer">WQ-047 — Adaptive difficulty curve v2 →</div>
+        </div>
+        <div class="immutable-notice">🔒 This entry is immutable. No edits or deletions permitted. Seq #217.</div>
+      </div>
+
+      <!-- List of other decisions -->
+      <div class="log-entry">
+        <div class="log-left">
+          <div class="log-date">Mar 18<br>2026</div>
+          <div class="log-dot" style="background:#9b72ff"></div>
+        </div>
+        <div class="log-body">
+          <div class="log-top">
+            <div class="type-chip type-decision">Decision</div>
+            <div class="log-title-text">Adopt SNS (Signal·Nurture·Strength) tier model for teacher view</div>
+          </div>
+          <div class="log-desc">Replaced previous accuracy-percentage model with three-tier SNS system. Approved by product and pedagogy leads. Effective immediately for all teacher-facing views.</div>
+          <div class="log-meta">
+            <div class="meta-pill"><strong>Ref:</strong> WQ-D-041</div>
+            <div class="meta-pill"><strong>Author:</strong> R. Chen</div>
+          </div>
+        </div>
+        <div class="log-right">
+          <div class="seq-num">#198</div>
+          <div class="log-link">📄 View</div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-left">
+          <div class="log-date">Mar 10<br>2026</div>
+          <div class="log-dot" style="background:#9b72ff"></div>
+        </div>
+        <div class="log-body">
+          <div class="log-top">
+            <div class="type-chip type-decision">Decision</div>
+            <div class="log-title-text">No grade labels permitted in child-facing UI</div>
+          </div>
+          <div class="log-desc">Formal decision: child UI shall use band labels (P0–P3) only, never grade equivalents or age markers. No timers, no shame framing. This decision is permanent and not subject to A/B testing.</div>
+          <div class="log-meta">
+            <div class="meta-pill"><strong>Ref:</strong> WQ-D-038</div>
+            <div class="meta-pill"><strong>Author:</strong> R. Chen</div>
+          </div>
+        </div>
+        <div class="log-right">
+          <div class="seq-num">#183</div>
+          <div class="log-link">📄 View</div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-left">
+          <div class="log-date">Feb 28<br>2026</div>
+          <div class="log-dot" style="background:#9b72ff"></div>
+        </div>
+        <div class="log-body">
+          <div class="log-top">
+            <div class="type-chip type-decision">Decision</div>
+            <div class="log-title-text">Contact-safe messaging: all parent-teacher messages routed through WonderQuest</div>
+          </div>
+          <div class="log-desc">No PII exposure. Teachers and parents communicate only via WonderQuest message layer. Direct email or phone not offered on platform. Reviewed by legal.</div>
+          <div class="log-meta">
+            <div class="meta-pill"><strong>Ref:</strong> WQ-D-031</div>
+            <div class="meta-pill"><strong>Author:</strong> R. Chen</div>
+            <div class="meta-pill"><strong>Legal ref:</strong> LGL-2026-008</div>
+          </div>
+        </div>
+        <div class="log-right">
+          <div class="seq-num">#162</div>
+          <div class="log-link">📄 View</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Config Changes -->
+<div class="panel" id="config-changes">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/governance/log?type=config · POST /owner/governance/log (type: "config") · GET /owner/governance/config-diff/:id · GET /owner/governance/log?service={auth|content|voice|session}</span>
+  </div>
+
+  <div class="log-header">
+    <div class="log-title">Config Changes</div>
+    <div class="immutable-badge">🔒 Append-only</div>
+    <div class="spacer"></div>
+    <div style="font-size:13px;color:#8b949e">89 config changes · All audited</div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-chip active">All Services</div>
+    <div class="filter-chip">auth-service</div>
+    <div class="filter-chip">content-api</div>
+    <div class="filter-chip">voice-coach</div>
+    <div class="filter-chip">session-service</div>
+    <div class="filter-chip">notification</div>
+  </div>
+
+  <div style="max-width:800px">
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 23<br>2026</div>
+        <div class="log-dot" style="background:#60a5fa"></div>
+        <div class="log-time">9:15 AM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-config">Config Change</div>
+          <div class="log-title-text">auth-service: session_timeout_teacher 20m → 30m</div>
+        </div>
+        <div class="log-desc">Idle session timeout for teacher-scoped tokens extended from 20 minutes to 30 minutes. Effective immediately. Rationale: teacher UX feedback from 3 beta classrooms.</div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px 14px;font-size:12px;font-family:'Courier New',monospace;color:#c9d1d9;margin:10px 0">
+          <span style="color:#f87171">- session_timeout_teacher: 1200</span><br>
+          <span style="color:#4ade80">+ session_timeout_teacher: 1800</span>
+        </div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Author:</strong> M. Okafor</div>
+          <div class="meta-pill"><strong>Service:</strong> auth-service</div>
+          <div class="meta-pill"><strong>Ref:</strong> WQ-C-089</div>
+          <div class="meta-pill"><strong>Env:</strong> prod</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#216</div>
+        <div class="log-link">📄 Diff</div>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 20<br>2026</div>
+        <div class="log-dot" style="background:#60a5fa"></div>
+        <div class="log-time">3:30 PM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-config">Config Change</div>
+          <div class="log-title-text">content-api: max_batch_size 50 → 25 (publish safety)</div>
+        </div>
+        <div class="log-desc">Reduced publish batch limit from 50 to 25 questions after batch WQ-CB-068 caused a 3s delay in content indexing. Temporary cap pending content pipeline optimization.</div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px 14px;font-size:12px;font-family:'Courier New',monospace;color:#c9d1d9;margin:10px 0">
+          <span style="color:#f87171">- publish_batch_max: 50</span><br>
+          <span style="color:#4ade80">+ publish_batch_max: 25</span>
+        </div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Author:</strong> T. Reyes</div>
+          <div class="meta-pill"><strong>Service:</strong> content-api</div>
+          <div class="meta-pill"><strong>Ref:</strong> WQ-C-088</div>
+          <div class="meta-pill"><strong>Env:</strong> prod</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#211</div>
+        <div class="log-link">📄 Diff</div>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 15<br>2026</div>
+        <div class="log-dot" style="background:#60a5fa"></div>
+        <div class="log-time">11:00 AM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-config">Config Change</div>
+          <div class="log-title-text">notification: parent_quiet_hours_default 9PM–7AM → 8PM–7AM</div>
+        </div>
+        <div class="log-desc">Default quiet hours for parent notifications updated based on user research showing parents prefer earlier cutoff. Opt-in to custom hours unaffected.</div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px 14px;font-size:12px;font-family:'Courier New',monospace;color:#c9d1d9;margin:10px 0">
+          <span style="color:#f87171">- quiet_start: "21:00"</span><br>
+          <span style="color:#4ade80">+ quiet_start: "20:00"</span>
+        </div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Author:</strong> L. Santos</div>
+          <div class="meta-pill"><strong>Service:</strong> notification</div>
+          <div class="meta-pill"><strong>Ref:</strong> WQ-C-085</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#204</div>
+        <div class="log-link">📄 Diff</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Publish Approvals -->
+<div class="panel" id="publish-approvals">
+  <div class="hint">
+    <strong>API Routes:</strong> <span>GET /owner/governance/log?type=publish · POST /owner/governance/log (type: "publish") · GET /owner/content/batches/:id/approval · GET /owner/governance/log?approver=:userId</span>
+  </div>
+
+  <div class="log-header">
+    <div class="log-title">Publish Approvals</div>
+    <div class="immutable-badge">🔒 Append-only</div>
+    <div class="spacer"></div>
+    <div style="font-size:13px;color:#8b949e">71 batches approved · 1,247 questions total</div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-num">71</div>
+      <div class="stat-label">Batches Approved</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">1,247</div>
+      <div class="stat-label">Questions Published</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Batches Rejected</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Rollbacks</div>
+    </div>
+  </div>
+
+  <div style="max-width:800px">
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 23<br>2026</div>
+        <div class="log-dot" style="background:#58e8c1"></div>
+        <div class="log-time">8:02 AM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-publish">Publish Approval</div>
+          <div class="log-title-text">Batch WQ-CB-071 — 18 P1 word-builder questions</div>
+        </div>
+        <div class="log-desc">Band P1 (K-1 learners), word builder format. Audio scripts verified, answer keys confirmed correct, no placeholder content detected by automated check. Age-appropriate language reviewed by T. Reyes.</div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Approved by:</strong> T. Reyes</div>
+          <div class="meta-pill"><strong>Batch:</strong> WQ-CB-071</div>
+          <div class="meta-pill"><strong>Questions:</strong> 18</div>
+          <div class="meta-pill"><strong>Band:</strong> P1</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#215</div>
+        <div class="log-link">📄 View</div>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 22<br>2026</div>
+        <div class="log-dot" style="background:#58e8c1"></div>
+        <div class="log-time">2:10 PM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-publish">Publish Approval</div>
+          <div class="log-title-text">Batch WQ-CB-070 — 14 PreK shape scene questions</div>
+        </div>
+        <div class="log-desc">Band P0, shape identification. Circle, square, triangle, star. Hint trace animations reviewed. Audio warm and age-appropriate. No shame language detected. Approved by L. Santos.</div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Approved by:</strong> L. Santos</div>
+          <div class="meta-pill"><strong>Batch:</strong> WQ-CB-070</div>
+          <div class="meta-pill"><strong>Questions:</strong> 14</div>
+          <div class="meta-pill"><strong>Band:</strong> P0</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#212</div>
+        <div class="log-link">📄 View</div>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 20<br>2026</div>
+        <div class="log-dot" style="background:#f87171"></div>
+        <div class="log-time">4:45 PM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-rollback" style="background:rgba(248,113,113,.2);color:#f87171;border-color:rgba(248,113,113,.3)">Rejected</div>
+          <div class="log-title-text">Batch WQ-CB-069 REJECTED — P2 phonics questions</div>
+        </div>
+        <div class="log-desc">Batch rejected: 3 questions contained placeholder audio ("TBD_AUDIO"), and 2 answer keys had formatting errors. Returned to content team for revision. Resubmit as WQ-CB-069R.</div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Rejected by:</strong> T. Reyes</div>
+          <div class="meta-pill"><strong>Batch:</strong> WQ-CB-069</div>
+          <div class="meta-pill"><strong>Issues:</strong> 5 errors</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#208</div>
+        <div class="log-link">📄 View</div>
+      </div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-left">
+        <div class="log-date">Mar 18<br>2026</div>
+        <div class="log-dot" style="background:#58e8c1"></div>
+        <div class="log-time">10:30 AM</div>
+      </div>
+      <div class="log-body">
+        <div class="log-top">
+          <div class="type-chip type-publish">Publish Approval</div>
+          <div class="log-title-text">Batch WQ-CB-068 — 22 P2 counting scene questions</div>
+        </div>
+        <div class="log-desc">Band P2, counting and number recognition. Range 1-20. All images reviewed. Emoji + text answer cards verified. Streak-safe framing confirmed throughout.</div>
+        <div class="log-meta">
+          <div class="meta-pill"><strong>Approved by:</strong> L. Santos</div>
+          <div class="meta-pill"><strong>Batch:</strong> WQ-CB-068</div>
+          <div class="meta-pill"><strong>Questions:</strong> 22</div>
+          <div class="meta-pill"><strong>Band:</strong> P2</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="seq-num">#200</div>
+        <div class="log-link">📄 View</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="panel" id="spec">
+  <div class="hint">
+    <strong>File:</strong> <span>owner-governance-log-v2.html · Desktop 900px+ · Owner audience · #0d1117 bg · #ffd166 gold · Sora font</span>
+  </div>
+  <div style="max-width:800px">
+    <div style="font-size:18px;font-weight:700;color:#e2e8f0;margin-bottom:20px">Spec — Owner Governance Log v2</div>
+    <table class="spec-table">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Audience</td><td>Owner / Operator</td></tr>
+        <tr><td>Layout</td><td>Desktop 900px+ · Append-only log list</td></tr>
+        <tr><td>Font</td><td>Sora (Google Fonts CDN)</td></tr>
+        <tr><td>Background</td><td>#0d1117</td></tr>
+        <tr><td>Accent</td><td>#ffd166 (gold)</td></tr>
+        <tr><td>Nav</td><td>#161b22 · 56px height · "Append-only" badge always visible</td></tr>
+        <tr><td>Entry types</td><td>Decision (purple) · Config Change (blue) · Publish Approval (mint) · Rollback (red) · Policy (gold)</td></tr>
+        <tr><td>Immutability</td><td>No DELETE or PATCH on log entries · POST only · UI shows "🔒 Append-only" badge</td></tr>
+        <tr><td>Log fields</td><td>Seq number, type chip, title, description, author, date/time, ref ID, related link, service (for config)</td></tr>
+        <tr><td>Config entries</td><td>Show inline diff (old/new values in red/green) with monospace font</td></tr>
+        <tr><td>Publish entries</td><td>Show batch ID, question count, band, approver, rejection reason if rejected</td></tr>
+        <tr><td>Tabs</td><td>Governance Log · Decision Entries · Config Changes · Publish Approvals · Spec</td></tr>
+        <tr><td>Hint box</td><td>bg #1a1400, border #ffd166, lists API routes</td></tr>
+        <tr><td>Rules</td><td>No PII in log entries · Author by name only · Contact-safe messaging throughout</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

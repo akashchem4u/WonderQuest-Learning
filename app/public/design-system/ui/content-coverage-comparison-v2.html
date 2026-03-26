@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest Content Admin — Coverage Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #d0dce8; min-height: 100vh; }
+  nav { background: #0a1018; border-bottom: 1px solid #1e2d3d; color: #d0dce8; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-size: 20px; font-weight: 700; color: #58c8f0; }
+  nav .sub { font-size: 12px; color: #5a7a8a; margin-top: 2px; }
+  .tabs { display: flex; background: #0a1018; border-bottom: 1px solid #1e2d3d; padding: 0 28px; }
+  .tab { padding: 13px 18px; font-size: 13px; font-weight: 600; color: #445566; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .tab.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .panel { display: none; padding: 24px 28px; max-width: 1100px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; font-size: 12.5px; color: #ffd166; line-height: 1.5; }
+  h2 { font-size: 20px; font-weight: 700; color: #58c8f0; margin-bottom: 6px; }
+  h3 { font-size: 15px; font-weight: 600; color: #90c8e0; margin-bottom: 10px; }
+  p { font-size: 13px; line-height: 1.6; color: #6688a0; margin-bottom: 14px; }
+  .band-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .band-card { background: #0d1520; border-radius: 12px; padding: 16px; border: 1px solid #1e2d3d; }
+  .band-card .band-label { font-size: 11px; font-weight: 700; color: #58c8f0; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .band-card .pct { font-size: 26px; font-weight: 700; color: #58c8f0; }
+  .band-card .lbl { font-size: 11px; color: #445566; margin-top: 3px; }
+  .band-card .bar-w { background: #10161e; border-radius: 20px; height: 6px; margin-top: 10px; }
+  .band-card .bar { height: 6px; border-radius: 20px; background: #58c8f0; }
+  .chart-card { background: #0d1520; border-radius: 14px; padding: 22px; border: 1px solid #1e2d3d; margin-bottom: 18px; }
+  .chart-card h3 { margin-bottom: 14px; }
+  .coverage-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .cov-skill { font-size: 12px; color: #90c8e0; width: 130px; flex-shrink: 0; }
+  .cov-bar-w { flex: 1; background: #10161e; border-radius: 20px; height: 10px; position: relative; }
+  .cov-bar { height: 10px; border-radius: 20px; }
+  .cov-pct { font-size: 12px; font-weight: 700; color: #58c8f0; width: 40px; text-align: right; }
+  .heat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 16px; }
+  .heat-header { grid-column: 1/-1; display: grid; grid-template-columns: 140px repeat(4, 1fr); gap: 4px; margin-bottom: 4px; }
+  .heat-col-label { font-size: 10px; font-weight: 700; color: #58c8f0; text-align: center; }
+  .heat-row { display: contents; }
+  .heat-label { font-size: 11px; color: #6688a0; display: flex; align-items: center; }
+  .heat-cell { height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .heat-table { width: 100%; border-collapse: separate; border-spacing: 4px; }
+  .heat-table th { font-size: 11px; font-weight: 700; color: #58c8f0; text-align: center; padding: 6px 4px; }
+  .heat-table td { height: 28px; border-radius: 4px; text-align: center; font-size: 10px; font-weight: 700; vertical-align: middle; }
+  .heat-table td.skill-name { text-align: left; font-size: 11px; color: #6688a0; font-weight: 400; padding-left: 4px; border-radius: 0; }
+  .h-high { background: #0e4a5e; color: #58c8f0; }
+  .h-med { background: #1e3a48; color: #4aa8c8; }
+  .h-low { background: #1e2838; color: #3a7090; }
+  .h-none { background: #141c24; color: #2a4050; }
+  .delta-table-wrap { background: #0d1520; border-radius: 14px; overflow: hidden; border: 1px solid #1e2d3d; margin-bottom: 18px; }
+  .delta-table-wrap table { width: 100%; border-collapse: collapse; }
+  .delta-table-wrap th { padding: 11px 16px; font-size: 11px; font-weight: 700; color: #445566; text-align: left; border-bottom: 1px solid #1e2d3d; text-transform: uppercase; letter-spacing: 0.7px; }
+  .delta-table-wrap td { padding: 10px 16px; font-size: 12.5px; color: #90c8e0; border-bottom: 1px solid #0d1520; }
+  .delta-table-wrap tr:last-child td { border-bottom: none; }
+  .delta-add { color: #3dba82; font-weight: 700; }
+  .delta-remove { color: #e05555; font-weight: 700; }
+  .delta-neu { color: #778899; }
+  svg { display: block; }
+  .chart-label { font-size: 10.5px; fill: #445566; font-family: 'Sora', sans-serif; }
+  .chart-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #556677; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec-table td { padding: 9px 12px; border-bottom: 1px solid #1e2d3d; vertical-align: top; color: #90c8e0; }
+  .spec-table td:first-child { font-weight: 600; color: #58c8f0; width: 35%; }
+</style>
+</head>
+<body>
+<nav>
+  <div>
+    <div class="logo">WonderQuest</div>
+    <div class="sub">Content Coverage Comparison</div>
+  </div>
+  <div style="font-size:12px;color:#445566;">Week 12 · Spring 2026 · Content Admin</div>
+</nav>
+<div class="tabs">
+  <div class="tab active" onclick="show('bandcov')">Band Coverage</div>
+  <div class="tab" onclick="show('heatmap')">Gap Heatmap</div>
+  <div class="tab" onclick="show('delta')">Delta View</div>
+  <div class="tab" onclick="show('velocity')">Coverage Velocity</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<div id="bandcov" class="panel active">
+  <div class="hint">Coverage shows how many skill/question slots are filled vs total required per band. Target: 100% coverage before each band ships to students.</div>
+  <h2>4-Band Coverage Comparison</h2>
+  <p>Side-by-side coverage across P0–P3 bands as of March 23, 2026.</p>
+
+  <div class="band-grid">
+    <div class="band-card">
+      <div class="band-label">P0 Core</div>
+      <div class="pct">96%</div>
+      <div class="lbl">288 / 300 slots filled</div>
+      <div class="bar-w"><div class="bar" style="width:96%"></div></div>
+    </div>
+    <div class="band-card">
+      <div class="band-label">P1 Expand</div>
+      <div class="pct">83%</div>
+      <div class="lbl">415 / 500 slots filled</div>
+      <div class="bar-w"><div class="bar" style="width:83%"></div></div>
+    </div>
+    <div class="band-card">
+      <div class="band-label">P2 Depth</div>
+      <div class="pct">64%</div>
+      <div class="lbl">384 / 600 slots filled</div>
+      <div class="bar-w"><div class="bar" style="width:64%;background:#3a9ab8;"></div></div>
+    </div>
+    <div class="band-card">
+      <div class="band-label">P3 Stretch</div>
+      <div class="pct">41%</div>
+      <div class="lbl">164 / 400 slots filled</div>
+      <div class="bar-w"><div class="bar" style="width:41%;background:#2a6880;"></div></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Coverage by Skill Category (P0 Band)</h3>
+    <div class="coverage-row"><div class="cov-skill">Phonics</div><div class="cov-bar-w"><div class="cov-bar" style="width:100%;background:#58c8f0;"></div></div><div class="cov-pct">100%</div></div>
+    <div class="coverage-row"><div class="cov-skill">Comprehension</div><div class="cov-bar-w"><div class="cov-bar" style="width:98%;background:#58c8f0;"></div></div><div class="cov-pct">98%</div></div>
+    <div class="coverage-row"><div class="cov-skill">Number Sense</div><div class="cov-bar-w"><div class="cov-bar" style="width:96%;background:#58c8f0;"></div></div><div class="cov-pct">96%</div></div>
+    <div class="coverage-row"><div class="cov-skill">Addition</div><div class="cov-bar-w"><div class="cov-bar" style="width:94%;background:#58c8f0;"></div></div><div class="cov-pct">94%</div></div>
+    <div class="coverage-row"><div class="cov-skill">Vocabulary</div><div class="cov-bar-w"><div class="cov-bar" style="width:90%;background:#3a9ab8;"></div></div><div class="cov-pct">90%</div></div>
+    <div class="coverage-row"><div class="cov-skill">Word Problems</div><div class="cov-bar-w"><div class="cov-bar" style="width:82%;background:#2a7890;"></div></div><div class="cov-pct">82%</div></div>
+    <div class="coverage-row"><div class="cov-skill">Science Basics</div><div class="cov-bar-w"><div class="cov-bar" style="width:70%;background:#1e5870;"></div></div><div class="cov-pct">70%</div></div>
+  </div>
+</div>
+
+<div id="heatmap" class="panel">
+  <div class="hint">The gap heatmap shows coverage density per skill × band combination. Dark = low coverage, bright = high coverage. Compare this week vs last week.</div>
+  <h2>Skill Gap Heatmap</h2>
+  <p>Coverage density this week (W12) vs last week (W11). Values are % of slots filled per skill × band cell.</p>
+
+  <div class="chart-card">
+    <h3>This Week (W12)</h3>
+    <table class="heat-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Skill</th>
+          <th>P0</th><th>P1</th><th>P2</th><th>P3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="skill-name">Phonics</td><td class="h-high">100%</td><td class="h-high">92%</td><td class="h-med">71%</td><td class="h-low">48%</td></tr>
+        <tr><td class="skill-name">Comprehension</td><td class="h-high">98%</td><td class="h-high">88%</td><td class="h-med">66%</td><td class="h-low">44%</td></tr>
+        <tr><td class="skill-name">Vocabulary</td><td class="h-high">90%</td><td class="h-med">80%</td><td class="h-med">60%</td><td class="h-low">35%</td></tr>
+        <tr><td class="skill-name">Number Sense</td><td class="h-high">96%</td><td class="h-med">82%</td><td class="h-med">64%</td><td class="h-low">42%</td></tr>
+        <tr><td class="skill-name">Addition</td><td class="h-high">94%</td><td class="h-med">78%</td><td class="h-low">54%</td><td class="h-low">30%</td></tr>
+        <tr><td class="skill-name">Word Problems</td><td class="h-med">82%</td><td class="h-low">60%</td><td class="h-low">38%</td><td class="h-none">18%</td></tr>
+        <tr><td class="skill-name">Science Basics</td><td class="h-med">70%</td><td class="h-low">50%</td><td class="h-none">28%</td><td class="h-none">12%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="chart-card">
+    <h3>Last Week (W11) — for comparison</h3>
+    <table class="heat-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Skill</th>
+          <th>P0</th><th>P1</th><th>P2</th><th>P3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="skill-name">Phonics</td><td class="h-high">98%</td><td class="h-high">88%</td><td class="h-med">66%</td><td class="h-low">40%</td></tr>
+        <tr><td class="skill-name">Comprehension</td><td class="h-high">96%</td><td class="h-med">84%</td><td class="h-med">60%</td><td class="h-low">38%</td></tr>
+        <tr><td class="skill-name">Vocabulary</td><td class="h-med">88%</td><td class="h-med">76%</td><td class="h-low">54%</td><td class="h-low">30%</td></tr>
+        <tr><td class="skill-name">Number Sense</td><td class="h-high">92%</td><td class="h-med">78%</td><td class="h-low">58%</td><td class="h-low">36%</td></tr>
+        <tr><td class="skill-name">Addition</td><td class="h-high">90%</td><td class="h-med">72%</td><td class="h-low">48%</td><td class="h-none">24%</td></tr>
+        <tr><td class="skill-name">Word Problems</td><td class="h-med">76%</td><td class="h-low">52%</td><td class="h-low">30%</td><td class="h-none">14%</td></tr>
+        <tr><td class="skill-name">Science Basics</td><td class="h-low">62%</td><td class="h-low">42%</td><td class="h-none">20%</td><td class="h-none">8%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="delta" class="panel">
+  <div class="hint">Delta view shows questions added or removed this week vs last. All net-positive weeks contribute to coverage velocity.</div>
+  <h2>Added / Removed This Week</h2>
+  <p>Content changes between W11 and W12 — March 16–22 vs March 23, 2026.</p>
+
+  <div class="delta-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Skill</th>
+          <th>Band</th>
+          <th>Added</th>
+          <th>Removed</th>
+          <th>Net</th>
+          <th>Coverage Δ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Phonics</td><td>P0</td><td class="delta-add">+4</td><td>0</td><td class="delta-add">+4</td><td class="delta-add">+2%</td></tr>
+        <tr><td>Phonics</td><td>P1</td><td class="delta-add">+8</td><td>0</td><td class="delta-add">+8</td><td class="delta-add">+4%</td></tr>
+        <tr><td>Word Problems</td><td>P0</td><td class="delta-add">+12</td><td class="delta-remove">−2</td><td class="delta-add">+10</td><td class="delta-add">+6%</td></tr>
+        <tr><td>Science Basics</td><td>P0</td><td class="delta-add">+16</td><td>0</td><td class="delta-add">+16</td><td class="delta-add">+8%</td></tr>
+        <tr><td>Addition</td><td>P2</td><td class="delta-add">+10</td><td class="delta-remove">−4</td><td class="delta-add">+6</td><td class="delta-add">+4%</td></tr>
+        <tr><td>Vocabulary</td><td>P1</td><td class="delta-add">+6</td><td>0</td><td class="delta-add">+6</td><td class="delta-add">+4%</td></tr>
+        <tr><td>Number Sense</td><td>P2</td><td class="delta-add">+8</td><td class="delta-remove">−2</td><td class="delta-add">+6</td><td class="delta-add">+6%</td></tr>
+        <tr><td>Comprehension</td><td>P3</td><td class="delta-add">+4</td><td class="delta-remove">−2</td><td class="delta-add">+2</td><td class="delta-add">+2%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:12px;color:#445566;">This week: 68 questions added, 10 removed. Net: +58 questions across all bands.</p>
+</div>
+
+<div id="velocity" class="panel">
+  <div class="hint">Coverage velocity shows how fast each band's coverage is growing week-over-week. Higher velocity bands are tracking toward full coverage sooner.</div>
+  <h2>Coverage Velocity</h2>
+  <p>Weekly coverage gain (percentage points) per band over 8 weeks.</p>
+
+  <div class="chart-card">
+    <h3>Coverage % Over 8 Weeks — All Bands</h3>
+    <svg width="100%" height="200" viewBox="0 0 580 200">
+      <line x1="60" y1="20" x2="560" y2="20" stroke="#1e2d3d" stroke-width="1"/>
+      <line x1="60" y1="60" x2="560" y2="60" stroke="#1e2d3d" stroke-width="1"/>
+      <line x1="60" y1="100" x2="560" y2="100" stroke="#1e2d3d" stroke-width="1"/>
+      <line x1="60" y1="140" x2="560" y2="140" stroke="#1e2d3d" stroke-width="1"/>
+      <line x1="60" y1="180" x2="560" y2="180" stroke="#1e2d3d" stroke-width="1"/>
+      <text x="52" y="24" class="chart-label" text-anchor="end">100%</text>
+      <text x="52" y="64" class="chart-label" text-anchor="end">80%</text>
+      <text x="52" y="104" class="chart-label" text-anchor="end">60%</text>
+      <text x="52" y="144" class="chart-label" text-anchor="end">40%</text>
+      <text x="52" y="184" class="chart-label" text-anchor="end">20%</text>
+      <text x="60" y="198" class="chart-label" text-anchor="middle">W1</text>
+      <text x="130" y="198" class="chart-label" text-anchor="middle">W2</text>
+      <text x="200" y="198" class="chart-label" text-anchor="middle">W3</text>
+      <text x="270" y="198" class="chart-label" text-anchor="middle">W4</text>
+      <text x="340" y="198" class="chart-label" text-anchor="middle">W5</text>
+      <text x="410" y="198" class="chart-label" text-anchor="middle">W6</text>
+      <text x="480" y="198" class="chart-label" text-anchor="middle">W7</text>
+      <text x="550" y="198" class="chart-label" text-anchor="middle">W8</text>
+      <!-- P0: 70→80→85→88→92→93→94→96 -->
+      <polyline class="chart-line" stroke="#58c8f0" points="60,140 130,100 200,80 270,68 340,48 410,44 480,40 550,32"/>
+      <!-- P1: 50→58→64→70→74→78→81→83 -->
+      <polyline class="chart-line" stroke="#3aaccc" stroke-dasharray="5,3" points="60,180 130,156 200,136 270,116 340,108 410,96 480,84 550,80"/>
+      <!-- P2: 30→38→44→50→54→58→62→64 -->
+      <polyline class="chart-line" stroke="#2890aa" stroke-dasharray="4,4" points="60,220 130,200 200,188 270,174 340,166 410,158 480,148 550,144"/>
+      <!-- P3: 18→22→26→30→34→36→38→41 -->
+      <polyline class="chart-line" stroke="#1c6888" stroke-dasharray="3,4" points="60,237 130,229 200,222 270,216 340,210 410,207 480,204 550,200"/>
+      <circle cx="550" cy="32" r="4" fill="#58c8f0"/>
+      <circle cx="550" cy="80" r="4" fill="#3aaccc"/>
+      <circle cx="550" cy="144" r="4" fill="#2890aa"/>
+      <circle cx="550" cy="200" r="4" fill="#1c6888"/>
+    </svg>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#58c8f0"></div>P0 (96%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3aaccc"></div>P1 (83%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2890aa"></div>P2 (64%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1c6888"></div>P3 (41%)</div>
+    </div>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <h2>Spec Reference</h2>
+  <table class="spec-table">
+    <tr><td>File</td><td>content-coverage-comparison-v2.html</td></tr>
+    <tr><td>Audience</td><td>Content Admin</td></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#10161e</td></tr>
+    <tr><td>Accent</td><td>#58c8f0 (cyan)</td></tr>
+    <tr><td>Tabs</td><td>Band Coverage / Gap Heatmap / Delta View / Coverage Velocity / Spec</td></tr>
+    <tr><td>Key features</td><td>4-band coverage bars, heatmap tables (W12 vs W11), added/removed question delta table, SVG velocity chart</td></tr>
+    <tr><td>Bands</td><td>P0 / P1 / P2 / P3</td></tr>
+    <tr><td>Version</td><td>v2 — 2026-03-23</td></tr>
+  </table>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['bandcov','heatmap','delta','velocity','spec'].indexOf(id);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue Reproduction Helper — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #10161e; color: #e8edf3; min-height: 100vh; max-width: 375px; margin: 0 auto; }
+  .tab-bar { display: flex; background: #161e28; border-bottom: 1px solid #1e2d3d; overflow-x: auto; }
+  .tab-btn { flex: 1; min-width: 90px; padding: 12px 6px; background: none; border: none; color: #6a8aa0; font-family: 'Sora', sans-serif; font-size: 10px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .page { padding: 20px 16px 40px; }
+
+  .page-title { font-size: 18px; font-weight: 700; color: #e8edf3; margin-bottom: 4px; }
+  .page-sub { font-size: 12px; color: #6a8aa0; margin-bottom: 20px; }
+
+  .hint-box { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
+  .hint-label { font-size: 10px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .hint-box p { font-size: 12px; color: #e8c84a; line-height: 1.6; }
+
+  .field-label { font-size: 11px; font-weight: 600; color: #6a8aa0; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
+
+  input[type="text"], select, textarea {
+    width: 100%; background: #161e28; border: 1.5px solid #1e2d3d; border-radius: 10px;
+    padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 13px; color: #e8edf3;
+    outline: none; transition: border-color 0.2s; margin-bottom: 16px;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus { border-color: #58c8f0; }
+  select option { background: #161e28; }
+  textarea { resize: vertical; min-height: 80px; }
+  ::placeholder { color: #3a5568; }
+
+  /* Severity row */
+  .severity-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .sev-btn { padding: 10px 4px; border-radius: 10px; border: 1.5px solid #1e2d3d; background: #161e28; cursor: pointer; text-align: center; transition: all 0.2s; font-family: 'Sora', sans-serif; }
+  .sev-dot { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 5px; }
+  .sev-name { font-size: 10px; font-weight: 600; color: #6a8aa0; }
+  .sev-btn.sel-low { border-color: #6cc96c; background: rgba(108,201,108,0.08); }
+  .sev-btn.sel-low .sev-name { color: #6cc96c; }
+  .sev-btn.sel-med { border-color: #ffd166; background: rgba(255,209,102,0.08); }
+  .sev-btn.sel-med .sev-name { color: #ffd166; }
+  .sev-btn.sel-high { border-color: #ff8c42; background: rgba(255,140,66,0.08); }
+  .sev-btn.sel-high .sev-name { color: #ff8c42; }
+  .sev-btn.sel-blocker { border-color: #ff5e5e; background: rgba(255,94,94,0.08); }
+  .sev-btn.sel-blocker .sev-name { color: #ff5e5e; }
+
+  /* Yes/No */
+  .yn-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .yn-btn { flex: 1; padding: 12px; border-radius: 10px; border: 1.5px solid #1e2d3d; background: #161e28; cursor: pointer; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; color: #6a8aa0; transition: all 0.2s; }
+  .yn-btn.yes { border-color: #6cc96c; color: #6cc96c; background: rgba(108,201,108,0.08); }
+  .yn-btn.no { border-color: #ff5e5e; color: #ff5e5e; background: rgba(255,94,94,0.08); }
+
+  .submit-btn { width: 100%; background: linear-gradient(135deg, #58c8f0, #3aa0c8); border: none; border-radius: 12px; padding: 16px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #10161e; cursor: pointer; margin-top: 8px; }
+
+  /* Steps Builder */
+  .steps-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .step-item { display: flex; align-items: flex-start; gap: 10px; }
+  .step-num-badge { width: 28px; height: 28px; border-radius: 50%; background: rgba(88,200,240,0.15); border: 1px solid rgba(88,200,240,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #58c8f0; flex-shrink: 0; margin-top: 10px; }
+  .step-input { flex: 1; }
+  .step-input input { margin-bottom: 0; }
+  .step-remove { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,94,94,0.1); border: 1px solid rgba(255,94,94,0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #ff5e5e; cursor: pointer; flex-shrink: 0; margin-top: 10px; line-height: 1; }
+  .add-step-btn { display: flex; align-items: center; gap: 8px; background: none; border: 1.5px dashed #1e2d3d; border-radius: 10px; padding: 12px 16px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; color: #6a8aa0; cursor: pointer; width: 100%; transition: all 0.2s; margin-bottom: 16px; }
+  .add-step-btn:hover { border-color: #58c8f0; color: #58c8f0; }
+
+  /* Expected vs Actual */
+  .compare-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+  .compare-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .compare-icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .exp-icon { background: rgba(108,201,108,0.15); }
+  .act-icon { background: rgba(255,94,94,0.15); }
+  .exp-label { color: #6cc96c; }
+  .act-label { color: #ff5e5e; }
+  .compare-text { font-size: 12px; color: #c8d8e8; line-height: 1.5; }
+
+  /* Screenshot note */
+  .screenshot-note { background: #161e28; border: 1.5px dashed #1e2d3d; border-radius: 10px; padding: 20px 16px; text-align: center; margin-bottom: 16px; cursor: pointer; transition: all 0.2s; }
+  .screenshot-note:hover { border-color: #58c8f0; }
+  .screenshot-note-icon { font-size: 28px; margin-bottom: 8px; }
+  .screenshot-note-text { font-size: 12px; color: #6a8aa0; }
+  .screenshot-note-sub { font-size: 11px; color: #3a5568; margin-top: 4px; }
+
+  /* Submitted */
+  .confirm-card { background: #161e28; border: 1px solid #1e2d3d; border-radius: 16px; padding: 32px 20px; text-align: center; margin-bottom: 20px; }
+  .confirm-icon { font-size: 48px; margin-bottom: 16px; }
+  .confirm-title { font-size: 18px; font-weight: 700; color: #58c8f0; margin-bottom: 8px; }
+  .confirm-sub { font-size: 12px; color: #6a8aa0; line-height: 1.6; margin-bottom: 20px; }
+  .repro-id { display: inline-block; background: rgba(88,200,240,0.1); border: 1px solid rgba(88,200,240,0.3); border-radius: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; color: #58c8f0; margin-bottom: 20px; }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1e2d3d; }
+  .detail-row:last-child { border-bottom: none; }
+  .dr-label { font-size: 11px; color: #6a8aa0; }
+  .dr-val { font-size: 12px; font-weight: 600; color: #c8d8e8; }
+  .back-btn { display: block; width: 100%; background: #1e2d3d; border: none; border-radius: 12px; padding: 14px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; color: #8aa8c0; cursor: pointer; margin-top: 16px; }
+
+  .spec-block { background: #161e28; border: 1px solid #1e2d3d; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+  .spec-block h3 { font-size: 12px; font-weight: 600; color: #58c8f0; margin-bottom: 8px; }
+  .spec-block p, .spec-block li { font-size: 11px; color: #8aa8c0; line-height: 1.7; }
+  .spec-block ul { padding-left: 14px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('form')">Repro Form</button>
+  <button class="tab-btn" onclick="show('steps')">Steps Builder</button>
+  <button class="tab-btn" onclick="show('expact')">Expected vs Actual</button>
+  <button class="tab-btn" onclick="show('submitted')">Submitted</button>
+  <button class="tab-btn" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- REPRO FORM -->
+<div id="form" class="tab-panel active">
+  <div class="page">
+    <div class="page-title">Report an Issue</div>
+    <div class="page-sub">Help us reproduce it exactly</div>
+
+    <div class="hint-box">
+      <div class="hint-label">Good Repro = Fast Fix</div>
+      <p>A bug with clear reproduction steps gets fixed 3x faster. Include device, OS, persona, and the exact sequence of actions.</p>
+    </div>
+
+    <div class="field-label">Issue Title</div>
+    <input type="text" placeholder="e.g. Badge overlay animation freezes on iPad Mini">
+
+    <div class="field-label">Device / Persona</div>
+    <select>
+      <option value="">Select device...</option>
+      <option>iPad Pro (iOS 17) · Child</option>
+      <option>iPhone 15 (iOS 17) · Parent</option>
+      <option>iPad Mini (iOS 16) · Child</option>
+      <option>MacBook Pro (macOS 14) · Teacher</option>
+      <option>Samsung Galaxy S24 (Android 14) · Parent</option>
+      <option>Pixel 8 (Android 14) · Child</option>
+    </select>
+
+    <div class="field-label">Severity</div>
+    <div class="severity-row">
+      <button class="sev-btn" onclick="setSev(this,'sel-low')">
+        <div class="sev-dot" style="background:#6cc96c"></div>
+        <div class="sev-name">Low</div>
+      </button>
+      <button class="sev-btn sel-med" onclick="setSev(this,'sel-med')">
+        <div class="sev-dot" style="background:#ffd166"></div>
+        <div class="sev-name">Medium</div>
+      </button>
+      <button class="sev-btn" onclick="setSev(this,'sel-high')">
+        <div class="sev-dot" style="background:#ff8c42"></div>
+        <div class="sev-name">High</div>
+      </button>
+      <button class="sev-btn" onclick="setSev(this,'sel-blocker')">
+        <div class="sev-dot" style="background:#ff5e5e"></div>
+        <div class="sev-name">Blocker</div>
+      </button>
+    </div>
+
+    <div class="field-label">Can You Reproduce It?</div>
+    <div class="yn-row">
+      <button class="yn-btn yes" onclick="setYN(this, 'yes')">Yes, always</button>
+      <button class="yn-btn" onclick="setYN(this, 'sometimes')">Sometimes</button>
+      <button class="yn-btn" onclick="setYN(this, 'no')">Only once</button>
+    </div>
+
+    <div class="field-label">Screenshot Note</div>
+    <div class="screenshot-note">
+      <div class="screenshot-note-icon">📎</div>
+      <div class="screenshot-note-text">Attach screenshot or screen recording</div>
+      <div class="screenshot-note-sub">JPEG, PNG, MP4 — max 50MB</div>
+    </div>
+    <input type="text" placeholder="Or describe what a screenshot would show...">
+
+    <button class="submit-btn" onclick="show('submitted')">Submit Issue</button>
+  </div>
+</div>
+
+<!-- STEPS BUILDER -->
+<div id="steps" class="tab-panel">
+  <div class="page">
+    <div class="page-title">Steps to Reproduce</div>
+    <div class="page-sub">Build a numbered step list</div>
+
+    <div class="hint-box">
+      <div class="hint-label">Be Specific</div>
+      <p>Start from the very beginning — app launch, login, navigation path. Include exactly what you tapped, swiped, or entered at each step.</p>
+    </div>
+
+    <div class="field-label">Reproduction Steps</div>
+    <div class="steps-container" id="steps-container">
+      <div class="step-item">
+        <div class="step-num-badge">1</div>
+        <div class="step-input"><input type="text" placeholder="Open WonderQuest app from home screen" style="margin-bottom:0"></div>
+        <div class="step-remove" onclick="removeStep(this)">−</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num-badge">2</div>
+        <div class="step-input"><input type="text" placeholder="Log in as child profile (Jordan, age 7)" style="margin-bottom:0"></div>
+        <div class="step-remove" onclick="removeStep(this)">−</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num-badge">3</div>
+        <div class="step-input"><input type="text" placeholder="Tap Play on the home screen" style="margin-bottom:0"></div>
+        <div class="step-remove" onclick="removeStep(this)">−</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num-badge">4</div>
+        <div class="step-input"><input type="text" placeholder="Complete 5 questions — trigger badge unlock" style="margin-bottom:0"></div>
+        <div class="step-remove" onclick="removeStep(this)">−</div>
+      </div>
+    </div>
+
+    <button class="add-step-btn" onclick="addStep()">+ Add Step</button>
+
+    <button class="submit-btn" style="background:none;border:1.5px solid #58c8f0;color:#58c8f0;" onclick="show('expact')">Continue to Expected vs Actual →</button>
+  </div>
+</div>
+
+<!-- EXPECTED VS ACTUAL -->
+<div id="expact" class="tab-panel">
+  <div class="page">
+    <div class="page-title">Expected vs Actual</div>
+    <div class="page-sub">Describe the gap clearly</div>
+
+    <div class="hint-box">
+      <div class="hint-label">Frame It Clearly</div>
+      <p>Expected = what the app should do. Actual = what it actually did. Keep each to 1–2 sentences.</p>
+    </div>
+
+    <div class="compare-block">
+      <div class="compare-title">
+        <div class="compare-icon exp-icon">✅</div>
+        <span class="exp-label">Expected Behavior</span>
+      </div>
+      <div class="compare-text">After completing 5 questions, the badge unlock animation should play smoothly (1.5–2s), show the badge name, and offer a "View in Trophy Room" button.</div>
+    </div>
+
+    <div class="compare-block">
+      <div class="compare-title">
+        <div class="compare-icon act-icon">❌</div>
+        <span class="act-label">Actual Behavior</span>
+      </div>
+      <div class="compare-text">Badge animation plays for 0.3s then freezes. Screen becomes unresponsive. Requires hard-close of app to recover. Badge is NOT saved to trophy room after freeze.</div>
+    </div>
+
+    <div class="field-label">Your Expected Behavior</div>
+    <textarea placeholder="What should have happened? Be specific about the expected UI state, animation, or response."></textarea>
+
+    <div class="field-label">What Actually Happened</div>
+    <textarea placeholder="What did the app actually do? Include any error messages, visual glitches, or missing responses."></textarea>
+
+    <button class="submit-btn" onclick="show('submitted')">Submit Issue</button>
+  </div>
+</div>
+
+<!-- SUBMITTED -->
+<div id="submitted" class="tab-panel">
+  <div class="page">
+    <div class="confirm-card">
+      <div class="confirm-icon">🐛</div>
+      <div class="confirm-title">Issue Reported!</div>
+      <div class="confirm-sub">Your reproduction report has been submitted to the engineering queue. Blocker and High issues receive same-day triage.</div>
+      <div class="repro-id">WQ-BUG-2026-0147</div>
+
+      <div class="detail-row">
+        <span class="dr-label">Severity</span>
+        <span class="dr-val" style="color:#ffd166">Medium</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-label">Reproducible</span>
+        <span class="dr-val">Yes, always</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-label">Device</span>
+        <span class="dr-val">iPad Pro · iOS 17</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-label">Steps</span>
+        <span class="dr-val">4 steps logged</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-label">Screenshot</span>
+        <span class="dr-val">1 note attached</span>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      <div class="hint-label">What's Next</div>
+      <p>A developer will attempt to reproduce using your steps within 24–48 hours. You may be contacted for clarification. Track status in your My Submissions tab.</p>
+    </div>
+
+    <button class="back-btn" onclick="show('form')">Report Another Issue</button>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-panel">
+  <div class="page">
+    <div class="spec-block">
+      <h3>File</h3>
+      <p>issue-reproduction-helper-v2.html</p>
+    </div>
+    <div class="spec-block">
+      <h3>Purpose</h3>
+      <p>Guided bug reproduction report UI. Captures issue title, steps to reproduce (add/remove), expected vs actual behavior, device/persona, severity, reproducibility, and screenshot notes.</p>
+    </div>
+    <div class="spec-block">
+      <h3>Design Tokens</h3>
+      <ul>
+        <li>Font: Sora · Background: #10161e · Accent: #58c8f0</li>
+        <li>Gold hint box: #2a1f00 / #ffd166 · Viewport: 375px mobile</li>
+      </ul>
+    </div>
+    <div class="spec-block">
+      <h3>Tabs</h3>
+      <ul>
+        <li>Repro Form — main form with all fields</li>
+        <li>Steps Builder — numbered add/remove step list</li>
+        <li>Expected vs Actual — side-by-side comparison</li>
+        <li>Submitted — confirmation state with reference ID</li>
+        <li>Spec — this document</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['form','steps','expact','submitted','spec'].indexOf(id);
+    if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  }
+  function setSev(el, cls) {
+    document.querySelectorAll('.sev-btn').forEach(b => {
+      b.className = 'sev-btn';
+    });
+    el.classList.add(cls);
+  }
+  function setYN(el, type) {
+    document.querySelectorAll('.yn-btn').forEach(b => b.className = 'yn-btn');
+    if (type === 'yes') el.classList.add('yes');
+    else if (type === 'no') el.classList.add('no');
+  }
+  let stepCount = 4;
+  function addStep() {
+    stepCount++;
+    const container = document.getElementById('steps-container');
+    const div = document.createElement('div');
+    div.className = 'step-item';
+    div.innerHTML = `
+      <div class="step-num-badge">${stepCount}</div>
+      <div class="step-input"><input type="text" placeholder="Describe step ${stepCount}..." style="margin-bottom:0"></div>
+      <div class="step-remove" onclick="removeStep(this)">−</div>
+    `;
+    container.appendChild(div);
+  }
+  function removeStep(el) {
+    const item = el.closest('.step-item');
+    item.remove();
+    // Re-number
+    document.querySelectorAll('.step-num-badge').forEach((b, i) => b.textContent = i + 1);
+    stepCount = document.querySelectorAll('.step-item').length;
+  }
+</script>
+</body>
+</html>

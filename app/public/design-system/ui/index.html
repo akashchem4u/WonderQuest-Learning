@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — UI Agent Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sora:wght@300;400;500;600;700&family=Bitter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#100b2e;--bg2:#1a1254;
+  --s:rgba(255,255,255,0.07);--s-md:rgba(255,255,255,0.11);
+  --b:rgba(255,255,255,0.13);--b-hi:rgba(255,255,255,0.25);
+  --gold:#ffd166;--gold2:#ffb340;
+  --violet:#9b72ff;--violet2:#c4a5ff;
+  --mint:#58e8c1;--coral:#ff7b6b;--sky:#4ab5ff;
+  --text:#fff;--text2:rgba(255,255,255,0.65);--text3:rgba(255,255,255,0.35);
+  --fc:'Nunito',sans-serif;--fa:'Sora',sans-serif;--fd:'Bitter',serif;
+  --es:cubic-bezier(0.34,1.56,0.64,1);--eo:cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fa);background:var(--bg);color:var(--text);min-height:100vh;}
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.bg::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 20% 10%,rgba(155,114,255,.22) 0%,transparent 60%),
+  radial-gradient(ellipse 50% 30% at 80% 85%,rgba(88,232,193,.14) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 50% at 50% 50%,rgba(255,209,102,.06) 0%,transparent 70%);}
+.page{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:40px 24px;}
+
+/* HERO */
+.hero{text-align:center;margin-bottom:48px;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--violet2);margin-bottom:18px;letter-spacing:.04em;}
+.hero-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.hero h1{font-family:var(--fd);font-size:40px;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:12px;}
+.hero h1 span{color:var(--gold);}
+.hero p{font-size:14px;color:var(--text2);max-width:560px;margin:0 auto 20px;line-height:1.65;}
+.hero-stats{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;}
+.hstat{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:10px 20px;text-align:center;}
+.hstat-val{font-size:22px;font-weight:800;font-family:var(--fd);color:var(--gold);}
+.hstat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+
+/* AGENT INSTRUCTIONS */
+.agent-box{background:rgba(255,209,102,.06);border:1px solid rgba(255,209,102,.2);border-radius:20px;padding:22px;margin-bottom:40px;}
+.agent-box h3{font-family:var(--fd);font-size:16px;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.agent-box ol{padding-left:18px;display:flex;flex-direction:column;gap:8px;}
+.agent-box li{font-size:13px;color:var(--text2);line-height:1.55;}
+.agent-box li strong{color:#fff;}
+.agent-box code{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:6px;font-size:11px;font-family:'Courier New',monospace;color:var(--violet2);}
+
+/* SECTION HDR */
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;margin-top:40px;}
+.sec-hdr:first-of-type{margin-top:0;}
+.sec-hdr h2{font-family:var(--fd);font-size:18px;color:#fff;white-space:nowrap;}
+.sec-hdr .line{flex:1;height:1px;background:var(--b);}
+.sec-hdr .tag{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
+.sec-desc{font-size:12px;color:var(--text3);margin-bottom:14px;}
+
+/* FILE GRID */
+.file-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px;}
+.file-grid.two-col{grid-template-columns:repeat(2,1fr);}
+.file-card{background:var(--s);border:1px solid var(--b);border-radius:18px;padding:0;overflow:hidden;transition:all 200ms var(--eo);cursor:pointer;text-decoration:none;display:flex;flex-direction:column;}
+.file-card:hover{background:var(--s-md);border-color:var(--b-hi);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.35);}
+.file-card.legacy{opacity:0.6;}
+.file-card.legacy:hover{opacity:0.85;}
+.fc-preview{height:90px;display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;overflow:hidden;}
+.fc-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:5px;}
+.fc-title{font-family:var(--fd);font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;}
+.fc-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em;}
+.badge-new{background:rgba(88,232,193,.2);color:var(--mint);}
+.badge-v2{background:rgba(155,114,255,.2);color:var(--violet2);}
+.badge-legacy{background:rgba(255,255,255,.08);color:var(--text3);}
+.fc-desc{font-size:11px;color:var(--text2);line-height:1.5;flex:1;}
+.fc-states{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.fc-state{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;background:var(--s-md);color:var(--text3);}
+.fc-footer{padding:8px 14px;border-top:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;}
+.fc-filename{font-size:10px;color:var(--text3);font-family:'Courier New',monospace;}
+.fc-arrow{font-size:13px;color:var(--text3);transition:transform 120ms;}
+.file-card:hover .fc-arrow{transform:translateX(4px);color:var(--gold);}
+
+/* DESIGN SYSTEM ROW */
+.ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;}
+.ds-card{background:var(--s);border:1px solid var(--b);border-radius:18px;padding:18px;}
+.ds-card h3{font-family:var(--fd);font-size:14px;margin-bottom:8px;}
+.ds-card p{font-size:12px;color:var(--text2);line-height:1.55;}
+.swatches{display:flex;gap:6px;margin-top:12px;}
+.sw{width:30px;height:30px;border-radius:7px;position:relative;}
+.sw::after{content:attr(data-label);position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--text3);white-space:nowrap;}
+
+/* COMPONENT TABLE */
+.comp-table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+.comp-table th{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--b);background:var(--s);}
+.comp-table td{padding:9px 14px;font-size:12px;color:var(--text2);border-bottom:1px solid rgba(255,255,255,.05);}
+.comp-table tr:hover td{background:rgba(255,255,255,.03);}
+.comp-table td:first-child{color:#fff;font-weight:600;}
+.comp-table code{background:rgba(255,255,255,.07);padding:1px 6px;border-radius:5px;font-size:10px;font-family:'Courier New',monospace;color:var(--mint);}
+
+/* FOOTER */
+.footer{text-align:center;padding:24px 0;border-top:1px solid var(--b);font-size:12px;color:var(--text3);margin-top:48px;}
+.footer strong{color:var(--text2);}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge"><span class="dot"></span>UI Agent · Design Reference</div>
+    <h1>Wonder<span>Quest</span> UI Hub</h1>
+    <p>Complete route-by-route design references for all four audiences. Every file is a standalone HTML reference — open any directly, no build step needed.</p>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hstat-val">15</div><div class="hstat-lbl">Reference Files</div></div>
+      <div class="hstat"><div class="hstat-val">70+</div><div class="hstat-lbl">Screen States</div></div>
+      <div class="hstat"><div class="hstat-val">4</div><div class="hstat-lbl">Audiences</div></div>
+      <div class="hstat"><div class="hstat-val">1</div><div class="hstat-lbl">Design System</div></div>
+    </div>
+  </div>
+
+  <!-- AGENT INSTRUCTIONS -->
+  <div class="agent-box">
+    <h3>🤖 For the Implementing Agent — Read First</h3>
+    <ol>
+      <li><strong>Link <code>design-system.css</code> in every new screen.</strong> All color, spacing, radius, shadow, animation, and typography tokens live there. Never re-declare tokens inline.</li>
+      <li><strong>Audience separation is strict:</strong> Child play → <code>Nunito</code> font + dark cosmic <code>#100b2e</code>. Parent/Teacher → <code>Sora</code> + warm light <code>#f5f0e8</code>. Owner → <code>Sora</code> + dark pro <code>#0d1117</code>.</li>
+      <li><strong>Player colors are sacred:</strong> p0 = <code>#ffd166</code> gold · p1 = <code>#9b72ff</code> violet · p2 = <code>#58e8c1</code> mint · p3 = <code>#ff7b6b</code> coral. Never reassign.</li>
+      <li><strong>Use the v2 files as source of truth.</strong> Files marked Legacy are superseded — only reference them for v1 context. Always port from the newest version.</li>
+      <li><strong>Prefer the tabbed reference pattern.</strong> Each file has all states in one HTML with tab switching — open the file and tab through states before implementing.</li>
+      <li><strong>Check the yellow hint boxes</strong> inside each tab panel — they contain implementation notes specific to that state.</li>
+      <li><strong>Glass morphism rule:</strong> <code>background: rgba(255,255,255,0.07)</code> + <code>backdrop-filter: blur(12px)</code> + <code>border: 1px solid rgba(255,255,255,0.13)</code>.</li>
+    </ol>
+  </div>
+
+  <!-- ════════ FOUNDATION ════════ -->
+  <div class="sec-hdr"><h2>🎨 Foundation</h2><div class="line"></div><span class="tag">Tokens + Components</span></div>
+  <div class="sec-desc">Start here before implementing any screen. Design tokens, component gallery, and usage examples.</div>
+  <div class="file-grid two-col">
+
+    <a class="file-card" href="design-system.css" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#1a1254,#100b2e)">🎨</div>
+      <div class="fc-body">
+        <div class="fc-title">Design System CSS <span class="fc-badge badge-new">Source of Truth</span></div>
+        <div class="fc-desc">All CSS custom properties: color, typography, spacing, radius, shadow, animation easing. Base reset, utility classes (.wq-card, .wq-btn, .wq-badge, .wq-avatar, etc.), and keyframe animations.</div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">design-system.css</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="component-library.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#1a1254,#100b2e)">🧩</div>
+      <div class="fc-body">
+        <div class="fc-title">Component Library</div>
+        <div class="fc-desc">Live-rendered gallery of every reusable element: buttons (5 variants), badges, player chips, avatars (5 sizes), inputs (4 states), progress bars, timer rings, answer buttons, toasts, scoreboard, podium, loading skeletons, color tokens, typography scale.</div>
+        <div class="fc-states">
+          <span class="fc-state">All Components</span><span class="fc-state">Color Tokens</span><span class="fc-state">Typography</span><span class="fc-state">Animations</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">component-library.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- ════════ CHILD ════════ -->
+  <div class="sec-hdr"><h2>🚀 Child Routes</h2><div class="line"></div><span class="tag">Ages 2–11 · /child · /play</span></div>
+  <div class="sec-desc">Visual-first, Nunito font, large tap targets, game-feel interactions. Early learner (Pre-K) states assume minimal reading ability.</div>
+  <div class="file-grid">
+
+    <a class="file-card" href="child-setup.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#1a1254,#100b2e)">🧒</div>
+      <div class="fc-body">
+        <div class="fc-title">Child Setup <span class="fc-badge badge-new">New</span></div>
+        <div class="fc-desc">Full /child route. Band selection → avatar → name + PIN setup → returning PIN entry → wrong PIN recovery → welcome back.</div>
+        <div class="fc-states">
+          <span class="fc-state">Band Select</span><span class="fc-state">Avatar Select</span><span class="fc-state">PIN Setup</span><span class="fc-state">Returning PIN</span><span class="fc-state">Wrong PIN</span><span class="fc-state">Welcome Back</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">child-setup.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="play-early-learner.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#1a1254,#100b2e)">🌟</div>
+      <div class="fc-body">
+        <div class="fc-title">Early Learner Play <span class="fc-badge badge-new">New</span></div>
+        <div class="fc-desc">All /play states for Pre-K (ages 2–5). Minimal text, visual-first, emoji objects, replay affordances, audio fallback.</div>
+        <div class="fc-states">
+          <span class="fc-state">Counting</span><span class="fc-state">Letters</span><span class="fc-state">Phonics</span><span class="fc-state">Picture-Word</span><span class="fc-state">Celebrate</span><span class="fc-state">Recovery</span><span class="fc-state">Explainer</span><span class="fc-state">No-Audio</span><span class="fc-state">Session End</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">play-early-learner.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="play-arena.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#1a1254,#100b2e)">🎮</div>
+      <div class="fc-body">
+        <div class="fc-title">Play Arena</div>
+        <div class="fc-desc">Multiplayer game flow for older bands. Welcome → Setup → Category → AI Loading → Device Handoff → Active Question (timer ring SVG) → Turn Result → Final Podium.</div>
+        <div class="fc-states">
+          <span class="fc-state">Welcome</span><span class="fc-state">Player Setup</span><span class="fc-state">Category</span><span class="fc-state">AI Load</span><span class="fc-state">Handoff</span><span class="fc-state">Question</span><span class="fc-state">Result</span><span class="fc-state">Podium</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">play-arena.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- ════════ PARENT ════════ -->
+  <div class="sec-hdr"><h2>👪 Parent Routes</h2><div class="line"></div><span class="tag">Warm light theme · /parent</span></div>
+  <div class="sec-desc">Calm, trustworthy, actionable. Sora font, #f5f0e8 background. Answers: how is my child doing, what changed, what should I do next.</div>
+  <div class="file-grid">
+
+    <a class="file-card" href="parent-access.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#e8f5f0,#f5f0e8)">🔗</div>
+      <div class="fc-body">
+        <div class="fc-title">Parent Access <span class="fc-badge badge-new">New</span></div>
+        <div class="fc-desc">First-time linkage flow. No email/password — child name + PIN only. Confirm child, handle not-found, set parent profile, notification prefs, access granted, wrong child/relink.</div>
+        <div class="fc-states">
+          <span class="fc-state">Enter Name</span><span class="fc-state">Confirm Child</span><span class="fc-state">Not Found</span><span class="fc-state">Profile</span><span class="fc-state">Notif Prefs</span><span class="fc-state">Granted</span><span class="fc-state">Wrong Child</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">parent-access.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="parent-hub-v2.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#e8f5f0,#f5f0e8)">📊</div>
+      <div class="fc-body">
+        <div class="fc-title">Parent Hub v2 <span class="fc-badge badge-v2">v2 · Use This</span></div>
+        <div class="fc-desc">Full parent dashboard. Answer box (3 key questions), KPI row, skills snapshot, activity timeline, time/frequency/goal cards, progress over time, empty + error states.</div>
+        <div class="fc-states">
+          <span class="fc-state">Dashboard</span><span class="fc-state">Progress Over Time</span><span class="fc-state">Empty State</span><span class="fc-state">Error States</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">parent-hub-v2.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="parent-settings.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#e8f5f0,#f5f0e8)">⚙️</div>
+      <div class="fc-body">
+        <div class="fc-title">Parent Settings <span class="fc-badge badge-new">New</span></div>
+        <div class="fc-desc">Full settings center. Notification toggles + frequency, linked children management, account (name + relationship), child switcher sheet, relink/wrong-child flow, privacy & data controls.</div>
+        <div class="fc-states">
+          <span class="fc-state">Notifications</span><span class="fc-state">Linked Children</span><span class="fc-state">Account</span><span class="fc-state">Switcher Sheet</span><span class="fc-state">Relink Flow</span><span class="fc-state">Privacy</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">parent-settings.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- Legacy parent -->
+  <div class="file-grid two-col" style="margin-top:8px;">
+    <a class="file-card legacy" href="archive/legacy-v1/parent-hub.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#e8f5f0,#f5f0e8); opacity:0.6;">👨‍👩‍👧</div>
+      <div class="fc-body">
+        <div class="fc-title">Parent Hub v1 <span class="fc-badge badge-legacy">Legacy</span></div>
+        <div class="fc-desc">Original parent dashboard. Superseded by parent-hub-v2.html — reference only for v1 context.</div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">archive/legacy-v1/parent-hub.html</span><span class="fc-arrow">→</span></div>
+    </a>
+  </div>
+
+  <!-- ════════ TEACHER ════════ -->
+  <div class="sec-hdr"><h2>👩‍🏫 Teacher Routes</h2><div class="line"></div><span class="tag">Insight-driven · /teacher</span></div>
+  <div class="sec-desc">Instructional, structured. Warm light theme. Anonymised student data — first name only in table view, dots only in aggregate views. No peer comparisons.</div>
+  <div class="file-grid two-col">
+
+    <a class="file-card" href="teacher-gate.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#eef2f7,#e2e8f0)">🔐</div>
+      <div class="fc-body">
+        <div class="fc-title">Teacher Gate <span class="fc-badge badge-new">New</span></div>
+        <div class="fc-desc">Gate + first-look analytics. 6-digit school PIN entry, wrong PIN/locked states, access granted, empty dashboard, skill drilldown, support queue, intervention panel, class filter states.</div>
+        <div class="fc-states">
+          <span class="fc-state">PIN Entry</span><span class="fc-state">Wrong PIN</span><span class="fc-state">Granted</span><span class="fc-state">Empty Dashboard</span><span class="fc-state">Skill Drilldown</span><span class="fc-state">Support Queue</span><span class="fc-state">Intervention</span><span class="fc-state">Filters</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">teacher-gate.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="teacher-analytics-v2.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#eef2f7,#e2e8f0)">📈</div>
+      <div class="fc-body">
+        <div class="fc-title">Teacher Analytics v2 <span class="fc-badge badge-v2">v2 · Use This</span></div>
+        <div class="fc-desc">Standalone full analytics dashboard. Sidebar + class overview (KPI row + dot grid), skill breakdown with dot rows, activity heatmap (day×time), progress over time, student table (first name), support queue, skill drilldown, empty state.</div>
+        <div class="fc-states">
+          <span class="fc-state">Class Overview</span><span class="fc-state">Skill Breakdown</span><span class="fc-state">Heatmap</span><span class="fc-state">Progress Over Time</span><span class="fc-state">Student Table</span><span class="fc-state">Support Queue</span><span class="fc-state">Skill Drilldown</span><span class="fc-state">Empty State</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">teacher-analytics-v2.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- Legacy teacher -->
+  <div class="file-grid two-col" style="margin-top:8px;">
+    <a class="file-card legacy" href="archive/legacy-v1/teacher-analytics.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#eef2f7,#e2e8f0); opacity:0.6;">🎓</div>
+      <div class="fc-body">
+        <div class="fc-title">Teacher Analytics v1 <span class="fc-badge badge-legacy">Legacy</span></div>
+        <div class="fc-desc">Original teacher analytics. Superseded by teacher-analytics-v2.html — reference only.</div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">archive/legacy-v1/teacher-analytics.html</span><span class="fc-arrow">→</span></div>
+    </a>
+  </div>
+
+  <!-- ════════ OWNER ════════ -->
+  <div class="sec-hdr"><h2>🛡 Owner Routes</h2><div class="line"></div><span class="tag">Operational · /owner</span></div>
+  <div class="sec-desc">Dark pro GitHub-style theme (#0d1117). Operational, product-focused. 6-digit access code gate. Route health, content health, adoption, feedback triage.</div>
+  <div class="file-grid two-col">
+
+    <a class="file-card" href="owner-gate.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#161b22,#0d1117)">🔐</div>
+      <div class="fc-body">
+        <div class="fc-title">Owner Gate <span class="fc-badge badge-new">New</span></div>
+        <div class="fc-desc">6-digit access code entry with numpad. Shows digits (not star-fill — adult audience). Wrong code + shake animation, locked out (3 attempts) with cooldown timer, access granted with KPI preview.</div>
+        <div class="fc-states">
+          <span class="fc-state">PIN Entry</span><span class="fc-state">Wrong PIN</span><span class="fc-state">Locked Out</span><span class="fc-state">Access Granted</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">owner-gate.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+    <a class="file-card" href="owner-console-v2.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#161b22,#0d1117)">📡</div>
+      <div class="fc-body">
+        <div class="fc-title">Owner Console v2 <span class="fc-badge badge-v2">v2 · Use This</span></div>
+        <div class="fc-desc">Full ops console with sidebar. Feedback triage queue (Urgent/Review/Resolved), route health (5 routes + session sparkline), content health table (Critical/Review/Healthy), adoption by band (bar + mini-chart), empty state with setup checklist, alert banners (4 types).</div>
+        <div class="fc-states">
+          <span class="fc-state">Feedback Queue</span><span class="fc-state">Route Health</span><span class="fc-state">Content Health</span><span class="fc-state">Adoption</span><span class="fc-state">Empty State</span><span class="fc-state">Alert States</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">owner-console-v2.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- Legacy owner -->
+  <div class="file-grid two-col" style="margin-top:8px;">
+    <a class="file-card legacy" href="archive/legacy-v1/owner-console.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#161b22,#0d1117); opacity:0.6;">🔑</div>
+      <div class="fc-body">
+        <div class="fc-title">Owner Console v1 <span class="fc-badge badge-legacy">Legacy</span></div>
+        <div class="fc-desc">Original owner console. Superseded by owner-console-v2.html — reference only.</div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">archive/legacy-v1/owner-console.html</span><span class="fc-arrow">→</span></div>
+    </a>
+  </div>
+
+  <!-- ════════ PLATFORM ════════ -->
+  <div class="sec-hdr"><h2>🌐 Platform</h2><div class="line"></div><span class="tag">Home Route · /</span></div>
+  <div class="sec-desc">Home is a launcher, not a dashboard. Child CTA first and largest. Owner CTA last and quietest. Trust strip + live-status strip always visible.</div>
+  <div class="file-grid two-col">
+
+    <a class="file-card" href="home-route-canonical-v2.html" target="_blank">
+      <div class="fc-preview" style="background:linear-gradient(135deg,#1a1254,#100b2e)">🏠</div>
+      <div class="fc-body">
+        <div class="fc-title">Home Route Canonical v2 <span class="fc-badge badge-v2">Canonical</span></div>
+        <div class="fc-desc">Current source of truth for the / home route. Child-first launcher hierarchy, trust strip, live-status strip, and the strongest desktop/mobile home composition for WonderQuest.</div>
+        <div class="fc-states">
+          <span class="fc-state">Desktop</span><span class="fc-state">Mobile 390px</span>
+        </div>
+      </div>
+      <div class="fc-footer"><span class="fc-filename">home-route-canonical-v2.html</span><span class="fc-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- DESIGN SYSTEM QUICK REF -->
+  <div class="sec-hdr" style="margin-top:48px;"><h2>Design System Quick Reference</h2><div class="line"></div></div>
+  <div class="ds-grid">
+    <div class="ds-card">
+      <h3>🎨 Audience Themes</h3>
+      <p>
+        <strong style="color:var(--gold)">Child play</strong> · dark cosmic <code style="color:var(--mint)">#100b2e</code> · Nunito<br/>
+        <strong style="color:#a5b4fc">Parent/Teacher</strong> · warm light <code style="color:var(--mint)">#f5f0e8</code> · Sora<br/>
+        <strong style="color:var(--mint)">Owner</strong> · dark pro <code style="color:var(--mint)">#0d1117</code> · Sora
+      </p>
+    </div>
+    <div class="ds-card">
+      <h3>🎭 Player Colors (Sacred)</h3>
+      <p>Never reassign these between players.</p>
+      <div class="swatches" style="margin-bottom:18px;">
+        <div class="sw" style="background:#ffd166" data-label="p0 gold"></div>
+        <div class="sw" style="background:#9b72ff" data-label="p1 violet"></div>
+        <div class="sw" style="background:#58e8c1" data-label="p2 mint"></div>
+        <div class="sw" style="background:#ff7b6b" data-label="p3 coral"></div>
+      </div>
+    </div>
+    <div class="ds-card">
+      <h3>⚡ Animation Easings</h3>
+      <p>
+        <strong style="color:#fff">Spring</strong> — buttons, popups, card hover<br/>
+        <code style="color:var(--mint)">cubic-bezier(0.34,1.56,0.64,1)</code><br/>
+        <strong style="color:#fff">Ease-out</strong> — screen transitions, fades<br/>
+        <code style="color:var(--mint)">cubic-bezier(0.16,1,0.3,1)</code>
+      </p>
+    </div>
+    <div class="ds-card">
+      <h3>🪟 Glass Morphism Rule</h3>
+      <p>
+        <code style="color:var(--mint)">background: rgba(255,255,255,0.07)</code><br/>
+        <code style="color:var(--mint)">backdrop-filter: blur(12px)</code><br/>
+        <code style="color:var(--mint)">border: 1px solid rgba(255,255,255,0.13)</code><br/>
+        Three opacity variants: 7% / 11% / 16%
+      </p>
+    </div>
+  </div>
+
+  <!-- COMPONENT INDEX -->
+  <div class="sec-hdr" style="margin-top:40px;"><h2>Component Index</h2><div class="line"></div><span class="tag">All Components → component-library.html</span></div>
+  <table class="comp-table">
+    <thead>
+      <tr><th>Component</th><th>CSS Class(es)</th><th>Used In</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Primary Button</td><td><code>.btn .btn-gold</code> / <code>.btn-violet</code></td><td>All screens</td><td>Spring hover, active scale-down</td></tr>
+      <tr><td>Ghost Button</td><td><code>.btn .btn-ghost</code></td><td>Back/Cancel</td><td>Transparent with border</td></tr>
+      <tr><td>Glass Card</td><td><code>.glass</code> / <code>.glass.md</code></td><td>Play screens</td><td>7%, 11%, 16% opacity variants</td></tr>
+      <tr><td>Player Chip</td><td><code>.player-chip .pc0–pc3</code></td><td>Quiz, results</td><td>Avatar + name + score</td></tr>
+      <tr><td>Avatar</td><td><code>.av .av-sm/.md/.lg/.xl</code></td><td>All screens</td><td>5 sizes + ring highlight state</td></tr>
+      <tr><td>Badge / Tag</td><td><code>.badge .badge-gold/violet/mint/coral</code></td><td>Status, labels</td><td>Add .badge-pulse for live state</td></tr>
+      <tr><td>Answer Button</td><td><code>.ans</code> + <code>.correct/.wrong/.selected</code></td><td>Quiz question</td><td>4 states, 2×2 grid layout</td></tr>
+      <tr><td>Timer Ring</td><td><code>.timer-ring</code> + SVG circles</td><td>Quiz header</td><td>SVG stroke-dashoffset animation</td></tr>
+      <tr><td>Progress Bar</td><td><code>.prog-track .prog-fill .prog-gold</code></td><td>XP, sessions, skills</td><td>3 thickness variants</td></tr>
+      <tr><td>Stat Tile</td><td><code>.stat .stat-val .stat-delta</code></td><td>Dashboards</td><td>up/down delta color variants</td></tr>
+      <tr><td>Toast / Alert</td><td><code>.toast .toast-success/error/warn/info</code></td><td>Feedback overlays</td><td>Fixed bottom-center, transient</td></tr>
+      <tr><td>Scoreboard</td><td><code>.scoreboard .sb-row</code></td><td>Turn result, final</td><td>Rank + avatar + name + pts + delta</td></tr>
+      <tr><td>Explainer Card</td><td><code>.explainer</code></td><td>Wrong answer</td><td>Mint border, voice read-aloud hook</td></tr>
+      <tr><td>Milestone Card</td><td><code>.milestone</code></td><td>Level-up, badge earn</td><td>Pop animation, gold gradient</td></tr>
+      <tr><td>Category Card</td><td><code>.cat-card</code> + <code>.sel</code></td><td>Category select</td><td>Custom bg per category</td></tr>
+      <tr><td>Podium</td><td><code>.podium-mini .pm-col .pm-block</code></td><td>Final results</td><td>Staggered rise animation</td></tr>
+      <tr><td>Input</td><td><code>.inp</code> + <code>.inp-error/.inp-success</code></td><td>Player setup, auth</td><td>Gold caret, glass bg</td></tr>
+      <tr><td>Skeleton</td><td><code>.skeleton .sk-line/.sk-block</code></td><td>Loading states</td><td>Shimmer keyframe animation</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <strong>WonderQuest UI Agent</strong> · All files in <code style="color:var(--mint)">ui-agent/</code> at project root<br/>
+    <span style="margin-top:4px;display:block;">15 reference files · 70+ screen states · Poll <code style="color:var(--mint)">ENGINEERING_REQUESTS.md</code> for next tasks</span>
+  </div>
+
+</div>
+</body>
+</html>

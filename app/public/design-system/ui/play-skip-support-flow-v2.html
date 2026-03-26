@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Skip Support Flow v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Progress strip */
+  .progress-strip{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,.05)}
+  .star-count{display:flex;align-items:center;gap:4px;font-weight:900;font-size:14px;color:#ffd166}
+  .progress-dots{display:flex;gap:5px}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.earned{background:#ffd166}
+  .dot.current{background:#9b72ff;box-shadow:0 0 6px #9b72ff}
+  .dot.locked{background:rgba(255,255,255,.1)}
+  .world-badge{font-size:11px;color:#58e8c1;font-weight:900;background:rgba(88,232,193,.1);padding:3px 8px;border-radius:10px}
+
+  /* Question area */
+  .question-area{padding:16px 16px 12px}
+  .q-type-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);border-radius:10px;padding:3px 10px;font-size:10px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .q-text{font-size:18px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:12px}
+  .q-stimulus{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;text-align:center;font-size:40px;margin-bottom:14px}
+
+  /* Answer grid */
+  .answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px}
+  .answer-card{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 8px;text-align:center;font-size:15px;font-weight:900;cursor:pointer}
+
+  /* Skip button - small and gentle */
+  .skip-area{display:flex;justify-content:center;align-items:center;padding:14px 16px 8px;gap:12px}
+  .skip-btn{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:6px 14px;font-family:'Nunito',sans-serif;font-weight:700;font-size:11px;color:rgba(255,255,255,.45);cursor:pointer}
+  .skip-divider{width:1px;height:16px;background:rgba(255,255,255,.1)}
+  .skip-note{font-size:10px;color:rgba(255,255,255,.3)}
+
+  /* Coach acknowledge */
+  .coach-ack{padding:16px;display:flex;flex-direction:column;align-items:center}
+  .coach-owl-med{font-size:72px;animation:owlBob 2s ease-in-out infinite;margin-bottom:12px}
+  @keyframes owlBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .coach-bubble{background:rgba(255,255,255,.08);border:2px solid rgba(155,114,255,.4);border-radius:20px;padding:14px 16px;max-width:290px;text-align:center;margin-bottom:14px;position:relative}
+  .coach-bubble::after{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:rgba(155,114,255,.4)}
+  .coach-text{font-size:16px;font-weight:900;color:#fff;line-height:1.5}
+  .coach-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.4}
+  .kind-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(88,232,193,.1);border:1px solid rgba(88,232,193,.3);border-radius:12px;padding:6px 12px;font-size:12px;color:#58e8c1;font-weight:700;margin-top:4px}
+
+  /* Skip + hint state */
+  .skip-hint-banner{background:linear-gradient(135deg,rgba(155,114,255,.1),rgba(88,232,193,.06));border:2px solid rgba(155,114,255,.3);border-radius:16px;padding:14px;margin:0 16px;display:flex;gap:10px;align-items:flex-start}
+  .sh-icon{font-size:24px;flex-shrink:0}
+  .sh-text{}
+  .sh-title{font-size:13px;font-weight:900;color:#9b72ff}
+  .sh-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:3px;line-height:1.4}
+
+  /* Skip confirmed advance */
+  .advance-area{padding:16px;text-align:center}
+  .advance-check{font-size:64px;margin-bottom:12px;animation:checkPop .5s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes checkPop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+  .advance-title{font-size:20px;font-weight:900;color:#58e8c1;margin-bottom:8px}
+  .advance-sub{font-size:13px;color:rgba(255,255,255,.6);line-height:1.5;margin-bottom:16px}
+  .advance-note{background:rgba(88,232,193,.08);border:1px solid rgba(88,232,193,.2);border-radius:14px;padding:12px;font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:16px}
+  .btn-next{width:calc(100% - 32px);margin:0 16px;background:#9b72ff;color:#fff;border:none;border-radius:14px;padding:14px;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;cursor:pointer}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('skip-prompt')">Skip Prompt</button>
+  <button class="tab" onclick="show('coach-ack')">Coach Acknowledge</button>
+  <button class="tab" onclick="show('skip-hint')">Skip + Hint</button>
+  <button class="tab" onclick="show('skip-confirmed')">Skip Confirmed (advance)</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-skip-support-flow-v2.html</code> — "I don't know yet" flow · gentle skip · no shame · coach-guided advance · 375px mobile
+</div>
+
+<!-- SKIP PROMPT -->
+<div id="skip-prompt" class="panel active">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 2</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div class="question-area">
+      <div class="q-type-tag">🔤 Spelling</div>
+      <div class="q-text">How do you spell what you see?</div>
+      <div class="q-stimulus">🌊</div>
+    </div>
+    <div class="answer-grid">
+      <div class="answer-card">wuter</div>
+      <div class="answer-card">water</div>
+      <div class="answer-card">waiter</div>
+      <div class="answer-card">woter</div>
+    </div>
+    <div class="skip-area">
+      <button class="skip-btn">I don't know yet</button>
+      <div class="skip-divider"></div>
+      <span class="skip-note">Skipping is OK!</span>
+    </div>
+    <div style="padding:0 16px">
+      <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">🦉</span>
+        <span style="font-size:12px;color:rgba(255,255,255,.55)">Not sure? Tap "I don't know yet" — Pip will help!</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COACH ACKNOWLEDGE -->
+<div id="coach-ack" class="panel">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 2</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div class="coach-ack">
+      <div class="coach-owl-med">🦉</div>
+      <div class="coach-bubble">
+        <div class="coach-text">That's OK! Let's look at it together.</div>
+        <div class="coach-sub">There's no rush. We'll figure it out!</div>
+      </div>
+      <div class="kind-badge">✨ Learning takes time — you've got this!</div>
+    </div>
+    <div class="question-area" style="padding-top:8px">
+      <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:12px;text-align:center;font-size:36px;margin-bottom:10px">🌊</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.6);text-align:center">Let's hear the word together first...</div>
+    </div>
+    <div style="padding:12px 16px 0;display:flex;gap:10px">
+      <button style="flex:1;background:rgba(88,232,193,.12);border:2px solid rgba(88,232,193,.3);border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;color:#58e8c1;cursor:pointer">🔊 Hear word</button>
+      <button style="flex:1;background:rgba(155,114,255,.15);border:2px solid rgba(155,114,255,.3);border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;color:#9b72ff;cursor:pointer">See hint</button>
+    </div>
+  </div>
+</div>
+
+<!-- SKIP + HINT -->
+<div id="skip-hint" class="panel">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 2</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div style="padding:12px 16px 8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:28px">🦉</span>
+      <div>
+        <div style="font-size:13px;font-weight:900;color:#9b72ff">Pip's helping you!</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">Let's work through it together</div>
+      </div>
+    </div>
+    <div class="skip-hint-banner">
+      <div class="sh-icon">💡</div>
+      <div class="sh-text">
+        <div class="sh-title">Hint mode is on</div>
+        <div class="sh-sub">You can still pick any answer. No stress!</div>
+      </div>
+    </div>
+    <div class="question-area">
+      <div class="q-type-tag">🔤 Spelling</div>
+      <div class="q-text">How do you spell what you see?</div>
+      <div class="q-stimulus">🌊</div>
+    </div>
+    <div style="padding:0 16px 10px">
+      <div style="background:rgba(88,232,193,.08);border:1px solid rgba(88,232,193,.2);border-radius:14px;padding:10px 12px">
+        <div style="font-size:11px;color:#58e8c1;font-weight:900;margin-bottom:6px">🔊 Sounds in this word:</div>
+        <div style="display:flex;gap:6px">
+          <div style="background:rgba(88,232,193,.15);border:1px solid rgba(88,232,193,.3);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:900;color:#58e8c1">w</div>
+          <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:900">a</div>
+          <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:900">t</div>
+          <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:900">er</div>
+        </div>
+      </div>
+    </div>
+    <div class="answer-grid">
+      <div class="answer-card">wuter</div>
+      <div class="answer-card" style="border-color:rgba(88,232,193,.4);background:rgba(88,232,193,.08)">water</div>
+      <div class="answer-card">waiter</div>
+      <div class="answer-card">woter</div>
+    </div>
+    <div style="padding:10px 16px 0;text-align:center;font-size:11px;color:rgba(255,255,255,.35)">Any answer is fine — no pressure!</div>
+  </div>
+</div>
+
+<!-- SKIP CONFIRMED -->
+<div id="skip-confirmed" class="panel">
+  <div class="screen">
+    <div class="progress-strip">
+      <div class="star-count">⭐ 2</div>
+      <div class="progress-dots">
+        <div class="dot earned"></div><div class="dot earned"></div>
+        <div class="dot current"></div><div class="dot locked"></div>
+        <div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div><div class="dot locked"></div>
+      </div>
+      <div class="world-badge">🌊 Ocean</div>
+    </div>
+    <div class="advance-area">
+      <div class="advance-check">🦉</div>
+      <div class="advance-title">All good — moving on!</div>
+      <div class="advance-sub">This question will come back when you're ready. No worries at all!</div>
+      <div class="advance-note">
+        <strong style="color:#58e8c1">The answer was: "water"</strong><br>
+        w - a - t - e - r · five letters · starts with "wuh"
+      </div>
+    </div>
+    <div style="padding:0 16px">
+      <div style="background:rgba(255,255,255,.05);border-radius:16px;padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:900;text-transform:uppercase;margin-bottom:8px">Good news</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.65)"><span>✅</span>Your stars are safe</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.65)"><span>✅</span>Session continues normally</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.65)"><span>✅</span>You can try again next time</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-next">Next question! →</button>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: play-skip-support-flow-v2.html</h3>
+      <ul>
+        <li>375px mobile · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>"I don't know yet" gentle skip flow</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Skip Prompt:</strong> Small, non-prominent skip button; owl teaser; full answer grid still visible</li>
+        <li><strong>Coach Acknowledge:</strong> Owl says "That's OK! Let's look at it together" — no shame, kind tone</li>
+        <li><strong>Skip + Hint:</strong> Hint mode activates; phoneme cues visible; gentle hint to answer without forcing</li>
+        <li><strong>Skip Confirmed:</strong> Advance without correct answer; answer revealed kindly; stars-safe confirmation</li>
+      </ul>
+      <h3>Child Rules Applied</h3>
+      <ul>
+        <li>Skip button is small — NOT prominent (avoids encouraging avoidance)</li>
+        <li>NO shame language — "That's OK!" not "Wrong"</li>
+        <li>Stars never penalized for skipping</li>
+        <li>Answer revealed as learning, not failure</li>
+        <li>Child can advance without getting it right</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">Nunito 900</span>
+        <span class="spec-tag">375px mobile</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

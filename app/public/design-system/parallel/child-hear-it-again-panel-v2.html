@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITEM 226 · child-hear-it-again-panel-v2 · WonderQuest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --green: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --gold: #ffd166;
+      --violet: #9b72ff;
+      --mint: #58e8c1;
+      --coral: #ff7b6b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ─── Engineering hint box ─── */
+    .hint-box {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* ─── Tab switcher ─── */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 9px 20px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .2s, border-color .2s, color .2s;
+    }
+    .tab-btn:hover { border-color: var(--green); }
+    .tab-btn.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #0d1117;
+      font-weight: 700;
+    }
+
+    /* ─── Screens ─── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ─── Section headings ─── */
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--gold);
+      letter-spacing: .02em;
+    }
+
+    /* ─── Phone frames row ─── */
+    .frames-row {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .frame-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--mint);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .phone {
+      width: 375px;
+      height: 667px;
+      background: var(--card);
+      border-radius: 36px;
+      border: 2px solid rgba(255,255,255,.1);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    }
+
+    /* notch */
+    .phone::before {
+      content: '';
+      display: block;
+      width: 100px;
+      height: 22px;
+      background: #0d1117;
+      border-radius: 0 0 14px 14px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .phone-inner {
+      flex: 1;
+      padding: 32px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    /* ─── Question card ─── */
+    .q-card {
+      background: rgba(255,255,255,.05);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 14px 14px;
+      position: relative;
+    }
+
+    .q-band-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .q-text {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .q-blank {
+      display: inline-block;
+      min-width: 56px;
+      border-bottom: 2.5px solid var(--gold);
+      margin: 0 4px;
+      vertical-align: bottom;
+    }
+
+    /* speaker button */
+    .speaker-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(80,232,144,.15);
+      border: 2px solid var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .speaker-btn:hover { background: rgba(80,232,144,.28); }
+
+    /* ─── Pulse rings animation ─── */
+    @keyframes speak-ring {
+      0%   { transform: scale(1);   opacity: .8; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    .speaker-btn.playing {
+      background: rgba(80,232,144,.3);
+      position: relative;
+    }
+    .speaker-btn.playing::before,
+    .speaker-btn.playing::after,
+    .speaker-btn.playing .ring3 {
+      content: '';
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--green);
+      animation: speak-ring 1.6s ease-out infinite;
+    }
+    .speaker-btn.playing::before { animation-delay: 0s; }
+    .speaker-btn.playing::after  { animation-delay: .53s; }
+
+    .ring3 {
+      display: none;
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--green);
+      animation: speak-ring 1.6s ease-out infinite;
+    }
+    .speaker-btn.playing .ring3 { display: block; animation-delay: 1.06s; }
+
+    .speaker-label {
+      font-size: 12px;
+      color: rgba(240,246,255,.55);
+      text-align: right;
+      margin-top: 2px;
+      padding-right: 4px;
+    }
+
+    /* ─── Waveform ─── */
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 24px;
+    }
+
+    @keyframes wave-bar {
+      0%, 100% { transform: scaleY(.3); }
+      50%       { transform: scaleY(1); }
+    }
+
+    .wave-bar {
+      width: 4px;
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      transform-origin: center;
+      animation: wave-bar .8s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: .12s; }
+    .wave-bar:nth-child(3) { animation-delay: .24s; }
+    .wave-bar:nth-child(4) { animation-delay: .36s; }
+    .wave-bar:nth-child(5) { animation-delay: .48s; }
+
+    .waveform.paused .wave-bar { animation-play-state: paused; }
+
+    /* ─── Chips ─── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip-listening {
+      background: rgba(80,232,144,.15);
+      border: 1.5px solid var(--green);
+      color: var(--green);
+    }
+
+    .chip-replay {
+      background: rgba(255,209,102,.12);
+      border: 1.5px solid var(--gold);
+      color: var(--gold);
+      min-height: 48px;
+      font-size: 14px;
+      padding: 10px 18px;
+    }
+
+    .chip-replay:hover { background: rgba(255,209,102,.22); }
+
+    .chip-hint {
+      background: rgba(155,114,255,.15);
+      border: 1.5px solid var(--violet);
+      color: var(--violet);
+      min-height: 48px;
+      font-size: 14px;
+      padding: 10px 18px;
+    }
+
+    /* ─── Answer buttons ─── */
+    .answers {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .ans-btn {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .2s, background .2s, opacity .2s;
+    }
+    .ans-btn:hover { border-color: var(--green); background: rgba(80,232,144,.08); }
+
+    .answers.locked .ans-btn {
+      opacity: .7;
+      pointer-events: none;
+    }
+
+    .ans-btn.wrong {
+      border-color: var(--coral);
+      background: rgba(255,123,107,.1);
+    }
+
+    /* ─── Info text ─── */
+    .info-text {
+      font-size: 12px;
+      color: rgba(240,246,255,.45);
+      text-align: center;
+      padding: 4px 8px;
+    }
+
+    /* ─── Feedback banner ─── */
+    .feedback-banner {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .feedback-try {
+      background: rgba(255,123,107,.12);
+      border: 1.5px solid var(--coral);
+      color: var(--coral);
+    }
+
+    /* ─── Tab 2 variants ─── */
+    .variants-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+    }
+
+    .variant-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+    }
+
+    .variant-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .q-text-sm {
+      font-size: 14px;
+      color: rgba(240,246,255,.75);
+      line-height: 1.5;
+    }
+
+    .audio-only-btn {
+      width: 100%;
+      min-height: 64px;
+      border-radius: 16px;
+      background: rgba(80,232,144,.12);
+      border: 2px solid var(--green);
+      color: var(--green);
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .audio-only-btn:hover { background: rgba(80,232,144,.22); }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip-full {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* ─── Tab 3 Spec ─── */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .spec-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+
+    .spec-key {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--violet);
+      margin-bottom: 6px;
+    }
+
+    .spec-val {
+      font-size: 14px;
+      color: rgba(240,246,255,.8);
+      line-height: 1.55;
+    }
+
+    .spec-val code {
+      background: rgba(155,114,255,.15);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--mint);
+      font-family: monospace;
+    }
+
+    .spec-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .tag-wcag { background: rgba(88,232,193,.15); color: var(--mint); }
+    .tag-copy { background: rgba(255,209,102,.12); color: var(--gold); }
+
+    /* replay count badge (internal / developer view) */
+    .replay-badge {
+      font-size: 10px;
+      background: rgba(155,114,255,.2);
+      color: var(--violet);
+      padding: 2px 8px;
+      border-radius: 20px;
+      align-self: flex-end;
+      font-family: monospace;
+    }
+
+    /* "hear again" chip on frame 3 inline */
+    .inline-chip-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+  <!-- Engineering hint box -->
+  <div class="hint-box">
+    ITEM 226 · child-hear-it-again-panel-v2.html · WonderQuest parallel-agent build
+  </div>
+
+  <!-- Tab switcher -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab(0)">Tab 1 — Hear It Again States</button>
+    <button class="tab-btn" onclick="showTab(1)">Tab 2 — Replay Variants</button>
+    <button class="tab-btn" onclick="showTab(2)">Tab 3 — Spec</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 1 — HEAR IT AGAIN STATES
+  ════════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-0">
+    <div class="section-title">Hear It Again — Three States</div>
+
+    <div class="frames-row">
+
+      <!-- Frame 1: Idle (before readout) -->
+      <div class="frame-wrap">
+        <div class="frame-label" style="color:var(--gold);">Frame 1 · Before Readout (Idle)</div>
+        <div class="phone">
+          <div class="phone-inner">
+
+            <div class="q-card">
+              <div class="q-band-tag">P0 · Gold Adventure</div>
+              <div class="q-text">
+                The elephant is <span class="q-blank">&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+              </div>
+              <div class="speaker-btn" title="Hear the question">🔊</div>
+              <div class="speaker-label">🔊 Hear the question</div>
+            </div>
+
+            <div class="answers" id="ans-idle">
+              <button class="ans-btn">Big</button>
+              <button class="ans-btn">Small</button>
+              <button class="ans-btn">Round</button>
+              <button class="ans-btn">Tall</button>
+            </div>
+
+            <div class="info-text">Tap the speaker to hear the question read aloud</div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 2: Playing (during readout) -->
+      <div class="frame-wrap">
+        <div class="frame-label" style="color:var(--mint);">Frame 2 · During Readout (Playing)</div>
+        <div class="phone">
+          <div class="phone-inner">
+
+            <div class="q-card">
+              <div class="q-band-tag">P0 · Gold Adventure</div>
+              <div class="q-text">
+                The elephant is <span class="q-blank">&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+              </div>
+              <!-- speaker with pulse rings -->
+              <div class="speaker-btn playing" title="Reading question…">
+                <span class="ring3"></span>
+                🔊
+              </div>
+              <div class="speaker-label" style="color:var(--green);">🔊 Listening…</div>
+            </div>
+
+            <!-- Waveform -->
+            <div class="waveform">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
+
+            <div class="chip chip-listening">🔊 Listening…</div>
+
+            <!-- Answers locked during readout -->
+            <div class="answers locked">
+              <button class="ans-btn">Big</button>
+              <button class="ans-btn">Small</button>
+              <button class="ans-btn">Round</button>
+              <button class="ans-btn">Tall</button>
+            </div>
+
+            <div class="info-text">Answers re-enable when readout finishes</div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 3: After first readout (replay available) -->
+      <div class="frame-wrap">
+        <div class="frame-label" style="color:var(--violet);">Frame 3 · After Readout (Replay Available)</div>
+        <div class="phone">
+          <div class="phone-inner">
+
+            <div class="q-card">
+              <div class="q-band-tag">P0 · Gold Adventure</div>
+              <div class="q-text">
+                The elephant is <span class="q-blank">&nbsp;&nbsp;&nbsp;&nbsp;</span>.
+              </div>
+              <div class="speaker-btn" title="Hear it again">🔊</div>
+              <div class="speaker-label">🔊 Hear the question</div>
+            </div>
+
+            <!-- "Hear it again" chip + internal replay count -->
+            <div class="inline-chip-row">
+              <div class="chip chip-replay">🔁 Hear it again</div>
+              <!-- internal dev badge — hidden from child view by opacity trick in spec -->
+              <span class="replay-badge" title="Internal — not shown to child">replays: 1</span>
+            </div>
+
+            <div class="answers">
+              <button class="ans-btn">Big</button>
+              <button class="ans-btn">Small</button>
+              <button class="ans-btn">Round</button>
+              <button class="ans-btn">Tall</button>
+            </div>
+
+            <div class="info-text">You can hear it as many times as you like!</div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /frames-row -->
+  </div><!-- /screen-0 -->
+
+
+  <!-- ════════════════════════════════════════════════
+       TAB 2 — REPLAY VARIANTS
+  ════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-1">
+    <div class="section-title">Replay Chip Variants</div>
+
+    <div class="variants-grid">
+
+      <!-- Variant A: After incorrect selection -->
+      <div class="variant-card">
+        <div class="variant-label" style="color:var(--coral);">Variant A</div>
+        <div class="variant-title">After Incorrect Selection <em>(most important)</em></div>
+        <div class="q-text-sm">The elephant is <span style="border-bottom:1.5px solid var(--gold); padding:0 4px;">___</span></div>
+
+        <div class="ans-btn wrong" style="cursor:default; pointer-events:none;">Small ✗</div>
+
+        <div class="feedback-banner feedback-try">Try a different one! 🌟</div>
+
+        <div class="chip chip-replay chip-full" style="justify-content:center;">🔊 Hear it again?</div>
+
+        <div class="info-text" style="text-align:left;">Chip appears prominently after wrong tap — encourages re-reading the question before retrying. Min 48px height.</div>
+      </div>
+
+      <!-- Variant B: After explainer text -->
+      <div class="variant-card">
+        <div class="variant-label" style="color:var(--violet);">Variant B</div>
+        <div class="variant-title">After Explainer Text Shown</div>
+        <div class="q-text-sm">The elephant is <span style="border-bottom:1.5px solid var(--gold); padding:0 4px;">___</span></div>
+
+        <div style="background:rgba(155,114,255,.1); border:1.5px solid var(--violet); border-radius:10px; padding:10px 12px; font-size:13px; color:rgba(240,246,255,.8); line-height:1.5;">
+          💡 Elephants are really, really big animals — bigger than a car! Look at which word means very large.
+        </div>
+
+        <div class="chip-row">
+          <div class="chip chip-replay">🔊 Hear it again?</div>
+          <div class="chip chip-hint">🔊 Hear the hint too</div>
+        </div>
+
+        <div class="info-text" style="text-align:left;">Two chips: replay question OR hear the explainer/hint text aloud.</div>
+      </div>
+
+      <!-- Variant C: Long question -->
+      <div class="variant-card">
+        <div class="variant-label" style="color:var(--mint);">Variant C</div>
+        <div class="variant-title">Long Question (Multi-Sentence)</div>
+        <div class="q-text-sm" style="font-size:13px;">
+          The elephant walked slowly through the tall grass. It used its big trunk to grab leaves from the tree. The elephant is <span style="border-bottom:1.5px solid var(--gold); padding:0 4px;">___</span>.
+        </div>
+        <div style="font-size:11px; color:var(--mint); font-weight:700; letter-spacing:.06em;">
+          AUTO-DETECTED: 26 words &gt; 15 → two-chip layout
+        </div>
+
+        <div class="chip-row" style="flex-direction:column; gap:8px;">
+          <div class="chip chip-replay chip-full" style="justify-content:center;">🔊 Hear the whole question</div>
+          <div class="chip chip-hint chip-full" style="justify-content:center;">🔊 Hear just the last part</div>
+        </div>
+
+        <div class="info-text" style="text-align:left;">Detects &gt;15 words. Offers full read or final-sentence only — prevents re-listening to everything for a small detail.</div>
+      </div>
+
+      <!-- Variant D: Audio-only question -->
+      <div class="variant-card">
+        <div class="variant-label" style="color:var(--gold);">Variant D</div>
+        <div class="variant-title">Audio-Only Question</div>
+
+        <div style="background:rgba(255,209,102,.07); border:1.5px dashed var(--gold); border-radius:12px; padding:14px; text-align:center; font-size:13px; color:rgba(240,246,255,.5);">
+          🖼 Image shown here<br/>
+          <span style="font-size:11px;">(no visible question text)</span>
+        </div>
+
+        <div class="audio-only-btn">
+          🔊 Tap to hear the question
+        </div>
+
+        <div class="info-text" style="text-align:left;">Required to hear before answering. No timer. No auto-advance. Answers shown but not locked — child may proceed, but question audio is the primary vehicle.</div>
+
+        <div class="chip chip-replay chip-full" style="justify-content:center; margin-top:4px;">🔊 Hear it again</div>
+
+        <div class="answers" style="margin-top:4px;">
+          <button class="ans-btn" style="font-size:13px; padding:10px 14px;">Big</button>
+          <button class="ans-btn" style="font-size:13px; padding:10px 14px;">Small</button>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /screen-1 -->
+
+
+  <!-- ════════════════════════════════════════════════
+       TAB 3 — SPEC
+  ════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-2">
+    <div class="section-title">Hear It Again — Specification</div>
+
+    <div class="spec-grid">
+
+      <div class="spec-card">
+        <div class="spec-key">Replay Limit</div>
+        <div class="spec-val">
+          <strong>None.</strong> Child can replay as many times as needed. No cap. No penalty. Replaying is encouraged, never punished.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Replay Count Tracking</div>
+        <div class="spec-val">
+          <code>question_replays(session_id, question_id, replay_count, child_id)</code><br/>
+          Stored for content QA only. High replay count = signal that the question text may be confusing. Never surfaced to the child.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Auto-play on Load</div>
+        <div class="spec-val">
+          <strong>Never.</strong> Always wait for a child tap before playing audio. Autoplay is blocked by browsers and can be overwhelming for some children.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Answer Lockout During Readout</div>
+        <div class="spec-val">
+          <strong>Yes.</strong> <code>pointer-events:none</code> applied to all answer buttons while audio is playing. Re-enabled when <code>utterance.onend</code> fires (Web Speech API) or equivalent audio end event.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Slow Speed Behaviour</div>
+        <div class="spec-val">
+          If slow voice is enabled for a child, "Hear it again" plays at the same slow speed. Speed setting is sticky per session. No separate fast/slow chip needed.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Audio Disabled Fallback</div>
+        <div class="spec-val">
+          If audio is disabled: speaker button hidden entirely. "Hear it again" chip hidden. Question text is always shown regardless — text is never contingent on audio being available.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">
+          Accessibility <span class="spec-tag tag-wcag">WCAG 1.2.1</span>
+        </div>
+        <div class="spec-val">
+          Text alternative exists for all audio content. If question is audio-only, visible text equivalent is available to assistive technology via <code>aria-label</code> or visually-hidden element.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">
+          Accessibility <span class="spec-tag tag-wcag">WCAG 1.4.2</span>
+        </div>
+        <div class="spec-val">
+          User can pause audio. Tapping the speaker button during playback toggles play/pause. A second tap restarts from beginning. The button's <code>aria-label</code> updates to reflect state.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Touch Target Sizes</div>
+        <div class="spec-val">
+          Speaker button: minimum <strong>44×44px</strong> (WCAG 2.5.5).<br/>
+          "Hear it again" chip: minimum <strong>48px height</strong> to support small fingers and motor impairments.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">
+          Copy Standard <span class="spec-tag tag-copy">COPY</span>
+        </div>
+        <div class="spec-val">
+          Always: <strong>"Hear it again"</strong><br/>
+          Never: "replay" · "listen again" · "re-listen"<br/>
+          Consistent across all band levels (P0 Gold → P3 Coral). Copy is defined in a single <code>i18n</code> key: <code>hear_it_again</code>.
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Long Question Detection</div>
+        <div class="spec-val">
+          Word count &gt; 15 triggers two-chip layout (Variant C):<br/>
+          "🔊 Hear the whole question" + "🔊 Hear just the last part".<br/>
+          Threshold configurable via CMS flag <code>long_q_word_threshold</code> (default: 15).
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <div class="spec-key">Child Safety Rules</div>
+        <div class="spec-val">
+          · No timer on screen<br/>
+          · No accuracy % shown<br/>
+          · No "correct / incorrect" wording → use "Try a different one! 🌟"<br/>
+          · Adventure language, not academic<br/>
+          · Positive framing only<br/>
+          · Children cannot be penalised for replaying
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /screen-2 -->
+
+
+  <script>
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === t);
+      });
+      document.querySelectorAll('.screen').forEach((s, i) => {
+        s.classList.toggle('active', i === t);
+      });
+    }
+  </script>
+
+</body>
+</html>

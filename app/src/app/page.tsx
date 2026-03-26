@@ -7,32 +7,32 @@ export const dynamic = "force-dynamic";
 const routeCards = [
   {
     href: "/parent",
-    audience: "For parents",
+    audience: "Family route",
     icon: "👨‍👩‍👧",
-    title: "Follow your child's journey",
+    title: "See the week without turning home into a report card",
     description:
-      "See what they are learning, celebrate wins, and get simple next-step ideas without turning home into a report card.",
-    cta: "Open parent route",
+      "Track comfort, celebrate wins, and get simple next-step ideas that support the child path without drowning it in admin.",
+    cta: "Open family hub",
     tone: "parent",
   },
   {
     href: "/teacher",
-    audience: "For teachers",
+    audience: "Classroom route",
     icon: "🏫",
-    title: "Support every learner",
+    title: "Spot support lanes and class momentum faster",
     description:
-      "Use class-level visibility, skill drilldowns, and intervention cues to spot where help or stretch work is needed.",
-    cta: "Open teacher route",
+      "Use class signals, drilldowns, and intervention cues to decide where guided help or stretch work belongs next.",
+    cta: "Open classroom view",
     tone: "teacher",
   },
   {
     href: "/owner",
-    audience: "Platform ops",
+    audience: "Ops route",
     icon: "⚙️",
-    title: "System health at a glance",
+    title: "Run product signal, content readiness, and feedback flow in one place",
     description:
-      "Track route health, feedback signal, and content readiness across the prototype with operational context.",
-    cta: "Open owner route",
+      "Keep route health, incoming feedback, and launch readiness visible without mixing them into child or family experiences.",
+    cta: "Open ops console",
     tone: "owner",
   },
 ] as const;
@@ -60,12 +60,15 @@ export default async function HomePage() {
             <Link className="landing-mini-link" href="/owner">
               Platform ops
             </Link>
+            <Link className="landing-mini-link" href="/design-system">
+              Design system
+            </Link>
           </div>
 
           <div className="landing-topbar-actions">
             <DisplayModeToggle />
             <Link className="landing-topbar-cta" href="/child">
-              Start free
+              Launch child route
             </Link>
           </div>
         </header>
@@ -76,33 +79,33 @@ export default async function HomePage() {
               Early access · Ages 2 to 10 · {launchStatus.launchBandCount} live bands
             </span>
             <h1>
-              Learning that feels
+              Child-first learning
               <br />
-              like a <em>Quest</em>.
+              with real <em>route clarity</em>.
             </h1>
             <p>
-              Adaptive reading and math built around play, not pressure. Voice-led
-              support, low-text child flows, and clear adult visibility in one
-              shared product.
+              WonderQuest should feel alive in the child route, calm in the family
+              route, useful in the classroom route, and operationally sharp in the
+              ops route. This home screen is the launcher for that system.
             </p>
 
             <div className="landing-chip-row">
               <span className="landing-chip">Child-first launcher</span>
-              <span className="landing-chip">No peer chat</span>
+              <span className="landing-chip">Separate adult routes</span>
               <span className="landing-chip">
                 {launchStatus.source === "supabase"
-                  ? "Live learning flows"
-                  : "Fallback launch data"}
+                  ? "Live route data"
+                  : "Fallback route data"}
               </span>
               <span className="landing-chip">Saved progress and badges</span>
             </div>
 
             <div className="landing-hero-actions">
               <Link className="landing-primary-btn" href="/child">
-                Start playing
+                Start child journey
               </Link>
               <a className="landing-secondary-btn" href="#audiences">
-                See who it is for
+                Explore the routes
               </a>
             </div>
           </div>
@@ -112,12 +115,11 @@ export default async function HomePage() {
           <article className="landing-featured-card tone-kid">
             <div className="landing-featured-copy">
               <span className="landing-featured-label">Kid journey</span>
-              <h2>One big child path first. Adults support it from the side.</h2>
+              <h2>Put the child route in front. Let the adult routes support it from the edge.</h2>
               <p>
-                Start in child mode with quick access, saved progress, gentle
-                recovery loops, and a low-text play flow. Parent, teacher, and
-                owner routes stay visible, but the child path dominates the
-                launcher.
+                The shipped UI should open with a bold child path, then let family,
+                classroom, and ops surfaces do their jobs without stealing the
+                center of gravity.
               </p>
               <div className="landing-chip-row">
                 <span className="landing-chip">Quick child access</span>
@@ -131,7 +133,7 @@ export default async function HomePage() {
                 🚀
               </div>
               <Link className="landing-route-link landing-route-link-featured" href="/child">
-                Start child journey
+                Launch child route
               </Link>
             </div>
           </article>
@@ -140,22 +142,22 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Launch bands</span>
               <strong>{launchStatus.launchBandCount}</strong>
-              <p>Age and grade pathways already wired into the live product.</p>
+              <p>Age and band pathways already present in the live app shell.</p>
             </article>
             <article className="landing-metric-card">
               <span>Question bank</span>
               <strong>{launchStatus.templateCount >= 8 ? "100+" : "Growing"}</strong>
-              <p>Enough live content to keep early beta testing from hitting the same tiny loop.</p>
+              <p>Enough content to keep the real routes from feeling like one repeated stub.</p>
             </article>
             <article className="landing-metric-card">
               <span>Saved progress</span>
               <strong>Live</strong>
-              <p>Points, badges, and child-return motivation persist across sessions.</p>
+              <p>Points, badges, and return-state motivation already persist across sessions.</p>
             </article>
             <article className="landing-metric-card">
               <span>Adult routes</span>
               <strong>3</strong>
-              <p>Parent, teacher, and owner views are separate and purpose-built.</p>
+              <p>Family, classroom, and ops surfaces stay purpose-built instead of blended together.</p>
             </article>
           </div>
 
@@ -189,8 +191,8 @@ export default async function HomePage() {
             </div>
             <h2>Live product signal, not just a static mockup.</h2>
             <p>
-              These launcher routes are tied to the current prototype state, so
-              families and teachers can move from the home route into real flows.
+              These routes point at the actual app, so UI changes here affect the
+              real experience rather than a detached mock lane.
             </p>
           </div>
 
@@ -223,7 +225,7 @@ export default async function HomePage() {
           <span className="landing-trust-item">🎓 Built for home and school</span>
           <span className="landing-trust-item">🚫 No peer chat</span>
           <span className="landing-trust-item">👁️ No public rankings for children</span>
-          <span className="landing-trust-item">📱 Ready on phone, tablet, and laptop</span>
+          <span className="landing-trust-item">📱 Shared UI across phone, tablet, and desktop</span>
         </section>
 
         {launchStatus.source === "fallback" ? (

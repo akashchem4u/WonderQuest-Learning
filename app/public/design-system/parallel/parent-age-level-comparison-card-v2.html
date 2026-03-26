@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Age-Level Comparison Card — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.7;max-width:1100px}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;min-height:100vh;padding:24px;color:#f0f6ff}
+
+/* ── Tab chrome ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#161b22;color:#8b949e;border:1px solid rgba(255,255,255,.08);transition:all .18s}
+.tab-btn:hover{color:#f0f6ff;border-color:rgba(255,255,255,.16)}
+.tab-btn.active{background:#50e890;color:#0d1117;border-color:#50e890}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+
+/* ── Page title ── */
+.page-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;margin-bottom:20px}
+
+/* ── Section label ── */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;margin-bottom:16px;margin-top:28px}
+.section-label:first-of-type{margin-top:0}
+
+/* ═══════════════════════════════════════════════════
+   DISCLAIMER GATE
+═══════════════════════════════════════════════════ */
+#disclaimer-gate{background:#161b22;border:2px solid #d99000;border-radius:12px;padding:24px;max-width:640px;margin:0 auto 32px auto}
+#disclaimer-gate h2{font-size:16px;font-weight:800;color:#f0f6ff;margin-bottom:8px}
+#disclaimer-gate p{font-size:13px;color:#c9d1d9;line-height:1.7;margin-bottom:16px}
+.gate-checkbox-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px}
+.gate-checkbox-row input[type=checkbox]{width:18px;height:18px;margin-top:1px;accent-color:#50e890;flex-shrink:0;cursor:pointer}
+.gate-checkbox-row label{font-size:13px;color:#c9d1d9;line-height:1.5;cursor:pointer}
+#gate-btn{background:#50e890;color:#0d1117;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+#gate-btn:disabled{opacity:.4;cursor:not-allowed}
+#gate-btn:not(:disabled):hover{opacity:.88}
+#card-content{display:none}
+
+/* ═══════════════════════════════════════════════════
+   COMPARISON CARD
+═══════════════════════════════════════════════════ */
+.comp-card{background:#161b22;border-radius:14px;border:1px solid rgba(255,255,255,.06);overflow:hidden;margin-bottom:24px}
+.comp-card-header{padding:20px 24px 16px 24px;border-bottom:1px solid rgba(255,255,255,.06)}
+.comp-card-header h1{font-size:18px;font-weight:800;color:#f0f6ff;margin-bottom:4px}
+.comp-card-header p{font-size:13px;color:#8b949e;line-height:1.5}
+
+/* ── Range bar ── */
+.range-section{padding:24px 24px 20px 24px;border-bottom:1px solid rgba(255,255,255,.06)}
+.range-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:16px}
+.range-outer{position:relative;margin-bottom:10px}
+.range-track{height:10px;border-radius:10px;background:linear-gradient(to right, #ffd166 0%, #58e8c1 50%, #a78bfa 100%);position:relative}
+.range-dot-wrapper{position:absolute;top:50%;transform:translateY(-50%);left:50%;margin-left:-8px}
+.range-dot{width:16px;height:16px;border-radius:50%;background:#50e890;border:3px solid #0d1117;box-shadow:0 0 0 3px #50e890;cursor:default;transition:left .4s ease}
+.range-dot-label{position:absolute;top:-26px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#50e890;white-space:nowrap;background:#0d1117;padding:2px 6px;border-radius:4px}
+.range-labels{display:flex;justify-content:space-between;margin-top:8px}
+.range-labels span{font-size:11px;color:#8b949e;font-weight:600}
+.range-summary{margin-top:14px;background:rgba(80,232,144,.08);border:1px solid rgba(80,232,144,.22);border-radius:8px;padding:10px 14px;font-size:13px;color:#50e890;font-weight:600;line-height:1.5}
+.range-summary span.emoji{margin-left:4px}
+
+/* ── Subject breakdown ── */
+.breakdown-section{padding:20px 24px}
+.breakdown-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:16px}
+.subject-row{display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.subject-row:last-child{border-bottom:none}
+.subject-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.subject-icon.maths{background:rgba(255,209,102,.12)}
+.subject-icon.literacy{background:rgba(155,114,255,.12)}
+.subject-icon.science{background:rgba(88,232,193,.12)}
+.subject-icon.social{background:rgba(255,123,107,.12)}
+.subject-info{flex:1;min-width:0}
+.subject-name{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:3px}
+.subject-label{font-size:12px;color:#8b949e;line-height:1.4}
+.subject-mini-bar{width:90px;flex-shrink:0}
+.mini-track{height:6px;border-radius:6px;background:rgba(255,255,255,.08);position:relative;overflow:hidden}
+.mini-fill{height:100%;border-radius:6px;transition:width .5s ease}
+.mini-fill.ahead{background:#ffd166;width:72%}
+.mini-fill.similar{background:#58e8c1;width:50%}
+.mini-fill.starting{background:#a78bfa;width:20%}
+.bucket-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:12px;flex-shrink:0}
+.bucket-badge.ahead{background:rgba(255,209,102,.14);color:#ffd166}
+.bucket-badge.similar{background:rgba(88,232,193,.14);color:#58e8c1}
+.bucket-badge.starting{background:rgba(167,139,250,.14);color:#a78bfa}
+
+/* ── Disclaimer box ── */
+.disclaimer-box{background:#161b22;border:1px solid #d99000;border-radius:10px;padding:14px 18px;margin-top:4px;font-size:12px;color:#c9d1d9;line-height:1.65}
+.disclaimer-box .disc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#d99000;margin-bottom:6px}
+
+/* ═══════════════════════════════════════════════════
+   TAB 2 — METHODOLOGY
+═══════════════════════════════════════════════════ */
+.method-card{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:24px;margin-bottom:20px}
+.method-card h2{font-size:15px;font-weight:800;color:#f0f6ff;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.method-card h2 .icon{font-size:16px}
+.method-list{list-style:none;padding:0}
+.method-list li{font-size:13px;color:#c9d1d9;line-height:1.65;padding:5px 0 5px 18px;position:relative}
+.method-list li::before{content:"•";position:absolute;left:0;color:#50e890;font-weight:900}
+.method-list li.no-item::before{color:#ff7b6b}
+.method-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin:18px 0 8px 0;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)}
+.method-section-label:first-of-type{margin-top:0;padding-top:0;border-top:none}
+.legal-note{background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.22);border-radius:8px;padding:12px 16px;font-size:12px;color:#c9d1d9;line-height:1.6;margin-top:16px}
+.legal-note strong{color:#a78bfa}
+.data-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.06);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:#c9d1d9;margin:3px 3px 3px 0}
+.data-chip .dot{width:6px;height:6px;border-radius:50%}
+
+/* ═══════════════════════════════════════════════════
+   TAB 3 — SPEC
+═══════════════════════════════════════════════════ */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.spec-grid{grid-template-columns:1fr}}
+.spec-block{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:18px 20px}
+.spec-block h3{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#50e890;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.spec-block h3 .s-icon{font-size:14px}
+.spec-row{font-size:12px;color:#c9d1d9;line-height:1.6;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.spec-row:last-child{border-bottom:none}
+.spec-row strong{color:#f0f6ff;font-weight:700}
+.spec-row code{font-family:monospace;font-size:11px;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;color:#9b72ff}
+.spec-block.full-width{grid-column:1/-1}
+.db-schema{background:#0d1117;border-radius:8px;padding:12px 14px;font-family:monospace;font-size:11.5px;color:#58e8c1;line-height:1.8;margin-top:8px;border:1px solid rgba(88,232,193,.12);overflow-x:auto;white-space:pre}
+.language-rule{display:flex;gap:10px;align-items:flex-start;padding:5px 0}
+.language-rule .badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;margin-top:1px}
+.language-rule .badge.never{background:rgba(255,123,107,.18);color:#ff7b6b}
+.language-rule .badge.use{background:rgba(80,232,144,.14);color:#50e890}
+.language-rule .text{font-size:12px;color:#c9d1d9;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint">ITEM 242 &middot; parent-age-level-comparison-card-v2.html &middot; WonderQuest parallel-agent build</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(0)">Age Comparison Card</button>
+  <button class="tab-btn" onclick="showTab(1)">Disclaimer &amp; Methodology</button>
+  <button class="tab-btn" onclick="showTab(2)">Spec</button>
+</div>
+
+<!-- ═══════════ TAB 0 — AGE COMPARISON CARD ═══════════ -->
+<div class="screen active" id="tab-0">
+  <div class="page-title">Parent View &mdash; Age-Level Comparison</div>
+
+  <!-- Disclaimer gate (shown first time; hidden once accepted) -->
+  <div id="disclaimer-gate" role="dialog" aria-labelledby="gate-heading" aria-describedby="gate-body">
+    <h2 id="gate-heading">Before you view this comparison&hellip;</h2>
+    <p id="gate-body">
+      This card shows how Emma's exploration activity on WonderQuest compares to other children her age.
+      It is based on <strong>engagement patterns only</strong> &mdash; not test scores, not academic assessments,
+      and not any prediction of future performance. All children learn at different paces,
+      and this data is for your information only.
+    </p>
+    <div class="gate-checkbox-row">
+      <input type="checkbox" id="gate-check" onchange="updateGateBtn()">
+      <label for="gate-check">I understand this is engagement data, not an assessment, and it does not predict Emma's academic outcomes.</label>
+    </div>
+    <button id="gate-btn" disabled onclick="acceptGate()">View Comparison</button>
+  </div>
+
+  <!-- Card content (hidden until gate accepted) -->
+  <div id="card-content">
+
+    <!-- Main comparison card -->
+    <div class="comp-card">
+      <div class="comp-card-header">
+        <h1>How Emma Explores vs Other 8-Year-Olds</h1>
+        <p>Based on WonderQuest activity data from children Emma's age</p>
+      </div>
+
+      <!-- Range bar visualisation -->
+      <div class="range-section" aria-describedby="range-desc">
+        <div class="range-title">Overall Exploration Pace</div>
+        <div class="range-outer" role="img" aria-label="Range bar showing Emma's exploration pace. Emma is exploring at a similar pace to many 8-year-olds.">
+          <div class="range-track" id="range-track">
+            <!-- dot positioned at ~50% (similar) -->
+            <div class="range-dot-wrapper" id="range-dot-wrapper" style="left:50%;margin-left:-8px">
+              <div class="range-dot-label">Emma</div>
+              <div class="range-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="range-labels" aria-hidden="true">
+          <span>&larr; Exploring earlier</span>
+          <span>Exploring at a similar pace</span>
+          <span>Exploring later &rarr;</span>
+        </div>
+        <p id="range-desc" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Horizontal range strip from "Exploring earlier" on the left to "Exploring later" on the right. Emma's position is marked in the middle, indicating a similar pace.</p>
+        <div class="range-summary" role="status">
+          Emma is exploring Maths at a similar pace to many 8-year-olds <span class="emoji">&#127775;</span>
+        </div>
+      </div>
+
+      <!-- Per-subject breakdown -->
+      <div class="breakdown-section">
+        <div class="breakdown-title">Subject Breakdown</div>
+
+        <!-- Maths -->
+        <div class="subject-row">
+          <div class="subject-icon maths" aria-hidden="true">&#129518;</div>
+          <div class="subject-info">
+            <div class="subject-name">Maths</div>
+            <div class="subject-label">Emma is exploring a bit ahead of many 8-year-olds &#127775;</div>
+          </div>
+          <div class="subject-mini-bar" aria-hidden="true">
+            <div class="mini-track"><div class="mini-fill ahead"></div></div>
+          </div>
+          <div class="bucket-badge ahead" aria-label="Bucket: exploring ahead">Ahead</div>
+        </div>
+
+        <!-- Literacy -->
+        <div class="subject-row">
+          <div class="subject-icon literacy" aria-hidden="true">&#128218;</div>
+          <div class="subject-info">
+            <div class="subject-name">Literacy</div>
+            <div class="subject-label">Emma is exploring at a similar pace &#127775;</div>
+          </div>
+          <div class="subject-mini-bar" aria-hidden="true">
+            <div class="mini-track"><div class="mini-fill similar"></div></div>
+          </div>
+          <div class="bucket-badge similar" aria-label="Bucket: exploring at a similar pace">Similar</div>
+        </div>
+
+        <!-- Science -->
+        <div class="subject-row">
+          <div class="subject-icon science" aria-hidden="true">&#128300;</div>
+          <div class="subject-info">
+            <div class="subject-name">Science</div>
+            <div class="subject-label">Emma is just starting to explore this area &#127775;</div>
+          </div>
+          <div class="subject-mini-bar" aria-hidden="true">
+            <div class="mini-track"><div class="mini-fill starting"></div></div>
+          </div>
+          <div class="bucket-badge starting" aria-label="Bucket: just starting to explore">Starting</div>
+        </div>
+
+        <!-- Social Studies -->
+        <div class="subject-row">
+          <div class="subject-icon social" aria-hidden="true">&#127758;</div>
+          <div class="subject-info">
+            <div class="subject-name">Social Studies</div>
+            <div class="subject-label">Emma is exploring a bit ahead &#127775;</div>
+          </div>
+          <div class="subject-mini-bar" aria-hidden="true">
+            <div class="mini-track"><div class="mini-fill ahead"></div></div>
+          </div>
+          <div class="bucket-badge ahead" aria-label="Bucket: exploring ahead">Ahead</div>
+        </div>
+
+      </div><!-- /breakdown-section -->
+    </div><!-- /comp-card -->
+
+    <!-- Required disclaimer box -->
+    <div class="disclaimer-box" role="note" aria-label="Important disclaimer">
+      <div class="disc-label">&#9888;&#65039; Important Note</div>
+      This comparison is based on exploration patterns, not test scores.
+      All children learn at different paces. This is for your information only and
+      does not predict academic outcomes.
+    </div>
+
+  </div><!-- /card-content -->
+</div><!-- /tab-0 -->
+
+
+<!-- ═══════════ TAB 1 — DISCLAIMER & METHODOLOGY ═══════════ -->
+<div class="screen" id="tab-1">
+  <div class="page-title">Disclaimer &amp; Methodology</div>
+
+  <div class="method-card">
+
+    <h2><span class="icon">&#128270;</span> What This Comparison Shows</h2>
+    <p class="method-section-label">Included in this comparison</p>
+    <ul class="method-list">
+      <li>Activity patterns &mdash; which skills Emma has explored and which quests she has attempted</li>
+      <li>These patterns compared to same-age peers (children aged 8) using WonderQuest</li>
+      <li>Three simple buckets: <strong>exploring earlier</strong>, <strong>exploring at a similar pace</strong>, or <strong>exploring later</strong></li>
+      <li>Updated monthly using aggregated, anonymised cohort data</li>
+    </ul>
+
+    <p class="method-section-label">Not included in this comparison</p>
+    <ul class="method-list">
+      <li class="no-item">How well Emma performed on specific questions or activities</li>
+      <li class="no-item">Whether Emma is "advanced" or "behind" &mdash; we don't use that language</li>
+      <li class="no-item">Any prediction of future academic performance</li>
+      <li class="no-item">Accuracy scores, assessment grades, or standardised test results</li>
+    </ul>
+
+    <p class="method-section-label">Data source</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+      <span class="data-chip"><span class="dot" style="background:#50e890"></span>Anonymised WonderQuest users</span>
+      <span class="data-chip"><span class="dot" style="background:#ffd166"></span>Age band: 8-year-olds</span>
+      <span class="data-chip"><span class="dot" style="background:#a78bfa"></span>Min cohort: 50 children</span>
+      <span class="data-chip"><span class="dot" style="background:#58e8c1"></span>Updated monthly</span>
+    </div>
+    <ul class="method-list">
+      <li>Data is aggregated at the cohort level; no individual child's data from other users is shared with you</li>
+      <li>Emma's data is not shared with other parents or visible to the cohort</li>
+      <li>Cohorts with fewer than 50 children do not generate a comparison to protect privacy</li>
+    </ul>
+
+    <div class="legal-note">
+      <strong>Legal note</strong><br>
+      <strong>FERPA:</strong> This data is used for informational purposes only and does not constitute an educational record disclosure to third parties.<br>
+      <strong>No causal claims:</strong> WonderQuest makes no claims about learning effectiveness based on this comparison.<br>
+      <strong>No external benchmarks:</strong> This comparison does not reference any standardised external assessment (e.g., state standards, national assessments).
+    </div>
+
+  </div><!-- /method-card -->
+</div><!-- /tab-1 -->
+
+
+<!-- ═══════════ TAB 2 — SPEC ═══════════ -->
+<div class="screen" id="tab-2">
+  <div class="page-title">Engineering &amp; Product Spec</div>
+
+  <div class="spec-grid">
+
+    <!-- Privacy -->
+    <div class="spec-block">
+      <h3><span class="s-icon">&#128274;</span> Privacy</h3>
+      <div class="spec-row"><strong>Cohort aggregation:</strong> Comparison uses cohort aggregates only (min n=50); no individual child data from other users is exposed.</div>
+      <div class="spec-row"><strong>Emma's data:</strong> Emma's activity data is NOT shared with the cohort or other parents.</div>
+      <div class="spec-row"><strong>Privacy threshold:</strong> Cohorts below 50 children suppress comparison output entirely.</div>
+      <div class="spec-row"><strong>Storage:</strong> Cohort buckets stored at <code>child_age_comparisons</code>; no raw peer data retained.</div>
+    </div>
+
+    <!-- Disclaimer & Consent -->
+    <div class="spec-block">
+      <h3><span class="s-icon">&#9989;</span> Disclaimer &amp; Consent</h3>
+      <div class="spec-row"><strong>Gate:</strong> Checkbox acknowledgment required before first view.</div>
+      <div class="spec-row"><strong>Storage:</strong> Acceptance stored in <code>parent_preferences.comparison_disclaimer_accepted_at</code> (ISO timestamp).</div>
+      <div class="spec-row"><strong>Re-show:</strong> Gate re-shown if methodology version number changes (version stored alongside timestamp).</div>
+      <div class="spec-row"><strong>UX:</strong> "View Comparison" button disabled until checkbox is checked.</div>
+    </div>
+
+    <!-- Language Rules -->
+    <div class="spec-block">
+      <h3><span class="s-icon">&#128172;</span> Language Rules</h3>
+      <div class="language-rule">
+        <span class="badge never">Never</span>
+        <span class="text">"below average", "above average", "struggling", "behind", "failing", percentile numbers (e.g. "72nd percentile")</span>
+      </div>
+      <div class="language-rule">
+        <span class="badge use">Use</span>
+        <span class="text">"exploring earlier", "exploring at a similar pace", "exploring later"</span>
+      </div>
+      <div class="language-rule">
+        <span class="badge use">Tone</span>
+        <span class="text">Positive, forward-looking, adventure-framed language throughout. All subject labels end with &#127775;.</span>
+      </div>
+    </div>
+
+    <!-- Personas -->
+    <div class="spec-block">
+      <h3><span class="s-icon">&#128101;</span> Personas</h3>
+      <div class="spec-row"><strong>Parent:</strong> Sees per-child comparison card (this component).</div>
+      <div class="spec-row"><strong>Teacher:</strong> Sees class-level comparison only, not per-child data.</div>
+      <div class="spec-row"><strong>Child:</strong> Never sees comparison data. This card is parent-only.</div>
+      <div class="spec-row"><strong>Admin:</strong> Full cohort stats in separate admin dashboard (out of scope here).</div>
+    </div>
+
+    <!-- DB Schema -->
+    <div class="spec-block full-width">
+      <h3><span class="s-icon">&#128196;</span> DB Schema</h3>
+      <div class="db-schema">child_age_comparisons (
+  child_id           UUID         NOT NULL REFERENCES children(id),
+  age_years          SMALLINT     NOT NULL,
+  subject_id         UUID         NOT NULL REFERENCES subjects(id),
+  comparison_bucket  ENUM(        -- values:
+                       'earlier',
+                       'similar',
+                       'later'
+                     )            NOT NULL,
+  cohort_size        INT          NOT NULL CHECK (cohort_size >= 50),
+  methodology_ver    SMALLINT     NOT NULL DEFAULT 1,
+  updated_at         TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  PRIMARY KEY (child_id, subject_id)
+);
+-- Refreshed monthly via scheduled job.
+-- cohort_size enforces privacy threshold at DB level.</div>
+    </div>
+
+    <!-- WCAG -->
+    <div class="spec-block full-width">
+      <h3><span class="s-icon">&#9855;&#65039;</span> WCAG &amp; Accessibility</h3>
+      <div class="spec-row"><strong>Disclaimer box contrast:</strong> Amber border (#d99000) on dark background (#161b22) meets AA for non-text elements; body text (#c9d1d9 on #161b22) passes AA (5.6:1).</div>
+      <div class="spec-row"><strong>Checkbox:</strong> <code>&lt;input&gt;</code> associated via <code>&lt;label for&gt;</code>; gate dialog uses <code>role="dialog"</code>, <code>aria-labelledby</code>, and <code>aria-describedby</code>.</div>
+      <div class="spec-row"><strong>Range bar:</strong> Wrapped in <code>role="img"</code> with a descriptive <code>aria-label</code>; decorative elements set to <code>aria-hidden="true"</code>; screen-reader text provided via <code>aria-describedby</code> + visually hidden element.</div>
+      <div class="spec-row"><strong>Status message:</strong> Range summary uses <code>role="status"</code> for live-region announcement.</div>
+      <div class="spec-row"><strong>Subject badges:</strong> Each badge has an <code>aria-label</code> spelling out the full bucket description.</div>
+    </div>
+
+  </div><!-- /spec-grid -->
+</div><!-- /tab-2 -->
+
+
+<script>
+/* ── Tab switching ── */
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach((s, i) => {
+    s.classList.toggle('active', i === t);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === t);
+  });
+}
+
+/* ── Disclaimer gate ── */
+function updateGateBtn() {
+  const checked = document.getElementById('gate-check').checked;
+  document.getElementById('gate-btn').disabled = !checked;
+}
+
+function acceptGate() {
+  // Persist acceptance (simulated via sessionStorage; real impl uses parent_preferences API)
+  try {
+    sessionStorage.setItem('parent_preferences.comparison_disclaimer_accepted_at', new Date().toISOString());
+    sessionStorage.setItem('parent_preferences.comparison_disclaimer_version', '1');
+  } catch(e) {}
+
+  document.getElementById('disclaimer-gate').style.display = 'none';
+  document.getElementById('card-content').style.display = 'block';
+  animateRangeDot();
+}
+
+/* ── Range dot entrance animation ── */
+function animateRangeDot() {
+  const wrapper = document.getElementById('range-dot-wrapper');
+  wrapper.style.transition = 'none';
+  wrapper.style.left = '10%';
+  wrapper.style.marginLeft = '-8px';
+  // Force reflow then animate to final position
+  void wrapper.offsetWidth;
+  wrapper.style.transition = 'left .7s cubic-bezier(.34,1.56,.64,1)';
+  wrapper.style.left = '50%';
+}
+
+/* ── Check if gate already accepted this session ── */
+(function checkPersistedGate() {
+  try {
+    const accepted = sessionStorage.getItem('parent_preferences.comparison_disclaimer_accepted_at');
+    const ver = sessionStorage.getItem('parent_preferences.comparison_disclaimer_version');
+    if (accepted && ver === '1') {
+      document.getElementById('disclaimer-gate').style.display = 'none';
+      document.getElementById('card-content').style.display = 'block';
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

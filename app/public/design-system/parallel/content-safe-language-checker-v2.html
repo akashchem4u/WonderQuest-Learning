@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safe Language Checker — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+.btn-danger{background:transparent;color:#ff7b6b;border:1px solid rgba(255,123,107,.3);}
+
+.page-body{padding:24px 28px;max-width:1200px;}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── CHECKER UI ─────────────────────────────────────────────────── */
+.checker-layout{display:grid;grid-template-columns:1fr 320px;gap:20px;}
+.checker-main{}
+.checker-sidebar{}
+
+.input-area{background:#161b22;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+.ia-toolbar{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.ia-label{font-size:12px;color:rgba(240,246,255,.5);}
+.ia-select{background:#0d1117;border:1px solid rgba(255,255,255,.12);border-radius:5px;color:#f0f6ff;font-size:12px;padding:4px 8px;cursor:pointer;}
+.ia-textarea{width:100%;background:transparent;border:none;padding:14px;color:#f0f6ff;font-size:13px;line-height:1.7;resize:vertical;min-height:140px;font-family:inherit;}
+.ia-textarea:focus{outline:none;}
+.ia-textarea::placeholder{color:rgba(240,246,255,.25);}
+.ia-footer{padding:8px 14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+.ia-char-count{font-size:11px;color:rgba(240,246,255,.35);}
+
+/* ─── RESULT AREA ────────────────────────────────────────────────── */
+.result-area{background:#161b22;border-radius:10px;border:1px solid rgba(255,255,255,.06);overflow:hidden;}
+.ra-header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+.ra-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.ra-overall{font-size:12px;font-weight:700;padding:4px 10px;border-radius:10px;margin-left:auto;}
+.rao-pass{background:rgba(80,232,144,.15);color:#50e890;}
+.rao-warn{background:rgba(240,192,64,.15);color:#f0c040;}
+.rao-fail{background:rgba(255,123,107,.15);color:#ff7b6b;}
+
+.annotated-text{padding:16px;font-size:13px;line-height:2;color:#e0eaff;}
+.flag-word{border-radius:3px;padding:1px 3px;cursor:pointer;position:relative;}
+.fw-red{background:rgba(255,123,107,.2);border-bottom:2px solid #ff7b6b;color:#ff7b6b;}
+.fw-amber{background:rgba(240,192,64,.12);border-bottom:2px solid #f0c040;color:#f0c040;}
+.fw-violet{background:rgba(155,114,255,.15);border-bottom:2px solid #9b72ff;color:#9b72ff;}
+
+/* ─── FLAG LIST ──────────────────────────────────────────────────── */
+.flag-list{padding:12px 16px;display:flex;flex-direction:column;gap:8px;border-top:1px solid rgba(255,255,255,.06);}
+.flag-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:7px;}
+.fi-red{background:rgba(255,123,107,.06);border:1px solid rgba(255,123,107,.15);}
+.fi-amber{background:rgba(240,192,64,.06);border:1px solid rgba(240,192,64,.12);}
+.fi-violet{background:rgba(155,114,255,.06);border:1px solid rgba(155,114,255,.12);}
+.fi-icon{font-size:14px;margin-top:1px;flex-shrink:0;}
+.fi-body{flex:1;}
+.fi-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.fit-red{color:#ff7b6b;}
+.fit-amber{color:#f0c040;}
+.fit-violet{color:#9b72ff;}
+.fi-text{font-size:13px;color:#f0f6ff;margin-bottom:4px;}
+.fi-suggestion{font-size:12px;color:rgba(240,246,255,.5);}
+.fi-suggestion strong{color:#50e890;}
+.fi-action{display:flex;gap:6px;margin-top:6px;}
+.btn-xs{padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(240,246,255,.6);font-size:11px;cursor:pointer;font-family:inherit;}
+.btn-xs:hover{background:rgba(255,255,255,.06);}
+.btn-xs.bx-ok{border-color:rgba(80,232,144,.3);color:#50e890;}
+
+/* ─── SIDEBAR PANELS ─────────────────────────────────────────────── */
+.side-panel{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:14px;}
+.sp-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.score-item{text-align:center;padding:8px 6px;background:#0d1117;border-radius:6px;}
+.si-val{font-size:17px;font-weight:700;}
+.si-lbl{font-size:10px;color:rgba(240,246,255,.4);margin-top:2px;}
+.sv-pass{color:#50e890;}
+.sv-warn{color:#f0c040;}
+.sv-fail{color:#ff7b6b;}
+.sv-neutral{color:#f0f6ff;}
+
+.category-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.category-row:last-child{border-bottom:none;}
+.cat-dot{width:8px;height:8px;border-radius:50%;}
+.cd-pass{background:#50e890;}
+.cd-warn{background:#f0c040;}
+.cd-fail{background:#ff7b6b;}
+.cat-name{flex:1;font-size:12px;color:rgba(240,246,255,.65);}
+.cat-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;}
+.cb-pass{background:rgba(80,232,144,.12);color:#50e890;}
+.cb-warn{background:rgba(240,192,64,.1);color:#f0c040;}
+.cb-fail{background:rgba(255,123,107,.12);color:#ff7b6b;}
+
+/* ─── HISTORY TABLE ──────────────────────────────────────────────── */
+.history-table{width:100%;border-collapse:collapse;font-size:12px;}
+.history-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.history-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.history-table tr:last-child td{border-bottom:none;}
+
+/* ─── RULES TABLE ────────────────────────────────────────────────── */
+.rules-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rules-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.rules-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;line-height:1.5;}
+.rules-table tr:last-child td{border-bottom:none;}
+.rule-cat{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:8px;}
+.rc-block{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.rc-warn{background:rgba(240,192,64,.12);color:#f0c040;}
+.rc-info{background:rgba(155,114,255,.12);color:#9b72ff;}
+
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sb-title-main{font-size:13px;font-weight:600;color:#f0f6ff;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Safe Language Checker</h1>
+  <span class="ph-sub">Automated and manual review for age-appropriate language in all content types</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⚙ Edit Rules</button>
+    <button class="btn btn-primary">▶ Run Batch Check</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Safe Language Checker v2:</strong> Runs on every text field before content enters review queue.
+    <br><strong>Check categories (auto):</strong> Age-appropriateness (vocabulary complexity vs band target) · Violence/distress language · Exclusionary language ·
+    Pressure/anxiety language (no time pressure, no "wrong" shaming) · Cultural sensitivity flags · PII scan (names, locations).
+    <br><strong>Severity:</strong> Block (content cannot publish until fixed) / Warn (flag for reviewer, can override with note) / Info (informational only).
+    <br><strong>Band context:</strong> P0/P1 rules stricter than P2/P3. Checker parameterised by band_id (passed at scan time).
+    <br>Runs: (1) on Save in editor; (2) on bulk import; (3) nightly re-scan of all draft content.
+    <br>False positives can be dismissed with reason — logged in safe_language_overrides for audit.
+    <br>Tabs: Live Checker / Batch Results / Override Log / Rules Reference.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('checker')">Live Checker</button>
+    <button class="tab-btn" onclick="showTab('batch')">Batch Results <span style="background:rgba(255,123,107,.2);color:#ff7b6b;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">8</span></button>
+    <button class="tab-btn" onclick="showTab('overrides')">Override Log</button>
+    <button class="tab-btn" onclick="showTab('rules')">Rules Reference</button>
+  </div>
+
+  <!-- TAB: LIVE CHECKER -->
+  <div id="tab-checker" class="screen active">
+    <div class="checker-layout">
+
+      <div class="checker-main">
+        <div class="input-area">
+          <div class="ia-toolbar">
+            <span class="ia-label">Content type:</span>
+            <select class="ia-select">
+              <option>Question prompt</option>
+              <option selected>Explainer/hint</option>
+              <option>Answer option</option>
+              <option>Feedback message</option>
+            </select>
+            <span class="ia-label">Band:</span>
+            <select class="ia-select">
+              <option>P0 Pre-K</option>
+              <option selected>P1 K–1</option>
+              <option>P2 G2–3</option>
+              <option>P3 G4–5</option>
+            </select>
+          </div>
+          <textarea class="ia-textarea" placeholder="Paste question, explainer, or answer text here…">Plants are like little food factories! They use sunlight to make their own food. When sunlight hits the green leaves, the plant uses it to turn air and water into energy — a process called photosynthesis. Without sunlight, a plant can't make food and will slowly die and wither away. You must remember this or you'll fail your test!</textarea>
+          <div class="ia-footer">
+            <span class="ia-char-count">248 characters · ~42 words</span>
+            <button class="btn btn-primary" style="padding:5px 12px;font-size:12px;margin-left:auto;">▶ Check Text</button>
+            <button class="btn btn-secondary" style="padding:5px 12px;font-size:12px;">Clear</button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="result-area">
+          <div class="ra-header">
+            <span class="ra-title">Check Results — Explainer, P1 K–1</span>
+            <span class="ra-overall rao-fail">2 Blocks · 1 Warning</span>
+          </div>
+
+          <div class="annotated-text">
+            Plants are like little food factories! They use sunlight to make their own food. When sunlight hits the green leaves, the plant uses it to turn air and water into energy — a process called <span class="flag-word fw-violet" title="Complex vocabulary flag">photosynthesis</span>. Without sunlight, a plant can't make food and will <span class="flag-word fw-red" title="Distress/death language flag">slowly die and wither away</span>. <span class="flag-word fw-red" title="Pressure/anxiety language flag">You must remember this or you'll fail your test!</span>
+          </div>
+
+          <div class="flag-list">
+
+            <div class="flag-item fi-red">
+              <span class="fi-icon">🚫</span>
+              <div class="fi-body">
+                <div class="fi-type fit-red">Block · Anxiety/Pressure Language</div>
+                <div class="fi-text">"You must remember this or you'll fail your test!"</div>
+                <div class="fi-suggestion">Remove entirely. WonderQuest content must never reference tests, failure, or performance anxiety. <strong>Suggested replacement:</strong> Omit this sentence — the explainer is complete without it.</div>
+                <div class="fi-action">
+                  <button class="btn-xs bx-ok">Accept Suggestion</button>
+                  <button class="btn-xs">Edit Manually</button>
+                  <button class="btn-xs">Dismiss (add reason)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flag-item fi-red">
+              <span class="fi-icon">🚫</span>
+              <div class="fi-body">
+                <div class="fi-type fit-red">Block · Death/Distress Imagery (P0–P1)</div>
+                <div class="fi-text">"will slowly die and wither away"</div>
+                <div class="fi-suggestion">Death language is not permitted in P0/P1 content. <strong>Suggested replacement:</strong> "will stop growing and become unhealthy"</div>
+                <div class="fi-action">
+                  <button class="btn-xs bx-ok">Accept Suggestion</button>
+                  <button class="btn-xs">Edit Manually</button>
+                  <button class="btn-xs">Dismiss (add reason)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flag-item fi-violet">
+              <span class="fi-icon">⚠</span>
+              <div class="fi-body">
+                <div class="fi-type fit-violet">Info · Complex Vocabulary (P1 threshold)</div>
+                <div class="fi-text">"photosynthesis" — Flesch-Kincaid Grade 9.2 word</div>
+                <div class="fi-suggestion">Complex word for P1 K–1. Consider replacing or defining inline. <strong>Suggested replacement:</strong> "a special process" or introduce with "called photo-syn-the-sis (photosynthesis)"</div>
+                <div class="fi-action">
+                  <button class="btn-xs bx-ok">Accept Suggestion</button>
+                  <button class="btn-xs">Keep with definition</button>
+                  <button class="btn-xs">Dismiss</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="checker-sidebar">
+        <div class="side-panel">
+          <div class="sp-title">Check Summary</div>
+          <div class="score-grid">
+            <div class="score-item"><div class="si-val sv-fail">2</div><div class="si-lbl">Blocks</div></div>
+            <div class="score-item"><div class="si-val sv-warn">1</div><div class="si-lbl">Warnings</div></div>
+            <div class="score-item"><div class="si-val sv-pass">6</div><div class="si-lbl">Passed</div></div>
+            <div class="score-item"><div class="si-val sv-neutral">42</div><div class="si-lbl">Words</div></div>
+          </div>
+        </div>
+
+        <div class="side-panel">
+          <div class="sp-title">Category Breakdown</div>
+          <div class="category-row"><div class="cat-dot cd-fail"></div><span class="cat-name">Anxiety/Pressure</span><span class="cat-badge cb-fail">1 Block</span></div>
+          <div class="category-row"><div class="cat-dot cd-fail"></div><span class="cat-name">Distress/Death (P0–P1)</span><span class="cat-badge cb-fail">1 Block</span></div>
+          <div class="category-row"><div class="cat-dot cd-warn"></div><span class="cat-name">Complex Vocabulary</span><span class="cat-badge cb-warn">1 Info</span></div>
+          <div class="category-row"><div class="cat-dot cd-pass"></div><span class="cat-name">Violence Language</span><span class="cat-badge cb-pass">Pass</span></div>
+          <div class="category-row"><div class="cat-dot cd-pass"></div><span class="cat-name">Exclusionary Language</span><span class="cat-badge cb-pass">Pass</span></div>
+          <div class="category-row"><div class="cat-dot cd-pass"></div><span class="cat-name">Cultural Sensitivity</span><span class="cat-badge cb-pass">Pass</span></div>
+          <div class="category-row"><div class="cat-dot cd-pass"></div><span class="cat-name">PII / Names</span><span class="cat-badge cb-pass">Pass</span></div>
+          <div class="category-row"><div class="cat-dot cd-pass"></div><span class="cat-name">Timer/Competition Ref.</span><span class="cat-badge cb-pass">Pass</span></div>
+        </div>
+
+        <div class="side-panel">
+          <div class="sp-title">Publish Status</div>
+          <div style="font-size:13px;color:#ff7b6b;font-weight:600;margin-bottom:6px;">🚫 Cannot publish</div>
+          <div style="font-size:12px;color:rgba(240,246,255,.5);line-height:1.5;">2 blocking issues must be resolved before this content can enter the review queue or be published.</div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-primary" style="width:100%;" disabled>Copy Fixed Text</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: BATCH RESULTS -->
+  <div id="tab-batch" class="screen">
+    <div class="section-block">
+      <div class="sb-head">
+        <span class="sb-title-main">Last Batch Scan — 2024-03-24 02:00 UTC</span>
+        <span style="font-size:11px;color:rgba(240,246,255,.35);">482 items scanned · 8 with issues</span>
+      </div>
+      <table class="history-table">
+        <thead><tr><th>Item</th><th>Type</th><th>Band</th><th>Issues</th><th>Category</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-family:monospace;font-size:11px;">QID-0502</td>
+            <td>Question</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 5px;border-radius:8px;background:rgba(255,209,102,.15);color:#ffd166;">P0</span></td>
+            <td><span style="color:#ff7b6b;font-weight:600;">1 Block</span></td>
+            <td>Distress language</td>
+            <td><button class="btn-xs bx-ok">Review</button></td>
+          </tr>
+          <tr>
+            <td style="font-family:monospace;font-size:11px;">EXP-0041</td>
+            <td>Explainer</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 5px;border-radius:8px;background:rgba(155,114,255,.15);color:#9b72ff;">P1</span></td>
+            <td><span style="color:#ff7b6b;font-weight:600;">2 Blocks, 1 Info</span></td>
+            <td>Anxiety + Distress + Vocab</td>
+            <td><button class="btn-xs bx-ok">Review</button></td>
+          </tr>
+          <tr>
+            <td style="font-family:monospace;font-size:11px;">QID-0388</td>
+            <td>Question</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 5px;border-radius:8px;background:rgba(155,114,255,.15);color:#9b72ff;">P1</span></td>
+            <td><span style="color:#f0c040;font-weight:600;">1 Warning</span></td>
+            <td>Complex vocabulary</td>
+            <td><button class="btn-xs">Review</button></td>
+          </tr>
+          <tr>
+            <td style="font-family:monospace;font-size:11px;">SK-0319</td>
+            <td>Skill description</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 5px;border-radius:8px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3</span></td>
+            <td><span style="color:#f0c040;font-weight:600;">1 Warning</span></td>
+            <td>Cultural sensitivity</td>
+            <td><button class="btn-xs">Review</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: OVERRIDES -->
+  <div id="tab-overrides" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title-main">Override Log — All dismissed flags</span></div>
+      <div style="font-size:12px;color:rgba(240,246,255,.4);margin-bottom:12px;">Flags dismissed with a reason are logged here for compliance/audit purposes. Overrides can be reversed.</div>
+      <table class="history-table">
+        <thead><tr><th>Date</th><th>Item</th><th>Flag Type</th><th>Flagged Text</th><th>Reason given</th><th>Reviewer</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>2024-03-20</td>
+            <td style="font-family:monospace;font-size:11px;">QID-0411</td>
+            <td style="color:#9b72ff;">Complex vocab</td>
+            <td style="color:rgba(240,246,255,.6);">"photosynthesis"</td>
+            <td style="color:rgba(240,246,255,.5);">Curriculum standard requires term; defined inline with pronunciation guide</td>
+            <td>Curriculum Lead</td>
+          </tr>
+          <tr>
+            <td>2024-03-18</td>
+            <td style="font-family:monospace;font-size:11px;">EXP-0033</td>
+            <td style="color:#f0c040;">Cultural flag</td>
+            <td style="color:rgba(240,246,255,.6);">"Halloween" in example</td>
+            <td style="color:rgba(240,246,255,.5);">Example is opt-in seasonal content; not shown to schools that have opted out</td>
+            <td>Content Writer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: RULES -->
+  <div id="tab-rules" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title-main">Safe Language Rules Reference</span></div>
+      <table class="rules-table">
+        <thead><tr><th>Category</th><th>Severity</th><th>Rule</th><th>P0–P1</th><th>P2–P3</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Anxiety / Pressure</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">References to tests, grades, failing, score, competition, time running out</td>
+            <td>Block</td><td>Block</td>
+          </tr>
+          <tr>
+            <td>Timer Language</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">Any reference to time limits, countdowns, speed ("hurry", "quick", "before time runs out")</td>
+            <td>Block</td><td>Block</td>
+          </tr>
+          <tr>
+            <td>Death / Distress</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">"die", "dead", "kill", "scary", "terrifying", "dangerous" in P0/P1 context</td>
+            <td>Block</td><td>Warn</td>
+          </tr>
+          <tr>
+            <td>Violence</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">Any physical harm language, weapons, fighting</td>
+            <td>Block</td><td>Block</td>
+          </tr>
+          <tr>
+            <td>Exclusionary</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">Language that could exclude by gender, race, ability, religion, family structure</td>
+            <td>Block</td><td>Block</td>
+          </tr>
+          <tr>
+            <td>Cultural Sensitivity</td>
+            <td><span class="rule-cat rc-warn">Warn</span></td>
+            <td style="color:rgba(240,246,255,.7);">Seasonal/religious references, culture-specific foods/customs</td>
+            <td>Warn</td><td>Warn</td>
+          </tr>
+          <tr>
+            <td>Complex Vocabulary</td>
+            <td><span class="rule-cat rc-info">Info</span></td>
+            <td style="color:rgba(240,246,255,.7);">FK-grade word appearing above band max threshold (P0 max FK 2.0, P1 max FK 3.0, P2 max FK 5.0)</td>
+            <td>Info</td><td>Info</td>
+          </tr>
+          <tr>
+            <td>PII / Names</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">Any proper name of a person (student, teacher, celebrity); location names allowed in Social Studies context only</td>
+            <td>Block</td><td>Block</td>
+          </tr>
+          <tr>
+            <td>Shame Language</td>
+            <td><span class="rule-cat rc-block">Block</span></td>
+            <td style="color:rgba(240,246,255,.7);">"wrong", "stupid", "dumb", "try harder", "that was easy" — negative feedback tone</td>
+            <td>Block</td><td>Block</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(tab) {
+  const tabs = ['checker','batch','overrides','rules'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+</script>
+</body>
+</html>

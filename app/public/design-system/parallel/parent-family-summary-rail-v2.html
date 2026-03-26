@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Family Summary Rail — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Rail ─────────────────────────────────────────────────────────── */
+.rail-container{max-width:900px}
+.rail-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.rail-see-all{font-size:11px;color:#9b72ff;font-weight:600;cursor:pointer}
+.rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+
+/* ── Child card ──────────────────────────────────────────────────── */
+.child-card{background:#fff;border-radius:16px;padding:16px;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.08);flex-shrink:0;cursor:pointer;transition:box-shadow .15s;border:2px solid transparent}
+.child-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.14)}
+.child-card.active{border-color:#9b72ff}
+.child-card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.child-avatar{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.child-name{font-size:14px;font-weight:800;color:#1a1440}
+.child-band-chip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:2px;display:inline-block}
+.band-mint{background:#e6fef8;color:#0e7360}
+.band-violet{background:#f0ebff;color:#7c3aed}
+.band-gold{background:#fffbf0;color:#a06000}
+.band-coral{background:#fff0ee;color:#c0392b}
+
+/* Stats mini row */
+.child-stats{display:flex;gap:6px;justify-content:space-between;margin-bottom:10px}
+.child-stat{text-align:center;flex:1}
+.child-stat-val{font-size:14px;font-weight:900;color:#1a1440;line-height:1}
+.child-stat-lbl{font-size:9px;color:#aaa;font-weight:600;text-transform:uppercase;margin-top:2px}
+
+/* Mini mastery bar */
+.mini-bar{height:5px;border-radius:3px;background:#f0ecf8;overflow:hidden;margin-bottom:3px}
+.mini-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#9b72ff,#58e8c1)}
+
+/* Status row */
+.status-row{display:flex;align-items:center;gap:6px;margin-top:8px}
+.status-dot{width:8px;height:8px;border-radius:50%}
+.status-text{font-size:10px;color:#888;font-weight:600;flex:1}
+
+/* Streak badge */
+.streak-badge{background:#fff8f0;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#d97706;margin-left:auto}
+
+/* ── Add card ─────────────────────────────────────────────────────── */
+.add-card{background:#fff;border-radius:16px;padding:16px;min-width:160px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex-shrink:0;cursor:pointer;border:2px dashed #ede9f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;transition:border-color .15s,background .15s}
+.add-card:hover{border-color:#9b72ff;background:#faf8ff}
+.add-icon{width:40px;height:40px;border-radius:12px;background:#f5f0ff;display:flex;align-items:center;justify-content:center;font-size:20px}
+.add-label{font-size:12px;font-weight:700;color:#9b72ff}
+.add-sub{font-size:10px;color:#aaa;text-align:center}
+
+/* ── Full-width variant ──────────────────────────────────────────── */
+.grid-view{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;max-width:900px}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-gray{background:#f0f0f0;color:#555}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-family-summary-rail-v2.html</strong><br>
+  Horizontal scroll rail shown on the multi-child dashboard view (Family plan). One card per linked child.<br>
+  Each card: avatar + name + band chip | mini stats (stars/sessions/streak) | top skill with mini bar | status dot + streak badge.<br>
+  <strong>Tapping a card</strong> → switches active child context (same behaviour as parent-child-switcher-v3).<br>
+  <strong>Add card</strong> pinned at end of rail. Adapts to desktop grid on wide viewports.<br>
+  <strong>Privacy:</strong> No accuracy % in cards. Stars and session counts only.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('rail')">Horizontal Rail</button>
+  <button class="tab-btn" onclick="showTab('grid')">Desktop Grid</button>
+  <button class="tab-btn" onclick="showTab('states')">Card States</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Rail ───────────────────────────────────────────────────────── -->
+<div id="tab-rail" class="screen active">
+  <p class="section-title">Horizontal-scroll rail (mobile and narrow desktop)</p>
+  <div class="rail-container">
+    <div class="rail-label">
+      👨‍👩‍👧 Your family this week
+      <span class="rail-see-all">See full view →</span>
+    </div>
+    <div class="rail">
+      <!-- Maya card (active/selected) -->
+      <div class="child-card active">
+        <div class="child-card-header">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#20b8a0)">🦊</div>
+          <div>
+            <div class="child-name">Maya</div>
+            <span class="child-band-chip band-mint">🟢 Mint · L4</span>
+          </div>
+        </div>
+        <div class="child-stats">
+          <div class="child-stat"><div class="child-stat-val">⭐47</div><div class="child-stat-lbl">Stars</div></div>
+          <div class="child-stat"><div class="child-stat-val">12</div><div class="child-stat-lbl">Sessions</div></div>
+          <div class="child-stat"><div class="child-stat-val">🔥6</div><div class="child-stat-lbl">Streak</div></div>
+        </div>
+        <div style="font-size:10px;color:#aaa;font-weight:600;margin-bottom:4px">Top skill</div>
+        <div style="font-size:11px;font-weight:700;color:#1a1440;margin-bottom:4px">📖 Sight words</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:88%"></div></div>
+        <div class="status-row">
+          <div class="status-dot" style="background:#22c55e"></div>
+          <span class="status-text">Active today</span>
+          <span class="streak-badge">🔥 PB streak!</span>
+        </div>
+      </div>
+
+      <!-- Liam card -->
+      <div class="child-card">
+        <div class="child-card-header">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6040cc)">🐻</div>
+          <div>
+            <div class="child-name">Liam</div>
+            <span class="child-band-chip band-violet">🟣 Violet · L2</span>
+          </div>
+        </div>
+        <div class="child-stats">
+          <div class="child-stat"><div class="child-stat-val">⭐22</div><div class="child-stat-lbl">Stars</div></div>
+          <div class="child-stat"><div class="child-stat-val">8</div><div class="child-stat-lbl">Sessions</div></div>
+          <div class="child-stat"><div class="child-stat-val">🔥3</div><div class="child-stat-lbl">Streak</div></div>
+        </div>
+        <div style="font-size:10px;color:#aaa;font-weight:600;margin-bottom:4px">Top skill</div>
+        <div style="font-size:11px;font-weight:700;color:#1a1440;margin-bottom:4px">🔤 Letter names</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:72%"></div></div>
+        <div class="status-row">
+          <div class="status-dot" style="background:#22c55e"></div>
+          <span class="status-text">Active today</span>
+        </div>
+      </div>
+
+      <!-- Sophie card (not played today) -->
+      <div class="child-card">
+        <div class="child-card-header">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#ff7b6b,#cc4040)">🦁</div>
+          <div>
+            <div class="child-name">Sophie</div>
+            <span class="child-band-chip band-coral">🔴 Coral · L7</span>
+          </div>
+        </div>
+        <div class="child-stats">
+          <div class="child-stat"><div class="child-stat-val">⭐31</div><div class="child-stat-lbl">Stars</div></div>
+          <div class="child-stat"><div class="child-stat-val">9</div><div class="child-stat-lbl">Sessions</div></div>
+          <div class="child-stat"><div class="child-stat-val">🔥5</div><div class="child-stat-lbl">Streak</div></div>
+        </div>
+        <div style="font-size:10px;color:#aaa;font-weight:600;margin-bottom:4px">Top skill</div>
+        <div style="font-size:11px;font-weight:700;color:#1a1440;margin-bottom:4px">📖 Comprehension</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:65%;background:linear-gradient(90deg,#ff7b6b,#ffd166)"></div></div>
+        <div class="status-row">
+          <div class="status-dot" style="background:#aaa"></div>
+          <span class="status-text">Not played today</span>
+          <span class="streak-badge" style="background:#f5f5f5;color:#888">5d streak</span>
+        </div>
+      </div>
+
+      <!-- Add card -->
+      <div class="add-card">
+        <div class="add-icon">+</div>
+        <div class="add-label">Add a child</div>
+        <div class="add-sub">Link another child to your account</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Desktop Grid ────────────────────────────────────────────────── -->
+<div id="tab-grid" class="screen">
+  <p class="section-title">Desktop — auto-fill grid layout (wide viewport)</p>
+  <div class="rail-label" style="max-width:900px">
+    👨‍👩‍👧 Your family this week
+    <span class="rail-see-all">Manage children →</span>
+  </div>
+  <div class="grid-view">
+    <div class="child-card active">
+      <div class="child-card-header"><div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#20b8a0)">🦊</div><div><div class="child-name">Maya</div><span class="child-band-chip band-mint">🟢 Mint · L4</span></div></div>
+      <div class="child-stats">
+        <div class="child-stat"><div class="child-stat-val">⭐47</div><div class="child-stat-lbl">Stars</div></div>
+        <div class="child-stat"><div class="child-stat-val">12</div><div class="child-stat-lbl">Sessions</div></div>
+        <div class="child-stat"><div class="child-stat-val">🔥6</div><div class="child-stat-lbl">Streak</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#1a1440;margin-bottom:4px">📖 Sight words</div>
+      <div class="mini-bar"><div class="mini-fill" style="width:88%"></div></div>
+      <div class="status-row"><div class="status-dot" style="background:#22c55e"></div><span class="status-text">Active today</span><span class="streak-badge">🔥 PB!</span></div>
+    </div>
+    <div class="child-card">
+      <div class="child-card-header"><div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6040cc)">🐻</div><div><div class="child-name">Liam</div><span class="child-band-chip band-violet">🟣 Violet · L2</span></div></div>
+      <div class="child-stats">
+        <div class="child-stat"><div class="child-stat-val">⭐22</div><div class="child-stat-lbl">Stars</div></div>
+        <div class="child-stat"><div class="child-stat-val">8</div><div class="child-stat-lbl">Sessions</div></div>
+        <div class="child-stat"><div class="child-stat-val">🔥3</div><div class="child-stat-lbl">Streak</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#1a1440;margin-bottom:4px">🔤 Letter names</div>
+      <div class="mini-bar"><div class="mini-fill" style="width:72%"></div></div>
+      <div class="status-row"><div class="status-dot" style="background:#22c55e"></div><span class="status-text">Active today</span></div>
+    </div>
+    <div class="child-card">
+      <div class="child-card-header"><div class="child-avatar" style="background:linear-gradient(135deg,#ff7b6b,#cc4040)">🦁</div><div><div class="child-name">Sophie</div><span class="child-band-chip band-coral">🔴 Coral · L7</span></div></div>
+      <div class="child-stats">
+        <div class="child-stat"><div class="child-stat-val">⭐31</div><div class="child-stat-lbl">Stars</div></div>
+        <div class="child-stat"><div class="child-stat-val">9</div><div class="child-stat-lbl">Sessions</div></div>
+        <div class="child-stat"><div class="child-stat-val">🔥5</div><div class="child-stat-lbl">Streak</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#1a1440;margin-bottom:4px">📖 Comprehension</div>
+      <div class="mini-bar"><div class="mini-fill" style="width:65%;background:linear-gradient(90deg,#ff7b6b,#ffd166)"></div></div>
+      <div class="status-row"><div class="status-dot" style="background:#aaa"></div><span class="status-text">Not played today</span></div>
+    </div>
+    <div class="add-card" style="min-height:180px">
+      <div class="add-icon">+</div>
+      <div class="add-label">Add a child</div>
+      <div class="add-sub">Link another child</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Card States ─────────────────────────────────────────────────── -->
+<div id="tab-states" class="screen">
+  <p class="section-title">Individual child card states</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <!-- Active today, streak PB -->
+    <div><p style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">Active today + PB streak</p>
+    <div class="child-card active" style="min-width:200px">
+      <div class="child-card-header"><div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#20b8a0)">🦊</div><div><div class="child-name">Maya</div><span class="child-band-chip band-mint">🟢 Mint</span></div></div>
+      <div class="child-stats"><div class="child-stat"><div class="child-stat-val">⭐47</div><div class="child-stat-lbl">Stars</div></div><div class="child-stat"><div class="child-stat-val">12</div><div class="child-stat-lbl">Sessions</div></div><div class="child-stat"><div class="child-stat-val">🔥6</div><div class="child-stat-lbl">Streak</div></div></div>
+      <div class="mini-bar"><div class="mini-fill" style="width:88%"></div></div>
+      <div class="status-row"><div class="status-dot" style="background:#22c55e"></div><span class="status-text">Active today</span><span class="streak-badge">🔥 PB!</span></div>
+    </div></div>
+
+    <!-- Not played today -->
+    <div><p style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">Not played today</p>
+    <div class="child-card" style="min-width:200px">
+      <div class="child-card-header"><div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6040cc)">🐻</div><div><div class="child-name">Liam</div><span class="child-band-chip band-violet">🟣 Violet</span></div></div>
+      <div class="child-stats"><div class="child-stat"><div class="child-stat-val">⭐8</div><div class="child-stat-lbl">Stars</div></div><div class="child-stat"><div class="child-stat-val">4</div><div class="child-stat-lbl">Sessions</div></div><div class="child-stat"><div class="child-stat-val">🔥3</div><div class="child-stat-lbl">Streak</div></div></div>
+      <div class="mini-bar"><div class="mini-fill" style="width:55%"></div></div>
+      <div class="status-row"><div class="status-dot" style="background:#ddd"></div><span class="status-text" style="color:#ccc">Not played today</span></div>
+    </div></div>
+
+    <!-- No sessions this week -->
+    <div><p style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">No sessions this week</p>
+    <div class="child-card" style="min-width:200px;border:2px dashed #f0ecf8">
+      <div class="child-card-header"><div class="child-avatar" style="background:linear-gradient(135deg,#ffd166,#ffb347)">🦁</div><div><div class="child-name">Tom</div><span class="child-band-chip band-gold">🟡 Gold</span></div></div>
+      <div style="text-align:center;padding:16px 0;color:#aaa">
+        <div style="font-size:11px;font-weight:600">No sessions this week</div>
+        <div style="font-size:10px;margin-top:4px">Last played: 3 days ago</div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-family-summary-rail-v2.html<br>
+      <strong>Access:</strong> Family plan. Shown on parent-family-dashboard multi-child view.<br>
+      Query: SELECT * FROM child_profiles WHERE parent_id=X ORDER BY last_active_at DESC.
+    </div>
+    <h2 class="spec-h2">Card Data Fields</h2>
+    <table class="spec-table">
+      <tr><th>Field</th><th>Source</th><th>Privacy rule</th></tr>
+      <tr><td>Child name</td><td>child_profiles.first_name</td><td>First name only</td></tr>
+      <tr><td>Band + level</td><td>child_settings.band_id, child_progress.level</td><td>—</td></tr>
+      <tr><td>Stars this week</td><td>SUM(session.stars) WHERE week = current_week</td><td>Stars only — no accuracy</td></tr>
+      <tr><td>Sessions this week</td><td>COUNT(sessions) WHERE week = current_week</td><td>—</td></tr>
+      <tr><td>Streak</td><td>child_progress.current_streak_days</td><td>—</td></tr>
+      <tr><td>Top skill name</td><td>Top skill by mastery_score DESC</td><td>Name only — no score shown in card</td></tr>
+      <tr><td>Mini mastery bar</td><td>top_skill.mastery_score / 100 width %</td><td>Bar width only — no number label</td></tr>
+    </table>
+    <h2 class="spec-h2">Status Dot</h2>
+    <table class="spec-table">
+      <tr><th>Dot colour</th><th>Condition</th></tr>
+      <tr><td>Green #22c55e</td><td>last_session_at >= today 00:00</td></tr>
+      <tr><td>Grey #ddd</td><td>last_session_at < today 00:00 (not played today)</td></tr>
+    </table>
+    <h2 class="spec-h2">Add Card</h2>
+    <p class="spec-p">Always pinned at end of rail/grid. Tapping → parent-link-child-flow-v3. On free plan (1 child already linked), tapping → parent-linking-recovery-v3 Plan Limit screen (upgrade prompt).</p>
+    <h2 class="spec-h2">Layout Switch</h2>
+    <p class="spec-p">Horizontal scroll rail: mobile + desktop < 860px. Auto-fill grid: desktop >= 860px. Grid uses CSS grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — PIN Recovery Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #1a1340; overflow-x: auto; border-bottom: 2px solid #2d2060; }
+.tab-nav button { flex: 1; min-width: 130px; padding: 12px 8px; background: none; border: none; color: #9985cc; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: color 0.2s; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.phone { width: 375px; min-height: 780px; margin: 20px auto; background: #100b2e; border-radius: 40px; overflow: hidden; position: relative; border: 2px solid #2d2060; }
+.screen { padding: 40px 24px 32px; min-height: 780px; display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(180deg, #100b2e 0%, #1a0a4e 60%, #0d0820 100%); }
+
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes twinkle { 0%,100%{opacity:0.3} 50%{opacity:1} }
+.star { position: absolute; border-radius: 50%; background: #fff; animation: twinkle 2s infinite; }
+.mascot { font-size: 72px; animation: float 3s ease-in-out infinite; margin: 20px 0 12px; }
+
+h2.screen-title { font-size: 26px; font-weight: 900; color: #ffd166; margin-bottom: 10px; line-height: 1.2; }
+.screen-sub { font-size: 15px; color: #b8a8e8; margin-bottom: 28px; line-height: 1.5; }
+
+.btn-primary { background: linear-gradient(135deg, #ffd166, #ff9f43); color: #100b2e; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 17px; border: none; border-radius: 50px; padding: 15px 44px; cursor: pointer; box-shadow: 0 4px 20px rgba(255,209,102,0.35); transition: transform 0.2s; margin-top: 8px; }
+.btn-primary:hover { transform: scale(1.04); }
+.btn-ghost { background: none; border: 2px solid #3d2d8e; border-radius: 50px; padding: 13px 32px; color: #9985cc; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 10px; }
+
+/* Forgot PIN screen */
+.forgot-box { background: #1e1650; border: 2px solid #3d2d8e; border-radius: 20px; padding: 20px; width: 100%; margin: 16px 0; }
+.forgot-icon { font-size: 48px; margin-bottom: 12px; }
+.forgot-msg { font-size: 15px; color: #b8a8e8; line-height: 1.6; }
+
+/* Ask Grown-Up screen */
+.grownup-card { background: linear-gradient(135deg, #1e1650, #2a1f5e); border: 2px solid #ffd166; border-radius: 20px; padding: 24px; width: 100%; margin: 12px 0; }
+.grownup-icon { font-size: 56px; margin-bottom: 12px; }
+.grownup-steps { text-align: left; margin-top: 12px; }
+.grownup-step { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; font-size: 14px; color: #b8a8e8; }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: #ffd166; color: #100b2e; font-weight: 900; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* Code entry screen */
+.code-label { font-size: 14px; color: #9985cc; margin-bottom: 8px; text-align: left; width: 100%; }
+.code-field { background: #1e1650; border: 2px solid #3d2d8e; border-radius: 16px; padding: 16px; color: #ffd166; font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 900; width: 100%; outline: none; text-align: center; letter-spacing: 6px; }
+.code-field:focus { border-color: #ffd166; }
+.security-note { background: #1a1340; border-radius: 12px; padding: 12px 14px; width: 100%; margin-top: 12px; font-size: 12px; color: #6a5a9e; text-align: left; line-height: 1.5; }
+
+/* New PIN screen */
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin: 20px 0; }
+.pin-dot { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid #ffd166; background: #ffd166; }
+.pin-dot.empty { background: transparent; }
+.numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; margin: 12px 0; }
+.numpad-key { background: #1e1650; border: 2px solid #3d2d8e; border-radius: 14px; padding: 16px; font-size: 22px; font-weight: 900; color: #e8d8ff; cursor: pointer; transition: background 0.15s; }
+.numpad-key:hover { background: #2a1f5e; }
+.numpad-key.action { font-size: 14px; color: #9985cc; }
+
+/* Success screen */
+.success-circle { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #ffd166, #ff9f43); display: flex; align-items: center; justify-content: center; font-size: 52px; margin: 20px auto 16px; box-shadow: 0 0 40px rgba(255,209,102,0.4); }
+.confetti { font-size: 28px; position: absolute; }
+
+/* Spec */
+.spec-section { background: #1a1340; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; }
+.spec-title { font-size: 14px; font-weight: 900; color: #ffd166; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #9985cc; }
+.spec-val { color: #e8d8ff; font-weight: 700; }
+.spec-note { font-size: 11px; color: #6a5a9e; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('forgot')">Forgot PIN</button>
+  <button onclick="show('ask-grownup')">Ask Grown-Up</button>
+  <button onclick="show('code-entry')">Grown-Up Code Entry</button>
+  <button onclick="show('reset-success')">PIN Reset Success</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- FORGOT PIN -->
+<div id="forgot" class="tab-content active">
+  <div class="hint">Child taps "I forgot" on the PIN screen. Gentle, friendly message — no shame. Shows path to get help from a grown-up.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="star" style="width:3px;height:3px;top:6%;left:18%;animation-delay:0.2s"></div>
+      <div class="star" style="width:2px;height:2px;top:10%;left:72%;animation-delay:0.9s"></div>
+
+      <div class="mascot">🦉</div>
+      <h2 class="screen-title">Oops! Forgot your PIN?</h2>
+      <p class="screen-sub">That's totally okay!<br>Everybody forgets sometimes 💜</p>
+
+      <div class="forgot-box">
+        <div class="forgot-icon">🔑</div>
+        <p class="forgot-msg">A grown-up can help you<br>make a new PIN right now.<br>It only takes a moment!</p>
+      </div>
+
+      <div style="flex:1;min-height:16px"></div>
+      <button class="btn-primary" onclick="show('ask-grownup')">Ask a Grown-Up 🙋</button>
+      <button class="btn-ghost" onclick="show('forgot')">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASK GROWN-UP -->
+<div id="ask-grownup" class="tab-content">
+  <div class="hint">Child-facing screen showing them exactly what to do. Friendly, non-scary. Shows the steps clearly so any child can follow.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="mascot">🤗</div>
+      <h2 class="screen-title">Ask a Grown-Up to Help!</h2>
+      <p class="screen-sub">Show this screen to a parent<br>or caregiver 👇</p>
+
+      <div class="grownup-card">
+        <div class="grownup-icon">👨‍👩‍👧</div>
+        <div class="grownup-steps">
+          <div class="grownup-step">
+            <span class="step-num">1</span>
+            <span>Grown-up: tap the button below and enter your parent code</span>
+          </div>
+          <div class="grownup-step">
+            <span class="step-num">2</span>
+            <span>Help your child choose a new PIN they'll remember</span>
+          </div>
+          <div class="grownup-step">
+            <span class="step-num">3</span>
+            <span>Hand the device back — they're all set! ✅</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:16px"></div>
+      <button class="btn-primary" onclick="show('code-entry')">I'm a Grown-Up — Let's Fix This 🔐</button>
+    </div>
+  </div>
+</div>
+
+<!-- GROWN-UP CODE ENTRY -->
+<div id="code-entry" class="tab-content">
+  <div class="hint">Grown-up enters their 6-digit parent code to authorize PIN reset. Security note explains code is from the WonderQuest parent app.</div>
+  <div class="phone">
+    <div class="screen">
+      <div style="height:30px"></div>
+      <div style="font-size:56px;margin-bottom:12px">🔐</div>
+      <h2 class="screen-title">Grown-Up Code</h2>
+      <p class="screen-sub">Enter your 6-digit parent code<br>to reset this child's PIN</p>
+
+      <div style="width:100%;margin:12px 0">
+        <div class="code-label">Your parent code (from the WonderQuest app)</div>
+        <input class="code-field" type="password" maxlength="6" placeholder="••••••" inputmode="numeric">
+      </div>
+
+      <div class="numpad">
+        <button class="numpad-key">1</button>
+        <button class="numpad-key">2</button>
+        <button class="numpad-key">3</button>
+        <button class="numpad-key">4</button>
+        <button class="numpad-key">5</button>
+        <button class="numpad-key">6</button>
+        <button class="numpad-key">7</button>
+        <button class="numpad-key">8</button>
+        <button class="numpad-key">9</button>
+        <button class="numpad-key action">Clear</button>
+        <button class="numpad-key">0</button>
+        <button class="numpad-key action">⌫</button>
+      </div>
+
+      <div class="security-note">🔒 Your code is never stored on this device. It's sent securely to confirm your identity in the WonderQuest system.</div>
+
+      <div style="flex:1;min-height:12px"></div>
+      <button class="btn-primary" onclick="show('reset-success')">Confirm & Reset PIN ✅</button>
+      <button class="btn-ghost">I don't have a code — Contact Support</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN RESET SUCCESS -->
+<div id="reset-success" class="tab-content">
+  <div class="hint">Success state after grown-up confirms. Warm celebration, hands device back to child with a new fresh PIN ready to set.</div>
+  <div class="phone">
+    <div class="screen" style="position:relative">
+      <div class="confetti" style="top:8%;left:10%">🎉</div>
+      <div class="confetti" style="top:12%;right:10%">⭐</div>
+      <div class="confetti" style="top:6%;left:45%">✨</div>
+
+      <div style="height:40px"></div>
+      <div class="success-circle">✅</div>
+      <h2 class="screen-title" style="font-size:28px">PIN Reset! 🎊</h2>
+      <p class="screen-sub">Great job, Grown-Up! Now let your child choose a new PIN they'll remember.</p>
+
+      <div style="background:#1e1650;border:2px solid #3d2d8e;border-radius:20px;padding:20px;width:100%;margin:16px 0">
+        <p style="font-size:14px;color:#9985cc;margin-bottom:16px">StarKid, choose your new PIN:</p>
+        <div class="pin-dots">
+          <div class="pin-dot empty"></div>
+          <div class="pin-dot empty"></div>
+          <div class="pin-dot empty"></div>
+          <div class="pin-dot empty"></div>
+        </div>
+        <div class="numpad" style="margin-top:12px">
+          <button class="numpad-key">1</button>
+          <button class="numpad-key">2</button>
+          <button class="numpad-key">3</button>
+          <button class="numpad-key">4</button>
+          <button class="numpad-key">5</button>
+          <button class="numpad-key">6</button>
+          <button class="numpad-key">7</button>
+          <button class="numpad-key">8</button>
+          <button class="numpad-key">9</button>
+          <button class="numpad-key action"></button>
+          <button class="numpad-key">0</button>
+          <button class="numpad-key action">⌫</button>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:#6a5a9e;margin-top:4px">Pick 4 numbers you'll remember — like your favorite number!</p>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for child-pin-recovery-flow-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Design Tokens</div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Nunito 900</span></div>
+    <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#100b2e</span></div>
+    <div class="spec-row"><span class="spec-key">Accent</span><span class="spec-val">#ffd166</span></div>
+    <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">375px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Flow Steps</div>
+    <div class="spec-row"><span class="spec-key">1 — Forgot PIN</span><span class="spec-val">Child-friendly, no shame</span></div>
+    <div class="spec-row"><span class="spec-key">2 — Ask Grown-Up</span><span class="spec-val">Hand-off instruction card</span></div>
+    <div class="spec-row"><span class="spec-key">3 — Code Entry</span><span class="spec-val">Grown-up 6-digit parent code</span></div>
+    <div class="spec-row"><span class="spec-key">4 — Reset Success</span><span class="spec-val">Celebrate + new PIN entry</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Safety Rules</div>
+    <div class="spec-note">✅ No blame language on forget screen<br>✅ Parent code only — not child's real credentials<br>✅ No email shown to child<br>✅ Code transmitted securely, not stored on device<br>✅ Support path if no parent code available</div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">PIN Format</div>
+    <div class="spec-row"><span class="spec-key">Length</span><span class="spec-val">4 digits</span></div>
+    <div class="spec-row"><span class="spec-key">Parent code</span><span class="spec-val">6 digits</span></div>
+    <div class="spec-row"><span class="spec-key">Input</span><span class="spec-val">Custom numpad (no system keyboard)</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

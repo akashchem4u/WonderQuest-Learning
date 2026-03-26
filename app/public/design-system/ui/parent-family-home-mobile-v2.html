@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Family Home Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Sora',sans-serif;background:#ede8de;color:#1a1a1a;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:10px;background:#2c7a6e;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #1f5f56}
+  .tab{padding:7px 12px;border-radius:16px;border:none;font-family:'Sora',sans-serif;font-weight:700;font-size:10px;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);transition:all .2s}
+  .tab.active{background:#fff;color:#2c7a6e}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#f5f0e8;margin:16px auto;border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+
+  /* Nav bar */
+  .mobile-nav{background:#2c7a6e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+  .mn-logo{font-size:15px;font-weight:800;color:#fff}
+  .mn-right{display:flex;align-items:center;gap:10px}
+  .mn-notif{background:rgba(255,255,255,.15);border-radius:16px;padding:5px 10px;font-size:11px;font-weight:700;color:#fff;cursor:pointer}
+  .mn-avatar{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px}
+
+  /* Weekly summary hero */
+  .week-hero{background:linear-gradient(135deg,#2c7a6e,#1f5f56);padding:16px;margin:12px;border-radius:16px;color:#fff;position:relative;overflow:hidden}
+  .week-hero::before{content:'🌊';position:absolute;right:-8px;top:-8px;font-size:60px;opacity:.15}
+  .wh-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:4px}
+  .wh-name{font-size:17px;font-weight:800;margin-bottom:3px}
+  .wh-sub{font-size:11px;opacity:.7;margin-bottom:12px}
+  .wh-stats{display:flex;gap:16px}
+  .wh-stat{text-align:center}
+  .wh-val{font-size:18px;font-weight:800;color:#ffd166}
+  .wh-lbl{font-size:9px;opacity:.65;font-weight:600;text-transform:uppercase}
+
+  /* Child switcher chips */
+  .child-switcher-row{padding:0 12px;margin-bottom:14px}
+  .cs-label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .chips-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+  .child-chip{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid transparent;border-radius:50px;padding:6px 12px 6px 6px;cursor:pointer;flex-shrink:0;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .child-chip.active{border-color:#2c7a6e;background:rgba(44,122,110,.06)}
+  .chip-avatar{width:28px;height:28px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .chip-info{}
+  .chip-name{font-size:12px;font-weight:700;color:#1a1a1a}
+  .chip-world{font-size:9px;color:#888;font-weight:600}
+
+  /* Section labels */
+  .sect-lbl{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;padding:0 16px;margin-bottom:8px}
+
+  /* Practice card */
+  .practice-card{background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 6px rgba(0,0,0,.06)}
+  .pc-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .pc-icon{font-size:24px}
+  .pc-title{font-size:13px;font-weight:700;color:#1a1a1a}
+  .pc-sub{font-size:11px;color:#777;font-weight:600;line-height:1.4;margin-bottom:8px}
+  .pc-cta{background:#2c7a6e;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer;display:inline-block}
+  .pc-tag{display:inline-block;background:rgba(44,122,110,.1);color:#2c7a6e;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700}
+
+  /* Progress snapshot mini */
+  .progress-snap{background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)}
+  .ps-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .ps-title{font-size:13px;font-weight:700}
+  .ps-link{font-size:11px;color:#2c7a6e;font-weight:700;cursor:pointer}
+  .skill-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+  .skill-name{font-size:11px;font-weight:600;color:#444;width:90px;flex-shrink:0}
+  .skill-bar{flex:1;background:rgba(0,0,0,.07);border-radius:6px;height:7px;overflow:hidden}
+  .skill-fill{height:100%;border-radius:6px}
+  .skill-tier{font-size:9px;font-weight:700;padding:2px 6px;border-radius:7px;flex-shrink:0}
+  .tier-strength{background:rgba(44,122,110,.12);color:#2c7a6e}
+  .tier-growing{background:rgba(240,180,41,.15);color:#c17d00}
+  .tier-opportunity{background:rgba(232,108,90,.12);color:#c44}
+
+  /* Teacher message strip */
+  .msg-strip{background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)}
+  .ms-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .ms-title{font-size:13px;font-weight:700}
+  .ms-see{font-size:11px;color:#2c7a6e;font-weight:700;cursor:pointer}
+  .msg-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+  .msg-row:last-child{border-bottom:none}
+  .msg-avatar{width:30px;height:30px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .msg-body{}
+  .msg-from{font-size:12px;font-weight:700;color:#1a1a1a}
+  .msg-preview{font-size:11px;color:#777;font-weight:600;margin-top:2px;line-height:1.4}
+  .msg-time{font-size:9px;color:#bbb;font-weight:600;margin-top:2px}
+  .msg-dot{width:7px;height:7px;border-radius:50%;background:#2c7a6e;margin-left:auto;flex-shrink:0;margin-top:4px}
+
+  /* Bottom nav */
+  .bottom-nav{display:flex;justify-content:space-around;padding:10px 0;background:#fff;border-top:1px solid rgba(0,0,0,.08)}
+  .bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1}
+  .bn-icon{font-size:18px}
+  .bn-label{font-size:9px;font-weight:700;color:#aaa}
+  .bn-item.active .bn-label{color:#2c7a6e}
+  .bn-item.active .bn-icon{filter:none}
+
+  /* Week summary specific */
+  .day-row{display:flex;gap:6px;padding:0 16px;margin-bottom:14px}
+  .day-cell{flex:1;text-align:center;background:#fff;border-radius:10px;padding:8px 4px;border:1px solid rgba(0,0,0,.08);font-size:10px;font-weight:700}
+  .day-cell.done{background:rgba(44,122,110,.1);border-color:rgba(44,122,110,.2);color:#2c7a6e}
+  .day-cell.today{background:#2c7a6e;color:#fff;border-color:#2c7a6e}
+  .day-label{font-size:8px;font-weight:600;opacity:.7;margin-top:2px}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:#444}
+  .spec-body h3{color:#2c7a6e;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(44,122,110,.1);border:1px solid #2c7a6e;border-radius:6px;padding:2px 8px;font-size:10px;color:#2c7a6e;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('hub-home')">Mobile Hub Home</button>
+  <button class="tab" onclick="show('week-summary')">Week Summary</button>
+  <button class="tab" onclick="show('progress-view')">Progress View</button>
+  <button class="tab" onclick="show('teacher-msgs')">Teacher Messages</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>parent-family-home-mobile-v2.html</code> — 375px mobile · Sora · #f5f0e8 · nav #2c7a6e · compact parent hub
+</div>
+
+<!-- MOBILE HUB HOME -->
+<div id="hub-home" class="panel active">
+  <div class="screen">
+    <div class="mobile-nav">
+      <div class="mn-logo">⭐ WonderQuest</div>
+      <div class="mn-right">
+        <div class="mn-notif">💬 2</div>
+        <div class="mn-avatar">👤</div>
+      </div>
+    </div>
+    <!-- Weekly hero -->
+    <div class="week-hero">
+      <div class="wh-label">This week</div>
+      <div class="wh-name">Alex is doing great!</div>
+      <div class="wh-sub">4 sessions · 4-day streak 🔥</div>
+      <div class="wh-stats">
+        <div class="wh-stat"><div class="wh-val">32</div><div class="wh-lbl">Stars</div></div>
+        <div class="wh-stat"><div class="wh-val">4</div><div class="wh-lbl">Sessions</div></div>
+        <div class="wh-stat"><div class="wh-val">48m</div><div class="wh-lbl">Practice</div></div>
+      </div>
+    </div>
+    <!-- Child switcher -->
+    <div class="child-switcher-row">
+      <div class="cs-label">Your learners</div>
+      <div class="chips-row">
+        <div class="child-chip active">
+          <div class="chip-avatar">🧒</div>
+          <div class="chip-info"><div class="chip-name">Alex</div><div class="chip-world">🌊 Ocean</div></div>
+        </div>
+        <div class="child-chip">
+          <div class="chip-avatar">👧</div>
+          <div class="chip-info"><div class="chip-name">Maya</div><div class="chip-world">🌲 Forest</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Next practice -->
+    <div class="sect-lbl">Next practice</div>
+    <div class="practice-card">
+      <div class="pc-header">
+        <div class="pc-icon">🌊</div>
+        <div>
+          <div class="pc-title">Ocean World — Session 15</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+            <span class="pc-tag">Ready to play</span>
+          </div>
+        </div>
+      </div>
+      <div class="pc-sub">Alex has kept a 4-day streak going — a great time to practice! Today's session focuses on word blending.</div>
+      <button class="pc-cta">Start session</button>
+    </div>
+    <!-- Progress snapshot mini -->
+    <div class="sect-lbl">Skill snapshot — Alex</div>
+    <div class="progress-snap">
+      <div class="ps-header">
+        <div class="ps-title">3 skill areas</div>
+        <div class="ps-link">See all →</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Letter Sounds</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:85%;background:#2c7a6e"></div></div>
+        <div class="skill-tier tier-strength">Strength</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Sight Words</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:62%;background:#f0b429"></div></div>
+        <div class="skill-tier tier-growing">Growing</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Word Blending</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:38%;background:#e86c5a"></div></div>
+        <div class="skill-tier tier-opportunity">Opportunity</div>
+      </div>
+    </div>
+    <!-- Teacher message strip -->
+    <div class="sect-lbl">Teacher messages</div>
+    <div class="msg-strip">
+      <div class="ms-header">
+        <div class="ms-title">1 new message</div>
+        <div class="ms-see">See all</div>
+      </div>
+      <div class="msg-row">
+        <div class="msg-avatar">👩‍🏫</div>
+        <div class="msg-body">
+          <div class="msg-from">Ms. Rodriguez</div>
+          <div class="msg-preview">"Alex is doing beautifully with letter sounds — word blending is the opportunity area to focus on at home."</div>
+          <div class="msg-time">Today 9:14am</div>
+        </div>
+        <div class="msg-dot"></div>
+      </div>
+    </div>
+    <!-- Bottom nav -->
+    <div class="bottom-nav">
+      <div class="bn-item active"><div class="bn-icon">🏠</div><div class="bn-label">Home</div></div>
+      <div class="bn-item"><div class="bn-icon">📊</div><div class="bn-label">Progress</div></div>
+      <div class="bn-item"><div class="bn-icon">📅</div><div class="bn-label">Practice</div></div>
+      <div class="bn-item"><div class="bn-icon">💬</div><div class="bn-label">Messages</div></div>
+      <div class="bn-item"><div class="bn-icon">⚙️</div><div class="bn-label">Settings</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- WEEK SUMMARY -->
+<div id="week-summary" class="panel">
+  <div class="screen">
+    <div class="mobile-nav">
+      <div class="mn-logo">⭐ WonderQuest</div>
+      <div class="mn-right"><div class="mn-avatar">👤</div></div>
+    </div>
+    <div style="padding:14px 16px 0;font-size:16px;font-weight:800;color:#1a1a1a">This Week</div>
+    <div style="padding:4px 16px 12px;font-size:11px;color:#888;font-weight:600">March 17–23, 2026</div>
+    <!-- Day row -->
+    <div class="day-row">
+      <div class="day-cell done"><div>M</div><div class="day-label">✓</div></div>
+      <div class="day-cell done"><div>T</div><div class="day-label">✓</div></div>
+      <div class="day-cell done"><div>W</div><div class="day-label">✓</div></div>
+      <div class="day-cell done"><div>T</div><div class="day-label">✓</div></div>
+      <div class="day-cell today"><div>F</div><div class="day-label">Today</div></div>
+      <div class="day-cell"><div>S</div><div class="day-label">—</div></div>
+      <div class="day-cell"><div>S</div><div class="day-label">—</div></div>
+    </div>
+    <!-- Learner cards -->
+    <div class="sect-lbl">Alex this week</div>
+    <div style="background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:38px;height:38px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:18px">🧒</div>
+        <div>
+          <div style="font-size:13px;font-weight:700">Alex · 🌊 Ocean World</div>
+          <div style="font-size:10px;color:#888;font-weight:600">4-day streak 🔥 · Session 14</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;text-align:center;border-top:1px solid rgba(0,0,0,.06);padding-top:10px">
+        <div style="flex:1"><div style="font-size:18px;font-weight:800;color:#2c7a6e">4</div><div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase">Sessions</div></div>
+        <div style="flex:1"><div style="font-size:18px;font-weight:800;color:#ffd166">32⭐</div><div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase">Stars</div></div>
+        <div style="flex:1"><div style="font-size:18px;font-weight:800;color:#555">48m</div><div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase">Practice</div></div>
+      </div>
+    </div>
+    <div class="sect-lbl">Maya this week</div>
+    <div style="background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:38px;height:38px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:18px">👧</div>
+        <div>
+          <div style="font-size:13px;font-weight:700">Maya · 🌲 Forest World</div>
+          <div style="font-size:10px;color:#888;font-weight:600">3-day streak 🔥 · Session 22</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;text-align:center;border-top:1px solid rgba(0,0,0,.06);padding-top:10px">
+        <div style="flex:1"><div style="font-size:18px;font-weight:800;color:#2c7a6e">3</div><div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase">Sessions</div></div>
+        <div style="flex:1"><div style="font-size:18px;font-weight:800;color:#ffd166">26⭐</div><div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase">Stars</div></div>
+        <div style="flex:1"><div style="font-size:18px;font-weight:800;color:#555">36m</div><div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase">Practice</div></div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bn-item active"><div class="bn-icon">🏠</div><div class="bn-label">Home</div></div>
+      <div class="bn-item"><div class="bn-icon">📊</div><div class="bn-label">Progress</div></div>
+      <div class="bn-item"><div class="bn-icon">📅</div><div class="bn-label">Practice</div></div>
+      <div class="bn-item"><div class="bn-icon">💬</div><div class="bn-label">Messages</div></div>
+      <div class="bn-item"><div class="bn-icon">⚙️</div><div class="bn-label">Settings</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS VIEW -->
+<div id="progress-view" class="panel">
+  <div class="screen">
+    <div class="mobile-nav">
+      <div class="mn-logo">⭐ WonderQuest</div>
+      <div class="mn-right"><div class="mn-avatar">👤</div></div>
+    </div>
+    <div style="padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:800">Progress</div>
+      <div class="child-chip active" style="padding:5px 10px 5px 5px;font-size:11px">
+        <div class="chip-avatar" style="width:22px;height:22px;font-size:12px">🧒</div>
+        <span style="font-weight:700">Alex</span>
+      </div>
+    </div>
+    <!-- Skill areas -->
+    <div class="sect-lbl">Skill areas</div>
+    <div style="background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)">
+      <div class="skill-row">
+        <div class="skill-name">Letter Sounds</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:85%;background:#2c7a6e"></div></div>
+        <div class="skill-tier tier-strength">Strength</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Sight Words</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:62%;background:#f0b429"></div></div>
+        <div class="skill-tier tier-growing">Growing</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Word Blending</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:38%;background:#e86c5a"></div></div>
+        <div class="skill-tier tier-opportunity">Opportunity</div>
+      </div>
+      <div class="skill-row">
+        <div class="skill-name">Vocabulary</div>
+        <div class="skill-bar"><div class="skill-fill" style="width:70%;background:#f0b429"></div></div>
+        <div class="skill-tier tier-growing">Growing</div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.06)">
+        <div style="font-size:10px;color:#888;font-weight:600">Tiers: <strong style="color:#2c7a6e">Strength</strong> · <strong style="color:#c17d00">Growing</strong> · <strong style="color:#c44">Opportunity</strong></div>
+      </div>
+    </div>
+    <!-- World progress -->
+    <div class="sect-lbl">World journey</div>
+    <div style="background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="font-size:28px">🌊</div>
+        <div>
+          <div style="font-size:13px;font-weight:700">Ocean World</div>
+          <div style="font-size:11px;color:#888;font-weight:600">Node 4 of 6 · Level 3</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,.07);border-radius:8px;height:8px;overflow:hidden;margin-bottom:6px">
+        <div style="height:100%;background:#2c7a6e;border-radius:8px;width:67%"></div>
+      </div>
+      <div style="font-size:10px;color:#888;font-weight:600">67% of Ocean World complete · 2 nodes remaining</div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bn-item"><div class="bn-icon">🏠</div><div class="bn-label">Home</div></div>
+      <div class="bn-item active"><div class="bn-icon">📊</div><div class="bn-label">Progress</div></div>
+      <div class="bn-item"><div class="bn-icon">📅</div><div class="bn-label">Practice</div></div>
+      <div class="bn-item"><div class="bn-icon">💬</div><div class="bn-label">Messages</div></div>
+      <div class="bn-item"><div class="bn-icon">⚙️</div><div class="bn-label">Settings</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER MESSAGES -->
+<div id="teacher-msgs" class="panel">
+  <div class="screen">
+    <div class="mobile-nav">
+      <div class="mn-logo">⭐ WonderQuest</div>
+      <div class="mn-right"><div class="mn-notif" style="background:rgba(255,255,255,.25)">💬 2</div><div class="mn-avatar">👤</div></div>
+    </div>
+    <div style="padding:14px 16px 10px;font-size:16px;font-weight:800">Messages</div>
+    <div class="msg-strip" style="margin-top:0">
+      <div class="ms-header"><div class="ms-title">Teacher messages</div><div class="ms-see">Compose</div></div>
+      <div class="msg-row">
+        <div class="msg-avatar">👩‍🏫</div>
+        <div class="msg-body" style="flex:1">
+          <div class="msg-from">Ms. Rodriguez · Alex's teacher</div>
+          <div class="msg-preview">"Alex is doing beautifully with letter sounds this week! Word blending is the next opportunity to focus on at home."</div>
+          <div class="msg-time">Today 9:14am</div>
+        </div>
+        <div class="msg-dot"></div>
+      </div>
+      <div class="msg-row">
+        <div class="msg-avatar">👨‍🏫</div>
+        <div class="msg-body" style="flex:1">
+          <div class="msg-from">Mr. Thompson · Maya's teacher</div>
+          <div class="msg-preview">"Maya is growing well in vocabulary! Her comprehension is a real strength right now."</div>
+          <div class="msg-time">Yesterday 3:22pm</div>
+        </div>
+      </div>
+    </div>
+    <!-- Full message view -->
+    <div class="sect-lbl">Latest from Ms. Rodriguez</div>
+    <div style="background:#fff;border-radius:14px;padding:14px;margin:0 12px 10px;border:1px solid rgba(0,0,0,.08)">
+      <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center">
+        <div class="msg-avatar">👩‍🏫</div>
+        <div>
+          <div style="font-size:12px;font-weight:700">Ms. Rodriguez</div>
+          <div style="font-size:10px;color:#aaa;font-weight:600">Alex's Grade 1 Teacher</div>
+        </div>
+      </div>
+      <div style="background:#f5f0e8;border-radius:12px;padding:12px;font-size:12px;color:#333;font-weight:600;line-height:1.6;margin-bottom:12px">Alex is doing beautifully with letter sounds this week! I'd love to see more practice with word blending at home — especially blends like "bl", "st", and "cr". Great consistency this week!</div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;background:#2c7a6e;color:#fff;border:none;border-radius:10px;padding:9px;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Reply</button>
+        <button style="flex:1;background:rgba(44,122,110,.1);color:#2c7a6e;border:none;border-radius:10px;padding:9px;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Practice ideas</button>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="bn-item"><div class="bn-icon">🏠</div><div class="bn-label">Home</div></div>
+      <div class="bn-item"><div class="bn-icon">📊</div><div class="bn-label">Progress</div></div>
+      <div class="bn-item"><div class="bn-icon">📅</div><div class="bn-label">Practice</div></div>
+      <div class="bn-item active"><div class="bn-icon">💬</div><div class="bn-label">Messages</div></div>
+      <div class="bn-item"><div class="bn-icon">⚙️</div><div class="bn-label">Settings</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: parent-family-home-mobile-v2.html</h3>
+      <ul>
+        <li>375px mobile · Sora · bg <code>#f5f0e8</code> · nav <code>#2c7a6e</code></li>
+        <li>Compact parent hub with bottom navigation</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Mobile Hub Home:</strong> Weekly hero card, child switcher chips, next practice card, skill snapshot mini, teacher message strip</li>
+        <li><strong>Week Summary:</strong> Day calendar row, per-learner session recap cards</li>
+        <li><strong>Progress View:</strong> Skill tier bars, world journey progress bar</li>
+        <li><strong>Teacher Messages:</strong> Message thread list + full message view + reply</li>
+      </ul>
+      <h3>Parent Language Rules</h3>
+      <ul>
+        <li>NEVER accuracy % — tiers: Opportunity / Growing / Strength</li>
+        <li>NEVER missed-day — streaks framed positively</li>
+        <li>Session count and stars shown, not "correct answers"</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">375px mobile</span>
+        <span class="spec-tag">bg #f5f0e8</span>
+        <span class="spec-tag">nav #2c7a6e</span>
+        <span class="spec-tag">Sora font</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

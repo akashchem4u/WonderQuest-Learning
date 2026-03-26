@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summary Chip System v2 — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --card:      #161b22;
+    --accent:    #50e890;
+    --text:      #f0f6ff;
+    --muted:     #8b949e;
+    --border:    rgba(255,255,255,.06);
+
+    /* Band colours */
+    --p0: #ffd166;
+    --p1: #9b72ff;
+    --p2: #58e8c1;
+    --p3: #ff7b6b;
+
+    /* Role colours */
+    --teacher: #38bdf8;
+    --parent:  #a78bfa;
+    --owner:   #50e890;
+
+    /* Semantic */
+    --red:    #ef4444;
+    --amber:  #f59e0b;
+    --green:  #50e890;
+    --blue:   #38bdf8;
+    --violet: #9b72ff;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── Engineering Hint ─────────────────────────────── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    color: #1a1200;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .hint-box strong { font-weight: 700; }
+
+  /* ── Page header ──────────────────────────────────── */
+  .page-header {
+    margin-bottom: 24px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .page-header p {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* ── Tabs ─────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section headings ─────────────────────────────── */
+  .section {
+    margin-bottom: 32px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* ══════════════════════════════════════════════════
+     BASE CHIP
+  ══════════════════════════════════════════════════ */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    line-height: 1;
+    transition: background .12s, border-color .12s, opacity .12s;
+  }
+
+  /* Sizes */
+  .chip-sm { height: 20px; padding: 0 8px;  font-size: 11px; }
+  .chip-md { height: 24px; padding: 0 10px; font-size: 12px; }
+  .chip-lg { height: 28px; padding: 0 14px; font-size: 13px; }
+
+  /* Default size = md */
+  .chip:not(.chip-sm):not(.chip-lg) { height: 24px; padding: 0 10px; font-size: 12px; }
+
+  /* Interactive */
+  .chip-interactive { cursor: pointer; }
+  .chip-interactive:hover { filter: brightness(1.15); }
+
+  /* Dot */
+  .chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Remove button */
+  .chip-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 2px;
+    opacity: .6;
+    transition: opacity .12s;
+  }
+  .chip-remove:hover { opacity: 1; }
+
+  /* ══════════════════════════════════════════════════
+     STATUS CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-status-draft {
+    background: rgba(139,148,158,.12);
+    border-color: rgba(139,148,158,.25);
+    color: #8b949e;
+  }
+  .chip-status-draft .chip-dot { background: #8b949e; }
+
+  .chip-status-review {
+    background: rgba(245,158,11,.12);
+    border-color: rgba(245,158,11,.25);
+    color: #f59e0b;
+  }
+  .chip-status-review .chip-dot { background: #f59e0b; }
+
+  .chip-status-approved {
+    background: rgba(80,232,144,.12);
+    border-color: rgba(80,232,144,.25);
+    color: #50e890;
+  }
+  .chip-status-approved .chip-dot { background: #50e890; }
+
+  .chip-status-blocked {
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.25);
+    color: #ef4444;
+  }
+  .chip-status-blocked .chip-dot { background: #ef4444; }
+
+  .chip-status-published {
+    background: rgba(56,189,248,.12);
+    border-color: rgba(56,189,248,.25);
+    color: #38bdf8;
+  }
+  .chip-status-published .chip-dot { background: #38bdf8; }
+
+  .chip-status-retired {
+    background: rgba(255,255,255,.04);
+    border-color: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.3);
+  }
+  .chip-status-retired .chip-dot { background: rgba(255,255,255,.3); }
+
+  /* ══════════════════════════════════════════════════
+     BAND CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-band-p0 {
+    background: rgba(255,209,102,.15);
+    border-color: rgba(255,209,102,.30);
+    color: #ffd166;
+  }
+  .chip-band-p1 {
+    background: rgba(155,114,255,.15);
+    border-color: rgba(155,114,255,.30);
+    color: #9b72ff;
+  }
+  .chip-band-p2 {
+    background: rgba(88,232,193,.15);
+    border-color: rgba(88,232,193,.30);
+    color: #58e8c1;
+  }
+  .chip-band-p3 {
+    background: rgba(255,123,107,.15);
+    border-color: rgba(255,123,107,.30);
+    color: #ff7b6b;
+  }
+
+  /* ══════════════════════════════════════════════════
+     SEVERITY / PRIORITY CHIPS
+  ══════════════════════════════════════════════════ */
+  /* Filled */
+  .chip-sev-p0 {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+    font-weight: 700;
+  }
+  .chip-sev-p1 {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #1a0f00;
+    font-weight: 700;
+  }
+  /* Outlined */
+  .chip-sev-p2 {
+    background: rgba(56,189,248,.10);
+    border-color: rgba(56,189,248,.40);
+    color: #38bdf8;
+    font-weight: 600;
+  }
+  .chip-sev-p3 {
+    background: rgba(139,148,158,.08);
+    border-color: rgba(139,148,158,.30);
+    color: #8b949e;
+    font-weight: 600;
+  }
+  .chip-sev-feature {
+    background: rgba(155,114,255,.10);
+    border-color: rgba(155,114,255,.35);
+    color: #9b72ff;
+    font-weight: 600;
+  }
+
+  /* ══════════════════════════════════════════════════
+     SCORE CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-score-green {
+    background: rgba(80,232,144,.14);
+    border-color: rgba(80,232,144,.28);
+    color: #50e890;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-score-amber {
+    background: rgba(245,158,11,.12);
+    border-color: rgba(245,158,11,.28);
+    color: #f59e0b;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-score-red {
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.28);
+    color: #ef4444;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-score-none {
+    background: rgba(139,148,158,.08);
+    border-color: rgba(139,148,158,.20);
+    color: #8b949e;
+  }
+  .chip-score-denom {
+    font-weight: 400;
+    font-size: .85em;
+    opacity: .6;
+  }
+
+  /* ══════════════════════════════════════════════════
+     DELTA CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-delta-up {
+    background: rgba(80,232,144,.10);
+    border-color: rgba(80,232,144,.22);
+    color: #50e890;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-delta-down {
+    background: rgba(239,68,68,.10);
+    border-color: rgba(239,68,68,.22);
+    color: #ef4444;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-delta-neutral {
+    background: rgba(139,148,158,.08);
+    border-color: rgba(139,148,158,.20);
+    color: #8b949e;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-arrow { font-size: .9em; }
+
+  /* ══════════════════════════════════════════════════
+     COUNT CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-count {
+    background: rgba(255,255,255,.05);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .chip-count-blocked {
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.25);
+    color: #ef4444;
+  }
+  .chip-count-ok {
+    background: rgba(80,232,144,.08);
+    border-color: rgba(80,232,144,.18);
+    color: #50e890;
+  }
+  .chip-count-num {
+    font-weight: 700;
+  }
+
+  /* ══════════════════════════════════════════════════
+     TAG CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-tag {
+    background: rgba(255,255,255,.04);
+    border-color: rgba(255,255,255,.12);
+    color: var(--muted);
+  }
+  /* Subject colour tints */
+  .chip-tag-math {
+    background: rgba(56,189,248,.08);
+    border-color: rgba(56,189,248,.20);
+    color: #38bdf8;
+  }
+  .chip-tag-science {
+    background: rgba(80,232,144,.08);
+    border-color: rgba(80,232,144,.20);
+    color: #50e890;
+  }
+  .chip-tag-ela {
+    background: rgba(155,114,255,.08);
+    border-color: rgba(155,114,255,.20);
+    color: #9b72ff;
+  }
+  .chip-tag-social {
+    background: rgba(245,158,11,.08);
+    border-color: rgba(245,158,11,.20);
+    color: #f59e0b;
+  }
+  .chip-tag-arts {
+    background: rgba(236,72,153,.08);
+    border-color: rgba(236,72,153,.20);
+    color: #ec4899;
+  }
+  /* Theme tags — rounded-rect (use border-radius 8px override) */
+  .chip-tag-theme {
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,255,255,.12);
+    color: var(--muted);
+    border-radius: 8px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     SLA CHIPS
+  ══════════════════════════════════════════════════ */
+  .chip-sla-urgent {
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.28);
+    color: #ef4444;
+  }
+  .chip-sla-warn {
+    background: rgba(245,158,11,.10);
+    border-color: rgba(245,158,11,.28);
+    color: #f59e0b;
+  }
+  .chip-sla-ok {
+    background: rgba(139,148,158,.08);
+    border-color: rgba(139,148,158,.22);
+    color: #8b949e;
+  }
+
+  /* ══════════════════════════════════════════════════
+     IN-CONTEXT CARDS (Tab 2)
+  ══════════════════════════════════════════════════ */
+  .ctx-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .ctx-card-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ctx-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ctx-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .ctx-card-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .ctx-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0;
+  }
+  .ctx-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ctx-row-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-submit {
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn-submit:hover { opacity: .85; }
+
+  /* ══════════════════════════════════════════════════
+     INTERACTIVE TAB (Tab 3)
+  ══════════════════════════════════════════════════ */
+  .filter-section { margin-bottom: 28px; }
+  .filter-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: 10px;
+  }
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* Filter chip base */
+  .chip-filter {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--muted);
+    cursor: pointer;
+    height: 28px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background .12s, border-color .12s, color .12s;
+    user-select: none;
+  }
+  .chip-filter:hover {
+    background: rgba(255,255,255,.08);
+    color: var(--text);
+  }
+  .chip-filter.chip-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d1117;
+    font-weight: 600;
+  }
+
+  /* Band filter active states */
+  .chip-filter[data-band="p0"].chip-active {
+    background: var(--p0);
+    border-color: var(--p0);
+    color: #1a0f00;
+  }
+  .chip-filter[data-band="p1"].chip-active {
+    background: var(--p1);
+    border-color: var(--p1);
+    color: #fff;
+  }
+  .chip-filter[data-band="p2"].chip-active {
+    background: var(--p2);
+    border-color: var(--p2);
+    color: #001a12;
+  }
+  .chip-filter[data-band="p3"].chip-active {
+    background: var(--p3);
+    border-color: var(--p3);
+    color: #fff;
+  }
+
+  /* Removable tag chips */
+  .removable-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .chip-removable {
+    background: rgba(80,232,144,.08);
+    border: 1px solid rgba(80,232,144,.22);
+    color: #50e890;
+    height: 26px;
+    padding: 0 8px 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background .12s;
+  }
+  .chip-removable:hover { background: rgba(80,232,144,.14); }
+  .chip-removable .rm-btn {
+    background: none;
+    border: none;
+    color: #50e890;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 0 0 2px;
+    opacity: .7;
+    transition: opacity .12s;
+  }
+  .chip-removable .rm-btn:hover { opacity: 1; }
+
+  .chip-add-new {
+    background: rgba(255,255,255,.04);
+    border: 1px dashed rgba(255,255,255,.20);
+    color: var(--muted);
+    height: 26px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .chip-add-new:hover {
+    background: rgba(255,255,255,.08);
+    color: var(--text);
+    border-color: rgba(255,255,255,.30);
+  }
+
+  /* Mini picker */
+  .mini-picker {
+    display: none;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .mini-picker.open { display: flex; }
+  .picker-chip {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--muted);
+    height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background .1s, color .1s;
+  }
+  .picker-chip:hover {
+    background: rgba(80,232,144,.10);
+    color: var(--accent);
+    border-color: rgba(80,232,144,.22);
+  }
+
+  /* ══════════════════════════════════════════════════
+     SPEC TAB (Tab 4)
+  ══════════════════════════════════════════════════ */
+  .spec-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .spec-block h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .code-block {
+    background: rgba(0,0,0,.35);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: #b5d1ff;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-kw  { color: #9b72ff; }
+  .code-str { color: #58e8c1; }
+  .code-cmt { color: #8b949e; font-style: italic; }
+  .code-val { color: #ffd166; }
+
+  /* Token / Spec table */
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .spec-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spec-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table .td-type { color: var(--accent); font-family: monospace; font-size: 11px; }
+  .spec-table .td-muted { color: var(--muted); }
+  .spec-table .td-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* Size preview */
+  .size-demo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .size-label {
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 30px;
+  }
+
+  /* Class naming demo */
+  .class-demo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .class-demo span { color: var(--text); }
+  .class-demo .cls { color: #58e8c1; }
+  .class-demo .mod { color: #9b72ff; }
+
+  /* ══ Responsive tweaks ═══════════════════════════ */
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    .tab-btn { padding: 8px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Engineering Hint -->
+<div class="hint-box">
+  <strong>summary-chip-system-v2.html</strong> — Reusable chip/badge component library.
+  Chip types: Status Chip (review_status), Band Chip (band_id), Severity Chip (P0/P1/P2/P3),
+  Score Chip (readiness_score ≥90=green / 70–89=amber / &lt;70=red), Delta Chip (±% change),
+  Count Chip (number with icon), Tag Chip (label-only).
+  Sizes: sm (20px h), md (24px h — default), lg (28px h).
+  All chips: border-radius:999px (pill shape).
+  Interactive chips: cursor:pointer, hover bg shift. Read-only chips: no cursor change.
+</div>
+
+<!-- Page header -->
+<div class="page-header">
+  <h1>Summary Chip System</h1>
+  <p>Reusable chip and badge components — WonderQuest Learning Platform</p>
+</div>
+
+<!-- Tab nav -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('gallery')">Chip Gallery</button>
+  <button class="tab-btn" onclick="showTab('context')">In-Context Usage</button>
+  <button class="tab-btn" onclick="showTab('interactive')">Interactive Chips</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     TAB 1 — CHIP GALLERY
+══════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-gallery">
+
+  <!-- STATUS CHIPS -->
+  <div class="section">
+    <div class="section-title">Status Chips — review_status</div>
+    <div class="chip-row">
+      <span class="chip chip-status-draft">
+        <span class="chip-dot"></span>
+        Draft
+        <span style="font-size:10px;opacity:.6;margin-left:2px">14</span>
+      </span>
+      <span class="chip chip-status-review">
+        <span class="chip-dot"></span>
+        Under Review
+        <span style="font-size:10px;opacity:.6;margin-left:2px">6</span>
+      </span>
+      <span class="chip chip-status-approved">
+        <span class="chip-dot"></span>
+        Approved
+        <span style="font-size:10px;opacity:.6;margin-left:2px">92</span>
+      </span>
+      <span class="chip chip-status-blocked">
+        <span class="chip-dot"></span>
+        Blocked
+        <span style="font-size:10px;opacity:.6;margin-left:2px">3</span>
+      </span>
+      <span class="chip chip-status-published">
+        <span class="chip-dot"></span>
+        Published
+        <span style="font-size:10px;opacity:.6;margin-left:2px">47</span>
+      </span>
+      <span class="chip chip-status-retired">
+        <span class="chip-dot"></span>
+        Retired
+      </span>
+    </div>
+  </div>
+
+  <!-- BAND CHIPS -->
+  <div class="section">
+    <div class="section-title">Band Chips — band_id</div>
+    <div class="chip-row">
+      <span class="chip chip-band-p0">Pre-K&nbsp;&nbsp;P0</span>
+      <span class="chip chip-band-p1">K–1&nbsp;&nbsp;P1</span>
+      <span class="chip chip-band-p2">G2–3&nbsp;&nbsp;P2</span>
+      <span class="chip chip-band-p3">G4–5&nbsp;&nbsp;P3</span>
+    </div>
+  </div>
+
+  <!-- SEVERITY / PRIORITY CHIPS -->
+  <div class="section">
+    <div class="section-title">Severity / Priority Chips</div>
+    <div class="chip-row">
+      <span class="chip chip-sev-p0">P0</span>
+      <span class="chip chip-sev-p1">P1</span>
+      <span class="chip chip-sev-p2">P2</span>
+      <span class="chip chip-sev-p3">P3</span>
+      <span class="chip chip-sev-feature">Feature</span>
+    </div>
+  </div>
+
+  <!-- SCORE CHIPS -->
+  <div class="section">
+    <div class="section-title">Score Chips — readiness_score</div>
+    <div class="chip-row">
+      <span class="chip chip-score-green">
+        96<span class="chip-score-denom">/100</span>
+      </span>
+      <span class="chip chip-score-amber">
+        82<span class="chip-score-denom">/100</span>
+      </span>
+      <span class="chip chip-score-red">
+        61<span class="chip-score-denom">/100</span>
+      </span>
+      <span class="chip chip-score-none">—</span>
+    </div>
+  </div>
+
+  <!-- DELTA CHIPS -->
+  <div class="section">
+    <div class="section-title">Delta Chips — metric change</div>
+    <div class="chip-row">
+      <span class="chip chip-delta-up">
+        <span class="chip-arrow">▲</span> +12%
+      </span>
+      <span class="chip chip-delta-down">
+        <span class="chip-arrow">▼</span> −5%
+      </span>
+      <span class="chip chip-delta-neutral">
+        <span class="chip-arrow">→</span> 0%
+      </span>
+      <span class="chip chip-delta-up">
+        <span class="chip-arrow">▲</span> +2.3 pts
+      </span>
+    </div>
+  </div>
+
+  <!-- COUNT CHIPS -->
+  <div class="section">
+    <div class="section-title">Count Chips — number with icon</div>
+    <div class="chip-row">
+      <span class="chip chip-count">
+        📚 <span class="chip-count-num">12</span> skills
+      </span>
+      <span class="chip chip-count">
+        ❓ <span class="chip-count-num">47</span> questions
+      </span>
+      <span class="chip chip-count-blocked">
+        ⚠️ <span class="chip-count-num">3</span> blocked
+      </span>
+      <span class="chip chip-count-ok">
+        ✅ <span class="chip-count-num">0</span> pending
+      </span>
+    </div>
+  </div>
+
+  <!-- TAG CHIPS -->
+  <div class="section">
+    <div class="section-title">Tag Chips — subjects (pill) &amp; themes (rounded rect)</div>
+    <div class="chip-row">
+      <!-- Subject tags (pill) -->
+      <span class="chip chip-tag-math">Mathematics</span>
+      <span class="chip chip-tag-science">Science</span>
+      <span class="chip chip-tag-ela">ELA</span>
+      <span class="chip chip-tag-social">Social Studies</span>
+      <span class="chip chip-tag-arts">Arts</span>
+      <!-- Theme tags (rounded rect) -->
+      <span class="chip chip-tag-theme">Adventure</span>
+      <span class="chip chip-tag-theme">Nature</span>
+      <span class="chip chip-tag-theme">Space</span>
+    </div>
+  </div>
+
+  <!-- SIZE ROW -->
+  <div class="section">
+    <div class="section-title">Size Variants — Approved chip in sm / md / lg</div>
+    <div class="chip-row" style="align-items:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span class="chip chip-sm chip-status-approved">
+          <span class="chip-dot"></span>
+          Approved
+        </span>
+        <span style="font-size:10px;color:var(--muted)">sm · 20px</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span class="chip chip-md chip-status-approved">
+          <span class="chip-dot"></span>
+          Approved
+        </span>
+        <span style="font-size:10px;color:var(--muted)">md · 24px</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span class="chip chip-lg chip-status-approved">
+          <span class="chip-dot"></span>
+          Approved
+        </span>
+        <span style="font-size:10px;color:var(--muted)">lg · 28px</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-gallery -->
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 2 — IN-CONTEXT USAGE
+══════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-context">
+
+  <!-- Content Skill Card -->
+  <div class="ctx-card">
+    <div class="ctx-card-label">Content Skill Card</div>
+    <div class="ctx-card-header">
+      <span class="ctx-card-title">Understanding Place Value to 1000</span>
+      <span class="chip chip-band-p2">G2–3 P2</span>
+      <span class="chip chip-status-approved">
+        <span class="chip-dot"></span>
+        Approved
+      </span>
+      <span class="chip chip-score-green">96<span class="chip-score-denom">/100</span></span>
+    </div>
+    <div class="ctx-card-meta">
+      <span class="chip chip-tag-math">Mathematics</span>
+      <span class="chip chip-tag-theme">Adventure</span>
+      <span class="chip chip-delta-up"><span class="chip-arrow">▲</span> +5%</span>
+    </div>
+  </div>
+
+  <!-- Review Queue Item -->
+  <div class="ctx-card">
+    <div class="ctx-card-label">Review Queue Item</div>
+    <div class="ctx-card-header">
+      <span class="ctx-card-title">Phonics: Long Vowel Sounds (K–1)</span>
+      <span class="chip chip-sev-p0">P0</span>
+      <span class="chip chip-status-review">
+        <span class="chip-dot"></span>
+        Under Review
+      </span>
+      <span class="chip chip-count-blocked">⚠️ <span class="chip-count-num">2d</span> overdue</span>
+    </div>
+    <div class="ctx-card-meta">
+      <span style="font-size:12px;color:var(--muted);margin-right:4px">SLA:</span>
+      <span class="chip chip-sla-urgent" style="border-radius:999px;height:22px;padding:0 9px;font-size:11px;display:inline-flex;align-items:center;">Due: Today</span>
+      <span class="chip chip-sla-warn" style="border-radius:999px;height:22px;padding:0 9px;font-size:11px;display:inline-flex;align-items:center;">Due: Tomorrow</span>
+      <span class="chip chip-sla-ok" style="border-radius:999px;height:22px;padding:0 9px;font-size:11px;display:inline-flex;align-items:center;">Due: In 3 days</span>
+    </div>
+  </div>
+
+  <!-- Release Bundle Row -->
+  <div class="ctx-card">
+    <div class="ctx-card-label">Release Bundle Row</div>
+    <div class="ctx-row">
+      <div class="ctx-row-left">
+        <span class="ctx-card-title">Spring Release Bundle v1.4</span>
+        <span class="chip chip-status-approved">
+          <span class="chip-dot"></span>
+          Ready
+        </span>
+        <span class="chip chip-count" style="background:rgba(80,232,144,.08);border-color:rgba(80,232,144,.18);color:#50e890;">
+          ✅ <span class="chip-count-num">8/8</span> skills
+        </span>
+        <span class="chip chip-score-green">
+          avg 94<span class="chip-score-denom">/100</span>
+        </span>
+        <span class="chip chip-band-p1">K–1 P1</span>
+        <span class="chip chip-band-p2">G2–3 P2</span>
+      </div>
+      <button class="btn-submit">Submit Release</button>
+    </div>
+  </div>
+
+</div><!-- /tab-context -->
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 3 — INTERACTIVE CHIPS
+══════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-interactive">
+
+  <!-- Single-select filter -->
+  <div class="filter-section">
+    <div class="filter-section-title">Single-Select Filter — Status</div>
+    <div class="filter-row" id="status-filter">
+      <button class="chip-filter chip-active" data-val="all" onclick="selectFilter(this,'status-filter')">All</button>
+      <button class="chip-filter" data-val="draft" onclick="selectFilter(this,'status-filter')">
+        <span style="width:6px;height:6px;border-radius:50%;background:#8b949e;flex-shrink:0;display:inline-block"></span>
+        Draft
+      </button>
+      <button class="chip-filter" data-val="review" onclick="selectFilter(this,'status-filter')">
+        <span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;flex-shrink:0;display:inline-block"></span>
+        Under Review
+      </button>
+      <button class="chip-filter" data-val="approved" onclick="selectFilter(this,'status-filter')">
+        <span style="width:6px;height:6px;border-radius:50%;background:#50e890;flex-shrink:0;display:inline-block"></span>
+        Approved
+      </button>
+      <button class="chip-filter" data-val="blocked" onclick="selectFilter(this,'status-filter')">
+        <span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>
+        Blocked
+      </button>
+      <button class="chip-filter" data-val="published" onclick="selectFilter(this,'status-filter')">
+        <span style="width:6px;height:6px;border-radius:50%;background:#38bdf8;flex-shrink:0;display:inline-block"></span>
+        Published
+      </button>
+    </div>
+    <p id="status-filter-output" style="margin-top:10px;font-size:12px;color:var(--muted);">Active filter: <strong style="color:var(--accent)">all</strong></p>
+  </div>
+
+  <!-- Multi-select band filter -->
+  <div class="filter-section">
+    <div class="filter-section-title">Multi-Select Filter — Band</div>
+    <div class="filter-row" id="band-filter">
+      <button class="chip-filter chip-active" data-band="p0" onclick="toggleFilter(this,'band-filter')">✓ Pre-K P0</button>
+      <button class="chip-filter chip-active" data-band="p1" onclick="toggleFilter(this,'band-filter')">✓ K–1 P1</button>
+      <button class="chip-filter" data-band="p2" onclick="toggleFilter(this,'band-filter')">G2–3 P2</button>
+      <button class="chip-filter" data-band="p3" onclick="toggleFilter(this,'band-filter')">G4–5 P3</button>
+    </div>
+    <p id="band-filter-output" style="margin-top:10px;font-size:12px;color:var(--muted);">Active bands: <strong style="color:var(--accent)" id="band-active-list">p0, p1</strong></p>
+  </div>
+
+  <!-- Removable tag chips -->
+  <div class="filter-section">
+    <div class="filter-section-title">Removable Tag Chips</div>
+    <div class="removable-area" id="removable-area">
+      <span class="chip-removable" data-tag="Mathematics">
+        Mathematics
+        <button class="rm-btn" onclick="removeTag(this)" aria-label="Remove Mathematics">×</button>
+      </span>
+      <span class="chip-removable" data-tag="Science">
+        Science
+        <button class="rm-btn" onclick="removeTag(this)" aria-label="Remove Science">×</button>
+      </span>
+      <span class="chip-removable" data-tag="Adventure">
+        Adventure
+        <button class="rm-btn" onclick="removeTag(this)" aria-label="Remove Adventure">×</button>
+      </span>
+      <button class="chip-add-new" onclick="togglePicker()" id="add-tag-btn">
+        <span style="font-size:16px;line-height:1;margin-top:-1px">+</span> Add tag
+      </button>
+    </div>
+    <!-- Mini tag picker -->
+    <div class="mini-picker" id="tag-picker">
+      <span class="picker-chip" onclick="addTag('Mathematics')">Mathematics</span>
+      <span class="picker-chip" onclick="addTag('Science')">Science</span>
+      <span class="picker-chip" onclick="addTag('ELA')">ELA</span>
+      <span class="picker-chip" onclick="addTag('Social Studies')">Social Studies</span>
+      <span class="picker-chip" onclick="addTag('Arts')">Arts</span>
+      <span class="picker-chip" onclick="addTag('Adventure')">Adventure</span>
+      <span class="picker-chip" onclick="addTag('Nature')">Nature</span>
+      <span class="picker-chip" onclick="addTag('Space')">Space</span>
+    </div>
+  </div>
+
+</div><!-- /tab-interactive -->
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB 4 — SPEC
+══════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-spec">
+
+  <!-- Component props -->
+  <div class="spec-block">
+    <h3>ChipProps Interface</h3>
+    <div class="code-block"><span class="code-kw">interface</span> <span class="code-val">ChipProps</span> {
+  type:        <span class="code-str">'status'</span> | <span class="code-str">'band'</span> | <span class="code-str">'severity'</span> | <span class="code-str">'score'</span> | <span class="code-str">'delta'</span> | <span class="code-str">'count'</span> | <span class="code-str">'tag'</span>;
+  value:       <span class="code-kw">string</span> | <span class="code-kw">number</span>;
+  size?:       <span class="code-str">'sm'</span> | <span class="code-str">'md'</span> | <span class="code-str">'lg'</span>;          <span class="code-cmt">// default 'md'</span>
+  interactive?:<span class="code-kw">boolean</span>;                                  <span class="code-cmt">// cursor:pointer + hover state</span>
+  removable?:  <span class="code-kw">boolean</span>;                                  <span class="code-cmt">// shows × button</span>
+  dot?:        <span class="code-kw">boolean</span>;                                  <span class="code-cmt">// shows leading coloured dot</span>
+}</div>
+  </div>
+
+  <!-- CSS class naming -->
+  <div class="spec-block">
+    <h3>CSS Class Naming</h3>
+    <div class="code-block"><span class="code-cmt">/* Base class always required */</span>
+<span class="code-str">.chip</span>
+
+<span class="code-cmt">/* Size modifier */</span>
+<span class="code-str">.chip-sm</span>  <span class="code-cmt">// height: 20px  padding: 0 8px   font-size: 11px</span>
+<span class="code-str">.chip-md</span>  <span class="code-cmt">// height: 24px  padding: 0 10px  font-size: 12px  (default)</span>
+<span class="code-str">.chip-lg</span>  <span class="code-cmt">// height: 28px  padding: 0 14px  font-size: 13px</span>
+
+<span class="code-cmt">/* Type + variant modifiers */</span>
+<span class="code-str">.chip-status-draft</span>      <span class="code-str">.chip-status-review</span>   <span class="code-str">.chip-status-approved</span>
+<span class="code-str">.chip-status-blocked</span>    <span class="code-str">.chip-status-published</span> <span class="code-str">.chip-status-retired</span>
+
+<span class="code-str">.chip-band-p0</span>  <span class="code-str">.chip-band-p1</span>  <span class="code-str">.chip-band-p2</span>  <span class="code-str">.chip-band-p3</span>
+
+<span class="code-str">.chip-sev-p0</span>   <span class="code-str">.chip-sev-p1</span>   <span class="code-str">.chip-sev-p2</span>   <span class="code-str">.chip-sev-p3</span>  <span class="code-str">.chip-sev-feature</span>
+
+<span class="code-str">.chip-score-green</span>  <span class="code-str">.chip-score-amber</span>  <span class="code-str">.chip-score-red</span>  <span class="code-str">.chip-score-none</span>
+
+<span class="code-str">.chip-delta-up</span>  <span class="code-str">.chip-delta-down</span>  <span class="code-str">.chip-delta-neutral</span>
+
+<span class="code-str">.chip-count</span>  <span class="code-str">.chip-count-blocked</span>  <span class="code-str">.chip-count-ok</span>
+
+<span class="code-str">.chip-tag</span>  <span class="code-str">.chip-tag-math</span>  <span class="code-str">.chip-tag-science</span>  <span class="code-str">.chip-tag-ela</span>
+<span class="code-str">.chip-tag-social</span>  <span class="code-str">.chip-tag-arts</span>  <span class="code-str">.chip-tag-theme</span>
+
+<span class="code-cmt">/* State */</span>
+<span class="code-str">.chip-interactive</span>  <span class="code-cmt">// cursor:pointer + hover brightness</span>
+<span class="code-str">.chip-active</span>       <span class="code-cmt">// filter chip selected state</span></div>
+  </div>
+
+  <!-- Geometry spec -->
+  <div class="spec-block">
+    <h3>Geometry &amp; Typography</h3>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Size</th>
+          <th>Height</th>
+          <th>Padding (h)</th>
+          <th>Font size</th>
+          <th>Font weight</th>
+          <th>Border radius</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-type">sm</td>
+          <td>20px</td>
+          <td>0 8px</td>
+          <td>11px</td>
+          <td>500</td>
+          <td>999px</td>
+        </tr>
+        <tr>
+          <td class="td-type">md</td>
+          <td>24px</td>
+          <td>0 10px</td>
+          <td>12px</td>
+          <td>500</td>
+          <td>999px</td>
+        </tr>
+        <tr>
+          <td class="td-type">lg</td>
+          <td>28px</td>
+          <td>0 14px</td>
+          <td>13px</td>
+          <td>500</td>
+          <td>999px</td>
+        </tr>
+        <tr>
+          <td class="td-type">theme-tag</td>
+          <td>24px</td>
+          <td>0 10px</td>
+          <td>12px</td>
+          <td>500</td>
+          <td class="td-muted">8px (rounded-rect)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Colour token table -->
+  <div class="spec-block">
+    <h3>Colour Token Table — bg / border / text per chip type</h3>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>Chip type</th>
+          <th>Variant</th>
+          <th>Background</th>
+          <th>Border</th>
+          <th>Text colour</th>
+          <th>Preview</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="td-type">status</td><td>draft</td><td class="td-muted">rgba(139,148,158,.12)</td><td class="td-muted">rgba(139,148,158,.25)</td><td>#8b949e</td><td><span class="chip chip-sm chip-status-draft"><span class="chip-dot"></span>Draft</span></td></tr>
+        <tr><td class="td-type">status</td><td>review</td><td class="td-muted">rgba(245,158,11,.12)</td><td class="td-muted">rgba(245,158,11,.25)</td><td>#f59e0b</td><td><span class="chip chip-sm chip-status-review"><span class="chip-dot"></span>Review</span></td></tr>
+        <tr><td class="td-type">status</td><td>approved</td><td class="td-muted">rgba(80,232,144,.12)</td><td class="td-muted">rgba(80,232,144,.25)</td><td>#50e890</td><td><span class="chip chip-sm chip-status-approved"><span class="chip-dot"></span>Approved</span></td></tr>
+        <tr><td class="td-type">status</td><td>blocked</td><td class="td-muted">rgba(239,68,68,.12)</td><td class="td-muted">rgba(239,68,68,.25)</td><td>#ef4444</td><td><span class="chip chip-sm chip-status-blocked"><span class="chip-dot"></span>Blocked</span></td></tr>
+        <tr><td class="td-type">status</td><td>published</td><td class="td-muted">rgba(56,189,248,.12)</td><td class="td-muted">rgba(56,189,248,.25)</td><td>#38bdf8</td><td><span class="chip chip-sm chip-status-published"><span class="chip-dot"></span>Published</span></td></tr>
+        <tr><td class="td-type">band</td><td>P0</td><td class="td-muted">rgba(255,209,102,.15)</td><td class="td-muted">rgba(255,209,102,.30)</td><td>#ffd166</td><td><span class="chip chip-sm chip-band-p0">P0</span></td></tr>
+        <tr><td class="td-type">band</td><td>P1</td><td class="td-muted">rgba(155,114,255,.15)</td><td class="td-muted">rgba(155,114,255,.30)</td><td>#9b72ff</td><td><span class="chip chip-sm chip-band-p1">P1</span></td></tr>
+        <tr><td class="td-type">band</td><td>P2</td><td class="td-muted">rgba(88,232,193,.15)</td><td class="td-muted">rgba(88,232,193,.30)</td><td>#58e8c1</td><td><span class="chip chip-sm chip-band-p2">P2</span></td></tr>
+        <tr><td class="td-type">band</td><td>P3</td><td class="td-muted">rgba(255,123,107,.15)</td><td class="td-muted">rgba(255,123,107,.30)</td><td>#ff7b6b</td><td><span class="chip chip-sm chip-band-p3">P3</span></td></tr>
+        <tr><td class="td-type">severity</td><td>P0</td><td>#ef4444</td><td>#ef4444</td><td>#fff</td><td><span class="chip chip-sm chip-sev-p0">P0</span></td></tr>
+        <tr><td class="td-type">severity</td><td>P1</td><td>#f59e0b</td><td>#f59e0b</td><td>#1a0f00</td><td><span class="chip chip-sm chip-sev-p1">P1</span></td></tr>
+        <tr><td class="td-type">severity</td><td>P2</td><td class="td-muted">rgba(56,189,248,.10)</td><td class="td-muted">rgba(56,189,248,.40)</td><td>#38bdf8</td><td><span class="chip chip-sm chip-sev-p2">P2</span></td></tr>
+        <tr><td class="td-type">severity</td><td>P3</td><td class="td-muted">rgba(139,148,158,.08)</td><td class="td-muted">rgba(139,148,158,.30)</td><td>#8b949e</td><td><span class="chip chip-sm chip-sev-p3">P3</span></td></tr>
+        <tr><td class="td-type">score</td><td>≥90 green</td><td class="td-muted">rgba(80,232,144,.14)</td><td class="td-muted">rgba(80,232,144,.28)</td><td>#50e890</td><td><span class="chip chip-sm chip-score-green">96</span></td></tr>
+        <tr><td class="td-type">score</td><td>70–89 amber</td><td class="td-muted">rgba(245,158,11,.12)</td><td class="td-muted">rgba(245,158,11,.28)</td><td>#f59e0b</td><td><span class="chip chip-sm chip-score-amber">82</span></td></tr>
+        <tr><td class="td-type">score</td><td>&lt;70 red</td><td class="td-muted">rgba(239,68,68,.12)</td><td class="td-muted">rgba(239,68,68,.28)</td><td>#ef4444</td><td><span class="chip chip-sm chip-score-red">61</span></td></tr>
+        <tr><td class="td-type">delta</td><td>up</td><td class="td-muted">rgba(80,232,144,.10)</td><td class="td-muted">rgba(80,232,144,.22)</td><td>#50e890</td><td><span class="chip chip-sm chip-delta-up">▲ +5%</span></td></tr>
+        <tr><td class="td-type">delta</td><td>down</td><td class="td-muted">rgba(239,68,68,.10)</td><td class="td-muted">rgba(239,68,68,.22)</td><td>#ef4444</td><td><span class="chip chip-sm chip-delta-down">▼ −3%</span></td></tr>
+        <tr><td class="td-type">delta</td><td>neutral</td><td class="td-muted">rgba(139,148,158,.08)</td><td class="td-muted">rgba(139,148,158,.20)</td><td>#8b949e</td><td><span class="chip chip-sm chip-delta-neutral">→ 0%</span></td></tr>
+        <tr><td class="td-type">tag</td><td>math</td><td class="td-muted">rgba(56,189,248,.08)</td><td class="td-muted">rgba(56,189,248,.20)</td><td>#38bdf8</td><td><span class="chip chip-sm chip-tag-math">Math</span></td></tr>
+        <tr><td class="td-type">tag</td><td>science</td><td class="td-muted">rgba(80,232,144,.08)</td><td class="td-muted">rgba(80,232,144,.20)</td><td>#50e890</td><td><span class="chip chip-sm chip-tag-science">Science</span></td></tr>
+        <tr><td class="td-type">tag</td><td>ela</td><td class="td-muted">rgba(155,114,255,.08)</td><td class="td-muted">rgba(155,114,255,.20)</td><td>#9b72ff</td><td><span class="chip chip-sm chip-tag-ela">ELA</span></td></tr>
+        <tr><td class="td-type">tag</td><td>social</td><td class="td-muted">rgba(245,158,11,.08)</td><td class="td-muted">rgba(245,158,11,.20)</td><td>#f59e0b</td><td><span class="chip chip-sm chip-tag-social">Social</span></td></tr>
+        <tr><td class="td-type">tag</td><td>arts</td><td class="td-muted">rgba(236,72,153,.08)</td><td class="td-muted">rgba(236,72,153,.20)</td><td>#ec4899</td><td><span class="chip chip-sm chip-tag-arts">Arts</span></td></tr>
+        <tr><td class="td-type">tag</td><td>theme</td><td class="td-muted">rgba(255,255,255,.05)</td><td class="td-muted">rgba(255,255,255,.12)</td><td class="td-muted">#8b949e</td><td><span class="chip chip-sm chip-tag-theme" style="border-radius:6px">Theme</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Size preview inline -->
+  <div class="spec-block">
+    <h3>Size Visual Reference</h3>
+    <div class="size-demo">
+      <span class="size-label">sm</span>
+      <span class="chip chip-sm chip-band-p2">G2–3 P2</span>
+      <span class="chip chip-sm chip-status-blocked"><span class="chip-dot"></span>Blocked</span>
+      <span class="chip chip-sm chip-score-amber">82</span>
+    </div>
+    <div class="size-demo" style="margin-top:8px">
+      <span class="size-label">md</span>
+      <span class="chip chip-md chip-band-p2">G2–3 P2</span>
+      <span class="chip chip-md chip-status-blocked"><span class="chip-dot"></span>Blocked</span>
+      <span class="chip chip-md chip-score-amber">82</span>
+    </div>
+    <div class="size-demo" style="margin-top:8px">
+      <span class="size-label">lg</span>
+      <span class="chip chip-lg chip-band-p2">G2–3 P2</span>
+      <span class="chip chip-lg chip-status-blocked"><span class="chip-dot"></span>Blocked</span>
+      <span class="chip chip-lg chip-score-amber">82</span>
+    </div>
+  </div>
+
+</div><!-- /tab-spec -->
+
+
+<script>
+  /* ── Tab switching ─────────────────────────────── */
+  function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  /* ── Single-select filter ──────────────────────── */
+  function selectFilter(btn, groupId) {
+    const group = document.getElementById(groupId);
+    group.querySelectorAll('.chip-filter').forEach(c => c.classList.remove('chip-active'));
+    btn.classList.add('chip-active');
+    const out = document.getElementById(groupId + '-output');
+    if (out) out.innerHTML = 'Active filter: <strong style="color:var(--accent)">' + btn.dataset.val + '</strong>';
+  }
+
+  /* ── Multi-select band filter ──────────────────── */
+  function toggleFilter(btn, groupId) {
+    const wasActive = btn.classList.contains('chip-active');
+    btn.classList.toggle('chip-active');
+    const band = btn.dataset.band;
+
+    if (!wasActive) {
+      btn.textContent = '✓ ' + btn.textContent.replace(/^✓\s*/, '');
+    } else {
+      btn.textContent = btn.textContent.replace(/^✓\s*/, '');
+    }
+
+    const group = document.getElementById(groupId);
+    const actives = Array.from(group.querySelectorAll('.chip-filter.chip-active'))
+      .map(c => c.dataset.band).filter(Boolean);
+    const listEl = document.getElementById('band-active-list');
+    if (listEl) listEl.textContent = actives.length ? actives.join(', ') : 'none';
+  }
+
+  /* ── Removable tags ────────────────────────────── */
+  function removeTag(rmBtn) {
+    const chip = rmBtn.closest('.chip-removable');
+    chip.remove();
+  }
+
+  let pickerOpen = false;
+
+  function togglePicker() {
+    const picker = document.getElementById('tag-picker');
+    pickerOpen = !pickerOpen;
+    picker.classList.toggle('open', pickerOpen);
+  }
+
+  function addTag(name) {
+    const area = document.getElementById('removable-area');
+    const addBtn = document.getElementById('add-tag-btn');
+
+    // Check if already exists
+    const existing = Array.from(area.querySelectorAll('.chip-removable'))
+      .some(c => c.dataset.tag === name);
+    if (existing) {
+      togglePicker();
+      return;
+    }
+
+    const chip = document.createElement('span');
+    chip.className = 'chip-removable';
+    chip.dataset.tag = name;
+    chip.innerHTML = name + ' <button class="rm-btn" onclick="removeTag(this)" aria-label="Remove ' + name + '">×</button>';
+    area.insertBefore(chip, addBtn);
+    togglePicker();
+  }
+
+  // Close picker when clicking outside
+  document.addEventListener('click', function(e) {
+    if (pickerOpen && !e.target.closest('#tag-picker') && !e.target.closest('#add-tag-btn')) {
+      document.getElementById('tag-picker').classList.remove('open');
+      pickerOpen = false;
+    }
+  });
+</script>
+</body>
+</html>

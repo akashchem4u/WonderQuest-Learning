@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Issue Report Sheet — WonderQuest Internal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --muted: #8b949e;
+    --border: rgba(255,255,255,.06);
+    --beta: #f59e0b;
+    --p0: #ef4444;
+    --p1: #f59e0b;
+    --p2: #38bdf8;
+    --p3: #8b949e;
+    --card2: #1c2230;
+    --hover: rgba(255,255,255,.04);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Engineering hint box */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    color: #1a1200;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #7c4d00; font-size: 13px; }
+
+  /* Header */
+  .app-header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-badge {
+    background: var(--accent);
+    color: #0d1117;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    letter-spacing: .5px;
+  }
+  .app-title { font-size: 16px; font-weight: 600; }
+  .app-subtitle { color: var(--muted); font-size: 12px; }
+  .owner-badge {
+    background: rgba(245,158,11,.15);
+    border: 1px solid rgba(245,158,11,.3);
+    color: var(--beta);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+
+  /* Tab nav */
+  .tab-nav {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Main content */
+  .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ===== TAB 1: KANBAN ===== */
+  .kanban-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .kanban-title { font-size: 18px; font-weight: 700; }
+  .kanban-meta { color: var(--muted); font-size: 13px; }
+
+  .kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .kanban-col {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .kanban-col-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .kanban-col-title { font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  .kanban-col-count {
+    background: rgba(255,255,255,.08);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .col-new .kanban-col-title { color: var(--beta); }
+  .col-triaged .kanban-col-title { color: var(--p2); }
+  .col-inprogress .kanban-col-title { color: var(--accent); }
+  .col-resolved .kanban-col-title { color: var(--p3); }
+
+  .kanban-cards { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+  .issue-card {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: grab;
+    transition: border-color .15s, transform .1s;
+    user-select: none;
+  }
+  .issue-card:hover { border-color: rgba(255,255,255,.15); transform: translateY(-1px); }
+  .issue-card:active { cursor: grabbing; }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .card-id { font-size: 11px; color: var(--muted); font-family: monospace; }
+  .card-type { font-size: 14px; }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .priority-chip {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: .5px;
+  }
+  .p0 { background: rgba(239,68,68,.15); color: var(--p0); border: 1px solid rgba(239,68,68,.3); }
+  .p1 { background: rgba(245,158,11,.15); color: var(--p1); border: 1px solid rgba(245,158,11,.3); }
+  .p2 { background: rgba(56,189,248,.15); color: var(--p2); border: 1px solid rgba(56,189,248,.3); }
+  .p3 { background: rgba(139,148,158,.15); color: var(--p3); border: 1px solid rgba(139,148,158,.3); }
+
+  .cohort-pill {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .cohort-teacher { background: rgba(80,232,144,.12); color: var(--accent); }
+  .cohort-family-a { background: rgba(167,139,250,.15); color: #a78bfa; }
+  .cohort-family-b { background: rgba(251,191,36,.12); color: #fbbf24; }
+
+  .week-badge {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 2px 6px;
+    background: rgba(255,255,255,.05);
+    border-radius: 4px;
+  }
+
+  /* Resolved collapse */
+  .resolved-toggle {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 10px 16px;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .15s;
+  }
+  .resolved-toggle:hover { color: var(--text); }
+  .resolved-hidden { display: none; }
+  .resolved-hidden.expanded { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
+
+  /* ===== TAB 2: ISSUE LIST ===== */
+  .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .stats-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .stats-bar .stat-total { font-weight: 700; color: var(--text); }
+  .stats-bar .stat-item { color: var(--muted); }
+  .stats-bar .stat-urgent { color: var(--p0); font-weight: 600; }
+
+  .filter-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .filter-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .filter-select {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .filter-select:hover, .filter-select:focus { border-color: rgba(80,232,144,.4); }
+
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    background: var(--card2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color .15s;
+  }
+  thead th:hover { color: var(--text); }
+  thead th .sort-arrow { margin-left: 4px; opacity: .5; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--hover); }
+
+  td {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text);
+    vertical-align: middle;
+  }
+  td.td-id { font-family: monospace; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  td.td-summary { max-width: 240px; }
+  td.td-summary span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  td.td-screen { font-size: 12px; color: var(--muted); max-width: 120px; }
+
+  .status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .status-new { background: rgba(245,158,11,.12); color: var(--beta); }
+  .status-triaged { background: rgba(56,189,248,.12); color: var(--p2); }
+  .status-inprogress { background: rgba(80,232,144,.12); color: var(--accent); }
+  .status-resolved { background: rgba(139,148,158,.12); color: var(--p3); }
+  .status-wontfix { background: rgba(239,68,68,.1); color: #f87171; }
+  .status-deferred { background: rgba(167,139,250,.12); color: #a78bfa; }
+
+  .action-icons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    padding: 4px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .1s, color .1s, border-color .1s;
+    line-height: 1;
+  }
+  .action-btn:hover {
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    border-color: rgba(255,255,255,.2);
+  }
+
+  /* ===== TAB 3: DETAIL ===== */
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .detail-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .detail-card-header {
+    background: var(--card2);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-card-body { padding: 20px; }
+
+  .detail-ref-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .detail-ref {
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .detail-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.3;
+  }
+
+  .detail-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .detail-meta-item {
+    background: var(--card2);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .detail-meta-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+  .detail-meta-value { font-size: 13px; color: var(--text); }
+
+  .detail-body-text {
+    background: var(--card2);
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+    border-left: 3px solid var(--p1);
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+
+  .screenshot-placeholder {
+    background: var(--card2);
+    border: 2px dashed rgba(255,255,255,.12);
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .screenshot-placeholder .ss-icon { font-size: 36px; margin-bottom: 8px; opacity: .5; }
+  .screenshot-placeholder a { color: var(--p2); text-decoration: none; font-size: 12px; }
+  .screenshot-placeholder a:hover { text-decoration: underline; }
+
+  /* Triage sidebar */
+  .triage-field {
+    margin-bottom: 16px;
+  }
+  .triage-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .triage-select {
+    width: 100%;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .triage-select:focus { border-color: rgba(80,232,144,.4); }
+
+  .triage-input {
+    width: 100%;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .triage-input:focus { border-color: rgba(80,232,144,.4); }
+
+  .triage-textarea {
+    width: 100%;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+    font-family: inherit;
+    transition: border-color .15s;
+  }
+  .triage-textarea:focus { border-color: rgba(80,232,144,.4); }
+
+  /* Activity log */
+  .activity-log {
+    margin-bottom: 20px;
+  }
+  .activity-entry {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .activity-entry:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .dot-created { background: var(--accent); }
+  .dot-triaged { background: var(--p2); }
+  .dot-note { background: var(--beta); }
+  .activity-text { color: var(--muted); flex: 1; }
+  .activity-time { color: var(--muted); opacity: .6; white-space: nowrap; }
+
+  /* Action buttons */
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn {
+    padding: 9px 14px;
+    border-radius: 7px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    text-align: center;
+    letter-spacing: .3px;
+  }
+  .btn:hover { opacity: .85; transform: translateY(-1px); }
+  .btn-resolve { background: var(--accent); color: #0d1117; }
+  .btn-defer { background: rgba(167,139,250,.2); color: #a78bfa; border: 1px solid rgba(167,139,250,.3); }
+  .btn-wontfix { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+  .btn-reassign { background: rgba(56,189,248,.15); color: var(--p2); border: 1px solid rgba(56,189,248,.25); }
+
+  /* ===== TAB 4: SPEC ===== */
+  .spec-section { margin-bottom: 28px; }
+  .spec-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spec-code {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    color: #e6edf3;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .spec-code .kw { color: #ff7b72; }
+  .spec-code .ty { color: #79c0ff; }
+  .spec-code .cm { color: var(--muted); font-style: italic; }
+  .spec-code .st { color: var(--accent); }
+
+  .spec-privacy-box {
+    background: rgba(245,158,11,.08);
+    border: 1px solid rgba(245,158,11,.25);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .spec-privacy-box strong { color: var(--beta); }
+
+  .status-flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .flow-step {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .flow-arrow { color: var(--muted); font-size: 16px; }
+  .flow-branch {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .flow-step.new-step { border-color: rgba(245,158,11,.4); color: var(--beta); }
+  .flow-step.triaged-step { border-color: rgba(56,189,248,.4); color: var(--p2); }
+  .flow-step.inprog-step { border-color: rgba(80,232,144,.4); color: var(--accent); }
+  .flow-step.resolved-step { border-color: rgba(139,148,158,.4); color: var(--p3); }
+  .flow-step.wontfix-step { border-color: rgba(239,68,68,.3); color: #f87171; }
+  .flow-step.deferred-step { border-color: rgba(167,139,250,.3); color: #a78bfa; }
+
+  .spec-columns-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .spec-columns-table th {
+    background: var(--card2);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .spec-columns-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .spec-columns-table tr:last-child td { border-bottom: none; }
+  .spec-columns-table td:first-child { font-family: monospace; font-size: 12px; color: var(--accent); }
+
+  /* Responsive adjustments */
+  @media (max-width: 900px) {
+    .kanban-board { grid-template-columns: repeat(2, 1fr); }
+    .detail-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .kanban-board { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .tab-btn { padding: 12px 14px; font-size: 12px; }
+  }
+
+  /* Sort state indicator */
+  .sorted-asc::after { content: ' ▲'; color: var(--accent); }
+  .sorted-desc::after { content: ' ▼'; color: var(--accent); }
+
+  /* Drag feedback */
+  .drag-over { background: rgba(80,232,144,.05) !important; border-color: rgba(80,232,144,.3) !important; }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div style="padding:16px 24px 0;">
+  <div class="eng-hint">
+    <strong>beta-issue-report-sheet-v2.html</strong> — Internal beta issue tracker. Owner/admin view only. Shows all beta-reported issues: bugs, suggestions, observations, ratings. Distinct from main owner feedback queue (that covers production; this covers beta period only). Columns: Issue ID / Type / Tester / Cohort / Week / Priority / Status / Screen / Summary / Actions. Status flow: New → Triaged → In Progress → Resolved / Won't Fix / Deferred. "Tester" field: shows school name or "Family - Cohort B" (not individual name, unless tester opts in).
+  </div>
+</div>
+
+<!-- App header -->
+<div class="app-header">
+  <div class="app-header-left">
+    <div class="logo-badge">WQ</div>
+    <div>
+      <div class="app-title">Beta Issue Report Sheet</div>
+      <div class="app-subtitle">Internal tracking · Beta period only · Owner/Admin view</div>
+    </div>
+  </div>
+  <div class="owner-badge">BETA PROGRAM OWNER</div>
+</div>
+
+<!-- Tab nav -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('board')">Issue Board</button>
+  <button class="tab-btn" onclick="showTab('list')">Issue List</button>
+  <button class="tab-btn" onclick="showTab('detail')">Issue Detail</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<div class="main">
+
+  <!-- ============================= TAB 1: ISSUE BOARD ============================= -->
+  <div id="tab-board" class="tab-panel active">
+    <div class="kanban-header">
+      <div>
+        <div class="kanban-title">Issue Board — Kanban</div>
+        <div class="kanban-meta">Week 3 · Beta Phase 1 · 11 active issues</div>
+      </div>
+    </div>
+
+    <div class="kanban-board">
+
+      <!-- NEW -->
+      <div class="kanban-col col-new" id="col-new" ondragover="colDragOver(event)" ondrop="colDrop(event,'new')">
+        <div class="kanban-col-header">
+          <span class="kanban-col-title">New</span>
+          <span class="kanban-col-count" id="cnt-new">3</span>
+        </div>
+        <div class="kanban-cards" id="cards-new">
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0047')" id="card-BTA-0047">
+            <div class="card-top">
+              <span class="card-id">BTA-0047</span>
+              <span class="card-type" title="Bug">🐛</span>
+            </div>
+            <div class="card-title">Audio delay on P0 questions</div>
+            <div class="card-pills">
+              <span class="priority-chip p1">P1</span>
+              <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+              <span class="week-badge">Wk 3</span>
+            </div>
+          </div>
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0048')" id="card-BTA-0048">
+            <div class="card-top">
+              <span class="card-id">BTA-0048</span>
+              <span class="card-type" title="Suggestion">💡</span>
+            </div>
+            <div class="card-title">Add a parent view for daily summary emails</div>
+            <div class="card-pills">
+              <span class="cohort-pill cohort-family-b">Family Cohort B</span>
+              <span class="week-badge">Wk 3</span>
+            </div>
+          </div>
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0049')" id="card-BTA-0049">
+            <div class="card-top">
+              <span class="card-id">BTA-0049</span>
+              <span class="card-type" title="Observation">👁️</span>
+            </div>
+            <div class="card-title">Children struggled with the fractions wording</div>
+            <div class="card-pills">
+              <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+              <span class="week-badge">Wk 3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRIAGED -->
+      <div class="kanban-col col-triaged" id="col-triaged" ondragover="colDragOver(event)" ondrop="colDrop(event,'triaged')">
+        <div class="kanban-col-header">
+          <span class="kanban-col-title">Triaged</span>
+          <span class="kanban-col-count" id="cnt-triaged">3</span>
+        </div>
+        <div class="kanban-cards" id="cards-triaged">
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0044')" id="card-BTA-0044">
+            <div class="card-top">
+              <span class="card-id">BTA-0044</span>
+              <span class="card-type" title="Bug">🐛</span>
+            </div>
+            <div class="card-title">Student list sorts incorrectly</div>
+            <div class="card-pills">
+              <span class="priority-chip p2">P2</span>
+              <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+              <span class="week-badge">Wk 2</span>
+            </div>
+          </div>
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0045')" id="card-BTA-0045">
+            <div class="card-top">
+              <span class="card-id">BTA-0045</span>
+              <span class="card-type" title="Suggestion">💡</span>
+            </div>
+            <div class="card-title">Add undo button to review queue</div>
+            <div class="card-pills">
+              <span class="priority-chip p3">P3</span>
+              <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+              <span class="week-badge">Wk 2</span>
+            </div>
+          </div>
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0046')" id="card-BTA-0046">
+            <div class="card-top">
+              <span class="card-id">BTA-0046</span>
+              <span class="card-type" title="Rating">⭐</span>
+            </div>
+            <div class="card-title">Parent progress screen: 3/5 stars</div>
+            <div class="card-pills">
+              <span class="cohort-pill cohort-family-a">Family Cohort A</span>
+              <span class="week-badge">Wk 2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN PROGRESS -->
+      <div class="kanban-col col-inprogress" id="col-inprogress" ondragover="colDragOver(event)" ondrop="colDrop(event,'inprogress')">
+        <div class="kanban-col-header">
+          <span class="kanban-col-title">In Progress</span>
+          <span class="kanban-col-count" id="cnt-inprogress">2</span>
+        </div>
+        <div class="kanban-cards" id="cards-inprogress">
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0041')" id="card-BTA-0041">
+            <div class="card-top">
+              <span class="card-id">BTA-0041</span>
+              <span class="card-type" title="Bug">🐛</span>
+            </div>
+            <div class="card-title">Intervention flag too sensitive — false positives</div>
+            <div class="card-pills">
+              <span class="priority-chip p1">P1</span>
+              <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+              <span class="week-badge">Wk 2</span>
+            </div>
+          </div>
+          <div class="issue-card" draggable="true" ondragstart="cardDragStart(event,'BTA-0042')" id="card-BTA-0042">
+            <div class="card-top">
+              <span class="card-id">BTA-0042</span>
+              <span class="card-type" title="Suggestion">💡</span>
+            </div>
+            <div class="card-title">Show skill difficulty on hover</div>
+            <div class="card-pills">
+              <span class="priority-chip p2">P2</span>
+              <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+              <span class="week-badge">Wk 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESOLVED -->
+      <div class="kanban-col col-resolved" id="col-resolved" ondragover="colDragOver(event)" ondrop="colDrop(event,'resolved')">
+        <div class="kanban-col-header">
+          <span class="kanban-col-title">Resolved</span>
+          <span class="kanban-col-count" id="cnt-resolved">3</span>
+        </div>
+        <div class="kanban-cards">
+          <button class="resolved-toggle" onclick="toggleResolved()">
+            <span id="resolved-toggle-text">3 resolved</span>
+            <span id="resolved-arrow">▾</span>
+          </button>
+          <div class="resolved-hidden" id="resolved-cards">
+            <div class="issue-card" style="opacity:.65;" id="card-BTA-0038">
+              <div class="card-top">
+                <span class="card-id">BTA-0038</span>
+                <span class="card-type">🐛</span>
+              </div>
+              <div class="card-title">Session timer resets on tab switch</div>
+              <div class="card-pills">
+                <span class="priority-chip p1">P1</span>
+                <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+                <span class="week-badge">Wk 1</span>
+              </div>
+            </div>
+            <div class="issue-card" style="opacity:.65;" id="card-BTA-0039">
+              <div class="card-top">
+                <span class="card-id">BTA-0039</span>
+                <span class="card-type">💡</span>
+              </div>
+              <div class="card-title">Allow custom class nickname</div>
+              <div class="card-pills">
+                <span class="priority-chip p3">P3</span>
+                <span class="cohort-pill cohort-teacher">Teacher Pilot</span>
+                <span class="week-badge">Wk 1</span>
+              </div>
+            </div>
+            <div class="issue-card" style="opacity:.65;" id="card-BTA-0040">
+              <div class="card-top">
+                <span class="card-id">BTA-0040</span>
+                <span class="card-type">👁️</span>
+              </div>
+              <div class="card-title">Loading state on skill map is slow on older iPads</div>
+              <div class="card-pills">
+                <span class="priority-chip p2">P2</span>
+                <span class="cohort-pill cohort-family-a">Family Cohort A</span>
+                <span class="week-badge">Wk 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================= TAB 2: ISSUE LIST ============================= -->
+  <div id="tab-list" class="tab-panel">
+
+    <div class="list-header">
+      <div>
+        <div class="kanban-title" style="margin-bottom:2px;">Issue List</div>
+        <div class="kanban-meta">Full table view with filters · Beta Period Only</div>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <span class="stat-total">49 total</span>
+      <span style="color:var(--border2,rgba(255,255,255,.12))">·</span>
+      <span class="stat-item">🐛 12 bugs</span>
+      <span class="stat-item">💡 18 suggestions</span>
+      <span class="stat-item">⭐ 8 ratings</span>
+      <span class="stat-item">👁️ 11 observations</span>
+      <span style="margin-left:auto;"><span class="stat-urgent">⚠ 6 unresolved P0/P1</span></span>
+    </div>
+
+    <div class="filter-bar">
+      <span class="filter-label">Filter:</span>
+      <div class="filter-group">
+        <label class="filter-label" for="f-type">Type</label>
+        <select id="f-type" class="filter-select" onchange="filterTable()">
+          <option value="">All</option>
+          <option value="Bug">Bug</option>
+          <option value="Suggestion">Suggestion</option>
+          <option value="Rating">Rating</option>
+          <option value="Observation">Observation</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="f-priority">Priority</label>
+        <select id="f-priority" class="filter-select" onchange="filterTable()">
+          <option value="">All</option>
+          <option value="P0">P0</option>
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="f-status">Status</label>
+        <select id="f-status" class="filter-select" onchange="filterTable()">
+          <option value="">All</option>
+          <option value="New">New</option>
+          <option value="Triaged">Triaged</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="f-cohort">Cohort</label>
+        <select id="f-cohort" class="filter-select" onchange="filterTable()">
+          <option value="">All</option>
+          <option value="Teacher Pilot">Teacher Pilot</option>
+          <option value="Family A">Family A</option>
+          <option value="Family B">Family B</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="f-week">Week</label>
+        <select id="f-week" class="filter-select" onchange="filterTable()">
+          <option value="">All</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+      <button class="action-btn" onclick="clearFilters()" style="margin-left:auto;font-size:12px;padding:5px 12px;">Clear</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="issues-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)" class="sorted-asc">ID</th>
+            <th onclick="sortTable(1)">Type</th>
+            <th onclick="sortTable(2)">Summary</th>
+            <th onclick="sortTable(3)">Priority</th>
+            <th onclick="sortTable(4)">Status</th>
+            <th onclick="sortTable(5)">Cohort</th>
+            <th onclick="sortTable(6)">Week</th>
+            <th onclick="sortTable(7)">Tester</th>
+            <th onclick="sortTable(8)">Screen</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="issues-tbody">
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 3: ISSUE DETAIL ============================= -->
+  <div id="tab-detail" class="tab-panel">
+    <div class="detail-layout">
+
+      <!-- Left: Issue detail -->
+      <div class="detail-card">
+        <div class="detail-card-header">
+          <div class="detail-ref-row">
+            <span class="detail-ref">BTA-0041</span>
+            <span class="card-type" style="font-size:18px;" title="Bug">🐛</span>
+            <span class="priority-chip p1">P1</span>
+            <span class="status-badge status-inprogress">In Progress</span>
+          </div>
+        </div>
+        <div class="detail-card-body">
+          <div class="detail-title">Intervention flag too sensitive — false positives</div>
+
+          <div class="detail-meta-grid">
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Submitted</div>
+              <div class="detail-meta-value">March 18, 2026</div>
+            </div>
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Week</div>
+              <div class="detail-meta-value">Week 2</div>
+            </div>
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Tester</div>
+              <div class="detail-meta-value">Maple Ridge Elementary</div>
+            </div>
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Cohort</div>
+              <div class="detail-meta-value"><span class="cohort-pill cohort-teacher">Teacher Pilot</span></div>
+            </div>
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Screen Context</div>
+              <div class="detail-meta-value">Students / Student Detail</div>
+            </div>
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Persona</div>
+              <div class="detail-meta-value">Teacher</div>
+            </div>
+          </div>
+
+          <div class="detail-body-text">
+            "I'm getting flagged interventions for students who are just taking their time. 3 students were auto-flagged yesterday but all were progressing fine when I checked manually."
+          </div>
+
+          <div class="screenshot-placeholder">
+            <div class="ss-icon">🖼</div>
+            <div style="margin-bottom:8px;">Screenshot attached</div>
+            <a href="#">View full size ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Triage sidebar -->
+      <div class="detail-card">
+        <div class="detail-card-header">
+          <div style="font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px;">Triage &amp; Resolution</div>
+        </div>
+        <div class="detail-card-body">
+
+          <div class="triage-field">
+            <label class="triage-label" for="t-priority">Priority</label>
+            <select id="t-priority" class="triage-select">
+              <option>P0 — Critical</option>
+              <option selected>P1 — High</option>
+              <option>P2 — Medium</option>
+              <option>P3 — Low</option>
+            </select>
+          </div>
+
+          <div class="triage-field">
+            <label class="triage-label" for="t-status">Status</label>
+            <select id="t-status" class="triage-select">
+              <option>New</option>
+              <option>Triaged</option>
+              <option selected>In Progress</option>
+              <option>Resolved</option>
+              <option>Won't Fix</option>
+              <option>Deferred</option>
+            </select>
+          </div>
+
+          <div class="triage-field">
+            <label class="triage-label" for="t-assigned">Assigned To</label>
+            <input id="t-assigned" class="triage-input" type="text" value="Dev — Adaptive Engine">
+          </div>
+
+          <div class="triage-field">
+            <label class="triage-label" for="t-estimate">Resolution Estimate</label>
+            <select id="t-estimate" class="triage-select">
+              <option>Week 3</option>
+              <option selected>Week 4</option>
+              <option>Week 5</option>
+              <option>v2.7 (Deferred)</option>
+            </select>
+          </div>
+
+          <div class="triage-field">
+            <label class="triage-label" for="t-notes">Internal Notes</label>
+            <textarea id="t-notes" class="triage-textarea">Need to adjust sensitivity threshold. Currently flags at 3 consecutive incorrect. Consider 5 + time factor.</textarea>
+          </div>
+
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:10px;">Activity Log</div>
+          <div class="activity-log">
+            <div class="activity-entry">
+              <div class="activity-dot dot-created"></div>
+              <div class="activity-text">Issue created · submitted by Maple Ridge Elementary</div>
+              <div class="activity-time">Mar 18</div>
+            </div>
+            <div class="activity-entry">
+              <div class="activity-dot dot-triaged"></div>
+              <div class="activity-text">Triaged · priority set to P1 · assigned to Dev — Adaptive Engine</div>
+              <div class="activity-time">Mar 19</div>
+            </div>
+            <div class="activity-entry">
+              <div class="activity-dot dot-note"></div>
+              <div class="activity-text">Internal note added · threshold investigation in progress</div>
+              <div class="activity-time">Mar 20</div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn btn-resolve" onclick="alert('Marked as Resolved — tester will be notified.')">✓ Mark Resolved</button>
+            <button class="btn btn-defer" onclick="alert('Deferred to v2.7')">⏭ Defer to v2.7</button>
+            <button class="btn btn-wontfix" onclick="alert('Marked as Won\'t Fix')">✕ Won't Fix</button>
+            <button class="btn btn-reassign" onclick="alert('Reassign dialog would open')">↻ Reassign</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================= TAB 4: SPEC ============================= -->
+  <div id="tab-spec" class="tab-panel">
+
+    <div class="spec-section">
+      <div class="spec-section-title">Database Schema</div>
+      <div class="spec-code"><span class="kw">CREATE TABLE</span> <span class="ty">beta_issues</span> (
+  id            <span class="ty">UUID</span> <span class="kw">PRIMARY KEY</span>,
+  ref_id        <span class="ty">TEXT</span> <span class="kw">UNIQUE</span>,              <span class="cm">-- BTA-NNNN</span>
+  feedback_id   <span class="ty">UUID</span> <span class="kw">REFERENCES</span> feedback(id),
+  type          <span class="ty">ENUM</span>(<span class="st">'bug'</span>,<span class="st">'suggestion'</span>,<span class="st">'rating'</span>,<span class="st">'observation'</span>),
+  priority      <span class="ty">ENUM</span>(<span class="st">'p0'</span>,<span class="st">'p1'</span>,<span class="st">'p2'</span>,<span class="st">'p3'</span>) <span class="kw">nullable</span>,
+  status        <span class="ty">ENUM</span>(<span class="st">'new'</span>,<span class="st">'triaged'</span>,<span class="st">'in_progress'</span>,<span class="st">'resolved'</span>,<span class="st">'wont_fix'</span>,<span class="st">'deferred'</span>),
+  summary       <span class="ty">TEXT</span>,
+  tester_label  <span class="ty">TEXT</span>,              <span class="cm">-- "Maple Ridge Elementary" or "Family Cohort B" (NOT personal name)</span>
+  cohort_type   <span class="ty">TEXT</span>,
+  beta_week     <span class="ty">INT</span>,
+  screen_context <span class="ty">TEXT</span>,
+  assigned_team <span class="ty">TEXT</span> <span class="kw">nullable</span>,
+  resolution_note <span class="ty">TEXT</span> <span class="kw">nullable</span>,
+  resolved_at   <span class="ty">TIMESTAMPTZ</span> <span class="kw">nullable</span>,
+  created_at    <span class="ty">TIMESTAMPTZ</span> <span class="kw">DEFAULT</span> <span class="ty">NOW</span>()
+);
+
+<span class="kw">CREATE TABLE</span> <span class="ty">beta_issue_notes</span> (
+  id         <span class="ty">UUID</span>,
+  issue_id   <span class="ty">UUID</span>,
+  author_id  <span class="ty">UUID</span>,
+  body       <span class="ty">TEXT</span>,
+  created_at <span class="ty">TIMESTAMPTZ</span>
+);</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-section-title">Privacy Rule</div>
+      <div class="spec-privacy-box">
+        <strong>tester_label</strong> stores school name or cohort label — <strong>NEVER</strong> an individual teacher or parent name unless the user explicitly opted in (<code>opt_in_public_attribution = true</code> in their beta settings). This field is the only tester-identifying data surfaced in this sheet.
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-section-title">Status Transition Flow</div>
+      <div class="status-flow">
+        <div class="flow-step new-step">New</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step triaged-step">Triaged<br><span style="font-size:10px;font-weight:400;color:var(--muted);">after priority set</span></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step inprog-step">In Progress<br><span style="font-size:10px;font-weight:400;color:var(--muted);">after assigned</span></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-branch">
+          <div class="flow-step resolved-step">Resolved<br><span style="font-size:10px;font-weight:400;color:var(--muted);">resolved_at set; tester notified</span></div>
+          <div class="flow-step wontfix-step">Won't Fix</div>
+          <div class="flow-step deferred-step">Deferred<br><span style="font-size:10px;font-weight:400;color:var(--muted);">target version attached</span></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:13px;color:var(--muted);">When <span style="color:var(--accent)">Resolved</span>: <code>resolved_at</code> is set, the linked <code>feedback</code> item's status is updated, and a notification is sent to the tester. When <span style="color:#a78bfa">Deferred</span>: target version (e.g. <code>v2.7</code>) is attached to the record.</div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-section-title">Board Columns</div>
+      <div class="table-wrap">
+        <table class="spec-columns-table">
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Description</th>
+              <th>Default Sort</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Issue ID</td><td>BTA-NNNN sequential ref, auto-generated</td><td>Descending (newest first)</td></tr>
+            <tr><td>Type</td><td>bug / suggestion / rating / observation — icon display</td><td>—</td></tr>
+            <tr><td>Tester</td><td>School name or cohort label (privacy rule applies)</td><td>—</td></tr>
+            <tr><td>Cohort</td><td>Teacher Pilot / Family Cohort A / Family Cohort B</td><td>—</td></tr>
+            <tr><td>Week</td><td>Beta week number (1–N)</td><td>—</td></tr>
+            <tr><td>Priority</td><td>P0–P3, nullable (set during triage)</td><td>P0 first</td></tr>
+            <tr><td>Status</td><td>new / triaged / in_progress / resolved / wont_fix / deferred</td><td>—</td></tr>
+            <tr><td>Screen</td><td>Screen or route context where issue was observed</td><td>—</td></tr>
+            <tr><td>Summary</td><td>Short title text from original feedback</td><td>—</td></tr>
+            <tr><td>Actions</td><td>View / Triage / Resolve / Reassign quick actions</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="spec-section">
+      <div class="spec-section-title">Distinction from Production Feedback Queue</div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;color:var(--muted);line-height:1.7;">
+        This sheet covers <strong style="color:var(--text)">beta period issues only</strong>. The main owner feedback queue (<code>owner-feedback-workbench</code>) covers production feedback. Beta issues are tracked here from first submission through resolution and may be closed out at beta end or escalated to production tracking. Beta issues reference a <code>feedback_id</code> FK to the originating feedback record but are managed separately with beta-specific fields (cohort, beta_week, tester_label).
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ===========================
+// TAB SWITCHING
+// ===========================
+function showTab(t) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ===========================
+// RESOLVED TOGGLE (KANBAN)
+// ===========================
+function toggleResolved() {
+  const cards = document.getElementById('resolved-cards');
+  const arrow = document.getElementById('resolved-arrow');
+  const text = document.getElementById('resolved-toggle-text');
+  const open = cards.classList.toggle('expanded');
+  arrow.textContent = open ? '▴' : '▾';
+  text.textContent = open ? '3 resolved (hide)' : '3 resolved';
+}
+
+// ===========================
+// DRAG AND DROP (KANBAN)
+// ===========================
+let dragId = null;
+
+function cardDragStart(e, id) {
+  dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function colDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function colDrop(e, colKey) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+
+  const colMap = { new: 'cards-new', triaged: 'cards-triaged', inprogress: 'cards-inprogress', resolved: 'cards-inprogress' };
+  // Find source col
+  let srcCol = null;
+  ['new','triaged','inprogress'].forEach(k => {
+    if (document.getElementById('cards-' + k).contains(document.getElementById('card-' + dragId))) srcCol = k;
+  });
+
+  const destId = colKey === 'resolved' ? null : 'cards-' + colKey;
+  const card = document.getElementById('card-' + dragId);
+  if (!card) return;
+
+  if (colKey === 'resolved') {
+    const resolvedContainer = document.getElementById('resolved-cards');
+    card.style.opacity = '0.65';
+    resolvedContainer.appendChild(card);
+    if (!resolvedContainer.classList.contains('expanded')) resolvedContainer.classList.add('expanded');
+  } else {
+    const dest = document.getElementById(destId);
+    dest.appendChild(card);
+    card.style.opacity = '1';
+  }
+
+  updateCounts();
+  dragId = null;
+}
+
+document.querySelectorAll('.kanban-col').forEach(col => {
+  col.addEventListener('dragleave', e => {
+    if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+  });
+});
+
+function updateCounts() {
+  ['new','triaged','inprogress'].forEach(k => {
+    const cnt = document.getElementById('cards-' + k).children.length;
+    document.getElementById('cnt-' + k).textContent = cnt;
+  });
+  const rCnt = document.getElementById('resolved-cards').children.length;
+  document.getElementById('cnt-resolved').textContent = rCnt;
+}
+
+// ===========================
+// ISSUE LIST TABLE DATA
+// ===========================
+const ISSUES = [
+  { id:'BTA-0049', type:'Observation', emoji:'👁️', summary:'Children struggled with the fractions wording', priority:'—', status:'New', cohort:'Teacher Pilot', week:'3', tester:'Maple Ridge Elem.', screen:'Play / Fractions' },
+  { id:'BTA-0048', type:'Suggestion',  emoji:'💡', summary:'Add a parent view for daily summary emails',      priority:'—', status:'New', cohort:'Family B',      week:'3', tester:'Family Cohort B', screen:'Parent / Home' },
+  { id:'BTA-0047', type:'Bug',         emoji:'🐛', summary:'Audio delay on P0 questions',                    priority:'P1', status:'New', cohort:'Teacher Pilot', week:'3', tester:'Cedar Valley Elem.', screen:'Play / Session' },
+  { id:'BTA-0046', type:'Rating',      emoji:'⭐', summary:'Parent progress screen: 3/5 stars',              priority:'—', status:'Triaged', cohort:'Family A',   week:'2', tester:'Family Cohort A', screen:'Parent / Progress' },
+  { id:'BTA-0045', type:'Suggestion',  emoji:'💡', summary:'Add undo button to review queue',                priority:'P3', status:'Triaged', cohort:'Teacher Pilot', week:'2', tester:'Maple Ridge Elem.', screen:'Teacher / Review' },
+  { id:'BTA-0044', type:'Bug',         emoji:'🐛', summary:'Student list sorts incorrectly',                 priority:'P2', status:'Triaged', cohort:'Teacher Pilot', week:'2', tester:'Birchwood Academy', screen:'Teacher / Class List' },
+  { id:'BTA-0042', type:'Suggestion',  emoji:'💡', summary:'Show skill difficulty on hover',                 priority:'P2', status:'In Progress', cohort:'Teacher Pilot', week:'1', tester:'Maple Ridge Elem.', screen:'Teacher / Skill Map' },
+  { id:'BTA-0041', type:'Bug',         emoji:'🐛', summary:'Intervention flag too sensitive — false positives', priority:'P1', status:'In Progress', cohort:'Teacher Pilot', week:'2', tester:'Maple Ridge Elem.', screen:'Students / Detail' },
+];
+
+const STATUS_CLASS = {
+  'New': 'status-new',
+  'Triaged': 'status-triaged',
+  'In Progress': 'status-inprogress',
+  'Resolved': 'status-resolved',
+  "Won't Fix": 'status-wontfix',
+  'Deferred': 'status-deferred',
+};
+const PRIORITY_CLASS = { P0:'p0', P1:'p1', P2:'p2', P3:'p3' };
+
+let sortCol = 0, sortDir = 1;
+
+function renderTable(data) {
+  const tbody = document.getElementById('issues-tbody');
+  tbody.innerHTML = '';
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    const pClass = PRIORITY_CLASS[row.priority] ? `priority-chip ${PRIORITY_CLASS[row.priority]}` : '';
+    const pHtml = pClass ? `<span class="${pClass}">${row.priority}</span>` : `<span style="color:var(--muted);font-size:12px;">—</span>`;
+    const sClass = STATUS_CLASS[row.status] || 'status-new';
+    tr.innerHTML = `
+      <td class="td-id">${row.id}</td>
+      <td><span title="${row.type}">${row.emoji} ${row.type}</span></td>
+      <td class="td-summary"><span title="${row.summary}">${row.summary}</span></td>
+      <td>${pHtml}</td>
+      <td><span class="status-badge ${sClass}">${row.status}</span></td>
+      <td><span class="cohort-pill ${row.cohort === 'Teacher Pilot' ? 'cohort-teacher' : row.cohort === 'Family A' ? 'cohort-family-a' : 'cohort-family-b'}">${row.cohort}</span></td>
+      <td style="color:var(--muted)">Wk ${row.week}</td>
+      <td style="color:var(--muted);font-size:12px;">${row.tester}</td>
+      <td class="td-screen">${row.screen}</td>
+      <td>
+        <div class="action-icons">
+          <button class="action-btn" title="View" onclick="showTab('detail')">👁</button>
+          <button class="action-btn" title="Triage" onclick="alert('Triage: ${row.id}')">✏</button>
+          <button class="action-btn" title="Resolve" onclick="alert('Resolve: ${row.id}')">✅</button>
+          <button class="action-btn" title="Reassign" onclick="alert('Reassign: ${row.id}')">🔀</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterTable() {
+  const type = document.getElementById('f-type').value;
+  const priority = document.getElementById('f-priority').value;
+  const status = document.getElementById('f-status').value;
+  const cohort = document.getElementById('f-cohort').value;
+  const week = document.getElementById('f-week').value;
+
+  let data = ISSUES.filter(r => {
+    if (type && r.type !== type) return false;
+    if (priority && r.priority !== priority) return false;
+    if (status && r.status !== status) return false;
+    if (cohort && !r.cohort.includes(cohort.replace('Family A','Family A').replace('Family B','Family B'))) return false;
+    if (week && r.week !== week) return false;
+    return true;
+  });
+
+  applySortAndRender(data);
+}
+
+function clearFilters() {
+  ['f-type','f-priority','f-status','f-cohort','f-week'].forEach(id => document.getElementById(id).value = '');
+  renderTable(ISSUES);
+}
+
+function sortTable(col) {
+  const ths = document.querySelectorAll('#issues-table thead th');
+  ths.forEach((th, i) => th.classList.remove('sorted-asc', 'sorted-desc'));
+
+  if (sortCol === col) {
+    sortDir *= -1;
+  } else {
+    sortCol = col;
+    sortDir = 1;
+  }
+  ths[col].classList.add(sortDir === 1 ? 'sorted-asc' : 'sorted-desc');
+  filterTable();
+}
+
+function applySortAndRender(data) {
+  const keys = ['id','type','summary','priority','status','cohort','week','tester','screen'];
+  const key = keys[sortCol] || 'id';
+  const sorted = [...data].sort((a, b) => {
+    const av = String(a[key] || ''), bv = String(b[key] || '');
+    return av.localeCompare(bv) * sortDir;
+  });
+  renderTable(sorted);
+}
+
+// Initial render
+renderTable(ISSUES);
+</script>
+</body>
+</html>

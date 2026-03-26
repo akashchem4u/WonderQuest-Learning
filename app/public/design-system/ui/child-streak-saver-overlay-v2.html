@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Child Streak Saver Overlay — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; font-weight: 900; background: #100b2e; color: #e8e0ff; min-height: 100vh; width: 375px; margin: 0 auto; }
+.hint-box { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin: 12px; font-size: 11px; color: #ffd166; line-height: 1.6; }
+.hint-box strong { font-size: 12px; }
+.tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 2px solid #2a1f6e; background: #100b2e; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; padding: 10px 14px; font-size: 12px; color: #7a60c0; cursor: pointer; background: #1a1245; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; white-space: nowrap; }
+.tab.active { background: #58e8c1; color: #100b2e; }
+.tab:hover:not(.active) { background: #221852; }
+.panel { display: none; min-height: calc(100vh - 80px); }
+.panel.active { display: block; }
+
+/* Dim overlay base */
+.dim { background: rgba(8,5,26,.92); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.sheet { background: #1a1245; border-radius: 24px 24px 0 0; padding: 28px 20px 40px; width: 100%; text-align: center; }
+.drag-handle { width: 40px; height: 4px; background: #3a2a7e; border-radius: 20px; margin: 0 auto 20px; }
+
+/* Streak flame */
+.flame-big { font-size: 72px; display: block; margin-bottom: 8px; animation: flamePulse 1.5s ease-in-out infinite; }
+@keyframes flamePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.streak-num { font-size: 52px; color: #58e8c1; margin-bottom: 6px; line-height: 1; }
+.streak-label { font-size: 14px; color: #7a60c0; margin-bottom: 16px; }
+
+/* At risk state */
+.urgent-banner { background: linear-gradient(135deg, #1a2a20, #0d2018); border: 2px solid #58e8c1; border-radius: 16px; padding: 16px; margin-bottom: 18px; }
+.urgent-title { font-size: 20px; color: #58e8c1; margin-bottom: 8px; }
+.urgent-sub { font-size: 14px; color: #9b80d0; line-height: 1.5; }
+
+/* Streak bar */
+.streak-bar-wrap { margin: 14px 0; }
+.streak-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: #7a60c0; margin-bottom: 6px; }
+.streak-bar-outer { background: #2a1f6e; border-radius: 20px; height: 14px; overflow: hidden; }
+.streak-bar-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #58e8c1, #20c090); }
+
+.cta-btn { display: block; width: 100%; padding: 16px; border-radius: 14px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; cursor: pointer; margin-bottom: 10px; text-align: center; }
+.btn-mint { background: #58e8c1; color: #100b2e; }
+.btn-mint:active { background: #40d0a8; }
+.btn-ghost { background: transparent; border: 2px solid #3a2a7e; color: #9b72ff; font-size: 14px; padding: 12px; }
+.btn-violet { background: #9b72ff; color: #fff; }
+
+/* Saved celebration */
+.saved-bg { background: linear-gradient(180deg, #0a2a20, #100b2e); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; text-align: center; }
+.saved-title { font-size: 28px; color: #58e8c1; margin-bottom: 10px; }
+.saved-sub { font-size: 15px; color: #9b80d0; margin-bottom: 20px; line-height: 1.6; }
+.confetti { font-size: 28px; letter-spacing: 4px; margin-bottom: 14px; animation: pop .5s ease; }
+@keyframes pop { from { transform: scale(.5) rotate(-10deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+.xp-chip { display: inline-block; background: #0d2018; border: 2px solid #58e8c1; color: #58e8c1; font-size: 20px; padding: 8px 24px; border-radius: 30px; margin-bottom: 24px; }
+
+/* Broken — recovery */
+.broken-bg { background: #100b2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; text-align: center; }
+.broken-emoji { font-size: 64px; margin-bottom: 14px; display: block; }
+.broken-title { font-size: 22px; color: #e8e0ff; margin-bottom: 10px; }
+.broken-sub { font-size: 14px; color: #9b80d0; margin-bottom: 24px; line-height: 1.7; }
+.new-streak-box { background: #1a1245; border-radius: 14px; padding: 16px; border: 2px solid #9b72ff30; margin-bottom: 20px; }
+.new-streak-num { font-size: 42px; color: #58e8c1; }
+.new-streak-lbl { font-size: 13px; color: #7a60c0; }
+
+/* New streak started */
+.new-start-bg { background: linear-gradient(180deg, #1a0a40, #100b2e); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; text-align: center; }
+.spark-row { font-size: 30px; letter-spacing: 2px; margin-bottom: 14px; }
+.new-title { font-size: 24px; color: #ffd166; margin-bottom: 10px; }
+.new-sub { font-size: 14px; color: #9b80d0; margin-bottom: 24px; line-height: 1.6; }
+.day-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; }
+.day-dot { width: 36px; height: 36px; border-radius: 50%; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.day-dot.filled { background: #58e8c1; color: #100b2e; }
+.day-dot.empty { background: #2a1f6e; color: #5a5080; }
+
+.spec-block { background: #1a1245; border-radius: 12px; padding: 18px; border: 1px solid #2a1f6e; line-height: 1.7; margin: 12px; }
+.spec-block h3 { color: #58e8c1; margin-bottom: 8px; font-size: 14px; }
+.spec-block p { font-size: 12px; color: #7a60c0; margin-bottom: 8px; }
+.spec-block ul { margin-left: 16px; font-size: 12px; color: #7a60c0; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>Engineering Routes — child-streak-saver-overlay-v2</strong><br>
+  GET /child/streak returns { current, last_played_at, at_risk: bool, broken: bool }<br>
+  POST /child/streak/remind-later · POST /child/streak/start-session · All states: no shame language.<br>
+  Streak broken = neutral framing only. "Rests" not "lost." Recovery = new streak celebration.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('atrisk',this)">Streak At Risk</button>
+  <button class="tab" onclick="show('saved',this)">Streak Saved!</button>
+  <button class="tab" onclick="show('broken',this)">Streak Rests</button>
+  <button class="tab" onclick="show('newstreak',this)">New Streak!</button>
+  <button class="tab" onclick="show('spec',this)">Spec</button>
+</div>
+
+<div id="atrisk" class="panel active">
+  <div class="dim">
+    <div class="sheet">
+      <div class="drag-handle"></div>
+      <span class="flame-big">🔥</span>
+      <div class="streak-num">14</div>
+      <div class="streak-label">day streak</div>
+
+      <div class="urgent-banner">
+        <div class="urgent-title">Play today to save your streak!</div>
+        <div class="urgent-sub">You have been on a 14-day adventure — do not let it slip away! Just one quick play today keeps it going.</div>
+      </div>
+
+      <div class="streak-bar-wrap">
+        <div class="streak-bar-label">
+          <span>Today's play</span>
+          <span style="color:#58e8c1">Not done yet</span>
+        </div>
+        <div class="streak-bar-outer"><div class="streak-bar-fill" style="width:0%"></div></div>
+      </div>
+
+      <button class="cta-btn btn-mint">Play Now — Save My Streak!</button>
+      <button class="cta-btn btn-ghost" onclick="alert('Reminder set! We will nudge you before midnight.')">Remind Me Later</button>
+    </div>
+  </div>
+</div>
+
+<div id="saved" class="panel">
+  <div class="saved-bg">
+    <div class="confetti">✨ 🔥 ✨ 🔥 ✨</div>
+    <span style="font-size:72px;display:block;margin-bottom:10px">🔥</span>
+    <div class="streak-num" style="font-size:52px;color:#58e8c1;text-align:center">15</div>
+    <div style="font-size:14px;color:#7a60c0;margin-bottom:14px;text-align:center">day streak</div>
+    <div class="saved-title">You saved it!</div>
+    <div class="saved-sub">Your streak is safe — 15 days and counting! That is incredible. You showed up today and it counts!</div>
+    <div class="xp-chip">+25 XP</div>
+    <button class="cta-btn btn-mint" style="max-width:300px">Keep Playing!</button>
+    <button class="cta-btn btn-ghost" style="max-width:300px">Back to Home</button>
+  </div>
+</div>
+
+<div id="broken" class="panel">
+  <div class="broken-bg">
+    <span class="broken-emoji">🌙</span>
+    <div class="broken-title">Your streak rests for now</div>
+    <div class="broken-sub">That is totally okay — everyone takes breaks sometimes! Your adventures are still here waiting for you, and you can build a brand new streak starting right now.</div>
+    <div class="new-streak-box">
+      <div style="font-size:13px;color:#7a60c0;margin-bottom:6px">You had built up</div>
+      <div class="new-streak-num">14 days</div>
+      <div class="new-streak-lbl">of amazing adventures — that will always count!</div>
+    </div>
+    <button class="cta-btn btn-violet" style="max-width:300px">Start a New Streak — Let's Go!</button>
+    <button class="cta-btn btn-ghost" style="max-width:300px">Just Browse My Worlds</button>
+  </div>
+</div>
+
+<div id="newstreak" class="panel">
+  <div class="new-start-bg">
+    <div class="spark-row">✨ ✨ ✨</div>
+    <span style="font-size:64px;display:block;margin-bottom:12px">🔥</span>
+    <div class="new-title">Day 1 — New Streak Started!</div>
+    <div class="new-sub">Every great streak starts with one play. You already did it — your new streak is alive and growing!</div>
+    <div class="day-dots">
+      <div class="day-dot filled">1</div>
+      <div class="day-dot empty">2</div>
+      <div class="day-dot empty">3</div>
+      <div class="day-dot empty">4</div>
+      <div class="day-dot empty">5</div>
+      <div class="day-dot empty">6</div>
+      <div class="day-dot empty">7</div>
+    </div>
+    <div style="font-size:13px;color:#7a60c0;margin-bottom:20px">Play 7 days in a row for your first streak trophy!</div>
+    <button class="cta-btn btn-mint" style="max-width:300px">Keep the Streak Going!</button>
+    <button class="cta-btn btn-ghost" style="max-width:300px">See My Worlds</button>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <div class="spec-block">
+    <h3>child-streak-saver-overlay-v2 — Specification</h3>
+    <p><strong>Persona:</strong> Child · Mobile 375px · Nunito 900 · Overlay · #100b2e bg · #58e8c1 mint for streak</p>
+    <p><strong>API:</strong> GET /child/streak → { current, last_played_at, at_risk, broken } · POST /child/streak/remind-later</p>
+    <ul>
+      <li>Streak at risk: urgent but gentle — "Play today to save your streak!" with play CTA + "remind me later"</li>
+      <li>Streak saved: flame animation + "You saved it!" message + XP chip</li>
+      <li>Streak broken: ZERO shame — "Your streak rests" not "You lost your streak". Encourage new streak.</li>
+      <li>New streak started: day-dot row showing 7-day goal, celebration of day 1</li>
+      <li>Replay can never lose stars — streak overlay never mentions star loss</li>
+      <li>No timers, no grade labels, no accuracy %, no punishment framing anywhere</li>
+      <li>Overlay bottom-sheet style with dim background and drag handle</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Link Child Flow v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent flow to link (add) a child to their account.       │
+  │  Shown after new parent creates account, or when parent    │
+  │  clicks "Add a child" from family dashboard.               │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Child Details Step                                   │
+  │    2. Grade / Age Step                                     │
+  │    3. Goal Setting Step                                     │
+  │    4. Confirmation                                         │
+  │    5. Spec                                                  │
+  │                                                            │
+  │  Key rules:                                                │
+  │  - Parent bg #f5f0e8 — NOT child dark theme                │
+  │  - 3-step progress bar (not numbered circles)              │
+  │  - No personally identifying info from child (first       │
+  │    name only — no last name, no DOB, no photo required)    │
+  │  - Grade band auto-selects when age entered                │
+  │  - Goal setting: daily session limit + focus areas (opt)  │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #ece8e0;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+/* ─── Tab Bar ─── */
+.tab-bar {
+  display: flex; gap: 4px;
+  padding: 16px 24px 0;
+  border-bottom: 1px solid #d8d0c0;
+  overflow-x: auto; scrollbar-width: none;
+  background: #f5f0e8;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 9px 18px; border: none; background: transparent;
+  color: #8a7a6a; font: 600 0.82rem system-ui; cursor: pointer;
+  border-radius: 8px 8px 0 0; white-space: nowrap; transition: all 0.18s;
+}
+.tab-btn.active { color: #3d2a8a; background: #ece8e0; border-bottom: 2px solid #9b72ff; }
+.screen { display: none; min-height: 90vh; background: #f5f0e8; }
+.screen.active { display: flex; flex-direction: column; align-items: center; padding: 48px 24px 80px; }
+
+/* ─── Card Shell ─── */
+.flow-card {
+  width: 100%; max-width: 520px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 40px rgba(100,60,200,0.1);
+  border: 1px solid #e0d8f8;
+}
+
+/* ─── Step Bar ─── */
+.step-bar {
+  display: flex; gap: 6px; align-items: center; margin-bottom: 32px;
+}
+.step-seg {
+  flex: 1; height: 5px; border-radius: 3px;
+  background: #e0d8f0; transition: background 0.3s;
+}
+.step-seg.done { background: #50e890; }
+.step-seg.active { background: #9b72ff; }
+.step-label { font: 600 0.7rem system-ui; color: #9080b0; width: 50px; text-align: right; flex-shrink: 0; }
+
+/* ─── Common Form ─── */
+.step-eyebrow { font: 600 0.72rem system-ui; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.step-title { font: 700 1.5rem system-ui; color: #1a1240; margin-bottom: 8px; }
+.step-sub { font: 400 0.85rem/1.5 system-ui; color: #6a5890; margin-bottom: 28px; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font: 600 0.78rem system-ui; color: #4a3880; margin-bottom: 7px; }
+.form-input {
+  width: 100%; padding: 13px 16px;
+  border: 1.5px solid #d8d0f0; border-radius: 10px;
+  font: 400 0.95rem system-ui; color: #1a1240;
+  background: #faf8ff; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus { border-color: #9b72ff; box-shadow: 0 0 0 3px #9b72ff18; }
+.form-input::placeholder { color: #b0a0d0; }
+.opt-label { font: 400 0.72rem system-ui; color: #9080b0; margin-left: 4px; }
+.hint-text { font: 400 0.72rem/1.5 system-ui; color: #9080a0; margin-top: 6px; }
+
+/* ─── Avatar Picker ─── */
+.avatar-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.avatar-opt {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #ede8ff; border: 2.5px solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; cursor: pointer; transition: all 0.15s;
+}
+.avatar-opt.selected { border-color: #9b72ff; box-shadow: 0 0 0 3px #9b72ff22; background: #ede8ff; transform: scale(1.06); }
+.avatar-opt:hover { border-color: #c0b0f0; }
+
+/* ─── Age / Grade ─── */
+.age-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.band-preview {
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  display: flex; align-items: center; gap: 14px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.band-preview.selected { transform: scale(1.01); }
+.band-dot-lg { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+.band-info { flex: 1; }
+.band-name { font: 700 0.88rem system-ui; }
+.band-sub { font: 400 0.72rem system-ui; color: #8070a0; margin-top: 1px; }
+.band-check { font-size: 1rem; }
+
+/* Band selection styles */
+.band-p0 { background: #fffbea; border-color: #ffd166; }
+.band-p0 .band-name { color: #8a6000; }
+.band-p0.selected { background: #fff3c0; }
+.band-p1 { background: #f5f0ff; border-color: #9b72ff; }
+.band-p1 .band-name { color: #4a2090; }
+.band-p1.selected { background: #ede8ff; }
+.band-p2 { background: #f0fdf8; border-color: #58e8c1; }
+.band-p2 .band-name { color: #0a6040; }
+.band-p2.selected { background: #d8faf0; }
+.band-p3 { background: #fff5f0; border-color: #ff7b6b; }
+.band-p3 .band-name { color: #8a2010; }
+.band-p3.selected { background: #ffe8e0; }
+
+/* ─── Session Limit ─── */
+.limit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.limit-chip {
+  padding: 10px 18px;
+  border: 1.5px solid #d0c8e8;
+  border-radius: 20px;
+  font: 600 0.85rem system-ui;
+  color: #4a3880;
+  cursor: pointer;
+  background: #faf8ff;
+  transition: all 0.15s;
+}
+.limit-chip.selected { background: #9b72ff; color: #fff; border-color: #9b72ff; }
+
+/* ─── Focus Areas ─── */
+.focus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.focus-card {
+  padding: 12px 14px;
+  border: 1.5px solid #d0c8e8;
+  border-radius: 12px;
+  background: #faf8ff;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 10px;
+}
+.focus-card:hover { border-color: #b0a0e0; background: #f5f0ff; }
+.focus-card.selected { border-color: #9b72ff; background: #ede8ff; }
+.focus-icon { font-size: 1.2rem; flex-shrink: 0; }
+.focus-label { font: 600 0.8rem system-ui; color: #1a1240; }
+.focus-sub { font: 400 0.68rem system-ui; color: #8070a0; margin-top: 1px; }
+.focus-check { margin-left: auto; color: #9b72ff; font-size: 0.85rem; opacity: 0; }
+.focus-card.selected .focus-check { opacity: 1; }
+
+/* ─── Buttons ─── */
+.btn-row { display: flex; gap: 12px; margin-top: 32px; }
+.btn-primary {
+  flex: 2; padding: 14px; background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  color: #fff; border: none; border-radius: 12px;
+  font: 700 0.95rem system-ui; cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-back {
+  flex: 1; padding: 14px; background: #fff;
+  color: #4a3880; border: 1.5px solid #d8d0f0; border-radius: 12px;
+  font: 600 0.9rem system-ui; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-back:hover { background: #f5f0ff; }
+.skip-link {
+  display: block; text-align: center; margin-top: 12px;
+  font: 500 0.78rem system-ui; color: #9b72ff; text-decoration: none; cursor: pointer;
+}
+
+/* ─── Confirmation Card ─── */
+.confirm-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, #ede8ff, #d8d0ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; margin: 0 auto 20px;
+  box-shadow: 0 4px 20px #9b72ff22;
+}
+.confirm-name { font: 700 1.4rem system-ui; color: #1a1240; text-align: center; margin-bottom: 4px; }
+.confirm-band { text-align: center; margin-bottom: 28px; }
+.band-chip-inline {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 20px;
+  font: 700 0.78rem system-ui;
+}
+.confirm-details { background: #f5f0ff; border-radius: 12px; padding: 16px 18px; margin-bottom: 24px; }
+.confirm-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid #e8e0f8;
+  font: 400 0.82rem system-ui;
+}
+.confirm-row:last-child { border-bottom: none; }
+.confirm-key { color: #8070a0; }
+.confirm-val { color: #1a1240; font-weight: 600; }
+.start-note {
+  text-align: center; padding: 14px 16px;
+  background: #f0fdf8; border-radius: 12px;
+  border: 1px solid #b0f0d0;
+  font: 400 0.82rem/1.5 system-ui; color: #1a5030;
+  margin-bottom: 24px;
+}
+.start-note strong { display: block; font-size: 0.85rem; margin-bottom: 2px; }
+
+/* ─── Spec ─── */
+.spec-shell { max-width: 720px; width: 100%; }
+.spec-title { font: 700 1.2rem system-ui; color: #1a1240; margin-bottom: 20px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 20px; }
+.spec-table th { text-align: left; padding: 9px 12px; background: #ede8ff; color: #4a3880; font: 700 0.7rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table td { padding: 9px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { font-weight: 700; color: #1a1240; }
+.spec-detail { color: #6a5890; font-size: 0.75rem; line-height: 1.5; }
+.spec-section { font: 700 0.9rem system-ui; color: #3d2a8a; margin: 24px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font: 700 0.62rem system-ui; margin-right: 4px; }
+.tag-crit { background: #ffe8e8; color: #c02020; border: 1px solid #f0c0c0; }
+.tag-note { background: #e8ffe8; color: #207020; border: 1px solid #c0e8c0; }
+</style>
+</head>
+<body>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('step1')">👶 Child Details</button>
+  <button class="tab-btn" onclick="showTab('step2')">📚 Grade & Age</button>
+  <button class="tab-btn" onclick="showTab('step3')">🎯 Goals</button>
+  <button class="tab-btn" onclick="showTab('confirm')">✅ Confirm</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- ═════════ STEP 1: CHILD DETAILS ═════════ -->
+<div class="screen active" id="screen-step1">
+  <div class="flow-card">
+    <div class="step-bar">
+      <div class="step-seg active"></div>
+      <div class="step-seg"></div>
+      <div class="step-seg"></div>
+      <span class="step-label">1 of 3</span>
+    </div>
+
+    <div class="step-eyebrow">Add a child</div>
+    <div class="step-title">Tell us about your child</div>
+    <div class="step-sub">We use this to personalise their learning adventure. First name only — we don't need a surname.</div>
+
+    <div class="form-group">
+      <label class="form-label">Child's first name</label>
+      <input class="form-input" type="text" placeholder="e.g. Maya" value="Maya">
+      <div class="hint-text">We'll use this to cheer them on! We never share names externally.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Choose an avatar <span class="opt-label">(optional)</span></label>
+      <div class="avatar-grid">
+        <div class="avatar-opt selected">🦁</div>
+        <div class="avatar-opt">🐼</div>
+        <div class="avatar-opt">🦋</div>
+        <div class="avatar-opt">🐸</div>
+        <div class="avatar-opt">🦊</div>
+        <div class="avatar-opt">🐳</div>
+        <div class="avatar-opt">🦄</div>
+        <div class="avatar-opt">🐢</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Nickname for coach messages <span class="opt-label">(optional)</span></label>
+      <input class="form-input" type="text" placeholder="e.g. Little Lion (leave blank to use first name)">
+      <div class="hint-text">How the in-app coach will address them. Defaults to their first name.</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="showTab('step2')">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ STEP 2: GRADE & AGE ═════════ -->
+<div class="screen" id="screen-step2">
+  <div class="flow-card">
+    <div class="step-bar">
+      <div class="step-seg done"></div>
+      <div class="step-seg active"></div>
+      <div class="step-seg"></div>
+      <span class="step-label">2 of 3</span>
+    </div>
+
+    <div class="step-eyebrow">Grade & Learning Level</div>
+    <div class="step-title">What grade is Maya in?</div>
+    <div class="step-sub">This helps us choose the right questions — not too easy, not too hard. You can always adjust.</div>
+
+    <div class="age-row">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Age</label>
+        <input class="form-input" type="number" min="3" max="12" placeholder="5" value="5">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Grade / Year</label>
+        <select class="form-input" style="cursor:pointer;">
+          <option>Pre-K (Age 4–5)</option>
+          <option selected>Kindergarten</option>
+          <option>Grade 1</option>
+          <option>Grade 2</option>
+          <option>Grade 3</option>
+          <option>Grade 4</option>
+          <option>Grade 5</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="hint-text" style="margin-bottom:20px;">Entering age will auto-select the matching grade. You can override either.</div>
+
+    <!-- Band Selection -->
+    <div class="form-label" style="margin-bottom:10px;">Learning band — auto-selected from grade</div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+      <div class="band-preview band-p0">
+        <div class="band-dot-lg" style="background:#ffd166;"></div>
+        <div class="band-info">
+          <div class="band-name">Pre-K Band</div>
+          <div class="band-sub">Ages 4–5 · Letters, numbers, shapes</div>
+        </div>
+        <span class="band-check"></span>
+      </div>
+      <div class="band-preview band-p1 selected">
+        <div class="band-dot-lg" style="background:#9b72ff;"></div>
+        <div class="band-info">
+          <div class="band-name">K–1 Band</div>
+          <div class="band-sub">Grades K–1 · Phonics, early reading, addition</div>
+        </div>
+        <span class="band-check">✓</span>
+      </div>
+      <div class="band-preview band-p2">
+        <div class="band-dot-lg" style="background:#58e8c1;"></div>
+        <div class="band-info">
+          <div class="band-name">G2–3 Band</div>
+          <div class="band-sub">Grades 2–3 · Reading, multiplication, comprehension</div>
+        </div>
+        <span class="band-check"></span>
+      </div>
+      <div class="band-preview band-p3">
+        <div class="band-dot-lg" style="background:#ff7b6b;"></div>
+        <div class="band-info">
+          <div class="band-name">G4–5 Band</div>
+          <div class="band-sub">Grades 4–5 · Inference, fractions, word problems</div>
+        </div>
+        <span class="band-check"></span>
+      </div>
+    </div>
+
+    <div style="padding:12px 14px; background:#ede8ff; border-radius:10px; font:400 0.75rem/1.5 system-ui; color:#4a3880; margin-top:8px;">
+      💡 Not sure of the right level? Start here — WonderQuest will adapt as Maya plays. You can change this from settings.
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="showTab('step1')">← Back</button>
+      <button class="btn-primary" onclick="showTab('step3')">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ STEP 3: GOALS ═════════ -->
+<div class="screen" id="screen-step3">
+  <div class="flow-card">
+    <div class="step-bar">
+      <div class="step-seg done"></div>
+      <div class="step-seg done"></div>
+      <div class="step-seg active"></div>
+      <span class="step-label">3 of 3</span>
+    </div>
+
+    <div class="step-eyebrow">Learning Goals</div>
+    <div class="step-title">How do you want Maya to learn?</div>
+    <div class="step-sub">Set a healthy daily rhythm. You can change these any time from your dashboard.</div>
+
+    <!-- Daily limit -->
+    <div class="form-group">
+      <label class="form-label">Daily session limit</label>
+      <div class="limit-row">
+        <div class="limit-chip">1 session</div>
+        <div class="limit-chip">2 sessions</div>
+        <div class="limit-chip selected">3 sessions</div>
+        <div class="limit-chip">4 sessions</div>
+        <div class="limit-chip">Unlimited</div>
+      </div>
+      <div class="hint-text">Each session is about 10–15 minutes. 3/day = ~30–45 min total. Recommended for K–1.</div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="form-group">
+      <label class="form-label">Notify me when Maya…</label>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <label style="display:flex; align-items:center; gap:10px; font:400 0.84rem system-ui; color:#3a3060; cursor:pointer; padding:12px 14px; background:#faf8ff; border-radius:10px; border:1.5px solid #e0d8f0;">
+          <input type="checkbox" style="accent-color:#9b72ff; width:16px; height:16px;" checked>
+          Earns a new badge 🏅
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; font:400 0.84rem system-ui; color:#3a3060; cursor:pointer; padding:12px 14px; background:#faf8ff; border-radius:10px; border:1.5px solid #e0d8f0;">
+          <input type="checkbox" style="accent-color:#9b72ff; width:16px; height:16px;" checked>
+          Levels up ⭐
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; font:400 0.84rem system-ui; color:#3a3060; cursor:pointer; padding:12px 14px; background:#faf8ff; border-radius:10px; border:1.5px solid #e0d8f0;">
+          <input type="checkbox" style="accent-color:#9b72ff; width:16px; height:16px;">
+          Completes each session 📊
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; font:400 0.84rem system-ui; color:#3a3060; cursor:pointer; padding:12px 14px; background:#faf8ff; border-radius:10px; border:1.5px solid #e0d8f0;">
+          <input type="checkbox" style="accent-color:#9b72ff; width:16px; height:16px;">
+          Hasn't played for 2+ days 💬
+        </label>
+      </div>
+    </div>
+
+    <!-- Focus areas (optional) -->
+    <div class="form-group">
+      <label class="form-label">Focus areas <span class="opt-label">(optional — we'll balance everything by default)</span></label>
+      <div class="focus-grid">
+        <div class="focus-card selected">
+          <span class="focus-icon">📖</span>
+          <div>
+            <div class="focus-label">Reading</div>
+            <div class="focus-sub">Phonics, comprehension</div>
+          </div>
+          <span class="focus-check">✓</span>
+        </div>
+        <div class="focus-card selected">
+          <span class="focus-icon">➕</span>
+          <div>
+            <div class="focus-label">Math</div>
+            <div class="focus-sub">Numbers, operations</div>
+          </div>
+          <span class="focus-check">✓</span>
+        </div>
+        <div class="focus-card">
+          <span class="focus-icon">🔤</span>
+          <div>
+            <div class="focus-label">Spelling</div>
+            <div class="focus-sub">Word building, patterns</div>
+          </div>
+          <span class="focus-check">✓</span>
+        </div>
+        <div class="focus-card">
+          <span class="focus-icon">🗣️</span>
+          <div>
+            <div class="focus-label">Vocabulary</div>
+            <div class="focus-sub">Word meaning, usage</div>
+          </div>
+          <span class="focus-check">✓</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="showTab('step2')">← Back</button>
+      <button class="btn-primary" onclick="showTab('confirm')">Review &amp; confirm →</button>
+    </div>
+    <a class="skip-link" onclick="showTab('confirm')">Skip for now — use defaults</a>
+  </div>
+</div>
+
+<!-- ═════════ CONFIRMATION ═════════ -->
+<div class="screen" id="screen-confirm">
+  <div class="flow-card">
+    <div class="confirm-avatar">🦁</div>
+    <div class="confirm-name">Maya's Adventure</div>
+    <div class="confirm-band">
+      <span class="band-chip-inline" style="background:#ede8ff; border: 1.5px solid #9b72ff; color:#4a2090;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#9b72ff;display:inline-block;"></span>
+        K–1 Band · Kindergarten
+      </span>
+    </div>
+
+    <div class="confirm-details">
+      <div class="confirm-row">
+        <span class="confirm-key">Name</span>
+        <span class="confirm-val">Maya</span>
+      </div>
+      <div class="confirm-row">
+        <span class="confirm-key">Avatar</span>
+        <span class="confirm-val">🦁 Lion</span>
+      </div>
+      <div class="confirm-row">
+        <span class="confirm-key">Grade</span>
+        <span class="confirm-val">Kindergarten (Age 5)</span>
+      </div>
+      <div class="confirm-row">
+        <span class="confirm-key">Daily sessions</span>
+        <span class="confirm-val">3 per day (~30–45 min)</span>
+      </div>
+      <div class="confirm-row">
+        <span class="confirm-key">Focus areas</span>
+        <span class="confirm-val">Reading &amp; Math</span>
+      </div>
+      <div class="confirm-row">
+        <span class="confirm-key">Notifications</span>
+        <span class="confirm-val">Badges &amp; Level-ups</span>
+      </div>
+    </div>
+
+    <div class="start-note">
+      <strong>🌟 Ready to start!</strong>
+      Maya's first session will begin from the K–1 band. WonderQuest will personalise as she plays. You can always edit these settings from your dashboard.
+    </div>
+
+    <button class="btn-primary" style="width:100%;">🚀 Start Maya's adventure!</button>
+
+    <button class="btn-back" style="width:100%; margin-top:10px; text-align:center; justify-content:center;" onclick="showTab('step3')">← Edit settings</button>
+
+    <div style="margin-top:20px; text-align:center; font:400 0.74rem/1.5 system-ui; color:#9080a0;">
+      Adding another child? You can add more from your family dashboard after this setup.
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ SPEC ═════════ -->
+<div class="screen" id="screen-spec">
+  <div class="spec-shell">
+    <div class="spec-title">Parent Link Child Flow — Spec</div>
+
+    <div class="spec-section">Privacy & Data Rules</div>
+    <table class="spec-table">
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-crit">REQUIRED</span> First name only</td>
+          <td class="spec-detail">Never ask for child's last name, date of birth, photo, email, or school name. First name + avatar only.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-crit">REQUIRED</span> COPPA compliance</td>
+          <td class="spec-detail">Parent (already verified adult) sets up child account. Child never independently creates their own account.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-note">NOTE</span> Name usage</td>
+          <td class="spec-detail">Child first name used for coach messages only ("Amazing, Maya!"). Nickname field overrides first name in coach messages if set.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section">Grade Band Auto-Select</div>
+    <table class="spec-table">
+      <thead><tr><th>Age / Grade</th><th>Band</th><th>Accent</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule">Age 4–5 / Pre-K</td>
+          <td class="spec-detail">P0 Pre-K Band</td>
+          <td class="spec-detail">#ffd166 gold</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Age 5–7 / K–1</td>
+          <td class="spec-detail">P1 K–1 Band</td>
+          <td class="spec-detail">#9b72ff violet</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Age 7–9 / G2–3</td>
+          <td class="spec-detail">P2 G2–3 Band</td>
+          <td class="spec-detail">#58e8c1 mint</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Age 9–11 / G4–5</td>
+          <td class="spec-detail">P3 G4–5 Band</td>
+          <td class="spec-detail">#ff7b6b coral</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section">Default Values</div>
+    <table class="spec-table">
+      <thead><tr><th>Setting</th><th>Default</th><th>Range</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule">Daily sessions</td>
+          <td class="spec-detail">3</td>
+          <td class="spec-detail">1 – unlimited; adjustable from dashboard any time</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Focus areas</td>
+          <td class="spec-detail">All areas balanced</td>
+          <td class="spec-detail">Parent can weight specific areas; WonderQuest blends all by default</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Notifications</td>
+          <td class="spec-detail">Badges + Level-ups ON; Session complete OFF; Reminder OFF</td>
+          <td class="spec-detail">All toggleable from notification center</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Avatar</td>
+          <td class="spec-detail">First option (🦁)</td>
+          <td class="spec-detail">Child can also change from their play screen settings</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section">Flow Navigation</div>
+    <table class="spec-table">
+      <thead><tr><th>Action</th><th>Destination</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule">After "Start adventure!"</td>
+          <td class="spec-detail">→ Family dashboard (parent-family-dashboard-desktop/mobile-v3.html). Child card now visible.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Skip goals step</td>
+          <td class="spec-detail">All defaults applied silently. Confirmation screen still shown before final submit.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Entry via "Add child" from dashboard</td>
+          <td class="spec-detail">Same flow — step bar shows context ("Adding child 2 of 2")</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Max children</td>
+          <td class="spec-detail">Free plan: 1 child. Paid plan: unlimited. Show upgrade prompt if free-plan parent tries to add 2nd child.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

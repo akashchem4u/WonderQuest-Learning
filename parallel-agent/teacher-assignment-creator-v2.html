@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Assignment Creator — WonderQuest Design System #291</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --accent: #50e890;
+      --text: #f0f6ff;
+      --border: rgba(255,255,255,.06);
+      --muted: #8b949e;
+      --teacher: #38bdf8;
+      --yellow: #fbbf24;
+      --yellow-bg: rgba(251,191,36,.08);
+      --yellow-border: rgba(251,191,36,.3);
+      --danger: #f87171;
+      --card-hover: #1c2330;
+      --step-active: #50e890;
+      --step-done: #38bdf8;
+      --step-inactive: #30363d;
+      --chip-quest: rgba(56,189,248,.15);
+      --chip-skill: rgba(80,232,144,.15);
+      --chip-free: rgba(167,139,250,.15);
+      --purple: #a78bfa;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 24px 16px 64px;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      max-width: 860px;
+      margin: 0 auto 24px;
+    }
+
+    .page-header-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .persona-badge {
+      background: rgba(56,189,248,.12);
+      color: var(--teacher);
+      border: 1px solid rgba(56,189,248,.25);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      padding: 3px 10px;
+      text-transform: uppercase;
+    }
+
+    .route-badge {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .page-subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    /* ── Engineering Hint Box ── */
+    .hint-box {
+      max-width: 860px;
+      margin: 0 auto 28px;
+      background: var(--yellow-bg);
+      border: 1px solid var(--yellow-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+
+    .hint-box-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--yellow);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hint-box-label::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--yellow);
+      border-radius: 50%;
+    }
+
+    .hint-content {
+      font-size: 12px;
+      color: rgba(251,191,36,.85);
+      line-height: 1.7;
+      font-family: 'Courier New', monospace;
+    }
+
+    .hint-content strong {
+      color: var(--yellow);
+    }
+
+    /* ── Tab Nav ── */
+    .tab-container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tab-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      min-height: 44px;
+      transition: color .15s, border-color .15s;
+      position: relative;
+      top: 1px;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+
+    .tab-btn.active {
+      color: var(--teacher);
+      border-bottom-color: var(--teacher);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Step Indicator ── */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      margin-bottom: 32px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+    }
+
+    .step-indicator::-webkit-scrollbar { display: none; }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background .2s, color .2s;
+      flex-shrink: 0;
+    }
+
+    .step-dot.inactive {
+      background: var(--step-inactive);
+      color: var(--muted);
+    }
+
+    .step-dot.active {
+      background: var(--step-active);
+      color: #0d1117;
+    }
+
+    .step-dot.done {
+      background: var(--step-done);
+      color: #0d1117;
+    }
+
+    .step-dot.done::after {
+      content: '✓';
+    }
+
+    .step-label {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .step-label.inactive { color: var(--muted); }
+    .step-label.active { color: var(--step-active); }
+    .step-label.done { color: var(--step-done); }
+
+    .step-connector {
+      width: 32px;
+      height: 1px;
+      background: var(--border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .step-connector.done { background: var(--step-done); }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── Type Selector Cards ── */
+    .type-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .type-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      min-height: 44px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .type-card:hover { background: var(--card-hover); }
+
+    .type-card.selected {
+      border-color: var(--accent);
+      background: rgba(80,232,144,.06);
+    }
+
+    .type-card.selected .type-card-icon { color: var(--accent); }
+
+    .type-card-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: block;
+      color: var(--muted);
+      transition: color .15s;
+    }
+
+    .type-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .type-card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .type-card-check {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #0d1117;
+      font-weight: 700;
+    }
+
+    .type-card.selected .type-card-check { display: flex; }
+
+    /* ── Step panels ── */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    /* ── Dropdown ── */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .form-select,
+    .form-input,
+    .form-textarea {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 10px 14px;
+      min-height: 44px;
+      transition: border-color .15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .form-select:focus,
+    .form-input:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--teacher);
+    }
+
+    .form-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    .form-select option {
+      background: #1c2330;
+      color: var(--text);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.6;
+    }
+
+    .char-count {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* ── Subject chips ── */
+    .subject-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .subject-chip {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all .15s;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    .subject-chip:hover { border-color: rgba(255,255,255,.2); color: var(--text); }
+
+    .subject-chip.selected {
+      background: rgba(80,232,144,.1);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── Assign toggles ── */
+    .assign-toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .assign-toggle-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 16px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: all .15s;
+    }
+
+    .assign-toggle-btn.active {
+      background: rgba(56,189,248,.1);
+      color: var(--teacher);
+    }
+
+    /* ── Group checkboxes ── */
+    .group-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .group-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: border-color .15s;
+      user-select: none;
+    }
+
+    .group-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--teacher);
+      cursor: pointer;
+    }
+
+    .group-option:has(input:checked) {
+      border-color: var(--teacher);
+      background: rgba(56,189,248,.05);
+    }
+
+    .group-option-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ── Review card ── */
+    .review-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .review-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .review-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .review-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .review-row-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 500;
+      width: 120px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    .review-row-value {
+      font-size: 13px;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .review-note-box {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    /* ── Chip varieties ── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      letter-spacing: .02em;
+    }
+
+    .chip-quest { background: var(--chip-quest); color: var(--teacher); border: 1px solid rgba(56,189,248,.2); }
+    .chip-skill { background: var(--chip-skill); color: var(--accent); border: 1px solid rgba(80,232,144,.2); }
+    .chip-free  { background: var(--chip-free);  color: var(--purple); border: 1px solid rgba(167,139,250,.2); }
+    .chip-class { background: rgba(80,232,144,.08); color: var(--accent); border: 1px solid rgba(80,232,144,.15); }
+    .chip-group { background: rgba(56,189,248,.08); color: var(--teacher); border: 1px solid rgba(56,189,248,.15); }
+    .chip-engage { background: rgba(251,191,36,.08); color: var(--yellow); border: 1px solid rgba(251,191,36,.2); }
+
+    /* ── Step nav buttons ── */
+    .step-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .btn {
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .15s;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      padding: 0 20px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+      font-size: 14px;
+    }
+
+    .btn-primary:hover { background: #6ef5a3; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+
+    .btn-lg {
+      min-height: 44px;
+      font-size: 14px;
+      padding: 0 28px;
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(248,113,113,.2);
+    }
+
+    .btn-danger:hover { background: rgba(248,113,113,.08); }
+
+    /* ── Assignment cards (Tab 2) ── */
+    .assignment-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .assignment-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color .15s;
+    }
+
+    .assignment-card:hover { border-color: rgba(255,255,255,.1); }
+
+    .assignment-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .assignment-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .assignment-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .assignment-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .due-date-text {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .due-date-text.urgent { color: var(--yellow); }
+
+    /* ── Spec tab ── */
+    .spec-section {
+      margin-bottom: 28px;
+    }
+
+    .spec-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--teacher);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    .spec-block strong { color: var(--text); font-family: 'Inter', sans-serif; }
+
+    .spec-prop {
+      display: flex;
+      gap: 16px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .spec-prop:last-child { border-bottom: none; }
+
+    .spec-prop-name {
+      color: var(--teacher);
+      font-family: 'Courier New', monospace;
+      width: 130px;
+      flex-shrink: 0;
+    }
+
+    .spec-prop-type {
+      color: var(--accent);
+      font-family: 'Courier New', monospace;
+      width: 100px;
+      flex-shrink: 0;
+    }
+
+    .spec-prop-desc { color: var(--muted); }
+
+    .spec-rule {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      align-items: flex-start;
+    }
+
+    .spec-rule:last-child { border-bottom: none; }
+
+    .spec-rule-num {
+      background: rgba(56,189,248,.1);
+      color: var(--teacher);
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .spec-rule-text { color: var(--muted); line-height: 1.6; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 24px;
+      background: var(--accent);
+      color: #0d1117;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 14px 20px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+      z-index: 9999;
+      max-width: calc(100vw - 48px);
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    /* ── Privacy notice ── */
+    .privacy-notice {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: rgba(56,189,248,.05);
+      border: 1px solid rgba(56,189,248,.12);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: rgba(56,189,248,.75);
+      line-height: 1.6;
+    }
+
+    .privacy-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 580px) {
+      body { padding: 16px 12px 60px; }
+      .page-title { font-size: 18px; }
+      .type-cards { grid-template-columns: 1fr; }
+      .step-connector { width: 16px; }
+      .review-row { flex-direction: column; gap: 4px; }
+      .review-row-label { width: auto; }
+      .step-nav { flex-direction: column-reverse; align-items: stretch; }
+      .step-nav .btn { justify-content: center; }
+    }
+
+    @media (max-width: 420px) {
+      .step-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-top">
+      <span class="persona-badge">Teacher</span>
+      <span class="route-badge">/teacher/assignments/create</span>
+    </div>
+    <h1 class="page-title">Assignment Creator</h1>
+    <p class="page-subtitle">Assign quest batches or skill areas to your class or groups, with due dates and notes.</p>
+  </div>
+
+  <!-- Engineering Hint Box -->
+  <div class="hint-box" role="note" aria-label="Engineering hint">
+    <div class="hint-box-label">Engineering Hint — Design System #291</div>
+    <div class="hint-content">
+      <strong>Component:</strong> teacher-assignment-creator-v2 &nbsp;|&nbsp; <strong>Persona:</strong> Teacher<br />
+      <strong>Route:</strong> /teacher/assignments/create<br />
+      <strong>DB:</strong> assignments { id UUID, teacher_id UUID, class_id UUID, title TEXT,
+      assignment_type ENUM('quest_batch','skill_area','free_explore'),
+      quest_batch_id UUID, skill_area TEXT, assigned_to ENUM('whole_class','group'),
+      group_ids UUID[], due_date DATE, teacher_note TEXT,
+      status ENUM('draft','active','completed','archived'), created_at TIMESTAMPTZ }<br />
+      <strong>Privacy:</strong> Teacher sees class-level data only; no individual student accuracy %;
+      students identified by first name only in engagement counts (not listed by name).<br />
+      <strong>FERPA:</strong> Assignment data is school-linked and not personally disclosed externally.
+    </div>
+  </div>
+
+  <!-- Tab Container -->
+  <div class="tab-container">
+
+    <!-- Tab Nav -->
+    <nav class="tab-nav" role="tablist" aria-label="Assignment Creator tabs">
+      <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-create" id="btn-create" onclick="showTab('create')">Create Assignment</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-active" id="btn-active" onclick="showTab('active')">Active Assignments</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-spec" id="btn-spec" onclick="showTab('spec')">Spec</button>
+    </nav>
+
+    <!-- ── TAB 1: Create Assignment ── -->
+    <div class="tab-panel active" id="tab-create" role="tabpanel" aria-labelledby="btn-create">
+
+      <!-- Step Indicator -->
+      <div class="step-indicator" role="list" aria-label="Assignment creation steps">
+        <div class="step-item" role="listitem">
+          <div class="step-dot active" id="dot-1" aria-label="Step 1 active">1</div>
+          <span class="step-label active" id="label-1">Type</span>
+        </div>
+        <div class="step-connector" id="conn-1"></div>
+        <div class="step-item" role="listitem">
+          <div class="step-dot inactive" id="dot-2" aria-label="Step 2">2</div>
+          <span class="step-label inactive" id="label-2">Content</span>
+        </div>
+        <div class="step-connector" id="conn-2"></div>
+        <div class="step-item" role="listitem">
+          <div class="step-dot inactive" id="dot-3" aria-label="Step 3">3</div>
+          <span class="step-label inactive" id="label-3">Assign</span>
+        </div>
+        <div class="step-connector" id="conn-3"></div>
+        <div class="step-item" role="listitem">
+          <div class="step-dot inactive" id="dot-4" aria-label="Step 4">4</div>
+          <span class="step-label inactive" id="label-4">Review</span>
+        </div>
+      </div>
+
+      <!-- Step 1: Assignment Type -->
+      <div class="step-panel active" id="step-1">
+        <p class="section-title">What type of assignment?</p>
+        <p class="section-sub">Select the assignment type. You can choose a quest batch, a skill area, or allow free exploration.</p>
+
+        <div class="type-cards" role="group" aria-label="Assignment type selection">
+          <div class="type-card" id="card-quest" tabindex="0" role="button" aria-pressed="false" onclick="selectType('quest_batch')" onkeydown="if(event.key==='Enter'||event.key===' ')selectType('quest_batch')">
+            <span class="type-card-icon">🗺️</span>
+            <div class="type-card-title">Quest Batch</div>
+            <div class="type-card-desc">Assign a curated set of quests from a specific learning band (P0–P3).</div>
+            <div class="type-card-check" aria-hidden="true">✓</div>
+          </div>
+          <div class="type-card" id="card-skill" tabindex="0" role="button" aria-pressed="false" onclick="selectType('skill_area')" onkeydown="if(event.key==='Enter'||event.key===' ')selectType('skill_area')">
+            <span class="type-card-icon">🎯</span>
+            <div class="type-card-title">Skill Area</div>
+            <div class="type-card-desc">Target a specific subject like Reading, Maths, Science, or Arts.</div>
+            <div class="type-card-check" aria-hidden="true">✓</div>
+          </div>
+          <div class="type-card" id="card-free" tabindex="0" role="button" aria-pressed="false" onclick="selectType('free_explore')" onkeydown="if(event.key==='Enter'||event.key===' ')selectType('free_explore')">
+            <span class="type-card-icon">🌟</span>
+            <div class="type-card-title">Free Explore</div>
+            <div class="type-card-desc">Let students choose any available quests within WonderQuest for open-ended exploration.</div>
+            <div class="type-card-check" aria-hidden="true">✓</div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <span></span>
+          <button class="btn btn-primary btn-lg" onclick="goStep(2)" aria-label="Continue to step 2">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Content Selection -->
+      <div class="step-panel" id="step-2">
+        <p class="section-title">Select content</p>
+        <p class="section-sub">Choose the specific quest batch or skill area for this assignment.</p>
+
+        <!-- Quest Batch content -->
+        <div id="content-quest" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="select-band">Learning Band</label>
+            <select class="form-select" id="select-band" onchange="updateBatchList()">
+              <option value="">Select a band…</option>
+              <option value="P0">P0 — Early Foundation (Ages 3–5)</option>
+              <option value="P1">P1 — Foundation (Ages 5–7)</option>
+              <option value="P2">P2 — Lower Primary (Ages 7–9)</option>
+              <option value="P3">P3 — Upper Primary (Ages 9–11)</option>
+            </select>
+          </div>
+          <div class="form-group" id="batch-group" style="display:none;">
+            <label class="form-label" for="select-batch">Quest Batch</label>
+            <select class="form-select" id="select-batch">
+              <option value="">Select a quest batch…</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Skill Area content -->
+        <div id="content-skill" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" id="subject-chips-label">Subject</label>
+            <div class="subject-chips" role="group" aria-labelledby="subject-chips-label">
+              <button class="subject-chip" data-subject="Reading" onclick="selectSubject(this)" type="button" aria-pressed="false">📖 Reading</button>
+              <button class="subject-chip" data-subject="Maths" onclick="selectSubject(this)" type="button" aria-pressed="false">🔢 Maths</button>
+              <button class="subject-chip" data-subject="Science" onclick="selectSubject(this)" type="button" aria-pressed="false">🔬 Science</button>
+              <button class="subject-chip" data-subject="Social Studies" onclick="selectSubject(this)" type="button" aria-pressed="false">🌏 Social Studies</button>
+              <button class="subject-chip" data-subject="Arts" onclick="selectSubject(this)" type="button" aria-pressed="false">🎨 Arts</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Free Explore content -->
+        <div id="content-free" style="display:none;">
+          <div class="privacy-notice" role="note">
+            <span class="privacy-icon">ℹ️</span>
+            Free Explore assignments allow students to choose any available quest in WonderQuest. No specific content selection is required. You can still set a due date and add a note in the next step.
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+          <button class="btn btn-primary btn-lg" onclick="goStep(3)">Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Assign + Due Date + Note -->
+      <div class="step-panel" id="step-3">
+        <p class="section-title">Assign &amp; schedule</p>
+        <p class="section-sub">Choose who receives this assignment, set a due date, and add an optional note.</p>
+
+        <div class="form-group">
+          <label class="form-label" id="assign-to-label">Assign To</label>
+          <div class="assign-toggle" role="group" aria-labelledby="assign-to-label">
+            <button class="assign-toggle-btn active" id="toggle-whole" onclick="selectAssignTo('whole_class')" type="button" aria-pressed="true">Whole Class</button>
+            <button class="assign-toggle-btn" id="toggle-group" onclick="selectAssignTo('group')" type="button" aria-pressed="false">Select Groups</button>
+          </div>
+        </div>
+
+        <!-- Group selector (hidden until "Select Groups" chosen) -->
+        <div id="group-selector" style="display:none;" class="form-group">
+          <label class="form-label">Groups</label>
+          <div class="group-options" role="group" aria-label="Class groups">
+            <label class="group-option">
+              <input type="checkbox" name="group" value="group-a" id="check-group-a" />
+              <span class="group-option-label">Group A</span>
+            </label>
+            <label class="group-option">
+              <input type="checkbox" name="group" value="group-b" id="check-group-b" />
+              <span class="group-option-label">Group B</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="due-date">Due Date</label>
+          <input class="form-input" type="date" id="due-date" min="" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="teacher-note">Teacher Note <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">(optional)</span></label>
+          <textarea class="form-textarea" id="teacher-note" maxlength="200" placeholder="Add a short message for your students about this assignment…" oninput="updateCharCount()" rows="3"></textarea>
+          <div class="char-count"><span id="char-count">0</span> / 200 characters</div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+          <button class="btn btn-primary btn-lg" onclick="goStep(4)">Review →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div class="step-panel" id="step-4">
+        <p class="section-title">Review your assignment</p>
+        <p class="section-sub">Check the details below before creating the assignment.</p>
+
+        <div class="review-card" id="review-card">
+          <div class="review-title" id="review-display-title">Assignment Summary</div>
+          <div class="review-rows">
+            <div class="review-row">
+              <span class="review-row-label">Type</span>
+              <span class="review-row-value" id="review-type">—</span>
+            </div>
+            <div class="review-row">
+              <span class="review-row-label">Content</span>
+              <span class="review-row-value" id="review-content">—</span>
+            </div>
+            <div class="review-row">
+              <span class="review-row-label">Assigned To</span>
+              <span class="review-row-value" id="review-assigned-to">—</span>
+            </div>
+            <div class="review-row">
+              <span class="review-row-label">Due Date</span>
+              <span class="review-row-value" id="review-due-date">—</span>
+            </div>
+            <div class="review-row" id="review-note-row" style="display:none;">
+              <span class="review-row-label">Teacher Note</span>
+              <span class="review-row-value"><div class="review-note-box" id="review-note-text"></div></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="privacy-notice" role="note">
+          <span class="privacy-icon">🔒</span>
+          <span>Privacy: This assignment will be visible to your class at the class level only. No individual student data or accuracy percentages will be exposed. FERPA compliant — data is school-linked and not disclosed externally.</span>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+          <button class="btn btn-primary btn-lg" onclick="submitAssignment()">Create Assignment</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-create -->
+
+    <!-- ── TAB 2: Active Assignments ── -->
+    <div class="tab-panel" id="tab-active" role="tabpanel" aria-labelledby="btn-active">
+
+      <div class="privacy-notice" role="note" style="margin-bottom:24px;">
+        <span class="privacy-icon">🔒</span>
+        <span>Engagement data is shown at the class level only. No individual student names or accuracy percentages are displayed in compliance with FERPA and WonderQuest privacy policy.</span>
+      </div>
+
+      <div class="assignment-cards" role="list" aria-label="Active assignments">
+
+        <!-- Card 1 -->
+        <div class="assignment-card" role="listitem">
+          <div class="assignment-card-header">
+            <div class="assignment-card-title">P2 Reading Sprint — Week 12</div>
+          </div>
+          <div class="assignment-card-meta">
+            <span class="chip chip-quest">Quest Batch</span>
+            <span class="chip chip-class">Whole Class</span>
+            <span class="chip chip-engage">18 / 24 started</span>
+            <span class="due-date-text urgent">Due 28 Mar 2026</span>
+          </div>
+          <div class="assignment-card-actions">
+            <button class="btn btn-ghost" type="button" onclick="editAssignment(1)" aria-label="Edit P2 Reading Sprint assignment">Edit</button>
+            <button class="btn btn-danger" type="button" onclick="archiveAssignment(1)" aria-label="Archive P2 Reading Sprint assignment">Archive</button>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="assignment-card" role="listitem">
+          <div class="assignment-card-header">
+            <div class="assignment-card-title">Maths — Number Sense Focus</div>
+          </div>
+          <div class="assignment-card-meta">
+            <span class="chip chip-skill">Skill Area</span>
+            <span class="chip chip-group">Group A · Group B</span>
+            <span class="chip chip-engage">11 / 12 started</span>
+            <span class="due-date-text">Due 3 Apr 2026</span>
+          </div>
+          <div class="assignment-card-actions">
+            <button class="btn btn-ghost" type="button" onclick="editAssignment(2)" aria-label="Edit Maths Number Sense assignment">Edit</button>
+            <button class="btn btn-danger" type="button" onclick="archiveAssignment(2)" aria-label="Archive Maths Number Sense assignment">Archive</button>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="assignment-card" role="listitem">
+          <div class="assignment-card-header">
+            <div class="assignment-card-title">End-of-Term Free Explore</div>
+          </div>
+          <div class="assignment-card-meta">
+            <span class="chip chip-free">Free Explore</span>
+            <span class="chip chip-class">Whole Class</span>
+            <span class="chip chip-engage">22 / 24 started</span>
+            <span class="due-date-text">Due 11 Apr 2026</span>
+          </div>
+          <div class="assignment-card-actions">
+            <button class="btn btn-ghost" type="button" onclick="editAssignment(3)" aria-label="Edit End-of-Term Free Explore assignment">Edit</button>
+            <button class="btn btn-danger" type="button" onclick="archiveAssignment(3)" aria-label="Archive End-of-Term Free Explore assignment">Archive</button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /tab-active -->
+
+    <!-- ── TAB 3: Spec ── -->
+    <div class="tab-panel" id="tab-spec" role="tabpanel" aria-labelledby="btn-spec">
+
+      <!-- Component -->
+      <div class="spec-section">
+        <div class="spec-section-title">Component</div>
+        <div class="spec-block">
+          <strong>AssignmentCreator</strong><br />
+          Route: /teacher/assignments/create<br />
+          Auth: Teacher (role === 'teacher')<br />
+          Design System Item: #291
+        </div>
+      </div>
+
+      <!-- Props -->
+      <div class="spec-section">
+        <div class="spec-section-title">Props</div>
+        <div class="spec-block" style="padding: 0 16px;">
+          <div class="spec-prop">
+            <span class="spec-prop-name">teacherId</span>
+            <span class="spec-prop-type">UUID</span>
+            <span class="spec-prop-desc">Authenticated teacher's user ID</span>
+          </div>
+          <div class="spec-prop">
+            <span class="spec-prop-name">classId</span>
+            <span class="spec-prop-type">UUID</span>
+            <span class="spec-prop-desc">Primary class context for the assignment</span>
+          </div>
+          <div class="spec-prop">
+            <span class="spec-prop-name">availableBatches</span>
+            <span class="spec-prop-type">QuestBatch[]</span>
+            <span class="spec-prop-desc">Array of quest batches grouped by band (P0–P3)</span>
+          </div>
+          <div class="spec-prop">
+            <span class="spec-prop-name">classGroups</span>
+            <span class="spec-prop-type">Group[]</span>
+            <span class="spec-prop-desc">Named sub-groups within the class (e.g. Group A, Group B)</span>
+          </div>
+          <div class="spec-prop">
+            <span class="spec-prop-name">onSuccess</span>
+            <span class="spec-prop-type">(id: UUID) =&gt; void</span>
+            <span class="spec-prop-desc">Callback fired after successful assignment creation</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DB Schema -->
+      <div class="spec-section">
+        <div class="spec-section-title">Database Schema — assignments</div>
+        <div class="spec-block">
+          id &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; UUID PRIMARY KEY DEFAULT gen_random_uuid()<br />
+          teacher_id &nbsp;&nbsp;&nbsp;&nbsp; UUID NOT NULL REFERENCES users(id)<br />
+          class_id &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; UUID NOT NULL REFERENCES classes(id)<br />
+          title &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TEXT NOT NULL<br />
+          assignment_type ENUM('quest_batch','skill_area','free_explore') NOT NULL<br />
+          quest_batch_id &nbsp;UUID REFERENCES quest_batches(id)<br />
+          skill_area &nbsp;&nbsp;&nbsp;&nbsp; TEXT<br />
+          assigned_to &nbsp;&nbsp;&nbsp; ENUM('whole_class','group') NOT NULL<br />
+          group_ids &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; UUID[]<br />
+          due_date &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DATE<br />
+          teacher_note &nbsp;&nbsp; TEXT CHECK (char_length(teacher_note) &lt;= 200)<br />
+          status &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ENUM('draft','active','completed','archived') DEFAULT 'active'<br />
+          created_at &nbsp;&nbsp;&nbsp;&nbsp; TIMESTAMPTZ DEFAULT now()
+        </div>
+      </div>
+
+      <!-- Privacy Rules -->
+      <div class="spec-section">
+        <div class="spec-section-title">Privacy Rules</div>
+        <div class="spec-block" style="padding: 8px 16px;">
+          <div class="spec-prop" style="font-family:'Inter',sans-serif;">
+            <span style="color:var(--teacher);width:160px;flex-shrink:0;font-size:12px;">Scope</span>
+            <span style="color:var(--muted);font-size:12px;">Teacher sees class-level aggregates only; never individual student breakdowns.</span>
+          </div>
+          <div class="spec-prop" style="font-family:'Inter',sans-serif;">
+            <span style="color:var(--teacher);width:160px;flex-shrink:0;font-size:12px;">Accuracy %</span>
+            <span style="color:var(--muted);font-size:12px;">No per-student accuracy percentage is surfaced anywhere in this component.</span>
+          </div>
+          <div class="spec-prop" style="font-family:'Inter',sans-serif;">
+            <span style="color:var(--teacher);width:160px;flex-shrink:0;font-size:12px;">Student names</span>
+            <span style="color:var(--muted);font-size:12px;">Students identified by first name only for engagement counts; they are never listed by name in this view.</span>
+          </div>
+          <div class="spec-prop" style="font-family:'Inter',sans-serif;border:none;">
+            <span style="color:var(--teacher);width:160px;flex-shrink:0;font-size:12px;">FERPA</span>
+            <span style="color:var(--muted);font-size:12px;">Assignment data is school-linked. Not personally disclosed externally. Compliant with 20 U.S.C. § 1232g.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Business Rules -->
+      <div class="spec-section">
+        <div class="spec-section-title">Business Rules</div>
+        <div class="spec-block" style="padding: 8px 16px; font-family:'Inter',sans-serif;">
+          <div class="spec-rule">
+            <span class="spec-rule-num">BR-1</span>
+            <span class="spec-rule-text">A teacher may only create assignments for classes they are the assigned teacher of (teacher_id must match the class record).</span>
+          </div>
+          <div class="spec-rule">
+            <span class="spec-rule-num">BR-2</span>
+            <span class="spec-rule-text">If assignment_type is 'quest_batch', quest_batch_id must be provided and must belong to an active, published batch.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="spec-rule-num">BR-3</span>
+            <span class="spec-rule-text">If assignment_type is 'skill_area', skill_area must be one of: Reading, Maths, Science, Social Studies, Arts.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="spec-rule-num">BR-4</span>
+            <span class="spec-rule-text">If assigned_to is 'group', group_ids must be a non-empty array of valid group IDs belonging to the class.</span>
+          </div>
+          <div class="spec-rule">
+            <span class="spec-rule-num">BR-5</span>
+            <span class="spec-rule-text">due_date, when provided, must be a future date (≥ tomorrow in the teacher's local timezone).</span>
+          </div>
+          <div class="spec-rule" style="border:none;">
+            <span class="spec-rule-num">BR-6</span>
+            <span class="spec-rule-text">teacher_note is optional but must not exceed 200 characters. Profanity filtering is applied server-side before persistence.</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-spec -->
+
+  </div><!-- /tab-container -->
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive">
+    <span>✓</span>
+    <span id="toast-msg">Assignment created successfully!</span>
+  </div>
+
+  <script>
+    // ── State ──
+    const state = {
+      assignmentType: null,
+      selectedBand: null,
+      selectedBatch: null,
+      selectedSubject: null,
+      assignedTo: 'whole_class',
+      selectedGroups: [],
+      dueDate: null,
+      teacherNote: '',
+    };
+
+    // Quest batch data by band
+    const batches = {
+      P0: ['P0-A: Shapes & Colours Adventure', 'P0-B: Numbers Come Alive', 'P0-C: Story Time Quests'],
+      P1: ['P1-A: Reading Foundations Sprint', 'P1-B: Number Bonds Challenge', 'P1-C: Living World Discovery'],
+      P2: ['P2-A: Reading Comprehension Pack', 'P2-B: Multiplication Mastery', 'P2-C: Earth Science Explorer', 'P2-D: Community Stories'],
+      P3: ['P3-A: Inference & Analysis Pack', 'P3-B: Fractions & Decimals', 'P3-C: Forces & Matter', 'P3-D: History Detectives'],
+    };
+
+    // ── Tab System ──
+    function showTab(t) {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('btn-' + t).classList.add('active');
+      document.getElementById('btn-' + t).setAttribute('aria-selected', 'true');
+      document.getElementById('tab-' + t).classList.add('active');
+    }
+
+    // ── Step System ──
+    let currentStep = 1;
+
+    function goStep(n) {
+      // Validate before proceeding forward
+      if (n > currentStep) {
+        if (currentStep === 1 && !state.assignmentType) {
+          showToast('Please select an assignment type first.', false);
+          return;
+        }
+        if (currentStep === 2) {
+          if (state.assignmentType === 'quest_batch' && !state.selectedBatch) {
+            showToast('Please select a quest batch.', false);
+            return;
+          }
+          if (state.assignmentType === 'skill_area' && !state.selectedSubject) {
+            showToast('Please select a subject area.', false);
+            return;
+          }
+        }
+        if (currentStep === 3 && !state.dueDate) {
+          showToast('Please set a due date.', false);
+          return;
+        }
+      }
+
+      document.getElementById('step-' + currentStep).classList.remove('active');
+      currentStep = n;
+      document.getElementById('step-' + n).classList.add('active');
+      updateStepIndicator();
+
+      if (n === 4) populateReview();
+    }
+
+    function updateStepIndicator() {
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('dot-' + i);
+        const label = document.getElementById('label-' + i);
+        dot.removeAttribute('aria-label');
+
+        if (i < currentStep) {
+          dot.className = 'step-dot done';
+          dot.textContent = '';
+          dot.setAttribute('aria-label', 'Step ' + i + ' complete');
+          label.className = 'step-label done';
+        } else if (i === currentStep) {
+          dot.className = 'step-dot active';
+          dot.textContent = i;
+          dot.setAttribute('aria-label', 'Step ' + i + ' active');
+          label.className = 'step-label active';
+        } else {
+          dot.className = 'step-dot inactive';
+          dot.textContent = i;
+          dot.setAttribute('aria-label', 'Step ' + i);
+          label.className = 'step-label inactive';
+        }
+      }
+
+      // Connectors
+      for (let i = 1; i <= 3; i++) {
+        const conn = document.getElementById('conn-' + i);
+        conn.className = i < currentStep ? 'step-connector done' : 'step-connector';
+      }
+    }
+
+    // ── Type Selection ──
+    function selectType(type) {
+      state.assignmentType = type;
+
+      // Reset downstream state
+      state.selectedBatch = null;
+      state.selectedBand = null;
+      state.selectedSubject = null;
+
+      // Update card UI
+      ['quest', 'skill', 'free'].forEach(k => {
+        const card = document.getElementById('card-' + k);
+        const typeKey = { quest: 'quest_batch', skill: 'skill_area', free: 'free_explore' }[k];
+        card.classList.toggle('selected', type === typeKey);
+        card.setAttribute('aria-pressed', type === typeKey ? 'true' : 'false');
+      });
+    }
+
+    // ── Step 2: Content display ──
+    document.getElementById('step-2');
+
+    // Show the right content pane when entering step 2
+    const origGoStep = goStep;
+
+    // Override goStep to handle content pane showing
+    (function () {
+      const _orig = goStep;
+      // We already defined the function with the validation inline.
+      // We'll patch via a wrapper that handles the content panel display.
+    })();
+
+    // Watch step transitions to show correct content
+    function showContentForType() {
+      document.getElementById('content-quest').style.display = state.assignmentType === 'quest_batch' ? 'block' : 'none';
+      document.getElementById('content-skill').style.display = state.assignmentType === 'skill_area' ? 'block' : 'none';
+      document.getElementById('content-free').style.display  = state.assignmentType === 'free_explore'  ? 'block' : 'none';
+    }
+
+    // Patch goStep to also trigger content display
+    const _goStepBase = goStep;
+    goStep = function(n) {
+      _goStepBase(n);
+      if (n === 2) showContentForType();
+    };
+
+    // ── Band / Batch ──
+    function updateBatchList() {
+      const band = document.getElementById('select-band').value;
+      state.selectedBand = band;
+      state.selectedBatch = null;
+      const batchGroup = document.getElementById('batch-group');
+      const batchSelect = document.getElementById('select-batch');
+
+      if (!band) {
+        batchGroup.style.display = 'none';
+        return;
+      }
+
+      batchGroup.style.display = 'block';
+      batchSelect.innerHTML = '<option value="">Select a quest batch…</option>';
+      (batches[band] || []).forEach((b, i) => {
+        const opt = document.createElement('option');
+        opt.value = 'batch-' + band + '-' + i;
+        opt.textContent = b;
+        batchSelect.appendChild(opt);
+      });
+
+      batchSelect.onchange = () => {
+        state.selectedBatch = batchSelect.options[batchSelect.selectedIndex].text;
+      };
+    }
+
+    // ── Subject chip ──
+    function selectSubject(el) {
+      document.querySelectorAll('.subject-chip').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      el.classList.add('selected');
+      el.setAttribute('aria-pressed', 'true');
+      state.selectedSubject = el.getAttribute('data-subject');
+    }
+
+    // ── Assign To ──
+    function selectAssignTo(val) {
+      state.assignedTo = val;
+      document.getElementById('toggle-whole').classList.toggle('active', val === 'whole_class');
+      document.getElementById('toggle-group').classList.toggle('active', val === 'group');
+      document.getElementById('toggle-whole').setAttribute('aria-pressed', val === 'whole_class' ? 'true' : 'false');
+      document.getElementById('toggle-group').setAttribute('aria-pressed', val === 'group' ? 'true' : 'false');
+      document.getElementById('group-selector').style.display = val === 'group' ? 'block' : 'none';
+    }
+
+    // ── Due date min ──
+    (function setMinDate() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const iso = tomorrow.toISOString().split('T')[0];
+      document.getElementById('due-date').min = iso;
+      document.getElementById('due-date').onchange = function() {
+        state.dueDate = this.value;
+      };
+    })();
+
+    // ── Char count ──
+    function updateCharCount() {
+      const note = document.getElementById('teacher-note').value;
+      state.teacherNote = note;
+      document.getElementById('char-count').textContent = note.length;
+    }
+
+    // ── Populate Review ──
+    function populateReview() {
+      const typeLabels = {
+        quest_batch: 'Quest Batch',
+        skill_area: 'Skill Area',
+        free_explore: 'Free Explore',
+      };
+
+      const typeChipClass = {
+        quest_batch: 'chip chip-quest',
+        skill_area: 'chip chip-skill',
+        free_explore: 'chip chip-free',
+      };
+
+      document.getElementById('review-type').innerHTML =
+        '<span class="' + (typeChipClass[state.assignmentType] || 'chip') + '">' +
+        (typeLabels[state.assignmentType] || '—') + '</span>';
+
+      let content = '—';
+      if (state.assignmentType === 'quest_batch') content = state.selectedBatch || '—';
+      if (state.assignmentType === 'skill_area') content = state.selectedSubject || '—';
+      if (state.assignmentType === 'free_explore') content = 'Open exploration — student choice';
+      document.getElementById('review-content').textContent = content;
+
+      // Assigned to
+      let assignedToText = '—';
+      if (state.assignedTo === 'whole_class') {
+        assignedToText = '<span class="chip chip-class">Whole Class</span>';
+      } else {
+        const groups = [];
+        if (document.getElementById('check-group-a').checked) groups.push('Group A');
+        if (document.getElementById('check-group-b').checked) groups.push('Group B');
+        state.selectedGroups = groups;
+        assignedToText = groups.length > 0
+          ? groups.map(g => '<span class="chip chip-group">' + g + '</span>').join(' ')
+          : '<span style="color:var(--muted)">No groups selected</span>';
+      }
+      document.getElementById('review-assigned-to').innerHTML = assignedToText;
+
+      // Due date
+      if (state.dueDate) {
+        const d = new Date(state.dueDate + 'T00:00:00');
+        document.getElementById('review-due-date').textContent = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+      } else {
+        document.getElementById('review-due-date').textContent = 'Not set';
+      }
+
+      // Title for the review card
+      let titleText = typeLabels[state.assignmentType] || 'Assignment';
+      if (state.assignmentType === 'quest_batch' && state.selectedBatch) titleText = state.selectedBatch;
+      if (state.assignmentType === 'skill_area' && state.selectedSubject) titleText = state.selectedSubject + ' — Skill Area Assignment';
+      if (state.assignmentType === 'free_explore') titleText = 'Free Explore Assignment';
+      document.getElementById('review-display-title').textContent = titleText;
+
+      // Note
+      const noteVal = document.getElementById('teacher-note').value.trim();
+      if (noteVal) {
+        document.getElementById('review-note-row').style.display = 'flex';
+        document.getElementById('review-note-text').textContent = noteVal;
+      } else {
+        document.getElementById('review-note-row').style.display = 'none';
+      }
+    }
+
+    // ── Submit ──
+    function submitAssignment() {
+      // Simulate API call
+      showToast('Assignment created successfully!', true);
+      // Reset form after brief delay
+      setTimeout(resetForm, 2200);
+    }
+
+    function resetForm() {
+      state.assignmentType = null;
+      state.selectedBand = null;
+      state.selectedBatch = null;
+      state.selectedSubject = null;
+      state.assignedTo = 'whole_class';
+      state.selectedGroups = [];
+      state.dueDate = null;
+      state.teacherNote = '';
+
+      ['quest', 'skill', 'free'].forEach(k => {
+        const card = document.getElementById('card-' + k);
+        card.classList.remove('selected');
+        card.setAttribute('aria-pressed', 'false');
+      });
+
+      document.querySelectorAll('.subject-chip').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+
+      document.getElementById('select-band').value = '';
+      document.getElementById('batch-group').style.display = 'none';
+      document.getElementById('select-batch').innerHTML = '<option value="">Select a quest batch…</option>';
+      document.getElementById('due-date').value = '';
+      document.getElementById('teacher-note').value = '';
+      document.getElementById('char-count').textContent = '0';
+      selectAssignTo('whole_class');
+      document.getElementById('check-group-a').checked = false;
+      document.getElementById('check-group-b').checked = false;
+
+      document.getElementById('step-' + currentStep).classList.remove('active');
+      currentStep = 1;
+      document.getElementById('step-1').classList.add('active');
+      updateStepIndicator();
+    }
+
+    // ── Toast ──
+    function showToast(msg, success) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+
+      if (success === false) {
+        toast.style.background = '#f87171';
+        toast.style.color = '#fff';
+      } else {
+        toast.style.background = 'var(--accent)';
+        toast.style.color = '#0d1117';
+      }
+
+      toast.classList.add('show');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    // ── Active Assignments actions ──
+    function editAssignment(id) {
+      showToast('Edit mode coming soon (assignment #' + id + ')');
+    }
+
+    function archiveAssignment(id) {
+      showToast('Assignment #' + id + ' archived.');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Home Practice Detail v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame — parent warm parchment */
+  .phone-wrap { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; background: #f5f0e8; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.45); overflow: hidden; flex-shrink: 0; font-family: 'Sora', 'Segoe UI', sans-serif; }
+  .phone-inner { overflow-y: auto; max-height: 820px; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  /* Parent chrome */
+  .p-status { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: #7a6854; background: #f5f0e8; }
+  .p-topbar { background: #fffdf8; border-bottom: 1px solid #e0d8c8; padding: 12px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 10; }
+  .p-back { font-size: 18px; color: #7a6854; cursor: pointer; }
+  .p-topbar-title { font-size: 15px; font-weight: 800; color: #2c2418; }
+  .p-topbar-sub { font-size: 11px; color: #7a6854; margin-top: 1px; }
+
+  /* Child header strip */
+  .child-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fffdf8; border-bottom: 1px solid #e0d8c8; }
+  .child-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; flex-shrink: 0; }
+  .child-name { font-size: 14px; font-weight: 800; color: #2c2418; }
+  .child-band { font-size: 11px; color: #7a6854; margin-top: 1px; }
+  .child-streak { margin-left: auto; font-size: 12px; font-weight: 700; color: #c07000; }
+
+  /* Section header */
+  .sec-hdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; }
+  .sec-hdr-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #7a6854; }
+  .sec-hdr-action { font-size: 11px; font-weight: 700; color: #2c7a6e; cursor: pointer; }
+
+  /* Practice moment card */
+  .practice-card { margin: 0 16px 12px; background: #fffdf8; border: 1px solid #e0d8c8; border-radius: 14px; overflow: hidden; }
+  .practice-card-top { padding: 14px; }
+  .practice-card-skill { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .skill-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .skill-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+  .practice-title { font-size: 14px; font-weight: 800; color: #2c2418; margin-bottom: 6px; line-height: 1.4; }
+  .practice-body { font-size: 12px; color: #7a6854; line-height: 1.7; margin-bottom: 10px; }
+  .practice-tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .practice-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+  .tag-duration { background: #e0d8c8; color: #7a6854; }
+  .tag-skill { background: #e8f8f0; color: #2a6a4a; }
+  .tag-fun { background: #fff3e0; color: #c07000; }
+  .practice-card-footer { background: #ede8de; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .practice-footer-label { font-size: 11px; color: #7a6854; }
+  .practice-footer-cta { font-size: 11px; font-weight: 700; color: #2c7a6e; cursor: pointer; }
+
+  /* Teacher note strip */
+  .teacher-strip { margin: 0 16px 12px; background: #eef4ff; border: 1px solid #99b8f044; border-radius: 12px; padding: 12px 14px; display: flex; gap: 10px; }
+  .teacher-strip-icon { font-size: 20px; flex-shrink: 0; }
+  .teacher-strip-body { flex: 1; }
+  .teacher-strip-from { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #2a5090; margin-bottom: 4px; }
+  .teacher-strip-text { font-size: 12px; color: #2a3a5a; line-height: 1.6; }
+  .teacher-strip-meta { font-size: 10px; color: #6a80a4; margin-top: 4px; }
+
+  /* Weekend card */
+  .weekend-card { margin: 0 16px 10px; border-radius: 14px; overflow: hidden; }
+  .weekend-card-img { height: 72px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+  .weekend-card-body { background: #fffdf8; border: 1px solid #e0d8c8; border-top: none; padding: 12px 14px; }
+  .weekend-card-title { font-size: 13px; font-weight: 800; color: #2c2418; margin-bottom: 4px; }
+  .weekend-card-desc { font-size: 12px; color: #7a6854; line-height: 1.6; }
+  .weekend-card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* Bottom nav */
+  .bottom-nav { display: flex; background: #fffdf8; border-top: 1px solid #e0d8c8; padding: 10px 0 14px; position: sticky; bottom: 0; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #c8b8a0; cursor: pointer; }
+  .nav-item.active { color: #2c7a6e; }
+  .nav-icon { font-size: 18px; }
+
+  /* Done state card */
+  .done-card { margin: 0 16px 10px; background: #e8f8f0; border: 1.5px solid #88ddb044; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; opacity: 0.7; }
+  .done-check { font-size: 20px; flex-shrink: 0; }
+  .done-title { font-size: 12px; font-weight: 700; color: #1a6a4a; }
+  .done-sub { font-size: 11px; color: #2a8060; margin-top: 2px; }
+
+  /* Spec */
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('practice')">Practice Moments</button>
+  <button class="tab" onclick="show('weekend')">Weekend Activities</button>
+  <button class="tab" onclick="show('done')">All Done State</button>
+  <button class="tab" onclick="show('noteonly')">Teacher Note Only</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══ TAB 1: PRACTICE MOMENTS ═══ -->
+<div id="practice" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — At-Home Practice Moments</strong><br>
+    Parent-facing screen for one selected child. 2–3 recommended practice moments tailored to current skill tier. Each card: skill dot + tier label + activity title + description + duration/skill/fun tags + footer with "Try together" CTA. Short teacher note strip below. Parent language rules: forward-looking, no accuracy %, tier labels only.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Mia · Support Tier — 2 Moments</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="p-status"><span>9:41</span><span>●●● 🔋</span></div>
+          <div class="p-topbar">
+            <div class="p-back">←</div>
+            <div>
+              <div class="p-topbar-title">Practice at Home</div>
+              <div class="p-topbar-sub">Ideas for Mia this week</div>
+            </div>
+          </div>
+
+          <!-- Child header -->
+          <div class="child-header">
+            <div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#2c7a6e);color:#042018;">M</div>
+            <div>
+              <div class="child-name">Mia · G2–3</div>
+              <div class="child-band">P2 Mint Band · Fractions</div>
+            </div>
+            <div class="child-streak">🔥 21 days</div>
+          </div>
+
+          <!-- Practice moment 1 — support-tier first -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">This Week's Ideas</div>
+            <div class="sec-hdr-action">Refresh</div>
+          </div>
+
+          <div class="practice-card">
+            <div class="practice-card-top">
+              <div class="practice-card-skill">
+                <div class="skill-dot" style="background:#f0c080;"></div>
+                <div class="skill-name" style="color:#b05800;">Building toward Fractions</div>
+              </div>
+              <div class="practice-title">Pizza Fractions at Dinner 🍕</div>
+              <div class="practice-body">Cut a pizza (or toast!) into equal pieces. Ask Mia: "We have 8 slices — if we each eat 2, what part of the pizza is that?" She's building the language for this skill right now — talking through it at home makes a huge difference.</div>
+              <div class="practice-tag-row">
+                <div class="practice-tag tag-duration">⏱ 5 min</div>
+                <div class="practice-tag tag-skill">Fractions</div>
+                <div class="practice-tag tag-fun">🍕 Mealtime</div>
+              </div>
+            </div>
+            <div class="practice-card-footer">
+              <div class="practice-footer-label">No prep needed</div>
+              <div class="practice-footer-cta">Try together →</div>
+            </div>
+          </div>
+
+          <div class="practice-card">
+            <div class="practice-card-top">
+              <div class="practice-card-skill">
+                <div class="skill-dot" style="background:#58e8c1;"></div>
+                <div class="skill-name" style="color:#1a6a4a;">Strength — Multiplication</div>
+              </div>
+              <div class="practice-title">Skip Counting on the Stairs 🪜</div>
+              <div class="practice-body">Mia is great at skip counting — and that's the heart of multiplication. Count every step by 3s together as you go upstairs. She can lead! It builds confidence and keeps the skill sharp.</div>
+              <div class="practice-tag-row">
+                <div class="practice-tag tag-duration">⏱ 2 min</div>
+                <div class="practice-tag tag-skill">Multiplication</div>
+                <div class="practice-tag tag-fun">🏃 Active</div>
+              </div>
+            </div>
+            <div class="practice-card-footer">
+              <div class="practice-footer-label">No prep needed · Anytime</div>
+              <div class="practice-footer-cta">Try together →</div>
+            </div>
+          </div>
+
+          <!-- Teacher note strip -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">From Ms. Chen</div>
+          </div>
+          <div class="teacher-strip">
+            <div class="teacher-strip-icon">👩‍🏫</div>
+            <div class="teacher-strip-body">
+              <div class="teacher-strip-from">Ms. Chen · 2 days ago</div>
+              <div class="teacher-strip-text">Mia is doing great with multiplication in class. For fractions, any real-world practice at home (cutting food, sharing things fairly) would be really helpful right now.</div>
+              <div class="teacher-strip-meta">Room 12 · G2–3</div>
+            </div>
+          </div>
+
+          <div style="height:10px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+            <div class="nav-item"><div class="nav-icon">👧</div>Mia</div>
+            <div class="nav-item active"><div class="nav-icon">🌱</div>Practice</div>
+            <div class="nav-item"><div class="nav-icon">💬</div>Messages</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Leo · Strength Tier — 3 Moments</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="p-status"><span>9:41</span><span>●●● 🔋</span></div>
+          <div class="p-topbar">
+            <div class="p-back">←</div>
+            <div>
+              <div class="p-topbar-title">Practice at Home</div>
+              <div class="p-topbar-sub">Ideas for Leo this week</div>
+            </div>
+          </div>
+          <div class="child-header">
+            <div class="child-avatar" style="background:linear-gradient(135deg,#9b72ff,#6a3fd0);color:#fff;">L</div>
+            <div>
+              <div class="child-name">Leo · K–1</div>
+              <div class="child-band">P1 Violet Band · Fractions Intro</div>
+            </div>
+            <div class="child-streak">🔥 9 days</div>
+          </div>
+
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">This Week's Ideas</div>
+            <div class="sec-hdr-action">Refresh</div>
+          </div>
+
+          <div class="practice-card">
+            <div class="practice-card-top">
+              <div class="practice-card-skill">
+                <div class="skill-dot" style="background:#9b72ff;"></div>
+                <div class="skill-name" style="color:#6a3fd0;">Next Up — Fractions Intro</div>
+              </div>
+              <div class="practice-title">Half & Half Snack 🍪</div>
+              <div class="practice-body">Break a cracker exactly in half with Leo. Ask: "Are these pieces the same?" Then: "What's one half of the cracker?" Leo is just starting fractions — this makes the concept concrete before it's a word.</div>
+              <div class="practice-tag-row">
+                <div class="practice-tag tag-duration">⏱ 3 min</div>
+                <div class="practice-tag tag-skill">Fractions</div>
+                <div class="practice-tag tag-fun">🍪 Snack time</div>
+              </div>
+            </div>
+            <div class="practice-card-footer">
+              <div class="practice-footer-label">No prep needed</div>
+              <div class="practice-footer-cta">Try together →</div>
+            </div>
+          </div>
+
+          <div class="practice-card">
+            <div class="practice-card-top">
+              <div class="practice-card-skill">
+                <div class="skill-dot" style="background:#9b72ff;"></div>
+                <div class="skill-name" style="color:#1a6a4a;">Strength — Counting</div>
+              </div>
+              <div class="practice-title">Count Everything Game 🔢</div>
+              <div class="practice-body">Leo loves counting — let him count things around the house while you time him. How many forks? Books? Steps? It builds number sense and he can be the expert.</div>
+              <div class="practice-tag-row">
+                <div class="practice-tag tag-duration">⏱ 5 min</div>
+                <div class="practice-tag tag-skill">Number sense</div>
+                <div class="practice-tag tag-fun">🎮 Game</div>
+              </div>
+            </div>
+            <div class="practice-card-footer">
+              <div class="practice-footer-label">Anytime · Kid leads</div>
+              <div class="practice-footer-cta">Try together →</div>
+            </div>
+          </div>
+
+          <div style="height:8px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+            <div class="nav-item"><div class="nav-icon">👦</div>Leo</div>
+            <div class="nav-item active"><div class="nav-icon">🌱</div>Practice</div>
+            <div class="nav-item"><div class="nav-icon">💬</div>Messages</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: WEEKEND ACTIVITIES ═══ -->
+<div id="weekend" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Weekend Activity Cards</strong><br>
+    Longer, more elaborate weekend activities. Gradient image header (emoji/illustration placeholder), title, 2–3 sentence description, skill/time/together tags. Max 2 weekend cards shown at once; rotate weekly. Warm parent palette throughout.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Weekend Activities — Mia</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="p-status"><span>9:41</span><span>●●● 🔋</span></div>
+          <div class="p-topbar">
+            <div class="p-back">←</div>
+            <div>
+              <div class="p-topbar-title">Weekend Activities</div>
+              <div class="p-topbar-sub">This weekend · Mia</div>
+            </div>
+          </div>
+
+          <div class="child-header">
+            <div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#2c7a6e);color:#042018;">M</div>
+            <div>
+              <div class="child-name">Mia</div>
+              <div class="child-band">G2–3 · Fractions focus</div>
+            </div>
+            <div class="child-streak">🔥 21 days</div>
+          </div>
+
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">This Weekend</div>
+            <div class="sec-hdr-action">See more →</div>
+          </div>
+
+          <!-- Weekend card 1 -->
+          <div class="weekend-card">
+            <div class="weekend-card-img" style="background:linear-gradient(135deg,#e8f4f0,#b0e8d0);">🛒</div>
+            <div class="weekend-card-body">
+              <div class="weekend-card-title">Grocery Store Fractions</div>
+              <div class="weekend-card-desc">At the store, ask Mia to find items in groups — "half a dozen eggs is 6, can you find something that comes in 4?" She's doing real-world division without realizing it. Take your time, let her lead.</div>
+              <div class="weekend-card-tags">
+                <div class="practice-tag tag-duration">⏱ 15–20 min</div>
+                <div class="practice-tag tag-skill">Fractions · Division</div>
+                <div class="practice-tag" style="background:#eef4ff;color:#2a5090;">🧺 Errand</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weekend card 2 -->
+          <div class="weekend-card">
+            <div class="weekend-card-img" style="background:linear-gradient(135deg,#fff8e0,#f0d888);">🎨</div>
+            <div class="weekend-card-body">
+              <div class="weekend-card-title">Fraction Art Project</div>
+              <div class="weekend-card-desc">Fold a piece of paper in half, then into quarters. Draw something different in each section. Ask: "How many sections are there? What's one section called?" Great for visual learners — Mia will love this.</div>
+              <div class="weekend-card-tags">
+                <div class="practice-tag tag-duration">⏱ 20–30 min</div>
+                <div class="practice-tag tag-skill">Fractions · Visual</div>
+                <div class="practice-tag tag-fun">🎨 Creative</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Teacher strip -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">Ms. Chen's Tip</div>
+          </div>
+          <div class="teacher-strip">
+            <div class="teacher-strip-icon">💡</div>
+            <div class="teacher-strip-body">
+              <div class="teacher-strip-from">Weekend focus</div>
+              <div class="teacher-strip-text">Visual and hands-on activities work best for fractions at this stage. Anything where Mia can see and touch equal parts is perfect.</div>
+            </div>
+          </div>
+
+          <div style="height:8px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+            <div class="nav-item"><div class="nav-icon">👧</div>Mia</div>
+            <div class="nav-item active"><div class="nav-icon">🌱</div>Practice</div>
+            <div class="nav-item"><div class="nav-icon">💬</div>Messages</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: ALL DONE STATE ═══ -->
+<div id="done" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — All Done State</strong><br>
+    All practice moments marked done for the week. Confirmation cards show completed activities. Positive reinforcement — "You did it!" header. No pressure to do more. "Check back next week" messaging. Completed cards are muted + green check.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">All Activities Done</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="p-status"><span>9:41</span><span>●●● 🔋</span></div>
+          <div class="p-topbar">
+            <div class="p-back">←</div>
+            <div>
+              <div class="p-topbar-title">Practice at Home</div>
+              <div class="p-topbar-sub">Mia · This week</div>
+            </div>
+          </div>
+
+          <div class="child-header">
+            <div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#2c7a6e);color:#042018;">M</div>
+            <div>
+              <div class="child-name">Mia</div>
+              <div class="child-band">All done this week! 🎉</div>
+            </div>
+            <div class="child-streak" style="color:#1a6a4a;">✓ Done</div>
+          </div>
+
+          <!-- All done hero -->
+          <div style="margin:16px;background:#e8f8f0;border:1.5px solid #88ddb0;border-radius:14px;padding:20px;text-align:center;">
+            <div style="font-size:36px;margin-bottom:8px;">🌟</div>
+            <div style="font-size:16px;font-weight:800;color:#1a6a4a;margin-bottom:4px;">You did it!</div>
+            <div style="font-size:13px;color:#2a8060;line-height:1.6;">You tried all this week's practice moments with Mia. That makes a real difference.</div>
+          </div>
+
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">This Week</div>
+          </div>
+
+          <div class="done-card">
+            <div class="done-check">✅</div>
+            <div>
+              <div class="done-title">Pizza Fractions at Dinner</div>
+              <div class="done-sub">Fractions · Done Monday</div>
+            </div>
+          </div>
+          <div class="done-card">
+            <div class="done-check">✅</div>
+            <div>
+              <div class="done-title">Skip Counting on the Stairs</div>
+              <div class="done-sub">Multiplication · Done Wednesday</div>
+            </div>
+          </div>
+
+          <div style="margin:14px 16px;background:#fffdf8;border:1px solid #e0d8c8;border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:13px;color:#7a6854;line-height:1.6;">New ideas will be ready next week.<br>Check back Sunday evening.</div>
+          </div>
+
+          <div style="height:8px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+            <div class="nav-item"><div class="nav-icon">👧</div>Mia</div>
+            <div class="nav-item active"><div class="nav-icon">🌱</div>Practice</div>
+            <div class="nav-item"><div class="nav-icon">💬</div>Messages</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: TEACHER NOTE ONLY ═══ -->
+<div id="noteonly" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — Teacher Note Only State</strong><br>
+    Edge case: when no practice suggestions have been generated yet (early week / new skill) but a teacher note exists. Show the note prominently with a gentle "Ideas coming soon" placeholder. Also shows multi-note thread when teacher has left multiple notes over time.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Note Only — Ideas Pending</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="p-status"><span>9:41</span><span>●●● 🔋</span></div>
+          <div class="p-topbar">
+            <div class="p-back">←</div>
+            <div>
+              <div class="p-topbar-title">Practice at Home</div>
+              <div class="p-topbar-sub">Mia · Monday</div>
+            </div>
+          </div>
+          <div class="child-header">
+            <div class="child-avatar" style="background:linear-gradient(135deg,#58e8c1,#2c7a6e);color:#042018;">M</div>
+            <div>
+              <div class="child-name">Mia</div>
+              <div class="child-band">G2–3 · New skill started today</div>
+            </div>
+            <div class="child-streak">🔥 21 days</div>
+          </div>
+
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">This Week's Ideas</div>
+          </div>
+
+          <!-- Placeholder -->
+          <div style="margin:0 16px 14px;background:#fffdf8;border:1px dashed #e0d8c8;border-radius:14px;padding:20px;text-align:center;">
+            <div style="font-size:28px;margin-bottom:8px;">🌱</div>
+            <div style="font-size:13px;font-weight:700;color:#2c2418;margin-bottom:4px;">Ideas on their way</div>
+            <div style="font-size:12px;color:#7a6854;line-height:1.6;">Practice suggestions for Mia's new skill will be ready after her first session this week.</div>
+          </div>
+
+          <!-- Teacher note — prominent when no activities -->
+          <div class="sec-hdr">
+            <div class="sec-hdr-title">From Ms. Chen</div>
+          </div>
+          <div style="margin:0 16px 10px;background:#eef4ff;border:1.5px solid #99b8f044;border-radius:14px;padding:14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <div style="width:32px;height:32px;border-radius:50%;background:#2a5080;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:800;flex-shrink:0;">MC</div>
+              <div>
+                <div style="font-size:12px;font-weight:800;color:#1c2430;">Ms. Chen</div>
+                <div style="font-size:10px;color:#6a80a4;">Room 12 · Today 8:30 AM</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:#2a3a5a;line-height:1.7;">Mia started a brand new skill today — Division Intro. She was curious and excited. Anything at home that involves sharing equally (splitting snacks, dealing cards) would be a great warm-up!</div>
+          </div>
+
+          <!-- Earlier note (thread) -->
+          <div style="margin:0 16px 10px;background:#fffdf8;border:1px solid #e0d8c8;border-radius:12px;padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#e4eaf0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#2a5080;font-weight:800;flex-shrink:0;">MC</div>
+              <div style="font-size:10px;color:#9ab0c4;">Ms. Chen · 5 days ago</div>
+            </div>
+            <div style="font-size:12px;color:#7a6854;line-height:1.6;">Mia finished the Multiplication skill! She did great. Fractions will be the next step when she's ready.</div>
+          </div>
+
+          <div style="height:8px;"></div>
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon">🏠</div>Home</div>
+            <div class="nav-item"><div class="nav-icon">👧</div>Mia</div>
+            <div class="nav-item active"><div class="nav-icon">🌱</div>Practice</div>
+            <div class="nav-item"><div class="nav-icon">💬</div>Messages</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC ═══ -->
+<div id="spec" class="panel">
+  <div class="hint">
+    <strong>Tab 5 — Spec Notes</strong><br>
+    Route, content generation rules, practice moment caps, language rules (NEVER accuracy/missed sessions), teacher note display rules, weekend activity rotation, and design tokens.
+  </div>
+
+  <div class="spec-h2">Route</div>
+  <div class="spec-note">Route: <code>/parent/child/:childId/practice</code>. Accessible from: Family Summary "Try at Home" CTA, child detail screen, bottom nav Practice tab. Always shows one selected child — no multi-child view on this screen.</div>
+
+  <div class="spec-h2">Practice Moment Generation Rules</div>
+  <table class="spec-table">
+    <tr><th>Rule</th><th>Detail</th></tr>
+    <tr><td>Count</td><td>2–3 moments max. Support-tier skills shown first; Strength-tier second; Next-tier third.</td></tr>
+    <tr><td>Refresh cadence</td><td>New suggestions every Monday. Parent can tap "Refresh" for a new set once per day.</td></tr>
+    <tr><td>Content tone</td><td>NEVER "Mia is struggling with". ALWAYS "Mia is building toward / working on / developing".</td></tr>
+    <tr><td>Duration</td><td>All activities: 2–20 min max. Weekend cards: 15–30 min. Never suggest multi-hour commitments.</td></tr>
+    <tr><td>Tags</td><td>Always show: duration + skill name. Optional: activity type (Mealtime / Active / Creative / Game / Errand).</td></tr>
+    <tr><td>Done state</td><td>Parent marks as done. Done cards shown muted at bottom. "Check back next week" message shown when all done.</td></tr>
+  </table>
+
+  <div class="spec-h2">Language Rules (Parent-Facing)</div>
+  <table class="spec-table">
+    <tr><th>Never say</th><th>Say instead</th></tr>
+    <tr><td>Struggling with fractions</td><td>Building toward fractions / Working on fractions</td></tr>
+    <tr><td>Missed X sessions this week</td><td>Has been busy this week / Check back soon</td></tr>
+    <tr><td>Scored 60% on fractions</td><td>(Never show scores)</td></tr>
+    <tr><td>Needs to practice more</td><td>Any extra practice at home makes a big difference</td></tr>
+    <tr><td>Behind on skill</td><td>Developing this skill right now</td></tr>
+  </table>
+
+  <div class="spec-h2">Teacher Note Rules</div>
+  <div class="spec-note">
+    Show max 1 recent note (last 7 days) prominently. If note older than 7 days, show collapsed with "earlier note from Ms. Chen" disclosure. Thread shows most recent first. If no note: show the "Ideas on their way" placeholder — never show an empty note section. Teacher notes sourced from intervention timeline notes tagged as parent-visible.
+  </div>
+
+  <div class="spec-h2">Weekend Activity Rules</div>
+  <div class="spec-note">
+    Weekend cards appear from Friday through Sunday. Removed Monday morning and replaced with weekday suggestions. Max 2 weekend cards. Rotate weekly — same activity cannot appear two weeks in a row for the same child. Weekend cards are longer format (15–30 min) and more elaborate than weekday moments.
+  </div>
+
+  <div class="spec-h2">Design Tokens</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>Base bg</td><td><code>#f5f0e8</code> warm parchment</td></tr>
+    <tr><td>Card surface</td><td><code>#fffdf8</code></td></tr>
+    <tr><td>Surface alt</td><td><code>#ede8de</code></td></tr>
+    <tr><td>Border</td><td><code>#e0d8c8</code></td></tr>
+    <tr><td>Text primary</td><td><code>#2c2418</code></td></tr>
+    <tr><td>Text secondary</td><td><code>#7a6854</code></td></tr>
+    <tr><td>Accent / CTA</td><td><code>#2c7a6e</code></td></tr>
+    <tr><td>Teacher note bg</td><td><code>#eef4ff</code> / border <code>#99b8f044</code></td></tr>
+    <tr><td>Done state bg</td><td><code>#e8f8f0</code> / border <code>#88ddb044</code></td></tr>
+    <tr><td>Support tier</td><td><code>#fff3e0</code> / text <code>#b05800</code></td></tr>
+    <tr><td>Strength tier</td><td><code>#e8f8f0</code> / text <code>#1a6a4a</code></td></tr>
+    <tr><td>Next tier</td><td><code>#eef4ff</code> / text <code>#2a5090</code></td></tr>
+    <tr><td>Font</td><td>Sora · parent all</td></tr>
+    <tr><td>Phone frame</td><td>375px</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

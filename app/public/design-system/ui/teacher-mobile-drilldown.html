@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Mobile Drilldown — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#e4eaf2;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#d8dfe8;flex-wrap:wrap;border-bottom:1px solid #c2cad6}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #aab8c8;background:transparent;color:#5a7a9a;cursor:pointer;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+  .tab.active{background:#2a6ab4;border-color:#2a6ab4;color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#fffbeb;border:1px solid #e6d48a;border-left:3px solid #c9a227;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#7a5c0a;line-height:1.6}
+  .eng-note strong{color:#c9a227;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .phone{width:390px;min-height:844px;background:#f0f4f8;border-radius:40px;border:2px solid #c8d0dc;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,0.1);display:flex;flex-direction:column}
+  .phone-label{text-align:center;margin-top:10px;font-size:12px;color:#6a8aaa;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* Top bar */
+  .topbar{display:flex;align-items:center;gap:10px;padding:52px 20px 12px;background:#fff;border-bottom:1px solid #dde4ec}
+  .tb-back{font-size:18px;color:#4a6a8a;cursor:pointer;flex-shrink:0}
+  .tb-title{font-size:15px;font-weight:800;color:#1a2634;flex:1;line-height:1.2}
+  .tb-action{font-size:12px;font-weight:700;color:#2a6ab4;cursor:pointer;flex-shrink:0}
+
+  /* Skill summary header */
+  .skill-header{background:#fff;padding:14px 20px;border-bottom:1px solid #dde4ec}
+  .sh-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;margin-bottom:6px}
+  .sh-title{font-size:18px;font-weight:800;color:#1a2634;margin-bottom:4px}
+  .sh-meta{font-size:12px;color:#6a8aaa;font-weight:500;margin-bottom:10px}
+  .sh-dist{display:flex;gap:8px}
+  .sh-chip{flex:1;text-align:center;padding:8px 4px;border-radius:10px;cursor:pointer}
+  .sh-chip.support{background:#fef3cd}
+  .sh-chip.watch{background:#e8f0fe}
+  .sh-chip.strong{background:#d4ede6}
+  .sh-val{font-size:17px;font-weight:800}
+  .sh-val.support{color:#7a5c0a}
+  .sh-val.watch{color:#1a3a6e}
+  .sh-val.strong{color:#1a5c3a}
+  .sh-sub{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+  .sh-sub.support{color:#9a7c2a}
+  .sh-sub.watch{color:#2a5a9e}
+  .sh-sub.strong{color:#2a7a4a}
+
+  /* Scroll zone */
+  .scroll-zone{flex:1;overflow-y:auto;background:#f0f4f8}
+
+  /* Tier section */
+  .tier-section{padding:10px 16px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;background:#f0f4f8;border-bottom:1px solid #dde4ec;position:sticky;top:0;z-index:2}
+  .tier-section.support{color:#7a5c0a;background:#fef9ec}
+  .tier-section.watch{color:#1a3a6e;background:#eef4fe}
+  .tier-section.strong{color:#1a5c3a;background:#ecf8f3}
+
+  /* Student rows */
+  .student-row{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border-bottom:1px solid #f0f4f8;cursor:pointer;transition:background .15s}
+  .student-row:hover{background:#f8fafb}
+  .sr-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+  .sr-av.support{background:#e67e22}
+  .sr-av.watch{background:#2a6ab4}
+  .sr-av.strong{background:#27ae60}
+  .sr-meta{flex:1;min-width:0}
+  .sr-name{font-size:13px;font-weight:700;color:#1a2634}
+  .sr-detail{font-size:11px;color:#6a8aaa;font-weight:500;margin-top:1px}
+  .sr-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;flex-shrink:0}
+  .sr-badge.support{background:#fef3cd;color:#7a5c0a}
+  .sr-badge.watch{background:#e8f0fe;color:#1a3a6e}
+  .sr-badge.strong{background:#d4ede6;color:#1a5c3a}
+  .sr-arrow{font-size:14px;color:#8a9aaa;flex-shrink:0}
+
+  /* Intervention note stack */
+  .note-card{background:#fff;margin:10px 14px;border-radius:14px;border:1px solid #dde4ec;overflow:hidden}
+  .nc-header{padding:12px 14px 8px;border-bottom:1px solid #f0f4f8}
+  .nc-title{font-size:12px;font-weight:800;color:#1a2634;margin-bottom:2px}
+  .nc-meta{font-size:10px;color:#6a8aaa;font-weight:500}
+  .nc-body{padding:10px 14px}
+  .nc-text{font-size:12px;font-weight:600;color:#2a3c4a;line-height:1.5}
+  .nc-footer{padding:8px 14px;background:#f8fafb;display:flex;justify-content:space-between;align-items:center}
+  .nc-author{font-size:10px;color:#8a9aaa;font-weight:500}
+  .nc-action{font-size:11px;color:#2a6ab4;font-weight:700;cursor:pointer}
+
+  /* Action footer */
+  .action-footer{padding:12px 16px 40px;background:#fff;border-top:1px solid #dde4ec}
+  .af-row{display:flex;gap:8px}
+  .af-btn{flex:1;padding:13px;border-radius:13px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-align:center;border:1.5px solid #dde4ec;background:#f0f4f8;color:#4a6a8a;transition:all .2s}
+  .af-btn.primary{background:#2a6ab4;border-color:#2a6ab4;color:#fff;box-shadow:0 2px 10px rgba(42,106,180,.3)}
+
+  /* What to do next */
+  .next-section{padding:12px 14px;background:#f8fafb;margin-top:2px}
+  .ns-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;margin-bottom:8px}
+  .next-card{background:#fff;border:1px solid #dde4ec;border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+  .next-card:hover{border-color:#2a6ab4;background:#e8f0fe}
+  .next-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+  .next-text{font-size:12px;font-weight:600;color:#1a2634;line-height:1.4;flex:1}
+  .next-arrow{font-size:13px;color:#8a9aaa;flex-shrink:0;margin-top:2px}
+
+  /* 5-week mini chart */
+  .mini-chart{display:flex;gap:5px;align-items:flex-end;height:32px;margin-top:8px}
+  .mc-bar{flex:1;border-radius:3px 3px 0 0;background:#2a6ab4;opacity:.5}
+  .mc-bar.active{opacity:1}
+  .mc-bar.low{background:#e74c3c;opacity:.8}
+  .mc-labels{display:flex;gap:5px;margin-top:3px}
+  .mc-label{flex:1;text-align:center;font-size:9px;color:#8a9aaa;font-weight:600}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">Skill Drilldown Header</button>
+  <button class="tab" onclick="show('t2',this)">Student Tier Rows</button>
+  <button class="tab" onclick="show('t3',this)">Intervention Note Stack</button>
+  <button class="tab" onclick="show('t4',this)">Action Footer — What Next</button>
+</div>
+
+<!-- TAB 1: Header -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 27 / Tab 1: Teacher mobile drilldown header</strong>
+    Route: /teacher/skills/:skill-id (push nav from intervention queue or class overview). Top bar: back arrow + skill name + optional export action. Skill summary header: distribution chips (Support / Watch / Strong counts), 5-week trend mini-chart. Plain language throughout — no grade labels. Skill header is not sticky — scrolls away to give content more room.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="topbar">
+          <div class="tb-back">←</div>
+          <div class="tb-title">Counting 11–20</div>
+          <div class="tb-action">Export</div>
+        </div>
+        <div class="skill-header">
+          <div class="sh-label">Skill drilldown · 24 students</div>
+          <div class="sh-title">Counting 11–20</div>
+          <div class="sh-meta">Week of Mar 17 · Most recent sessions used</div>
+          <div class="sh-dist">
+            <div class="sh-chip support">
+              <div class="sh-val support">4</div>
+              <div class="sh-sub support">Support</div>
+            </div>
+            <div class="sh-chip watch">
+              <div class="sh-val watch">7</div>
+              <div class="sh-sub watch">Watch</div>
+            </div>
+            <div class="sh-chip strong">
+              <div class="sh-val strong">13</div>
+              <div class="sh-sub strong">On track</div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:10px;font-weight:700;color:#6a8aaa;margin-bottom:4px">Class trend — last 5 weeks</div>
+            <div class="mini-chart">
+              <div class="mc-bar" style="height:50%"></div>
+              <div class="mc-bar" style="height:65%"></div>
+              <div class="mc-bar low" style="height:40%"></div>
+              <div class="mc-bar" style="height:60%"></div>
+              <div class="mc-bar active" style="height:70%"></div>
+            </div>
+            <div class="mc-labels">
+              <div class="mc-label">Wk1</div><div class="mc-label">Wk2</div><div class="mc-label">Wk3</div><div class="mc-label">Wk4</div><div class="mc-label">Now</div>
+            </div>
+          </div>
+        </div>
+        <div class="scroll-zone">
+          <div class="tier-section support">Support — needs attention (4)</div>
+          <div class="student-row">
+            <div class="sr-av support">MJ</div>
+            <div class="sr-meta"><div class="sr-name">Maya Johnson</div><div class="sr-detail">3 sessions stuck · plateau at 15</div></div>
+            <div class="sr-badge support">Support</div>
+            <div class="sr-arrow">→</div>
+          </div>
+          <div class="student-row">
+            <div class="sr-av support">TP</div>
+            <div class="sr-meta"><div class="sr-name">Tyler Park</div><div class="sr-detail">Inconsistent · needs guided practice</div></div>
+            <div class="sr-badge support">Support</div>
+            <div class="sr-arrow">→</div>
+          </div>
+          <div class="tier-section watch">Watch — monitor (7)</div>
+          <div class="student-row">
+            <div class="sr-av watch">KR</div>
+            <div class="sr-meta"><div class="sr-name">Kai Rivera</div><div class="sr-detail">Slower progress · check next week</div></div>
+            <div class="sr-badge watch">Watch</div>
+            <div class="sr-arrow">→</div>
+          </div>
+          <div style="padding:8px 16px;font-size:11px;color:#6a8aaa;font-weight:600;background:#fff;border-bottom:1px solid #f0f4f8">+ 6 more in watch tier</div>
+          <div class="tier-section strong">On track — strong (13)</div>
+          <div style="padding:14px 16px;background:#fff;font-size:12px;color:#27ae60;font-weight:700">13 students on track or ahead ✓</div>
+        </div>
+        <div class="action-footer">
+          <div class="af-row">
+            <div class="af-btn primary">Add group note</div>
+            <div class="af-btn">Filter tier</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Skill drilldown — header + tiers</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Student tier rows -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 27 / Tab 2: Student tier rows — tapping opens student detail</strong>
+    Tapping a student row pushes to student detail screen (not a sheet/modal). Student detail shows: name, tier badge, this skill's trend chart, recent intervention notes, and "what to do next" cards. Back arrow returns to skill drilldown. Each tier group has its own sticky section header.
+  </div>
+  <div class="frame-wrap">
+    <!-- Student detail push screen -->
+    <div>
+      <div class="phone">
+        <div class="topbar">
+          <div class="tb-back">←</div>
+          <div class="tb-title" style="font-size:14px">Maya Johnson<br><span style="font-size:11px;color:#6a8aaa;font-weight:500">Counting 11–20</span></div>
+          <div class="tb-action">Note</div>
+        </div>
+        <div class="scroll-zone">
+          <!-- Student header -->
+          <div style="background:#fff;padding:14px 16px;border-bottom:1px solid #dde4ec">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="sr-av support" style="width:44px;height:44px;font-size:16px">MJ</div>
+              <div>
+                <div style="font-size:15px;font-weight:800;color:#1a2634">Maya Johnson</div>
+                <div style="font-size:11px;color:#6a8aaa;font-weight:500">Grade 2 · Counting 11–20</div>
+              </div>
+              <div class="sr-badge support" style="margin-left:auto;padding:5px 10px">Support</div>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#4a6a8a;background:#fef9ec;border-radius:10px;padding:10px 12px;line-height:1.5">Plateau at 15 for 3 sessions. Needs concrete counting practice with physical objects.</div>
+            <!-- Mini trend -->
+            <div style="margin-top:10px">
+              <div style="font-size:10px;font-weight:700;color:#6a8aaa;margin-bottom:4px">Maya's trend — last 5 weeks</div>
+              <div class="mini-chart">
+                <div class="mc-bar" style="height:60%"></div>
+                <div class="mc-bar" style="height:80%"></div>
+                <div class="mc-bar low" style="height:40%"></div>
+                <div class="mc-bar low" style="height:35%"></div>
+                <div class="mc-bar active" style="height:38%"></div>
+              </div>
+              <div class="mc-labels">
+                <div class="mc-label">Wk1</div><div class="mc-label">Wk2</div><div class="mc-label">Wk3</div><div class="mc-label">Wk4</div><div class="mc-label">Now</div>
+              </div>
+            </div>
+          </div>
+          <!-- Notes -->
+          <div style="padding:10px 14px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa">Intervention notes</div>
+          <div class="note-card">
+            <div class="nc-header">
+              <div class="nc-title">Guided counting check</div>
+              <div class="nc-meta">Mar 20 · Ms. Rivera</div>
+            </div>
+            <div class="nc-body">
+              <div class="nc-text">Can count to 14 reliably, struggles past 15. Recommend counting bears activity with physical objects.</div>
+            </div>
+            <div class="nc-footer">
+              <div class="nc-author">Counting 11–20</div>
+              <div class="nc-action">Edit →</div>
+            </div>
+          </div>
+          <div class="note-card">
+            <div class="nc-header">
+              <div class="nc-title">Peer counting game</div>
+              <div class="nc-meta">Mar 18 · Ms. Rivera</div>
+            </div>
+            <div class="nc-body">
+              <div class="nc-text">Paired with Kai — Maya more engaged. Will observe next session for skill transfer.</div>
+            </div>
+            <div class="nc-footer">
+              <div class="nc-author">Counting 11–20</div>
+              <div class="nc-action">Edit →</div>
+            </div>
+          </div>
+          <div style="padding:8px 14px;font-size:11px;color:#2a6ab4;font-weight:700;cursor:pointer">+ Add new note</div>
+          <div style="height:8px"></div>
+        </div>
+        <div class="action-footer">
+          <div class="af-row">
+            <div class="af-btn primary">What to do next</div>
+            <div class="af-btn">Message parent</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Student detail — Maya</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Intervention note stack -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 27 / Tab 3: Intervention note stack on mobile</strong>
+    Notes shown as cards stacked vertically. Each card: note title (auto-generated or teacher-written), date + author, body text, footer with skill tag + edit action. Tap "Add new note" opens a bottom sheet with a text field + skill selector + save button. Notes are sorted newest first. Max 3 shown on student detail screen — "See all" expands. Notes are plain text only on mobile (no rich text).
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="topbar">
+          <div class="tb-back">←</div>
+          <div class="tb-title">All notes — Maya Johnson</div>
+          <div class="tb-action">+ Note</div>
+        </div>
+        <div class="scroll-zone">
+          <div style="padding:8px 14px 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6a8aaa;background:#f0f4f8">4 notes · Counting 11–20</div>
+          <div class="note-card" style="margin:10px 14px 0">
+            <div style="width:3px;height:100%;background:#e74c3c;position:absolute;left:0;top:0;border-radius:3px 0 0 3px"></div>
+            <div class="nc-header">
+              <div class="nc-title">Guided counting check</div>
+              <div class="nc-meta">Mar 20, 2026 · Ms. Rivera</div>
+            </div>
+            <div class="nc-body"><div class="nc-text">Can count to 14 reliably, struggles past 15. Recommend counting bears activity with physical objects.</div></div>
+            <div class="nc-footer"><div class="nc-author">Counting 11–20 · Support</div><div class="nc-action">Edit</div></div>
+          </div>
+          <div class="note-card" style="margin:8px 14px 0">
+            <div class="nc-header"><div class="nc-title">Peer counting game</div><div class="nc-meta">Mar 18, 2026 · Ms. Rivera</div></div>
+            <div class="nc-body"><div class="nc-text">Paired with Kai for peer counting game — Maya more engaged, will observe next session for transfer.</div></div>
+            <div class="nc-footer"><div class="nc-author">Counting 11–20</div><div class="nc-action">Edit</div></div>
+          </div>
+          <div class="note-card" style="margin:8px 14px 0">
+            <div class="nc-header"><div class="nc-title">Parent notification sent</div><div class="nc-meta">Mar 15, 2026 · Ms. Rivera</div></div>
+            <div class="nc-body"><div class="nc-text">Parent notified about counting plateau via app. Parent confirmed practicing at home with toys.</div></div>
+            <div class="nc-footer"><div class="nc-author">Counting 11–20</div><div class="nc-action">Edit</div></div>
+          </div>
+          <div class="note-card" style="margin:8px 14px 16px">
+            <div class="nc-header"><div class="nc-title">Initial support flag</div><div class="nc-meta">Mar 10, 2026 · Auto-detected</div></div>
+            <div class="nc-body"><div class="nc-text">System flagged Maya for extra practice after 2 consecutive sessions below expected progress threshold.</div></div>
+            <div class="nc-footer"><div class="nc-author">Counting 11–20 · Auto</div><div class="nc-action">Dismiss</div></div>
+          </div>
+        </div>
+        <div class="action-footer">
+          <div class="af-row">
+            <div class="af-btn primary">+ Add note</div>
+            <div class="af-btn">Export</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Note stack — all notes</div>
+    </div>
+    <!-- Add note bottom sheet -->
+    <div>
+      <div class="phone" style="position:relative;overflow:hidden">
+        <div style="background:#f0f4f8;flex:1;padding:60px 20px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8a9aaa;font-size:13px;font-weight:600">Skill drilldown content behind sheet</div>
+        <!-- Sheet overlay -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px 20px 40px;box-shadow:0 -4px 24px rgba(0,0,0,.12)">
+          <div style="width:36px;height:4px;background:#dde4ec;border-radius:2px;margin:0 auto 16px"></div>
+          <div style="font-size:15px;font-weight:800;color:#1a2634;margin-bottom:12px">Add intervention note</div>
+          <div style="font-size:11px;font-weight:700;color:#6a8aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Student</div>
+          <div style="background:#f0f4f8;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:#1a2634">Maya Johnson · Counting 11–20</div>
+          <div style="font-size:11px;font-weight:700;color:#6a8aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Note</div>
+          <textarea style="width:100%;background:#f0f4f8;border:1.5px solid #2a6ab4;border-radius:12px;padding:12px 14px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:#1a2634;outline:none;resize:none;height:80px" placeholder="What did you observe or do?">Pulled Maya for 1:1 counting — used number line, counted to 17 successfully today. Good sign!</textarea>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button style="flex:1;padding:13px;border-radius:12px;border:none;background:#2a6ab4;color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Save note</button>
+            <button style="padding:13px 16px;border-radius:12px;border:1.5px solid #dde4ec;background:#f0f4f8;color:#6a8aaa;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Add note — bottom sheet</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Action footer -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 27 / Tab 4: Action footer — what to do next</strong>
+    Sticky footer at bottom of skill drilldown and student detail. "What to do next" section lives just above the footer as a small card stack (2–3 suggestions max). Suggestions are context-aware: if student is in "Support" tier → pull-aside activity. If "Watch" → monitor note. Primary button = "Add note" (most common teacher action). Secondary = context-dependent (message parent / export / back to queue).
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="topbar">
+          <div class="tb-back">←</div>
+          <div class="tb-title" style="font-size:14px">Maya Johnson<br><span style="font-size:11px;color:#6a8aaa;font-weight:500">Counting 11–20</span></div>
+        </div>
+        <div class="scroll-zone">
+          <!-- Notes abbreviated -->
+          <div class="note-card" style="margin:10px 14px 0">
+            <div class="nc-header"><div class="nc-title">Guided counting check</div><div class="nc-meta">Mar 20 · Ms. Rivera</div></div>
+            <div class="nc-body"><div class="nc-text">Can count to 14 reliably, struggles past 15.</div></div>
+          </div>
+          <!-- What to do next -->
+          <div class="next-section">
+            <div class="ns-label">What to do next</div>
+            <div class="next-card">
+              <span class="next-icon">🎯</span>
+              <span class="next-text">5-min pull-aside: guided counting from 15 to 20 with physical objects</span>
+              <span class="next-arrow">→</span>
+            </div>
+            <div class="next-card">
+              <span class="next-icon">💬</span>
+              <span class="next-text">Send a "try at home" tip to Maya's parent about counting practice</span>
+              <span class="next-arrow">→</span>
+            </div>
+            <div class="next-card">
+              <span class="next-icon">📝</span>
+              <span class="next-text">Add a note after today's session</span>
+              <span class="next-arrow">→</span>
+            </div>
+          </div>
+        </div>
+        <div class="action-footer">
+          <div class="af-row">
+            <div class="af-btn primary">+ Add note</div>
+            <div class="af-btn">Message parent</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">What to do next + action footer</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

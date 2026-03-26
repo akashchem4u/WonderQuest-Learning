@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Feedback Triage Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #060b12; min-height: 100vh; padding: 24px 16px 40px; display: flex; flex-direction: column; align-items: center; }
+.page-title { font-size: 13px; font-weight: 800; color: #ffd166; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; opacity: 0.7; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; width: 100%; max-width: 430px; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; width: 100%; max-width: 430px; }
+.tab { padding: 7px 10px; border-radius: 6px 6px 0 0; background: #1a2030; border: none; cursor: pointer; font-family: inherit; font-size: 10px; font-weight: 700; color: #607080; }
+.tab.active { background: #0d1117; color: #ffd166; }
+
+/* Phone */
+.phone { width: 390px; background: #0d1117; border-radius: 36px; border: 3px solid #1e2d40; box-shadow: 0 20px 60px rgba(0,0,0,0.7); overflow: hidden; min-height: 750px; display: flex; flex-direction: column; }
+.status-bar { background: #080e16; padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 11px; color: #4a6080; }
+.phone-header { background: #080e16; padding: 12px 16px 14px; border-bottom: 1px solid #1e2d40; display: flex; align-items: center; justify-content: space-between; }
+.header-title { font-size: 16px; font-weight: 900; color: #fff; }
+.header-badge { background: #3a1010; color: #ff6666; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; }
+.phone-body { flex: 1; overflow-y: auto; padding: 0 0 80px; }
+
+/* Filter strip */
+.filter-strip { display: flex; gap: 6px; padding: 12px 16px; overflow-x: auto; }
+.f-chip { padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 700; border: 1.5px solid #1e2d40; background: #111824; color: #4a6080; white-space: nowrap; cursor: pointer; }
+.f-chip.active { background: #ffd166; color: #1a0f00; border-color: #ffd166; }
+.f-chip.p0-active { background: #3a1010; color: #ff6666; border-color: #cc3333; }
+
+/* Triage item */
+.triage-item { margin: 8px 16px; background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 14px; position: relative; }
+.triage-item.p0 { border-left: 3px solid #ff4444; }
+.triage-item.p1 { border-left: 3px solid #ffd166; }
+.triage-item.p2 { border-left: 3px solid #4488ff; }
+.ti-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.ti-id { font-size: 10px; color: #4a6080; font-weight: 700; }
+.ti-sev { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+.sev-p0 { background: #3a1010; color: #ff6666; }
+.sev-p1 { background: #2a2000; color: #ffd166; }
+.sev-p2 { background: #0a2030; color: #66aaff; }
+.ti-state { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; margin-left: auto; }
+.state-open { background: #1e2d40; color: #8090a8; }
+.state-assigned { background: #0a3020; color: #44cc88; }
+.state-review { background: #1a2800; color: #88cc44; }
+.state-blocked { background: #2a1010; color: #ff8888; }
+.ti-summary { font-size: 13px; font-weight: 700; color: #e0e8f0; margin-bottom: 6px; line-height: 1.4; }
+.ti-meta { font-size: 10px; color: #4a6080; margin-bottom: 10px; }
+.ti-actions { display: flex; gap: 6px; }
+.ti-btn { flex: 1; padding: 8px 10px; border-radius: 8px; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border: none; text-align: center; }
+.btn-resolve { background: #0a3020; color: #44cc88; }
+.btn-escalate { background: #3a1010; color: #ff8888; }
+.btn-assign { background: #1e2d40; color: #ffd166; }
+.btn-view { background: #1e2d40; color: #8090a8; }
+
+/* Swipe hint */
+.swipe-hint { font-size: 10px; color: #4a6080; text-align: center; padding: 6px 16px 0; }
+
+/* Assign flow */
+.assign-form { padding: 16px; }
+.af-card { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.af-title { font-size: 13px; font-weight: 800; color: #ffd166; margin-bottom: 10px; }
+.af-label { font-size: 10px; font-weight: 700; color: #4a6080; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 5px; }
+.af-select { width: 100%; padding: 10px 12px; border: 1.5px solid #1e2d40; border-radius: 8px; background: #0d1117; color: #e0e8f0; font-family: inherit; font-size: 13px; outline: none; margin-bottom: 12px; }
+.af-textarea { width: 100%; padding: 10px 12px; border: 1.5px solid #1e2d40; border-radius: 8px; background: #0d1117; color: #e0e8f0; font-family: inherit; font-size: 12px; resize: none; min-height: 60px; outline: none; }
+.af-row { display: flex; gap: 8px; margin-top: 10px; }
+.af-btn { flex: 1; padding: 12px; border-radius: 10px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+.af-cancel { background: #1e2d40; color: #8090a8; }
+.af-confirm { background: #ffd166; color: #1a0f00; }
+
+/* Resolved list */
+.resolved-item { margin: 8px 16px; background: #0a1a0a; border: 1px solid #1a3020; border-radius: 10px; padding: 12px; }
+.ri-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ri-title { font-size: 12px; font-weight: 700; color: #88c888; }
+.ri-meta { font-size: 10px; color: #4a6080; }
+.ri-resolved { font-size: 10px; color: #44cc88; font-weight: 700; margin-top: 4px; }
+
+/* Bottom bar */
+.phone-bottom { background: #080e16; border-top: 1px solid #1e2d40; padding: 12px 16px 24px; display: flex; gap: 6px; }
+.ab-btn { flex: 1; padding: 12px 8px; border-radius: 10px; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; border: none; }
+.ab-primary { background: #ffd166; color: #1a0f00; }
+.ab-secondary { background: #1e2d40; color: #c0d0e0; }
+.ab-danger { background: #3a1010; color: #ff8888; }
+
+/* Spec */
+.spec-body { padding: 16px; flex: 1; overflow-y: auto; }
+.spec-block { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.spec-title { font-size: 13px; font-weight: 800; color: #ffd166; margin-bottom: 8px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.spec-list li { font-size: 11px; color: #8090a8; padding-left: 14px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #ffd166; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Owner Feedback Triage Mobile v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> 390px compact triage queue. P0 first, severity-sorted. Each item: ID, summary, severity chip, state chip, quick-assign / resolve actions. Visual swipe buttons (right = resolve, left = escalate). Dark owner theme.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Triage Queue</button>
+  <button class="tab" onclick="show('t2')">P0 Urgent</button>
+  <button class="tab" onclick="show('t3')">Assign Flow</button>
+  <button class="tab" onclick="show('t4')">Resolved</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Triage Queue -->
+<div class="phone" id="t1" style="display:flex;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <div><div class="header-title">Feedback Triage</div></div>
+    <div class="header-badge">23 open</div>
+  </div>
+  <div class="phone-body">
+    <div class="filter-strip">
+      <span class="f-chip active">All (23)</span>
+      <span class="f-chip p0-active">P0 (6)</span>
+      <span class="f-chip">P1 (9)</span>
+      <span class="f-chip">P2 (8)</span>
+      <span class="f-chip">Unassigned</span>
+      <span class="f-chip">Blocked</span>
+    </div>
+    <div class="swipe-hint">→ swipe right to resolve · ← swipe left to escalate</div>
+
+    <div class="triage-item p0">
+      <div class="ti-top"><span class="ti-id">#BUG-441</span><span class="ti-sev sev-p0">P0</span><span class="ti-state state-blocked">Blocked</span></div>
+      <div class="ti-summary">iPad session crashes on OS 17.3 when submitting an answer</div>
+      <div class="ti-meta">Opened 20 Mar · QA blocked · Unassigned</div>
+      <div class="ti-actions"><button class="ti-btn btn-assign">Assign</button><button class="ti-btn btn-escalate">Escalate</button></div>
+    </div>
+
+    <div class="triage-item p0">
+      <div class="ti-top"><span class="ti-id">#BUG-438</span><span class="ti-sev sev-p0">P0</span><span class="ti-state state-assigned">Dev assigned</span></div>
+      <div class="ti-summary">Parent linking — email OTP not delivered (3 reports)</div>
+      <div class="ti-meta">Opened 18 Mar · Dev in progress · Jay K.</div>
+      <div class="ti-actions"><button class="ti-btn btn-resolve">Resolve</button><button class="ti-btn btn-view">View</button></div>
+    </div>
+
+    <div class="triage-item p0">
+      <div class="ti-top"><span class="ti-id">#BUG-435</span><span class="ti-sev sev-p0">P0</span><span class="ti-state state-review">In review</span></div>
+      <div class="ti-summary">Teacher SNS badge not updating after session completion</div>
+      <div class="ti-meta">Opened 16 Mar · Fix deployed · In QA review</div>
+      <div class="ti-actions"><button class="ti-btn btn-resolve">Resolve</button><button class="ti-btn btn-view">View</button></div>
+    </div>
+
+    <div class="triage-item p1">
+      <div class="ti-top"><span class="ti-id">#BUG-430</span><span class="ti-sev sev-p1">P1</span><span class="ti-state state-open">Open</span></div>
+      <div class="ti-summary">Owner dashboard KPI figures 24h delayed — should be real-time</div>
+      <div class="ti-meta">Opened 14 Mar · Backend work needed · Unassigned</div>
+      <div class="ti-actions"><button class="ti-btn btn-assign">Assign</button><button class="ti-btn btn-escalate">→ P0</button></div>
+    </div>
+
+    <div class="triage-item p1">
+      <div class="ti-top"><span class="ti-id">#BUG-428</span><span class="ti-sev sev-p1">P1</span><span class="ti-state state-open">Open</span></div>
+      <div class="ti-summary">Voice coach audio drops mid-session on Android 13</div>
+      <div class="ti-meta">Opened 12 Mar · Pending repro · Unassigned</div>
+      <div class="ti-actions"><button class="ti-btn btn-assign">Assign</button><button class="ti-btn btn-view">View</button></div>
+    </div>
+
+    <div class="triage-item p2">
+      <div class="ti-top"><span class="ti-id">#BUG-422</span><span class="ti-sev sev-p2">P2</span><span class="ti-state state-open">Open</span></div>
+      <div class="ti-summary">World picker unlock animation stutters on older Android devices</div>
+      <div class="ti-meta">Opened 9 Mar · Low priority · Not blocking GO</div>
+      <div class="ti-actions"><button class="ti-btn btn-resolve">Accept as-is</button><button class="ti-btn btn-view">View</button></div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">Filter</button>
+    <button class="ab-btn ab-primary">Batch Assign</button>
+  </div>
+</div>
+
+<!-- TAB 2: P0 Urgent -->
+<div class="phone" id="t2" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <div><div class="header-title">P0 Urgent</div></div>
+    <div class="header-badge">6 open</div>
+  </div>
+  <div class="phone-body">
+    <div style="padding:12px 16px;background:#1a0a0a;font-size:11px;color:#ff8888;line-height:1.5;border-bottom:1px solid #2a1010;">
+      <strong>All P0 issues must be resolved before release.</strong> Current: 3 open P0s are blocking QA sign-off. Each unresolved P0 costs 8.33 score points.
+    </div>
+
+    <div class="triage-item p0" style="margin-top:10px;">
+      <div class="ti-top"><span class="ti-id">#BUG-441</span><span class="ti-sev sev-p0">P0</span><span class="ti-state state-blocked">BLOCKED</span></div>
+      <div class="ti-summary">iPad OS 17.3 — session crash on answer submit</div>
+      <div class="ti-meta">20 Mar · QA cannot sign off · Unassigned · Critical path</div>
+      <div style="background:#1a0808;border:1px solid #3a1010;border-radius:6px;padding:8px;margin-bottom:10px;font-size:10px;color:#ff8888;">This bug is on the critical path. QA blocked until resolved. Assign immediately.</div>
+      <div class="ti-actions"><button class="ti-btn btn-assign">Assign to Dev</button><button class="ti-btn btn-escalate">Escalate</button></div>
+    </div>
+
+    <div class="triage-item p0">
+      <div class="ti-top"><span class="ti-id">#BUG-438</span><span class="ti-sev sev-p0">P0</span><span class="ti-state state-assigned">Assigned: Jay K.</span></div>
+      <div class="ti-summary">Parent OTP email not delivered — 3 users cannot link</div>
+      <div class="ti-meta">18 Mar · Dev in progress · Est. fix: 24 Mar</div>
+      <div class="ti-actions"><button class="ti-btn btn-view">View Progress</button><button class="ti-btn btn-escalate">Re-escalate</button></div>
+    </div>
+
+    <div class="triage-item p0">
+      <div class="ti-top"><span class="ti-id">#BUG-435</span><span class="ti-sev sev-p0">P0</span><span class="ti-state state-review">In Review</span></div>
+      <div class="ti-summary">Teacher SNS badge stale — not updating post-session</div>
+      <div class="ti-meta">16 Mar · Fix v2.1.5 deployed · QA reviewing</div>
+      <div class="ti-actions"><button class="ti-btn btn-resolve">Mark Resolved</button><button class="ti-btn btn-view">View QA</button></div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">← Queue</button>
+    <button class="ab-btn ab-danger">Escalate All P0</button>
+  </div>
+</div>
+
+<!-- TAB 3: Assign Flow -->
+<div class="phone" id="t3" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <div><div class="header-title">Assign Issue</div></div>
+  </div>
+  <div class="phone-body">
+    <div class="assign-form">
+      <div class="af-card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><span class="ti-sev sev-p0">P0</span><span style="font-size:12px;font-weight:700;color:#e0e8f0;">#BUG-441</span></div>
+        <div style="font-size:12px;color:#c0d0e0;margin-bottom:8px;">iPad OS 17.3 — session crash on answer submit</div>
+        <div style="font-size:10px;color:#4a6080;">QA blocked · Critical path · Opened 20 Mar</div>
+      </div>
+
+      <div class="af-card">
+        <div class="af-title">Assign To</div>
+        <label class="af-label">Team Member</label>
+        <select class="af-select">
+          <option>— Select assignee —</option>
+          <option>Jay K. (Frontend Dev)</option>
+          <option>Sam R. (iOS Dev)</option>
+          <option>Priya T. (QA Lead)</option>
+          <option>Maria G. (Backend Dev)</option>
+        </select>
+
+        <label class="af-label">Priority</label>
+        <select class="af-select">
+          <option>P0 — Critical (block release)</option>
+          <option>P1 — High</option>
+          <option>P2 — Medium</option>
+        </select>
+
+        <label class="af-label">Target Fix Date</label>
+        <select class="af-select">
+          <option>Today (23 Mar)</option>
+          <option>Tomorrow (24 Mar)</option>
+          <option>End of week (27 Mar)</option>
+          <option>Next week</option>
+        </select>
+
+        <label class="af-label">Notes</label>
+        <textarea class="af-textarea" placeholder="Reproduce steps, context, or guidance for assignee…"></textarea>
+
+        <div class="af-row">
+          <button class="af-btn af-cancel">Cancel</button>
+          <button class="af-btn af-confirm">Assign Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Resolved -->
+<div class="phone" id="t4" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <div><div class="header-title">Resolved</div></div>
+    <div style="font-size:11px;font-weight:700;color:#44cc88;background:#0a3020;padding:4px 10px;border-radius:8px;">17 resolved</div>
+  </div>
+  <div class="phone-body">
+    <div style="padding:10px 16px 4px;font-size:11px;color:#4a6080;">Last 30 days</div>
+
+    <div class="resolved-item">
+      <div class="ri-top"><span class="ti-sev sev-p0" style="font-size:9px;padding:1px 6px;">P0</span><span class="ri-title">#BUG-420 — Voice coach silent on cold start</span></div>
+      <div class="ri-meta">Opened 2 Mar · Resolved 8 Mar · Jay K.</div>
+      <div class="ri-resolved">✓ Verified in QA · Released v2.1.3</div>
+    </div>
+
+    <div class="resolved-item">
+      <div class="ri-top"><span class="ti-sev sev-p0" style="font-size:9px;padding:1px 6px;">P0</span><span class="ri-title">#BUG-415 — Score not saving on session end</span></div>
+      <div class="ri-meta">Opened 28 Feb · Resolved 4 Mar · Sam R.</div>
+      <div class="ri-resolved">✓ Verified in QA · Released v2.1.2</div>
+    </div>
+
+    <div class="resolved-item">
+      <div class="ri-top"><span class="ti-sev sev-p1" style="font-size:9px;padding:1px 6px;background:#2a2000;color:#ffd166;">P1</span><span class="ri-title" style="color:#c8d888;">#BUG-410 — Parent weekly report showing wrong week</span></div>
+      <div class="ri-meta">Opened 25 Feb · Resolved 1 Mar · Maria G.</div>
+      <div class="ri-resolved">✓ Released v2.1.1</div>
+    </div>
+
+    <div class="resolved-item">
+      <div class="ri-top"><span class="ti-sev sev-p1" style="font-size:9px;padding:1px 6px;background:#2a2000;color:#ffd166;">P1</span><span class="ri-title" style="color:#c8d888;">#BUG-405 — Assignment completion not notifying teacher</span></div>
+      <div class="ri-meta">Opened 20 Feb · Resolved 26 Feb · Priya T.</div>
+      <div class="ri-resolved">✓ Released v2.1.0</div>
+    </div>
+
+    <div class="resolved-item">
+      <div class="ri-top"><span class="ti-sev sev-p2" style="font-size:9px;padding:1px 6px;background:#0a2030;color:#66aaff;">P2</span><span class="ri-title" style="color:#c8d888;">#BUG-398 — Child avatar not loading on slow connection</span></div>
+      <div class="ri-meta">Opened 15 Feb · Resolved 22 Feb · Jay K.</div>
+      <div class="ri-resolved">✓ Released v2.0.9</div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">← Queue</button>
+    <button class="ab-btn ab-primary">Export Log</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="phone" id="t5" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-title">Spec</div></div>
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Spec: Feedback Triage Mobile v2</div>
+      <ul class="spec-list">
+        <li>390px mobile, Sora, bg #0d1117, gold #ffd166</li>
+        <li>Items sorted P0 → P1 → P2; within tier sorted by date (newest first)</li>
+        <li>Each item: ID, severity chip, state chip, 1-line summary, meta (date/assignee), action buttons</li>
+        <li>Severity chips: P0 red, P1 amber, P2 blue</li>
+        <li>State chips: Open (grey), Assigned (green), In Review (bright green), Blocked (red)</li>
+        <li>Action buttons per state: Assign / Escalate (unassigned), Resolve / View (assigned/review)</li>
+        <li>Swipe gesture visual hint: → resolve, ← escalate — shown as buttons in non-gesture context</li>
+        <li>Tab 2: P0-only view with critical path callout block</li>
+        <li>Tab 3: assign flow — assignee picker, priority, target date, notes, Cancel + Assign Now</li>
+        <li>Tab 4: resolved list — green card style, P0/P1/P2 chip, date, resolver, release version</li>
+        <li>Filter strip: All / P0 / P1 / P2 / Unassigned / Blocked</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  ['t1','t2','t3','t4','t5'].forEach(t => {
+    const el = document.getElementById(t);
+    if(el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById(id);
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

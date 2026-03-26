@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Owner Content Health Detail v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ops: #0d1117; --ops2: #161b22; --ops3: #21262d; --ops4: #30363d;
+      --ops-text: #e6edf3; --ops-mid: #8b949e; --ops-faint: #484f58;
+      --blue: #58a6ff; --blue-bg: rgba(88,166,255,.1);
+      --mint: #58e8c1; --coral: #ff7b6b; --amber: #f59e0b; --gold: #ffd166; --violet: #9b72ff;
+    }
+    body { font-family: 'Sora', sans-serif; background: #080c10; color: var(--ops-text); min-height: 100vh; }
+
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,12,16,.97); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--ops4);
+      display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      border: 1px solid var(--ops4); background: transparent;
+      color: var(--ops-mid); font-size: 12px; font-family: 'Sora', sans-serif;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { background: var(--gold); color: #1a1a2e; font-weight: 700; border-color: transparent; }
+    .panel { display: none; } .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.07); border: 1px solid rgba(255,209,102,.2);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #fbbf24; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* Desktop frame */
+    .desktop-frame { background: var(--ops); min-height: 100vh; }
+    .desktop-topbar {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      display: flex; align-items: center; gap: 16px; padding: 0 32px; height: 56px;
+    }
+    .breadcrumb { font-size: 12px; color: var(--ops-mid); }
+    .breadcrumb span { color: var(--ops-text); }
+    .topbar-right { margin-left: auto; display: flex; gap: 8px; }
+    .t-btn { padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .t-btn.primary { background: var(--blue); color: #0d1117; border: none; }
+    .t-btn.ghost { background: transparent; color: var(--ops-mid); border: 1px solid var(--ops4); }
+    .t-btn.danger { background: rgba(255,123,107,.12); color: var(--coral); border: none; }
+
+    /* Content header */
+    .content-hdr {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      padding: 20px 32px; display: flex; align-items: flex-start; gap: 20px;
+    }
+    .ch-thumb {
+      width: 80px; height: 80px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center; font-size: 40px; flex-shrink: 0;
+    }
+    .ch-thumb.p0 { background: rgba(255,209,102,.15); }
+    .ch-thumb.p1 { background: rgba(155,114,255,.12); }
+    .ch-thumb.p2 { background: rgba(88,232,193,.1); }
+    .ch-info { flex: 1; }
+    .ch-title { font-size: 20px; font-weight: 700; color: var(--ops-text); }
+    .ch-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .ch-band { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
+    .band-p0 { background: rgba(255,209,102,.12); color: var(--gold); }
+    .band-p1 { background: rgba(155,114,255,.1); color: var(--violet); }
+    .band-p2 { background: rgba(88,232,193,.1); color: var(--mint); }
+    .status-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
+    .sb-flagged { background: rgba(255,123,107,.15); color: var(--coral); }
+    .sb-live { background: rgba(88,232,193,.1); color: var(--mint); }
+    .sb-draft { background: var(--blue-bg); color: var(--blue); }
+
+    /* Body grid */
+    .detail-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px 32px 40px; }
+    .detail-col { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Section card */
+    .sc { background: var(--ops2); border: 1px solid var(--ops4); border-radius: 14px; padding: 18px 20px; }
+    .sc-title { font-size: 10px; font-weight: 700; color: var(--ops-mid); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+
+    /* Health bars */
+    .health-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .health-row:last-child { margin-bottom: 0; }
+    .h-label { font-size: 12px; color: var(--ops-mid); width: 110px; flex-shrink: 0; }
+    .h-track { flex: 1; height: 6px; background: var(--ops4); border-radius: 6px; overflow: hidden; }
+    .h-fill { height: 100%; border-radius: 6px; }
+    .hf-green { background: var(--mint); }
+    .hf-amber { background: var(--amber); }
+    .hf-red { background: var(--coral); }
+    .h-pct { font-size: 12px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+
+    /* Issue list */
+    .issue-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--ops4);
+    }
+    .issue-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .issue-sev { width: 3px; border-radius: 2px; align-self: stretch; min-height: 28px; flex-shrink: 0; }
+    .is-red { background: var(--coral); }
+    .is-amber { background: var(--amber); }
+    .issue-body { flex: 1; }
+    .issue-title { font-size: 12px; font-weight: 600; color: var(--ops-text); }
+    .issue-sub { font-size: 11px; color: var(--ops-mid); margin-top: 2px; }
+    .issue-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+    .ib-red { background: rgba(255,123,107,.12); color: var(--coral); }
+    .ib-amber { background: rgba(245,158,11,.1); color: var(--amber); }
+
+    /* Question list */
+    .q-row {
+      background: var(--ops3); border: 1px solid var(--ops4); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 8px;
+    }
+    .q-row.broken { border-color: rgba(255,123,107,.4); }
+    .q-num { font-size: 10px; color: var(--ops-faint); margin-bottom: 6px; }
+    .q-text { font-size: 12px; color: var(--ops-text); margin-bottom: 8px; }
+    .q-answers { display: flex; gap: 6px; flex-wrap: wrap; }
+    .q-a { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: var(--ops4); color: var(--ops-mid); }
+    .q-a.correct { background: rgba(88,232,193,.1); color: var(--mint); }
+    .q-a.broken { background: rgba(255,123,107,.1); color: var(--coral); }
+    .q-warn { font-size: 10px; color: var(--coral); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+
+    /* Timeline */
+    .tl-row { display: flex; gap: 12px; padding-bottom: 14px; position: relative; }
+    .tl-row::before { content: ''; position: absolute; left: 11px; top: 20px; bottom: 0; width: 1px; background: var(--ops4); }
+    .tl-row:last-child::before { display: none; }
+    .tl-dot { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--ops4); background: var(--ops3); display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+    .tl-body { flex: 1; padding-top: 2px; }
+    .tl-title { font-size: 12px; font-weight: 600; color: var(--ops-text); }
+    .tl-sub { font-size: 10px; color: var(--ops-mid); margin-top: 2px; line-height: 1.5; }
+    .tl-time { font-size: 10px; color: var(--ops-faint); margin-top: 2px; }
+
+    /* Action row */
+    .action-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 32px 32px; }
+    .a-btn { padding: 9px 18px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+    .a-btn.primary { background: var(--blue); color: #0d1117; }
+    .a-btn.ghost { background: rgba(255,255,255,.06); color: var(--ops-text); border: 1px solid var(--ops4); }
+    .a-btn.danger { background: rgba(255,123,107,.12); color: var(--coral); }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ops-text); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--ops-mid); margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: var(--ops2); border: 1px solid var(--ops4); border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; }
+    .spec-row-desc { font-size: 12px; color: var(--ops-mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--ops4); }
+    .spec-table th { color: var(--ops-mid); font-weight: 600; }
+    .spec-table td { color: var(--ops-text); }
+    .spec-table td code { background: var(--blue-bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Desktop — Full Detail</button>
+  <button class="tab-btn" onclick="show('tab2',this)">QA Health Breakdown</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Issue List + Question Preview</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Content Timeline</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Spec Notes</button>
+</div>
+
+<!-- TAB 1: FULL DETAIL -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>🩺 Owner Content Health Detail — Desktop</strong>
+    Full detail view for a single content pack. Opened from the gallery drawer "Edit pack" or from the triage queue. Shows: header (thumb, title, meta), QA health bars, issue list, question previews (with broken flagged), edit timeline, action row.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div class="breadcrumb">Content <span>/ Gallery / Adding Within 10</span></div>
+      <div class="topbar-right">
+        <button class="t-btn ghost">Preview as child</button>
+        <button class="t-btn primary">Save changes</button>
+        <button class="t-btn danger">Delete pack</button>
+      </div>
+    </div>
+
+    <!-- Content header -->
+    <div class="content-hdr">
+      <div class="ch-thumb p1">🌟</div>
+      <div class="ch-info">
+        <div class="ch-title">Adding Within 10</div>
+        <div class="ch-meta">
+          <span class="ch-band band-p1">K–1</span>
+          <span class="status-badge sb-flagged">⚠️ Flagged</span>
+          <span style="font-size:11px;color:var(--ops-mid);">18 questions · Math · v1.4</span>
+          <span style="font-size:11px;color:var(--ops-mid);">Last updated 2 days ago</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body grid -->
+    <div class="detail-body">
+      <!-- Left col -->
+      <div class="detail-col">
+        <!-- QA health -->
+        <div class="sc">
+          <div class="sc-title">QA Health Score</div>
+          <div class="health-row">
+            <div class="h-label">Image refs</div>
+            <div class="h-track"><div class="h-fill hf-red" style="width:83%;"></div></div>
+            <div class="h-pct" style="color:var(--coral);">83%</div>
+          </div>
+          <div class="health-row">
+            <div class="h-label">Alt text</div>
+            <div class="h-track"><div class="h-fill hf-amber" style="width:89%;"></div></div>
+            <div class="h-pct" style="color:var(--amber);">89%</div>
+          </div>
+          <div class="health-row">
+            <div class="h-label">Answer keys</div>
+            <div class="h-track"><div class="h-fill hf-green" style="width:100%;"></div></div>
+            <div class="h-pct" style="color:var(--mint);">100%</div>
+          </div>
+          <div style="font-size:11px;color:var(--ops-mid);margin-top:12px;padding-top:12px;border-top:1px solid var(--ops4);">
+            Overall: <strong style="color:var(--coral);">85%</strong> · Below 95% threshold · <strong>Flagged</strong>
+          </div>
+        </div>
+
+        <!-- Issue list -->
+        <div class="sc">
+          <div class="sc-title">Issues (4)</div>
+          <div class="issue-row">
+            <div class="issue-sev is-red"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q3 — broken image ref</div>
+              <div class="issue-sub">/assets/eggs_broken.png · 404</div>
+            </div>
+            <div class="issue-badge ib-red">Critical</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-sev is-red"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q7 — broken image ref</div>
+              <div class="issue-sub">/assets/fish_missing.png · 404</div>
+            </div>
+            <div class="issue-badge ib-red">Critical</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-sev is-red"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q12 — broken image ref</div>
+              <div class="issue-sub">/assets/stars_old.png · 404</div>
+            </div>
+            <div class="issue-badge ib-red">Critical</div>
+          </div>
+          <div class="issue-row">
+            <div class="issue-sev is-amber"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q5, Q9, Q14 — missing alt text</div>
+              <div class="issue-sub">3 image questions without alt text</div>
+            </div>
+            <div class="issue-badge ib-amber">Warning</div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="sc">
+          <div class="sc-title">Edit history</div>
+          <div class="tl-row">
+            <div class="tl-dot">⚠️</div>
+            <div class="tl-body">
+              <div class="tl-title">Auto-flagged by QA scan</div>
+              <div class="tl-sub">3 broken image refs detected. Pack removed from live rotation.</div>
+              <div class="tl-time">2 days ago · 6:14am</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot">✏️</div>
+            <div class="tl-body">
+              <div class="tl-title">v1.4 published by content-admin</div>
+              <div class="tl-sub">Added Q16–18. Updated Q3 image ref (now broken again).</div>
+              <div class="tl-time">4 days ago</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot" style="border-color:var(--mint);">✅</div>
+            <div class="tl-body">
+              <div class="tl-title">v1.3 — all health checks passed</div>
+              <div class="tl-sub">100% image refs · 100% alt text · Live for 18 days.</div>
+              <div class="tl-time">22 days ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right col: question previews -->
+      <div class="detail-col">
+        <div class="sc">
+          <div class="sc-title">Question previews (18 total)</div>
+
+          <div class="q-row">
+            <div class="q-num">Q1</div>
+            <div class="q-text">🥚🥚🥚 + 🥚🥚 = ?</div>
+            <div class="q-answers">
+              <span class="q-a">3</span>
+              <span class="q-a correct">5 ✓</span>
+              <span class="q-a">4</span>
+              <span class="q-a">6</span>
+            </div>
+          </div>
+
+          <div class="q-row">
+            <div class="q-num">Q2</div>
+            <div class="q-text">🐠🐠🐠🐠 + 🐠🐠 = ?</div>
+            <div class="q-answers">
+              <span class="q-a">5</span>
+              <span class="q-a correct">6 ✓</span>
+              <span class="q-a">7</span>
+              <span class="q-a">4</span>
+            </div>
+          </div>
+
+          <div class="q-row broken">
+            <div class="q-num">Q3 <span style="color:var(--coral);">⚠️ broken image</span></div>
+            <div class="q-text" style="color:var(--coral);">[Image: /assets/eggs_broken.png — 404]</div>
+            <div class="q-answers">
+              <span class="q-a broken">Image missing — question unplayable</span>
+            </div>
+            <div class="q-warn">⚠️ Fix required before re-publishing</div>
+          </div>
+
+          <div class="q-row">
+            <div class="q-num">Q4</div>
+            <div class="q-text">🌟🌟 + 🌟🌟🌟🌟🌟 = ?</div>
+            <div class="q-answers">
+              <span class="q-a">6</span>
+              <span class="q-a correct">7 ✓</span>
+              <span class="q-a">5</span>
+              <span class="q-a">8</span>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--ops-faint);text-align:center;padding:8px 0;">
+            Q5–Q18 · Tap to expand all
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action row -->
+    <div class="action-row">
+      <button class="a-btn primary">Fix broken images</button>
+      <button class="a-btn ghost">Export issues CSV</button>
+      <button class="a-btn ghost">Mark as reviewed</button>
+      <button class="a-btn danger">Delete pack</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: QA HEALTH BREAKDOWN -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>🏥 QA Health Breakdown — All Dimensions</strong>
+    Three weighted dimensions: image refs (40%), alt text (30%), answer keys (30%). Overall score = weighted average. Below 95% → amber warning. Below 80% → red + auto-flag + removed from live rotation. Score recalculates on every save.
+  </div>
+  <div class="desktop-frame" style="padding:32px 40px;">
+    <div style="max-width:700px;">
+      <div style="font-size:16px;font-weight:700;color:var(--ops-text);margin-bottom:20px;">QA Health — Adding Within 10</div>
+
+      <!-- Visual health breakdown -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;">
+        <div style="background:var(--ops2);border:1px solid rgba(255,123,107,.4);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:var(--coral);">83%</div>
+          <div style="font-size:12px;font-weight:700;color:var(--ops-text);margin:6px 0 2px;">Image Refs</div>
+          <div style="font-size:10px;color:var(--ops-mid);">Weight: 40%</div>
+          <div style="font-size:10px;color:var(--coral);margin-top:4px;">3 of 18 broken</div>
+        </div>
+        <div style="background:var(--ops2);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:var(--amber);">89%</div>
+          <div style="font-size:12px;font-weight:700;color:var(--ops-text);margin:6px 0 2px;">Alt Text</div>
+          <div style="font-size:10px;color:var(--ops-mid);">Weight: 30%</div>
+          <div style="font-size:10px;color:var(--amber);margin-top:4px;">3 images missing alt</div>
+        </div>
+        <div style="background:var(--ops2);border:1px solid rgba(88,232,193,.25);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:var(--mint);">100%</div>
+          <div style="font-size:12px;font-weight:700;color:var(--ops-text);margin:6px 0 2px;">Answer Keys</div>
+          <div style="font-size:10px;color:var(--ops-mid);">Weight: 30%</div>
+          <div style="font-size:10px;color:var(--mint);margin-top:4px;">All 18 complete</div>
+        </div>
+      </div>
+
+      <div style="background:var(--ops2);border:1px solid rgba(255,123,107,.35);border-radius:14px;padding:18px;margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--ops-text);margin-bottom:8px;">Overall score: <span style="color:var(--coral);">85%</span></div>
+        <div style="font-size:11px;color:var(--ops-mid);line-height:1.7;">
+          Calculation: (83% × 0.4) + (89% × 0.3) + (100% × 0.3) = 33.2 + 26.7 + 30.0 = <strong style="color:var(--coral);">89.9% → rounded 85%</strong><br>
+          Threshold: &lt; 95% → amber warning · &lt; 80% → red + auto-flag + removed from live rotation.<br>
+          Status: <strong style="color:var(--coral);">Flagged</strong> — pack removed from live rotation until issues resolved.
+        </div>
+      </div>
+
+      <div style="background:var(--ops2);border:1px solid var(--ops4);border-radius:14px;padding:18px;">
+        <div style="font-size:12px;font-weight:700;color:var(--ops-mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">When score recalculates</div>
+        <div style="font-size:12px;color:var(--ops-mid);line-height:1.8;">
+          ✓ On every save (live recalc)<br>
+          ✓ On nightly QA scan (6am UTC)<br>
+          ✓ On manual "Run QA check" trigger<br>
+          ✓ After "Fix broken images" action resolves refs
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: ISSUE LIST + QUESTION PREVIEW -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>🐛 Issue List + Question Preview</strong>
+    Issue list sorted: critical first (broken refs), then warnings (missing alt text). Each issue links to specific question. Question preview shows: question number, text/emoji prompt, answer options (correct marked with ✓). Broken questions show red border + warning label + "Fix required" note.
+  </div>
+  <div class="desktop-frame" style="padding:24px 32px 48px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1000px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--ops-text);margin-bottom:14px;">Issues (4) — sorted by severity</div>
+        <div style="background:var(--ops2);border:1px solid var(--ops4);border-radius:14px;overflow:hidden;">
+          <div class="issue-row" style="padding:12px 16px;">
+            <div class="issue-sev is-red"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q3 — broken image ref</div>
+              <div class="issue-sub">/assets/eggs_broken.png · 404 · Question unplayable</div>
+            </div>
+            <div class="issue-badge ib-red">Critical</div>
+          </div>
+          <div class="issue-row" style="padding:12px 16px;">
+            <div class="issue-sev is-red"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q7 — broken image ref</div>
+              <div class="issue-sub">/assets/fish_missing.png · 404 · Question unplayable</div>
+            </div>
+            <div class="issue-badge ib-red">Critical</div>
+          </div>
+          <div class="issue-row" style="padding:12px 16px;">
+            <div class="issue-sev is-red"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q12 — broken image ref</div>
+              <div class="issue-sub">/assets/stars_old.png · 404 · Question unplayable</div>
+            </div>
+            <div class="issue-badge ib-red">Critical</div>
+          </div>
+          <div class="issue-row" style="padding:12px 16px;border-bottom:none;">
+            <div class="issue-sev is-amber"></div>
+            <div class="issue-body">
+              <div class="issue-title">Q5, Q9, Q14 — missing alt text</div>
+              <div class="issue-sub">Screen readers can't describe these images</div>
+            </div>
+            <div class="issue-badge ib-amber">Warning</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="a-btn primary" style="flex:1;padding:10px;">Fix broken images</button>
+          <button class="a-btn ghost" style="padding:10px 16px;">Export CSV</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--ops-text);margin-bottom:14px;">Q3 — broken (selected)</div>
+        <div class="q-row broken" style="margin-bottom:12px;">
+          <div class="q-num">Q3 <span style="color:var(--coral);">⚠️ Image broken</span></div>
+          <div class="q-text" style="color:var(--coral);">[Image: /assets/eggs_broken.png — 404 Not Found]</div>
+          <div class="q-answers"><span class="q-a broken">Question unplayable — image missing</span></div>
+          <div class="q-warn">⚠️ Must fix image ref before re-publishing this pack</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--ops-text);margin-bottom:8px;">Replace image ref</div>
+        <input style="width:100%;padding:10px 12px;background:var(--ops3);border:1px solid var(--ops4);border-radius:10px;color:var(--ops-text);font-family:'Sora',sans-serif;font-size:12px;outline:none;" value="/assets/eggs_broken.png" />
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="a-btn primary" style="padding:9px 18px;">Update ref</button>
+          <button class="a-btn ghost" style="padding:9px 16px;">Browse assets</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: CONTENT TIMELINE -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>📅 Content Edit Timeline</strong>
+    Per-pack chronological history. Events: published, edited, QA scan result, auto-flagged, manually reviewed, unflagged. Newest first. Shows version number on publish events. Green dot for passing QA, coral for failing/flagged.
+  </div>
+  <div class="desktop-frame" style="padding:24px 32px;">
+    <div style="max-width:600px;">
+      <div style="font-size:14px;font-weight:700;color:var(--ops-text);margin-bottom:20px;">Edit history — Adding Within 10</div>
+      <div class="sc" style="padding:20px;">
+        <div class="tl-row">
+          <div class="tl-dot" style="border-color:var(--coral);background:rgba(255,123,107,.1);">⚠️</div>
+          <div class="tl-body">
+            <div class="tl-title">Auto-flagged — QA scan failed</div>
+            <div class="tl-sub">3 broken image refs detected. Pack removed from live rotation. Health score: 85%.</div>
+            <div class="tl-time">2 days ago · 6:14am UTC · Nightly scan</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-dot">✏️</div>
+          <div class="tl-body">
+            <div class="tl-title">v1.4 published — content-admin</div>
+            <div class="tl-sub">Added Q16, Q17, Q18. Updated Q3 image ref (path error introduced). 18 questions total.</div>
+            <div class="tl-time">4 days ago · 3:22pm</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-dot" style="border-color:var(--mint);background:rgba(88,232,193,.08);">✅</div>
+          <div class="tl-body">
+            <div class="tl-title">QA scan passed — v1.3</div>
+            <div class="tl-sub">100% image refs · 100% alt text · 100% answer keys. Pack live.</div>
+            <div class="tl-time">22 days ago · 6:14am UTC</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-dot">✏️</div>
+          <div class="tl-body">
+            <div class="tl-title">v1.3 published — content-admin</div>
+            <div class="tl-sub">Fixed alt text on Q5, Q9. Reworded Q2 prompt. 15 questions total.</div>
+            <div class="tl-time">24 days ago</div>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-dot" style="border-color:var(--blue);">🚀</div>
+          <div class="tl-body">
+            <div class="tl-title">v1.0 first published</div>
+            <div class="tl-sub">12 questions. Initial release for K–1 math adding.</div>
+            <div class="tl-time">6 weeks ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: SPEC NOTES -->
+<div id="tab5" class="panel">
+  <div class="spec-panel">
+    <div class="spec-title">Owner Content Health Detail — Spec</div>
+    <div class="spec-sub">Detail view for a single content pack. Route: <code>/owner/content/:id</code></div>
+    <div class="spec-section">
+      <h3>QA health score formula</h3>
+      <div class="spec-row"><div class="spec-row-desc">Overall = (image_refs × 0.4) + (alt_text × 0.3) + (answer_keys × 0.3)<br>Recalculates on: every save, nightly scan (6am UTC), manual trigger.<br>≥95% → green · 80–94% → amber · &lt;80% → red + auto-flag + removed from live rotation.</div></div>
+    </div>
+    <div class="spec-section">
+      <h3>Issue severity</h3>
+      <table class="spec-table">
+        <thead><tr><th>Type</th><th>Severity</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Broken image ref (404)</td><td>Critical</td><td>Question unplayable · counts against image_refs score</td></tr>
+          <tr><td>Missing alt text</td><td>Warning</td><td>Accessibility gap · counts against alt_text score</td></tr>
+          <tr><td>No correct answer marked</td><td>Critical</td><td>Pack unpublishable · counts against answer_keys score</td></tr>
+          <tr><td>&gt;1 correct answer marked</td><td>Warning</td><td>Ambiguous · review required</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="spec-section">
+      <h3>Actions + permissions</h3>
+      <table class="spec-table">
+        <thead><tr><th>Action</th><th>Who</th><th>Confirm?</th></tr></thead>
+        <tbody>
+          <tr><td>Fix broken images (ref editor)</td><td>Content admin, owner</td><td>No</td></tr>
+          <tr><td>Mark as reviewed</td><td>Any admin</td><td>No</td></tr>
+          <tr><td>Unflag + re-publish</td><td>Content admin, owner</td><td>No (re-runs QA first)</td></tr>
+          <tr><td>Delete pack</td><td>Owner only</td><td>Yes — modal</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

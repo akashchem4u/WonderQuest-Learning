@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Home Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #060b12; min-height: 100vh; padding: 24px 16px 40px; display: flex; flex-direction: column; align-items: center; }
+.page-title { font-size: 13px; font-weight: 800; color: #ffd166; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; opacity: 0.7; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; width: 100%; max-width: 430px; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; width: 100%; max-width: 430px; }
+.tab { padding: 7px 10px; border-radius: 6px 6px 0 0; background: #1a2030; border: none; cursor: pointer; font-family: inherit; font-size: 10px; font-weight: 700; color: #607080; }
+.tab.active { background: #0d1117; color: #ffd166; }
+
+/* Phone */
+.phone { width: 390px; background: #0d1117; border-radius: 36px; border: 3px solid #1e2d40; box-shadow: 0 20px 60px rgba(0,0,0,0.7); overflow: hidden; min-height: 750px; display: flex; flex-direction: column; }
+.status-bar { background: #080e16; padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 11px; color: #4a6080; }
+.phone-header { background: #080e16; padding: 12px 16px 14px; border-bottom: 1px solid #1e2d40; display: flex; align-items: center; justify-content: space-between; }
+.header-logo { font-size: 16px; font-weight: 900; color: #fff; }
+.header-logo span { color: #ffd166; }
+.header-score { background: #1a2030; border: 1.5px solid #ffd166; color: #ffd166; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; }
+.phone-body { flex: 1; overflow-y: auto; padding: 0 0 80px; }
+
+/* Score circle */
+.score-hero { display: flex; flex-direction: column; align-items: center; padding: 20px 16px 16px; }
+.score-ring { width: 100px; height: 100px; border-radius: 50%; border: 4px solid #ffd166; background: #080e16; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 10px; box-shadow: 0 0 24px rgba(255,209,102,0.2); }
+.sr-val { font-size: 32px; font-weight: 900; color: #ffd166; line-height: 1; }
+.sr-max { font-size: 11px; color: #4a6080; }
+.score-label { font-size: 14px; font-weight: 800; color: #e0e8f0; margin-bottom: 4px; }
+.score-verdict { padding: 5px 16px; border-radius: 10px; font-size: 12px; font-weight: 800; background: #3a1010; color: #ff6666; border: 1px solid #cc3333; }
+
+/* KPI strip */
+.kpi-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1e2d40; border-top: 1px solid #1e2d40; border-bottom: 1px solid #1e2d40; }
+.kpi { background: #0d1117; padding: 14px 16px; }
+.kpi-val { font-size: 22px; font-weight: 900; color: #ffd166; }
+.kpi-lbl { font-size: 10px; color: #4a6080; margin-top: 2px; }
+.kpi-trend { font-size: 10px; font-weight: 700; margin-top: 2px; }
+.t-up { color: #44cc88; }
+.t-down { color: #ff6666; }
+.t-flat { color: #607080; }
+
+/* Section header */
+.section-hdr { padding: 14px 16px 8px; font-size: 11px; font-weight: 800; color: #4a6080; text-transform: uppercase; letter-spacing: 0.07em; }
+
+/* Blocker items */
+.blocker-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #1e2d40; }
+.b-sev { padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.b-p0 { background: #3a1010; color: #ff6666; }
+.b-p1 { background: #2a2000; color: #ffd166; }
+.b-title { font-size: 12px; font-weight: 700; color: #e0e8f0; margin-bottom: 2px; }
+.b-meta { font-size: 10px; color: #4a6080; }
+
+/* Route health dots */
+.route-grid { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+.route-row { display: flex; align-items: center; gap: 10px; }
+.route-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot-healthy { background: #44cc88; }
+.dot-degraded { background: #ffd166; }
+.dot-down { background: #ff4444; }
+.route-name { font-size: 12px; color: #c0d0e0; font-weight: 600; }
+.route-status { margin-left: auto; font-size: 10px; font-weight: 700; }
+.rs-healthy { color: #44cc88; }
+.rs-degraded { color: #ffd166; }
+.rs-down { color: #ff4444; }
+
+/* Fast action buttons */
+.fast-actions { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+.fa-btn { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #111824; border: 1px solid #1e2d40; border-radius: 12px; cursor: pointer; }
+.fa-icon { font-size: 20px; }
+.fa-label { font-size: 13px; font-weight: 800; color: #e0e8f0; }
+.fa-sub { font-size: 10px; color: #4a6080; margin-top: 2px; }
+.fa-count { margin-left: auto; background: #ff4444; color: #fff; font-size: 10px; font-weight: 800; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fa-count-amber { background: #ffd166; color: #1a0f00; }
+.fa-count-green { background: #44cc88; color: #0a3020; }
+
+/* Queue count badge */
+.fq-badge { background: #ff4444; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 10px; margin-left: 6px; }
+
+/* Bottom bar */
+.phone-bottom { background: #080e16; border-top: 1px solid #1e2d40; padding: 12px 16px 24px; display: flex; gap: 6px; }
+.ab-btn { flex: 1; padding: 12px 8px; border-radius: 10px; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; border: none; text-align: center; }
+.ab-primary { background: #ffd166; color: #1a0f00; }
+.ab-secondary { background: #1e2d40; color: #c0d0e0; }
+
+/* Blockers tab */
+.b-detail-card { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; margin: 12px 16px; padding: 14px; }
+.bdc-title { font-size: 12px; font-weight: 800; color: #e0e8f0; margin-bottom: 8px; }
+.bdc-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #1e2d40; font-size: 11px; }
+.bdc-row:last-child { border-bottom: none; }
+.bdc-k { color: #4a6080; }
+.bdc-v { color: #c0d0e0; font-weight: 700; text-align: right; }
+
+/* Spec */
+.spec-body { padding: 16px; flex: 1; overflow-y: auto; }
+.spec-block { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.spec-title { font-size: 13px; font-weight: 800; color: #ffd166; margin-bottom: 8px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.spec-list li { font-size: 11px; color: #8090a8; padding-left: 14px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #ffd166; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Owner Home Mobile v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> 390px mobile owner home. Dark bg #0d1117, gold #ffd166. Score circle, KPI strip (4 metrics), top 3 blockers, route health dots, feedback queue count, fast action buttons. GO ≥90/100.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Mobile Home</button>
+  <button class="tab" onclick="show('t2')">Blockers</button>
+  <button class="tab" onclick="show('t3')">Route Health</button>
+  <button class="tab" onclick="show('t4')">Fast Actions</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Mobile Home -->
+<div class="phone" id="t1" style="display:flex;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <div class="header-logo">Wonder<span>Quest</span></div>
+    <div class="header-score">72/100</div>
+  </div>
+  <div class="phone-body">
+    <!-- Score hero -->
+    <div class="score-hero">
+      <div class="score-ring"><div class="sr-val">72</div><div class="sr-max">/ 100</div></div>
+      <div class="score-label">Release Readiness</div>
+      <div class="score-verdict">NO-GO — need 90</div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-val">94%</div><div class="kpi-lbl">Route Health</div><div class="kpi-trend t-up">↑ +2%</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:#ff6666;">23</div><div class="kpi-lbl">Feedback Queue</div><div class="kpi-trend t-down">6 P0 urgent</div></div>
+      <div class="kpi"><div class="kpi-val">68%</div><div class="kpi-lbl">Adoption</div><div class="kpi-trend t-up">↑ +4%</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:#ff6666;">3</div><div class="kpi-lbl">Open P0 Bugs</div><div class="kpi-trend t-down">Blocking GO</div></div>
+    </div>
+
+    <!-- Top blockers -->
+    <div class="section-hdr">Top Blockers <span class="fq-badge">3 P0</span></div>
+    <div class="blocker-item">
+      <span class="b-sev b-p0">P0</span>
+      <div>
+        <div class="b-title">iPad session crash — answer submit</div>
+        <div class="b-meta">#BUG-441 · QA blocked</div>
+      </div>
+    </div>
+    <div class="blocker-item">
+      <span class="b-sev b-p0">P0</span>
+      <div>
+        <div class="b-title">Parent linking — OTP not delivered</div>
+        <div class="b-meta">#BUG-438 · Dev in progress</div>
+      </div>
+    </div>
+    <div class="blocker-item">
+      <span class="b-sev b-p0">P0</span>
+      <div>
+        <div class="b-title">Teacher SNS badge not updating</div>
+        <div class="b-meta">#BUG-435 · Fix in review</div>
+      </div>
+    </div>
+
+    <!-- Route health -->
+    <div class="section-hdr">Route Health</div>
+    <div class="route-grid">
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/child/play</span><span class="route-status rs-healthy">Healthy</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/parent/home</span><span class="route-status rs-healthy">Healthy</span></div>
+      <div class="route-row"><div class="route-dot dot-degraded"></div><span class="route-name">/parent/report</span><span class="route-status rs-degraded">Degraded</span></div>
+      <div class="route-row"><div class="route-dot dot-degraded"></div><span class="route-name">/teacher/support-lane</span><span class="route-status rs-degraded">Degraded</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/teacher/dashboard</span><span class="route-status rs-healthy">Healthy</span></div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">Alerts</button>
+    <button class="ab-btn ab-primary">Triage Now</button>
+  </div>
+</div>
+
+<!-- TAB 2: Blockers -->
+<div class="phone" id="t2" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-logo">Wonder<span>Quest</span></div><div class="header-score">72/100</div></div>
+  <div class="phone-body">
+    <div class="section-hdr">All Blockers (6 open)</div>
+
+    <div class="b-detail-card">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><span class="b-sev b-p0">P0</span><span class="bdc-title" style="margin:0;">#BUG-441</span></div>
+      <div style="font-size:12px;color:#e0e8f0;margin-bottom:10px;">iPad session crashes on OS 17.3 when submitting an answer. QA blocked — can't sign off until resolved.</div>
+      <div class="bdc-row"><span class="bdc-k">Status</span><span class="bdc-v" style="color:#ff6666;">Unassigned</span></div>
+      <div class="bdc-row"><span class="bdc-k">Opened</span><span class="bdc-v">20 Mar</span></div>
+      <div class="bdc-row"><span class="bdc-k">Impact</span><span class="bdc-v">QA blocked</span></div>
+    </div>
+
+    <div class="b-detail-card">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><span class="b-sev b-p0">P0</span><span class="bdc-title" style="margin:0;">#BUG-438</span></div>
+      <div style="font-size:12px;color:#e0e8f0;margin-bottom:10px;">Parent OTP email not delivered in 3 reported cases. Linking flow broken for new parents.</div>
+      <div class="bdc-row"><span class="bdc-k">Status</span><span class="bdc-v" style="color:#ffd166;">Dev in progress</span></div>
+      <div class="bdc-row"><span class="bdc-k">Opened</span><span class="bdc-v">18 Mar</span></div>
+      <div class="bdc-row"><span class="bdc-k">Impact</span><span class="bdc-v">3 users blocked</span></div>
+    </div>
+
+    <div class="b-detail-card">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><span class="b-sev b-p0">P0</span><span class="bdc-title" style="margin:0;">#BUG-435</span></div>
+      <div style="font-size:12px;color:#e0e8f0;margin-bottom:10px;">Teacher SNS badge doesn't update after session completes. Badge stays stale until manual refresh.</div>
+      <div class="bdc-row"><span class="bdc-k">Status</span><span class="bdc-v" style="color:#ffd166;">Fix in review</span></div>
+      <div class="bdc-row"><span class="bdc-k">Opened</span><span class="bdc-v">16 Mar</span></div>
+      <div class="bdc-row"><span class="bdc-k">Impact</span><span class="bdc-v">Teacher UX degraded</span></div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">← Home</button>
+    <button class="ab-btn ab-primary">Assign P0s</button>
+  </div>
+</div>
+
+<!-- TAB 3: Route Health -->
+<div class="phone" id="t3" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-logo">Wonder<span>Quest</span></div><div class="header-score">72/100</div></div>
+  <div class="phone-body">
+    <div class="section-hdr">Route Health — All Routes</div>
+    <div style="padding:10px 16px 4px;display:flex;gap:14px;font-size:11px;">
+      <span><span style="color:#44cc88;font-weight:700;">● 10</span> Healthy</span>
+      <span><span style="color:#ffd166;font-weight:700;">● 3</span> Degraded</span>
+      <span><span style="color:#ff4444;font-weight:700;">● 0</span> Down</span>
+    </div>
+    <div class="route-grid">
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/child/play</span><span class="route-status rs-healthy">100% · 42ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/child/home</span><span class="route-status rs-healthy">100% · 38ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/child/rewards</span><span class="route-status rs-healthy">100% · 31ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/parent/home</span><span class="route-status rs-healthy">100% · 55ms</span></div>
+      <div class="route-row"><div class="route-dot dot-degraded"></div><span class="route-name">/parent/report</span><span class="route-status rs-degraded">94% · 320ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/parent/settings</span><span class="route-status rs-healthy">100% · 44ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/teacher/dashboard</span><span class="route-status rs-healthy">100% · 61ms</span></div>
+      <div class="route-row"><div class="route-dot dot-degraded"></div><span class="route-name">/teacher/support-lane</span><span class="route-status rs-degraded">92% · 410ms</span></div>
+      <div class="route-row"><div class="route-dot dot-degraded"></div><span class="route-name">/teacher/analytics</span><span class="route-status rs-degraded">91% · 480ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/owner/home</span><span class="route-status rs-healthy">100% · 29ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/owner/feedback</span><span class="route-status rs-healthy">100% · 33ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/auth/login</span><span class="route-status rs-healthy">100% · 22ms</span></div>
+      <div class="route-row"><div class="route-dot dot-healthy"></div><span class="route-name">/auth/parent-link</span><span class="route-status rs-healthy">100% · 45ms</span></div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">← Home</button>
+    <button class="ab-btn ab-primary">Investigate</button>
+  </div>
+</div>
+
+<!-- TAB 4: Fast Actions -->
+<div class="phone" id="t4" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-logo">Wonder<span>Quest</span></div></div>
+  <div class="phone-body">
+    <div class="section-hdr">Fast Actions</div>
+    <div class="fast-actions">
+      <div class="fa-btn"><span class="fa-icon">🔍</span><div><div class="fa-label">Triage Feedback</div><div class="fa-sub">23 items · 6 P0</div></div><span class="fa-count">6</span></div>
+      <div class="fa-btn"><span class="fa-icon">📊</span><div><div class="fa-label">Route Health</div><div class="fa-sub">3 degraded routes</div></div><span class="fa-count fa-count-amber">3</span></div>
+      <div class="fa-btn"><span class="fa-icon">🚀</span><div><div class="fa-label">Release Check</div><div class="fa-sub">72/100 · need 90</div></div><span class="fa-count fa-count-amber">!</span></div>
+      <div class="fa-btn"><span class="fa-icon">📱</span><div><div class="fa-label">Adoption Report</div><div class="fa-sub">68% · +4% this month</div></div><span class="fa-count fa-count-green">↑</span></div>
+      <div class="fa-btn"><span class="fa-icon">✅</span><div><div class="fa-label">Content QA</div><div class="fa-sub">12 pending review</div></div><span class="fa-count fa-count-amber">12</span></div>
+      <div class="fa-btn"><span class="fa-icon">🏫</span><div><div class="fa-label">Schools</div><div class="fa-sub">14 active · 1 new</div></div><span class="fa-count fa-count-green">1</span></div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="ab-btn ab-secondary">← Home</button>
+    <button class="ab-btn ab-primary">Triage Now</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="phone" id="t5" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-logo">Wonder<span>Quest</span></div></div>
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Spec: Owner Home Mobile v2</div>
+      <ul class="spec-list">
+        <li>390px mobile, Sora, bg #0d1117, gold #ffd166</li>
+        <li>Score circle: 100px ring, current score, /100 max, NO-GO verdict chip</li>
+        <li>KPI strip: 2×2 grid — Route Health, Feedback Queue, Adoption, Open P0s</li>
+        <li>Top blockers: 3 P0 items with severity chip, title, bug ID, status</li>
+        <li>Route health dots: green/amber/red per route, status and latency</li>
+        <li>Tab 4: fast action buttons with live count badges (red P0, amber warning, green positive)</li>
+        <li>GO threshold: ≥90/100. Scoring: P0 25 + routes 25 + content 20 + QA 20 + sign-off 10</li>
+        <li>Bottom CTA: Triage Now (primary gold) + contextual secondary</li>
+        <li>All data refreshes on page load; no manual pull-to-refresh needed</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  ['t1','t2','t3','t4','t5'].forEach(t => {
+    const el = document.getElementById(t);
+    if(el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById(id);
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

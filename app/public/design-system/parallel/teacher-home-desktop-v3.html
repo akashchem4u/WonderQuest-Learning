@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Home — Desktop v3 — WonderQuest</title>
+<style>
+/* ── Engineering Hint Box ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1000px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset / Base ─────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#d8dde8;min-height:100vh;padding:24px}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1020px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1020px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6a7888;margin-bottom:16px}
+
+/* ── TEACHER DESIGN TOKENS ─────────────────────────────────────────── */
+/* Teacher bg:    #f0f4f8  (light blue-grey)                          */
+/* Teacher card:  #ffffff  white                                       */
+/* Teacher accent:#2563eb  (blue-600)                                  */
+/* Teacher text:  #0f172a  (slate-900)                                 */
+/* Support queue: amber #f59e0b warning tone                           */
+/* No dark theme — teacher is professional/admin surface              */
+
+/* ── Desktop shell ────────────────────────────────────────────────── */
+.app{background:#f0f4f8;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.app-inner{display:flex;min-height:720px}
+
+/* ── Sidebar ──────────────────────────────────────────────────────── */
+.sidebar{width:220px;background:#0f172a;padding:20px 0;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar-brand{padding:0 20px 16px;border-bottom:1px solid #1e293b;margin-bottom:12px}
+.brand-logo{font-size:15px;font-weight:900;color:#fff;letter-spacing:-.3px}
+.brand-sub{font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.nav-group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#475569;padding:0 20px;margin:14px 0 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:#e2e8f0;background:#1e293b}
+.nav-item.active{color:#fff;background:#1e3a6e;border-left-color:#2563eb}
+.nav-badge{margin-left:auto;background:#f59e0b;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:2px 7px}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid #1e293b}
+.teacher-row{display:flex;align-items:center;gap:8px}
+.teacher-avatar{width:32px;height:32px;border-radius:10px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:900}
+.teacher-name{font-size:12px;font-weight:700;color:#e2e8f0}
+.teacher-school{font-size:10px;color:#64748b}
+
+/* ── Main ─────────────────────────────────────────────────────────── */
+.main{flex:1;padding:28px;overflow-y:auto;background:#f0f4f8}
+.page-title{font-size:22px;font-weight:900;color:#0f172a;margin-bottom:4px}
+.page-sub{font-size:13px;color:#64748b;margin-bottom:22px}
+
+/* ── Stat row ─────────────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat-val{font-size:24px;font-weight:900;color:#0f172a;margin-bottom:2px;line-height:1}
+.stat-lbl{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em}
+.stat-delta{font-size:11px;font-weight:700;margin-top:3px}
+.delta-up{color:#16a34a}
+.delta-down{color:#dc2626}
+.delta-same{color:#94a3b8}
+
+/* ── Two-col layout ───────────────────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-h{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.card-link{font-size:12px;color:#2563eb;font-weight:600;cursor:pointer;text-decoration:none}
+
+/* ── Student row ──────────────────────────────────────────────────── */
+.student-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9}
+.student-row:last-child{border-bottom:none;padding-bottom:0}
+.student-avatar{width:28px;height:28px;border-radius:8px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.student-name{font-size:13px;font-weight:700;color:#0f172a;flex:1}
+.student-band{font-size:10px;color:#64748b;font-weight:600}
+.student-stars{font-size:12px;font-weight:700;color:#0f172a;min-width:50px;text-align:right}
+.student-delta{font-size:10px;font-weight:700;margin-left:4px}
+.status-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:4px}
+.chip-active{background:#dcfce7;color:#15803d}
+.chip-idle{background:#f1f5f9;color:#94a3b8}
+.chip-support{background:#fff7ed;color:#d97706}
+
+/* ── Support queue ────────────────────────────────────────────────── */
+.queue-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:#fff7ed;border-left:3px solid #f59e0b;margin-bottom:8px}
+.queue-item:last-child{margin-bottom:0}
+.queue-avatar{width:28px;height:28px;border-radius:8px;background:#fed7aa;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.queue-name{font-size:12px;font-weight:700;color:#0f172a}
+.queue-issue{font-size:11px;color:#92400e;line-height:1.4;margin-top:2px}
+.queue-action{font-size:11px;color:#2563eb;font-weight:700;cursor:pointer;margin-left:auto;flex-shrink:0;margin-top:2px}
+
+/* ── Band coverage ────────────────────────────────────────────────── */
+.band-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.band-row:last-child{border-bottom:none;padding-bottom:0}
+.band-dot-lg{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.band-name-lbl{font-size:12px;font-weight:700;color:#0f172a;flex:1}
+.band-bar{flex:2;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.band-fill{height:100%;border-radius:4px}
+.band-count{font-size:12px;font-weight:700;color:#0f172a;min-width:30px;text-align:right}
+
+/* ── Skill alert chips ────────────────────────────────────────────── */
+.alert-chip{display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:#92400e;margin:4px;cursor:pointer;transition:background .12s}
+.alert-chip:hover{background:#fed7aa30}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px}
+.spec-h2{font-size:15px;font-weight:800;color:#0f172a;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8fafc;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #e2e8f0}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#dcfce7;color:#15803d}
+.tag-blue{background:#dbeafe;color:#1d4ed8}
+.tag-gray{background:#f1f5f9;color:#475569}
+.tag-amber{background:#fff7ed;color:#b45309}
+</style>
+</head>
+<body>
+
+<!-- Engineering Hint Box -->
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-home-desktop-v3.html</strong><br>
+  <strong>NEW PERSONA: Teacher / Educator dashboard.</strong><br>
+  Design language: bg <code>#f0f4f8</code> (light blue-grey) · sidebar <code>#0f172a</code> (dark slate) · accent <code>#2563eb</code> (blue) · cards white · font system-ui.<br>
+  Teacher sees CLASS-level data (not individual child data like parent portal).<br>
+  <strong>Key principle:</strong> Teacher sees student first names + learning metrics. No child surname shown (FERPA/COPPA). No parent contact info visible here.<br>
+  <strong>Support queue:</strong> Surfaces students who hit confidence floor 3+ times (need teacher check-in). See low-confidence-retry screens for child-side behaviour.<br>
+  <strong>Privacy:</strong> Accuracy % CAN be shown to teacher (professional context) — but presented with context, not as a grade.
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')">Class Overview</button>
+  <button class="tab-btn" onclick="showTab('students')">Student List</button>
+  <button class="tab-btn" onclick="showTab('support')">Support Queue</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: Class Overview ──────────────────────────────────────── -->
+<div id="tab-overview" class="screen active">
+  <p class="section-title">Teacher home — class overview (desktop)</p>
+  <div class="app">
+    <div class="app-inner">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-logo">WonderQuest</div>
+          <div class="brand-sub">Teacher Portal</div>
+        </div>
+        <div class="nav-group-label">Class</div>
+        <div class="nav-item active">🏠 Class overview</div>
+        <div class="nav-item">👥 Students <span class="nav-badge">3</span></div>
+        <div class="nav-item">📊 Skills report</div>
+        <div class="nav-item">🔧 Support queue <span class="nav-badge">4</span></div>
+        <div class="nav-group-label">Analytics</div>
+        <div class="nav-item">📈 Band coverage</div>
+        <div class="nav-item">📅 Activity log</div>
+        <div class="nav-group-label">Admin</div>
+        <div class="nav-item">🏫 Class settings</div>
+        <div class="nav-item">🔔 Notifications</div>
+        <div class="sidebar-footer">
+          <div class="teacher-row">
+            <div class="teacher-avatar">MJ</div>
+            <div>
+              <div class="teacher-name">Ms Johnson</div>
+              <div class="teacher-school">Grade 2 · Lincoln Elem.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main -->
+      <div class="main">
+        <div class="page-title">Good morning, Ms Johnson 👋</div>
+        <div class="page-sub">Tuesday, March 24 · Grade 2 class · 24 students</div>
+
+        <!-- Stats row -->
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-val">18</div>
+            <div class="stat-lbl">Active today</div>
+            <div class="stat-delta delta-up">↑ +3 vs yesterday</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">⭐ 284</div>
+            <div class="stat-lbl">Class stars</div>
+            <div class="stat-delta delta-up">↑ +62 this week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">67</div>
+            <div class="stat-lbl">Sessions today</div>
+            <div class="stat-delta delta-same">→ Typical</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">4</div>
+            <div class="stat-lbl">Need check-in</div>
+            <div class="stat-delta delta-down" style="color:#d97706">⚠ Support queue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">3</div>
+            <div class="stat-lbl">Bands covered</div>
+            <div class="stat-delta delta-same">P0 / P1 / P2</div>
+          </div>
+        </div>
+
+        <!-- Two-col: active students + support queue -->
+        <div class="two-col">
+          <!-- Active students -->
+          <div class="card">
+            <div class="card-h">
+              🟢 Active right now (9)
+              <a class="card-link">View all →</a>
+            </div>
+            <div class="student-row">
+              <div class="student-avatar">😊</div>
+              <div style="flex:1"><div class="student-name">Aaliya <span class="chip-active status-chip">Active</span></div><div class="student-band">Mint Band · Sight words</div></div>
+              <span class="student-stars">⭐ 7</span>
+            </div>
+            <div class="student-row">
+              <div class="student-avatar">🎯</div>
+              <div style="flex:1"><div class="student-name">Ben <span class="chip-active status-chip">Active</span></div><div class="student-band">Violet Band · Addition facts</div></div>
+              <span class="student-stars">⭐ 5</span>
+            </div>
+            <div class="student-row">
+              <div class="student-avatar">⭐</div>
+              <div style="flex:1"><div class="student-name">Chloe <span class="chip-active status-chip">Active</span></div><div class="student-band">Mint Band · Blending</div></div>
+              <span class="student-stars">⭐ 9</span>
+            </div>
+            <div class="student-row">
+              <div class="student-avatar">🌟</div>
+              <div style="flex:1"><div class="student-name">Daniel <span class="chip-active status-chip">Active</span></div><div class="student-band">Pre-K Band · Letters</div></div>
+              <span class="student-stars">⭐ 4</span>
+            </div>
+            <div style="font-size:12px;color:#2563eb;cursor:pointer;margin-top:10px;font-weight:700">+ 5 more active →</div>
+          </div>
+
+          <!-- Support queue preview -->
+          <div class="card">
+            <div class="card-h">
+              ⚠️ Needs check-in (4)
+              <a class="card-link">View queue →</a>
+            </div>
+            <div class="queue-item">
+              <div class="queue-avatar">💛</div>
+              <div>
+                <div class="queue-name">Emma</div>
+                <div class="queue-issue">Hit confidence floor 4× on blending sounds — same question type each time</div>
+              </div>
+              <span class="queue-action">Check in</span>
+            </div>
+            <div class="queue-item">
+              <div class="queue-avatar">💛</div>
+              <div>
+                <div class="queue-name">Marcus</div>
+                <div class="queue-issue">No sessions in 5 days — streak broken</div>
+              </div>
+              <span class="queue-action">Reach out</span>
+            </div>
+            <div class="queue-item">
+              <div class="queue-avatar">💛</div>
+              <div>
+                <div class="queue-name">Priya</div>
+                <div class="queue-issue">Repeated hint requests on skip counting — may need a different approach</div>
+              </div>
+              <span class="queue-action">Check in</span>
+            </div>
+            <div class="queue-item">
+              <div class="queue-avatar">💛</div>
+              <div>
+                <div class="queue-name">Tommy</div>
+                <div class="queue-issue">Band placement may need review — consistently above ceiling</div>
+              </div>
+              <span class="queue-action">Review band</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Three-col: band coverage + skill alerts + this week -->
+        <div class="three-col">
+          <!-- Band coverage -->
+          <div class="card">
+            <div class="card-h">🎯 Band coverage</div>
+            <div class="band-row">
+              <div class="band-dot-lg" style="background:#ffd166"></div>
+              <div class="band-name-lbl">Pre-K (P0)</div>
+              <div class="band-bar"><div class="band-fill" style="width:21%;background:#ffd166"></div></div>
+              <div class="band-count">5</div>
+            </div>
+            <div class="band-row">
+              <div class="band-dot-lg" style="background:#9b72ff"></div>
+              <div class="band-name-lbl">K–1 (P1)</div>
+              <div class="band-bar"><div class="band-fill" style="width:38%;background:#9b72ff"></div></div>
+              <div class="band-count">9</div>
+            </div>
+            <div class="band-row">
+              <div class="band-dot-lg" style="background:#58e8c1"></div>
+              <div class="band-name-lbl">G2–3 (P2)</div>
+              <div class="band-bar"><div class="band-fill" style="width:42%;background:#58e8c1"></div></div>
+              <div class="band-count">10</div>
+            </div>
+            <div class="band-row">
+              <div class="band-dot-lg" style="background:#ff7b6b"></div>
+              <div class="band-name-lbl">G4–5 (P3)</div>
+              <div class="band-bar"><div class="band-fill" style="width:0%;background:#ff7b6b"></div></div>
+              <div class="band-count" style="color:#ccc">0</div>
+            </div>
+          </div>
+
+          <!-- Skill alerts -->
+          <div class="card">
+            <div class="card-h">⚡ Common skill gaps</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;line-height:1.4">Skills where 3+ students are struggling. Click to drilldown.</div>
+            <div>
+              <span class="alert-chip">🔤 Blending sounds (6 students)</span>
+              <span class="alert-chip">🔢 Skip counting (4 students)</span>
+              <span class="alert-chip">📝 CVC spelling (3 students)</span>
+            </div>
+          </div>
+
+          <!-- This week summary -->
+          <div class="card">
+            <div class="card-h">📅 Week to date</div>
+            <div class="student-row" style="border:none;padding:6px 0">
+              <div style="flex:1;font-size:12px;color:#64748b;font-weight:600">Sessions completed</div>
+              <span style="font-size:14px;font-weight:800;color:#0f172a">187</span>
+            </div>
+            <div class="student-row" style="border:none;padding:6px 0">
+              <div style="flex:1;font-size:12px;color:#64748b;font-weight:600">Stars earned (class)</div>
+              <span style="font-size:14px;font-weight:800;color:#0f172a">⭐ 284</span>
+            </div>
+            <div class="student-row" style="border:none;padding:6px 0">
+              <div style="flex:1;font-size:12px;color:#64748b;font-weight:600">Badges earned</div>
+              <span style="font-size:14px;font-weight:800;color:#0f172a">🏅 7</span>
+            </div>
+            <div class="student-row" style="border:none;padding:6px 0;border-top:1px solid #f1f5f9">
+              <div style="flex:1;font-size:12px;color:#64748b;font-weight:600">Students not active</div>
+              <span style="font-size:14px;font-weight:800;color:#d97706">6</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: Student List ─────────────────────────────────────────── -->
+<div id="tab-students" class="screen">
+  <p class="section-title">Student list — sortable, filterable by band/activity</p>
+  <div class="app">
+    <div class="app-inner">
+      <div class="sidebar">
+        <div class="sidebar-brand"><div class="brand-logo">WonderQuest</div><div class="brand-sub">Teacher Portal</div></div>
+        <div class="nav-item">🏠 Class overview</div>
+        <div class="nav-item active">👥 Students</div>
+        <div class="nav-item">📊 Skills report</div>
+        <div class="nav-item">🔧 Support queue</div>
+        <div class="sidebar-footer"><div class="teacher-row"><div class="teacher-avatar">MJ</div><div><div class="teacher-name">Ms Johnson</div><div class="teacher-school">Grade 2</div></div></div></div>
+      </div>
+      <div class="main">
+        <div class="page-title">Students</div>
+        <div class="page-sub">24 students · Showing all</div>
+
+        <!-- Filters -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <select style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#0f172a;font-family:system-ui;cursor:pointer;background:#fff">
+            <option>All bands</option><option>Pre-K</option><option>K–1</option><option>G2–3</option><option>G4–5</option>
+          </select>
+          <select style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#0f172a;font-family:system-ui;cursor:pointer;background:#fff">
+            <option>Activity: All</option><option>Active today</option><option>Not today</option><option>Not this week</option>
+          </select>
+          <select style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#0f172a;font-family:system-ui;cursor:pointer;background:#fff">
+            <option>Sort: Stars ↓</option><option>Sort: Name A–Z</option><option>Sort: Sessions ↓</option>
+          </select>
+        </div>
+
+        <!-- Student table -->
+        <div class="card" style="padding:0">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:2px solid #f1f5f9">
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em">Student</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em">Band</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em">Stars</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em">Sessions</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em">Streak</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f8fafc">
+                <td style="padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#0f172a">Aaliya</div></td>
+                <td style="padding:12px 16px"><span style="background:#e6fef8;color:#0e7360;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">🟢 Mint</span></td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:800;color:#0f172a">⭐ 47</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">12</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">🔥 6d</td>
+                <td style="padding:12px 16px"><span class="chip-active status-chip">Active</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f8fafc">
+                <td style="padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#0f172a">Ben</div></td>
+                <td style="padding:12px 16px"><span style="background:#f0ebff;color:#7c3aed;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">🟣 Violet</span></td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:800;color:#0f172a">⭐ 28</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">9</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">🔥 4d</td>
+                <td style="padding:12px 16px"><span class="chip-active status-chip">Active</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f8fafc;background:#fffbf0">
+                <td style="padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#0f172a">Emma</div></td>
+                <td style="padding:12px 16px"><span style="background:#e6fef8;color:#0e7360;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">🟢 Mint</span></td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:800;color:#0f172a">⭐ 19</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">6</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">🔥 2d</td>
+                <td style="padding:12px 16px"><span class="chip-support status-chip">⚠ Needs check-in</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f8fafc">
+                <td style="padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#0f172a">Marcus</div></td>
+                <td style="padding:12px 16px"><span style="background:#fffbf0;color:#a06000;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">🟡 Gold</span></td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:800;color:#0f172a">⭐ 0</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">0</td>
+                <td style="padding:12px 16px;font-size:13px;color:#94a3b8">—</td>
+                <td style="padding:12px 16px"><span class="chip-idle status-chip" style="background:#fee2e2;color:#dc2626">5 days absent</span></td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#0f172a">Priya</div></td>
+                <td style="padding:12px 16px"><span style="background:#e6fef8;color:#0e7360;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">🟢 Mint</span></td>
+                <td style="padding:12px 16px;font-size:13px;font-weight:800;color:#0f172a">⭐ 22</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">8</td>
+                <td style="padding:12px 16px;font-size:13px;color:#0f172a">🔥 3d</td>
+                <td style="padding:12px 16px"><span class="chip-support status-chip">⚠ Needs check-in</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="padding:12px 16px;font-size:12px;color:#2563eb;font-weight:700;cursor:pointer;border-top:1px solid #f1f5f9">Show all 24 students →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: Support Queue ────────────────────────────────────────── -->
+<div id="tab-support" class="screen">
+  <p class="section-title">Support queue — students flagged for teacher check-in</p>
+  <div class="app">
+    <div class="app-inner">
+      <div class="sidebar">
+        <div class="sidebar-brand"><div class="brand-logo">WonderQuest</div><div class="brand-sub">Teacher Portal</div></div>
+        <div class="nav-item">🏠 Class overview</div>
+        <div class="nav-item">👥 Students</div>
+        <div class="nav-item active">🔧 Support queue</div>
+        <div class="sidebar-footer"><div class="teacher-row"><div class="teacher-avatar">MJ</div><div><div class="teacher-name">Ms Johnson</div></div></div></div>
+      </div>
+      <div class="main">
+        <div class="page-title">Support queue</div>
+        <div class="page-sub">4 students need your attention · Prioritised by recency</div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- Queue items -->
+          <div class="card" style="border-left:4px solid #f59e0b">
+            <div style="display:flex;align-items:flex-start;gap:14px">
+              <div style="width:40px;height:40px;border-radius:12px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💛</div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:2px">Emma <span style="font-size:11px;color:#64748b;font-weight:600">· Mint Band · Level 3</span></div>
+                <div style="font-size:12px;color:#92400e;margin-bottom:10px;line-height:1.5">Hit confidence floor <strong>4 times</strong> on <strong>Blending sounds</strong> — same question type. May need alternative instruction approach in class.</div>
+                <div style="display:flex;gap:8px">
+                  <button style="padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">View Emma's detail</button>
+                  <button style="padding:8px 14px;background:#f1f5f9;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">Mark resolved</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:4px solid #f59e0b">
+            <div style="display:flex;align-items:flex-start;gap:14px">
+              <div style="width:40px;height:40px;border-radius:12px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💛</div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:2px">Marcus <span style="font-size:11px;color:#64748b;font-weight:600">· Gold Band · Level 1</span></div>
+                <div style="font-size:12px;color:#92400e;margin-bottom:10px;line-height:1.5">No sessions in <strong>5 days</strong>. Last session was Thu Mar 19. Streak broken. May need engagement check-in.</div>
+                <div style="display:flex;gap:8px">
+                  <button style="padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">View Marcus's detail</button>
+                  <button style="padding:8px 14px;background:#f1f5f9;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">Mark resolved</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:4px solid #f59e0b">
+            <div style="display:flex;align-items:flex-start;gap:14px">
+              <div style="width:40px;height:40px;border-radius:12px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💛</div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:2px">Priya <span style="font-size:11px;color:#64748b;font-weight:600">· Mint Band · Level 4</span></div>
+                <div style="font-size:12px;color:#92400e;margin-bottom:10px;line-height:1.5">Repeated hint requests on <strong>Skip counting</strong> (7 hints in 3 sessions). Consistent pattern — may benefit from hands-on counting activity in class.</div>
+                <div style="display:flex;gap:8px">
+                  <button style="padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">View Priya's detail</button>
+                  <button style="padding:8px 14px;background:#f1f5f9;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">Mark resolved</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-left:4px solid #3b82f6">
+            <div style="display:flex;align-items:flex-start;gap:14px">
+              <div style="width:40px;height:40px;border-radius:12px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💙</div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:2px">Tommy <span style="font-size:11px;color:#64748b;font-weight:600">· K–1 Band · Level 5</span></div>
+                <div style="font-size:12px;color:#1d4ed8;margin-bottom:10px;line-height:1.5">Consistently achieving <strong>Perfect sessions</strong> above band ceiling. May be ready to advance to Mint Band. Review with parent before changing.</div>
+                <div style="display:flex;gap:8px">
+                  <button style="padding:8px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">Review band placement</button>
+                  <button style="padding:8px 14px;background:#f1f5f9;color:#0f172a;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">Dismiss</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: Spec ─────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-home-desktop-v3.html<br>
+      <strong>Persona:</strong> Teacher / Educator — distinct from Parent portal and Owner portal.<br>
+      <strong>Design tokens:</strong> bg #f0f4f8 · sidebar #0f172a · accent #2563eb · cards white · font system-ui.
+    </div>
+    <h2 class="spec-h2">Teacher vs Parent vs Owner — Key Differences</h2>
+    <table class="spec-table">
+      <tr><th>Aspect</th><th>Parent portal</th><th>Teacher portal</th><th>Owner portal</th></tr>
+      <tr><td>Scope</td><td>1–N children (family)</td><td>Whole class (20–30 students)</td><td>Platform-wide all classes</td></tr>
+      <tr><td>Background</td><td>#f5f0e8 warm cream</td><td>#f0f4f8 blue-grey</td><td>#0d1117 dark</td></tr>
+      <tr><td>Accent</td><td>#9b72ff violet</td><td>#2563eb blue</td><td>#50e890 green</td></tr>
+      <tr><td>Accuracy %</td><td>Weekly report only</td><td>Shown with context (professional)</td><td>Full analytics</td></tr>
+      <tr><td>Wrong answer detail</td><td>Never</td><td>Pattern-level only (not per question)</td><td>Aggregate analytics only</td></tr>
+    </table>
+    <h2 class="spec-h2">Support Queue Triggers</h2>
+    <table class="spec-table">
+      <tr><th>Trigger type</th><th>Condition</th><th>Priority</th></tr>
+      <tr><td>Confidence floor</td><td>confidence_floor_hit >= 3 on same skill_category in 7 days</td><td>Amber ⚠</td></tr>
+      <tr><td>Absence</td><td>no sessions in 5+ consecutive practice days</td><td>Amber ⚠</td></tr>
+      <tr><td>Hint pattern</td><td>hint_requests >= 5 on same skill_category in 3 sessions</td><td>Amber ⚠</td></tr>
+      <tr><td>Band ceiling</td><td>perfect_sessions_count >= 5 AND level >= band_max_level</td><td>Blue 💙 (positive)</td></tr>
+    </table>
+    <h2 class="spec-h2">Privacy Rules (Teacher Context)</h2>
+    <p class="spec-p">Student first names shown — no surnames. No parent contact info visible in teacher portal (separate FERPA boundary). Accuracy % shown as a class-level metric and per-student metric — but in "sessions context" not as a grade. Wrong answer patterns shown at skill-category level only, not per question.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

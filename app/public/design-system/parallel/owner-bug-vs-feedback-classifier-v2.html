@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Bug vs Feedback Classifier — WonderQuest #281</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#f0f6ff;font-family:'Inter',sans-serif;padding:24px;min-height:100vh}
+.hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:16px;margin-bottom:24px;color:#333;font-size:13px;line-height:1.6}
+.hint strong{color:#b45309}
+h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.subtitle{color:#8b949e;font-size:14px;margin-bottom:24px}
+.tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.tab-btn{padding:8px 18px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#8b949e;font-size:14px;font-weight:500;cursor:pointer;min-height:44px;transition:all .15s}
+.tab-btn.active{background:#50e890;color:#0d1117;border-color:#50e890}
+.screen{display:none}.screen.active{display:block}
+.card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:20px;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.chip-green{background:rgba(80,232,144,.15);color:#50e890}
+.chip-amber{background:rgba(245,158,11,.15);color:#f59e0b}
+.chip-coral{background:rgba(255,123,107,.15);color:#ff7b6b}
+.chip-violet{background:rgba(155,114,255,.15);color:#9b72ff}
+.chip-blue{background:rgba(56,189,248,.15);color:#38bdf8}
+.chip-gray{background:rgba(139,148,158,.15);color:#8b949e}
+.chip-gold{background:rgba(255,209,102,.15);color:#ffd166}
+/* Queue */
+.queue-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.badge{background:#ff7b6b;color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}
+.fb-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:16px;margin-bottom:12px}
+.fb-text{font-size:14px;color:#f0f6ff;margin-bottom:10px;line-height:1.5}
+.fb-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.fb-controls{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+@media(max-width:680px){.fb-controls{grid-template-columns:1fr 1fr;gap:8px}}
+.fb-controls label{font-size:12px;color:#8b949e;display:block;margin-bottom:4px}
+.fb-controls select{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.12);color:#f0f6ff;padding:8px 10px;border-radius:6px;font-size:13px;height:44px}
+.route-btn{background:#50e890;color:#0d1117;border:none;border-radius:6px;padding:0 16px;height:44px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-width:120px}
+.route-btn:hover{background:#3dd17a}
+.toast{display:none;background:#1c3a2a;border:1px solid #50e890;border-radius:6px;padding:10px 14px;font-size:13px;color:#50e890;margin-top:10px}
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;overflow-x:auto}
+@media(max-width:900px){.kanban{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.kanban{grid-template-columns:1fr}}
+.k-col-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8b949e;margin-bottom:12px;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:6px;text-align:center}
+.k-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px;margin-bottom:10px}
+.k-title{font-size:13px;font-weight:600;margin-bottom:8px;line-height:1.4}
+.k-meta{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.k-foot{font-size:11px;color:#8b949e}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:14px;text-align:center}
+.stat-num{font-size:26px;font-weight:700;color:#50e890}
+.stat-label{font-size:11px;color:#8b949e;margin-top:4px}
+/* Spec */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:600px){.spec-grid{grid-template-columns:1fr}}
+.spec-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px}
+.spec-card h3{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.spec-card p,.spec-card li{font-size:13px;color:#c9d1d9;line-height:1.6}
+.spec-card ul{padding-left:16px}
+pre{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:14px;font-size:12px;overflow-x:auto;line-height:1.6;color:#58e8c1;font-family:monospace}
+.rules-card{background:#1c2330;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:16px;margin-top:14px}
+.rules-card h3{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.rule-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start}
+.rule-row:last-child{border-bottom:none}
+.rule-num{width:22px;height:22px;border-radius:50%;background:rgba(80,232,144,.15);color:#50e890;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rule-text{font-size:13px;color:#c9d1d9;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th{background:rgba(255,255,255,.04);padding:8px 12px;font-size:12px;color:#8b949e;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+td{padding:8px 12px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering hint — owner-bug-vs-feedback-classifier-v2</strong> | Persona: Owner | Route: <code>/owner/feedback/classify</code> | DB: <code>feedback_items { id, source ENUM('parent','teacher','beta_tester'), raw_text, classification ENUM('bug','feature_request','ux_suggestion','observation','duplicate'), severity ENUM('critical','high','medium','low'), status ENUM('new','classified','routed','resolved'), classified_by, classified_at, routed_to, created_at }</code> | Privacy: Parent/child = cohort label only (never personal name); Teacher = school name (B2B contract); child never identified
+</div>
+
+<h1>Bug vs Feedback Classifier</h1>
+<p class="subtitle">Item #281 — Owner · Triage all incoming feedback into bug, feature, UX, or observation</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('classify')">Classify</button>
+  <button class="tab-btn" onclick="showTab('pipeline')">Pipeline</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: CLASSIFY -->
+<div id="classify" class="screen active">
+  <div class="queue-header">
+    <h2 style="font-size:16px;font-weight:600">New Items Queue</h2>
+    <span class="badge" id="queueCount">5 unclassified</span>
+  </div>
+
+  <!-- Item 1 -->
+  <div class="fb-card" id="fb1">
+    <div class="fb-text">"The app crashed when Noah switched themes mid-quest — had to restart completely."</div>
+    <div class="fb-meta">
+      <span class="chip chip-amber">Parent</span>
+      <span class="chip chip-gray">Beta Family A</span>
+      <span class="chip chip-coral">NEW</span>
+    </div>
+    <div class="fb-controls">
+      <div>
+        <label for="cls1">Classification</label>
+        <select id="cls1" aria-label="Classification for item 1" onchange="toggleSeverity('sev1',this.value)">
+          <option value="">— Select —</option>
+          <option value="bug">Bug</option>
+          <option value="feature_request">Feature Request</option>
+          <option value="ux_suggestion">UX Suggestion</option>
+          <option value="observation">Observation</option>
+          <option value="duplicate">Duplicate</option>
+        </select>
+      </div>
+      <div id="sev1" style="display:none">
+        <label for="sevsel1">Severity</label>
+        <select id="sevsel1" aria-label="Severity for item 1">
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div>
+        <label for="rt1">Route to</label>
+        <select id="rt1" aria-label="Route to for item 1">
+          <option value="">— Select —</option>
+          <option value="engineering">Engineering</option>
+          <option value="product">Product</option>
+          <option value="content">Content</option>
+          <option value="design">Design</option>
+          <option value="duplicate_queue">Duplicate Queue</option>
+        </select>
+      </div>
+      <button class="route-btn" onclick="classifyItem('fb1','toast1')">Classify &amp; Route</button>
+    </div>
+    <div class="toast" id="toast1">✅ Classified and routed to Engineering</div>
+  </div>
+
+  <!-- Item 2 -->
+  <div class="fb-card" id="fb2">
+    <div class="fb-text">"Would love a dark mode option for the parent dashboard — it's very bright at night."</div>
+    <div class="fb-meta">
+      <span class="chip chip-amber">Parent</span>
+      <span class="chip chip-gray">Beta Family B</span>
+      <span class="chip chip-coral">NEW</span>
+    </div>
+    <div class="fb-controls">
+      <div>
+        <label for="cls2">Classification</label>
+        <select id="cls2" aria-label="Classification for item 2" onchange="toggleSeverity('sev2',this.value)">
+          <option value="">— Select —</option>
+          <option value="bug">Bug</option>
+          <option value="feature_request">Feature Request</option>
+          <option value="ux_suggestion">UX Suggestion</option>
+          <option value="observation">Observation</option>
+          <option value="duplicate">Duplicate</option>
+        </select>
+      </div>
+      <div id="sev2" style="display:none">
+        <label>Severity</label>
+        <select aria-label="Severity for item 2"><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+      </div>
+      <div>
+        <label for="rt2">Route to</label>
+        <select id="rt2" aria-label="Route to for item 2">
+          <option value="">— Select —</option>
+          <option>Engineering</option><option>Product</option><option>Content</option><option>Design</option><option>Duplicate Queue</option>
+        </select>
+      </div>
+      <button class="route-btn" onclick="classifyItem('fb2','toast2')">Classify &amp; Route</button>
+    </div>
+    <div class="toast" id="toast2">✅ Classified and routed to Product</div>
+  </div>
+
+  <!-- Item 3 -->
+  <div class="fb-card" id="fb3">
+    <div class="fb-text">"The voice speed toggle is hard to find in settings — took me a while to locate it."</div>
+    <div class="fb-meta">
+      <span class="chip chip-blue">Teacher</span>
+      <span class="chip chip-gray">School C</span>
+      <span class="chip chip-coral">NEW</span>
+    </div>
+    <div class="fb-controls">
+      <div>
+        <label for="cls3">Classification</label>
+        <select id="cls3" aria-label="Classification for item 3" onchange="toggleSeverity('sev3',this.value)">
+          <option value="">— Select —</option>
+          <option>Bug</option><option>Feature Request</option><option value="ux_suggestion">UX Suggestion</option><option>Observation</option><option>Duplicate</option>
+        </select>
+      </div>
+      <div id="sev3" style="display:none">
+        <label>Severity</label>
+        <select aria-label="Severity for item 3"><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+      </div>
+      <div>
+        <label for="rt3">Route to</label>
+        <select id="rt3" aria-label="Route to for item 3">
+          <option value="">— Select —</option>
+          <option>Engineering</option><option>Product</option><option>Content</option><option>Design</option><option>Duplicate Queue</option>
+        </select>
+      </div>
+      <button class="route-btn" onclick="classifyItem('fb3','toast3')">Classify &amp; Route</button>
+    </div>
+    <div class="toast" id="toast3">✅ Classified and routed to Design</div>
+  </div>
+
+  <!-- Item 4 -->
+  <div class="fb-card" id="fb4">
+    <div class="fb-text">"Celebration animation is too slow on older iPads — there's a noticeable lag before it plays."</div>
+    <div class="fb-meta">
+      <span class="chip chip-violet">Beta Tester</span>
+      <span class="chip chip-gray">School D</span>
+      <span class="chip chip-coral">NEW</span>
+    </div>
+    <div class="fb-controls">
+      <div>
+        <label>Classification</label>
+        <select aria-label="Classification for item 4" onchange="toggleSeverity('sev4',this.value)">
+          <option value="">— Select —</option>
+          <option value="bug">Bug</option><option>Feature Request</option><option>UX Suggestion</option><option>Observation</option><option>Duplicate</option>
+        </select>
+      </div>
+      <div id="sev4" style="display:none">
+        <label>Severity</label>
+        <select aria-label="Severity for item 4"><option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option></select>
+      </div>
+      <div>
+        <label>Route to</label>
+        <select aria-label="Route to for item 4">
+          <option value="">— Select —</option>
+          <option>Engineering</option><option>Product</option><option>Content</option><option>Design</option><option>Duplicate Queue</option>
+        </select>
+      </div>
+      <button class="route-btn" onclick="classifyItem('fb4','toast4')">Classify &amp; Route</button>
+    </div>
+    <div class="toast" id="toast4">✅ Classified and routed to Engineering</div>
+  </div>
+
+  <!-- Item 5 -->
+  <div class="fb-card" id="fb5">
+    <div class="fb-text">"The hint button doesn't always appear on the first tap on mobile — sometimes requires a second tap."</div>
+    <div class="fb-meta">
+      <span class="chip chip-amber">Parent</span>
+      <span class="chip chip-gray">Beta Family C</span>
+      <span class="chip chip-coral">NEW</span>
+    </div>
+    <div class="fb-controls">
+      <div>
+        <label>Classification</label>
+        <select aria-label="Classification for item 5" onchange="toggleSeverity('sev5',this.value)">
+          <option value="">— Select —</option>
+          <option value="bug">Bug</option><option>Feature Request</option><option>UX Suggestion</option><option>Observation</option><option>Duplicate</option>
+        </select>
+      </div>
+      <div id="sev5" style="display:none">
+        <label>Severity</label>
+        <select aria-label="Severity for item 5"><option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option></select>
+      </div>
+      <div>
+        <label>Route to</label>
+        <select aria-label="Route to for item 5">
+          <option value="">— Select —</option>
+          <option>Engineering</option><option>Product</option><option>Content</option><option>Design</option><option>Duplicate Queue</option>
+        </select>
+      </div>
+      <button class="route-btn" onclick="classifyItem('fb5','toast5')">Classify &amp; Route</button>
+    </div>
+    <div class="toast" id="toast5">✅ Classified and routed to Engineering</div>
+  </div>
+</div>
+
+<!-- TAB 2: PIPELINE -->
+<div id="pipeline" class="screen">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num">34</div><div class="stat-label">Total Items</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#ff7b6b">12</div><div class="stat-label">Bugs</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#38bdf8">9</div><div class="stat-label">Feature Requests</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#50e890">8</div><div class="stat-label">Resolved This Week</div></div>
+  </div>
+
+  <div class="kanban">
+    <div>
+      <div class="k-col-head">New</div>
+      <div class="k-card">
+        <div class="k-title">Theme switch crash mid-quest</div>
+        <div class="k-meta"><span class="chip chip-coral">Bug</span><span class="chip chip-gold">P0</span></div>
+        <div class="k-foot">Parent · Beta Family A</div>
+      </div>
+      <div class="k-card">
+        <div class="k-title">Hint button intermittent tap issue</div>
+        <div class="k-meta"><span class="chip chip-coral">Bug</span><span class="chip chip-violet">P1</span></div>
+        <div class="k-foot">Parent · Beta Family C</div>
+      </div>
+    </div>
+    <div>
+      <div class="k-col-head">Classified</div>
+      <div class="k-card">
+        <div class="k-title">Dark mode for parent dashboard</div>
+        <div class="k-meta"><span class="chip chip-blue">Feature</span><span class="chip chip-gray">P2</span></div>
+        <div class="k-foot">Routed → Product</div>
+      </div>
+      <div class="k-card">
+        <div class="k-title">Voice speed toggle discoverability</div>
+        <div class="k-meta"><span class="chip chip-amber">UX</span><span class="chip chip-violet">P1</span></div>
+        <div class="k-foot">Routed → Design</div>
+      </div>
+      <div class="k-card">
+        <div class="k-title">iPad celebration animation lag</div>
+        <div class="k-meta"><span class="chip chip-violet">Perf</span><span class="chip chip-violet">P1</span></div>
+        <div class="k-foot">Routed → Engineering</div>
+      </div>
+    </div>
+    <div>
+      <div class="k-col-head">Routed</div>
+      <div class="k-card">
+        <div class="k-title">P3 Social Studies content gap</div>
+        <div class="k-meta"><span class="chip chip-mint">Content</span><span class="chip chip-gold">P0</span></div>
+        <div class="k-foot">→ Content Team</div>
+      </div>
+      <div class="k-card">
+        <div class="k-title">Band advancement confirmation flow</div>
+        <div class="k-meta"><span class="chip chip-amber">UX</span><span class="chip chip-violet">P1</span></div>
+        <div class="k-foot">→ Design</div>
+      </div>
+    </div>
+    <div>
+      <div class="k-col-head">Resolved ✓</div>
+      <div class="k-card">
+        <div class="k-title">Audio not playing on first load</div>
+        <div class="k-meta"><span class="chip chip-coral">Bug</span><span class="chip chip-gold">P0</span><span class="chip chip-green">Fixed</span></div>
+        <div class="k-foot">v2.5 · Mar 10, 2026</div>
+      </div>
+      <div class="k-card">
+        <div class="k-title">Touch targets below 44px — settings</div>
+        <div class="k-meta"><span class="chip chip-blue">Access.</span><span class="chip chip-gold">P0</span><span class="chip chip-green">Fixed</span></div>
+        <div class="k-foot">v2.5 · Mar 10, 2026</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: SPEC -->
+<div id="spec" class="screen">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h3>Component</h3>
+      <p><strong>BugVsFeedbackClassifier</strong></p>
+      <p style="margin-top:6px">Route: <code>/owner/feedback/classify</code></p>
+      <p>Auth: Owner only</p>
+    </div>
+    <div class="spec-card">
+      <h3>Props</h3>
+      <p><code>status_filter?: 'new'|'classified'|'all'</code></p>
+      <p><code>source_filter?: string</code></p>
+    </div>
+  </div>
+
+  <div class="spec-card" style="margin-top:14px">
+    <h3>DB Schema</h3>
+    <pre>feedback_items {
+  id              UUID PRIMARY KEY,
+  source          ENUM('parent','teacher','beta_tester'),
+  raw_text        TEXT NOT NULL,
+  classification  ENUM('bug','feature_request','ux_suggestion',
+                       'observation','duplicate'),
+  severity        ENUM('critical','high','medium','low'),
+  status          ENUM('new','classified','routed','resolved'),
+  classified_by   TEXT,
+  classified_at   TIMESTAMPTZ,
+  routed_to       TEXT,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+}</pre>
+  </div>
+
+  <div class="rules-card">
+    <h3>Classification Rules</h3>
+    <div class="rule-row"><div class="rule-num">B</div><div class="rule-text"><strong>Bug</strong> — reproducible error, crash, or incorrect system behaviour</div></div>
+    <div class="rule-row"><div class="rule-num">F</div><div class="rule-text"><strong>Feature Request</strong> — new capability not currently in the product</div></div>
+    <div class="rule-row"><div class="rule-num">U</div><div class="rule-text"><strong>UX Suggestion</strong> — existing feature works but friction or confusion reported</div></div>
+    <div class="rule-row"><div class="rule-num">O</div><div class="rule-text"><strong>Observation</strong> — general comment, no specific action implied</div></div>
+    <div class="rule-row"><div class="rule-num">D</div><div class="rule-text"><strong>Duplicate</strong> — matches an existing open item (link to original required)</div></div>
+  </div>
+
+  <div class="rules-card">
+    <h3>Routing Matrix</h3>
+    <table>
+      <thead><tr><th>Classification</th><th>Routes to</th></tr></thead>
+      <tbody>
+        <tr><td><span class="chip chip-coral">Bug</span></td><td>Engineering</td></tr>
+        <tr><td><span class="chip chip-blue">Feature Request</span></td><td>Product</td></tr>
+        <tr><td><span class="chip chip-amber">UX Suggestion</span></td><td>Design</td></tr>
+        <tr><td><span class="chip chip-mint">Content Issue</span></td><td>Content Team</td></tr>
+        <tr><td><span class="chip chip-gray">Duplicate</span></td><td>Duplicate Queue (archive)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rules-card">
+    <h3>Privacy Rules</h3>
+    <div class="rule-row"><div class="rule-num">1</div><div class="rule-text">Parent submitter identified by cohort label only — never personal name</div></div>
+    <div class="rule-row"><div class="rule-num">2</div><div class="rule-text">Teacher identified by school name (B2B contract allows this)</div></div>
+    <div class="rule-row"><div class="rule-num">3</div><div class="rule-text">Child is never identified in any feedback item — not by name, session, or any PII</div></div>
+    <div class="rule-row"><div class="rule-num">4</div><div class="rule-text">Raw feedback text must not contain child PII before storage — sanitize on ingest</div></div>
+  </div>
+</div>
+
+<script>
+function showTab(t){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function toggleSeverity(id,val){
+  document.getElementById(id).style.display=(val==='bug')?'block':'none';
+}
+function classifyItem(cardId,toastId){
+  const toast=document.getElementById(toastId);
+  toast.style.display='block';
+  setTimeout(()=>{
+    document.getElementById(cardId).style.opacity='0.4';
+    const cnt=document.getElementById('queueCount');
+    const n=parseInt(cnt.textContent)-1;
+    cnt.textContent=n+' unclassified';
+  },800);
+}
+</script>
+</body>
+</html>

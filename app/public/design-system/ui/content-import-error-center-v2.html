@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Import Error Center v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8edf2;min-width:900px}
+.topbar{background:#0a0f16;border-bottom:1px solid #1e2a38;padding:16px 32px;display:flex;align-items:center;gap:16px}
+.topbar h1{font-size:18px;font-weight:700;color:#58c8f0}
+.topbar .badge{background:#ff4d4d22;border:1px solid #ff4d4d;color:#ff4d4d;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
+.topbar .badge.warn{background:#ffd16622;border-color:#ffd166;color:#ffd166}
+.tabs{display:flex;gap:0;border-bottom:2px solid #1e2a38;padding:0 32px;background:#0d141c}
+.tab{padding:14px 22px;font-size:13px;font-weight:600;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#58c8f0;border-bottom-color:#58c8f0}
+.tab:hover:not(.active){color:#a0b8cc}
+.pane{display:none;padding:32px;max-width:1200px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#ffd166;line-height:1.6}
+.hint-box strong{color:#ffe08a}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:20px;text-align:center}
+.stat-card .num{font-size:32px;font-weight:700;margin-bottom:4px}
+.stat-card .num.red{color:#ff6b6b}
+.stat-card .num.yellow{color:#ffd166}
+.stat-card .num.blue{color:#58c8f0}
+.stat-card .num.green{color:#58e8c1}
+.stat-card .label{font-size:12px;color:#6b8099;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.stat-card .sub{font-size:11px;color:#4a6078;margin-top:6px}
+.error-group{background:#131c27;border:1px solid #1e2a38;border-radius:10px;margin-bottom:16px;overflow:hidden}
+.error-group-header{padding:16px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid #1e2a38}
+.error-group-header:hover{background:#1a2535}
+.error-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.icon-red{background:#ff4d4d22}
+.icon-yellow{background:#ffd16622}
+.icon-blue{background:#58c8f022}
+.error-group-info{flex:1}
+.error-group-info .name{font-size:14px;font-weight:700;color:#e8edf2}
+.error-group-info .desc{font-size:12px;color:#6b8099;margin-top:2px}
+.count-badge{background:#ff4d4d22;border:1px solid #ff4d4d44;color:#ff7777;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+.count-badge.warn{background:#ffd16622;border-color:#ffd16644;color:#ffd166}
+.count-badge.info{background:#58c8f022;border-color:#58c8f044;color:#58c8f0}
+.auto-fix-btn{background:#58c8f0;color:#0a0f16;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.auto-fix-btn:hover{background:#40b0d8}
+.manual-btn{background:#1e2a38;color:#a0b8cc;border:1px solid #2a3a4e;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif}
+.manual-btn:hover{background:#2a3a4e}
+.error-body{padding:20px;border-top:1px solid #1e2a38;background:#0d141c}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #1e2a38}
+td{padding:12px 14px;font-size:13px;border-bottom:1px solid #0f1a25;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#131c27}
+.row-fix-btn{background:#58c8f022;border:1px solid #58c8f044;color:#58c8f0;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif}
+.row-fix-btn:hover{background:#58c8f033}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin:1px}
+.tag-red{background:#ff4d4d22;color:#ff7777}
+.tag-yellow{background:#ffd16622;color:#ffd166}
+.tag-blue{background:#58c8f022;color:#58c8f0}
+.tag-green{background:#58e8c122;color:#58e8c1}
+.action-bar{display:flex;gap:10px;margin-bottom:20px;align-items:center}
+.action-bar .spacer{flex:1}
+.dl-btn{background:#1e2a38;border:1px solid #2a3a4e;color:#a0b8cc;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;gap:6px}
+.dl-btn:hover{background:#2a3a4e}
+.progress-bar{height:6px;background:#1e2a38;border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:3px}
+.section-title{font-size:15px;font-weight:700;color:#58c8f0;margin-bottom:16px}
+.fix-guide{background:#0a0f16;border:1px solid #1e2a38;border-radius:8px;padding:20px;margin-top:16px}
+.fix-guide h4{font-size:13px;font-weight:700;color:#e8edf2;margin-bottom:10px}
+.fix-guide ol{padding-left:18px;font-size:13px;color:#a0b8cc;line-height:2}
+.spec-section{margin-bottom:28px}
+.spec-section h3{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e2a38}
+.spec-section p,.spec-section li{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:6px}
+.spec-section ul,.spec-section ol{padding-left:18px}
+code{background:#0a0f16;border:1px solid #1e2a38;padding:2px 6px;border-radius:3px;font-size:12px;color:#58e8c1;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-size:20px">⚠️</span>
+  <h1>Content Import Error Center</h1>
+  <span class="badge">47 Errors</span>
+  <span class="badge warn">12 Warnings</span>
+  <div style="flex:1"></div>
+  <span style="font-size:12px;color:#4a6078">Import: batch_2026-03-21_q4</span>
+  <button class="dl-btn">⬇ Download Error Report</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('overview')">Error Center Overview</div>
+  <div class="tab" onclick="show('no-answer')">No Correct Answer</div>
+  <div class="tab" onclick="show('duplicates')">Duplicate Options</div>
+  <div class="tab" onclick="show('csv-errors')">CSV Format Errors</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- OVERVIEW -->
+<div id="overview" class="pane active">
+  <div class="hint-box">
+    <strong>Hard blocks prevent publish.</strong> Fix all "No Correct Answer" and "Duplicate Options" errors before publishing this batch. Auto-fix is available for some error types — review changes before applying.
+  </div>
+  <div class="grid-4">
+    <div class="stat-card">
+      <div class="num red">18</div>
+      <div class="label">No Correct Answer</div>
+      <div class="sub">Hard block — cannot publish</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:38%;background:#ff6b6b"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="num red">11</div>
+      <div class="label">Duplicate Options</div>
+      <div class="sub">Hard block — cannot publish</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:23%;background:#ff6b6b"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="num yellow">9</div>
+      <div class="label">Invalid Skill ID</div>
+      <div class="sub">Maps to unknown skill</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:19%;background:#ffd166"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="num yellow">9</div>
+      <div class="label">CSV Format Errors</div>
+      <div class="sub">Malformed rows / missing fields</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:19%;background:#ffd166"></div></div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <span class="section-title" style="margin:0">Error Groups</span>
+    <div class="spacer"></div>
+    <button class="auto-fix-btn" onclick="alert('Auto-fix applied to 11 eligible rows')">⚡ Auto-Fix All Eligible</button>
+    <button class="dl-btn">⬇ Export Errors CSV</button>
+  </div>
+
+  <div class="error-group">
+    <div class="error-group-header">
+      <div class="error-icon icon-red">🚫</div>
+      <div class="error-group-info">
+        <div class="name">No Correct Answer</div>
+        <div class="desc">Questions where no answer option is marked correct_answer=true</div>
+      </div>
+      <span class="count-badge">18 errors</span>
+      <span style="margin-left:8px;font-size:11px;color:#6b8099">HARD BLOCK</span>
+      <button class="manual-btn" style="margin-left:12px">Manual Fix Required</button>
+    </div>
+  </div>
+
+  <div class="error-group">
+    <div class="error-group-header">
+      <div class="error-icon icon-red">🔁</div>
+      <div class="error-group-info">
+        <div class="name">Duplicate Options</div>
+        <div class="desc">Two or more answer options have identical text within a question</div>
+      </div>
+      <span class="count-badge">11 errors</span>
+      <span style="margin-left:8px;font-size:11px;color:#6b8099">HARD BLOCK</span>
+      <button class="auto-fix-btn" style="margin-left:12px" onclick="alert('Auto-deduplication queued')">⚡ Auto-Fix</button>
+    </div>
+  </div>
+
+  <div class="error-group">
+    <div class="error-group-header">
+      <div class="error-icon icon-yellow">🔍</div>
+      <div class="error-group-info">
+        <div class="name">Invalid Skill ID</div>
+        <div class="desc">skill_id references a node/skill that does not exist in the skill graph</div>
+      </div>
+      <span class="count-badge warn">9 errors</span>
+      <button class="auto-fix-btn" style="margin-left:12px" onclick="alert('Skill ID lookup queued')">⚡ Auto-Map</button>
+    </div>
+  </div>
+
+  <div class="error-group">
+    <div class="error-group-header">
+      <div class="error-icon icon-yellow">📋</div>
+      <div class="error-group-info">
+        <div class="name">Malformed CSV</div>
+        <div class="desc">Missing required columns, unescaped commas, wrong column count</div>
+      </div>
+      <span class="count-badge warn">9 errors</span>
+      <button class="manual-btn" style="margin-left:12px">View Guidance</button>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:20px">
+    <div class="section-title">Resolution Summary</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:6px">Total errors</div>
+        <div style="font-size:28px;font-weight:700;color:#ff6b6b">47</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:6px">Auto-fixable</div>
+        <div style="font-size:28px;font-weight:700;color:#58c8f0">20</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:6px">Manual required</div>
+        <div style="font-size:28px;font-weight:700;color:#ffd166">27</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#6b8099;margin-bottom:6px">Publish status</div>
+        <div style="font-size:14px;font-weight:700;color:#ff6b6b;margin-top:6px">🚫 BLOCKED — 29 hard errors remain</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NO CORRECT ANSWER -->
+<div id="no-answer" class="pane">
+  <div class="hint-box">
+    <strong>Hard block:</strong> Each question must have exactly one option with <code>correct_answer=true</code>. These 18 questions have zero correct answers marked. They cannot be published. Edit the CSV or fix via the question editor.
+  </div>
+  <div class="action-bar">
+    <span class="section-title" style="margin:0">18 Questions — No Correct Answer</span>
+    <div class="spacer"></div>
+    <button class="dl-btn">⬇ Export these rows</button>
+  </div>
+  <div class="error-group">
+    <div class="error-body" style="padding:0">
+      <table>
+        <thead><tr><th>Row</th><th>Question Preview</th><th>Skill ID</th><th>Options Count</th><th>Issue</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>14</td><td>"What is 3 + 4?"</td><td>math.add.single</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn" onclick="alert('Open in editor')">Edit</button></td></tr>
+          <tr><td>23</td><td>"Which word rhymes with cat?"</td><td>ela.rhyme.cvc</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>31</td><td>"How many sides does a square have?"</td><td>math.geo.shapes</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>45</td><td>"What color is the sky?"</td><td>sci.observe.color</td><td>3</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>52</td><td>"Which animal is a mammal?"</td><td>sci.life.mammal</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>67</td><td>"What letter comes after B?"</td><td>ela.alpha.order</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>78</td><td>"Count the apples: 🍎🍎🍎"</td><td>math.count.to10</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>84</td><td>"Which shape has 3 sides?"</td><td>math.geo.triangle</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>99</td><td>"What sound does /b/ make?"</td><td>ela.phonics.b</td><td>4</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+          <tr><td>103</td><td>"Which number is bigger: 5 or 7?"</td><td>math.compare.to10</td><td>2</td><td><span class="tag tag-red">No correct</span></td><td><button class="row-fix-btn">Edit</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="fix-guide">
+    <h4>How to fix: No Correct Answer</h4>
+    <ol>
+      <li>Open the source CSV and find the affected row number.</li>
+      <li>Locate the <code>correct_answer</code> column (column G).</li>
+      <li>Set exactly one option row to <code>true</code>.</li>
+      <li>Ensure no other option in the same question group is also set to <code>true</code>.</li>
+      <li>Re-import the corrected CSV.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- DUPLICATE OPTIONS -->
+<div id="duplicates" class="pane">
+  <div class="hint-box">
+    <strong>Hard block:</strong> Duplicate answer options confuse learners and are flagged as data quality errors. Auto-fix will append a differentiator (e.g. " (b)") — review before applying.
+  </div>
+  <div class="action-bar">
+    <span class="section-title" style="margin:0">11 Questions — Duplicate Options</span>
+    <div class="spacer"></div>
+    <button class="auto-fix-btn" onclick="alert('Auto-fix applied to 11 rows — review changes in question editor')">⚡ Auto-Fix All</button>
+    <button class="dl-btn" style="margin-left:8px">⬇ Export</button>
+  </div>
+  <div class="error-group">
+    <div class="error-body" style="padding:0">
+      <table>
+        <thead><tr><th>Row</th><th>Question Preview</th><th>Duplicate Value</th><th>Occurrences</th><th>Auto-Fix</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>18</td><td>"Which is a vowel?"</td><td>"A"</td><td>2×</td><td><span class="tag tag-green">Available</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+          <tr><td>27</td><td>"5 + 5 = ?"</td><td>"10"</td><td>2×</td><td><span class="tag tag-green">Available</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+          <tr><td>34</td><td>"Largest planet?"</td><td>"Jupiter"</td><td>3×</td><td><span class="tag tag-green">Available</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+          <tr><td>41</td><td>"What is ice?"</td><td>"Frozen water"</td><td>2×</td><td><span class="tag tag-green">Available</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+          <tr><td>55</td><td>"Opposite of big?"</td><td>"Small"</td><td>2×</td><td><span class="tag tag-green">Available</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+          <tr><td>62</td><td>"Color of grass?"</td><td>"Green"</td><td>2×</td><td><span class="tag tag-yellow">Review</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+          <tr><td>71</td><td>"How many days in a week?"</td><td>"7"</td><td>2×</td><td><span class="tag tag-green">Available</span></td><td><button class="row-fix-btn">Fix</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="fix-guide">
+    <h4>How to fix: Duplicate Options</h4>
+    <ol>
+      <li>Use <strong>Auto-Fix All</strong> to resolve most cases — the system appends a unique marker.</li>
+      <li>For "Review" tagged rows, manually verify the intended distinct options and update them in the CSV.</li>
+      <li>Each answer option in a question must be unique (case-insensitive).</li>
+    </ol>
+  </div>
+</div>
+
+<!-- CSV FORMAT ERRORS -->
+<div id="csv-errors" class="pane">
+  <div class="hint-box">
+    <strong>Format errors</strong> prevent rows from being parsed at all. The affected rows were skipped during import. Fix the CSV structure and re-import to include them.
+  </div>
+  <div class="action-bar">
+    <span class="section-title" style="margin:0">9 Format Errors + 9 Invalid Skill IDs</span>
+    <div class="spacer"></div>
+    <button class="dl-btn">⬇ Download Template CSV</button>
+  </div>
+  <div style="margin-bottom:16px;font-size:13px;font-weight:700;color:#a0b8cc">Invalid Skill IDs (9)</div>
+  <div class="error-group">
+    <div class="error-body" style="padding:0">
+      <table>
+        <thead><tr><th>Row</th><th>skill_id value</th><th>Nearest match</th><th>Confidence</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>7</td><td><code>math.addition.basic</code></td><td><code>math.add.single</code></td><td><span class="tag tag-green">94%</span></td><td><button class="row-fix-btn" onclick="alert('Mapped to math.add.single')">Auto-Map</button></td></tr>
+          <tr><td>19</td><td><code>reading.phonics.blends</code></td><td><code>ela.phonics.blends</code></td><td><span class="tag tag-green">91%</span></td><td><button class="row-fix-btn">Auto-Map</button></td></tr>
+          <tr><td>36</td><td><code>sci.animals</code></td><td><code>sci.life.animals</code></td><td><span class="tag tag-yellow">78%</span></td><td><button class="row-fix-btn">Review</button></td></tr>
+          <tr><td>58</td><td><code>geo.shapes.2d</code></td><td><code>math.geo.shapes2d</code></td><td><span class="tag tag-green">88%</span></td><td><button class="row-fix-btn">Auto-Map</button></td></tr>
+          <tr><td>80</td><td><code>ela.vocabulary.grade1</code></td><td><code>ela.vocab.g1</code></td><td><span class="tag tag-green">85%</span></td><td><button class="row-fix-btn">Auto-Map</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:20px;margin-bottom:16px;font-size:13px;font-weight:700;color:#a0b8cc">Malformed CSV Rows (9)</div>
+  <div class="error-group">
+    <div class="error-body" style="padding:0">
+      <table>
+        <thead><tr><th>Row</th><th>Error Type</th><th>Detail</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>3</td><td><span class="tag tag-red">Missing column</span></td><td>Expected 12 columns, got 9</td><td><button class="row-fix-btn">View template</button></td></tr>
+          <tr><td>11</td><td><span class="tag tag-yellow">Unescaped comma</span></td><td>Option text contains comma — wrap in quotes</td><td><button class="row-fix-btn">View row</button></td></tr>
+          <tr><td>29</td><td><span class="tag tag-red">Missing column</span></td><td>question_text column is empty</td><td><button class="row-fix-btn">View row</button></td></tr>
+          <tr><td>47</td><td><span class="tag tag-yellow">Encoding</span></td><td>Non-UTF-8 character at position 34</td><td><button class="row-fix-btn">View row</button></td></tr>
+          <tr><td>91</td><td><span class="tag tag-red">Extra column</span></td><td>Expected 12 columns, got 15</td><td><button class="row-fix-btn">View row</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="pane">
+  <div class="hint-box">
+    <strong>Import Error Center spec.</strong> This surface handles all post-import validation failures, providing triage, auto-fix, and export tools.
+  </div>
+  <div class="spec-section">
+    <h3>Purpose</h3>
+    <p>After a CSV batch is imported, all validation errors are grouped by type and surfaced here. Content admins can triage, auto-fix eligible errors, and download error reports.</p>
+  </div>
+  <div class="spec-section">
+    <h3>Hard Blocks</h3>
+    <ul>
+      <li><strong>No Correct Answer:</strong> question has 0 options marked correct</li>
+      <li><strong>Duplicate Options:</strong> two+ options with identical text in same question</li>
+    </ul>
+    <p>Hard blocks prevent the entire batch from publishing until resolved.</p>
+  </div>
+  <div class="spec-section">
+    <h3>Soft Errors</h3>
+    <ul>
+      <li><strong>Invalid Skill ID:</strong> maps to unknown node — auto-map suggested if confidence ≥ 85%</li>
+      <li><strong>Malformed CSV:</strong> structural errors — manual fix in source CSV required</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Auto-Fix Rules</h3>
+    <ul>
+      <li>Duplicate options: append " (2)", " (3)" to disambiguate</li>
+      <li>Invalid skill IDs: map to highest-confidence match ≥ 85%</li>
+      <li>All auto-fixes are logged and reversible per question ID</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>CSV Export</h3>
+    <p>Download errors as CSV includes: row_number, error_type, error_detail, auto_fix_available, suggested_fix.</p>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['overview','no-answer','duplicates','csv-errors','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

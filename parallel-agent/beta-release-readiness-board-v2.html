@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Release Readiness Board — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:12px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:20px;max-width:1120px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1120px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1120px}
+.screen.active{display:block}
+
+/* Shell chrome */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:12px}
+.sh-logo{font-size:13px;font-weight:900;color:#f0f6ff}
+.sh-logo span{color:#50e890}
+.sh-divider{width:1px;height:18px;background:rgba(255,255,255,.1)}
+.sh-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.6)}
+.sh-right{display:flex;align-items:center;gap:10px}
+.sh-week{font-size:11px;color:rgba(255,255,255,.3)}
+.sh-badge{font-size:10px;font-weight:800;padding:3px 10px;border-radius:6px}
+.sh-badge-amber{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.sh-badge-green{background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
+.sh-badge-red{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+
+/* Overall verdict banner */
+.verdict-banner{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.vb-left{display:flex;align-items:center;gap:14px}
+.vb-icon{font-size:28px}
+.vb-text{}
+.vb-headline{font-size:16px;font-weight:900;color:#f59e0b}
+.vb-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+.vb-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{padding:9px 18px;border-radius:10px;font-size:12px;font-weight:700;font-family:system-ui;cursor:pointer;border:none;transition:all .18s}
+.btn-disabled{background:#161b22;color:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.08);cursor:not-allowed}
+.btn-outline{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);cursor:pointer}
+.btn-outline:hover{border-color:rgba(255,255,255,.35);color:#f0f6ff}
+.btn-primary{background:#50e890;color:#010409;cursor:pointer}
+.btn-primary:hover{background:#6effa3}
+.btn-amber{background:#f59e0b;color:#010409;cursor:pointer}
+.btn-amber:hover{background:#fbbf24}
+.btn-danger-outline{background:transparent;color:#f85149;border:1px solid rgba(248,81,73,.3);cursor:pointer}
+.btn-danger-outline:hover{background:rgba(248,81,73,.08)}
+
+/* Dimension grid */
+.dim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.04)}
+.dim-card{background:#0d1117;padding:20px}
+.dim-card:hover{background:#161b22}
+.dc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.dc-name{font-size:13px;font-weight:800;color:#f0f6ff}
+.dc-num{font-size:10px;color:rgba(255,255,255,.3);font-weight:600;margin-top:2px}
+.status-chip{font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.chip-pass{background:rgba(80,232,144,.12);color:#50e890;border:1px solid rgba(80,232,144,.25)}
+.chip-partial{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+.chip-fail{background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.25)}
+
+.dc-score-row{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+.dc-score{font-size:32px;font-weight:900;color:#f0f6ff;line-height:1}
+.dc-max{font-size:14px;font-weight:700;color:rgba(255,255,255,.3)}
+.dc-threshold{font-size:10px;color:rgba(255,255,255,.3);margin-left:2px}
+
+.dc-bar-track{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.dc-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.bar-pass{background:linear-gradient(90deg,#50e890,#a8ffcc)}
+.bar-partial{background:linear-gradient(90deg,#f59e0b,#ffd166)}
+.bar-fail{background:linear-gradient(90deg,#f85149,#ff8080)}
+
+.sub-checks{display:flex;flex-direction:column;gap:6px}
+.sub-check{display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:7px;background:rgba(255,255,255,.025)}
+.sc-icon{font-size:13px;flex-shrink:0;margin-top:1px;line-height:1}
+.sc-body{flex:1}
+.sc-label{font-size:11px;font-weight:600;color:#f0f6ff;line-height:1.3}
+.sc-note{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;line-height:1.35}
+.sc-note.warn{color:#f59e0b}
+.sc-note.fail{color:#f85149}
+
+/* Summary bar below grid */
+.summary-bar{padding:14px 24px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.sb-stat{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.4)}
+.sb-stat strong{font-size:13px;font-weight:800;color:#f0f6ff}
+.sb-sep{width:1px;height:16px;background:rgba(255,255,255,.08)}
+
+/* ---- Tab 2: Blockers ---- */
+.blockers-wrap{padding:24px}
+.bl-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.25);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.blocker-list{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.blocker-item{background:#161b22;border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,.05);display:flex;align-items:flex-start;gap:14px}
+.blocker-item.hard{border-left:3px solid #f85149}
+.blocker-item.soft{border-left:3px solid #f59e0b}
+.bi-id{font-size:10px;font-weight:800;color:rgba(255,255,255,.25);width:32px;flex-shrink:0;padding-top:3px}
+.bi-body{flex:1}
+.bi-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.bi-title{font-size:13px;font-weight:700;color:#f0f6ff}
+.sev-chip{font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.04em}
+.sev-hard{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.sev-soft{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+.bi-desc{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:8px}
+.bi-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bi-meta-item{font-size:10px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px}
+.bi-meta-item strong{color:rgba(255,255,255,.6);font-weight:700}
+.bi-action{flex-shrink:0}
+
+/* ---- Tab 3: Decision Log ---- */
+.log-wrap{padding:24px}
+.log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.log-table{width:100%;border-collapse:collapse}
+.log-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);text-align:left;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.log-table td{font-size:12px;color:rgba(255,255,255,.7);padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+.log-table tr:hover td{background:rgba(255,255,255,.02)}
+.log-date{color:rgba(255,255,255,.4);font-size:11px;white-space:nowrap}
+.log-decision{font-weight:700;color:#f0f6ff;font-size:12px}
+.log-rationale{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;line-height:1.4}
+.owner-chip{font-size:10px;font-weight:700;padding:2px 9px;border-radius:5px;background:rgba(80,232,144,.1);color:#50e890;border:1px solid rgba(80,232,144,.2);white-space:nowrap}
+.add-decision-form{background:#161b22;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06);margin-top:20px;display:none}
+.add-decision-form.open{display:block}
+.adf-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:12px}
+.adf-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:block}
+.adf-input{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#f0f6ff;font-family:system-ui;font-size:12px;padding:8px 10px;outline:none;margin-bottom:10px}
+.adf-input:focus{border-color:rgba(80,232,144,.4)}
+.adf-textarea{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#f0f6ff;font-family:system-ui;font-size:12px;padding:8px 10px;outline:none;resize:vertical;min-height:70px;margin-bottom:12px}
+.adf-textarea:focus{border-color:rgba(80,232,144,.4)}
+.adf-actions{display:flex;gap:8px}
+
+/* ---- Tab 4: Spec ---- */
+.spec-wrap{padding:24px}
+.spec-block{background:#161b22;border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:16px;overflow:hidden}
+.spec-block-hdr{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35)}
+.spec-block-body{padding:16px}
+.spec-code{background:#010409;border-radius:8px;padding:14px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:11px;color:#a8d8a8;line-height:1.7;overflow-x:auto;white-space:pre}
+.spec-rules{display:flex;flex-direction:column;gap:8px}
+.spec-rule{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#0d1117;border-radius:8px}
+.sr-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.sr-text{font-size:12px;color:rgba(255,255,255,.65);line-height:1.5}
+.sr-text strong{color:#f0f6ff}
+.spec-scoring{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ss-card{background:#0d1117;border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,.05)}
+.ss-dim{font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:4px}
+.ss-threshold{font-size:10px;color:rgba(255,255,255,.4)}
+.ss-weight{font-size:18px;font-weight:900;color:#50e890;margin-top:6px}
+.ss-weight-label{font-size:9px;color:rgba(255,255,255,.3);font-weight:600}
+
+/* Override modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;display:none}
+.modal-overlay.open{display:flex}
+.modal-box{background:#161b22;border-radius:16px;padding:24px;width:480px;max-width:90vw;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal-title{font-size:16px;font-weight:900;color:#f0f6ff;margin-bottom:6px}
+.modal-sub{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:18px;line-height:1.5}
+.modal-warn{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:10px 12px;font-size:11px;color:#f85149;margin-bottom:16px;line-height:1.5}
+.modal-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35);margin-bottom:4px;display:block}
+.modal-textarea{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#f0f6ff;font-family:system-ui;font-size:12px;padding:10px;outline:none;resize:vertical;min-height:80px;margin-bottom:14px}
+.modal-textarea:focus{border-color:rgba(245,158,11,.5)}
+.modal-char-count{font-size:10px;color:rgba(255,255,255,.3);text-align:right;margin-top:-10px;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+/* Resolved state */
+.blocker-item.resolved{opacity:.4}
+.resolved-badge{font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;background:rgba(80,232,144,.1);color:#50e890;border:1px solid rgba(80,232,144,.2)}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>beta-release-readiness-board-v2.html</strong> — Go/No-Go launch readiness board. Used at end of beta period. 6 readiness dimensions: Content (≥80% of v2.6 targets), Technical (all P0/P1 bugs resolved), UX (NPS ≥ 60, avg rating ≥ 4/5), Privacy (all COPPA/FERPA checks passed), Accessibility (WCAG 2.1 AA across all child routes), Commercial (≥3 paying schools committed). Overall: GO if all 6 pass, or owner override with documented rationale.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('readiness')">Readiness Board</button>
+  <button class="tab-btn" onclick="showTab('blockers')">Blocker Details</button>
+  <button class="tab-btn" onclick="showTab('log')">Launch Decision Log</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== TAB 1: READINESS BOARD ===== -->
+<div class="screen active" id="tab-readiness">
+  <div class="shell">
+
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Beta Release Readiness Board</div>
+      </div>
+      <div class="sh-right">
+        <span class="sh-week">Beta Week 3 · April 21, 2026</span>
+        <span class="sh-badge sh-badge-amber">⚠ NOT READY</span>
+      </div>
+    </div>
+
+    <div class="verdict-banner">
+      <div class="vb-left">
+        <div class="vb-icon">⚠️</div>
+        <div class="vb-text">
+          <div class="vb-headline">NOT READY FOR LAUNCH</div>
+          <div class="vb-sub">4 of 6 dimensions pass · 2 hard blockers must be resolved before launch</div>
+        </div>
+      </div>
+      <div class="vb-actions">
+        <button class="btn btn-disabled" title="Requires all 6 pass or owner override with rationale" onclick="openOverrideModal()">Override and Launch</button>
+        <button class="btn btn-outline" onclick="alert('Re-check scheduled for Week 4')">Schedule Re-check</button>
+      </div>
+    </div>
+
+    <div class="dim-grid">
+
+      <!-- 1. Content -->
+      <div class="dim-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-name">📚 Content Readiness</div>
+            <div class="dc-num">Dimension 1 of 6</div>
+          </div>
+          <span class="status-chip chip-partial">🟡 Partial</span>
+        </div>
+        <div class="dc-score-row">
+          <span class="dc-score">78</span>
+          <span class="dc-max">/100</span>
+          <span class="dc-threshold">Threshold: ≥80</span>
+        </div>
+        <div class="dc-bar-track"><div class="dc-bar-fill bar-partial" style="width:78%"></div></div>
+        <div class="sub-checks">
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">P0 band: 88 skills / 80 target</div>
+              <div class="sc-note">110% — exceeds target</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">P1 band: 127 skills / 120 target</div>
+              <div class="sc-note">106% — exceeds target</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">⚠️</span>
+            <div class="sc-body">
+              <div class="sc-label">P3 band: 87 skills / 120 target</div>
+              <div class="sc-note warn">73% — BELOW TARGET · Need 33 more P3 skills</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Technical -->
+      <div class="dim-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-name">⚙️ Technical Readiness</div>
+            <div class="dc-num">Dimension 2 of 6</div>
+          </div>
+          <span class="status-chip chip-partial">🟡 Partial</span>
+        </div>
+        <div class="dc-score-row">
+          <span class="dc-score">85</span>
+          <span class="dc-max">/100</span>
+          <span class="dc-threshold">Threshold: ≥90</span>
+        </div>
+        <div class="dc-bar-track"><div class="dc-bar-fill bar-partial" style="width:85%"></div></div>
+        <div class="sub-checks">
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">P0 bugs resolved: 0 open</div>
+              <div class="sc-note">All critical bugs cleared</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">⚠️</span>
+            <div class="sc-body">
+              <div class="sc-label">P1 bugs open: 2 remaining</div>
+              <div class="sc-note warn">Audio delay · Intervention sensitivity</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">Uptime last 30 days: 99.94%</div>
+              <div class="sc-note">Meets SLA threshold ≥99.9%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. UX -->
+      <div class="dim-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-name">🎯 UX / Product</div>
+            <div class="dc-num">Dimension 3 of 6</div>
+          </div>
+          <span class="status-chip chip-pass">🟢 Pass</span>
+        </div>
+        <div class="dc-score-row">
+          <span class="dc-score">91</span>
+          <span class="dc-max">/100</span>
+        </div>
+        <div class="dc-bar-track"><div class="dc-bar-fill bar-pass" style="width:91%"></div></div>
+        <div class="sub-checks">
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">NPS proxy: 71</div>
+              <div class="sc-note">≥60 required — 18% above threshold</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">Avg rating: 4.2 / 5</div>
+              <div class="sc-note">≥4.0 required — exceeds target</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">Session completion rate: 73%</div>
+              <div class="sc-note">≥70% required — on target</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Privacy -->
+      <div class="dim-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-name">🔒 Privacy &amp; Compliance</div>
+            <div class="dc-num">Dimension 4 of 6</div>
+          </div>
+          <span class="status-chip chip-pass">🟢 Pass</span>
+        </div>
+        <div class="dc-score-row">
+          <span class="dc-score">100</span>
+          <span class="dc-max">/100</span>
+        </div>
+        <div class="dc-bar-track"><div class="dc-bar-fill bar-pass" style="width:100%"></div></div>
+        <div class="sub-checks">
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">COPPA review: Passed</div>
+              <div class="sc-note">March 2026 — certified compliant</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">FERPA alignment: Confirmed</div>
+              <div class="sc-note">Data handling policy reviewed and approved</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">Data deletion flow: Tested and verified</div>
+              <div class="sc-note">Full PII purge tested end-to-end</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Accessibility -->
+      <div class="dim-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-name">♿ Accessibility</div>
+            <div class="dc-num">Dimension 5 of 6</div>
+          </div>
+          <span class="status-chip chip-pass">🟢 Pass</span>
+        </div>
+        <div class="dc-score-row">
+          <span class="dc-score">94</span>
+          <span class="dc-max">/100</span>
+        </div>
+        <div class="dc-bar-track"><div class="dc-bar-fill bar-pass" style="width:94%"></div></div>
+        <div class="sub-checks">
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">WCAG 2.1 AA: Child routes all pass</div>
+              <div class="sc-note">Audited across all 14 child routes</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">Touch targets: All ≥44×44px</div>
+              <div class="sc-note">iOS and Android verified</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">⚠️</span>
+            <div class="sc-body">
+              <div class="sc-label">Alt-text coverage: 47 images missing</div>
+              <div class="sc-note">Non-blocking — images are decorative</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Commercial -->
+      <div class="dim-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-name">💼 Commercial Readiness</div>
+            <div class="dc-num">Dimension 6 of 6</div>
+          </div>
+          <span class="status-chip chip-fail">🔴 Not Ready</span>
+        </div>
+        <div class="dc-score-row">
+          <span class="dc-score">40</span>
+          <span class="dc-max">/100</span>
+          <span class="dc-threshold">Threshold: ≥80</span>
+        </div>
+        <div class="dc-bar-track"><div class="dc-bar-fill bar-fail" style="width:40%"></div></div>
+        <div class="sub-checks">
+          <div class="sub-check">
+            <span class="sc-icon">✅</span>
+            <div class="sc-body">
+              <div class="sc-label">Pricing model: Defined</div>
+              <div class="sc-note">$8 / student / month — approved</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">❌</span>
+            <div class="sc-body">
+              <div class="sc-label">Signed school contracts: 1 of 3 required</div>
+              <div class="sc-note fail">Need 2 more paying schools before launch</div>
+            </div>
+          </div>
+          <div class="sub-check">
+            <span class="sc-icon">❌</span>
+            <div class="sc-body">
+              <div class="sc-label">Support playbook: Draft only</div>
+              <div class="sc-note fail">Not finalised — must be completed pre-launch</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="summary-bar">
+      <div class="sb-stat">Dimensions passing <strong>4 / 6</strong></div>
+      <div class="sb-sep"></div>
+      <div class="sb-stat">Hard blockers <strong style="color:#f85149">2</strong></div>
+      <div class="sb-sep"></div>
+      <div class="sb-stat">Soft blockers <strong style="color:#f59e0b">3</strong></div>
+      <div class="sb-sep"></div>
+      <div class="sb-stat">Overall score <strong>78 / 100</strong></div>
+      <div class="sb-sep"></div>
+      <div class="sb-stat">Last checked <strong>April 21, 2026</strong></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== TAB 2: BLOCKER DETAILS ===== -->
+<div class="screen" id="tab-blockers">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Blocker Details</div>
+      </div>
+      <div class="sh-right">
+        <span class="sh-badge sh-badge-red">2 Hard Blockers</span>
+        <span class="sh-badge sh-badge-amber">3 Soft Blockers</span>
+      </div>
+    </div>
+
+    <div class="blockers-wrap">
+
+      <div class="bl-section-title">Hard Blockers — Must resolve before launch</div>
+      <div class="blocker-list">
+
+        <div class="blocker-item hard" id="blocker-1">
+          <div class="bi-id">#BL-01</div>
+          <div class="bi-body">
+            <div class="bi-top">
+              <span class="bi-title">P3 content density below target</span>
+              <span class="sev-chip sev-hard">Hard Blocker</span>
+            </div>
+            <div class="bi-desc">87 of 120 P3 skills available. Need 33 more P3-band skills before launch to meet the v2.6 content density requirement. This directly blocks the Content Readiness gate.</div>
+            <div class="bi-meta">
+              <span class="bi-meta-item">Owner: <strong>Content Team</strong></span>
+              <span class="bi-meta-item">ETA: <strong>Week 5</strong></span>
+              <span class="bi-meta-item">Dimension: <strong>Content</strong></span>
+            </div>
+          </div>
+          <div class="bi-action">
+            <button class="btn btn-outline" onclick="resolveBlocker('blocker-1', this)">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div class="blocker-item hard" id="blocker-2">
+          <div class="bi-id">#BL-02</div>
+          <div class="bi-body">
+            <div class="bi-top">
+              <span class="bi-title">Commercial: only 1 of 3 signed school contracts</span>
+              <span class="sev-chip sev-hard">Hard Blocker</span>
+            </div>
+            <div class="bi-desc">Need 3 committed paying schools to confirm commercial viability before public launch. Currently 1 signed, 2 in negotiation. Commercial readiness score is 40/100 against a threshold of ≥80.</div>
+            <div class="bi-meta">
+              <span class="bi-meta-item">Owner: <strong>Founder</strong></span>
+              <span class="bi-meta-item">ETA: <strong>Week 6</strong></span>
+              <span class="bi-meta-item">Dimension: <strong>Commercial</strong></span>
+            </div>
+          </div>
+          <div class="bi-action">
+            <button class="btn btn-outline" onclick="resolveBlocker('blocker-2', this)">Mark Resolved</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bl-section-title">Soft Blockers — Fix or accept with documented rationale</div>
+      <div class="blocker-list">
+
+        <div class="blocker-item soft" id="blocker-3">
+          <div class="bi-id">#BL-03</div>
+          <div class="bi-body">
+            <div class="bi-top">
+              <span class="bi-title">P1 bug: Audio delay on P0 questions</span>
+              <span class="sev-chip sev-soft">Soft Blocker</span>
+            </div>
+            <div class="bi-desc">Intermittent 300–800ms audio delay observed on P0 question types, particularly on lower-end Android devices. Affects approximately 12% of beta sessions. UX impact is moderate but sub-threshold for a hard block.</div>
+            <div class="bi-meta">
+              <span class="bi-meta-item">Owner: <strong>Engineering</strong></span>
+              <span class="bi-meta-item">ETA: <strong>Week 4</strong></span>
+              <span class="bi-meta-item">Dimension: <strong>Technical</strong></span>
+            </div>
+          </div>
+          <div class="bi-action">
+            <button class="btn btn-outline" onclick="resolveBlocker('blocker-3', this)">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div class="blocker-item soft" id="blocker-4">
+          <div class="bi-id">#BL-04</div>
+          <div class="bi-body">
+            <div class="bi-top">
+              <span class="bi-title">P1 bug: Intervention flag sensitivity</span>
+              <span class="sev-chip sev-soft">Soft Blocker</span>
+            </div>
+            <div class="bi-desc">Intervention algorithm is triggering flags too aggressively — false positive rate at 18%, above the 10% target. Teachers are seeing unnecessary alerts. Impacts teacher trust but does not break core play flow.</div>
+            <div class="bi-meta">
+              <span class="bi-meta-item">Owner: <strong>Engineering</strong></span>
+              <span class="bi-meta-item">ETA: <strong>Week 4</strong></span>
+              <span class="bi-meta-item">Dimension: <strong>Technical</strong></span>
+            </div>
+          </div>
+          <div class="bi-action">
+            <button class="btn btn-outline" onclick="resolveBlocker('blocker-4', this)">Mark Resolved</button>
+          </div>
+        </div>
+
+        <div class="blocker-item soft" id="blocker-5">
+          <div class="bi-id">#BL-05</div>
+          <div class="bi-body">
+            <div class="bi-top">
+              <span class="bi-title">Support playbook not finalised</span>
+              <span class="sev-chip sev-soft">Soft Blocker</span>
+            </div>
+            <div class="bi-desc">Support runbook exists as a draft but lacks escalation paths, SLA targets, and school-specific onboarding protocols. Cannot commit to school support agreements without a complete playbook.</div>
+            <div class="bi-meta">
+              <span class="bi-meta-item">Owner: <strong>Ops</strong></span>
+              <span class="bi-meta-item">ETA: <strong>Week 5</strong></span>
+              <span class="bi-meta-item">Dimension: <strong>Commercial</strong></span>
+            </div>
+          </div>
+          <div class="bi-action">
+            <button class="btn btn-outline" onclick="resolveBlocker('blocker-5', this)">Mark Resolved</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 3: DECISION LOG ===== -->
+<div class="screen" id="tab-log">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Launch Decision Log</div>
+      </div>
+      <div class="sh-right">
+        <span class="sh-week">Beta Week 3 · April 21, 2026</span>
+      </div>
+    </div>
+
+    <div class="log-wrap">
+      <div class="log-header">
+        <span style="font-size:12px;color:rgba(255,255,255,.4)">All owner go/no-go decisions recorded permanently</span>
+        <button class="btn btn-primary" onclick="toggleAddForm()">+ Add Decision</button>
+      </div>
+
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Decision</th>
+            <th>Rationale</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody id="decision-log-body">
+          <tr>
+            <td class="log-date">April 21, 2026</td>
+            <td><span class="log-decision">Continue to Week 4</span></td>
+            <td><span class="log-rationale">Engagement metrics on track; commercial pipeline developing. P1 bugs expected resolved by Week 4. No material regression.</span></td>
+            <td><span class="owner-chip">Founder</span></td>
+          </tr>
+          <tr>
+            <td class="log-date">April 14, 2026</td>
+            <td><span class="log-decision">Extend Family Cohort C</span></td>
+            <td><span class="log-rationale">Low retention in Cohort C — give 1 extra week of data before removing from beta. Retention at 54%, below 65% target.</span></td>
+            <td><span class="owner-chip">Founder</span></td>
+          </tr>
+          <tr>
+            <td class="log-date">April 7, 2026</td>
+            <td><span class="log-decision">Go/No-Go: Not Ready</span></td>
+            <td><span class="log-rationale">P3 content gap (87/120 skills) and commercial blockers (1/3 signed contracts) prevent launch. Continue beta through Week 5 at minimum.</span></td>
+            <td><span class="owner-chip">Founder</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="add-decision-form" id="add-form">
+        <div class="adf-title">Add New Decision</div>
+        <label class="adf-label">Decision</label>
+        <input class="adf-input" id="new-decision" type="text" placeholder="e.g. Continue to Week 5, Go/No-Go: Not Ready, Override and Launch...">
+        <label class="adf-label">Rationale</label>
+        <textarea class="adf-textarea" id="new-rationale" placeholder="Describe the reasoning, data points, and any risks accepted..."></textarea>
+        <div class="adf-actions">
+          <button class="btn btn-outline" onclick="toggleAddForm()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveDecision()">Save Decision</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 4: SPEC ===== -->
+<div class="screen" id="tab-spec">
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-logo">Wonder<span>Quest</span></div>
+        <div class="sh-divider"></div>
+        <div class="sh-title">Spec — Scoring Model &amp; Override Rules</div>
+      </div>
+    </div>
+
+    <div class="spec-wrap">
+
+      <div class="spec-block">
+        <div class="spec-block-hdr">Database Schema</div>
+        <div class="spec-block-body">
+          <div class="spec-code">beta_readiness_checks (
+  id           UUID,
+  dimension    TEXT,
+  check_key    TEXT,
+  status       ENUM('pass','partial','fail'),
+  score        INT,
+  threshold    INT,
+  notes        TEXT,
+  checked_at   TIMESTAMPTZ
+)
+
+beta_launch_decisions (
+  id              UUID,
+  week            INT,
+  decision        TEXT,
+  overall_status  ENUM('go','no_go','conditional'),
+  rationale       TEXT,
+  owner_id        UUID,
+  is_override     BOOLEAN DEFAULT false,
+  created_at      TIMESTAMPTZ
+)</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-block-hdr">Scoring Model — Dimension Thresholds</div>
+        <div class="spec-block-body">
+          <div class="spec-scoring">
+            <div class="ss-card">
+              <div class="ss-dim">📚 Content</div>
+              <div class="ss-threshold">Threshold: ≥80</div>
+              <div class="ss-weight">78</div>
+              <div class="ss-weight-label">Current · FAIL</div>
+            </div>
+            <div class="ss-card">
+              <div class="ss-dim">⚙️ Technical</div>
+              <div class="ss-threshold">Threshold: ≥90</div>
+              <div class="ss-weight" style="color:#f59e0b">85</div>
+              <div class="ss-weight-label">Current · PARTIAL</div>
+            </div>
+            <div class="ss-card">
+              <div class="ss-dim">🎯 UX / Product</div>
+              <div class="ss-threshold">Threshold: ≥80</div>
+              <div class="ss-weight">91</div>
+              <div class="ss-weight-label">Current · PASS</div>
+            </div>
+            <div class="ss-card">
+              <div class="ss-dim">🔒 Privacy</div>
+              <div class="ss-threshold">Threshold: ≥100</div>
+              <div class="ss-weight">100</div>
+              <div class="ss-weight-label">Current · PASS</div>
+            </div>
+            <div class="ss-card">
+              <div class="ss-dim">♿ Accessibility</div>
+              <div class="ss-threshold">Threshold: ≥90</div>
+              <div class="ss-weight">94</div>
+              <div class="ss-weight-label">Current · PASS</div>
+            </div>
+            <div class="ss-card">
+              <div class="ss-dim">💼 Commercial</div>
+              <div class="ss-threshold">Threshold: ≥80</div>
+              <div class="ss-weight" style="color:#f85149">40</div>
+              <div class="ss-weight-label">Current · FAIL</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-block-hdr">Override Rules</div>
+        <div class="spec-block-body">
+          <div class="spec-rules">
+            <div class="spec-rule">
+              <span class="sr-icon">🔐</span>
+              <div class="sr-text"><strong>Owner Override Conditions:</strong> Owner can mark as GO with override only if all P0/P1 bugs are resolved AND Privacy dimension passes at 100/100.</div>
+            </div>
+            <div class="spec-rule">
+              <span class="sr-icon">📝</span>
+              <div class="sr-text"><strong>Written Rationale Required:</strong> Override must include written rationale with a minimum of 50 characters. Short rationales are rejected by the system.</div>
+            </div>
+            <div class="spec-rule">
+              <span class="sr-icon">🗃️</span>
+              <div class="sr-text"><strong>Permanent Audit Trail:</strong> Override is logged permanently in <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-size:10px">beta_launch_decisions</code> with <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-size:10px">is_override=true</code>. Cannot be deleted.</div>
+            </div>
+            <div class="spec-rule">
+              <span class="sr-icon">🏫</span>
+              <div class="sr-text"><strong>Commercial Conditional Pass:</strong> Commercial Readiness can be conditionally passed if ≥2 LOIs (letters of intent) exist in lieu of signed contracts. LOIs must be on file.</div>
+            </div>
+            <div class="spec-rule">
+              <span class="sr-icon">🚦</span>
+              <div class="sr-text"><strong>Overall GO Condition:</strong> System auto-approves GO only when all 6 dimensions score at or above their thresholds. Partial scores do not count as a pass for overall determination.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Override Modal -->
+<div class="modal-overlay" id="override-modal">
+  <div class="modal-box">
+    <div class="modal-title">Override and Launch</div>
+    <div class="modal-sub">You are about to override the go/no-go assessment and mark this release as GO. This action is permanent and cannot be undone.</div>
+    <div class="modal-warn">⚠️ 2 hard blockers are unresolved. Override is only valid if all P0/P1 bugs are resolved and Privacy passes. Current conditions may not support a valid override.</div>
+    <label class="modal-label">Override Rationale (min 50 characters)</label>
+    <textarea class="modal-textarea" id="override-rationale" placeholder="Describe why you are overriding the go/no-go assessment and what risks you are accepting..."></textarea>
+    <div class="modal-char-count" id="override-char-count">0 / 50 min</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeOverrideModal()">Cancel</button>
+      <button class="btn btn-danger-outline" id="override-confirm-btn" onclick="confirmOverride()" disabled>Confirm Override</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function resolveBlocker(id, btn) {
+  const item = document.getElementById(id);
+  item.classList.add('resolved');
+  btn.textContent = 'Resolved';
+  btn.disabled = true;
+  btn.classList.remove('btn-outline');
+  // Append resolved badge to title row
+  const titleRow = item.querySelector('.bi-top');
+  const badge = document.createElement('span');
+  badge.className = 'resolved-badge';
+  badge.textContent = '✓ Resolved';
+  titleRow.appendChild(badge);
+}
+
+function toggleAddForm() {
+  const form = document.getElementById('add-form');
+  form.classList.toggle('open');
+  if (form.classList.contains('open')) {
+    document.getElementById('new-decision').focus();
+  }
+}
+
+function saveDecision() {
+  const decision = document.getElementById('new-decision').value.trim();
+  const rationale = document.getElementById('new-rationale').value.trim();
+  if (!decision) { alert('Please enter a decision.'); return; }
+  if (!rationale) { alert('Please enter a rationale.'); return; }
+
+  const tbody = document.getElementById('decision-log-body');
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td class="log-date">${dateStr}</td>
+    <td><span class="log-decision">${escHtml(decision)}</span></td>
+    <td><span class="log-rationale">${escHtml(rationale)}</span></td>
+    <td><span class="owner-chip">Founder</span></td>
+  `;
+  tbody.insertBefore(row, tbody.firstChild);
+
+  document.getElementById('new-decision').value = '';
+  document.getElementById('new-rationale').value = '';
+  toggleAddForm();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openOverrideModal() {
+  document.getElementById('override-modal').classList.add('open');
+  document.getElementById('override-rationale').focus();
+}
+
+function closeOverrideModal() {
+  document.getElementById('override-modal').classList.remove('open');
+  document.getElementById('override-rationale').value = '';
+  document.getElementById('override-char-count').textContent = '0 / 50 min';
+  document.getElementById('override-confirm-btn').disabled = true;
+}
+
+document.getElementById('override-rationale').addEventListener('input', function() {
+  const len = this.value.trim().length;
+  const counter = document.getElementById('override-char-count');
+  counter.textContent = len + ' / 50 min';
+  counter.style.color = len >= 50 ? '#50e890' : 'rgba(255,255,255,.3)';
+  document.getElementById('override-confirm-btn').disabled = len < 50;
+});
+
+function confirmOverride() {
+  const rationale = document.getElementById('override-rationale').value.trim();
+  if (rationale.length < 50) return;
+  closeOverrideModal();
+  // Log the override decision
+  const tbody = document.getElementById('decision-log-body');
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td class="log-date">${dateStr}</td>
+    <td><span class="log-decision" style="color:#f59e0b">⚠ OVERRIDE: Launch GO</span></td>
+    <td><span class="log-rationale">${escHtml(rationale)}</span></td>
+    <td><span class="owner-chip">Founder</span></td>
+  `;
+  const logBody = document.getElementById('decision-log-body');
+  logBody.insertBefore(row, logBody.firstChild);
+  // Update verdict banner
+  document.querySelector('.vb-headline').textContent = 'OVERRIDE — LAUNCHING';
+  document.querySelector('.vb-headline').style.color = '#f59e0b';
+  document.querySelector('.vb-sub').textContent = 'Owner override applied · Rationale logged permanently · See Decision Log';
+  document.querySelector('.sh-badge').textContent = '⚠ OVERRIDE GO';
+  document.querySelector('.sh-badge').className = 'sh-badge sh-badge-amber';
+  alert('Override logged. Navigate to Decision Log to view the permanent record.');
+}
+
+// Close modal on overlay click
+document.getElementById('override-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeOverrideModal();
+});
+</script>
+</body>
+</html>

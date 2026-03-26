@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metric Card System v2 — WonderQuest</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --accent: #50e890;
+    --text: #f0f6ff;
+    --muted: #8b949e;
+    --border: rgba(255,255,255,.06);
+    --delta-up: #50e890;
+    --delta-down: #ef4444;
+    --delta-neutral: #f59e0b;
+    --radius: 12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── Engineering hint box ── */
+  .hint-box {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .hint-box strong { font-weight: 700; }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    display: flex;
+    gap: 2px;
+    background: #161b22;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 18px;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Tab panels ── */
+  .tab-panel { display: none; padding: 32px 24px; max-width: 1200px; margin: 0 auto; }
+  .tab-panel.active { display: block; }
+
+  /* ── Section headers ── */
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    margin-top: 36px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* ── Grid helpers ── */
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 700px) { .grid-3,.grid-2 { grid-template-columns: 1fr; } }
+
+  /* ══════════════════════════════════
+     METRIC CARD BASE
+  ══════════════════════════════════ */
+  .mc {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .mc:hover { border-color: rgba(255,255,255,.14); }
+
+  /* sizes */
+  .mc-compact { min-width: 220px; }
+  .mc-standard { min-width: 280px; }
+  .mc-wide { min-width: 400px; }
+
+  /* ── Card header row (label + icon) ── */
+  .mc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .mc-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .mc-icon {
+    font-size: 18px;
+    line-height: 1;
+    opacity: .85;
+  }
+  .mc-icon.sky  { filter: hue-rotate(180deg) saturate(1.5); }
+  .mc-icon.green { /* natural */ }
+  .mc-icon.amber { filter: hue-rotate(35deg) saturate(2); }
+  .mc-icon.red  { filter: hue-rotate(320deg) saturate(2); }
+
+  /* ── Value ── */
+  .mc-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .mc-sublabel {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  /* ── Pulse animation for blocked/alert values ── */
+  @keyframes pulse-red {
+    0%, 100% { color: #ef4444; }
+    50%       { color: #ff6b6b; }
+  }
+  .mc-value.pulse { animation: pulse-red 2s ease-in-out infinite; }
+
+  /* ── Delta chip ── */
+  .mc-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-top: 8px;
+  }
+  .mc-delta.up      { background: rgba(80,232,144,.12); color: var(--delta-up); }
+  .mc-delta.down    { background: rgba(239,68,68,.12);  color: var(--delta-down); }
+  .mc-delta.neutral { background: rgba(245,158,11,.12); color: var(--delta-neutral); }
+  .mc-delta.good-down { background: rgba(80,232,144,.12); color: var(--delta-up); } /* churn down = good */
+
+  .mc-delta-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── Sparkline ── */
+  .mc-sparkline {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+    margin-top: 14px;
+  }
+  .mc-spark-bar {
+    background: rgba(80,232,144,.4);
+    border-radius: 3px 3px 0 0;
+    flex: 1;
+    transition: background .2s;
+  }
+  .mc-spark-bar.current, .mc-spark-bar.peak { background: #50e890; }
+  .mc-spark-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  .mc-spark-labels span {
+    font-size: 9px;
+    color: var(--muted);
+    flex: 1;
+    text-align: center;
+  }
+
+  /* ── Fill bar ── */
+  .mc-bar-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.08);
+    margin-top: 14px;
+    overflow: hidden;
+  }
+  .mc-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .4s ease;
+  }
+  .mc-bar-fill.green  { background: var(--accent); }
+  .mc-bar-fill.amber  { background: var(--delta-neutral); }
+  .mc-bar-fill.red    { background: var(--delta-down); }
+  .mc-bar-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  .mc-bar-meta span { font-size: 11px; color: var(--muted); }
+
+  /* ── Comparison ── */
+  .mc-comparison {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mc-comp-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mc-comp-label { font-size: 12px; color: var(--muted); }
+  .mc-comp-value { font-size: 14px; font-weight: 700; color: var(--text); }
+  .mc-comp-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 32px;
+    margin-top: 10px;
+  }
+  .mc-comp-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .mc-comp-bar {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    transition: height .4s ease;
+  }
+  .mc-comp-bar.current { background: var(--accent); }
+  .mc-comp-bar.previous { background: rgba(255,255,255,.2); }
+  .mc-comp-bar-lbl { font-size: 9px; color: var(--muted); }
+  .mc-comp-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(80,232,144,.1);
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  /* ══════════════════════════════════
+     SKELETON / LOADING
+  ══════════════════════════════════ */
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #161b22 25%, #1f2937 50%, #161b22 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+  }
+  .skel-value  { height: 32px; width: 70%; margin-bottom: 8px; }
+  .skel-label  { height: 12px; width: 45%; }
+  .skel-sublabel { height: 10px; width: 55%; margin-top: 6px; }
+  .skel-bar    { height: 6px; width: 100%; margin-top: 14px; }
+  .skel-icon   { height: 20px; width: 20px; border-radius: 4px; }
+  .skel-delta  { height: 22px; width: 80px; border-radius: 20px; margin-top: 8px; }
+
+  /* ══════════════════════════════════
+     ERROR STATE
+  ══════════════════════════════════ */
+  .mc.error-state { border-color: rgba(239,68,68,.2); }
+  .mc-error-icon { font-size: 22px; color: var(--delta-down); margin-bottom: 6px; }
+  .mc-error-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .mc-retry { font-size: 12px; color: var(--accent); text-decoration: underline; cursor: pointer; background: none; border: none; }
+  .mc-retry:hover { opacity: .8; }
+
+  /* ══════════════════════════════════
+     ZERO STATE
+  ══════════════════════════════════ */
+  .mc-value.zero { color: var(--muted); }
+  .mc-empty-sublabel { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 4px; }
+
+  /* ══════════════════════════════════
+     GRID LAYOUT — Dashboard rows
+  ══════════════════════════════════ */
+  .dashboard-section {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .dashboard-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .dashboard-section-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+  .audience-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge-owner   { background: rgba(80,232,144,.15); color: var(--accent); }
+  .badge-teacher { background: rgba(99,179,237,.15); color: #63b3ed; }
+  .badge-parent  { background: rgba(245,158,11,.15);  color: var(--delta-neutral); }
+
+  /* ══════════════════════════════════
+     SPEC TAB
+  ══════════════════════════════════ */
+  .spec-section { margin-bottom: 36px; }
+  .spec-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spec-code {
+    background: #161b22;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-family: 'SF Mono', 'Fira Mono', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #c9d1d9;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .spec-code .k  { color: #ff7b72; }
+  .spec-code .t  { color: #79c0ff; }
+  .spec-code .s  { color: #a5d6ff; }
+  .spec-code .c  { color: #8b949e; font-style: italic; }
+
+  .rule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .rule-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+  }
+  .rule-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  .rule-table tr:last-child td { border-bottom: none; }
+  .rule-table code {
+    background: rgba(255,255,255,.07);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #a5d6ff;
+  }
+  .tag-owner   { background: rgba(80,232,144,.15); color: var(--accent); border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+  .tag-teacher { background: rgba(99,179,237,.15); color: #63b3ed;      border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+  .tag-parent  { background: rgba(245,158,11,.15);  color: #f59e0b;      border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+
+  .prop-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .prop-table th {
+    text-align: left;
+    padding: 7px 12px;
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .prop-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .prop-table tr:last-child td { border-bottom: none; }
+  .prop-name { color: #ff7b72; font-family: monospace; }
+  .prop-type { color: #79c0ff; font-family: monospace; }
+  .prop-req  { color: var(--accent); font-size: 11px; }
+  .prop-opt  { color: var(--muted); font-size: 11px; }
+  .prop-desc { color: #c9d1d9; }
+
+  /* edge case grid */
+  .edge-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .edge-col-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  @media (max-width: 700px) { .edge-grid { grid-template-columns: 1fr; } }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- Engineering hint box -->
+<div style="max-width:1200px;margin:0 auto;padding:20px 24px 0;">
+  <div class="hint-box">
+    <strong>metric-card-system-v2.html</strong> — Reusable metric/KPI card components. Card sizes: Compact (fits in 4-col grid, ~220px min), Standard (fits in 3-col, ~280px min), Wide (fits in 2-col, ~400px min). Variants: Simple (icon+value+label), With Delta (adds ▲▼ % change), With Sparkline (mini 7-day line chart), With Bar (value + progress/fill bar), With Comparison (current vs prev period). Audience-aware: Owner sees financial+operational KPIs (MRR/MAU/uptime); Teacher sees classroom KPIs; Parent sees child progress metrics. Never show financial KPIs to teacher/parent.
+  </div>
+</div>
+
+<!-- Tab bar -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(0)">Card Gallery</button>
+  <button class="tab-btn" onclick="showTab(1)">Grid Layouts</button>
+  <button class="tab-btn" onclick="showTab(2)">Edge Cases</button>
+  <button class="tab-btn" onclick="showTab(3)">Spec</button>
+</nav>
+
+<!-- ════════════════════════════════════════════════
+     TAB 0 — CARD GALLERY
+════════════════════════════════════════════════ -->
+<section class="tab-panel active" id="panel-0">
+
+  <!-- ── Simple Cards ── -->
+  <div class="section-title">Simple Cards — icon + value + label (compact)</div>
+  <div class="grid-4">
+
+    <!-- Active Sessions (sky) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">Active Sessions</span>
+        <span class="mc-icon sky">📊</span>
+      </div>
+      <div class="mc-value">1,247</div>
+      <div class="mc-sublabel">of 1,320 total</div>
+    </div>
+
+    <!-- Approval Rate (green) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">Approval Rate</span>
+        <span class="mc-icon green">✅</span>
+      </div>
+      <div class="mc-value">94%</div>
+      <div class="mc-sublabel">this month</div>
+    </div>
+
+    <!-- Readiness Score (amber) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">Readiness Score</span>
+        <span class="mc-icon amber">🎯</span>
+      </div>
+      <div class="mc-value">78</div>
+      <div class="mc-sublabel">alpha target: 85</div>
+    </div>
+
+    <!-- Blocked Items (red, pulsing) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">Blocked Items</span>
+        <span class="mc-icon red">🚫</span>
+      </div>
+      <div class="mc-value pulse">3</div>
+      <div class="mc-sublabel">need attention</div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── With Delta Cards ── -->
+  <div class="section-title">With Delta — value + directional % change (standard)</div>
+  <div class="grid-4">
+
+    <!-- MAU -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">Monthly Active Users</span>
+        <span class="mc-icon">👤</span>
+      </div>
+      <div class="mc-value">12,847</div>
+      <div class="mc-sublabel">users this month</div>
+      <div class="mc-delta up">▲ +8.3%</div>
+      <div class="mc-delta-label">vs last month</div>
+    </div>
+
+    <!-- MRR -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">Monthly Recurring Revenue</span>
+        <span class="mc-icon">💰</span>
+      </div>
+      <div class="mc-value">$47,200</div>
+      <div class="mc-sublabel">recurring this month</div>
+      <div class="mc-delta up">▲ +12.1%</div>
+      <div class="mc-delta-label">vs last month</div>
+    </div>
+
+    <!-- Churn (down = good) -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">Churn Rate</span>
+        <span class="mc-icon">📉</span>
+      </div>
+      <div class="mc-value">2.1%</div>
+      <div class="mc-sublabel">of active accounts</div>
+      <div class="mc-delta good-down">▼ −0.4 pts</div>
+      <div class="mc-delta-label">vs last month · falling = good</div>
+    </div>
+
+    <!-- Uptime (neutral) -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">Platform Uptime</span>
+        <span class="mc-icon">🟢</span>
+      </div>
+      <div class="mc-value">99.97%</div>
+      <div class="mc-sublabel">30-day rolling SLA</div>
+      <div class="mc-delta neutral">→ 0.00%</div>
+      <div class="mc-delta-label">no change this period</div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── With Sparkline Cards ── -->
+  <div class="section-title">With Sparkline — value + mini 7-bar chart (wide)</div>
+  <div class="grid-3">
+
+    <!-- Daily Active Users sparkline -->
+    <div class="mc mc-wide">
+      <div class="mc-header">
+        <span class="mc-label">Daily Active Users</span>
+        <span class="mc-icon">📈</span>
+      </div>
+      <div class="mc-value">8,340</div>
+      <div class="mc-sublabel">today's active users</div>
+      <div class="mc-sparkline" id="spark-dau"></div>
+      <div class="mc-spark-labels">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+
+    <!-- Questions Answered sparkline -->
+    <div class="mc mc-wide">
+      <div class="mc-header">
+        <span class="mc-label">Questions Answered</span>
+        <span class="mc-icon">❓</span>
+      </div>
+      <div class="mc-value">24,918</div>
+      <div class="mc-sublabel">questions this week</div>
+      <div class="mc-sparkline" id="spark-qa"></div>
+      <div class="mc-spark-labels">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+
+    <!-- Session Duration sparkline -->
+    <div class="mc mc-wide">
+      <div class="mc-header">
+        <span class="mc-label">Avg Session Duration</span>
+        <span class="mc-icon">⏱️</span>
+      </div>
+      <div class="mc-value">18.4 min</div>
+      <div class="mc-sublabel">average this week</div>
+      <div class="mc-sparkline" id="spark-dur"></div>
+      <div class="mc-spark-labels">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── With Bar Cards ── -->
+  <div class="section-title">With Bar — value + progress fill bar (compact)</div>
+  <div class="grid-4">
+
+    <!-- P0 Density (green ~83%) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">P0 Density</span>
+        <span class="mc-icon">🏆</span>
+      </div>
+      <div class="mc-value">83</div>
+      <div class="mc-sublabel">of 100 target</div>
+      <div class="mc-bar-track">
+        <div class="mc-bar-fill green" style="width:83%"></div>
+      </div>
+      <div class="mc-bar-meta">
+        <span>83%</span><span style="color:var(--accent)">▲ on track</span>
+      </div>
+    </div>
+
+    <!-- P1 Density (green 93%) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">P1 Density</span>
+        <span class="mc-icon">✨</span>
+      </div>
+      <div class="mc-value">112</div>
+      <div class="mc-sublabel">of 120 target</div>
+      <div class="mc-bar-track">
+        <div class="mc-bar-fill green" style="width:93%"></div>
+      </div>
+      <div class="mc-bar-meta">
+        <span>93%</span><span style="color:var(--accent)">▲ on track</span>
+      </div>
+    </div>
+
+    <!-- P2 Density (amber 65%) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">P2 Density</span>
+        <span class="mc-icon">⚠️</span>
+      </div>
+      <div class="mc-value">98</div>
+      <div class="mc-sublabel">of 150 target</div>
+      <div class="mc-bar-track">
+        <div class="mc-bar-fill amber" style="width:65%"></div>
+      </div>
+      <div class="mc-bar-meta">
+        <span>65%</span><span style="color:var(--delta-neutral)">below target</span>
+      </div>
+    </div>
+
+    <!-- P3 Density (red 37%) -->
+    <div class="mc mc-compact">
+      <div class="mc-header">
+        <span class="mc-label">P3 Density</span>
+        <span class="mc-icon">🔴</span>
+      </div>
+      <div class="mc-value">44</div>
+      <div class="mc-sublabel">of 120 target</div>
+      <div class="mc-bar-track">
+        <div class="mc-bar-fill red" style="width:37%"></div>
+      </div>
+      <div class="mc-bar-meta">
+        <span>37%</span><span style="color:var(--delta-down)">critical gap</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── With Comparison Cards ── -->
+  <div class="section-title">With Comparison — current vs previous period (standard)</div>
+  <div class="grid-3">
+
+    <!-- Questions Comparison -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">Questions Reviewed</span>
+        <span class="mc-icon">🔍</span>
+      </div>
+      <div class="mc-comparison">
+        <div class="mc-comp-row">
+          <span class="mc-comp-label">This week</span>
+          <span class="mc-comp-value">847</span>
+        </div>
+        <div class="mc-comp-row">
+          <span class="mc-comp-label">Last week</span>
+          <span class="mc-comp-value" style="color:var(--muted);font-size:13px">732</span>
+          <span class="mc-comp-badge">+15.7%</span>
+        </div>
+      </div>
+      <div class="mc-comp-bars">
+        <div class="mc-comp-bar-wrap">
+          <div class="mc-comp-bar previous" style="height:28px"></div>
+          <span class="mc-comp-bar-lbl">Last</span>
+        </div>
+        <div class="mc-comp-bar-wrap">
+          <div class="mc-comp-bar current" style="height:32px"></div>
+          <span class="mc-comp-bar-lbl">This</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions Comparison -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">Play Sessions</span>
+        <span class="mc-icon">🎮</span>
+      </div>
+      <div class="mc-comparison">
+        <div class="mc-comp-row">
+          <span class="mc-comp-label">This week</span>
+          <span class="mc-comp-value">4,210</span>
+        </div>
+        <div class="mc-comp-row">
+          <span class="mc-comp-label">Last week</span>
+          <span class="mc-comp-value" style="color:var(--muted);font-size:13px">3,880</span>
+          <span class="mc-comp-badge">+8.5%</span>
+        </div>
+      </div>
+      <div class="mc-comp-bars">
+        <div class="mc-comp-bar-wrap">
+          <div class="mc-comp-bar previous" style="height:26px"></div>
+          <span class="mc-comp-bar-lbl">Last</span>
+        </div>
+        <div class="mc-comp-bar-wrap">
+          <div class="mc-comp-bar current" style="height:32px"></div>
+          <span class="mc-comp-bar-lbl">This</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Accounts Comparison -->
+    <div class="mc mc-standard">
+      <div class="mc-header">
+        <span class="mc-label">New Accounts</span>
+        <span class="mc-icon">🆕</span>
+      </div>
+      <div class="mc-comparison">
+        <div class="mc-comp-row">
+          <span class="mc-comp-label">This week</span>
+          <span class="mc-comp-value">193</span>
+        </div>
+        <div class="mc-comp-row">
+          <span class="mc-comp-label">Last week</span>
+          <span class="mc-comp-value" style="color:var(--muted);font-size:13px">241</span>
+          <span class="mc-comp-badge" style="background:rgba(239,68,68,.1);color:var(--delta-down)">−19.9%</span>
+        </div>
+      </div>
+      <div class="mc-comp-bars">
+        <div class="mc-comp-bar-wrap">
+          <div class="mc-comp-bar previous" style="height:32px"></div>
+          <span class="mc-comp-bar-lbl">Last</span>
+        </div>
+        <div class="mc-comp-bar-wrap">
+          <div class="mc-comp-bar current" style="height:24px; background:rgba(239,68,68,.7);"></div>
+          <span class="mc-comp-bar-lbl">This</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════
+     TAB 1 — GRID LAYOUTS
+════════════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-1">
+
+  <!-- Owner Dashboard -->
+  <div class="dashboard-section">
+    <div class="dashboard-section-title">
+      Owner Dashboard
+      <span class="audience-badge badge-owner">owner only</span>
+    </div>
+    <div class="dashboard-section-note">4-column compact grid · Financial KPIs (MAU/MRR) visible here only · Never shown to teacher or parent</div>
+    <div class="grid-4">
+
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="mc-label">Monthly Active Users</span>
+          <span class="mc-icon">👤</span>
+        </div>
+        <div class="mc-value">12,847</div>
+        <div class="mc-sublabel">this month</div>
+        <div class="mc-delta up">▲ +8.3%</div>
+        <div class="mc-delta-label">vs last month</div>
+      </div>
+
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="mc-label">Monthly Recurring Revenue</span>
+          <span class="mc-icon">💰</span>
+        </div>
+        <div class="mc-value">$47,200</div>
+        <div class="mc-sublabel">this month</div>
+        <div class="mc-delta up">▲ +12.1%</div>
+        <div class="mc-delta-label">vs last month</div>
+      </div>
+
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="mc-label">Active Schools</span>
+          <span class="mc-icon">🏫</span>
+        </div>
+        <div class="mc-value">107</div>
+        <div class="mc-sublabel">schools enrolled</div>
+        <div class="mc-delta up">▲ +5</div>
+        <div class="mc-delta-label">added this month</div>
+      </div>
+
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="mc-label">Platform Uptime</span>
+          <span class="mc-icon">🟢</span>
+        </div>
+        <div class="mc-value">99.97%</div>
+        <div class="mc-sublabel">30-day rolling SLA</div>
+        <div class="mc-delta neutral">→ 0.00%</div>
+        <div class="mc-delta-label">no change this period</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Teacher Dashboard -->
+  <div class="dashboard-section">
+    <div class="dashboard-section-title">
+      Teacher Dashboard
+      <span class="audience-badge badge-teacher">teacher</span>
+    </div>
+    <div class="dashboard-section-note">3-column standard grid · No accuracy % per student (class aggregate only) · No financial data</div>
+    <div class="grid-3">
+
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="mc-label">Students Active Today</span>
+          <span class="mc-icon">🙋</span>
+        </div>
+        <div class="mc-value">18</div>
+        <div class="mc-sublabel">of 24 students</div>
+        <div class="mc-bar-track">
+          <div class="mc-bar-fill green" style="width:75%"></div>
+        </div>
+        <div class="mc-bar-meta">
+          <span>75% participation</span>
+        </div>
+      </div>
+
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="mc-label">Avg Session Duration</span>
+          <span class="mc-icon">⏱️</span>
+        </div>
+        <div class="mc-value">24 min</div>
+        <div class="mc-sublabel">class average today</div>
+        <div class="mc-delta up">▲ +3 min</div>
+        <div class="mc-delta-label">vs last week</div>
+      </div>
+
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="mc-label">Support Queue</span>
+          <span class="mc-icon pulse" style="animation: pulse-red 2s ease-in-out infinite; display:inline-block;">🔔</span>
+        </div>
+        <div class="mc-value pulse">3</div>
+        <div class="mc-sublabel">items pending review</div>
+        <div style="margin-top:10px">
+          <span style="font-size:11px;color:var(--delta-neutral);background:rgba(245,158,11,.1);padding:3px 8px;border-radius:10px;">needs attention</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Parent Dashboard -->
+  <div class="dashboard-section">
+    <div class="dashboard-section-title">
+      Parent Dashboard
+      <span class="audience-badge badge-parent">parent</span>
+    </div>
+    <div class="dashboard-section-note">2-column wide grid · Positive framing only · No accuracy %, no "missed day" language · XP / streak / mastered</div>
+    <div class="grid-2">
+
+      <div class="mc mc-wide">
+        <div class="mc-header">
+          <span class="mc-label">Emma's XP Earned</span>
+          <span class="mc-icon">⭐</span>
+        </div>
+        <div class="mc-value">1,240</div>
+        <div class="mc-sublabel">XP earned this week</div>
+        <div class="mc-delta up">▲ +18%</div>
+        <div class="mc-delta-label">more than last week — great momentum!</div>
+      </div>
+
+      <div class="mc mc-wide">
+        <div class="mc-header">
+          <span class="mc-label">Learning Streak</span>
+          <span class="mc-icon">🔥</span>
+        </div>
+        <div class="mc-value">🔥 7 days</div>
+        <div class="mc-sublabel">Emma's in a streak — keep it going!</div>
+        <div class="mc-bar-track" style="margin-top:14px">
+          <div class="mc-bar-fill green" style="width:100%"></div>
+        </div>
+        <div class="mc-bar-meta">
+          <span style="color:var(--accent);font-weight:600">7 / 7 days this week ✓</span>
+        </div>
+      </div>
+
+      <div class="mc mc-wide">
+        <div class="mc-header">
+          <span class="mc-label">Skills Mastered</span>
+          <span class="mc-icon">🏅</span>
+        </div>
+        <div class="mc-value">3</div>
+        <div class="mc-sublabel">skills mastered this week</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <span style="font-size:12px;background:rgba(80,232,144,.12);color:var(--accent);border-radius:8px;padding:4px 10px">✓ Counting to 20</span>
+          <span style="font-size:12px;background:rgba(80,232,144,.12);color:var(--accent);border-radius:8px;padding:4px 10px">✓ Letter Blends</span>
+          <span style="font-size:12px;background:rgba(80,232,144,.12);color:var(--accent);border-radius:8px;padding:4px 10px">✓ Shapes</span>
+        </div>
+      </div>
+
+      <div class="mc mc-wide">
+        <div class="mc-header">
+          <span class="mc-label">Time Learning</span>
+          <span class="mc-icon">📚</span>
+        </div>
+        <div class="mc-value">3h 20m</div>
+        <div class="mc-sublabel">learning time this week</div>
+        <div class="mc-delta up">▲ +24 min</div>
+        <div class="mc-delta-label">more than last week</div>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════
+     TAB 2 — EDGE CASES
+════════════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-2">
+
+  <!-- ── Simple Card edge states ── -->
+  <div class="section-title">Simple Card — Loading · Zero · Error</div>
+  <div class="edge-grid">
+    <div>
+      <div class="edge-col-label">Loading Skeleton</div>
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="skeleton skel-label" style="width:90px;height:12px;display:inline-block"></span>
+          <span class="skeleton skel-icon"></span>
+        </div>
+        <div class="skeleton skel-value"></div>
+        <div class="skeleton skel-sublabel"></div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Zero State</div>
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="mc-label">Active Sessions</span>
+          <span class="mc-icon sky">📊</span>
+        </div>
+        <div class="mc-value zero">—</div>
+        <div class="mc-empty-sublabel">No data yet</div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Error State</div>
+      <div class="mc mc-compact error-state">
+        <div class="mc-header">
+          <span class="mc-label">Active Sessions</span>
+          <span class="mc-icon">📊</span>
+        </div>
+        <div class="mc-error-icon">!</div>
+        <div class="mc-error-label">Unable to load</div>
+        <button class="mc-retry">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Delta Card edge states ── -->
+  <div class="section-title">Delta Card — Loading · Zero · Error</div>
+  <div class="edge-grid">
+    <div>
+      <div class="edge-col-label">Loading Skeleton</div>
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="skeleton skel-label" style="width:110px;height:12px;display:inline-block"></span>
+          <span class="skeleton skel-icon"></span>
+        </div>
+        <div class="skeleton skel-value"></div>
+        <div class="skeleton skel-sublabel"></div>
+        <div class="skeleton skel-delta"></div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Zero State</div>
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="mc-label">Monthly Active Users</span>
+          <span class="mc-icon">👤</span>
+        </div>
+        <div class="mc-value zero">0</div>
+        <div class="mc-empty-sublabel">No data for this period</div>
+        <!-- No delta shown when 0 -->
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Error State</div>
+      <div class="mc mc-standard error-state">
+        <div class="mc-header">
+          <span class="mc-label">Monthly Active Users</span>
+          <span class="mc-icon">👤</span>
+        </div>
+        <div class="mc-error-icon">!</div>
+        <div class="mc-error-label">Unable to load</div>
+        <button class="mc-retry">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Sparkline Card edge states ── -->
+  <div class="section-title">Sparkline Card — Loading · Zero · Error</div>
+  <div class="edge-grid">
+    <div>
+      <div class="edge-col-label">Loading Skeleton</div>
+      <div class="mc mc-wide">
+        <div class="mc-header">
+          <span class="skeleton skel-label" style="width:130px;height:12px;display:inline-block"></span>
+          <span class="skeleton skel-icon"></span>
+        </div>
+        <div class="skeleton skel-value"></div>
+        <div class="skeleton skel-sublabel"></div>
+        <div class="skeleton skel-bar" style="height:40px;margin-top:14px;border-radius:4px"></div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Zero State</div>
+      <div class="mc mc-wide">
+        <div class="mc-header">
+          <span class="mc-label">Daily Active Users</span>
+          <span class="mc-icon">📈</span>
+        </div>
+        <div class="mc-value zero">—</div>
+        <div class="mc-empty-sublabel">No activity recorded this week</div>
+        <div class="mc-sparkline">
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+          <div class="mc-spark-bar" style="background:rgba(255,255,255,.06);height:4px"></div>
+        </div>
+        <div class="mc-spark-labels">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Error State</div>
+      <div class="mc mc-wide error-state">
+        <div class="mc-header">
+          <span class="mc-label">Daily Active Users</span>
+          <span class="mc-icon">📈</span>
+        </div>
+        <div class="mc-error-icon">!</div>
+        <div class="mc-error-label">Unable to load chart data</div>
+        <button class="mc-retry">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Bar Card edge states ── -->
+  <div class="section-title">Bar Card — Loading · Zero · Error</div>
+  <div class="edge-grid">
+    <div>
+      <div class="edge-col-label">Loading Skeleton</div>
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="skeleton skel-label" style="width:80px;height:12px;display:inline-block"></span>
+          <span class="skeleton skel-icon"></span>
+        </div>
+        <div class="skeleton skel-value"></div>
+        <div class="skeleton skel-sublabel"></div>
+        <div class="skeleton skel-bar"></div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Zero State</div>
+      <div class="mc mc-compact">
+        <div class="mc-header">
+          <span class="mc-label">P0 Density</span>
+          <span class="mc-icon">🏆</span>
+        </div>
+        <div class="mc-value zero">0</div>
+        <div class="mc-empty-sublabel">of 100 target — not started</div>
+        <div class="mc-bar-track">
+          <div class="mc-bar-fill red" style="width:0%"></div>
+        </div>
+        <div class="mc-bar-meta">
+          <span>0%</span><span style="color:var(--delta-down)">not started</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Error State</div>
+      <div class="mc mc-compact error-state">
+        <div class="mc-header">
+          <span class="mc-label">P0 Density</span>
+          <span class="mc-icon">🏆</span>
+        </div>
+        <div class="mc-error-icon">!</div>
+        <div class="mc-error-label">Unable to load</div>
+        <button class="mc-retry">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Comparison Card edge states ── -->
+  <div class="section-title">Comparison Card — Loading · Zero · Error</div>
+  <div class="edge-grid">
+    <div>
+      <div class="edge-col-label">Loading Skeleton</div>
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="skeleton skel-label" style="width:120px;height:12px;display:inline-block"></span>
+          <span class="skeleton skel-icon"></span>
+        </div>
+        <div class="skeleton" style="height:14px;width:60%;margin-top:12px;border-radius:4px"></div>
+        <div class="skeleton" style="height:14px;width:75%;margin-top:10px;border-radius:4px"></div>
+        <div style="display:flex;gap:4px;height:32px;margin-top:14px;align-items:flex-end">
+          <div class="skeleton" style="flex:1;height:26px;border-radius:3px 3px 0 0"></div>
+          <div class="skeleton" style="flex:1;height:32px;border-radius:3px 3px 0 0"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Zero State</div>
+      <div class="mc mc-standard">
+        <div class="mc-header">
+          <span class="mc-label">Questions Reviewed</span>
+          <span class="mc-icon">🔍</span>
+        </div>
+        <div class="mc-comparison">
+          <div class="mc-comp-row">
+            <span class="mc-comp-label">This week</span>
+            <span class="mc-comp-value zero">—</span>
+          </div>
+          <div class="mc-comp-row">
+            <span class="mc-comp-label">Last week</span>
+            <span class="mc-comp-value" style="color:var(--muted);font-size:13px">—</span>
+          </div>
+        </div>
+        <div class="mc-empty-sublabel" style="margin-top:10px">No comparison data available</div>
+      </div>
+    </div>
+    <div>
+      <div class="edge-col-label">Error State</div>
+      <div class="mc mc-standard error-state">
+        <div class="mc-header">
+          <span class="mc-label">Questions Reviewed</span>
+          <span class="mc-icon">🔍</span>
+        </div>
+        <div class="mc-error-icon">!</div>
+        <div class="mc-error-label">Unable to load comparison</div>
+        <button class="mc-retry">Try again</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════
+     TAB 3 — SPEC
+════════════════════════════════════════════════ -->
+<section class="tab-panel" id="panel-3">
+
+  <div class="spec-section">
+    <h3>MetricCardProps Interface</h3>
+    <div class="spec-code"><span class="k">interface</span> <span class="t">MetricCardProps</span> {
+  <span class="c">// Required</span>
+  label:                   <span class="t">string</span>
+  value:                   <span class="t">string</span> | <span class="t">number</span>
+  size:                    <span class="s">'compact'</span> | <span class="s">'standard'</span> | <span class="s">'wide'</span>
+  audience:                <span class="s">'owner'</span> | <span class="s">'teacher'</span> | <span class="s">'parent'</span>
+  state:                   <span class="s">'loaded'</span> | <span class="s">'loading'</span> | <span class="s">'error'</span> | <span class="s">'empty'</span>
+
+  <span class="c">// Optional base</span>
+  sublabel?:               <span class="t">string</span>
+  icon?:                   <span class="t">string</span>                  <span class="c">// emoji or icon name</span>
+
+  <span class="c">// Variant: Delta</span>
+  delta?: {
+    value:                 <span class="t">number</span>
+    unit:                  <span class="s">'%'</span> | <span class="s">'pts'</span> | <span class="s">'abs'</span>
+    label:                 <span class="t">string</span>                  <span class="c">// e.g. "vs last month"</span>
+    direction:             <span class="s">'up'</span> | <span class="s">'down'</span> | <span class="s">'neutral'</span>
+  }
+  deltaPositiveDirection?: <span class="s">'up'</span> | <span class="s">'down'</span>     <span class="c">// 'down' for churn (falling=good)</span>
+
+  <span class="c">// Variant: Sparkline</span>
+  sparkline?:              <span class="t">number</span>[]                 <span class="c">// 7 values, one per day</span>
+
+  <span class="c">// Variant: Bar</span>
+  bar?: {
+    value:                 <span class="t">number</span>
+    max:                   <span class="t">number</span>
+  }
+
+  <span class="c">// Variant: Comparison</span>
+  comparison?: {
+    current:               <span class="t">number</span>
+    previous:              <span class="t">number</span>
+    label:                 <span class="t">string</span>                  <span class="c">// e.g. "vs last week"</span>
+  }
+}</div>
+  </div>
+
+  <div class="spec-section">
+    <h3>Size Definitions</h3>
+    <table class="prop-table">
+      <thead>
+        <tr>
+          <th>Size</th>
+          <th>Min Width</th>
+          <th>Grid Fit</th>
+          <th>Best For</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="prop-name">compact</span></td>
+          <td><span class="prop-type">~220px</span></td>
+          <td>4-column grid</td>
+          <td class="prop-desc">Quick KPIs, summary stats, owner dashboard strips</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">standard</span></td>
+          <td><span class="prop-type">~280px</span></td>
+          <td>3-column grid</td>
+          <td class="prop-desc">Delta cards, comparison, teacher dashboards</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">wide</span></td>
+          <td><span class="prop-type">~400px</span></td>
+          <td>2-column grid</td>
+          <td class="prop-desc">Sparkline charts, parent progress, detailed breakdowns</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>Variants</h3>
+    <table class="prop-table">
+      <thead>
+        <tr>
+          <th>Variant</th>
+          <th>Trigger Prop(s)</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="prop-name">Simple</span></td>
+          <td><span class="prop-type">— (base)</span></td>
+          <td class="prop-desc">Icon + large value + label + sublabel. Default when no variant props provided.</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">With Delta</span></td>
+          <td><span class="prop-type">delta</span></td>
+          <td class="prop-desc">Adds ▲▼ directional chip below value. Color determined by direction + deltaPositiveDirection rule.</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">With Sparkline</span></td>
+          <td><span class="prop-type">sparkline</span></td>
+          <td class="prop-desc">Renders a 7-bar mini chart. Highest bar and current day bar highlighted in full accent green.</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">With Bar</span></td>
+          <td><span class="prop-type">bar</span></td>
+          <td class="prop-desc">Renders fill bar below value. Color: green ≥80%, amber ≥50%, red &lt;50%.</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">With Comparison</span></td>
+          <td><span class="prop-type">comparison</span></td>
+          <td class="prop-desc">Shows current vs previous period rows + mini side-by-side bar visual.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>State Behaviors</h3>
+    <table class="prop-table">
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Rendering</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="prop-name">loaded</span></td>
+          <td class="prop-desc">Normal card. All variant props rendered as specified.</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">loading</span></td>
+          <td class="prop-desc">Shimmer skeleton replaces value, sublabel, icon, and variant areas. Card structure preserved.</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">empty</span></td>
+          <td class="prop-desc">Value shows <code>—</code> or <code>0</code> in muted color. No delta shown. Optional italic sublabel "No data yet".</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">error</span></td>
+          <td class="prop-desc">Red <code>!</code> icon, "Unable to load" text, subtle red border tint, "Try again" retry link.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>Delta Color Logic</h3>
+    <table class="prop-table">
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>Chip Color</th>
+          <th>Example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="prop-desc"><code>direction=up</code> + <code>deltaPositiveDirection=up</code> (default)</td>
+          <td><span style="color:var(--delta-up)">green</span></td>
+          <td class="prop-desc">MAU up 8.3% — good</td>
+        </tr>
+        <tr>
+          <td class="prop-desc"><code>direction=down</code> + <code>deltaPositiveDirection=up</code> (default)</td>
+          <td><span style="color:var(--delta-down)">red</span></td>
+          <td class="prop-desc">MAU down — bad</td>
+        </tr>
+        <tr>
+          <td class="prop-desc"><code>direction=down</code> + <code>deltaPositiveDirection=down</code></td>
+          <td><span style="color:var(--delta-up)">green</span></td>
+          <td class="prop-desc">Churn down 0.4pts — good</td>
+        </tr>
+        <tr>
+          <td class="prop-desc"><code>direction=up</code> + <code>deltaPositiveDirection=down</code></td>
+          <td><span style="color:var(--delta-down)">red</span></td>
+          <td class="prop-desc">Churn up — bad</td>
+        </tr>
+        <tr>
+          <td class="prop-desc"><code>direction=neutral</code></td>
+          <td><span style="color:var(--delta-neutral)">amber</span></td>
+          <td class="prop-desc">Uptime unchanged</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>Audience Visibility Rules</h3>
+    <table class="rule-table">
+      <thead>
+        <tr>
+          <th>KPI Category</th>
+          <th>Owner</th>
+          <th>Teacher</th>
+          <th>Parent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Financial (MRR, ARR, churn, revenue)</td>
+          <td><span class="tag-owner">visible</span></td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td style="color:var(--delta-down)">hidden</td>
+        </tr>
+        <tr>
+          <td>Operational (uptime, MAU, schools)</td>
+          <td><span class="tag-owner">visible</span></td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td style="color:var(--delta-down)">hidden</td>
+        </tr>
+        <tr>
+          <td>Class aggregate (participation, avg session)</td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td><span class="tag-teacher">visible</span></td>
+          <td style="color:var(--delta-down)">hidden</td>
+        </tr>
+        <tr>
+          <td>Student performance per-student accuracy %</td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td style="color:var(--delta-down)">hidden</td>
+        </tr>
+        <tr>
+          <td>Child progress (XP, streak, mastered)</td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td style="color:var(--delta-down)">hidden</td>
+          <td><span class="tag-parent">visible</span></td>
+        </tr>
+        <tr>
+          <td>Negative framing ("missed day", accuracy %)</td>
+          <td>—</td>
+          <td>—</td>
+          <td style="color:var(--delta-down)">never shown</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>Design Tokens</h3>
+    <table class="prop-table">
+      <thead>
+        <tr>
+          <th>Token</th>
+          <th>Value</th>
+          <th>Usage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="prop-name">--bg</span></td>
+          <td><code>#0d1117</code></td>
+          <td class="prop-desc">Page background</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--card</span></td>
+          <td><code>#161b22</code></td>
+          <td class="prop-desc">Card surface</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--accent</span></td>
+          <td><code>#50e890</code></td>
+          <td class="prop-desc">Primary accent, up delta, bar green</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--text</span></td>
+          <td><code>#f0f6ff</code></td>
+          <td class="prop-desc">Primary text, values</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--muted</span></td>
+          <td><code>#8b949e</code></td>
+          <td class="prop-desc">Labels, sublabels, helper text</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--border</span></td>
+          <td><code>rgba(255,255,255,.06)</code></td>
+          <td class="prop-desc">Card borders, dividers</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--delta-up</span></td>
+          <td><code>#50e890</code></td>
+          <td class="prop-desc">Positive change indicator</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--delta-down</span></td>
+          <td><code>#ef4444</code></td>
+          <td class="prop-desc">Negative change, error states</td>
+        </tr>
+        <tr>
+          <td><span class="prop-name">--delta-neutral</span></td>
+          <td><code>#f59e0b</code></td>
+          <td class="prop-desc">No-change indicator, warnings</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</section>
+
+<script>
+  /* ── Tab switching ── */
+  function showTab(idx) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+    document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+  }
+
+  /* ── Sparkline builder ── */
+  function buildSparkline(containerId, values) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const max = Math.max(...values);
+    const todayIdx = 6; // Sunday = current day
+    values.forEach((v, i) => {
+      const bar = document.createElement('div');
+      bar.className = 'mc-spark-bar';
+      const pct = max === 0 ? 4 : Math.max(10, Math.round((v / max) * 100));
+      bar.style.height = pct + '%';
+      if (i === todayIdx || v === max) bar.classList.add('current');
+      el.appendChild(bar);
+    });
+  }
+
+  buildSparkline('spark-dau',  [6200, 7100, 7800, 8000, 8900, 7400, 8340]);
+  buildSparkline('spark-qa',   [3100, 3800, 3500, 4200, 4900, 2800, 2618]);
+  buildSparkline('spark-dur',  [16.2, 17.8, 18.1, 19.4, 20.1, 15.3, 18.4]);
+
+  /* ── Retry button no-op demo ── */
+  document.querySelectorAll('.mc-retry').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.mc');
+      card.style.opacity = '0.5';
+      setTimeout(() => { card.style.opacity = '1'; }, 800);
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner KPI Strip Mobile — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone frame */
+.phone{width:375px;background:#0d1117;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.08);display:inline-block;vertical-align:top}
+.phone-status{background:#010409;padding:10px 16px 6px;display:flex;justify-content:space-between;align-items:center}
+.ps-time{font-size:12px;font-weight:700;color:#f0f6ff}
+.ps-icons{font-size:10px;color:rgba(255,255,255,.4)}
+
+/* Mobile KPI scroll strip */
+.m-kpi-strip{background:#010409;border-bottom:1px solid rgba(255,255,255,.06);overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 16px 0 0}
+.m-kpi-strip::-webkit-scrollbar{display:none}
+.m-kpi-inner{display:flex;gap:0;width:max-content;padding-left:16px}
+.m-kpi-cell{padding:12px 16px 12px 0;flex-shrink:0;min-width:88px;border-right:1px solid rgba(255,255,255,.05);margin-right:0;padding-right:16px;cursor:pointer;position:relative}
+.m-kpi-cell:last-child{border-right:none}
+.m-kpi-cell.active-kpi::after{content:'';position:absolute;bottom:0;left:0;right:16px;height:2px;background:#50e890}
+.m-kpi-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:5px;white-space:nowrap}
+.m-kpi-val{font-size:18px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:3px}
+.m-kpi-delta{font-size:9px;font-weight:700}
+.m-up{color:#50e890}
+.m-down{color:#f85149}
+.m-neutral{color:rgba(255,255,255,.3)}
+
+/* Alert cell */
+.m-kpi-cell.m-alert .m-kpi-label{color:#f85149}
+.m-kpi-cell.m-alert .m-kpi-val{color:#f85149}
+.m-kpi-cell.m-alert::after{background:#f85149}
+.m-kpi-cell.m-warn .m-kpi-val{color:#f59e0b}
+
+/* Scroll hint arrow */
+.scroll-hint{position:absolute;right:0;top:0;bottom:0;width:28px;background:linear-gradient(90deg,transparent,rgba(1,4,9,.9));display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scroll-hint span{color:rgba(255,255,255,.3);font-size:10px}
+.m-kpi-wrap{position:relative}
+
+/* Page content placeholder */
+.m-page-content{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.m-page-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.m-page-sub{font-size:10px;color:rgba(255,255,255,.3);line-height:1.5}
+.m-stat-card{background:#161b22;border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)}
+
+/* Period pill scroll */
+.m-period-row{display:flex;gap:6px;padding:8px 16px;background:#010409;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.m-period-row::-webkit-scrollbar{display:none}
+.mpr-chip{padding:4px 12px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;border:none;font-family:system-ui;cursor:pointer}
+.mpr-active{background:rgba(255,255,255,.12);color:#f0f6ff}
+.mpr-idle{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+
+/* Incident banner */
+.m-incident-banner{background:rgba(248,81,73,.1);border-bottom:2px solid #f85149;padding:10px 16px;display:flex;align-items:center;gap:8px}
+.mib-icon{font-size:14px}
+.mib-text{flex:1}
+.mib-title{font-size:11px;font-weight:800;color:#f85149}
+.mib-sub{font-size:9px;color:rgba(248,81,73,.7);margin-top:1px}
+.mib-arrow{font-size:12px;color:#f85149}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-kpi-strip-mobile-v2.html</strong><br>
+  Mobile version of the KPI strip. Horizontally scrollable row of metric tiles below the page header. 6 tiles visible on scroll (out of 8 total).<br>
+  <strong>Tile order (left-to-right):</strong> MAU · DAU · MRR · Schools · Feedback · Route Health · Release Gate · ARR (last, least urgent).<br>
+  <strong>Scroll indicator:</strong> Fade-out gradient on right edge hints at more tiles. No pagination dots.<br>
+  <strong>Period chips:</strong> Separate scroll row below strip. 7d / 30d / 90d / All Time.<br>
+  <strong>P0 incident:</strong> Non-dismissible red banner above the KPI strip (not replacing it). Route Health tile turns red.<br>
+  <strong>Tap a tile:</strong> Navigates to detail page (same as desktop).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('healthy')">All Clear</button>
+  <button class="tab-btn" onclick="showTab('incident')">P0 Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── All Clear ─────────────────────────────────────────── -->
+<div id="tab-healthy" class="screen active">
+  <p class="section-title">Mobile KPI strip — all clear (30d)</p>
+  <div style="display:flex;gap:24px;flex-wrap:wrap">
+    <div class="phone">
+      <div class="phone-status">
+        <span class="ps-time">9:41</span>
+        <span class="ps-icons">●●● 100%</span>
+      </div>
+      <!-- Period chips -->
+      <div class="m-period-row">
+        <button class="mpr-chip mpr-idle">7d</button>
+        <button class="mpr-chip mpr-active">30d</button>
+        <button class="mpr-chip mpr-idle">90d</button>
+        <button class="mpr-chip mpr-idle">All Time</button>
+        <span style="font-size:9px;color:rgba(255,255,255,.2);align-self:center;flex-shrink:0;margin-left:8px">Updated 3m ago</span>
+      </div>
+      <!-- KPI strip -->
+      <div class="m-kpi-wrap">
+        <div class="m-kpi-strip">
+          <div class="m-kpi-inner">
+            <div class="m-kpi-cell active-kpi">
+              <div class="m-kpi-label">MAU</div>
+              <div class="m-kpi-val">4.8K</div>
+              <div class="m-kpi-delta m-up">▲ +9%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">DAU avg</div>
+              <div class="m-kpi-val">842</div>
+              <div class="m-kpi-delta m-up">▲ +6%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">MRR</div>
+              <div class="m-kpi-val">$8.4K</div>
+              <div class="m-kpi-delta m-up">▲ +5%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">Schools</div>
+              <div class="m-kpi-val">23</div>
+              <div class="m-kpi-delta m-up">▲ +2</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">Feedback</div>
+              <div class="m-kpi-val">6</div>
+              <div class="m-kpi-delta m-neutral">P0+P1</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">Routes</div>
+              <div class="m-kpi-val" style="font-size:11px;font-weight:800;color:#50e890;padding-top:4px">● All Up</div>
+              <div class="m-kpi-delta m-neutral">99.9%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">Gate</div>
+              <div class="m-kpi-val" style="font-size:11px;font-weight:800;color:#50e890;padding-top:4px">● Open</div>
+              <div class="m-kpi-delta m-neutral">94/100</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">ARR</div>
+              <div class="m-kpi-val">$101K</div>
+              <div class="m-kpi-delta m-up">▲ +12%</div>
+            </div>
+          </div>
+        </div>
+        <div class="scroll-hint"><span>›</span></div>
+      </div>
+      <!-- Page content -->
+      <div class="m-page-content">
+        <div class="m-page-title">Home — Daily Ops Overview</div>
+        <div class="m-page-sub">KPI strip scrolls horizontally. Tap any tile to navigate to its detail page. Route Health and Gate tiles show text status instead of numbers. Fade-out gradient on right edge indicates more tiles.</div>
+        <div class="m-stat-card">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:6px">Today so far</div>
+          <div style="font-size:12px;color:#f0f6ff">891 active students · 2,304 sessions completed · 0 incidents</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Annotations -->
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:320px;align-self:flex-start;padding-top:8px">
+      <div style="background:#fff;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:#1a1440;margin-bottom:6px">Scroll behaviour</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Strip scrolls horizontally without pagination. Right-edge fade indicates more content. First 5 tiles visible on 375px width. Users typically scroll to check Routes + Gate at the end.</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:#1a1440;margin-bottom:6px">Tile tap targets</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">MAU → Command Center · DAU → Command Center · MRR → Command Center · Schools → Command Center · Feedback → Feedback Workbench · Routes → Route Health · Gate → Release Gate · ARR → Command Center</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── P0 Incident ───────────────────────────────────────── -->
+<div id="tab-incident" class="screen">
+  <p class="section-title">Mobile KPI strip — P0 incident active</p>
+  <div style="display:flex;gap:24px;flex-wrap:wrap">
+    <div class="phone" style="border-color:rgba(248,81,73,.2)">
+      <div class="phone-status" style="background:rgba(10,2,3,1)">
+        <span class="ps-time">9:41</span>
+        <span class="ps-icons">●●● 100%</span>
+      </div>
+      <!-- Incident banner (non-dismissible) -->
+      <div class="m-incident-banner">
+        <div class="mib-icon">🚨</div>
+        <div class="mib-text">
+          <div class="mib-title">P0 Incident: Assignment Engine Down</div>
+          <div class="mib-sub">Active 5h 23m · PD-4412 · Tap to manage</div>
+        </div>
+        <div class="mib-arrow">›</div>
+      </div>
+      <!-- Period chips -->
+      <div class="m-period-row" style="background:rgba(10,2,3,1)">
+        <button class="mpr-chip mpr-idle">7d</button>
+        <button class="mpr-chip mpr-active">30d</button>
+        <button class="mpr-chip mpr-idle">90d</button>
+        <button class="mpr-chip mpr-idle">All Time</button>
+        <span style="font-size:9px;color:#f85149;align-self:center;flex-shrink:0;margin-left:8px;font-weight:700">10s refresh</span>
+      </div>
+      <!-- KPI strip (incident) -->
+      <div class="m-kpi-wrap">
+        <div class="m-kpi-strip" style="background:rgba(10,2,3,1)">
+          <div class="m-kpi-inner">
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">MAU</div>
+              <div class="m-kpi-val">4.8K</div>
+              <div class="m-kpi-delta m-up">▲ +9%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">DAU avg</div>
+              <div class="m-kpi-val">842</div>
+              <div class="m-kpi-delta m-up">▲ +6%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">MRR</div>
+              <div class="m-kpi-val">$8.4K</div>
+              <div class="m-kpi-delta m-up">▲ +5%</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">Schools</div>
+              <div class="m-kpi-val">23</div>
+              <div class="m-kpi-delta" style="color:rgba(255,255,255,.3);font-size:9px;font-weight:700">9 affected</div>
+            </div>
+            <div class="m-kpi-cell m-warn">
+              <div class="m-kpi-label">Feedback</div>
+              <div class="m-kpi-val">8</div>
+              <div class="m-kpi-delta m-down">+2 incident</div>
+            </div>
+            <div class="m-kpi-cell m-alert">
+              <div class="m-kpi-label">Routes</div>
+              <div class="m-kpi-val" style="font-size:14px;font-weight:900">1 DOWN</div>
+              <div class="m-kpi-delta" style="color:#f85149;font-size:9px;font-weight:700">5h 23m</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">Gate</div>
+              <div class="m-kpi-val" style="font-size:11px;font-weight:800;color:#50e890;padding-top:4px">● Open</div>
+              <div class="m-kpi-delta m-neutral">94/100</div>
+            </div>
+            <div class="m-kpi-cell">
+              <div class="m-kpi-label">ARR</div>
+              <div class="m-kpi-val">$101K</div>
+              <div class="m-kpi-delta m-up">▲ +12%</div>
+            </div>
+          </div>
+        </div>
+        <div class="scroll-hint"><span>›</span></div>
+      </div>
+      <!-- Page content -->
+      <div class="m-page-content">
+        <div class="m-page-title" style="color:#f85149">⚠️ P0 Active — Assignment Engine</div>
+        <div class="m-page-sub">Non-dismissible incident banner above strip. Routes tile turns red. Feedback tile turns amber (+2). Period bar shows "10s refresh". Tap the banner to navigate to Incident Center.</div>
+      </div>
+    </div>
+
+    <!-- Annotations -->
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:320px;align-self:flex-start;padding-top:8px">
+      <div style="background:#fff;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:#1a1440;margin-bottom:6px">P0 banner rules</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Banner is non-dismissible while P0 incident is active. Shows incident name + duration + PD ticket ID. Tapping navigates to Incident Center (deep-linked to active incident). Cleared automatically when incident resolves.</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:#1a1440;margin-bottom:6px">Tile colouring logic</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Only affected tiles change colour. Routes = red. Feedback = amber (increased due to teacher reports). All other tiles remain white. Do not highlight MAU/MRR/Schools as "affected" — they are unaffected by the incident in real time.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-kpi-strip-mobile-v2.html<br>
+      <strong>Horizontally scrollable KPI tile row.</strong> 8 tiles total. Period chip scroll. P0 incident banner (non-dismissible). Routes and Gate tiles show text status. Tap to navigate.
+    </div>
+    <h2 class="spec-h2">Tile Order (Mobile)</h2>
+    <p class="spec-p">Mobile tile order differs from desktop to surface most-actionable metrics first: MAU → DAU → MRR → Schools → Feedback → Routes → Gate → ARR. On desktop, Schools comes after ARR because the wider viewport shows all tiles simultaneously. On mobile, Schools is demoted to position 4 (left-scroll), ARR to position 8 (right-scroll).</p>
+    <h2 class="spec-h2">Non-Dismissible Incident Banner</h2>
+    <p class="spec-p">When a P0 incident is active, a red banner appears above the period chip row and KPI strip. It cannot be dismissed. It shows: incident name, duration, PD ticket ID. Tapping it deep-links to the Incident Center. The banner auto-clears when incident status changes to Resolved.</p>
+    <h2 class="spec-h2">Period Selector on Mobile</h2>
+    <p class="spec-p">Period chips are a separate horizontally scrollable row above the KPI strip. MAU and MRR cells don't respond to period selection (always show current month). Changing period re-fetches DAU, Sessions, Feedback, Schools counts for the new window. Tile values update with a brief fade transition.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

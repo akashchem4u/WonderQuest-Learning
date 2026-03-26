@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Parent Hub v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Bitter:wght@700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f0e8;--bg2:#ede7d9;--bg3:#e4ddd0;
+  --surface:#fff;--surface-dim:rgba(255,255,255,0.8);
+  --ink:#18231f;--ink2:#4a5652;--ink3:#8a9692;
+  --line:rgba(23,36,31,0.09);--line-hi:rgba(23,36,31,0.18);
+  --accent:#1a7a5e;--accent2:#0f5c45;--accent-bg:rgba(26,122,94,0.09);
+  --gold:#f5a623;--gold-bg:rgba(245,166,35,0.10);
+  --violet:#7c5ce8;--violet-bg:rgba(124,92,232,0.08);
+  --mint:#20c997;--mint-bg:rgba(32,201,151,0.10);
+  --coral:#f06565;--coral-bg:rgba(240,101,101,0.08);
+  --sky:#3b9edd;--sky-bg:rgba(59,158,221,0.08);
+  --fa:'Sora',sans-serif;--fd:'Bitter',serif;
+  --es:cubic-bezier(0.34,1.56,0.64,1);--eo:cubic-bezier(0.16,1,0.3,1);
+  --r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:28px;
+  --shadow-sm:0 2px 8px rgba(0,0,0,.06);--shadow-md:0 8px 24px rgba(0,0,0,.10);--shadow-lg:0 18px 48px rgba(0,0,0,.13);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fa);background:var(--bg);color:var(--ink);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(ellipse 70% 50% at 85% 0%,rgba(32,201,151,0.07) 0%,transparent 55%),
+  radial-gradient(ellipse 55% 40% at 5% 95%,rgba(245,166,35,0.08) 0%,transparent 55%);}
+
+/* LAYOUT */
+.page{position:relative;z-index:1;display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--line);padding:0;display:flex;flex-direction:column;}
+.sb-top{padding:20px 16px 16px;border-bottom:1px solid var(--line);}
+.sb-logo{font-family:var(--fd);font-size:20px;color:var(--ink);}
+.sb-logo span{color:var(--accent);}
+.sb-role{display:inline-flex;align-items:center;gap:5px;background:var(--gold-bg);border:1px solid rgba(245,166,35,.25);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--gold);margin-top:6px;}
+.child-sw{padding:14px 12px;border-bottom:1px solid var(--line);}
+.csw-label{font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.child-pill{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-md);cursor:pointer;transition:background 120ms;}
+.child-pill:hover{background:var(--bg);}
+.child-pill.active{background:var(--accent-bg);}
+.cp-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.cp-name{font-size:12px;font-weight:700;color:var(--ink);}
+.cp-band{font-size:10px;color:var(--ink3);}
+.cp-live{width:7px;height:7px;border-radius:50%;background:var(--mint);margin-left:auto;}
+.sb-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-sm);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all 120ms;text-decoration:none;}
+.sb-item:hover{background:var(--bg);}
+.sb-item.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.sb-item .ico{font-size:15px;width:20px;text-align:center;}
+.sb-item .badge{margin-left:auto;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;background:var(--coral-bg);color:var(--coral);}
+.sb-footer{padding:12px;border-top:1px solid var(--line);margin-top:auto;}
+.sb-user{display:flex;align-items:center;gap:8px;}
+.sb-av{width:28px;height:28px;border-radius:50%;background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.sb-uname{font-size:12px;font-weight:700;color:var(--ink);}
+.sb-urole{font-size:10px;color:var(--ink3);}
+
+/* MAIN */
+.main{padding:24px;overflow-y:auto;background:var(--bg);}
+
+/* TABS (states) */
+.tab-nav{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.tab-btn{padding:7px 14px;border-radius:20px;background:var(--surface);border:1.5px solid var(--line-hi);font-size:11px;font-weight:700;color:var(--ink3);cursor:pointer;font-family:var(--fa);transition:all 130ms;}
+.tab-btn.active{background:var(--accent-bg);border-color:rgba(26,122,94,.3);color:var(--accent);}
+
+.panels{position:relative;}
+.panel{display:none;animation:up .3s var(--eo) both;}
+.panel.active{display:block;}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+.topbar-text{flex:1;}
+.topbar-text h2{font-family:var(--fd);font-size:20px;font-weight:700;}
+.topbar-text p{font-size:12px;color:var(--ink3);margin-top:2px;}
+.tb-btn{padding:7px 14px;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--fa);}
+.tb-notif{background:var(--surface);border:1px solid var(--line-hi);color:var(--ink2);position:relative;}
+.tb-notif .dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--coral);border:2px solid var(--bg);}
+.tb-primary{background:var(--accent);color:#fff;}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);}
+.kpi-ico{font-size:20px;margin-bottom:7px;}
+.kpi-val{font-family:var(--fd);font-size:24px;color:var(--ink);font-weight:700;line-height:1;}
+.kpi-label{font-size:10px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+.kpi-delta{font-size:11px;font-weight:700;margin-top:5px;}
+.up{color:var(--mint);}
+.down{color:var(--coral);}
+.neutral{color:var(--ink3);}
+
+/* ANSWER BOX */
+.answer-box{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:var(--r-xl);padding:20px;color:#fff;margin-bottom:20px;}
+.ab-eyebrow{font-size:10px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+.ab-question{font-size:16px;font-weight:700;margin-bottom:16px;opacity:.9;}
+.ab-answers{display:flex;flex-direction:column;gap:8px;}
+.ab-answer{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.14);border-radius:var(--r-md);padding:12px 14px;}
+.ab-ico{font-size:20px;flex-shrink:0;}
+.ab-text{font-size:13px;font-weight:600;}
+.ab-action{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.22);padding:4px 10px;border-radius:8px;cursor:pointer;}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:20px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:18px;box-shadow:var(--shadow-sm);}
+.card-title{font-family:var(--fd);font-size:15px;font-weight:700;margin-bottom:2px;}
+.card-sub{font-size:11px;color:var(--ink3);margin-bottom:14px;}
+
+/* SKILL BARS */
+.skill-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.skill-name{font-size:12px;font-weight:600;color:var(--ink2);width:90px;flex-shrink:0;}
+.skill-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+.skill-fill{height:100%;border-radius:4px;transition:width .5s var(--eo);}
+.skill-pct{font-size:11px;font-weight:700;color:var(--ink);width:30px;text-align:right;}
+.skill-delta{font-size:9px;font-weight:700;width:28px;}
+
+/* TIMELINE */
+.tl{display:flex;flex-direction:column;}
+.tl-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot-wrap{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.tl-vline{width:2px;background:var(--line);flex:1;margin-top:4px;min-height:8px;}
+.tl-body{flex:1;padding-top:3px;}
+.tl-title{font-size:12px;font-weight:700;color:var(--ink);}
+.tl-sub{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.4;}
+.tl-time{font-size:10px;color:var(--ink3);margin-top:3px;}
+.tl-pill{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:4px;}
+
+/* PROGRESS OVER TIME */
+.sparkline-wrap{display:flex;align-items:flex-end;gap:3px;height:56px;margin-bottom:6px;}
+.spark{flex:1;border-radius:3px 3px 0 0;transition:height .4s var(--eo);cursor:pointer;}
+.spark:hover{filter:brightness(1.15);}
+.spark-labels{display:flex;gap:3px;}
+.spark-label{flex:1;text-align:center;font-size:8px;color:var(--ink3);}
+
+/* EMPTY + ERROR STATES */
+.empty-state{text-align:center;padding:32px 20px;}
+.es-ico{font-size:48px;display:block;margin-bottom:10px;}
+.es-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.es-sub{font-size:13px;color:var(--ink3);line-height:1.55;margin-bottom:18px;}
+.es-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r-md);background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:var(--fa);}
+.error-state{background:var(--coral-bg);border:1.5px solid rgba(240,101,101,.2);border-radius:var(--r-lg);padding:16px;display:flex;gap:12px;align-items:flex-start;}
+.err-ico{font-size:22px;flex-shrink:0;}
+.err-title{font-size:13px;font-weight:700;color:var(--coral);}
+.err-sub{font-size:11px;color:var(--ink2);margin-top:3px;line-height:1.45;}
+.err-action{font-size:11px;font-weight:700;color:var(--accent);margin-top:6px;cursor:pointer;}
+
+/* NEXT ACTION CARD */
+.next-action{background:var(--gold-bg);border:1.5px solid rgba(245,166,35,.25);border-radius:var(--r-lg);padding:14px;display:flex;gap:12px;align-items:center;}
+.na-ico{font-size:24px;flex-shrink:0;}
+.na-label{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;}
+.na-text{font-size:13px;font-weight:700;color:var(--ink);margin-top:2px;}
+.na-sub{font-size:11px;color:var(--ink2);margin-top:2px;}
+.na-btn{margin-left:auto;font-size:11px;font-weight:700;background:var(--gold);color:#fff;border:none;border-radius:var(--r-sm);padding:6px 12px;cursor:pointer;font-family:var(--fa);flex-shrink:0;}
+
+/* EFFECTIVE TIME */
+.time-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ts-tile{background:var(--bg2);border-radius:var(--r-md);padding:12px;text-align:center;}
+.ts-v{font-size:20px;font-weight:800;color:var(--ink);}
+.ts-l{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+.ts-bar{height:5px;border-radius:3px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">Wonder<span>Quest</span></div>
+      <div class="sb-role">👩 Parent · Sarah</div>
+    </div>
+    <div class="child-sw">
+      <div class="csw-label">My Children</div>
+      <div class="child-pill active">
+        <div class="cp-av" style="background:rgba(245,166,35,.15)">🐼</div>
+        <div><div class="cp-name">Mia</div><div class="cp-band">G23 · Space Explorer</div></div>
+        <div class="cp-live"></div>
+      </div>
+      <div class="child-pill" style="margin-top:4px">
+        <div class="cp-av" style="background:rgba(124,92,232,.12)">🦄</div>
+        <div><div class="cp-name">Leo</div><div class="cp-band">K1 · Sports World</div></div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-item active"><span class="ico">📊</span>Overview</div>
+      <div class="sb-item"><span class="ico">📈</span>Progress Over Time</div>
+      <div class="sb-item"><span class="ico">⚡</span>Skills Map</div>
+      <div class="sb-item"><span class="ico">🗓️</span>Sessions</div>
+      <div class="sb-item"><span class="ico">🔔</span>Notifications<span class="badge">2</span></div>
+      <div class="sb-item"><span class="ico">⚙️</span>Settings</div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-av">👩</div>
+        <div><div class="sb-uname">Sarah M.</div><div class="sb-urole">Parent · Linked</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-text">
+        <h2>Mia's Dashboard</h2>
+        <p>Space Explorer · Grade 2–3 · Last active 12 min ago</p>
+      </div>
+      <button class="tb-btn tb-notif">🔔<div class="dot"></div></button>
+      <button class="tb-btn tb-primary">+ Add child</button>
+    </div>
+
+    <!-- TAB states -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="show(0)">Dashboard</button>
+      <button class="tab-btn" onclick="show(1)">Progress Over Time</button>
+      <button class="tab-btn" onclick="show(2)">Empty State</button>
+      <button class="tab-btn" onclick="show(3)">Error States</button>
+    </div>
+
+    <div class="panels">
+
+      <!-- ── DASHBOARD STATE ── -->
+      <div class="panel active">
+
+        <!-- Answer the 3 questions -->
+        <div class="answer-box">
+          <div class="ab-eyebrow">Answers for you right now</div>
+          <div class="ab-question">The three things parents want to know →</div>
+          <div class="ab-answers">
+            <div class="ab-answer">
+              <span class="ab-ico">📊</span>
+              <div class="ab-text"><strong>How is Mia doing?</strong> — On track. 87% accuracy this week, Level 8.</div>
+              <div class="ab-action">↓ Details</div>
+            </div>
+            <div class="ab-answer">
+              <span class="ab-ico">🔔</span>
+              <div class="ab-text"><strong>What changed?</strong> — Levelled up Friday, earned Math badge, 7-streak Monday.</div>
+              <div class="ab-action">↓ Timeline</div>
+            </div>
+            <div class="ab-answer">
+              <span class="ab-ico">💡</span>
+              <div class="ab-text"><strong>What should you do?</strong> — Division needs support. 5 mins of practice helps.</div>
+              <div class="ab-action">↓ How</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next recommended action -->
+        <div class="next-action" style="margin-bottom:20px">
+          <span class="na-ico">🎯</span>
+          <div>
+            <div class="na-label">Recommended action</div>
+            <div class="na-text">Practice division with Mia this week</div>
+            <div class="na-sub">Only 64% accuracy — 5 mins 3×/week helps significantly</div>
+          </div>
+          <button class="na-btn">See how →</button>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="kpi-ico">⏱️</div>
+            <div class="kpi-val">3.8h</div>
+            <div class="kpi-label">Time This Week</div>
+            <div class="kpi-delta up">↑ 18% vs last week</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ico">⚡</div>
+            <div class="kpi-val">2.9h</div>
+            <div class="kpi-label">Effective Time</div>
+            <div class="kpi-delta neutral">76% of sessions focused</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ico">✅</div>
+            <div class="kpi-val">87%</div>
+            <div class="kpi-label">Accuracy</div>
+            <div class="kpi-delta up">↑ 5pts this week</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ico">🔥</div>
+            <div class="kpi-val">7</div>
+            <div class="kpi-label">Best Streak</div>
+            <div class="kpi-delta neutral">Personal best!</div>
+          </div>
+        </div>
+
+        <!-- Skills + Timeline -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Skills Snapshot</div>
+            <div class="card-sub">This week's accuracy by skill area</div>
+            <!-- Strengths -->
+            <div style="font-size:10px;font-weight:700;color:var(--mint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">✓ Strengths</div>
+            <div class="skill-row">
+              <div class="skill-name">Addition</div>
+              <div class="skill-track"><div class="skill-fill" style="width:95%;background:var(--mint)"></div></div>
+              <div class="skill-pct">95%</div>
+              <div class="skill-delta up">↑3</div>
+            </div>
+            <div class="skill-row">
+              <div class="skill-name">× Multiply</div>
+              <div class="skill-track"><div class="skill-fill" style="width:92%;background:var(--mint)"></div></div>
+              <div class="skill-pct">92%</div>
+              <div class="skill-delta up">↑5</div>
+            </div>
+            <div class="skill-row">
+              <div class="skill-name">Reading</div>
+              <div class="skill-track"><div class="skill-fill" style="width:88%;background:var(--sky)"></div></div>
+              <div class="skill-pct">88%</div>
+              <div class="skill-delta neutral">—</div>
+            </div>
+            <!-- Support areas -->
+            <div style="font-size:10px;font-weight:700;color:var(--coral);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 8px">⚠ Needs Support</div>
+            <div class="skill-row">
+              <div class="skill-name">÷ Division</div>
+              <div class="skill-track"><div class="skill-fill" style="width:64%;background:var(--gold)"></div></div>
+              <div class="skill-pct" style="color:var(--gold)">64%</div>
+              <div class="skill-delta down">↓2</div>
+            </div>
+            <div class="skill-row">
+              <div class="skill-name">Fractions</div>
+              <div class="skill-track"><div class="skill-fill" style="width:51%;background:var(--coral)"></div></div>
+              <div class="skill-pct" style="color:var(--coral)">51%</div>
+              <div class="skill-delta down">↓4</div>
+            </div>
+          </div>
+
+          <!-- Recent activity timeline -->
+          <div class="card">
+            <div class="card-title">Recent Activity</div>
+            <div class="card-sub">What changed recently</div>
+            <div class="tl">
+              <div class="tl-item">
+                <div class="tl-dot-wrap"><div class="tl-dot" style="background:rgba(32,201,151,.12)">🏆</div><div class="tl-vline"></div></div>
+                <div class="tl-body"><div class="tl-title">Levelled up to Level 8</div><div class="tl-sub">Space Explorer · Top 15%</div><div class="tl-pill" style="background:rgba(245,166,35,.12);color:var(--gold)">⭐ Level Up</div><div class="tl-time">Today, 7:42 PM</div></div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot-wrap"><div class="tl-dot" style="background:rgba(245,166,35,.12)">🔥</div><div class="tl-vline"></div></div>
+                <div class="tl-body"><div class="tl-title">7-question streak</div><div class="tl-sub">Multiplication session</div><div class="tl-pill" style="background:rgba(32,201,151,.1);color:var(--mint)">7 correct</div><div class="tl-time">Today, 7:38 PM</div></div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot-wrap"><div class="tl-dot" style="background:rgba(240,101,101,.1)">💡</div><div class="tl-vline"></div></div>
+                <div class="tl-body"><div class="tl-title">Division needs work</div><div class="tl-sub">4/8 correct in last session</div><div class="tl-pill" style="background:rgba(240,101,101,.1);color:var(--coral)">Support needed</div><div class="tl-time">Yesterday, 6:15 PM</div></div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot-wrap"><div class="tl-dot" style="background:rgba(124,92,232,.1)">🎯</div></div>
+                <div class="tl-body"><div class="tl-title">Math Champion badge earned</div><div class="tl-sub">First to complete 10 math sessions</div><div class="tl-pill" style="background:rgba(124,92,232,.1);color:var(--violet)">New badge</div><div class="tl-time">Fri, 6:30 PM</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time & Effective time breakdown -->
+        <div class="three-col">
+          <div class="card">
+            <div class="card-title">Time This Week</div>
+            <div class="card-sub" style="margin-bottom:12px">Total vs effective learning time</div>
+            <div class="time-split">
+              <div class="ts-tile">
+                <div class="ts-v" style="color:var(--ink)">3.8h</div>
+                <div class="ts-l">Total Time</div>
+                <div class="ts-bar" style="background:var(--bg3)"><div style="height:100%;width:100%;border-radius:3px;background:var(--sky)"></div></div>
+              </div>
+              <div class="ts-tile">
+                <div class="ts-v" style="color:var(--accent)">2.9h</div>
+                <div class="ts-l">Effective</div>
+                <div class="ts-bar" style="background:var(--bg3)"><div style="height:100%;width:76%;border-radius:3px;background:var(--mint)"></div></div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.5">76% of Mia's sessions were focused — above the G23 average of 68%.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Session Frequency</div>
+            <div class="card-sub" style="margin-bottom:12px">Days active this week</div>
+            <div class="sparkline-wrap">
+              <div class="spark" style="height:40%;background:var(--accent-bg)"></div>
+              <div class="spark" style="height:60%;background:var(--accent)"></div>
+              <div class="spark" style="height:50%;background:var(--accent-bg)"></div>
+              <div class="spark" style="height:80%;background:var(--accent)"></div>
+              <div class="spark" style="height:70%;background:var(--accent)"></div>
+              <div class="spark" style="height:15%;background:var(--bg3)"></div>
+              <div class="spark" style="height:10%;background:var(--bg3)"></div>
+            </div>
+            <div class="spark-labels">
+              <div class="spark-label">M</div><div class="spark-label">T</div><div class="spark-label">W</div>
+              <div class="spark-label" style="color:var(--accent);font-weight:700">T</div>
+              <div class="spark-label" style="color:var(--accent);font-weight:700">F</div>
+              <div class="spark-label">S</div><div class="spark-label">S</div>
+            </div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:8px">5 days active · goal: 5 days ✓</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Goal Progress</div>
+            <div class="card-sub" style="margin-bottom:12px">Weekly targets</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:4px"><span>Sessions</span><span style="color:var(--mint)">5 / 5 ✓</span></div>
+                <div style="height:6px;background:var(--bg2);border-radius:3px"><div style="height:100%;width:100%;border-radius:3px;background:var(--mint)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:4px"><span>Accuracy</span><span style="color:var(--gold)">87% / 90%</span></div>
+                <div style="height:6px;background:var(--bg2);border-radius:3px"><div style="height:100%;width:87%;border-radius:3px;background:var(--gold)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:4px"><span>New skills</span><span style="color:var(--violet)">2 / 3</span></div>
+                <div style="height:6px;background:var(--bg2);border-radius:3px"><div style="height:100%;width:66%;border-radius:3px;background:var(--violet)"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PROGRESS OVER TIME ── -->
+      <div class="panel">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Accuracy Over Time</div>
+          <div class="card-sub">Last 8 weeks — all subjects combined</div>
+          <!-- Simple bar chart simulating trend -->
+          <div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:6px">
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:62%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:68%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:72%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:75%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:78%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:82%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);height:84%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--accent);height:87%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3)"><span>8 wks ago</span><span>This week</span></div>
+          <div style="margin-top:12px;padding:10px 14px;background:var(--accent-bg);border-radius:var(--r-md);border-left:3px solid var(--accent)">
+            <div style="font-size:12px;font-weight:700;color:var(--accent)">Consistent improvement — up 25pts over 8 weeks</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:2px">Mia is learning at a steady pace. Keep up the current routine!</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Skill Progress — Division (Support Area)</div>
+          <div class="card-sub">Tracking improvement in flagged skill over time</div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:60px;margin-bottom:6px">
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--coral-bg);height:80%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--coral-bg);height:75%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--coral-bg);height:70%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--gold-bg);height:65%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--gold-bg);height:60%"></div>
+            <div style="flex:1;border-radius:4px 4px 0 0;background:var(--gold-bg);height:64%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3)"><span>6 wks ago</span><span>This week</span></div>
+          <div style="margin-top:10px;padding:10px 14px;background:var(--gold-bg);border-radius:var(--r-md);border-left:3px solid var(--gold)">
+            <div style="font-size:12px;font-weight:700;color:var(--gold)">Still a support area — slight decline this week</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:2px">Consider 5 mins of division practice before sessions.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EMPTY STATE ── -->
+      <div class="panel">
+        <div class="card">
+          <div class="empty-state">
+            <span class="es-ico">🐣</span>
+            <div class="es-title">No sessions yet this week</div>
+            <div class="es-sub">Mia hasn't played WonderQuest this week yet. Once she completes a session, you'll see her progress, accuracy, and skill updates right here.</div>
+            <button class="es-btn">🔔 Set a reminder →</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-title" style="margin-bottom:10px">Not linked yet?</div>
+          <div class="empty-state" style="padding:16px 10px">
+            <span class="es-ico">🔗</span>
+            <div class="es-title">Link your child first</div>
+            <div class="es-sub">Enter your child's adventurer name to start seeing their learning data.</div>
+            <button class="es-btn">Find my child →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ERROR STATES ── -->
+      <div class="panel">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="error-state">
+            <span class="err-ico">🔌</span>
+            <div>
+              <div class="err-title">Can't load Mia's data right now</div>
+              <div class="err-sub">There was a problem connecting to the server. Mia's progress is safe — this is a temporary issue.</div>
+              <div class="err-action">→ Try again</div>
+            </div>
+          </div>
+          <div style="background:var(--gold-bg);border:1.5px solid rgba(245,166,35,.25);border-radius:var(--r-lg);padding:16px;display:flex;gap:12px">
+            <span style="font-size:22px;flex-shrink:0">⏳</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--gold)">Data is syncing…</div>
+              <div style="font-size:11px;color:var(--ink2);margin-top:3px;line-height:1.45">Mia just finished a session. Her latest results will appear in about 30 seconds.</div>
+            </div>
+          </div>
+          <div style="background:var(--violet-bg);border:1.5px solid rgba(124,92,232,.2);border-radius:var(--r-lg);padding:16px;display:flex;gap:12px">
+            <span style="font-size:22px;flex-shrink:0">🔗</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--violet)">Link may have expired</div>
+              <div style="font-size:11px;color:var(--ink2);margin-top:3px;line-height:1.45">Your child may have changed their adventurer name. Re-link to restore access.</div>
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-top:6px;cursor:pointer">→ Re-link now</div>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-lg);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px">No data for this period</div>
+            <div style="font-size:11px;color:var(--ink3);line-height:1.5">Mia didn't have any sessions during the selected week. Try a different time period.</div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button style="padding:7px 14px;border-radius:var(--r-sm);background:var(--bg2);border:1px solid var(--line-hi);font-size:11px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:var(--fa)">← Previous week</button>
+              <button style="padding:7px 14px;border-radius:var(--r-sm);background:var(--accent-bg);border:1px solid rgba(26,122,94,.2);font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;font-family:var(--fa)">All time →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const tabs=document.querySelectorAll('.tab-btn');
+const panels=document.querySelectorAll('.panel');
+function show(i){tabs.forEach((t,j)=>t.classList.toggle('active',i===j));panels.forEach((p,j)=>p.classList.toggle('active',i===j));}
+</script>
+</body>
+</html>

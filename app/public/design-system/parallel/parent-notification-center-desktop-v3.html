@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Notification Center — Desktop v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent notification center — Desktop variant              │
+  │  Parent bg: #f5f0e8                                        │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. All Notifications                                    │
+  │    2. Filtered (Badges Only)                               │
+  │    3. Notification Settings                                │
+  │    4. Empty State                                          │
+  │    5. Spec                                                  │
+  │                                                            │
+  │  Key rules:                                                │
+  │  - Grouped by day (Today / This Week / Older)             │
+  │  - 4 notification types: Badge / Level-up / Weekly /      │
+  │    Session / Streak / System                               │
+  │  - Mark single or all read                                 │
+  │  - Notification settings: per-type toggle + delivery pref │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #ece8e0; color: #1a1240; min-height: 100vh; }
+.tab-bar { display: flex; gap: 4px; padding: 14px 24px 0; border-bottom: 1px solid #d8d0c0; overflow-x: auto; scrollbar-width: none; background: #f5f0e8; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 16px; border: none; background: transparent; color: #8a7a6a; font: 600 0.8rem system-ui; cursor: pointer; border-radius: 6px 6px 0 0; white-space: nowrap; transition: all 0.18s; }
+.tab-btn.active { color: #3d2a8a; background: #ece8e0; border-bottom: 2px solid #9b72ff; }
+.screen { display: none; background: #f5f0e8; min-height: calc(100vh - 50px); padding: 40px; }
+.screen.active { display: block; }
+.notif-shell { max-width: 720px; margin: 0 auto; }
+
+/* ─── Page Header ─── */
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.page-title { font: 700 1.5rem system-ui; color: #1a1240; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.btn-mark-all { padding: 8px 16px; background: #fff; border: 1.5px solid #d0c8e8; border-radius: 8px; font: 600 0.78rem system-ui; color: #4a3880; cursor: pointer; }
+.btn-settings-link { padding: 8px 14px; background: #ede8ff; border: none; border-radius: 8px; font: 600 0.78rem system-ui; color: #4a2090; cursor: pointer; }
+
+/* ─── Filter Chips ─── */
+.filter-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-chip { padding: 6px 16px; border: 1.5px solid #d0c8e8; border-radius: 20px; font: 600 0.78rem system-ui; color: #4a3880; background: #fff; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+.filter-chip.active { background: #9b72ff; color: #fff; border-color: #9b72ff; }
+.filter-badge { display: inline-block; background: #9b72ff; color: #fff; font: 700 0.6rem system-ui; padding: 1px 5px; border-radius: 8px; }
+.filter-chip.active .filter-badge { background: #fff; color: #9b72ff; }
+
+/* ─── Day Group ─── */
+.day-group { margin-bottom: 24px; }
+.day-label { font: 600 0.72rem system-ui; color: #9080b0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; padding-left: 2px; }
+.notif-card { background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid #e0d8f0; }
+
+/* ─── Notification Items ─── */
+.notif-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; border-bottom: 1px solid #f0e8f8; position: relative; transition: background 0.15s; cursor: pointer; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: #faf8ff; }
+.notif-item.unread { background: #fbf8ff; }
+.notif-item.unread:hover { background: #f5f0ff; }
+.unread-dot { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 6px; height: 6px; border-radius: 50%; background: #9b72ff; }
+.notif-icon-wrap { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.notif-body { flex: 1; }
+.notif-title { font: 600 0.86rem system-ui; color: #1a1240; margin-bottom: 3px; }
+.notif-text { font: 400 0.8rem/1.45 system-ui; color: #5a5070; }
+.notif-meta { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+.notif-time { font: 400 0.7rem system-ui; color: #b0a0c0; }
+.notif-child { font: 600 0.68rem system-ui; padding: 1px 8px; border-radius: 10px; }
+.notif-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.notif-action-btn { padding: 5px 12px; border: 1.5px solid #d0c8e8; border-radius: 8px; font: 500 0.72rem system-ui; color: #4a3880; background: #fff; cursor: pointer; white-space: nowrap; }
+.notif-dismiss { border: none; background: none; color: #b0a0c0; font-size: 1rem; cursor: pointer; padding: 4px; }
+
+/* ─── Settings Tab ─── */
+.settings-card { background: #fff; border-radius: 16px; padding: 24px; border: 1px solid #e0d8f0; margin-bottom: 18px; }
+.settings-section-title { font: 700 0.9rem system-ui; color: #1a1240; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #f0e8f8; }
+.settings-row { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid #f8f0f8; }
+.settings-row:last-child { border-bottom: none; }
+.notif-type-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+.notif-type-label { font: 600 0.84rem system-ui; color: #1a1240; flex: 1; }
+.notif-type-sub { font: 400 0.72rem system-ui; color: #9080a0; }
+.toggle { width: 40px; height: 22px; border-radius: 11px; background: #d0c8e8; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.toggle.on { background: #9b72ff; }
+.toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle.on::after { left: 20px; }
+
+/* ─── Delivery Prefs ─── */
+.delivery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.delivery-card { background: #faf8ff; border-radius: 12px; padding: 14px 16px; border: 1.5px solid #e0d8f0; cursor: pointer; transition: all 0.15s; }
+.delivery-card.selected { border-color: #9b72ff; background: #ede8ff; }
+.delivery-card-title { font: 700 0.84rem system-ui; color: #1a1240; margin-bottom: 3px; }
+.delivery-card-sub { font: 400 0.72rem system-ui; color: #8070a0; line-height: 1.4; }
+.delivery-check { display: none; font-size: 0.9rem; color: #9b72ff; margin-top: 6px; font-weight: 700; }
+.delivery-card.selected .delivery-check { display: block; }
+
+/* ─── Empty ─── */
+.empty-card { background: #fff; border-radius: 20px; padding: 48px 36px; border: 1px solid #e0d8f0; text-align: center; }
+.empty-icon { font-size: 3rem; margin-bottom: 16px; }
+.empty-title { font: 700 1.2rem system-ui; color: #1a1240; margin-bottom: 8px; }
+.empty-sub { font: 400 0.85rem/1.6 system-ui; color: #6a5890; max-width: 380px; margin: 0 auto; }
+
+/* ─── Spec ─── */
+#screen-spec { padding: 40px; }
+.spec-title { font: 700 1.2rem system-ui; color: #1a1240; margin-bottom: 18px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 20px; }
+.spec-table th { text-align: left; padding: 9px 12px; background: #ede8ff; color: #4a3880; font: 700 0.7rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table td { padding: 9px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { font-weight: 700; color: #1a1240; }
+.spec-detail { color: #6a5890; font-size: 0.74rem; line-height: 1.5; }
+.spec-section { font: 700 0.88rem system-ui; color: #3d2a8a; margin: 22px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('all')">🔔 All</button>
+  <button class="tab-btn" onclick="showTab('filtered')">🏅 Badges</button>
+  <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
+  <button class="tab-btn" onclick="showTab('empty')">📭 Empty</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- ALL NOTIFICATIONS -->
+<div class="screen active" id="screen-all">
+  <div class="notif-shell">
+    <div class="page-header">
+      <div>
+        <div class="page-title">🔔 Notifications</div>
+        <div style="font:400 0.82rem system-ui;color:#6a5890;margin-top:2px;">5 unread</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-mark-all">Mark all read</button>
+        <button class="btn-settings-link">⚙️ Notification settings</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-chip active">All <span class="filter-badge">5</span></div>
+      <div class="filter-chip">🏅 Badges <span class="filter-badge">2</span></div>
+      <div class="filter-chip">⭐ Level-ups <span class="filter-badge">1</span></div>
+      <div class="filter-chip">📊 Reports <span class="filter-badge">1</span></div>
+      <div class="filter-chip">🎯 Sessions</div>
+      <div class="filter-chip">💬 System</div>
+    </div>
+
+    <!-- Today -->
+    <div class="day-group">
+      <div class="day-label">Today · March 24</div>
+      <div class="notif-card">
+        <div class="notif-item unread">
+          <div class="unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:#fff3e0;">🏅</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya earned "Rhyme Queen" badge!</div>
+            <div class="notif-text">She's been working on rhyming sounds all week and finally reached the mastery threshold. This is a Rare badge — only 9,999 ever awarded.</div>
+            <div class="notif-meta">
+              <span class="notif-time">8:42 AM</span>
+              <span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya · K–1</span>
+            </div>
+          </div>
+          <div class="notif-actions">
+            <button class="notif-action-btn">See badge →</button>
+            <button class="notif-dismiss">×</button>
+          </div>
+        </div>
+        <div class="notif-item unread">
+          <div class="unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:#ede8ff;">⭐</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya leveled up to Star Explorer!</div>
+            <div class="notif-text">Maya reached Level 2 in the K–1 band! Her XP bar is growing fast. New perks unlocked: extended play hints and a new avatar option.</div>
+            <div class="notif-meta">
+              <span class="notif-time">8:43 AM</span>
+              <span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya · K–1</span>
+            </div>
+          </div>
+          <div class="notif-actions">
+            <button class="notif-action-btn">View dashboard →</button>
+            <button class="notif-dismiss">×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- This Week -->
+    <div class="day-group">
+      <div class="day-label">This Week</div>
+      <div class="notif-card">
+        <div class="notif-item unread">
+          <div class="unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:#f0fdf8;">📊</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya's weekly report is ready</div>
+            <div class="notif-text">Great week! 42 stars, 14 sessions, and a new 5-day streak. Rhyming skills jumped from 76% → 88%.</div>
+            <div class="notif-meta">
+              <span class="notif-time">Sunday 7:00 AM</span>
+              <span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya · K–1</span>
+            </div>
+          </div>
+          <div class="notif-actions">
+            <button class="notif-action-btn">Read report →</button>
+            <button class="notif-dismiss">×</button>
+          </div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-icon-wrap" style="background:#fff3e0;">🏅</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya earned "Letter Explorer" badge</div>
+            <div class="notif-text">Awarded for completing 10 letter-sounds sessions. Common badge — unlimited supply.</div>
+            <div class="notif-meta">
+              <span class="notif-time">Friday 3:15 PM</span>
+              <span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya · K–1</span>
+            </div>
+          </div>
+          <div class="notif-actions">
+            <button class="notif-action-btn">See badge →</button>
+            <button class="notif-dismiss">×</button>
+          </div>
+        </div>
+        <div class="notif-item unread">
+          <div class="unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:#faf8ff;">🔥</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya hit a 5-day streak!</div>
+            <div class="notif-text">Maya has played every day this week — a new personal record. Keep the momentum going!</div>
+            <div class="notif-meta">
+              <span class="notif-time">Thursday 6:00 PM</span>
+              <span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya · K–1</span>
+            </div>
+          </div>
+          <div class="notif-actions">
+            <button class="notif-dismiss">×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Older -->
+    <div class="day-group">
+      <div class="day-label">Older</div>
+      <div class="notif-card">
+        <div class="notif-item">
+          <div class="notif-icon-wrap" style="background:#f5f0e8;">💬</div>
+          <div class="notif-body">
+            <div class="notif-title">Welcome to WonderQuest!</div>
+            <div class="notif-text">Maya's account is set up and ready. Tap "Start Playing" on the dashboard to begin her first adventure.</div>
+            <div class="notif-meta">
+              <span class="notif-time">March 17, 2026</span>
+            </div>
+          </div>
+          <div class="notif-actions">
+            <button class="notif-dismiss">×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTERED: BADGES -->
+<div class="screen" id="screen-filtered">
+  <div class="notif-shell">
+    <div class="page-header">
+      <div>
+        <div class="page-title">🏅 Badge Notifications</div>
+        <div style="font:400 0.82rem system-ui;color:#6a5890;margin-top:2px;">2 unread · 2 total</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-mark-all">Mark all read</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-chip">All</div>
+      <div class="filter-chip active">🏅 Badges <span class="filter-badge">2</span></div>
+      <div class="filter-chip">⭐ Level-ups</div>
+      <div class="filter-chip">📊 Reports</div>
+    </div>
+
+    <div class="day-group">
+      <div class="day-label">Today</div>
+      <div class="notif-card">
+        <div class="notif-item unread">
+          <div class="unread-dot"></div>
+          <div class="notif-icon-wrap" style="background:#fff3e0;">🏅</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya earned "Rhyme Queen" badge!</div>
+            <div class="notif-text">Rare badge — rhyming mastery milestone. #6,241 of 9,999.</div>
+            <div class="notif-meta"><span class="notif-time">8:42 AM</span><span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya</span></div>
+          </div>
+          <div class="notif-actions"><button class="notif-action-btn">See badge →</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="day-group">
+      <div class="day-label">This Week</div>
+      <div class="notif-card">
+        <div class="notif-item">
+          <div class="notif-icon-wrap" style="background:#fff3e0;">🏅</div>
+          <div class="notif-body">
+            <div class="notif-title">Maya earned "Letter Explorer" badge</div>
+            <div class="notif-text">Common badge — 10 letter-sound sessions completed.</div>
+            <div class="notif-meta"><span class="notif-time">Friday 3:15 PM</span><span class="notif-child" style="background:#ede8ff;color:#4a2090;">Maya</span></div>
+          </div>
+          <div class="notif-actions"><button class="notif-action-btn">See badge →</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="notif-shell">
+    <div class="page-header">
+      <div class="page-title">⚙️ Notification Settings</div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-section-title">Notify me when Maya…</div>
+      <div class="settings-row">
+        <div class="notif-type-icon" style="background:#fff3e0;">🏅</div>
+        <div style="flex:1;"><div class="notif-type-label">Earns a badge</div><div class="notif-type-sub">Any rarity — Common, Rare, Epic, Legendary</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-row">
+        <div class="notif-type-icon" style="background:#ede8ff;">⭐</div>
+        <div style="flex:1;"><div class="notif-type-label">Levels up</div><div class="notif-type-sub">K–1 level milestones (Level 1 → Level 5)</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-row">
+        <div class="notif-type-icon" style="background:#f0fdf8;">📊</div>
+        <div style="flex:1;"><div class="notif-type-label">Weekly report ready</div><div class="notif-type-sub">Every Sunday morning at 7:00 AM</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-row">
+        <div class="notif-type-icon" style="background:#faf8ff;">🎯</div>
+        <div style="flex:1;"><div class="notif-type-label">Completes a session</div><div class="notif-type-sub">After each individual play session</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-row">
+        <div class="notif-type-icon" style="background:#faf8ff;">🔥</div>
+        <div style="flex:1;"><div class="notif-type-label">Hits a streak milestone</div><div class="notif-type-sub">3-day, 7-day, 14-day, 30-day streaks</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="settings-row">
+        <div class="notif-type-icon" style="background:#fff8e0;">💬</div>
+        <div style="flex:1;"><div class="notif-type-label">Hasn't played in 2+ days</div><div class="notif-type-sub">Gentle reminder — never a guilt-trip message</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-section-title">How to receive notifications</div>
+      <div class="delivery-grid">
+        <div class="delivery-card selected">
+          <div class="delivery-card-title">📧 Email</div>
+          <div class="delivery-card-sub">Sent to sarah.johnson@email.com. Batched to avoid spam.</div>
+          <div class="delivery-check">✓ Enabled</div>
+        </div>
+        <div class="delivery-card selected">
+          <div class="delivery-card-title">🔔 In-app</div>
+          <div class="delivery-card-sub">Bell icon in dashboard with badge count.</div>
+          <div class="delivery-check">✓ Enabled</div>
+        </div>
+        <div class="delivery-card">
+          <div class="delivery-card-title">📱 Push (mobile)</div>
+          <div class="delivery-card-sub">Requires WonderQuest mobile app installed.</div>
+          <div class="delivery-check">✓ Enabled</div>
+        </div>
+        <div class="delivery-card">
+          <div class="delivery-card-title">🔕 Digest only</div>
+          <div class="delivery-card-sub">Single weekly summary email instead of individual notifications.</div>
+          <div class="delivery-check">✓ Enabled</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;background:#ede8ff;border-radius:12px;border:1px solid #c0b0f0;font:400 0.78rem/1.5 system-ui;color:#3a2070;">
+      🔒 <strong>Privacy note:</strong> Notification content never reveals specific wrong answers or details that could embarrass your child. We celebrate what they've achieved, not what they're building toward.
+    </div>
+  </div>
+</div>
+
+<!-- EMPTY -->
+<div class="screen" id="screen-empty">
+  <div class="notif-shell">
+    <div class="page-header">
+      <div class="page-title">🔔 Notifications</div>
+    </div>
+    <div class="empty-card">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">All caught up!</div>
+      <div class="empty-sub">You have no new notifications. We'll let you know when Maya earns a badge, levels up, or has a weekly report ready.</div>
+      <div style="margin-top:24px; display:flex; gap:10px; justify-content:center;">
+        <button style="padding:10px 20px;background:#9b72ff;color:#fff;border:none;border-radius:10px;font:600 0.85rem system-ui;cursor:pointer;">View Maya's dashboard →</button>
+        <button style="padding:10px 20px;background:#fff;border:1.5px solid #d0c8e8;border-radius:10px;font:600 0.82rem system-ui;color:#4a3880;cursor:pointer;">Notification settings</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div class="screen" id="screen-spec">
+  <div style="max-width:700px;margin:0 auto;">
+    <div class="spec-title">Notification Center Desktop — Spec</div>
+    <div class="spec-section">Notification Types</div>
+    <table class="spec-table">
+      <thead><tr><th>Type</th><th>Trigger</th><th>Default</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule">Badge 🏅</td><td class="spec-detail">Child earns any badge (any rarity)</td><td class="spec-detail">ON</td><td class="spec-detail">"See badge →" CTA</td></tr>
+        <tr><td class="spec-rule">Level-up ⭐</td><td class="spec-detail">Child levels up</td><td class="spec-detail">ON</td><td class="spec-detail">"View dashboard →" CTA</td></tr>
+        <tr><td class="spec-rule">Weekly report 📊</td><td class="spec-detail">Every Sunday 7 AM</td><td class="spec-detail">ON</td><td class="spec-detail">"Read report →" CTA</td></tr>
+        <tr><td class="spec-rule">Session complete 🎯</td><td class="spec-detail">After each play session</td><td class="spec-detail">OFF</td><td class="spec-detail">No CTA (summary only)</td></tr>
+        <tr><td class="spec-rule">Streak 🔥</td><td class="spec-detail">3/7/14/30-day milestone</td><td class="spec-detail">OFF</td><td class="spec-detail">No CTA (celebratory)</td></tr>
+        <tr><td class="spec-rule">Inactivity 💬</td><td class="spec-detail">2+ days without play</td><td class="spec-detail">OFF</td><td class="spec-detail">Never guilt-trip language</td></tr>
+      </tbody>
+    </table>
+    <div class="spec-section">Grouping & Display</div>
+    <table class="spec-table">
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule">Day grouping</td><td class="spec-detail">Today / This Week / Older. No timestamps beyond "This Week" for cleanliness.</td></tr>
+        <tr><td class="spec-rule">Unread dot</td><td class="spec-detail">Small 6px violet dot at left edge. Disappears on click or "Mark all read".</td></tr>
+        <tr><td class="spec-rule">Privacy</td><td class="spec-detail">Notification content NEVER reveals specific wrong answers, accuracy %, or anything that could embarrass child.</td></tr>
+        <tr><td class="spec-rule">Dismiss</td><td class="spec-detail">× button on each item. Dismissed items removed from list permanently (not just marked read).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

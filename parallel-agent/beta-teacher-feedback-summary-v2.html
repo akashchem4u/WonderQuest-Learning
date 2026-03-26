@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beta Teacher Feedback Summary — WonderQuest v2</title>
+<style>
+/* ── Engineering hint ── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;padding:12px 16px;border-radius:8px;margin-bottom:24px;font-family:monospace;font-size:13px;line-height:1.6;max-width:1100px}
+
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;color:#f0f6ff;min-height:100vh;padding:24px}
+
+/* ── Tab chrome ── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#161b22;color:#8b949e;border:1px solid rgba(255,255,255,.07);transition:all .18s}
+.tab-btn:hover{color:#f0f6ff;border-color:rgba(255,255,255,.15)}
+.tab-btn.active{background:#38bdf8;color:#0d1117;border-color:transparent}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+
+/* ── Shell wrapper ── */
+.shell{background:#161b22;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff;display:flex;align-items:center;gap:10px}
+.sh-badge-amber{font-size:10px;font-weight:700;background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:2px 9px;letter-spacing:.04em;text-transform:uppercase}
+.sh-badge-sky{font-size:10px;font-weight:700;background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:2px 9px;letter-spacing:.04em;text-transform:uppercase}
+.sh-badge-owner{font-size:10px;font-weight:700;background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3);border-radius:10px;padding:2px 9px;letter-spacing:.04em;text-transform:uppercase}
+.sh-right{display:flex;align-items:center;gap:10px}
+.sh-meta{font-size:11px;color:rgba(255,255,255,.3)}
+
+/* ── Header section ── */
+.hdr-section{padding:24px 24px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.hdr-title{font-size:22px;font-weight:900;color:#f0f6ff;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hdr-sub{font-size:13px;color:#8b949e;line-height:1.5}
+
+/* ── Section label ── */
+.sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:14px}
+
+/* ── Pilot stats row ── */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.stat-cell{background:#010409;padding:20px 18px 18px}
+.stat-icon{font-size:18px;margin-bottom:8px}
+.stat-val{font-size:30px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:4px}
+.stat-val.amber{color:#f59e0b}
+.stat-val.sky{color:#38bdf8}
+.stat-lbl{font-size:11px;font-weight:600;color:#8b949e}
+.stat-sub{font-size:11px;color:#50e890;font-weight:700;margin-top:4px}
+
+/* ── Themes ── */
+.themes-section{padding:24px;border-bottom:1px solid rgba(255,255,255,.06)}
+.theme-list{display:flex;flex-direction:column;gap:10px}
+.theme-item{background:#0d1117;border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;border:1px solid rgba(255,255,255,.04)}
+.theme-num{width:24px;height:24px;border-radius:50%;background:rgba(56,189,248,.15);color:#38bdf8;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.theme-body{flex:1}
+.theme-text{font-size:13px;color:#f0f6ff;font-weight:600;margin-bottom:6px;line-height:1.4}
+.theme-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px}
+.tag-pos{background:rgba(80,232,144,.12);color:#50e890}
+.tag-req{background:rgba(56,189,248,.12);color:#38bdf8}
+.tag-gap{background:rgba(248,81,73,.12);color:#f85149}
+.tag-roadmap{background:rgba(245,158,11,.12);color:#f59e0b}
+.tag-escalated{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.25)}
+
+/* ── Engagement table ── */
+.table-section{padding:24px;border-bottom:1px solid rgba(255,255,255,.06)}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid rgba(255,255,255,.07)}
+th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);padding:8px 12px;text-align:left}
+td{font-size:13px;color:#f0f6ff;padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.04)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-muted{color:#8b949e}
+.eng-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px}
+.eng-high{background:rgba(80,232,144,.12);color:#50e890}
+.eng-med{background:rgba(245,158,11,.12);color:#f59e0b}
+.eng-low{background:rgba(248,81,73,.12);color:#f85149}
+.flag-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(248,81,73,.1);color:#f85149;border:1px solid rgba(248,81,73,.2);margin-left:6px}
+
+/* ── School D deep dive ── */
+.deepdive-hdr{padding:24px;border-bottom:1px solid rgba(255,255,255,.06)}
+.dd-alert{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px}
+.dd-alert-icon{font-size:18px;flex-shrink:0}
+.dd-alert-body{flex:1}
+.dd-alert-title{font-size:13px;font-weight:800;color:#f85149;margin-bottom:4px}
+.dd-alert-text{font-size:12px;color:#8b949e;line-height:1.5}
+.dd-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.dd-stat{background:#0d1117;border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,.05)}
+.dd-stat-val{font-size:26px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:4px}
+.dd-stat-val.red{color:#f85149}
+.dd-stat-lbl{font-size:11px;font-weight:600;color:#8b949e}
+.dd-stat-note{font-size:11px;color:#f59e0b;margin-top:4px}
+
+/* ── Reasons ── */
+.reasons-section{padding:0 24px 24px}
+.reason-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.reason-item{background:#0d1117;border-radius:8px;padding:11px 14px;border-left:3px solid rgba(245,158,11,.4);font-size:13px;color:#8b949e;line-height:1.5}
+.reason-item::before{content:"Observation: ";color:#f59e0b;font-weight:700}
+
+/* ── Actions ── */
+.actions-section{padding:0 24px 24px}
+.actions-list{display:flex;flex-direction:column;gap:8px}
+.action-btn{display:flex;align-items:center;gap:10px;background:#161b22;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 16px;cursor:pointer;transition:all .18s;width:100%;text-align:left}
+.action-btn:hover{border-color:rgba(56,189,248,.4);background:#1c2433}
+.action-icon{font-size:16px;flex-shrink:0}
+.action-text{flex:1}
+.action-title{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.action-sub{font-size:11px;color:#8b949e}
+.action-arrow{font-size:13px;color:#8b949e}
+
+/* ── Note composer ── */
+.composer{display:none;background:#0d1117;border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:16px;margin-top:8px}
+.composer.open{display:block}
+.composer textarea{width:100%;background:#161b22;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;color:#f0f6ff;font-family:system-ui;font-size:13px;resize:vertical;min-height:80px;outline:none}
+.composer textarea:focus{border-color:rgba(56,189,248,.4)}
+.composer-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.btn-cancel{background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 16px;color:#8b949e;font-size:12px;font-weight:600;cursor:pointer;font-family:system-ui}
+.btn-cancel:hover{color:#f0f6ff;border-color:rgba(255,255,255,.2)}
+.btn-send{background:#38bdf8;border:none;border-radius:8px;padding:6px 16px;color:#0d1117;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+.btn-send:hover{background:#7dd3fc}
+
+/* ── Spec tab ── */
+.spec-section{padding:24px}
+.spec-block{margin-bottom:24px}
+.spec-block:last-child{margin-bottom:0}
+.spec-heading{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#38bdf8;margin-bottom:10px}
+.spec-list{display:flex;flex-direction:column;gap:7px}
+.spec-item{background:#0d1117;border-radius:8px;padding:11px 14px;font-size:13px;color:#8b949e;line-height:1.5;border:1px solid rgba(255,255,255,.04)}
+.spec-item strong{color:#f0f6ff}
+.spec-code{background:#161b22;border-radius:8px;padding:11px 14px;font-size:12px;font-family:monospace;color:#50e890;border:1px solid rgba(80,232,144,.1);line-height:1.6;overflow-x:auto;white-space:pre}
+.spec-note{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(245,158,11,.1);color:#f59e0b;margin-top:8px}
+
+/* ── Divider ── */
+.divider{height:1px;background:rgba(255,255,255,.06)}
+</style>
+</head>
+<body>
+
+<!-- Engineering hint -->
+<div class="eng-hint">ITEM 256 &middot; beta-teacher-feedback-summary-v2.html &middot; WonderQuest parallel-agent build</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('t1')">Teacher Beta Summary</button>
+  <button class="tab-btn" onclick="showTab('t2')">School D Deep Dive</button>
+  <button class="tab-btn" onclick="showTab('t3')">Spec</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — Teacher Beta Summary
+══════════════════════════════════════════ -->
+<div id="t1" class="screen active">
+  <div class="shell">
+
+    <!-- Shell header -->
+    <div class="shell-hdr">
+      <div class="sh-title">
+        <span>Teacher Pilot Feedback — Week 3</span>
+        <span class="sh-badge-amber">BETA</span>
+        <span class="sh-badge-owner">OWNER ONLY</span>
+      </div>
+      <div class="sh-right">
+        <span class="sh-meta">4 schools &middot; 28 teachers &middot; 312 students in pilot</span>
+      </div>
+    </div>
+
+    <!-- Section 1: Pilot stats -->
+    <div class="hdr-section">
+      <div class="sec-label">Pilot Overview — Week 3</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-icon">🏫</div>
+        <div class="stat-val sky">4</div>
+        <div class="stat-lbl">Schools active</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-icon">👩‍🏫</div>
+        <div class="stat-val sky">28</div>
+        <div class="stat-lbl">Teachers (6–7 per school)</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-icon">🎒</div>
+        <div class="stat-val">312</div>
+        <div class="stat-lbl">Students in pilot</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-icon">💬</div>
+        <div class="stat-val amber">116</div>
+        <div class="stat-lbl">Teacher feedback items</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-icon">📊</div>
+        <div class="stat-val sky">+61</div>
+        <div class="stat-lbl">Teacher NPS proxy</div>
+        <div class="stat-sub">🟢 Strong</div>
+      </div>
+    </div>
+
+    <!-- Section 2: Teacher-specific themes -->
+    <div class="themes-section">
+      <div class="sec-label">Teacher-Specific Themes</div>
+      <div class="theme-list">
+
+        <div class="theme-item">
+          <div class="theme-num">1</div>
+          <div class="theme-body">
+            <div class="theme-text">Classroom mode highly rated — teachers love pause-all feature</div>
+            <div class="theme-tags">
+              <span class="tag tag-pos">Positive</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="theme-item">
+          <div class="theme-num">2</div>
+          <div class="theme-body">
+            <div class="theme-text">Skill mastery board needs more detail at skill level</div>
+            <div class="theme-tags">
+              <span class="tag tag-req">Feature Request</span>
+              <span class="tag tag-roadmap">In Roadmap</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="theme-item">
+          <div class="theme-num">3</div>
+          <div class="theme-body">
+            <div class="theme-text">Want to assign specific skills to students</div>
+            <div class="theme-tags">
+              <span class="tag tag-req">Feature Request</span>
+              <span class="tag tag-roadmap">v2.7 Roadmap</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="theme-item">
+          <div class="theme-num">4</div>
+          <div class="theme-body">
+            <div class="theme-text">Questions sometimes too easy for P2/P3 students</div>
+            <div class="theme-tags">
+              <span class="tag tag-gap">Content Gap</span>
+              <span class="tag tag-escalated">Escalated ↗ Content Team</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="theme-item">
+          <div class="theme-num">5</div>
+          <div class="theme-body">
+            <div class="theme-text">Would use daily if more P3 content available</div>
+            <div class="theme-tags">
+              <span class="tag tag-gap">Content Gap</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section 3: Per-school engagement table -->
+    <div class="table-section">
+      <div class="sec-label">Per-School Engagement — Week 3</div>
+      <table>
+        <thead>
+          <tr>
+            <th>School</th>
+            <th>Teachers</th>
+            <th>Sessions</th>
+            <th>Avg sessions / student</th>
+            <th>Engagement</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>School A</strong></td>
+            <td class="td-muted">7</td>
+            <td>284</td>
+            <td>4.2</td>
+            <td><span class="eng-chip eng-high">High</span></td>
+            <td class="td-muted">—</td>
+          </tr>
+          <tr>
+            <td><strong>School B</strong></td>
+            <td class="td-muted">8</td>
+            <td>198</td>
+            <td>3.1</td>
+            <td><span class="eng-chip eng-med">Medium</span></td>
+            <td class="td-muted">—</td>
+          </tr>
+          <tr>
+            <td><strong>School C</strong></td>
+            <td class="td-muted">6</td>
+            <td>156</td>
+            <td>2.8</td>
+            <td><span class="eng-chip eng-med">Medium</span></td>
+            <td class="td-muted">—</td>
+          </tr>
+          <tr>
+            <td><strong>School D</strong></td>
+            <td class="td-muted">7</td>
+            <td>89</td>
+            <td>1.4</td>
+            <td><span class="eng-chip eng-low">Low</span><span class="flag-chip">⚠ Check-in needed</span></td>
+            <td class="td-muted" style="color:#f59e0b;font-size:12px;">See deep dive →</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — School D Deep Dive
+══════════════════════════════════════════ -->
+<div id="t2" class="screen">
+  <div class="shell">
+
+    <div class="shell-hdr">
+      <div class="sh-title">
+        <span>School D — Deep Dive</span>
+        <span class="sh-badge-sky">LOW ENGAGEMENT</span>
+      </div>
+      <div class="sh-right">
+        <span class="sh-meta">Week 3 pilot review</span>
+      </div>
+    </div>
+
+    <div class="deepdive-hdr">
+
+      <div class="dd-alert">
+        <div class="dd-alert-icon">⚠️</div>
+        <div class="dd-alert-body">
+          <div class="dd-alert-title">Engagement below target threshold</div>
+          <div class="dd-alert-text">School D's avg sessions/student (1.4) is significantly below the 3.2 pilot target. Last submitted feedback was Week 1 only — no subsequent responses received.</div>
+        </div>
+      </div>
+
+      <div class="dd-stats-row">
+        <div class="dd-stat">
+          <div class="dd-stat-val">7</div>
+          <div class="dd-stat-lbl">Teachers enrolled</div>
+          <div class="dd-stat-note">4/7 completed setup</div>
+        </div>
+        <div class="dd-stat">
+          <div class="dd-stat-val">63</div>
+          <div class="dd-stat-lbl">Students enrolled</div>
+        </div>
+        <div class="dd-stat">
+          <div class="dd-stat-val red">1.4</div>
+          <div class="dd-stat-lbl">Avg sessions / student</div>
+          <div class="dd-stat-note">Target: 3.2 &nbsp;·&nbsp; Gap: −1.8</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Possible reasons -->
+    <div class="reasons-section">
+      <div class="sec-label" style="margin-bottom:12px">Possible Reasons (Pilot Observation Notes)</div>
+      <div class="reason-list">
+        <div class="reason-item">Teacher reported technical issues with school network firewall</div>
+        <div class="reason-item">Onboarding incomplete — only 4/7 teachers completed setup</div>
+      </div>
+    </div>
+
+    <!-- Recommended actions -->
+    <div class="actions-section">
+      <div class="sec-label" style="margin-bottom:12px">Recommended Actions</div>
+      <div class="actions-list">
+
+        <!-- Action 1: Note composer -->
+        <div>
+          <button class="action-btn" onclick="toggleComposer()">
+            <span class="action-icon">✉️</span>
+            <div class="action-text">
+              <div class="action-title">Send check-in message to School D lead</div>
+              <div class="action-sub">Compose internal note or message for pilot coordinator</div>
+            </div>
+            <span class="action-arrow" id="composer-arrow">↓</span>
+          </button>
+          <div class="composer" id="note-composer">
+            <div style="font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Check-in message — School D</div>
+            <textarea placeholder="Hi — following up on Week 3 pilot status for School D. We noticed engagement has been lower than expected. Are there any blockers we can help resolve? Happy to jump on a quick call..."></textarea>
+            <div class="composer-footer">
+              <button class="btn-cancel" onclick="toggleComposer()">Cancel</button>
+              <button class="btn-send">Send Message ↗</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action 2: Schedule support call -->
+        <button class="action-btn" onclick="window.location.href='mailto:schoold-lead@example.com?subject=WonderQuest%20Pilot%20Support%20Call&body=Hi%2C%20we%27d%20like%20to%20schedule%20a%20support%20call%20to%20help%20with%20onboarding%20and%20technical%20issues.'">
+          <span class="action-icon">📞</span>
+          <div class="action-text">
+            <div class="action-title">Schedule support call</div>
+            <div class="action-sub">Opens email to School D pilot lead (external action)</div>
+          </div>
+          <span class="action-arrow">↗</span>
+        </button>
+
+        <!-- Action 3: Device checklist -->
+        <button class="action-btn" onclick="alert('Device checklist for School D — opens device/firewall checklist view.')">
+          <span class="action-icon">📋</span>
+          <div class="action-text">
+            <div class="action-title">Review their device checklist</div>
+            <div class="action-sub">Check firewall, device compatibility, and onboarding completion status</div>
+          </div>
+          <span class="action-arrow">→</span>
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — Spec
+══════════════════════════════════════════ -->
+<div id="t3" class="screen">
+  <div class="shell">
+
+    <div class="shell-hdr">
+      <div class="sh-title">
+        <span>Spec — beta-teacher-feedback-summary-v2</span>
+        <span class="sh-badge-sky">ITEM 256</span>
+      </div>
+      <div class="sh-right">
+        <span class="sh-meta">Engineering &amp; product reference</span>
+      </div>
+    </div>
+
+    <div class="spec-section">
+
+      <div class="spec-block">
+        <div class="spec-heading">Privacy</div>
+        <div class="spec-list">
+          <div class="spec-item">School names used in teacher summary (B2B contract). Individual teacher names are <strong>NOT shown</strong> — school name only.</div>
+          <div class="spec-item">Student counts are <strong>aggregate only</strong> — no individual student IDs are displayed or stored in this view.</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-heading">Teacher NPS Methodology</div>
+        <div class="spec-list">
+          <div class="spec-item">Same methodology as family NPS. Teacher-specific wording: <strong>"Would you recommend WonderQuest to a colleague?"</strong></div>
+          <div class="spec-item">NPS proxy score = (% Promoters) − (% Detractors). Week 3 result: <strong>+61</strong> (Strong).</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-heading">Per-School Engagement Thresholds</div>
+        <div class="spec-list">
+          <div class="spec-item"><code style="color:#f59e0b">avg_sessions_per_student</code> = total sessions ÷ enrolled students for the school.</div>
+          <div class="spec-item"><strong style="color:#f85149">Low</strong> &lt; 2.0 &nbsp;&nbsp;|&nbsp;&nbsp; <strong style="color:#f59e0b">Medium</strong> 2.0–3.5 &nbsp;&nbsp;|&nbsp;&nbsp; <strong style="color:#50e890">High</strong> &gt; 3.5</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-heading">Escalation Flow</div>
+        <div class="spec-list">
+          <div class="spec-item">Teacher theme → content team escalation creates a <strong>review_queue</strong> entry with <code style="color:#50e890">source = 'beta_teacher_feedback'</code>.</div>
+        </div>
+      </div>
+
+      <div class="spec-block">
+        <div class="spec-heading">Database Schema</div>
+        <div class="spec-code">beta_teacher_summaries(
+  week              INT,
+  school_name       TEXT,        -- school name, NOT individual teacher name
+  teacher_count     INT,
+  student_count     INT,
+  session_count     INT,
+  avg_sessions      NUMERIC,
+  nps_score         INT,
+  themes            JSONB
+)</div>
+        <div class="spec-note">Hidden after GA: WHERE beta_phase_active = true</div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showTab(t) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function toggleComposer() {
+  const c = document.getElementById('note-composer');
+  const a = document.getElementById('composer-arrow');
+  const isOpen = c.classList.contains('open');
+  c.classList.toggle('open');
+  a.textContent = isOpen ? '↓' : '↑';
+}
+</script>
+</body>
+</html>

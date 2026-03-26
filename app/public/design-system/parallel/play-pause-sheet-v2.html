@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-pause-sheet-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-pause-sheet-v2.html                ║
+     ║                                                              ║
+     ║  Bottom sheet shown when child or parent pauses the session. ║
+     ║  Triggered by: X button in topbar, back gesture, parent tap. ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Child Pause    : "Take a break?" options            ║
+     ║  Tab 2 — Parent Pause   : additional parent controls visible ║
+     ║  Tab 3 — Quit Confirm   : "Are you sure?" before exiting     ║
+     ║  Tab 4 — Spec           : trigger, session state, star-safe  ║
+     ║                                                              ║
+     ║  CRITICAL RULES                                              ║
+     ║  • Progress is auto-saved on pause — never lost              ║
+     ║  • Stars earned so far are SAFE even if session abandoned    ║
+     ║  • Never say "Give up" or "Abandon" — say "Leave" or "Exit"  ║
+     ║  • Parent access button visible in child pause sheet         ║
+     ║  • Sheet slides up from bottom; scrim dims content above     ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+
+  /* Content behind (play screen, dimmed) */
+  .play-behind {
+    position: absolute; inset: 0;
+    padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 14px;
+    filter: brightness(0.25) blur(2px);
+  }
+  .pb-topbar { display: flex; align-items: center; justify-content: space-between; }
+  .pb-segs { display: flex; gap: 4px; flex: 1; }
+  .pb-seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .pb-seg.filled { background: #9b72ff; }
+  .pb-star { background: #1a1440; border-radius: 20px; padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px; }
+  .pb-hero { background: #1a1440; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .pb-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  .pb-choice { background: #1a1440; border-radius: 14px; height: 76px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; }
+
+  /* Scrim */
+  .scrim {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(8,5,20,0.6); z-index: 5;
+  }
+
+  /* Bottom sheet */
+  .pause-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+    border-radius: 24px 24px 0 0;
+    background: linear-gradient(180deg, #1a1040 0%, #100b2e 100%);
+    border-top: 2px solid #9b72ff44;
+    box-shadow: 0 -8px 32px #00000066;
+  }
+  .pause-sheet::before {
+    content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); margin: 10px auto 0;
+  }
+  .ps-body { padding: 14px 20px 32px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Session progress saved chip */
+  .progress-saved {
+    display: flex; align-items: center; gap: 8px;
+    background: #1a2a15; border: 1.5px solid #50e89044; border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .ps-icon { font-size: 1rem; flex-shrink: 0; }
+  .ps-text { font-size: 0.76rem; font-weight: 700; color: #90e890; line-height: 1.3; }
+
+  /* Pause title */
+  .pause-title { font-size: 1.1rem; font-weight: 900; color: #fff; }
+  .pause-sub { font-size: 0.82rem; font-weight: 700; color: #9080c0; }
+
+  /* Action buttons */
+  .pause-actions { display: flex; flex-direction: column; gap: 8px; }
+  .pa-btn {
+    height: 52px; border-radius: 14px; border: none;
+    font-size: 0.92rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pa-btn.primary { background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff; }
+  .pa-btn.secondary { background: #1e1840; border: 1.5px solid #2a2060; color: #c9a8ff; }
+  .pa-btn.danger { background: #1e0808; border: 1.5px solid #602020; color: #f09090; }
+  .pa-btn.parent { background: #1a1440; border: 1.5px solid #3a3060; color: #9080c0; font-size: 0.82rem; }
+
+  /* Divider */
+  .divider { height: 1px; background: #1e1850; margin: 2px 0; }
+
+  /* Quit confirm card */
+  .quit-confirm {
+    background: #1e0808; border: 2px solid #602020; border-radius: 14px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .qc-title { font-size: 0.96rem; font-weight: 900; color: #f09090; }
+  .qc-sub { font-size: 0.8rem; font-weight: 700; color: #c09090; line-height: 1.4; }
+  .qc-actions { display: flex; gap: 8px; }
+  .btn-quit { flex: 1; height: 46px; border-radius: 12px; background: #602020; border: none; color: #fff; font-size: 0.88rem; font-weight: 900; cursor: pointer; }
+  .btn-stay { flex: 1; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #9b72ff, #7248e8); border: none; color: #fff; font-size: 0.88rem; font-weight: 900; cursor: pointer; }
+
+  /* Parent controls extra section */
+  .parent-section {
+    background: #0d0a20; border: 1.5px solid #2a2060; border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .parent-section-label { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #6050a0; }
+  .parent-btn {
+    height: 44px; border-radius: 10px; border: none; background: #1a1440; border: 1.5px solid #2a2060;
+    color: #9080c0; font-size: 0.82rem; font-weight: 700; cursor: pointer; text-align: left; padding: 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-pause-sheet-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Child Pause</button>
+  <button class="tab-btn" onclick="showTab('t2')">Parent Pause</button>
+  <button class="tab-btn" onclick="showTab('t3')">Quit Confirm</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Child Pause ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Child Pause Sheet — "Take a break?"</h4>
+    Shows when child taps X / back. Progress saved chip reassures.
+    3 options: Resume (primary) · Quit Session (danger) · Parent Access (ghost small).
+    Stars-so-far shown in progress saved chip. Sheet ~40% of screen.
+  </div>
+  <div class="phone">
+    <!-- Dimmed play screen -->
+    <div class="play-behind">
+      <div class="pb-topbar">
+        <div class="pb-segs">
+          <div class="pb-seg filled"></div><div class="pb-seg filled"></div>
+          <div class="pb-seg"></div><div class="pb-seg"></div><div class="pb-seg"></div>
+        </div>
+        <div class="pb-star">⭐ 4</div>
+      </div>
+      <div class="pb-hero"><div style="font-size:2.5rem">🐝</div><div style="font-weight:900;color:#b89eff;">What letter starts "bee"?</div></div>
+      <div class="pb-choices">
+        <div class="pb-choice">B</div><div class="pb-choice">S</div>
+        <div class="pb-choice">D</div><div class="pb-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+
+    <!-- Pause Sheet -->
+    <div class="pause-sheet">
+      <div class="ps-body">
+        <div class="progress-saved">
+          <div class="ps-icon">🛡</div>
+          <div class="ps-text">Progress saved! You've earned ⭐ 4 stars so far — they're safe!</div>
+        </div>
+        <div class="pause-title">Take a break?</div>
+        <div class="pause-sub">Your progress is saved. You can come back any time!</div>
+        <div class="pause-actions">
+          <button class="pa-btn primary">▶ Resume session</button>
+          <button class="pa-btn danger">← Leave this session</button>
+          <div class="divider"></div>
+          <button class="pa-btn parent">🔒 Parent access</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Parent Pause ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Parent Pause Sheet — Extra Controls Shown</h4>
+    Triggered when parent unlocks the pause sheet (via passcode or biometric).
+    Additional parent-only section reveals below: End session, Adjust daily limit, Settings.
+    Child actions still visible above. Parent section clearly separated.
+  </div>
+  <div class="phone">
+    <div class="play-behind">
+      <div class="pb-topbar">
+        <div class="pb-segs">
+          <div class="pb-seg filled"></div><div class="pb-seg filled"></div>
+          <div class="pb-seg"></div><div class="pb-seg"></div><div class="pb-seg"></div>
+        </div>
+        <div class="pb-star">⭐ 4</div>
+      </div>
+      <div class="pb-hero"><div style="font-size:2.5rem">🐝</div></div>
+      <div class="pb-choices">
+        <div class="pb-choice">B</div><div class="pb-choice">S</div>
+        <div class="pb-choice">D</div><div class="pb-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="pause-sheet">
+      <div class="ps-body">
+        <div class="progress-saved">
+          <div class="ps-icon">🛡</div>
+          <div class="ps-text">⭐ 4 stars earned — auto-saved!</div>
+        </div>
+        <div class="pause-actions">
+          <button class="pa-btn primary">▶ Resume session</button>
+          <button class="pa-btn danger">← Leave session</button>
+        </div>
+        <div class="divider"></div>
+
+        <!-- Parent section -->
+        <div class="parent-section">
+          <div class="parent-section-label">🔒 Parent Controls</div>
+          <button class="parent-btn">⏹ End session now</button>
+          <button class="parent-btn">📅 Adjust today's session limit</button>
+          <button class="parent-btn">⚙️ Open parent settings</button>
+          <button class="parent-btn">👁 View progress report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Quit Confirm ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Quit Confirm — "Are you sure?"</h4>
+    Shown when child taps "Leave session." Requires a second tap to confirm.
+    Star-safe reassurance in confirm card. Two CTAs: "Leave" / "Stay and play!".
+    "Leave" is intentionally smaller/less prominent than "Stay and play!".
+    Never says "Give up" or "Abandon."
+  </div>
+  <div class="phone">
+    <div class="play-behind">
+      <div class="pb-topbar">
+        <div class="pb-segs">
+          <div class="pb-seg filled"></div><div class="pb-seg filled"></div>
+          <div class="pb-seg"></div><div class="pb-seg"></div><div class="pb-seg"></div>
+        </div>
+        <div class="pb-star">⭐ 4</div>
+      </div>
+      <div class="pb-hero"><div style="font-size:2.5rem">🐝</div></div>
+      <div class="pb-choices">
+        <div class="pb-choice">B</div><div class="pb-choice">S</div>
+        <div class="pb-choice">D</div><div class="pb-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="pause-sheet">
+      <div class="ps-body">
+        <div class="progress-saved">
+          <div class="ps-icon">🛡</div>
+          <div class="ps-text">Your ⭐ 4 stars are SAFE — you'll keep them even if you leave!</div>
+        </div>
+
+        <div class="quit-confirm">
+          <div class="qc-title">Leave this session?</div>
+          <div class="qc-sub">You're only on question 3 of 5 — but your stars are always saved!</div>
+          <div class="qc-actions">
+            <button class="btn-quit">Leave</button>
+            <button class="btn-stay">Stay and play! 🎉</button>
+          </div>
+        </div>
+
+        <button class="pa-btn secondary" style="margin-top:2px;">← Back to pause menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Trigger Sources</h4>
+      <ul>
+        <li>X button in topbar (always visible during play)</li>
+        <li>Back gesture (Android / swipe right on iOS)</li>
+        <li>Home button / app backgrounding (auto-pause)</li>
+        <li>Parent tap on overlay (via passcode flow)</li>
+        <li>On trigger: session state saved to persistent storage immediately</li>
+        <li class="do">✅ Auto-save fires BEFORE sheet opens</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star-Safe Guarantee</h4>
+      <ul>
+        <li>Stars earned before pause are ALWAYS kept</li>
+        <li>Even if app is force-quit after pause — stars already credited</li>
+        <li>Progress saved chip shows: "You've earned ⭐ N stars so far"</li>
+        <li>Quit confirm also shows star-safe message</li>
+        <li class="dont">❌ Never say stars could be lost if they leave</li>
+        <li class="dont">❌ Never guilt-trip: "Are you sure you want to give up?"</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Sheet Dimensions</h4>
+      <ul>
+        <li>Child pause: ~40% of frame height</li>
+        <li>Parent pause: ~55% (more controls)</li>
+        <li>Quit confirm: ~45% (confirm card is taller)</li>
+        <li>Scrim: <code>rgba(8,5,20,0.60)</code> + 2px blur</li>
+        <li>Sheet: <code>border-radius: 24px 24px 0 0</code></li>
+        <li>Drag handle: cosmetic only in v2</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Button Priority</h4>
+      <ul>
+        <li>"Resume" is always primary (most prominent)</li>
+        <li>"Leave" is always danger / muted styling (intentional)</li>
+        <li>"Stay and play!" in quit confirm is primary (pushes toward staying)</li>
+        <li>"Leave" in quit confirm is secondary red (smaller, left)</li>
+        <li>Parent access: ghost/small — not tempting to child</li>
+        <li class="dont">❌ Never make "Leave" the primary button</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
