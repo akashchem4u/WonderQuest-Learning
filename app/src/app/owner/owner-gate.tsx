@@ -82,7 +82,7 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
         <p>
           {configured
             ? "Use the owner code to unlock the product and ops console."
-            : "Add OWNER_ACCESS_CODE to the local or Render environment before using this route."}
+            : "This feature is not set up yet. Contact your administrator."}
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
 
       {!configured ? (
         <p className="soft-copy">
-          This route stays closed until the owner access code is configured.
+          Ops console access is not available right now.
         </p>
       ) : null}
 

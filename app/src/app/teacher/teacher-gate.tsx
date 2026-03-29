@@ -82,7 +82,7 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
         <p>
           {configured
             ? "Use the same classroom code each time to reach the teacher dashboard."
-            : "Add TEACHER_ACCESS_CODE to the local or Render environment before using this route."}
+            : "This feature is not set up yet. Contact your administrator."}
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
 
       {!configured ? (
         <p className="soft-copy">
-          This route stays closed until the teacher access code is configured.
+          Teacher access is not available right now.
         </p>
       ) : null}
 
