@@ -39,11 +39,11 @@ export default async function TeacherSkillDetailPage({
         <main className="page-shell page-shell-split">
           <section className="page-hero">
             <div>
-              <span className="eyebrow">Teacher route</span>
-              <h1>Teacher and school dashboard access.</h1>
+              <span className="eyebrow">Classroom</span>
+              <h1>Unlock dashboard access.</h1>
               <p>
-                This route is separate from the child and parent experience and is
-                limited to aggregate class-style visibility.
+                This dashboard shows class-level insights only — it is separate
+                from individual student and family views.
               </p>
             </div>
           </section>
@@ -83,11 +83,11 @@ export default async function TeacherSkillDetailPage({
             <Link className="teacher-route-backlink" href="/teacher">
               ← Back to teacher dashboard
             </Link>
-            <span className="eyebrow">Teacher route</span>
+            <span className="eyebrow">Skill drilldown</span>
             <h1>
               {detail
                 ? `${detail.skill.displayName} drilldown`
-                : "Teacher skill drilldown"}
+                : "Skill overview"}
             </h1>
             <p>
               One focused skill view with classwide support signals, recent
