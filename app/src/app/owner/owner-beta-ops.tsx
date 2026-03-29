@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShellCard, StatTile } from "@/components/ui";
 import styles from "./owner-beta-ops.module.css";
 
@@ -313,7 +314,10 @@ export function OwnerBetaOps({
           </div>
 
           {recentFeedback[0] ? (
-            <div className={styles.focusCallout}>
+            <Link
+              className={styles.focusCallout}
+              href={`/owner/triage/${recentFeedback[0].id}`}
+            >
               <span className="summary-chip">{recentFeedback[0].urgency}</span>
               <div>
                 <strong>{recentFeedback[0].summary}</strong>
@@ -322,7 +326,8 @@ export function OwnerBetaOps({
                   {recentFeedback[0].reviewStatus}
                 </p>
               </div>
-            </div>
+              <span className="owner-inline-link">Open detail →</span>
+            </Link>
           ) : null}
         </article>
       </div>

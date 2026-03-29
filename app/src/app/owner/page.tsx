@@ -547,11 +547,19 @@ export default async function OwnerPage() {
                 </>
               ) : (
                 <div className="teacher-empty-state">
-                  <strong>No owner triage item is active yet</strong>
+                  <strong>No triage items yet</strong>
                   <p>
-                    As feedback and testing volume rises, the owner queue will show
-                    the next item to route, review, and resolve.
+                    As feedback and testing volume rises, the queue will show items
+                    to route, review, and resolve.
                   </p>
+                  <div className="form-actions">
+                    <Link className="secondary-link" href="/child">
+                      Start a test session
+                    </Link>
+                    <Link className="secondary-link" href="/parent">
+                      Submit test feedback
+                    </Link>
+                  </div>
                 </div>
               )}
 
