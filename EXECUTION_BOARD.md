@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 16:14 CDT
+Updated: 2026-03-29 18:38 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,11 +45,11 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- local `main` committed head is `cd703e1` (copy sweep across home, child, owner pages); the current working tree also includes an uncommitted early-guided sequencing batch in `app/src/lib/session-service.ts` and `app/scripts/live-smoke.mjs`
-- the current repo is dirty with the active play/platform batch and board updates
+- local `main` is at `70d892e` (mobile CSS fix for play-layout + answer-card-early)
+- the current repo is clean
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
-- `npm run smoke:local` passes on the current local tree when pointed at the fresh local server on `3001`
+- `npm run smoke:local` = pass — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
 - the last known `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` pass was on an earlier deployed build; live recheck is still required after the next deploy
 
 Real shipped app surface:
@@ -443,7 +443,7 @@ Template:
 
 ## Active Risks
 
-- `cd703e1` is the current committed HEAD on `main`; the working tree now includes an uncommitted `play` / `platform` batch for early-guided sequencing, so the next process risk is keeping that batch logged and reviewed before commit.
+- `70d892e` is now the committed `main` head, but the newest `a0de407`, `219de2f`, and `70d892e` batch is not represented in `Developer Log`, so process drift has started again.
 - developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
@@ -1002,3 +1002,50 @@ Template:
   - commit this bounded `play` / `platform` batch without mixing in another copy sweep
   - keep the next batch pointed at child/play alpha behavior, not broad adult-route wording cleanup
   - rerun live Render validation after the next deploy that includes this guided-sequencing change
+
+### 2026-03-29 16:20 CDT — Synced Main Review Through 9fd3488
+
+- Reviewed:
+  - `9fd3488`
+  - current synced `main` / committed working tree
+- Findings:
+  - P0: none
+  - P1: `9fd3488` is the right kind of alpha-progress commit. It turns the earlier local approval into a committed play/platform batch that materially improves the child on-ramp for `PREK` and `K1`.
+  - P1: the batch stayed disciplined after commit. It is still bounded to `app/src/lib/session-service.ts`, `app/scripts/live-smoke.mjs`, and the control-plane board rather than drifting into more cross-route copy polish.
+  - P1: current verification remains green on the committed head:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass via `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local`
+  - P1: board discipline is improved on this batch. The commit landed with its developer-log context already present, which is materially better than the earlier copy-sweep pattern.
+  - P2: live validation is still outstanding. Local alpha quality is stronger, but Render still needs a post-deploy check before this can be treated as live-ready progress.
+- Decision:
+  - approved: current committed progress through `9fd3488`
+- Next action:
+  - keep the next batch focused on deeper child/play alpha behavior rather than another broad wording sweep
+  - rerun live Render validation after the next deploy that includes `9fd3488`
+  - keep the board current before the next commit so review stays gating rather than reactive
+
+### 2026-03-29 18:38 CDT — Synced Main Review Through 70d892e
+
+- Reviewed:
+  - `a0de407`
+  - `219de2f`
+  - `70d892e`
+  - current synced `main` / `origin/main`
+- Findings:
+  - P0: none
+  - P1: `70d892e` is the highest-value change in this batch. The mobile CSS fix addresses a real alpha gate issue by collapsing `.play-layout` to one column and reducing early-answer card height on narrow screens, which is directly aligned with the phone-width usability requirement.
+  - P1: `a0de407` is acceptable play-lane polish. The copy changes are calmer and more child-facing, and they do not widen the batch into behavior or persistence risk.
+  - P1: `219de2f` is acceptable parent-lane polish. "Lesson", "skill to strengthen", and the shorter empty-state language are clearer for real caregivers than the earlier app-internal wording.
+  - P1: current local verification is green on the exact synced head under review:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass via `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local`
+  - P1: process discipline slipped again. These commits are already on `main` / `origin/main`, but they are not yet represented in `Developer Log`, so the board is trailing the repo again.
+  - P2: I did not complete a fresh visual browser pass at `375px` in this review lane. The CSS change is small and directionally correct, but a quick manual phone-width check after the next UI batch would still be useful.
+- Decision:
+  - approved: current committed progress through `70d892e`
+- Next action:
+  - developer lane should append a `Developer Log` entry for `a0de407`, `219de2f`, and `70d892e` with exact files changed and verification
+  - keep the next batch focused on deeper child/play alpha behavior and device hardening, not another broad cross-route wording sweep
+  - rerun live Render validation after the next deploy that includes `70d892e`
