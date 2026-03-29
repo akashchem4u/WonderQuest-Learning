@@ -440,7 +440,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
               <aside className="teacher-command-rail teacher-command-left">
                 <div className="teacher-rail-card">
                   <span className="teacher-rail-label">Class summary</span>
-                  <strong>Prototype class command</strong>
+                  <strong>Class command</strong>
                   <p>
                     Keep attention on support lanes, class readiness, and next
                     practice decisions.
