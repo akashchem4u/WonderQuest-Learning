@@ -45,29 +45,29 @@ const audienceMeta = {
 
 const audienceRoutes = {
   home: [
-    { href: "/child", label: "Launch child route" },
+    { href: "/child", label: "Start learning" },
     { href: "/parent", label: "Open family hub" },
     { href: "/teacher", label: "Open classroom view" },
   ],
   kid: [
     { href: "/child", label: "Setup" },
-    { href: "/play", label: "Play loop" },
-    { href: "/parent", label: "Family support" },
+    { href: "/play", label: "Play" },
+    { href: "/parent", label: "Family hub" },
   ],
   parent: [
     { href: "/parent", label: "Family hub" },
-    { href: "/child", label: "Child route" },
+    { href: "/child", label: "Child" },
     { href: "/owner", label: "Ops view" },
   ],
   teacher: [
     { href: "/teacher", label: "Classroom board" },
-    { href: "/child", label: "Child path" },
+    { href: "/child", label: "Child" },
     { href: "/owner", label: "Ops view" },
   ],
   owner: [
     { href: "/owner", label: "Ops console" },
-    { href: "/teacher", label: "Classroom route" },
-    { href: "/parent", label: "Family route" },
+    { href: "/teacher", label: "Classroom" },
+    { href: "/parent", label: "Family hub" },
   ],
 } as const;
 
@@ -98,7 +98,7 @@ export function AppFrame({
             <p>{meta.label}</p>
           </div>
 
-          <div className="adult-sidebar-section-label">Routes</div>
+          <div className="adult-sidebar-section-label">Navigate</div>
           <nav aria-label="Primary" className="adult-sidebar-nav">
             {navItems.map((item) => {
               const isActive = currentPath === item.href;
