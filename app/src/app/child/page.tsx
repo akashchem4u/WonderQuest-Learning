@@ -484,7 +484,7 @@ export default function ChildAccessPage() {
             </div>
             {recoveryHint ? (
               <div className="child-recovery-card">
-                <strong>Gentle recovery</strong>
+                <strong>Need help?</strong>
                 <p>{recoveryHint}</p>
               </div>
             ) : null}

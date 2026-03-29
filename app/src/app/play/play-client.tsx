@@ -1454,7 +1454,9 @@ export default function PlayClient() {
               <span className="summary-chip">
                 {earlyLearnerMode
                   ? `Question ${questionNumber} of ${session.questions.length}`
-                  : `Attempt ${attempt} on current question`}
+                  : attempt > 1
+                    ? `Try ${attempt}`
+                    : `Question ${questionNumber} of ${session.questions.length}`}
               </span>
               <span className="summary-chip">
                 {earlyLearnerMode ? "Listen, look, tap" : `${session.questions.length} total prompts`}
@@ -1971,13 +1973,13 @@ export default function PlayClient() {
                 onVisualOnly={() => setAssistMode("visual")}
               />
               {answerState?.milestones.leveledUp ? (
-                <p className="status-banner status-success">Level up unlocked.</p>
+                <p className="status-banner status-success">Level up!</p>
               ) : null}
               {answerState?.milestones.badgeEarned ? (
-                <p className="status-banner status-success">New badge earned.</p>
+                <p className="status-banner status-success">New badge!</p>
               ) : null}
               {answerState?.milestones.trophyEarned ? (
-                <p className="status-banner status-success">New trophy earned.</p>
+                <p className="status-banner status-success">New trophy!</p>
               ) : null}
               <div className="form-actions">
                 <Link className="secondary-link" href="/child">
