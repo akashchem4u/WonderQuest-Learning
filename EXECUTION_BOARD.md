@@ -452,6 +452,34 @@ Template:
 
 ## Developer Log
 
+### 2026-03-29 CDT — platform (PLAT-02 / PLAT-03 / PLAT-04)
+
+- Files changed:
+  - `app/src/lib/parent-access.ts` (new) — throttle, lockout, session token, session validation for guardian access; mirrors child-access.ts pattern exactly
+  - `app/src/lib/parent-service.ts` (updated) — accessParent now accepts context (ipAddress, userAgent); records attempt success/failure internally
+  - `app/src/app/api/parent/access/route.ts` (updated) — issues httpOnly parent session cookie; returns 429 on throttle
+  - `app/src/lib/teacher-access.ts` (updated) — added assertTeacherAccessAllowed + recordTeacherAccessAttempt (IP-only lockout)
+  - `app/src/lib/owner-access.ts` (updated) — added assertOwnerAccessAllowed + recordOwnerAccessAttempt (IP-only lockout)
+  - `app/src/app/api/teacher/access/route.ts` (updated) — wired IP throttle, returns 429
+  - `app/src/app/api/owner/access/route.ts` (updated) — wired IP throttle, returns 429
+  - `app/scripts/live-smoke.mjs` (updated) — added assert() helper; verifies child cookie, parent session cookie, linked-child persistence, parent return visit, and explainer presence on wrong answer
+  - `supabase/migrations/20260329_000004_parent_access_sessions.sql` (new) — extends access_sessions for guardian sessions; broadens access_attempts access_type to child/parent/teacher/owner
+- Built:
+  - PLAT-02: parent access now durable with throttle + session cookie, closing the durability gap flagged in Active Risks
+  - PLAT-03: teacher and owner access code endpoints now IP-throttled; lockout window matches child/parent (env-configurable)
+  - PLAT-04: smoke coverage now asserts cookie presence, linked-child count, parent return visit PIN round-trip, and explainer behavior
+  - Committed as one atomic batch (be3d6c4), pushed to origin/main
+- Still unresolved:
+  - migration 20260329_000004 must be applied to the live Supabase instance before parent session or teacher/owner throttle works on Render
+  - shell lane not yet started
+  - route lanes not yet started
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass (all 17 routes)
+  - `npm run smoke:local` = not run (migration must be applied first)
+- Review requested:
+  - yes — confirm PLAT-02/03/04 before shell lane starts; migration 20260329_000004 must be applied to Supabase before live smoke and Render deploy will fully pass
+
 ### 2026-03-29 CDT — platform (Phase 0 + Phase 1)
 
 - Files changed:
