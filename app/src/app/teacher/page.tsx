@@ -598,8 +598,11 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         })
                       ) : (
                         <div className="teacher-empty-state">
-                          <strong>No queue items match this filter yet</strong>
-                          <p>Switch tiers or wait for more classroom activity to land.</p>
+                          <strong>Queue is clear for this filter</strong>
+                          <p>Switch tiers to see other priority levels, or run a session to generate new signal.</p>
+                          <div className="form-actions">
+                            <Link className="secondary-link" href="/child">Start a test session</Link>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -805,10 +808,9 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                     </div>
                   ) : (
                     <div className="teacher-empty-state">
-                      <strong>No skill drilldown is available yet</strong>
+                      <strong>No skill selected yet</strong>
                       <p>
-                        More learner sessions are needed before a selected-skill view
-                        can show real classroom movement.
+                        Pick a skill from the intervention queue above to see classroom movement and plan your next move.
                       </p>
                     </div>
                   )}

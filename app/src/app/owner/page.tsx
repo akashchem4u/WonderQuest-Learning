@@ -221,6 +221,8 @@ export default async function OwnerPage() {
   const blockers = [
     pendingReviewCount > 0
       ? {
+          actionHref: "/owner#owner-triage-queue",
+          actionLabel: "Open triage queue",
           detail: `${pendingReviewCount} items still need routing or a decision.`,
           severity: pendingReviewCount > 3 ? "p0" : "p1",
           title: "Feedback queue still needs owner review",
@@ -228,6 +230,8 @@ export default async function OwnerPage() {
       : null,
     degradedRoutes[0]
       ? {
+          actionHref: "/owner#owner-route-health",
+          actionLabel: "Review route health",
           detail: degradedRoutes[0].detail,
           severity: degradedRoutes.length > 1 ? "p0" : "p1",
           title: `${degradedRoutes.length} product paths need attention`,
@@ -235,6 +239,8 @@ export default async function OwnerPage() {
       : null,
     contentGaps[0]
       ? {
+          actionHref: "/owner#owner-content-health",
+          actionLabel: "Check content gaps",
           detail: `${contentGaps.length} content signals are still below target.`,
           severity: "p1",
           title: "Content density still has gaps",
@@ -242,12 +248,16 @@ export default async function OwnerPage() {
       : null,
     overview.counts.guardians === 0
       ? {
+          actionHref: "/parent",
+          actionLabel: "Set up a parent household",
           detail: "Parent-side reporting remains incomplete until households are linked.",
           severity: "p2",
           title: "No live parent households yet",
         }
       : null,
   ].filter(Boolean) as {
+    actionHref: string;
+    actionLabel: string;
     detail: string;
     severity: "p0" | "p1" | "p2";
     title: string;
@@ -373,8 +383,9 @@ export default async function OwnerPage() {
                 <div className="owner-readiness-copy">
                   <strong>{blockers.length} blocking signals</strong>
                   <p>
-                    Beta target is 90+. Right now the console is optimizing for a
-                    calmer, fix-first launch.
+                    {readinessScore >= 90
+                      ? "Release gate is clear. Confirm the checklist before opening to testers."
+                      : `Score needs to reach 90 to unlock. Fix the ${blockers.length} blocking signal${blockers.length === 1 ? "" : "s"} below to move the needle.`}
                   </p>
                   <div className="owner-readiness-bar" aria-hidden="true">
                     <span
@@ -407,6 +418,7 @@ export default async function OwnerPage() {
                       <div>
                         <strong>{blocker.title}</strong>
                         <p>{blocker.detail}</p>
+                        <Link className="secondary-link" href={blocker.actionHref}>{blocker.actionLabel} →</Link>
                       </div>
                     </article>
                   ))}
