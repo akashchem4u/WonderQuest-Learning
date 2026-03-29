@@ -65,7 +65,7 @@ export default async function HomePage() {
           <div className="landing-topbar-actions">
             <DisplayModeToggle />
             <Link className="landing-topbar-cta" href="/child">
-              Launch child route
+              Start learning
             </Link>
           </div>
         </header>
@@ -144,7 +144,7 @@ export default async function HomePage() {
             </article>
             <article className="landing-metric-card">
               <span>Question bank</span>
-              <strong>{launchStatus.templateCount >= 8 ? "100+" : "Growing"}</strong>
+              <strong>{launchStatus.templateCount >= 8 ? "100+" : "Building"}</strong>
               <p>Real practice questions across multiple age levels and subjects.</p>
             </article>
             <article className="landing-metric-card">
