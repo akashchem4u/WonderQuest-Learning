@@ -21,7 +21,7 @@ function buildReadinessItems(props: ChildBetaPanelProps) {
   return [
     {
       done: props.username.trim().length > 0,
-      detail: props.accessMode === "returning" ? "Same username is ready for the comeback path." : "Quest name is set for the first run.",
+      detail: props.accessMode === "returning" ? "Same username is ready to log back in." : "Quest name is set for the first run.",
       label: "Username ready",
     },
     {
@@ -107,10 +107,10 @@ export function ChildBetaPanel(props: ChildBetaPanelProps) {
         <div className={styles.sideStack}>
           <article className={styles.sideCard}>
             <div className={styles.sectionLabel}>Voice and audio</div>
-            <strong>Audio gets a clean fallback.</strong>
+            <strong>Audio works with and without voice.</strong>
             <p>
-              If the browser can speak, the play flow will use voice cues. If it cannot,
-              the next screen still works with visual prompts and calm retries.
+              If the device can speak, your child will hear voice prompts. If not,
+              the next screen shows instructions with visuals instead.
             </p>
             <div className={styles.pillRow}>
               <span className={styles.pill}>Hear it again</span>
@@ -123,8 +123,8 @@ export function ChildBetaPanel(props: ChildBetaPanelProps) {
             <div className={styles.sectionLabel}>Accessibility</div>
             <strong>Big taps, steady contrast, less surprise.</strong>
             <p>
-              The child route keeps the launch flow readable on small screens and leaves
-              the heavy lifting to the play screen.
+              Setup stays simple and readable on small screens.
+              The full learning experience starts once your child taps launch.
             </p>
             <div className={styles.featureGrid}>
               <div>
@@ -162,8 +162,8 @@ export function ChildBetaPanel(props: ChildBetaPanelProps) {
               </span>
             </div>
             <p className={styles.handoffNote}>
-              Child-safe rule: if the device is handed over mid-flow, the next screen still
-              keeps stars safe and continues from the chosen setup for {props.displayName || "the child"}.
+              If you hand over the device partway through setup,{" "}
+              {props.displayName || "the child"} can pick up right where you left off.
             </p>
           </article>
         </div>

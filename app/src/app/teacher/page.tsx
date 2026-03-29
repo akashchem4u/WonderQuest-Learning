@@ -140,11 +140,11 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
         <main className="page-shell page-shell-split">
           <section className="page-hero">
             <div>
-              <span className="eyebrow">Teacher route</span>
-              <h1>Teacher and school dashboard access.</h1>
+              <span className="eyebrow">Teacher dashboard</span>
+              <h1>Access your class dashboard.</h1>
               <p>
-                This route is separate from the child and parent experience and is
-                limited to aggregate class-style visibility.
+                View class-wide progress and skill signals designed for classroom
+                planning — not student comparison.
               </p>
             </div>
           </section>
@@ -295,7 +295,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
           title: "Run the next classroom move",
         },
         {
-          detail: `Log what changed after the next ${formatSessionModeLabel(selectedSkillRecentActivity[0]?.sessionMode ?? "guided-practice").toLowerCase()} block so the queue shows whether support is working.`,
+          detail: `Note how students respond to the next ${formatSessionModeLabel(selectedSkillRecentActivity[0]?.sessionMode ?? "guided-practice").toLowerCase()} session so you can adjust your approach.`,
           icon: "📝",
           kicker: "After class",
           title: "Capture an intervention note",
@@ -388,11 +388,10 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
             <section className="teacher-command-hero">
               <div className="teacher-command-copy shell-card shell-card-spotlight">
                 <span className="shell-eyebrow">Teacher command</span>
-                <h1>Classwide visibility, support queues, and calmer next-step signals.</h1>
+                <h1>Class progress, intervention queue, and guided next steps.</h1>
                 <p>
-                  This route is built for classroom action, not peer comparison.
-                  Review support lanes, watch class momentum, and move into a skill
-                  drilldown without leaving the route.
+                  Designed for classroom action. Review skills needing attention,
+                  monitor class progress, and dive into details without leaving this view.
                 </p>
                 <div className="summary-chip-row">
                   <span className="summary-chip">Aggregate only</span>
@@ -442,8 +441,8 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                   <span className="teacher-rail-label">Class summary</span>
                   <strong>Class command</strong>
                   <p>
-                    Keep attention on support lanes, class readiness, and next
-                    practice decisions.
+                    Track which skills need attention and plan your next
+                    teaching moves.
                   </p>
                   <div className="teacher-rail-metric-grid">
                     <div className="teacher-rail-metric">
@@ -547,7 +546,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         ))}
                       </div>
                       <p className="teacher-queue-hint">
-                        Filter by urgency, then keep the drilldown on this same route.
+                        Filter by priority, then select a skill to see detailed classroom data.
                       </p>
                     </div>
                     <div className="teacher-queue-list" id="teacher-support-queue">
@@ -599,7 +598,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                       ) : (
                         <div className="teacher-empty-state">
                           <strong>Queue is clear for this filter</strong>
-                          <p>Switch tiers to see other priority levels, or run a session to generate new signal.</p>
+                          <p>No skills need attention at this level. Switch to another tier or have students complete more practice sessions.</p>
                           <div className="form-actions">
                             <Link className="secondary-link" href="/child">Start a test session</Link>
                           </div>
@@ -801,7 +800,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         ) : (
                           <div className="teacher-empty-state">
                             <strong>No intervention history yet</strong>
-                            <p>The timeline will populate after more sessions touch this skill.</p>
+                            <p>The timeline will appear after students complete practice on this skill.</p>
                           </div>
                         )}
                       </div>
@@ -810,7 +809,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                     <div className="teacher-empty-state">
                       <strong>No skill selected yet</strong>
                       <p>
-                        Pick a skill from the intervention queue above to see classroom movement and plan your next move.
+                        Choose a skill from the intervention queue above to see detailed progress and recommended next steps.
                       </p>
                     </div>
                   )}
@@ -836,9 +835,9 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                           <tr key={band.code}>
                             <td>{band.displayName}</td>
                             <td>{band.studentCount}</td>
-                            <td>{band.leadSkill?.displayName ?? "Waiting for data"}</td>
+                            <td>{band.leadSkill?.displayName ?? "—"}</td>
                             <td>
-                              {band.supportSkill?.displayName ?? "No support lane yet"}
+                              {band.supportSkill?.displayName ?? "—"}
                             </td>
                           </tr>
                         ))}
@@ -861,10 +860,10 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                       </Link>
                     ) : null}
                     <Link className="secondary-link" href="/parent">
-                      Family setup path
+                      Family hub
                     </Link>
                     <Link className="secondary-link" href="/owner">
-                      Owner release view
+                      Ops console
                     </Link>
                   </div>
                 </div>
