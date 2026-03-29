@@ -923,9 +923,9 @@ export default function ParentAccessPage() {
                   <span className="parent-weekly-label">Weekly summary</span>
                   <strong>{parentPreviewWeekly.childName}</strong>
                   <p>
-                    {parentPreviewWeekly.bandLabel}. Parents should see strengths,
-                    support areas, and one clear next step before they have to
-                    think about settings.
+                    {parentPreviewWeekly.bandLabel}. Each week you'll see your
+                    child's strongest skill, the best area for practice, and
+                    ready-to-use activity ideas.
                   </p>
                   <div className="parent-weekly-stats">
                     <div>
@@ -960,7 +960,7 @@ export default function ParentAccessPage() {
                       <strong>Quiet + positive</strong>
                     </div>
                     <div>
-                      <span>Next route</span>
+                      <span>Next step</span>
                       <strong>Home practice</strong>
                     </div>
                   </div>
@@ -1045,8 +1045,8 @@ export default function ParentAccessPage() {
                 title="Set up parent access"
               >
                 <p className="soft-copy">
-                  Keep setup short. The goal is to get the parent into the family
-                  view quickly, not make them fill a long form first.
+                  Set up once and your family summary will be ready every time
+                  you come back.
                 </p>
                 <form className="parent-access-compact-form" onSubmit={handleSubmit}>
                   <div className="field-grid">
@@ -1218,7 +1218,7 @@ export default function ParentAccessPage() {
                             <small>
                               {dashboard
                                 ? `${dashboard.readinessLabel} · ${dashboard.recommendedFocus}`
-                                : "No sessions yet — start a quest to see insights"}
+                                : "No sessions yet — complete a learning session to see insights"}
                             </small>
                           </div>
                           {activeChildId === child.id ? (
@@ -1485,7 +1485,7 @@ export default function ParentAccessPage() {
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    Check back after 2–3 more sessions. Once there's enough data, you'll see one strength, one focus area, and practice ideas here.
+                    Complete a few more sessions and we'll show your child's strongest skills, areas for practice, and specific activity ideas.
                   </p>
                 )}
               </ShellCard>
