@@ -90,8 +90,8 @@ export default async function TeacherSkillDetailPage({
                 : "Skill overview"}
             </h1>
             <p>
-              One focused skill view with classwide support signals, recent
-              movement, and a clear recommended next move.
+              See how your class is doing on this skill, who needs support,
+              and what to try next.
             </p>
             {detail ? (
               <div className="summary-chip-row">
@@ -253,7 +253,7 @@ export default async function TeacherSkillDetailPage({
                     <strong>No activity yet</strong>
                     <p>
                       Students will appear here once they have attempted this skill.
-                      Assign a session or run a guided quest to generate signal.
+                      Assign a session or run a guided quest to get started.
                     </p>
                   </div>
                 )}
