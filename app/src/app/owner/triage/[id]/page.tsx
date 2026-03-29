@@ -34,11 +34,10 @@ export default async function OwnerTriageDetailPage({
         <main className="page-shell page-shell-split">
           <section className="page-hero">
             <div>
-              <span className="eyebrow">Owner route</span>
-              <h1>Owner triage detail access.</h1>
+              <span className="eyebrow">Owner console</span>
+              <h1>Owner access required.</h1>
               <p>
-                Triage detail stays behind the same owner gate as the main
-                console.
+                Triage detail is behind the same owner gate as the main console.
               </p>
             </div>
           </section>
@@ -72,7 +71,7 @@ export default async function OwnerTriageDetailPage({
     detail && overview
       ? [
           {
-            label: "Current route",
+            label: "Assigned to",
             value: detail.routingTarget,
             detail:
               detail.routingTarget === "content"
@@ -80,7 +79,7 @@ export default async function OwnerTriageDetailPage({
                 : `${overview.counts.sessions} sessions recorded`,
           },
           {
-            label: "Review state",
+            label: "Review status",
             value: detail.reviewStatus,
             detail: detail.reviewerNote
               ? detail.reviewerNote
@@ -95,7 +94,7 @@ export default async function OwnerTriageDetailPage({
         <section className="page-hero">
           <div>
             <span className="eyebrow">Owner triage</span>
-            <h1>Review one issue, route it clearly, and keep the alpha moving.</h1>
+            <h1>Review one issue, assign next steps, and keep things moving.</h1>
             <p>
               This detail view is for working a single feedback item or alert
               cluster without losing the product-health context around it.
@@ -119,7 +118,7 @@ export default async function OwnerTriageDetailPage({
                 detail={detail.impactedArea ?? "General product flow"}
               />
               <StatTile
-                label="Signal"
+                label="Confidence"
                 value={
                   detail.confidence === null ? "manual" : `${detail.confidence}%`
                 }
@@ -168,13 +167,13 @@ export default async function OwnerTriageDetailPage({
                       🧭
                     </div>
                     <div>
-                      <strong>Suggested owner move</strong>
+                      <strong>Recommended next step</strong>
                       <p>
                         {detail.routingTarget === "content"
                           ? "Review the related content pack first, then decide whether this needs a content fix or a backlog note."
                           : detail.routingTarget === "engineering"
-                            ? "Verify the affected route and decide whether this is a bug fix, regression, or alpha blocker."
-                            : "Confirm the signal, capture an owner note, and route the next action clearly."}
+                            ? "Verify the affected area and decide whether this is a bug fix, regression, or launch blocker."
+                            : "Confirm the details, capture an owner note, and assign the next action clearly."}
                       </p>
                     </div>
                   </div>
@@ -183,7 +182,7 @@ export default async function OwnerTriageDetailPage({
             </section>
 
             <section className="tracks owner-grid">
-              <ShellCard className="shell-card-emphasis" eyebrow="Route context" title="Related route health">
+              <ShellCard className="shell-card-emphasis" eyebrow="Context" title="Related platform health">
                 <div className="teacher-drilldown-metrics">
                   {routeContext.map((item) => (
                     <article className="teacher-drilldown-card" key={item.label}>
@@ -257,7 +256,7 @@ export default async function OwnerTriageDetailPage({
             Owner console
           </Link>
           <Link className="secondary-link" href="/teacher">
-            Teacher route
+            Classroom board
           </Link>
         </section>
       </main>

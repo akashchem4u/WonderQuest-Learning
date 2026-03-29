@@ -49,10 +49,10 @@ export default async function OwnerPage() {
           <section className="page-hero">
             <div>
               <span className="eyebrow">Operations</span>
-              <h1>Owner console access.</h1>
+              <h1>Access the owner console.</h1>
               <p>
-                This dashboard is separate from the child and parent experience.
-                Access requires authentication to protect operational data.
+                This dashboard is separate from the child and family experience.
+                Authentication is required to protect operational data.
               </p>
             </div>
           </section>
@@ -87,8 +87,8 @@ export default async function OwnerPage() {
     return (
       <AppFrame audience="owner" currentPath="/owner">
         <main className="page-shell owner-command-shell">
-          <ShellCard eyebrow="Owner" title="Owner data is not available yet">
-            <p>{error || "Owner view is not available yet."}</p>
+          <ShellCard eyebrow="Owner" title="Dashboard data is not available">
+            <p>{error || "Owner dashboard is not available yet."}</p>
           </ShellCard>
         </main>
       </AppFrame>
@@ -134,15 +134,15 @@ export default async function OwnerPage() {
       detail:
         overview.counts.sessions >= 3
           ? "Enough practice data exists to support class-level signals"
-          : "Teacher route still needs more session data",
+          : "Classroom view needs more session data",
       route: "/teacher",
       status: overview.counts.sessions >= 3 ? "good" : "watch",
     },
     {
-      badge: primaryFeedback ? "Triage live" : "Quiet",
+      badge: primaryFeedback ? "Active" : "Quiet",
       detail: primaryFeedback
-        ? `Latest queue item assigned to ${primaryFeedback.routingTarget}`
-        : "Owner console has no recent feedback to triage yet",
+        ? `Latest item assigned to ${primaryFeedback.routingTarget}`
+        : "No recent feedback to review yet",
       route: "/owner",
       status: primaryFeedback ? "good" : "watch",
     },
@@ -183,8 +183,8 @@ export default async function OwnerPage() {
       detail:
         degradedRoutes.length === 0
           ? "All major product paths are currently healthy."
-          : `${degradedRoutes.length} routes still need attention.`,
-      label: "Core routes healthy enough to trust",
+          : `${degradedRoutes.length} areas still need attention.`,
+      label: "Core areas healthy enough to trust",
       status:
         degradedRoutes.length === 0
           ? "ok"
@@ -196,7 +196,7 @@ export default async function OwnerPage() {
       detail:
         overview.counts.exampleItems >= 100
           ? `${overview.counts.exampleItems} questions are live.`
-          : `${overview.counts.exampleItems} questions live against the 100-question beta floor.`,
+          : `${overview.counts.exampleItems} questions live against the 100-question baseline.`,
       label: "Question bank has beta-ready density",
       status: overview.counts.exampleItems >= 100 ? "ok" : "warn",
     },
@@ -204,7 +204,7 @@ export default async function OwnerPage() {
       detail:
         overview.counts.guardians > 0
           ? `${overview.counts.guardians} parent accounts are linked.`
-          : "Parent-side visibility still has no live households.",
+          : "No family accounts linked yet.",
       label: "Parent-side signal is present",
       status: overview.counts.guardians > 0 ? "ok" : "warn",
     },
@@ -213,7 +213,7 @@ export default async function OwnerPage() {
         overview.counts.sessions >= 10
           ? `${overview.counts.sessions} sessions recorded so far.`
           : `${overview.counts.sessions} sessions recorded so far.`,
-      label: "Session volume is meaningful",
+      label: "Enough session activity",
       status: overview.counts.sessions >= 10 ? "ok" : "warn",
     },
   ];
@@ -231,10 +231,10 @@ export default async function OwnerPage() {
     degradedRoutes[0]
       ? {
           actionHref: "/owner#owner-route-health",
-          actionLabel: "Review route health",
+          actionLabel: "Review platform health",
           detail: degradedRoutes[0].detail,
           severity: degradedRoutes.length > 1 ? "p0" : "p1",
-          title: `${degradedRoutes.length} product paths need attention`,
+          title: `${degradedRoutes.length} product area${degradedRoutes.length === 1 ? "" : "s"} need attention`,
         }
       : null,
     contentGaps[0]
@@ -295,16 +295,16 @@ export default async function OwnerPage() {
       <main className="page-shell owner-command-shell">
         <section className="owner-command-hero">
           <div className="owner-command-copy">
-            <span className="shell-eyebrow">Owner ops</span>
-            <h1>Release readiness, triage pressure, and route trust in one command center.</h1>
+            <span className="shell-eyebrow">Operations</span>
+            <h1>Release readiness, feedback pressure, and platform health in one command center.</h1>
             <p>
-              This route should tell you whether beta is safe to open, what still
+              This dashboard shows whether beta is safe to open, what still
               needs attention, and where the next product decision belongs.
             </p>
             <div className="summary-chip-row">
               <span className="summary-chip">Release gate first</span>
               <span className="summary-chip">Feedback triage next</span>
-              <span className="summary-chip">Route + content health together</span>
+              <span className="summary-chip">Platform + content health together</span>
             </div>
           </div>
 
@@ -353,7 +353,7 @@ export default async function OwnerPage() {
         {topBanner ? (
           <section className={`owner-priority-banner is-${topBanner.severity}`}>
             <div>
-              <span className="owner-panel-kicker">Immediate owner signal</span>
+              <span className="owner-panel-kicker">Needs attention now</span>
               <strong>{topBanner.title}</strong>
               <p>{topBanner.detail}</p>
             </div>
@@ -381,7 +381,7 @@ export default async function OwnerPage() {
                   {readinessScore}
                 </div>
                 <div className="owner-readiness-copy">
-                  <strong>{blockers.length} blocking signals</strong>
+                  <strong>{blockers.length} open blocker{blockers.length === 1 ? "" : "s"}</strong>
                   <p>
                     {readinessScore >= 90
                       ? "Release gate is clear. Confirm the checklist before opening to testers."
@@ -430,7 +430,7 @@ export default async function OwnerPage() {
               <div className="owner-panel-header">
                 <div>
                   <span className="owner-panel-kicker">Route health</span>
-                  <h2>Compact path trust</h2>
+                  <h2>Platform health summary</h2>
                 </div>
                 <span className="owner-muted-meta">{routeHealth.length} major routes</span>
               </div>
@@ -456,7 +456,7 @@ export default async function OwnerPage() {
               <div className="owner-panel-header">
                 <div>
                   <span className="owner-panel-kicker">Adoption by band</span>
-                  <h2>Who is showing up?</h2>
+                  <h2>Learner participation by band</h2>
                 </div>
                 <span className="owner-muted-meta">{totalBandStudents} learners</span>
               </div>
@@ -516,7 +516,7 @@ export default async function OwnerPage() {
                     <p>{primaryFeedback.message}</p>
                     <div className="summary-chip-row">
                       <span className="summary-chip">
-                        Route to {primaryFeedback.routingTarget}
+                        Assigned to {primaryFeedback.routingTarget}
                       </span>
                       {primaryFeedback.impactedArea ? (
                         <span className="summary-chip">
@@ -547,12 +547,12 @@ export default async function OwnerPage() {
                       </p>
                     </article>
                     <article className="owner-mini-stat">
-                      <span>Review state</span>
+                      <span>Review status</span>
                       <strong>{reviewHotspot?.reviewStatus ?? "quiet"}</strong>
                       <p>
                         {reviewHotspot
-                          ? `${reviewHotspot.count} items currently share this state.`
-                          : "No review-state signal yet."}
+                          ? `${reviewHotspot.count} items currently share this status.`
+                          : "No review status data yet."}
                       </p>
                     </article>
                   </div>
@@ -582,7 +582,7 @@ export default async function OwnerPage() {
                       <strong>{item.summary}</strong>
                       <span className="summary-chip">{item.urgency}</span>
                     </div>
-                    <p>{item.category} · {item.routingTarget} · {item.reviewStatus}</p>
+                    <p>{item.category} · assigned to {item.routingTarget} · {item.reviewStatus}</p>
                     <Link className="owner-inline-link" href={`/owner/triage/${item.id}`}>
                       Open detail
                     </Link>
@@ -635,12 +635,12 @@ export default async function OwnerPage() {
                     </p>
                   </article>
                   <article className="owner-mini-stat">
-                    <span>Top review state</span>
+                    <span>Top review status</span>
                     <strong>{reviewHotspot?.reviewStatus ?? "Quiet"}</strong>
                     <p>
                       {reviewHotspot
-                        ? `${reviewHotspot.count} items currently share this state.`
-                        : "No review-state signal yet."}
+                        ? `${reviewHotspot.count} items share this status.`
+                        : "No review status data yet."}
                     </p>
                   </article>
                 </div>
@@ -698,13 +698,13 @@ export default async function OwnerPage() {
                   Review latest triage item
                 </Link>
                 <Link className="owner-quick-action" href="/teacher">
-                  Check teacher route health
+                  Check classroom view
                 </Link>
                 <Link className="owner-quick-action" href="/parent">
-                  Review parent-side signal
+                  Review family hub
                 </Link>
                 <Link className="owner-quick-action" href="/child">
-                  Verify child entry path
+                  Verify child access
                 </Link>
               </div>
             </section>

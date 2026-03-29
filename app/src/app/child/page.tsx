@@ -222,7 +222,7 @@ export default function ChildAccessPage() {
             <div className="child-hero-brand">
               <span>Wonder</span>Quest
             </div>
-            <span className="eyebrow">Child quickstart</span>
+            <span className="eyebrow">Child setup</span>
             <h1>
               {earlyLearnerBand
                 ? "One big tap to start, one calm setup, then straight into play."
@@ -277,7 +277,7 @@ export default function ChildAccessPage() {
             eyebrow="Access"
             title="Choose the quickest path"
           >
-            <span className="step-chip">Step 1 · Access mode</span>
+            <span className="step-chip">Step 1 · New or returning?</span>
             <div className="child-entry-grid">
               <button
                 className={`child-entry-card child-entry-card-new ${accessMode === "new" ? "is-selected" : ""}`}
@@ -409,7 +409,7 @@ export default function ChildAccessPage() {
                 <strong>Quick start for little learners</strong>
                 <p>
                   Pick the band, type a simple quest name, choose one picture,
-                  and press start. The session will stay in guided mode.
+                  and press start. The adventure uses guided questions throughout.
                 </p>
               </div>
             ) : null}
@@ -549,7 +549,7 @@ export default function ChildAccessPage() {
               eyebrow="Mode"
               title="Choose how the next session feels"
             >
-              <span className="step-chip">Step 5 · Session mode</span>
+              <span className="step-chip">Step 5 · Choose your quest style</span>
               <div className="choice-column">
                 <button
                   className={`mode-card ${
@@ -616,12 +616,12 @@ export default function ChildAccessPage() {
                 <span className="summary-chip">{selectedAvatarSymbol} guide</span>
               ) : null}
               <span className="summary-chip">
-                {selectedMode === "guided-quest" ? "Guided quest" : "Self-directed"}
+                {selectedMode === "guided-quest" ? "Guided Quest" : "Self-Directed Challenge"}
               </span>
             </div>
             {guidedOnlyMode ? (
               <div className="status-banner child-launch-banner">
-                Guided quest is set automatically — keeps the setup short and gets kids into play fast.
+                Guided Quest is set automatically — keeps setup short and gets kids playing right away.
               </div>
             ) : null}
             <ul className="route-list">

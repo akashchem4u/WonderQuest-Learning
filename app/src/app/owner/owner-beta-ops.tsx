@@ -112,15 +112,15 @@ export function OwnerBetaOps({
     <section className={styles.board}>
       <div className={styles.hero}>
         <div className={styles.heroCopy}>
-          <span className="shell-eyebrow">Beta ops</span>
-          <h2>Readiness, pressure, and trust in one live view.</h2>
+          <span className="shell-eyebrow">Operations board</span>
+          <h2>Readiness, pressure, and platform health in one live view.</h2>
           <p>
-            This panel turns the live owner data into an operational beta board:
+            This panel turns the live owner data into an operational board:
             what is still blocking launch, where feedback is piling up, and which
-            routes are healthy enough to trust.
+            areas are healthy enough to trust.
           </p>
           <div className="summary-chip-row">
-            <span className="summary-chip">Goal 90+ readiness</span>
+            <span className="summary-chip">Target: 90+ readiness</span>
             <span className="summary-chip">
               {pendingReviewCount} pending reviews
             </span>
@@ -143,7 +143,7 @@ export function OwnerBetaOps({
             detail={`${counts.feedbackItems} total feedback items`}
           />
           <StatTile
-            label="Content floor"
+            label="Content baseline"
             value={`${counts.exampleItems}`}
             detail={`Target ${contentHealth[0]?.target ?? 100}+ live questions`}
           />
@@ -259,7 +259,7 @@ export function OwnerBetaOps({
           <div className={styles.panelHeader}>
             <div>
               <span className="shell-eyebrow">Route health</span>
-              <h3>Which routes are healthy enough to keep open?</h3>
+              <h3>Which areas are healthy enough to keep open?</h3>
             </div>
             <span className={styles.kpiValue}>
               {trustCount}/{routeHealth.length}
@@ -322,7 +322,7 @@ export function OwnerBetaOps({
               <div>
                 <strong>{recentFeedback[0].summary}</strong>
                 <p>
-                  Routes to {recentFeedback[0].routingTarget} ·{" "}
+                  Assigned to {recentFeedback[0].routingTarget} ·{" "}
                   {recentFeedback[0].reviewStatus}
                 </p>
               </div>

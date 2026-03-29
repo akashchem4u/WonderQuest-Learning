@@ -7,31 +7,31 @@ export const dynamic = "force-dynamic";
 const routeCards = [
   {
     href: "/parent",
-    audience: "Family route",
+    audience: "For families",
     icon: "👨‍👩‍👧",
     title: "See the week without turning home into a report card",
     description:
-      "Track comfort, celebrate wins, and get simple next-step ideas that support the child path without drowning it in admin.",
+      "Track comfort, celebrate wins, and get simple next-step ideas that support your child without drowning in admin.",
     cta: "Open family hub",
     tone: "parent",
   },
   {
     href: "/teacher",
-    audience: "Classroom route",
+    audience: "For teachers",
     icon: "🏫",
-    title: "Spot support lanes and class momentum faster",
+    title: "Spot where students need support and keep class momentum on track",
     description:
-      "Use class signals, drilldowns, and intervention cues to decide where guided help or stretch work belongs next.",
+      "Use class progress, skill breakdowns, and intervention cues to decide where guided help or stretch work belongs next.",
     cta: "Open classroom view",
     tone: "teacher",
   },
   {
     href: "/owner",
-    audience: "Ops route",
+    audience: "Platform management",
     icon: "⚙️",
-    title: "Run product signal, content readiness, and feedback flow in one place",
+    title: "Manage launches, track content status, and review feedback in one place",
     description:
-      "Keep route health, incoming feedback, and launch readiness visible without mixing them into child or family experiences.",
+      "Keep platform health, incoming feedback, and launch readiness visible without mixing them into child or family experiences.",
     cta: "Open ops console",
     tone: "owner",
   },
@@ -78,7 +78,7 @@ export default async function HomePage() {
             <h1>
               Child-first learning
               <br />
-              with real <em>route clarity</em>.
+              with real <em>clarity</em>.
             </h1>
             <p>
               WonderQuest helps children learn at their own pace, helps families
@@ -89,11 +89,11 @@ export default async function HomePage() {
 
             <div className="landing-chip-row">
               <span className="landing-chip">Child-first launcher</span>
-              <span className="landing-chip">Separate adult routes</span>
+              <span className="landing-chip">Separate family and teacher views</span>
               <span className="landing-chip">
                 {launchStatus.source === "supabase"
-                  ? "Live route data"
-                  : "Fallback route data"}
+                  ? "Live data"
+                  : "Demo data"}
               </span>
               <span className="landing-chip">Saved progress and badges</span>
             </div>
@@ -103,7 +103,7 @@ export default async function HomePage() {
                 Start child journey
               </Link>
               <a className="landing-secondary-btn" href="#audiences">
-                Explore the routes
+                See who it's for
               </a>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default async function HomePage() {
                 🚀
               </div>
               <Link className="landing-route-link landing-route-link-featured" href="/child">
-                Launch child route
+                Start learning
               </Link>
             </div>
           </article>
@@ -153,7 +153,7 @@ export default async function HomePage() {
               <p>Points, badges, and trophies carry over every time a child comes back.</p>
             </article>
             <article className="landing-metric-card">
-              <span>Adult routes</span>
+              <span>Adult views</span>
               <strong>3</strong>
               <p>Families, teachers, and platform admins each have a focused space with no overlap.</p>
             </article>
@@ -187,9 +187,9 @@ export default async function HomePage() {
               <span className="landing-status-dot" aria-hidden="true" />
               <strong>{sourceLabel}</strong>
             </div>
-            <h2>Live product signal, not just a static mockup.</h2>
+            <h2>Live data, not a demo.</h2>
             <p>
-              These routes connect to the live app — what you see here is the
+              These views connect to the live app — what you see here is the
               actual product experience, not a prototype.
             </p>
           </div>
@@ -203,17 +203,17 @@ export default async function HomePage() {
             <article className="landing-band-pill">
               <strong>Parent</strong>
               <span>Family dashboard</span>
-              <small>Weekly signals and next-step guidance</small>
+              <small>Weekly progress and next-step ideas</small>
             </article>
             <article className="landing-band-pill">
               <strong>Teacher</strong>
               <span>Command center</span>
-              <small>Support lanes and skill drilldowns</small>
+              <small>Student support and skill breakdowns</small>
             </article>
             <article className="landing-band-pill">
               <strong>Owner</strong>
               <span>Ops console</span>
-              <small>Release readiness and route health</small>
+              <small>Launch readiness and platform status</small>
             </article>
           </div>
         </section>
@@ -228,8 +228,7 @@ export default async function HomePage() {
 
         {launchStatus.source === "fallback" ? (
           <p className="landing-fallback-note">
-            Live launch counts are temporarily unavailable, so this route is
-            showing fallback plan values.
+            Live launch counts are temporarily unavailable — showing fallback plan values.
           </p>
         ) : null}
       </div>
