@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 11:27 CDT
+Updated: 2026-03-29 12:07 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -453,6 +453,26 @@ Template:
 
 ## Developer Log
 
+### 2026-03-29 CDT — shell (SHELL-01: freeze app-frame for alpha)
+
+- Files changed:
+  - `app/src/components/app-frame.tsx` — removed `/design-system` from navItems; removed `<code>{href}</code>` debug element from adult sidebar; replaced internal signal pills ("UI-first rebuild", "Real route data") with audience shortLabel + "Alpha"; rewrote `audienceMeta` copy to user-facing language; cleaned `app-utility-copy` placeholder
+- Built:
+  - Shell freeze pass on `app-frame.tsx`: no dev artifacts remain visible to testers
+  - `globals.css` audited — comprehensive; all adult/child/play shell classes present with responsive breakpoints at 720/1100/1180px; no gaps that would block route lanes
+  - `ui.tsx` and `display-mode-toggle.tsx` are clean and stable; no changes needed
+  - Commit `00e0ca5` pushed to origin/main
+- Still unresolved:
+  - Dead `.adult-nav-link code` CSS in globals.css (3 occurrences at lines 303, 325–326) — now orphaned after `<code>` removal; low priority, does not break anything
+  - PLAT-02 close still awaiting review lane approval (commit `f16b5ed`)
+  - Route lanes (child, play, parent, adult-ops) still pending platform + shell approval
+- Verification:
+  - `npm run lint` = pass (tsc --noEmit clean)
+  - `npm run build` = pass (18 routes)
+  - `npm run smoke:local` = not run
+- Review requested:
+  - yes — confirm shell freeze is acceptable and approve route lanes to start
+
 ### 2026-03-29 CDT — platform (PLAT-02 close: true session restore)
 
 - Files changed:
@@ -648,3 +668,28 @@ Template:
   - add a real session-restored parent return path that consumes `wonderquest-parent-session`
   - update smoke so the parent durability assertion uses the session cookie rather than a PIN round-trip
   - apply migration `20260329_000004_parent_access_sessions.sql` to the live Supabase instance before treating Render parent durability / throttling as live-ready
+
+### 2026-03-29 12:07 CDT — Parent Durability Closure Guidance
+
+- Reviewed:
+  - current `PLAT-02` gap after the 11:27 CDT review
+  - `app/src/app/parent/page.tsx`
+  - `app/src/lib/parent-access.ts`
+  - `app/src/app/api/parent/access/route.ts`
+- Findings:
+  - P0: none
+  - P1: the minimum missing product behavior is clear. The parent route is client-only and initializes with `result = null`, so the route still opens in a form-first state until credentials are posted again.
+  - P1: the smallest safe closure batch is not a broad parent-route redesign. It is:
+    - add a session-backed read path that uses `wonderquest-parent-session`
+    - let the parent route bootstrap from that read path on mount
+    - extend smoke to prove that cookie-backed restore path
+  - P2: the likely lowest-risk shape is:
+    - keep `POST /api/parent/access` for login
+    - add a `GET /api/parent/access` session-restore path, or a nearby session endpoint, backed by `requireParentAccessSession`
+    - add a parent-service function that rebuilds the same `ParentAccessResponse` from `guardianId`
+    - update `app/src/app/parent/page.tsx` to call that read path in `useEffect` before defaulting to the access-manager state
+- Decision:
+  - approved as the preferred implementation direction for closing `PLAT-02`
+- Next action:
+  - developer lane should ship the smallest batch that proves cookie-based parent restore
+  - do not mix this with shell work or broad parent UX work
