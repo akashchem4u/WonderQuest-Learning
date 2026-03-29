@@ -238,11 +238,11 @@ function buildParentWeekSummary(
   }
 
   return {
-    headline: `${childName} is building confidence one short session at a time.`,
+    headline: `${childName} is building confidence one short lesson at a time.`,
     body: `The next step is to keep practice calm, short, and centered on ${dashboard.recommendedFocus.toLowerCase()}.`,
     chips: [
       `${dashboard.completedSessions} finished sessions`,
-      `${dashboard.supportAreas.length} support lane`,
+      `${dashboard.supportAreas.length} skill to strengthen`,
       `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
     ],
   };
@@ -1218,7 +1218,7 @@ export default function ParentAccessPage() {
                             <small>
                               {dashboard
                                 ? `${dashboard.readinessLabel} · ${dashboard.recommendedFocus}`
-                                : "No sessions yet — complete a learning session to see insights"}
+                                : "No activity yet — help your child complete their first lesson"}
                             </small>
                           </div>
                           {activeChildId === child.id ? (
@@ -1460,10 +1460,10 @@ export default function ParentAccessPage() {
                         <strong>{describeSkillInParentLanguage(activeSkill.skillCode, activeSkill.displayName)}</strong>
                       </article>
                       <article className="parent-skill-detail-card">
-                        <span>Current signal</span>
+                        <span>Progress so far</span>
                         <strong>{buildParentSkillSignal(activeSkill.masteryRate)}</strong>
                         <p>
-                          {activeSkill.masteryRate}% mastery across {activeSkill.attempts} answered prompts.
+                          {activeSkill.masteryRate}% correct across {activeSkill.attempts} questions answered.
                         </p>
                       </article>
                       <article className="parent-skill-detail-card">
@@ -1553,7 +1553,7 @@ export default function ParentAccessPage() {
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    Come back after the first full session to see the activity log and which skills your child worked on.
+                    Activity will appear here after your child completes their first lesson.
                   </p>
                 )}
               </ShellCard>
