@@ -808,7 +808,7 @@ export default function ParentAccessPage() {
                             ))}
                           </div>
                           <small>
-                            Use a calm, plain relationship label. This only affects how the family view is described.
+                            Shown in family summaries — e.g. Mom, Dad, Grandma.
                           </small>
                         </label>
                       </div>
@@ -1485,9 +1485,7 @@ export default function ParentAccessPage() {
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    A plain-language skill explanation will appear here once a
-                    child has enough activity to show a meaningful support or
-                    strength area.
+                    Check back after 2–3 more sessions. Once there's enough data, you'll see one strength, one focus area, and practice ideas here.
                   </p>
                 )}
               </ShellCard>
@@ -1555,8 +1553,7 @@ export default function ParentAccessPage() {
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    Recent activity will appear here once the child completes
-                    more than one session.
+                    Come back after the first full session to see the activity log and which skills your child worked on.
                   </p>
                 )}
               </ShellCard>
