@@ -1501,8 +1501,8 @@ export default function PlayClient() {
             title={
               finished
                 ? earlyLearnerMode
-                  ? "Quest complete"
-                  : "Session complete"
+                  ? "Quest complete!"
+                  : "Quest complete!"
                 : earlyLearnerMode && currentScene
                   ? currentScene.title
                   : currentQuestion.prompt

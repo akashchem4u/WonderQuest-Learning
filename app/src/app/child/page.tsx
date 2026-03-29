@@ -230,7 +230,7 @@ export default function ChildAccessPage() {
             </h1>
             <p>
               {earlyLearnerBand
-                ? "Keep the grown-up step short. The child should recognize the path instantly, then the play flow can take over with visuals, voice, and quick retries."
+                ? "The grown-up setup is quick. Once done, the child jumps straight into picture prompts, voice cues, and one-tap answers."
                 : "Use the same username, avatar, and PIN to keep badges, points, and world progress attached to one adventurer."}
             </p>
             <div className="summary-chip-row">
@@ -322,8 +322,8 @@ export default function ChildAccessPage() {
             </div>
             <p className="soft-copy child-entry-hint">
               {earlyLearnerBand
-                ? "Grown-up help starts here. After this step, the child should mostly follow pictures, worlds, and short prompts."
-                : "Keep this step quick so returning kids get back to the quest without feeling like they hit a login wall."}
+                ? "Grown-up help is only needed here. After this, the child follows pictures and short prompts on their own."
+                : "Quick sign-in — returning kids are back in the quest in seconds."}
             </p>
           </ShellCard>
 
@@ -559,7 +559,7 @@ export default function ChildAccessPage() {
                   type="button"
                 >
                   Guided Quest
-                  <span>The system picks the next best sequence of questions.</span>
+                  <span>Automatically picks the right questions to match your child's level.</span>
                 </button>
                 <button
                   className={`mode-card ${
@@ -621,19 +621,18 @@ export default function ChildAccessPage() {
             </div>
             {guidedOnlyMode ? (
               <div className="status-banner child-launch-banner">
-                <strong>Launch rule:</strong> younger and returning adventurers go straight
-                into guided quest so the grown-up setup stays short.
+                Guided quest is set automatically — keeps the setup short and gets kids into play fast.
               </div>
             ) : null}
             <ul className="route-list">
               <li>
                 {earlyLearnerBand
-                  ? "The child should get short, guided questions right away."
+                  ? "Short, guided questions begin right away."
                   : "Points, badges, trophies, and progress stay attached to the profile."}
               </li>
               <li>
                 {earlyLearnerBand
-                  ? "Misses should lead to quick voice and visual help."
+                  ? "Wrong answers trigger a quick picture and voice hint."
                   : "Wrong answers lead to quick explainers instead of dead ends."}
               </li>
               <li>
