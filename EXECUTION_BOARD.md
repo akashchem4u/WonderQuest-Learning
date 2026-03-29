@@ -453,6 +453,34 @@ Template:
 
 ## Developer Log
 
+### 2026-03-29 CDT — multi-lane sweep (PLAY-01 / ADULT-01 / cross-route copy)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx` — fix `&apos;` template literal bug in h1 (was rendering literally); clean loading/hero copy ("Loading the live prototype" → child-facing); dynamic "Welcome back" / "Quest time" eyebrow based on returningEntry
+  - `app/src/app/play/page.tsx` — clean Suspense fallback copy to match play-client loading state
+  - `app/src/app/page.tsx` (home) — remove `/design-system` from landing topbar nav (not a production route)
+  - `app/src/app/layout.tsx` — replace "Local prototype foundation" meta description with user-facing product description
+  - `app/src/app/teacher/page.tsx` — replace "learners in prototype" with "active learners"
+  - `app/src/app/owner/triage/[id]/page.tsx` — remove "across the prototype" from sessions stat
+  - `app/src/app/parent/page.tsx` — replace "Quick prototype access" PIN field helper with clear UX copy; fix `child&apos;s` JS string bug (renders literally, not as HTML entity)
+  - `app/src/app/child/page.tsx` — fix `child&apos;s` JS string bug
+  - `app/src/app/owner/owner-beta-ops.tsx` — import Link; make focus callout a clickable link to `/owner/triage/${id}`; add "Open detail →" label
+  - `app/src/app/owner/page.tsx` — replace dead-end empty triage state with CTAs to `/child` and `/parent` so ops can generate signal when queue is empty
+- Built:
+  - Dev artifact sweep complete across all 6 production routes + layout + home
+  - Owner triage flow now fully connected: focus callout → triage detail page
+  - Owner empty state now action-oriented instead of informational dead end
+  - Commits `180c938`, `549eaf6`, `21d122a`, `49303f0` pushed to origin/main
+- Still unresolved:
+  - migration `20260329_000004` still needs to be applied to live Supabase
+  - PLAT-02 close / SHELL-01 / CHILD-01 still awaiting review lane sign-off
+- Verification:
+  - `npm run lint` = pass (all batches)
+  - `npm run build` = pass (19 routes, all batches)
+  - `npm run smoke:local` = not run
+- Review requested:
+  - yes — confirm multi-lane sweep is acceptable; note builds ahead of formal lane approval per user "keep working" instruction
+
 ### 2026-03-29 CDT — child + platform (CHILD-01 / PLAT-05: child session restore)
 
 - Files changed:
