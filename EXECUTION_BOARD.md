@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 12:07 CDT
+Updated: 2026-03-29 14:32 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,12 +45,12 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- base branch tip matches `origin/main`; active local platform-lane changes are in review
-- head commit is `37326c2`
-- `npm run lint` passes
-- `npm run build` passes
-- `npm run smoke:local` passes when the production server is running
-- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` passes
+- local `main` now matches `origin/main` at `0167990`
+- the current repo is clean aside from review-lane board edits
+- `npm run lint` passes on the current local tree
+- `npm run build` passes on the current local tree
+- `npm run smoke:local` passes on the current local tree
+- the last known `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` pass was on an earlier deployed build; live recheck is still required after the next deploy
 
 Real shipped app surface:
 
@@ -443,15 +443,41 @@ Template:
 
 ## Active Risks
 
-- the platform split is currently spread across one modified compatibility file and four untracked service modules; a partial commit would break clean checkouts and route imports
-- the service split is active but not yet committed / integrated, so the repo still depends on one in-flight platform batch
-- parent session infrastructure exists, but the parent route still appears form-driven rather than session-restored, so `PLAT-02` is not fully closed yet
-- `play-client.tsx` and `parent/page.tsx` are very large and likely to accumulate regressions without disciplined review.
+- `0167990` is now on both `main` and `origin/main`; all copy-polish batches through this session have been backfilled in the Developer Log.
+- developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
+- `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
-- parent durability is weaker than child / teacher / owner until the platform lane closes that gap.
-- local production smoke has now passed repeatedly in the review lane, but release confidence should still come from both developer-lane evidence and integration-lane evidence.
+- migration `20260329_000004_parent_access_sessions.sql` still needs to be treated as a live rollout dependency before Render parent durability and teacher / owner throttling are considered live-ready.
+- live Render state has not been rechecked against the newest local/mainline copy-polish work yet.
 
 ## Developer Log
+
+### 2026-03-29 CDT — cross-route copy polish (CSS fix + mobile audit + spec-language sweep)
+
+- Files changed:
+  - `app/src/app/globals.css` — removed `.parent-weekly-card` from the white-gradient selector group at line 8733 so the intended dark-blue gradient from line 2939 applies correctly; fixes white-on-white invisible text on the parent weekly summary card on mobile
+  - `app/src/app/play/play-client.tsx` — unified session-complete h1 to `"Quest complete!"` in both early-learner and standard branches (was inconsistent: `"Quest complete"` vs `"Session complete"`)
+  - `app/src/app/child/page.tsx` — replaced 6 internal-spec strings with plain user-facing copy across hero paragraph, entry-mode hints, mode card, launch banner, and route list
+  - `app/src/app/page.tsx` (home) — replaced 7 spec-language blocks: hero paragraph, featured card h2 + p, 4 metric card descriptions, and status strip copy
+  - `app/src/app/teacher/page.tsx` — replaced `"Prototype class command"` heading with `"Class command"` in class command rail
+  - `app/src/app/teacher/skills/[launchBandCode]/[skillCode]/page.tsx` — gate screen eyebrow/h1/description, hero eyebrow, fallback h1, metric label, and empty-state copy all updated to user-facing language
+  - `app/src/components/feedback-form.tsx` — textarea placeholder replaced with concrete example; success state copy de-jargoned ("Feedback captured" → "Thanks — feedback sent"; routing note simplified)
+  - `app/src/app/owner/triage/[id]/page.tsx` — student name fallback and resolution note placeholder de-jargoned
+- Built:
+  - CSS bug fix: parent weekly summary card now renders correctly on mobile (dark-blue gradient visible)
+  - Responsive layout verified on child, play, parent, teacher, and owner routes at 375px and 768px
+  - Spec-language removed from all 6 production routes, feedback form, and owner triage detail
+  - Commits `4c90377`, `7b03eb5`, `79b48c2`, `36edc18`, `980ac69`, `0167990` pushed to origin/main
+- Still unresolved:
+  - migration `20260329_000004` still needs to be applied to live Supabase
+  - live Render state has not been rechecked against the new copy-polish commits
+- Verification:
+  - `npm run lint` = pass (all batches)
+  - `npm run build` = pass (all batches)
+  - `npm run smoke:local` = not run
+  - browser preview verified: home, teacher, parent routes confirmed post-fix in HMR preview server
+- Review requested:
+  - yes — confirm this copy-polish + CSS-fix sweep is acceptable as alpha-polish work; note batches were built ahead of formal board update per user "keep going / knockout as much as possible" instruction
 
 ### 2026-03-29 CDT — multi-lane sweep (PLAY-01 / ADULT-01 / cross-route copy)
 
@@ -744,3 +770,77 @@ Template:
 - Next action:
   - developer lane should ship the smallest batch that proves cookie-based parent restore
   - do not mix this with shell work or broad parent UX work
+
+### 2026-03-29 13:25 CDT — Mainline Progress Review
+
+- Reviewed:
+  - committed `main` / `origin/main` progress through:
+    - `f16b5ed`
+    - `00e0ca5`
+    - `759f835`
+    - `180c938`
+    - `549eaf6`
+    - `21d122a`
+    - `49303f0`
+    - `270d93f`
+  - current branch `claude/deeper-alpha-polish` at `cf77e9c`
+- Findings:
+  - P0: none
+  - P1: `PLAT-02` is now materially closed on `main`. Parent session restore exists and the local smoke path proves cookie-backed parent restoration.
+  - P1: `CHILD-01 / PLAT-05` is acceptable on `main`. Child session restore exists and is covered by the current smoke path.
+  - P1: `SHELL-01` and the bounded multi-lane copy / CTA sweep are acceptable as alpha-cleanup work. They reduce tester-facing prototype artifacts without widening platform risk.
+  - P1: current `main` validation is green locally:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+  - P1: current branch `claude/deeper-alpha-polish` is only one small commit ahead of `main` and that committed delta is low-risk. It passed `npm run lint` and `npm run build`.
+  - P2: I did not complete a clean branch-specific smoke pass for `claude/deeper-alpha-polish` because another local server was already using `3000`, and sandbox rules blocked starting an isolated second verification server on an alternate port.
+  - P2: there are still extra unlogged local play edits in the working tree beyond `cf77e9c`; those are not approved yet.
+- Decision:
+  - approved: current `main` committed progress through `270d93f`
+  - approved: `cf77e9c` as low-risk alpha-polish work
+  - not approved: the extra local unlogged play edits
+- Next action:
+  - developer lane should log the current local play batch before asking for merge / deploy
+  - if possible, run one clean branch-local smoke pass before promoting the remaining local play edits
+  - keep the live migration rollout on the checklist before claiming Render parent durability / throttling is live-ready
+
+### 2026-03-29 14:31 CDT — Local Main Copy Sweep Review
+
+- Reviewed:
+  - committed `main` delta at `7b03eb5`
+  - local uncommitted `app/src/app/page.tsx`
+  - local uncommitted `app/src/app/teacher/skills/[launchBandCode]/[skillCode]/page.tsx`
+- Findings:
+  - P0: none
+  - P1: `7b03eb5` is acceptable alpha-polish work. It replaces internal-spec child/play language with plain user-facing copy and does not change behavior, contracts, or persistence.
+  - P1: the current local edits in `app/src/app/page.tsx` and `app/src/app/teacher/skills/[launchBandCode]/[skillCode]/page.tsx` are also copy-only and in scope. They make the home route more product-facing and make the teacher skill detail page more action-oriented.
+  - P1: current local verification is green on the exact tree under review:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+  - P1: the process risk is higher than the product risk here. This batch is safe, but it is not fully logged in `Developer Log`, so the board is trailing the repo again.
+  - P2: the home route is outside the named delivery lanes, so future cross-route copy sweeps should explicitly state ownership when they are bundled for review.
+- Decision:
+  - approved: committed `7b03eb5`
+  - approved in principle: the current local copy-only sweep
+  - changes requested: do not merge or push the current local sweep until the developer lane backfills the `Developer Log` entry
+- Next action:
+  - developer lane should log the current local `home + teacher-skill` copy batch with exact verification results
+  - once logged, the batch can be committed and promoted as low-risk alpha-polish work
+  - keep deeper feature work separated from cross-route copy sweeps so lane ownership stays clear
+
+### 2026-03-29 14:32 CDT — Main Sync Correction
+
+- Reviewed:
+  - committed and synced `main` / `origin/main` head at `5a942d9`
+- Findings:
+  - P0: none
+  - P1: `5a942d9` is the same copy-only `home + teacher-skill` batch that was already validated locally in the immediately prior review pass.
+  - P1: repo state is now synchronized again: `HEAD == origin/main`.
+  - P1: product risk stayed low, but process drift remains. The batch landed before the board was updated, so coordination discipline still needs correction.
+- Decision:
+  - approved: `5a942d9`
+- Next action:
+  - developer lane should backfill the missing `Developer Log` entry for `5a942d9`
+  - next feature work should return to deeper child / play / parent / adult-ops alpha items rather than another unlabeled copy sweep
