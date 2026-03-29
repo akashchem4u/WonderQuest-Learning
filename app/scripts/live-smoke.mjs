@@ -96,9 +96,25 @@ function assert(condition, message) {
   }
 }
 
+function assertQuestionSkillOrder(session, expectedSkills, label) {
+  const actualSkills = Array.isArray(session.questions)
+    ? session.questions.map((question) => question.skill)
+    : [];
+
+  assert(
+    actualSkills.length >= expectedSkills.length,
+    `${label} should return at least ${expectedSkills.length} questions`,
+  );
+  assert(
+    expectedSkills.every((skill, index) => actualSkills[index] === skill),
+    `${label} should start ${expectedSkills.join(" -> ")} (got ${actualSkills.join(" -> ")})`,
+  );
+}
+
 async function main() {
   const baseUrl = await resolveBaseUrl();
   const childUsername = `${runKey}-child`;
+  const prekUsername = `${runKey}-prek`;
   const parentUsername = `${runKey}-parent`;
 
   // ── Child access + play session ───────────────────────────────────────────
@@ -118,6 +134,11 @@ async function main() {
   });
   assert(session.sessionId, "sessionId should be present");
   assert(Array.isArray(session.questions) && session.questions.length > 0, "questions array should be non-empty");
+  assertQuestionSkillOrder(
+    session,
+    ["short-a-sound", "read-simple-word", "add-to-10"],
+    "K1 guided quest",
+  );
 
   const firstQuestion = session.questions[0];
 
@@ -158,6 +179,27 @@ async function main() {
   const childRestore = await childRestoreRaw.json();
   assert(childRestore.student?.id === child.student.id, "session-restored student id should match original");
   assert(typeof childRestore.progression?.totalPoints === "number", "session-restored progression should be present");
+
+  // ── PREK guided sequencing ────────────────────────────────────────────────
+
+  const { payload: prekChild } = await postJson(baseUrl, "/api/child/access", {
+    username: prekUsername,
+    pin: "8642",
+    displayName: "QA PREK Child",
+    avatarKey: "bunny-helper",
+    launchBandCode: "PREK",
+  });
+  assert(prekChild.student?.id, "prek child.student.id should be present");
+
+  const { payload: prekSession } = await postJson(baseUrl, "/api/play/session", {
+    sessionMode: "guided-quest",
+  });
+  assert(prekSession.sessionId, "prek sessionId should be present");
+  assertQuestionSkillOrder(
+    prekSession,
+    ["count-to-3", "shape-circle", "letter-b-recognition"],
+    "PREK guided quest",
+  );
 
   // ── Parent access + session cookie durability ─────────────────────────────
 
@@ -215,6 +257,8 @@ async function main() {
         childSessionRestoreStudentId: childRestore.student?.id ?? null,
         sessionId: session.sessionId,
         firstQuestion: firstQuestion.questionKey,
+        k1QuestionSkills: session.questions.map((question) => question.skill),
+        prekQuestionSkills: prekSession.questions.map((question) => question.skill),
         retryNeedsExplainer: retry.needsRetry,
         recoveryPoints: recovery.pointsEarned,
         parentSessionCookieSet: cookieJar.has("wonderquest-parent-session"),

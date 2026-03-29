@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 15:49 CDT
+Updated: 2026-03-29 16:14 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,11 +45,11 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- local `main` is at `cd703e1` (copy sweep across home, child, owner pages)
-- the current repo is clean aside from review-lane board edits
-- `npm run lint` passes on the current local tree (last confirmed pre-copy-sweep; copy-only changes carry no type risk)
-- `npm run build` passes on the current local tree (last confirmed pre-copy-sweep)
-- `npm run smoke:local` not yet run this session
+- local `main` committed head is `cd703e1` (copy sweep across home, child, owner pages); the current working tree also includes an uncommitted early-guided sequencing batch in `app/src/lib/session-service.ts` and `app/scripts/live-smoke.mjs`
+- the current repo is dirty with the active play/platform batch and board updates
+- `npm run lint` passes on the current local tree
+- `npm run build` passes on the current local tree
+- `npm run smoke:local` passes on the current local tree when pointed at the fresh local server on `3001`
 - the last known `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` pass was on an earlier deployed build; live recheck is still required after the next deploy
 
 Real shipped app surface:
@@ -443,7 +443,7 @@ Template:
 
 ## Active Risks
 
-- `cd703e1` is the current HEAD on `main`; the `Developer Log` has been backfilled for all prior unlogged commits (`55fbfde`, `0cee62c`, `53bca10`, `1687dbb`, `5c5f947`, `fad5d40`, `69715fc`, `a26822e`, `cd703e1`).
+- `cd703e1` is the current committed HEAD on `main`; the working tree now includes an uncommitted `play` / `platform` batch for early-guided sequencing, so the next process risk is keeping that batch logged and reviewed before commit.
 - developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
@@ -451,6 +451,26 @@ Template:
 - live Render state has not been rechecked against the newest local/mainline copy-polish work yet.
 
 ## Developer Log
+
+### 2026-03-29 16:14 CDT — play + platform (PLAY-02 / PLAT-06: easy-first early learner sequencing)
+
+- Files changed:
+  - `app/src/lib/session-service.ts` — added explicit guided-quest skill ordering for early learners so `PREK` now starts `count-to-3` → `shape-circle` → `letter-b-recognition`, and `K1` now starts `short-a-sound` → `read-simple-word` → `add-to-10`; non-early guided runs still use shuffled selection and self-directed challenge behavior is unchanged
+  - `app/scripts/live-smoke.mjs` — added smoke assertions for the new `K1` and `PREK` guided sequence order and added a dedicated PREK child/session coverage path; corrected the PREK smoke fixture to use a valid avatar key
+- Built:
+  - Guided quest now behaves like a designed on-ramp for early learners instead of a random three-question sampler
+  - The first `60–90 seconds` are now protected to open with more visual / simpler skill families before moving into harder `K1` math
+  - Smoke coverage now proves both early-learner guided paths in addition to the existing child restore, parent restore, and feedback flow checks
+- Still unresolved:
+  - the batch is still local / uncommitted and needs commit discipline after review
+  - live Render validation still needs to be rerun after the next deploy
+  - migration `20260329_000004_parent_access_sessions.sql` still remains a live rollout dependency
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = pass (verified with `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` against a fresh `npm run start` server on `3001`, because another local WonderQuest server was already occupying `3000`)
+- Review requested:
+  - yes — confirm this bounded play/platform batch is acceptable and still scoped tightly to the test-ready alpha on-ramp problem
 
 ### 2026-03-29 CDT — cross-route copy polish sweep (alpha polish: all routes)
 
@@ -956,3 +976,29 @@ Template:
   - next feature work should be a bounded `play` / `platform` batch that makes guided-quest sequencing easy-first for `PREK` / `K1`, so the first few prompts reliably produce an early win before difficulty rises
   - do not spend the next batch on another cross-route copy sweep unless it is directly attached to that alpha-critical play work
   - live Render validation should still be rerun after the next deploy that includes this post-`53bca10` batch
+
+### 2026-03-29 16:14 CDT — Early Guided Sequencing Review
+
+- Reviewed:
+  - local uncommitted `app/src/lib/session-service.ts`
+  - local uncommitted `app/scripts/live-smoke.mjs`
+  - current working tree on top of committed `main` head `cd703e1`
+- Findings:
+  - P0: none
+  - P1: this is the right next alpha batch. It moves the child experience forward materially by replacing random guided-question selection with an intentional early-learner on-ramp for `PREK` and `K1`.
+  - P1: the scope stayed disciplined. No route UI churn, API contract changes, or persistence changes were introduced; the batch is limited to session selection logic and QA coverage.
+  - P1: local verification is green on the exact tree under review:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass via `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local`
+  - P1: the updated smoke script now proves the exact early-learner sequence shape:
+    - `K1` guided quest begins `short-a-sound` → `read-simple-word` → `add-to-10`
+    - `PREK` guided quest begins `count-to-3` → `shape-circle` → `letter-b-recognition`
+  - P2: the smoke override to `3001` is an environment detail, not a product defect. Another local WonderQuest server was already using `3000`, so QA had to target the fresh server explicitly.
+  - P2: this is still an uncommitted local batch, so the board must remain current if the developer lane keeps moving from here.
+- Decision:
+  - approved: current local early-guided sequencing batch
+- Next action:
+  - commit this bounded `play` / `platform` batch without mixing in another copy sweep
+  - keep the next batch pointed at child/play alpha behavior, not broad adult-route wording cleanup
+  - rerun live Render validation after the next deploy that includes this guided-sequencing change

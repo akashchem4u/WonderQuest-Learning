@@ -66,6 +66,12 @@ function shuffleArray<T>(items: T[]) {
 
 // ─── Question selection ───────────────────────────────────────────────────────
 
+const GUIDED_QUESTION_LIMIT = 3;
+const EARLY_GUIDED_SKILL_ORDER: Record<string, string[]> = {
+  PREK: ["count-to-3", "shape-circle", "letter-b-recognition"],
+  K1: ["short-a-sound", "read-simple-word", "add-to-10"],
+};
+
 function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
   const pool = getSampleQuestions().filter(
     (item) => item.launch_band === launchBandCode,
@@ -90,18 +96,66 @@ function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
   });
 }
 
+function selectEasyFirstGuidedQuestions(
+  launchBandCode: string,
+  pool: ReturnType<typeof getSessionQuestionPool>,
+) {
+  const skillPriority = EARLY_GUIDED_SKILL_ORDER[launchBandCode];
+
+  if (!skillPriority?.length) {
+    return shuffleArray(pool).slice(0, GUIDED_QUESTION_LIMIT);
+  }
+
+  const groupedBySkill = new Map<string, typeof pool>();
+
+  for (const item of pool) {
+    const existing = groupedBySkill.get(item.skill) ?? [];
+    existing.push(item);
+    groupedBySkill.set(item.skill, existing);
+  }
+
+  const selected = [];
+  const usedQuestionKeys = new Set<string>();
+
+  for (const skill of skillPriority) {
+    const nextQuestion = shuffleArray(groupedBySkill.get(skill) ?? []).find(
+      (item) => !usedQuestionKeys.has(item.question_key),
+    );
+
+    if (!nextQuestion) {
+      continue;
+    }
+
+    selected.push(nextQuestion);
+    usedQuestionKeys.add(nextQuestion.question_key);
+
+    if (selected.length === GUIDED_QUESTION_LIMIT) {
+      return selected;
+    }
+  }
+
+  const remainingQuestions = shuffleArray(
+    pool.filter((item) => !usedQuestionKeys.has(item.question_key)),
+  );
+
+  return [...selected, ...remainingQuestions].slice(0, GUIDED_QUESTION_LIMIT);
+}
+
 function selectSessionQuestions(launchBandCode: string, sessionMode: string) {
   const pool = getSessionQuestionPool(launchBandCode, sessionMode);
 
-  if (pool.length <= 3) {
+  if (pool.length <= GUIDED_QUESTION_LIMIT) {
     return pool;
   }
 
   if (sessionMode === "self-directed-challenge") {
-    return shuffleArray(pool.slice(0, Math.min(pool.length, 6))).slice(0, 3);
+    return shuffleArray(pool.slice(0, Math.min(pool.length, 6))).slice(
+      0,
+      GUIDED_QUESTION_LIMIT,
+    );
   }
 
-  return shuffleArray(pool).slice(0, 3);
+  return selectEasyFirstGuidedQuestions(launchBandCode, pool);
 }
 
 function buildRequestedFocus(questionKeys: string[], sessionMode: string) {
