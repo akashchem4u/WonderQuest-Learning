@@ -161,13 +161,18 @@ async function main() {
   assert(parent.linkedChildren.length > 0, "parent should have at least one linked child");
   assert(parent.childDashboard !== null, "childDashboard should be present after linking");
 
-  // Return visit — re-authenticate parent with existing credentials (PIN round-trip).
-  const { payload: parentReturn } = await postJson(baseUrl, "/api/parent/access", {
-    username: parentUsername,
-    pin: "1357",
+  // Return visit — restore the family surface from the session cookie alone (no credentials).
+  const headers = {};
+  const cookieHeader = buildCookieHeader();
+  if (cookieHeader) headers.Cookie = cookieHeader;
+  const sessionRestoreRaw = await fetch(`${baseUrl}/api/parent/session`, {
+    method: "GET",
+    headers,
   });
-  assert(parentReturn.guardian?.id === parent.guardian.id, "returning parent should get same guardian id");
-  assert(parentReturn.linkedChildren.length > 0, "linked children should persist across sessions");
+  assert(sessionRestoreRaw.ok, `GET /api/parent/session should succeed (got ${sessionRestoreRaw.status})`);
+  const parentReturn = await sessionRestoreRaw.json();
+  assert(parentReturn.guardian?.id === parent.guardian.id, "session-restored guardian id should match original");
+  assert(parentReturn.linkedChildren.length > 0, "linked children should be present in cookie-restored session");
 
   // ── Feedback submission ───────────────────────────────────────────────────
 
@@ -201,7 +206,7 @@ async function main() {
         childDashboardTimeSpentMs: parent.childDashboard?.totalTimeSpentMs ?? null,
         childDashboardAverageEffectiveness:
           parent.childDashboard?.averageEffectiveness ?? null,
-        parentReturnLinkedChildren: parentReturn.linkedChildren.length,
+        sessionRestoreLinkedChildren: parentReturn.linkedChildren.length,
         feedbackCategory: feedback.triage.category,
       },
       null,

@@ -2,7 +2,7 @@
 // Platform lane ownership (Phase 1 split from prototype-service.ts)
 // Parent lane may extend this module during Phase 2.
 //
-// Exports: accessParent
+// Exports: accessParent, restoreParentSession
 
 import { db } from "@/lib/db";
 import {
@@ -402,6 +402,41 @@ export async function accessParent(
           trophyCount: Number(linkedChild.trophy_count ?? 0),
         }
       : null,
+    linkedChildren,
+    childDashboards,
+    childDashboard,
+  };
+}
+
+export async function restoreParentSession(guardianId: string) {
+  const guardianResult = await db.query(
+    `
+      select id, username, display_name
+      from public.guardian_profiles
+      where id = $1
+      limit 1
+    `,
+    [guardianId],
+  );
+
+  if (!guardianResult.rowCount) {
+    throw new Error("Guardian profile was not found.");
+  }
+
+  const guardianRow = guardianResult.rows[0];
+  const linkedChildren = await getLinkedChildren(guardianId);
+  const childDashboards = (
+    await Promise.all(linkedChildren.map((child) => getChildDashboard(child.id)))
+  ).filter((d): d is NonNullable<typeof d> => Boolean(d));
+  const childDashboard = childDashboards[0] ?? null;
+
+  return {
+    guardian: {
+      id: guardianRow.id as string,
+      username: guardianRow.username as string,
+      displayName: guardianRow.display_name as string,
+    },
+    linkedChild: null,
     linkedChildren,
     childDashboards,
     childDashboard,

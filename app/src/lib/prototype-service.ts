@@ -23,7 +23,7 @@ import { hashPin, normalizeUsername, validatePin, verifyPin } from "@/lib/pin";
 // ─── Re-exports ───────────────────────────────────────────────────────────────
 
 export { createPlaySession, answerQuestion } from "@/lib/session-service";
-export { accessParent } from "@/lib/parent-service";
+export { accessParent, restoreParentSession } from "@/lib/parent-service";
 export {
   getOwnerOverview,
   getTeacherOverview,

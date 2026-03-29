@@ -491,6 +491,42 @@ export default function ParentAccessPage() {
     },
   ];
 
+  // Attempt cookie-based session restore on first mount.
+  // If the parent already has a valid wonderquest-parent-session cookie,
+  // skip the credential form and restore the family dashboard silently.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function trySessionRestore() {
+      try {
+        const response = await fetch("/api/parent/session", { method: "GET" });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const payload = (await response.json()) as ParentAccessResponse;
+
+        if (cancelled) {
+          return;
+        }
+
+        setSelectedChildId(
+          payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null,
+        );
+        setResult(payload);
+        setShowAccessManager(false);
+      } catch {
+        // No valid session — stay on the credential form.
+      }
+    }
+
+    void trySessionRestore();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!result) {
       return;
