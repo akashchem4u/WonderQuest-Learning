@@ -153,7 +153,7 @@ export default async function OwnerTriageDetailPage({
                         <span className="summary-chip">{detail.reviewStatus}</span>
                       </div>
                     </div>
-                    <strong>{detail.studentDisplayName ?? "No linked child name available"}</strong>
+                    <strong>{detail.studentDisplayName ?? "Student name not available"}</strong>
                     <p>{detail.message}</p>
                     <div className="summary-chip-row">
                       <span className="summary-chip">{detail.sourceChannel}</span>
@@ -244,7 +244,7 @@ export default async function OwnerTriageDetailPage({
                   <p>
                     {detail.reviewerNote
                       ? detail.reviewerNote
-                      : "Capture what changed, who owns the next move, and whether the item is fixed, deferred, or still under review."}
+                      : "Add a note with what changed, who owns the next action, and current status — fixed, deferred, or still in review."}
                   </p>
                   <div className="summary-chip-row">
                     <span className="summary-chip">Assign</span>

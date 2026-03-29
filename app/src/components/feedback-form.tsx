@@ -147,7 +147,7 @@ export function FeedbackForm({
         <span>What happened?</span>
         <textarea
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="Describe what you saw, expected, or want improved."
+          placeholder="What happened? e.g. The quiz didn't load after I answered the first question."
           rows={5}
           value={message}
         />
@@ -155,11 +155,10 @@ export function FeedbackForm({
       {error ? <p className="status-banner status-error">{error}</p> : null}
       {result ? (
         <div className="status-panel status-success">
-          <strong>Feedback captured.</strong>
+          <strong>Thanks — feedback sent.</strong>
           <p>
-            Routed as <strong>{result.triage.category}</strong> with{" "}
-            {Math.round(result.triage.confidence * 100)}% confidence to{" "}
-            {result.triage.routingTarget}.
+            Filed as <strong>{result.triage.category}</strong> and sent to
+            the {result.triage.routingTarget} team.
           </p>
         </div>
       ) : null}
