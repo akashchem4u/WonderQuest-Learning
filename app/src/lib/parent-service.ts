@@ -5,6 +5,11 @@
 // Exports: accessParent
 
 import { db } from "@/lib/db";
+import {
+  assertParentAccessAllowed,
+  clearParentAccessFailures,
+  recordParentAccessAttempt,
+} from "@/lib/parent-access";
 import { hashPin, normalizeUsername, validatePin, verifyPin } from "@/lib/pin";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,6 +22,11 @@ type ParentAccessInput = {
   relationship?: string;
   notifyWeekly?: boolean;
   notifyMilestones?: boolean;
+};
+
+type ParentAccessContext = {
+  ipAddress?: string | null;
+  userAgent?: string | null;
 };
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -213,7 +223,10 @@ async function getChildDashboard(studentId: string) {
 
 // ─── Exported service functions ───────────────────────────────────────────────
 
-export async function accessParent(input: ParentAccessInput) {
+export async function accessParent(
+  input: ParentAccessInput,
+  context: ParentAccessContext = {},
+) {
   const username = normalizeUsername(ensureText(input.username));
   const pin = ensureText(input.pin);
   const displayName = ensureText(input.displayName);
@@ -227,6 +240,8 @@ export async function accessParent(input: ParentAccessInput) {
   if (!validatePin(pin)) {
     throw new Error("PIN must be exactly 4 digits.");
   }
+
+  await assertParentAccessAllowed(username, context.ipAddress ?? null);
 
   let guardianRow: Record<string, unknown>;
 
@@ -244,6 +259,13 @@ export async function accessParent(input: ParentAccessInput) {
     const row = existing.rows[0];
 
     if (!verifyPin(pin, username, row.pin_hash as string)) {
+      await recordParentAccessAttempt({
+        identifier: username,
+        ipAddress: context.ipAddress ?? null,
+        userAgent: context.userAgent ?? null,
+        succeeded: false,
+        failureReason: "wrong-pin",
+      });
       throw new Error("Wrong username or PIN.");
     }
 
@@ -338,6 +360,15 @@ export async function accessParent(input: ParentAccessInput) {
       );
     }
   }
+
+  await clearParentAccessFailures(username, context.ipAddress ?? null);
+  await recordParentAccessAttempt({
+    identifier: username,
+    ipAddress: context.ipAddress ?? null,
+    userAgent: context.userAgent ?? null,
+    succeeded: true,
+    failureReason: null,
+  });
 
   const linkedChildren = await getLinkedChildren(guardianRow.id as string);
   const dashboardStudentId =
