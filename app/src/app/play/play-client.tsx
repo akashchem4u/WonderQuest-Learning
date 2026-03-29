@@ -1308,10 +1308,10 @@ export default function PlayClient() {
         <main className="page-shell page-shell-split">
           <section className="page-hero">
             <div>
-              <span className="eyebrow">Live challenge</span>
-              <h1>Preparing your next challenge.</h1>
+              <span className="eyebrow">Almost ready</span>
+              <h1>Getting your quest ready.</h1>
               <p>
-                Loading the first playable question set from the live prototype.
+                Picking the right questions for your band and skill level.
               </p>
             </div>
           </section>
@@ -1436,16 +1436,18 @@ export default function PlayClient() {
         ) : null}
         <section className="page-hero play-hero">
           <div>
-            <span className="eyebrow">Live challenge</span>
+            <span className="eyebrow">
+              {returningEntry ? "Welcome back" : "Quest time"}
+            </span>
             <h1>
               {earlyLearnerMode
-                ? `${session.student.displayName}&apos;s quick quest is ready.`
-                : `${session.student.displayName}&apos;s active quest loop.`}
+                ? `${session.student.displayName}'s quest is ready.`
+                : `${session.student.displayName}'s quest loop.`}
             </h1>
             <p>
               {earlyLearnerMode
                 ? "Short, guided questions with voice support, visuals, and fast wins."
-                : "This is the first playable Supabase-backed session flow with retries, explainers, and persistent progression."}
+                : "Answer questions, earn points, and keep the streak going. Retries and explainers are ready if you need them."}
             </p>
             <div className="summary-chip-row">
               <span className="summary-chip">{session.student.launchBandCode} band</span>
