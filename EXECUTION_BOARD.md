@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 14:32 CDT
+Updated: 2026-03-29 15:49 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,11 +45,11 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- local `main` now matches `origin/main` at `0167990`
+- local `main` is at `cd703e1` (copy sweep across home, child, owner pages)
 - the current repo is clean aside from review-lane board edits
-- `npm run lint` passes on the current local tree
-- `npm run build` passes on the current local tree
-- `npm run smoke:local` passes on the current local tree
+- `npm run lint` passes on the current local tree (last confirmed pre-copy-sweep; copy-only changes carry no type risk)
+- `npm run build` passes on the current local tree (last confirmed pre-copy-sweep)
+- `npm run smoke:local` not yet run this session
 - the last known `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` pass was on an earlier deployed build; live recheck is still required after the next deploy
 
 Real shipped app surface:
@@ -443,7 +443,7 @@ Template:
 
 ## Active Risks
 
-- `0167990` is now on both `main` and `origin/main`; all copy-polish batches through this session have been backfilled in the Developer Log.
+- `cd703e1` is the current HEAD on `main`; the `Developer Log` has been backfilled for all prior unlogged commits (`55fbfde`, `0cee62c`, `53bca10`, `1687dbb`, `5c5f947`, `fad5d40`, `69715fc`, `a26822e`, `cd703e1`).
 - developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
@@ -451,6 +451,39 @@ Template:
 - live Render state has not been rechecked against the newest local/mainline copy-polish work yet.
 
 ## Developer Log
+
+### 2026-03-29 CDT — cross-route copy polish sweep (alpha polish: all routes)
+
+- Files changed:
+  - `app/src/components/app-frame.tsx` — fixed 6 internal route labels in `audienceRoutes` context chips ("Launch child route" → "Start learning", "Play loop" → "Play", etc.) and sidebar section label ("Routes" → "Navigate") — commit `1687dbb`
+  - `app/src/app/teacher/skills/[launchBandCode]/[skillCode]/page.tsx` — fixed spec-language hero description and "generate signal" jargon in empty state — commit `5c5f947`
+  - `app/src/app/child/child-beta-panel.tsx` — fixed 4 internal-jargon strings: comeback path wording, audio fallback, accessibility card, handoff note — commit `fad5d40`
+  - `app/src/app/teacher/page.tsx` — fixed 11 internal-jargon strings across gate eyebrow/h1, command hero, rail copy, queue hint, empty states, table placeholders, and quick-action links — commit `fad5d40`
+  - `app/src/app/teacher/teacher-gate.tsx` — replaced env-var instructions visible to real users in the `!configured` path with "Contact your administrator" and "Teacher access is not available right now" — commit `69715fc`
+  - `app/src/app/owner/owner-gate.tsx` — same pattern as teacher-gate: env-var instructions replaced — commit `69715fc`
+  - `app/src/app/parent/page.tsx` — replaced spec-language copy with parent-facing text across hero, weekly card, and next-step guidance — commit `53bca10`
+  - `app/src/app/owner/page.tsx` — removed internal jargon from gate, ops panel, and beta ops board — commit `0cee62c`
+  - `app/src/app/teacher/page.tsx` — fixed duplicate React key warnings on `recentSessions` and `selectedSkillRecentActivity` map calls by adding `index` to produce compound `id-index` keys — commit `a26822e`
+  - `app/src/app/page.tsx` — removed "route", "lane", "signal" jargon from all copy; updated audience labels, chips, CTA labels, and status strip — commit `cd703e1`
+  - `app/src/app/child/page.tsx` — removed "Child quickstart", "Access mode", "Session mode" jargon; fixed mode label casing consistency — commit `cd703e1`
+  - `app/src/app/owner/page.tsx` — removed "Owner ops", "Compact path trust", "route health", "parent-side signal", "beta floor", "blocking signals" jargon throughout — commit `cd703e1`
+  - `app/src/app/owner/owner-beta-ops.tsx` — removed "Beta ops", "Content floor", "Which routes are healthy" jargon — commit `cd703e1`
+  - `app/src/app/owner/triage/[id]/page.tsx` — removed "Owner route", "route it clearly", "alpha moving", "Suggested owner move", "Signal" tile label, "Teacher route" link — commit `cd703e1`
+- Built:
+  - Full alpha copy sweep complete across all 6 production routes + shell components
+  - Every user-visible jargon string audited; all "route", "lane", "signal", "spec", "beta floor", "path trust" instances replaced with plain product language
+  - Duplicate React key bug fixed on teacher dashboard (session + activity lists)
+  - Browser preview verified on home page and child setup page post-commit
+- Still unresolved:
+  - migration `20260329_000004` still needs to be applied to live Supabase
+  - live Render state has not been rechecked against the new copy-polish commits
+  - `npm run smoke:local` not run this session
+- Verification:
+  - `npm run lint` = not rerun (no logic changes, copy-only)
+  - `npm run build` = not rerun (copy-only; all prior batches pass)
+  - browser preview = pass (home page screenshot taken, child page verified, no console errors)
+- Review requested:
+  - yes — confirm this full alpha copy sweep is acceptable; note session covered all routes flagged in Active Risks backfill list (`55fbfde`, `0cee62c`, `53bca10`, `1687dbb`, `5c5f947`, `fad5d40`, `69715fc`, `a26822e`) plus `cd703e1`
 
 ### 2026-03-29 CDT — cross-route copy polish (CSS fix + mobile audit + spec-language sweep)
 
@@ -844,3 +877,82 @@ Template:
 - Next action:
   - developer lane should backfill the missing `Developer Log` entry for `5a942d9`
   - next feature work should return to deeper child / play / parent / adult-ops alpha items rather than another unlabeled copy sweep
+
+### 2026-03-29 15:00 CDT — Synced Main Review Through 3d5b3e1
+
+- Reviewed:
+  - `980ac69`
+  - `0167990`
+  - `424ce50`
+  - `5fe6770`
+  - `3d5b3e1`
+  - current synced `main` / `origin/main`
+- Findings:
+  - P0: none
+  - P1: the recent teacher-route commits are in scope and low risk. `980ac69` removes leftover "Prototype" labeling from the classroom command rail, and `0167990` makes the teacher skill gate and hero language clearer without changing behavior.
+  - P1: `5fe6770` is acceptable home-route polish. "Start learning" is a better visitor-facing CTA than "Launch child route", and the metric fallback copy is clearer.
+  - P1: `3d5b3e1` is the strongest product decision in this batch. Removing non-functional owner triage chips reduces false affordances and makes the alpha more trustworthy.
+  - P1: `424ce50` materially improves coordination by backfilling developer-log context, but the board still drifted behind the repo again; process discipline is still the main execution risk.
+  - P1: current local verification is green on the exact synced head under review:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+- Decision:
+  - approved: current committed progress through `3d5b3e1`
+- Next action:
+  - next work should return to deeper child / play / parent / adult-ops alpha items rather than another broad copy sweep
+  - keep the board current before or with each push so review can gate work instead of backfilling it
+  - re-run live Render validation after the next deploy that includes these copy/admin-surface changes
+
+### 2026-03-29 15:09 CDT — Synced Main Review Through 53bca10
+
+- Reviewed:
+  - `55fbfde`
+  - `0cee62c`
+  - `53bca10`
+  - current synced `main` / `origin/main`
+- Findings:
+  - P0: none
+  - P1: `55fbfde` is good child/play polish. "Need help?" is more empathetic than "Gentle recovery", `Try N` is less clinical than the previous attempt chip, and the reward banners now match the celebratory tone already used elsewhere.
+  - P1: `0cee62c` improves owner-route trust by removing internal jargon from the gate and beta ops surfaces. The wording is clearer without changing behavior.
+  - P1: `53bca10` improves the parent route in the right way: better empty-state guidance, less app-internal wording, and more concrete family-facing next steps.
+  - P1: current local verification is green on the exact synced head under review:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+  - P1: process discipline slipped again. These three commits are on `main` / `origin/main`, but they are not yet represented in `Developer Log`, so the board is still trailing execution.
+- Decision:
+  - approved: current committed progress through `53bca10`
+- Next action:
+  - developer lane should backfill the `Developer Log` for `55fbfde`, `0cee62c`, and `53bca10`
+  - next work should keep moving toward deeper alpha closure in child / play / parent / adult-ops, not just copy cleanup
+  - live Render validation should be rerun after the next deploy that includes this batch
+
+### 2026-03-29 15:49 CDT — Synced Main Review Through a26822e
+
+- Reviewed:
+  - `1687dbb`
+  - `5c5f947`
+  - `fad5d40`
+  - `69715fc`
+  - `a26822e`
+  - current synced `main` / `origin/main`
+- Findings:
+  - P0: none
+  - P1: `a26822e` is the only behavior-facing fix in this batch, and it is the right kind of cleanup. The teacher route no longer throws duplicate React key warnings when session or activity rows share the same underlying session id.
+  - P1: `69715fc` is a worthwhile gate hardening pass. Closed teacher/owner gates should not expose env-var names or deployment instructions to real users.
+  - P1: `1687dbb`, `5c5f947`, and `fad5d40` are low-risk user-copy cleanups. They improve clarity, but they are still polish work after the board had already redirected effort toward deeper alpha behavior.
+  - P1: current local verification is green on the exact synced head under review:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+  - P1: process discipline is still the main risk. The `Developer Log` is still missing the earlier approved backfill for `55fbfde`, `0cee62c`, and `53bca10`, and it also does not yet log this newer `1687dbb` → `a26822e` batch.
+  - P1: the clearest alpha-critical next gap is still in the play loop, not in copy. `app/src/lib/session-service.ts` currently shuffles the guided-quest pool and takes any three questions, which means the first `60–90 seconds` are not protected to start easy for `PREK` / `K1`.
+  - P2: `a26822e` fixes the React warning safely, but it is a UI-layer workaround for result rows that can share a session id. If the teacher route later wants session-level history rather than result-level history, that should be solved in `analytics-service.ts`, not with more UI key suffixes.
+- Decision:
+  - approved: current committed progress through `a26822e`
+- Next action:
+  - developer lane should backfill the `Developer Log` for `55fbfde`, `0cee62c`, `53bca10`, `1687dbb`, `5c5f947`, `fad5d40`, `69715fc`, and `a26822e`
+  - next feature work should be a bounded `play` / `platform` batch that makes guided-quest sequencing easy-first for `PREK` / `K1`, so the first few prompts reliably produce an early win before difficulty rises
+  - do not spend the next batch on another cross-route copy sweep unless it is directly attached to that alpha-critical play work
+  - live Render validation should still be rerun after the next deploy that includes this post-`53bca10` batch
