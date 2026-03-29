@@ -1,0 +1,569 @@
+# WonderQuest Execution Board
+
+Updated: 2026-03-29 10:55 CDT
+Owner of this board: Architect / PM / Investor / User / QA review lane
+Builder lane: Developer-only implementation lane
+
+## Purpose
+
+This file is the single communication channel between:
+
+- the `review / architecture / project-management` lane
+- the `developer` lane
+
+Use this file to:
+
+- track the real milestone
+- assign lane ownership
+- record what is done vs pending
+- surface blockers and risks
+- log developer updates
+- log reviewer QA feedback
+- decide when WonderQuest is ready for `test-ready alpha`
+
+Do not use this file as a vague ideas document.
+Use it as the execution source of truth.
+
+## Immediate Goal
+
+The current finish target is:
+
+- `test-ready alpha`
+
+Not the target:
+
+- full MVP
+- full backlog completion
+- broad beta expansion
+
+Reference milestone docs:
+
+- [docs/TEST_READY_ALPHA_PLAN.md](./docs/TEST_READY_ALPHA_PLAN.md)
+- [docs/BETA_STAGING_PLAN.md](./docs/BETA_STAGING_PLAN.md)
+
+## Ground Truth
+
+As of 2026-03-29:
+
+- base branch tip matches `origin/main`; active local platform-lane changes are in review
+- head commit is `37326c2`
+- `npm run lint` passes
+- `npm run build` passes
+- `npm run smoke:local` passes when the production server is running
+- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` passes
+
+Real shipped app surface:
+
+- [app/src/app/page.tsx](./app/src/app/page.tsx)
+- [app/src/app/child/page.tsx](./app/src/app/child/page.tsx)
+- [app/src/app/play/play-client.tsx](./app/src/app/play/play-client.tsx)
+- [app/src/app/parent/page.tsx](./app/src/app/parent/page.tsx)
+- [app/src/app/teacher/page.tsx](./app/src/app/teacher/page.tsx)
+- [app/src/app/owner/page.tsx](./app/src/app/owner/page.tsx)
+
+Reference inventory only, not shipped progress:
+
+- `ui-agent/*`
+- `parallel-agent/*`
+- `app/public/design-system/*`
+
+## Role Split
+
+### Review / Architecture Lane
+
+This lane keeps:
+
+- architect hat
+- project manager hat
+- investor hat
+- user hat
+- QA / release hat
+
+Responsibilities:
+
+- keep scope pointed at the right milestone
+- prevent the build from drifting into detached UI work
+- review product coherence across routes
+- review UX from child, parent, teacher, owner, and business angles
+- verify quality gates
+- log approval, rejection, or revision requests in this file
+
+### Developer Lane
+
+This lane keeps:
+
+- builder hat only
+
+Responsibilities:
+
+- implement the assigned lane work
+- update the developer log in this file
+- not rewrite product strategy
+- not move scope without review approval
+- not claim completion without verification evidence
+
+## Operating Rules
+
+1. Only work in `app/`, `app/src/`, `app/scripts/`, `supabase/`, `tools/`, and required docs.
+2. No one should count `ui-agent`, `parallel-agent`, or design-browser inventory as shipped product completion.
+3. Shared-shell files freeze before route polish accelerates.
+4. Service and API contract changes should go through the platform lane, not route lanes.
+5. No direct merge to `main` during coordinated execution. Integrate through the integration lane first.
+6. Every meaningful developer batch must update the `Developer Log`.
+7. Every review pass must update the `Review Log`.
+8. A route is not done because it looks better. A route is done only when behavior, persistence, and QA are acceptable.
+
+## Coordination Cadence
+
+The coordination loop for this board is:
+
+1. the developer lane completes one bounded batch
+2. the developer lane appends a `Developer Log` entry
+3. the review lane inspects code, runs verification, and appends a `Review Log` entry
+4. the developer lane continues only after the next approved action is clear
+
+Use this cadence:
+
+- update the board after every meaningful batch, not at the end of a long hidden work stream
+- stop and request review before switching lanes
+- stop and request review before any risky refactor, schema change, or contract change
+- stop and request review if verification fails
+- use local shell time in `CDT` for board timestamps
+
+Escalate immediately in the board if any of these happen:
+
+- `npm run lint` fails
+- `npm run build` fails
+- `npm run smoke:local` fails
+- the work requires changing lane ownership
+- the work starts pulling in broad backlog items outside alpha scope
+
+Review SLA for this repo:
+
+- the review lane should inspect the board and repo delta as soon as a new developer batch appears
+- the builder lane should assume no batch is approved until the `Review Log` says so
+
+## Alpha Gate
+
+WonderQuest is `test-ready alpha` only when all of these are true:
+
+- a child can complete a short session with minimal adult rescue
+- the early learner path is visual-first and voice-first enough for PREK / K1
+- retry and explainer flows feel supportive, not mechanical
+- return and reward states feel real
+- a parent can understand what happened and what to do next
+- teacher and owner routes are action-oriented enough to support testing
+- mobile and tablet layouts are usable
+- local and live verification stay green
+
+## Lane Ownership
+
+| Lane | Branch / Worktree | Owns | Status | Next deliverable |
+| --- | --- | --- | --- | --- |
+| `integration` | `wq/integration` / `../wq-integration` | merge order, conflict resolution, final QA, deploy readiness | `pending` | baseline freeze + merge checklist |
+| `shell` | `wq/shell-foundation` / `../wq-shell` | `globals.css`, `app-frame.tsx`, `ui.tsx` | `pending` | freeze shared audience shells |
+| `platform` | `wq/platform-hardening` / `../wq-platform` | APIs, access/session logic, service modules, scripts, schema | `in review` | land safe service split, then finish parent durability + stronger smoke |
+| `child` | `wq/child-access` / `../wq-child` | child route and child beta panel | `pending` | simplify new vs returning and tighten recovery |
+| `play` | `wq/play-loop` / `../wq-play` | play route, play client, play support rail | `pending` | stronger first 90 seconds + completion / return quality |
+| `parent` | `wq/parent-hub` / `../wq-parent` | parent route | `pending` | durable family hub with child switching and clearer next steps |
+| `adult-ops` | `wq/adult-ops` / `../wq-adult` | teacher route, teacher skill detail, owner route, owner triage / beta ops | `pending` | teacher + owner action surfaces |
+
+## Current Priorities
+
+### P0 Now
+
+- keep the target locked to `test-ready alpha`
+- remove route-lane collision risk around the service layer
+- improve the child-to-play path before adding more adult polish
+- make parent reporting feel trustworthy and durable
+- keep verification green after every merge
+
+### P1 Next
+
+- teacher action lane maturity
+- owner triage and release readiness actions
+- responsive hardening on phone and tablet
+
+### Explicitly Not Now
+
+- native app packaging
+- billing / monetization
+- SIS import depth
+- multiplayer / live rooms
+- large backlog expansion beyond alpha needs
+
+## Execution Phases
+
+### Phase 0: Baseline Freeze
+
+Goal:
+
+- align all lanes on the same repo reality
+
+Tasks:
+
+- record commit baseline
+- confirm verification baseline
+- capture route screenshots
+- convert alpha gates into a checklist
+
+Exit:
+
+- all lanes start from the same assumptions
+
+### Phase 1: Parallelization Prep
+
+Goal:
+
+- make the repo safe for a builder lane to move quickly
+
+Tasks:
+
+- split the service layer into smaller modules
+- freeze shared shell ownership
+- establish API / route ownership boundaries
+
+Exit:
+
+- route work no longer collides on one monolithic file
+
+### Phase 2: Alpha-Critical Build
+
+Goal:
+
+- improve the real product, not the reference inventory
+
+Tasks:
+
+- child lane: reduce setup friction and improve recovery
+- play lane: improve visual-first loop, support states, reward states, and return states
+- parent lane: improve durable family understanding and next-step clarity
+- adult-ops lane: make teacher and owner routes action-oriented
+- platform lane: harden sessions, throttles, parent durability, and smoke coverage
+
+Exit:
+
+- the routes behave like one coherent product
+
+### Phase 3: Integration + QA
+
+Goal:
+
+- merge, verify, and remove regressions
+
+Merge order:
+
+1. `shell`
+2. `platform`
+3. `child`
+4. `play`
+5. `parent`
+6. `adult-ops`
+
+Required checks after each merge:
+
+- `npm run lint`
+- `npm run build`
+- `npm run start`
+- `npm run smoke:local`
+
+Exit:
+
+- all alpha gates pass locally
+
+### Phase 4: Deploy + Live Validation
+
+Goal:
+
+- confirm the hosted app matches local expectations
+
+Required checks:
+
+- `./tools/check_render_deploy_ready.sh`
+- deploy to Render
+- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com`
+
+Exit:
+
+- live app passes the release gate
+
+## File Ownership Map
+
+### Shell Lane Only
+
+- [app/src/app/globals.css](./app/src/app/globals.css)
+- [app/src/components/app-frame.tsx](./app/src/components/app-frame.tsx)
+- [app/src/components/ui.tsx](./app/src/components/ui.tsx)
+
+### Platform Lane Only
+
+- [app/src/lib/prototype-service.ts](./app/src/lib/prototype-service.ts)
+- [app/src/lib/child-access.ts](./app/src/lib/child-access.ts)
+- [app/src/lib/owner-access.ts](./app/src/lib/owner-access.ts)
+- [app/src/lib/teacher-access.ts](./app/src/lib/teacher-access.ts)
+- [app/src/lib/feedback-triage.ts](./app/src/lib/feedback-triage.ts)
+- [app/src/app/api/child/access/route.ts](./app/src/app/api/child/access/route.ts)
+- [app/src/app/api/parent/access/route.ts](./app/src/app/api/parent/access/route.ts)
+- [app/src/app/api/teacher/access/route.ts](./app/src/app/api/teacher/access/route.ts)
+- [app/src/app/api/owner/access/route.ts](./app/src/app/api/owner/access/route.ts)
+- [app/src/app/api/play/session/route.ts](./app/src/app/api/play/session/route.ts)
+- [app/src/app/api/play/answer/route.ts](./app/src/app/api/play/answer/route.ts)
+- [app/scripts/live-smoke.mjs](./app/scripts/live-smoke.mjs)
+- [app/scripts/apply-supabase-foundation.mjs](./app/scripts/apply-supabase-foundation.mjs)
+- [app/scripts/sync-launch-content.mjs](./app/scripts/sync-launch-content.mjs)
+
+### Child Lane Only
+
+- [app/src/app/child/page.tsx](./app/src/app/child/page.tsx)
+- [app/src/app/child/child-beta-panel.tsx](./app/src/app/child/child-beta-panel.tsx)
+- [app/src/app/child/child-beta-panel.module.css](./app/src/app/child/child-beta-panel.module.css)
+
+### Play Lane Only
+
+- [app/src/app/play/page.tsx](./app/src/app/play/page.tsx)
+- [app/src/app/play/play-client.tsx](./app/src/app/play/play-client.tsx)
+- [app/src/app/play/play-beta-support.tsx](./app/src/app/play/play-beta-support.tsx)
+- [app/src/app/play/play-beta-support.module.css](./app/src/app/play/play-beta-support.module.css)
+
+### Parent Lane Only
+
+- [app/src/app/parent/page.tsx](./app/src/app/parent/page.tsx)
+
+### Adult-Ops Lane Only
+
+- [app/src/app/teacher/page.tsx](./app/src/app/teacher/page.tsx)
+- [app/src/app/teacher/skills/[launchBandCode]/[skillCode]/page.tsx](./app/src/app/teacher/skills/[launchBandCode]/[skillCode]/page.tsx)
+- [app/src/app/owner/page.tsx](./app/src/app/owner/page.tsx)
+- [app/src/app/owner/owner-beta-ops.tsx](./app/src/app/owner/owner-beta-ops.tsx)
+- [app/src/app/owner/owner-beta-ops.module.css](./app/src/app/owner/owner-beta-ops.module.css)
+- [app/src/app/owner/triage/[id]/page.tsx](./app/src/app/owner/triage/[id]/page.tsx)
+
+## Review Checklist
+
+Use this checklist during every review pass.
+
+### Architect Hat
+
+- does the change move the real alpha milestone forward?
+- does it improve product coherence instead of adding isolated UI?
+- does it reduce or increase future engineering drag?
+
+### Project Manager Hat
+
+- is the scope bounded?
+- is the owner clear?
+- is the dependency order respected?
+- is anything blocked and unrecorded?
+
+### Investor Hat
+
+- does this improve the product’s likelihood of surviving real testing?
+- does it improve trust, retention, or operational visibility?
+- is the team spending time on core value or vanity work?
+
+### User Hat
+
+- is the child flow calmer and easier?
+- can a parent understand the session result and next step?
+- do teacher and owner routes help someone act, not just look?
+
+### QA Hat
+
+- does the route still work?
+- do build and smoke stay green?
+- are phone and tablet widths still acceptable?
+- does the live app still match expectations after deploy?
+
+## Developer Update Protocol
+
+The developer lane should append entries only under `Developer Log`.
+
+Each entry must include:
+
+- date / time
+- lane
+- files changed
+- what was built
+- what is still unresolved
+- verification run
+- whether review is requested
+
+Template:
+
+```md
+### 2026-03-29 HH:MM CDT — <lane>
+
+- Files changed:
+  - `path`
+- Built:
+  - ...
+- Still unresolved:
+  - ...
+- Verification:
+  - `npm run lint` = pass/fail
+  - `npm run build` = pass/fail
+  - `npm run smoke:local` = pass/fail/not run
+- Review requested:
+  - yes/no
+```
+
+## Review Feedback Protocol
+
+The review lane should append entries only under `Review Log`.
+
+Each entry must include:
+
+- date / time
+- what was reviewed
+- findings ordered by severity
+- approval, changes requested, or blocked
+- next required action
+
+Template:
+
+```md
+### 2026-03-29 HH:MM CDT — Review
+
+- Reviewed:
+  - ...
+- Findings:
+  - P0: ...
+  - P1: ...
+  - P2: ...
+- Decision:
+  - approved / changes requested / blocked
+- Next action:
+  - ...
+```
+
+## Open Decisions
+
+- accepted: keep `app/src/lib/prototype-service.ts` as a compatibility wrapper that re-exports split domain services during Phase 1
+- not accepted yet: starting route backlog lanes before platform and shell prep are both stable
+
+## Active Risks
+
+- the platform split is currently spread across one modified compatibility file and four untracked service modules; a partial commit would break clean checkouts and route imports
+- the service split is active but not yet committed / integrated, so the repo still depends on one in-flight platform batch
+- `play-client.tsx` and `parent/page.tsx` are very large and likely to accumulate regressions without disciplined review.
+- the design inventory is now large enough to distract execution if not tightly controlled.
+- parent durability is weaker than child / teacher / owner until the platform lane closes that gap.
+- local production smoke has now passed repeatedly in the review lane, but release confidence should still come from both developer-lane evidence and integration-lane evidence.
+
+## Developer Log
+
+### 2026-03-29 CDT — platform (Phase 0 + Phase 1)
+
+- Files changed:
+  - `app/src/lib/session-service.ts` (new) — createPlaySession, answerQuestion, full progression and question-selection logic
+  - `app/src/lib/parent-service.ts` (new) — accessParent, getLinkedChildren, getChildDashboard
+  - `app/src/lib/analytics-service.ts` (new) — getOwnerOverview, getTeacherOverview, getTeacherSkillDetail, getOwnerTriageDetail
+  - `app/src/lib/feedback-service.ts` (new) — createFeedback
+  - `app/src/lib/prototype-service.ts` (reduced) — retains accessChild; re-exports all other functions from the four new modules so all existing API routes and page imports continue to work without changes
+- Built:
+  - Phase 0: baseline commit `37326c2` recorded; all checks were already green before this batch
+  - Phase 1: split prototype-service.ts (1 635 lines) into four domain modules
+  - Barrel re-export pattern chosen so zero API route or page file changes were required
+  - Lane isolation achieved: session, parent, analytics, feedback logic can now be edited independently without touching prototype-service.ts
+- Still unresolved:
+  - shell lane (globals.css, app-frame.tsx, ui.tsx) not yet frozen — that is the next lane
+  - route lanes (child, play, parent, adult-ops) not yet started — dependent on shell + platform being merged first
+  - smoke:local not run (requires live Supabase connection); build and tsc pass
+- Verification:
+  - `npm run lint` = pass (tsc --noEmit clean)
+  - `npm run build` = pass (all 17 routes compiled, no type errors)
+  - `npm run smoke:local` = not run (requires live DB)
+- Review requested:
+  - yes — confirm the barrel approach is acceptable before shell lane starts
+
+### 2026-03-29 00:00 CDT — initialization
+
+- Files changed:
+  - `EXECUTION_BOARD.md`
+- Built:
+  - created the shared execution board and communication protocol
+  - defined role split, lane ownership, phase plan, file ownership, and review templates
+- Still unresolved:
+  - all implementation lanes are still pending
+- Verification:
+  - board initialization only
+- Review requested:
+  - yes
+
+## Review Log
+
+### 2026-03-29 00:00 CDT — Board Initialization Review
+
+- Reviewed:
+  - execution board structure and coordination protocol
+- Findings:
+  - P0: none
+  - P1: the service layer still needs a split before multiple build lanes can move safely
+  - P1: route lanes must treat design-system inventory as reference only
+  - P2: the board should be kept concise and updated after every batch so it remains useful
+- Decision:
+  - approved
+- Next action:
+  - start Phase 0 baseline freeze and Phase 1 platform / shell prep
+
+### 2026-03-29 10:50 CDT — Platform Split Review
+
+- Reviewed:
+  - `app/src/lib/prototype-service.ts`
+  - `app/src/lib/session-service.ts`
+  - `app/src/lib/parent-service.ts`
+  - `app/src/lib/feedback-service.ts`
+  - `app/src/lib/analytics-service.ts`
+- Findings:
+  - P0: none
+  - P1: this is the correct batch to do first because it reduces merge collisions without forcing route or API import churn
+  - P1: the barrel / compatibility-wrapper approach in `prototype-service.ts` is acceptable for Phase 1 and keeps the rest of the app stable while the split lands
+  - P1: this batch must land as one atomic commit; `prototype-service.ts` now re-exports four new service modules, and a partial commit would break a clean checkout
+  - P1: verification is green on the active batch:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+  - P1: the developer log says `smoke:local` was not run, but the review lane ran it successfully; verification claims need to stay current and exact
+  - P1: platform work is not finished after the split; parent durability, owner / teacher throttling, and stronger smoke coverage are still pending
+  - P2: progression helper logic now exists in more than one module, which is not breaking behavior today but can drift later if not consolidated
+- Decision:
+  - approved to continue within the `platform` lane
+- Next action:
+  - commit the safe service split as one atomic batch with all four new service modules included
+  - continue with `PLAT-02`, `PLAT-03`, and `PLAT-04`
+  - do not branch into route backlog work until platform and shell prep are both stable
+
+### 2026-03-29 11:15 CDT — Multi-Hat Governance Review
+
+- Reviewed:
+  - platform lane progress against milestone, execution discipline, user value, and verification posture
+- Findings:
+  - P0: none
+  - P1: architect hat — the developer lane is working on the right thing because reducing service-layer collision risk is required before broader multi-agent execution
+  - P1: project-manager hat — this batch is still platform prep, not route delivery, so the next approved move remains `PLAT-02`, `PLAT-03`, and `PLAT-04`, not backlog sprawl
+  - P1: investor hat — this work improves team throughput and lowers merge risk, but it does not yet improve the child or parent experience directly, so progress should be counted as infrastructure, not product win
+  - P1: user hat — there is no new end-user value yet, so do not market this batch internally as alpha closure progress beyond architecture readiness
+  - P2: QA hat — `lint` and `build` are green on the active split; local smoke retests were inconsistent in this sandbox, so another smoke pass should happen after the platform batch is committed and re-run from the integration lane
+- Decision:
+  - approved to keep moving inside the platform lane
+  - not approved to switch the developer lane into broad route backlog work yet
+- Next action:
+  - finish platform hardening
+  - commit the batch atomically
+  - then freeze shell ownership before route lanes accelerate
+
+### 2026-03-29 10:55 CDT — Follow-Up Smoke Verification
+
+- Reviewed:
+  - current platform-split worktree behavior after the approved Phase 1 refactor
+- Findings:
+  - P0: none
+  - P1: `npm run smoke:local` passed again from the current worktree after starting a production server locally
+  - P1: repeated smoke success means the active concern is now mostly procedural: the batch still must land atomically and still needs one more verification pass after commit / integration
+  - P2: the developer log verification block is now behind review-lane evidence and should be refreshed on the next developer update
+- Decision:
+  - approved to keep moving inside the `platform` lane
+- Next action:
+  - commit the platform split as one atomic batch
+  - rerun `npm run lint`, `npm run build`, and `npm run smoke:local` after the next platform batch
+  - keep route lanes paused until platform and shell prep are stable
