@@ -140,7 +140,7 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Launch bands</span>
               <strong>{launchStatus.launchBandCount}</strong>
-              <p>Age and band pathways already present in the live app shell.</p>
+              <p>Age-appropriate learning pathways for children ages 2–10.</p>
             </article>
             <article className="landing-metric-card">
               <span>Question bank</span>
@@ -150,7 +150,7 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Saved progress</span>
               <strong>Live</strong>
-              <p>Points, badges, and return-state motivation already persist across sessions.</p>
+              <p>Points, badges, and trophies carry over every time a child comes back.</p>
             </article>
             <article className="landing-metric-card">
               <span>Adult routes</span>
