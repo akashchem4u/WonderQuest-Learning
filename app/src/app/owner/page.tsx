@@ -48,11 +48,11 @@ export default async function OwnerPage() {
         <main className="page-shell page-shell-split">
           <section className="page-hero">
             <div>
-              <span className="eyebrow">Owner route</span>
+              <span className="eyebrow">Operations</span>
               <h1>Owner console access.</h1>
               <p>
-                This route is gated separately from child and parent access so the
-                owner dashboard is not openly exposed.
+                This dashboard is separate from the child and parent experience.
+                Access requires authentication to protect operational data.
               </p>
             </div>
           </section>
@@ -141,7 +141,7 @@ export default async function OwnerPage() {
     {
       badge: primaryFeedback ? "Triage live" : "Quiet",
       detail: primaryFeedback
-        ? `Latest queue item routes to ${primaryFeedback.routingTarget}`
+        ? `Latest queue item assigned to ${primaryFeedback.routingTarget}`
         : "Owner console has no recent feedback to triage yet",
       route: "/owner",
       status: primaryFeedback ? "good" : "watch",
@@ -610,7 +610,7 @@ export default async function OwnerPage() {
                         {session.effectivenessScore === null
                           ? "Still in progress"
                           : `${session.effectivenessScore}% effective`}{" "}
-                        · session observed on owner route
+                        · recorded during session
                       </p>
                     </article>
                   ))}
@@ -717,8 +717,8 @@ export default async function OwnerPage() {
                 </div>
               </div>
               <p className="owner-support-note">
-                Keep beta closed until the release gate reaches 90+, the owner
-                queue is calmer, and parent-side signal includes real households.
+                Keep beta closed until: readiness score reaches 90+, pending
+                feedback is cleared, and real parent households are linked.
               </p>
             </section>
           </aside>

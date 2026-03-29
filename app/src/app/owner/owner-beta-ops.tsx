@@ -159,8 +159,8 @@ export function OwnerBetaOps({
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <span className="shell-eyebrow">Milestone timeline</span>
-              <h3>What still has to land before beta opens?</h3>
+              <span className="shell-eyebrow">Launch readiness</span>
+              <h3>What needs to be done before launch?</h3>
             </div>
             <span className={`${styles.pill} ${styles[`tone-${readinessTone}`]}`}>
               {resolvedCount} of {releaseChecks.length} ready
@@ -204,8 +204,8 @@ export function OwnerBetaOps({
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <span className="shell-eyebrow">Queue pressure</span>
-              <h3>How much triage work is still stacked up?</h3>
+              <span className="shell-eyebrow">Pending reviews</span>
+              <h3>How much feedback still needs owner review?</h3>
             </div>
             <span className={styles.kpiValue}>{pressurePercent}%</span>
           </div>
@@ -220,8 +220,8 @@ export function OwnerBetaOps({
             <div className={styles.queueCopy}>
               <strong>{pendingReviewCount} items still need owner review</strong>
               <p>
-                The fastest burn-down path is to clear the queue, then keep the
-                highest-volume categories from rebuilding.
+                Clear pending reviews first, then watch the top feedback
+                categories to prevent the backlog from rebuilding.
               </p>
             </div>
           </div>
@@ -258,8 +258,8 @@ export function OwnerBetaOps({
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <span className="shell-eyebrow">Safety and trust</span>
-              <h3>Which routes feel healthy enough to trust?</h3>
+              <span className="shell-eyebrow">Route health</span>
+              <h3>Which routes are healthy enough to keep open?</h3>
             </div>
             <span className={styles.kpiValue}>
               {trustCount}/{routeHealth.length}
