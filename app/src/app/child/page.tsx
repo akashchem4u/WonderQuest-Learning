@@ -444,7 +444,9 @@ export default function ChildAccessPage() {
                 <span>
                   {earlyLearnerBand
                     ? "Tap four numbers for the grown-up setup step."
-                    : "Tap four numbers for quick sign-in next time."}
+                    : returningMode
+                      ? "Same 4 digits from last time."
+                      : "Tap four numbers for quick sign-in next time."}
                 </span>
               </div>
               <div className="pin-display" aria-label="PIN display">

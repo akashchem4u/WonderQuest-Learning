@@ -1218,7 +1218,7 @@ export default function ParentAccessPage() {
                             <small>
                               {dashboard
                                 ? `${dashboard.readinessLabel} · ${dashboard.recommendedFocus}`
-                                : "Newly linked"}
+                                : "No sessions yet — start a quest to see insights"}
                             </small>
                           </div>
                           {activeChildId === child.id ? (

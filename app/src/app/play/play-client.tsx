@@ -1871,6 +1871,9 @@ export default function PlayClient() {
                 </div>
               </>
             )}
+            {answerState?.needsRetry && !answerState.correct ? (
+              <p className="status-banner">Not quite — tap another answer.</p>
+            ) : null}
             {error ? <p className="status-banner status-error">{error}</p> : null}
             {answerState?.correct && !finished ? (
               <div className={`status-panel status-success ${earlyLearnerMode ? "celebration-panel" : ""}`}>
