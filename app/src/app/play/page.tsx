@@ -16,9 +16,9 @@ function PlayLoading() {
       <main className="page-shell page-shell-split">
         <section className="page-hero">
           <div>
-            <span className="eyebrow">Play route</span>
-            <h1>Preparing your next challenge.</h1>
-            <p>Loading the first playable question set from the live prototype.</p>
+            <span className="eyebrow">Almost ready</span>
+            <h1>Getting your quest ready.</h1>
+            <p>Picking the right questions for your band and skill level.</p>
           </div>
         </section>
       </main>

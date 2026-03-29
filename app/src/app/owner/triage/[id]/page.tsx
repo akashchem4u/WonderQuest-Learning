@@ -77,7 +77,7 @@ export default async function OwnerTriageDetailPage({
             detail:
               detail.routingTarget === "content"
                 ? `${overview.counts.exampleItems} example items · ${overview.counts.explainers} explainers live`
-                : `${overview.counts.sessions} sessions recorded across the prototype`,
+                : `${overview.counts.sessions} sessions recorded`,
           },
           {
             label: "Review state",

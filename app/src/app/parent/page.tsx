@@ -1059,7 +1059,7 @@ export default function ParentAccessPage() {
                     />
                     <FieldBlock
                       autoComplete="current-password"
-                      helper="Quick prototype access."
+                      helper="Use the same 4-digit PIN you set up."
                       label="4-digit PIN"
                       maxLength={4}
                       onChange={(event) => setPin(event.target.value)}

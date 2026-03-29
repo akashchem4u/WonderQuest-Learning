@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "WonderQuest Learning",
-  description: "Local prototype foundation for WonderQuest Learning.",
+  description: "WonderQuest Learning — play-first, skill-building adventures for children ages 2 to 10.",
 };
 
 export default function RootLayout({

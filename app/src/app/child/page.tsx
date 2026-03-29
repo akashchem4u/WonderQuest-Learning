@@ -418,7 +418,7 @@ export default function ChildAccessPage() {
                 autoComplete="username"
                 helper={
                   returningMode
-                    ? "Use the same username from the child&apos;s earlier setup."
+                    ? "Use the same username from the child's earlier setup."
                     : "Use the same username each time."
                 }
                 label="Username"
