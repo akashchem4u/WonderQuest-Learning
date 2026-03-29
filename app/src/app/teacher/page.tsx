@@ -756,7 +756,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         </span>
                         {selectedSkillRecentActivity.length ? (
                           <div className="teacher-timeline">
-                            {selectedSkillRecentActivity.map((activity) => {
+                            {selectedSkillRecentActivity.map((activity, index) => {
                               const icon = activity.firstTry
                                 ? "✓"
                                 : activity.remediationTriggered
@@ -777,7 +777,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                               );
 
                               return (
-                                <article className="teacher-timeline-row" key={activity.id}>
+                                <article className="teacher-timeline-row" key={`${activity.id}-${index}`}>
                                   <span className="teacher-timeline-dot" aria-hidden="true">
                                     {icon}
                                   </span>
@@ -874,8 +874,8 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                   title="Latest practice movement"
                 >
                   <div className="teacher-session-list">
-                    {recentSessions.map((session) => (
-                      <article className="teacher-session-card" key={session.id}>
+                    {recentSessions.map((session, index) => (
+                      <article className="teacher-session-card" key={`${session.id}-${index}`}>
                         <div className="teacher-session-card-top">
                           <strong>{session.launchBandCode}</strong>
                           <span>{formatShortDate(session.startedAt)}</span>
