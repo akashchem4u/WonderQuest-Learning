@@ -26,7 +26,7 @@ function buildReadinessItems(props: ChildBetaPanelProps) {
     },
     {
       done: props.pinLength >= 4,
-      detail: "The 4-digit handoff key is ready for grown-up setup.",
+      detail: "4-digit PIN is set — the child will use it to sign back in next time.",
       label: "PIN ready",
     },
     {
@@ -65,15 +65,17 @@ export function ChildBetaPanel(props: ChildBetaPanelProps) {
     <section className={`${styles.panel} ${panelToneClass}`}>
       <div className={styles.header}>
         <div className={styles.headerCopy}>
-          <span className={styles.kicker}>Beta handoff</span>
+          <span className={styles.kicker}>
+            {props.returningMode ? "Returning player" : "Setup guide"}
+          </span>
           <h2>
             {props.returningMode
               ? "Get the child back into the quest fast."
               : "Set up the device so the child can take over smoothly."}
           </h2>
           <p>
-            This panel turns the current setup state into a launch check: profile, PIN,
-            support mode, and a clean fallback if the browser does not have audio.
+            Check that the profile, PIN, and play mode are ready. When everything looks good,
+            tap launch and hand the device to the child.
           </p>
         </div>
         <div className={styles.scoreCard} aria-label={`${readinessPercent} percent ready for handoff`}>
