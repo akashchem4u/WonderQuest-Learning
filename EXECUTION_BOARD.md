@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 10:55 CDT
+Updated: 2026-03-29 11:27 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -162,7 +162,7 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 | --- | --- | --- | --- | --- |
 | `integration` | `wq/integration` / `../wq-integration` | merge order, conflict resolution, final QA, deploy readiness | `pending` | baseline freeze + merge checklist |
 | `shell` | `wq/shell-foundation` / `../wq-shell` | `globals.css`, `app-frame.tsx`, `ui.tsx` | `pending` | freeze shared audience shells |
-| `platform` | `wq/platform-hardening` / `../wq-platform` | APIs, access/session logic, service modules, scripts, schema | `in review` | land safe service split, then finish parent durability + stronger smoke |
+| `platform` | `wq/platform-hardening` / `../wq-platform` | APIs, access/session logic, service modules, scripts, schema | `in review` | close true parent durable-session restore, then finish stronger smoke + live migration rollout |
 | `child` | `wq/child-access` / `../wq-child` | child route and child beta panel | `pending` | simplify new vs returning and tighten recovery |
 | `play` | `wq/play-loop` / `../wq-play` | play route, play client, play support rail | `pending` | stronger first 90 seconds + completion / return quality |
 | `parent` | `wq/parent-hub` / `../wq-parent` | parent route | `pending` | durable family hub with child switching and clearer next steps |
@@ -445,12 +445,35 @@ Template:
 
 - the platform split is currently spread across one modified compatibility file and four untracked service modules; a partial commit would break clean checkouts and route imports
 - the service split is active but not yet committed / integrated, so the repo still depends on one in-flight platform batch
+- parent session infrastructure exists, but the parent route still appears form-driven rather than session-restored, so `PLAT-02` is not fully closed yet
 - `play-client.tsx` and `parent/page.tsx` are very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
 - parent durability is weaker than child / teacher / owner until the platform lane closes that gap.
 - local production smoke has now passed repeatedly in the review lane, but release confidence should still come from both developer-lane evidence and integration-lane evidence.
 
 ## Developer Log
+
+### 2026-03-29 CDT — platform (PLAT-02 close: true session restore)
+
+- Files changed:
+  - `app/src/lib/parent-service.ts` — added `restoreParentSession(guardianId)`: fetches guardian + linked children + dashboards by id, no credentials required
+  - `app/src/lib/prototype-service.ts` — re-exports `restoreParentSession`
+  - `app/src/app/api/parent/session/route.ts` (new) — `GET /api/parent/session`: validates `wonderquest-parent-session` cookie via `requireParentAccessSession`, returns family surface; 401 if missing/expired
+  - `app/src/app/parent/page.tsx` — added cancellable `useEffect` on first mount: calls `GET /api/parent/session`, populates `result` and hides the access form on success; falls back to credential form on 401
+  - `app/scripts/live-smoke.mjs` — replaced PIN-based return visit with real `GET /api/parent/session` cookie-only restore; asserts `guardian.id` and `linkedChildren.length` match
+- Built:
+  - PLAT-02 is now closed: parent route skips the credential form on return visits when a valid session cookie exists
+  - Smoke now proves durable session via cookie, not a credential re-submission
+  - Commit `f16b5ed` pushed to origin/main
+- Still unresolved:
+  - migration `20260329_000004` must be applied to live Supabase before Render will pass parent session or teacher/owner throttle
+  - shell lane not yet started
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass (18 routes, including new `/api/parent/session`)
+  - `npm run smoke:local` = not run (migration must be applied first)
+- Review requested:
+  - yes — confirm PLAT-02 is now fully closed; request approval to apply migration and move to shell lane
 
 ### 2026-03-29 CDT — platform (PLAT-02 / PLAT-03 / PLAT-04)
 
@@ -595,3 +618,33 @@ Template:
   - commit the platform split as one atomic batch
   - rerun `npm run lint`, `npm run build`, and `npm run smoke:local` after the next platform batch
   - keep route lanes paused until platform and shell prep are stable
+
+### 2026-03-29 11:27 CDT — PLAT-02 / PLAT-03 / PLAT-04 Review
+
+- Reviewed:
+  - `be3d6c4`
+  - `app/src/lib/parent-access.ts`
+  - `app/src/app/api/parent/access/route.ts`
+  - `app/src/app/parent/page.tsx`
+  - `app/src/lib/teacher-access.ts`
+  - `app/src/lib/owner-access.ts`
+  - `app/scripts/live-smoke.mjs`
+  - `supabase/migrations/20260329_000004_parent_access_sessions.sql`
+- Findings:
+  - P0: none
+  - P1: `PLAT-02` is overclaimed right now. The backend session layer exists and the parent API sets a cookie, but the actual parent route still appears to rely on credential submission via `/api/parent/access` rather than restoring the family surface from `wonderquest-parent-session`
+  - P1: smoke is greener than before, but it does not yet prove true session restoration. The new parent "return visit" check re-posts username + PIN instead of validating a cookie-only revisit path
+  - P1: `PLAT-03` looks acceptable as an infrastructure step. Teacher and owner throttling are wired into the access endpoints and did not break lint / build / smoke
+  - P2: the new migration comment says the access tables are being extended for parent, teacher, and owner sessions, but the actual `access_sessions` constraint still only permits `child` and `parent`; teacher / owner use throttled attempts plus cookies, not DB-backed sessions
+  - P2: local verification on the pushed head is green:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+- Decision:
+  - approved as incremental platform progress
+  - not approved to mark `PLAT-02` fully complete yet
+  - not approved to move the developer lane into shell or route backlog work yet
+- Next action:
+  - add a real session-restored parent return path that consumes `wonderquest-parent-session`
+  - update smoke so the parent durability assertion uses the session cookie rather than a PIN round-trip
+  - apply migration `20260329_000004_parent_access_sessions.sql` to the live Supabase instance before treating Render parent durability / throttling as live-ready
