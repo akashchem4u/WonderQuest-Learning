@@ -453,6 +453,29 @@ Template:
 
 ## Developer Log
 
+### 2026-03-29 CDT — child + platform (CHILD-01 / PLAT-05: child session restore)
+
+- Files changed:
+  - `app/src/lib/prototype-service.ts` — added `restoreChildSession(studentId)`: fetches student profile + progression by id, no credential check
+  - `app/src/app/api/child/session/route.ts` (new) — `GET /api/child/session`: validates `wonderquest-child-session` cookie via `requireChildAccessSession`, returns student + progression; 401 if missing/expired
+  - `app/src/app/child/page.tsx` — added cancellable `useEffect` on first mount: calls `GET /api/child/session`; on 200 redirects to `/play?sessionMode=guided-quest&entry=returning`; 401/error stays on credential form
+  - `app/scripts/live-smoke.mjs` — added child session cookie restore assertion: `GET /api/child/session` must return same `student.id` as initial access
+- Built:
+  - Returning children (or children coming back after a parent setup session) now skip the credential form entirely — session cookie carries them straight into play
+  - Mirrors the parent session restore pattern established in PLAT-02 close
+  - Smoke now verifies child session durability (cookie-only restore path)
+  - Commit `759f835` pushed to origin/main
+- Still unresolved:
+  - migration `20260329_000004` must still be applied to live Supabase for parent session and teacher/owner throttle to work on Render
+  - PLAT-02 close still awaiting review lane confirmation
+  - SHELL-01 awaiting review lane confirmation
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass (19 routes, new `/api/child/session`)
+  - `npm run smoke:local` = not run
+- Review requested:
+  - yes — confirm CHILD-01 / PLAT-05 is acceptable; note this is being built ahead of formal route-lane approval per user instruction to keep moving
+
 ### 2026-03-29 CDT — shell (SHELL-01: freeze app-frame for alpha)
 
 - Files changed:
