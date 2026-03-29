@@ -1611,11 +1611,11 @@ export default function PlayClient() {
                     </div>
                   </>
                 ) : null}
-                <strong>{earlyLearnerMode ? "Quest complete!" : "Session complete."}</strong>
+                <strong>Quest complete!</strong>
                 <p>
                   {earlyLearnerMode
                     ? `${session.student.displayName} finished all ${session.questions.length} quick challenge steps${returningEntry ? " and kept the same saved rewards moving forward" : ""}.`
-                    : `${session.student.displayName} finished the current loop with ${progression?.totalPoints ?? 0} total points and level ${progression?.currentLevel ?? 1}${returningEntry ? ", with progress picked up exactly where it was left" : ""}.`}
+                    : `${session.student.displayName} finished all ${session.questions.length} questions with ${progression?.totalPoints ?? 0} total points at level ${progression?.currentLevel ?? 1}${returningEntry ? ", picking up right where they left off" : ""}.`}
                 </p>
                 {earlyLearnerMode ? (
                   <div className="finished-quest-strip">
@@ -1648,12 +1648,10 @@ export default function PlayClient() {
                     </span>
                   </div>
                 )}
-                {earlyLearnerMode ? (
-                  <div className="finished-quest-note">
-                    <strong>Next step</strong>
-                    <p>{nextQuestTeaser.body}</p>
-                  </div>
-                ) : null}
+                <div className="finished-quest-note">
+                  <strong>Next step</strong>
+                  <p>{nextQuestTeaser.body}</p>
+                </div>
                 <div className="form-actions">
                   <Link className="primary-link" href="/child">
                     {earlyLearnerMode ? "Start another short quest" : "Play again"}
