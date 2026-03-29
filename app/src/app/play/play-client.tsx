@@ -1881,11 +1881,11 @@ export default function PlayClient() {
                     <span>✨</span>
                   </div>
                 ) : null}
-                <strong>{earlyLearnerMode ? celebrationCopy.title : "Nice work."}</strong>
+                <strong>{earlyLearnerMode ? celebrationCopy.title : "Got it!"}</strong>
                 <p>
                   {earlyLearnerMode
                     ? celebrationCopy.body
-                    : `+${answerState.pointsEarned} points. Correct answer locked in for this question.`}
+                    : `+${answerState.pointsEarned} points earned. Keep the streak going.`}
                 </p>
                 <div className="summary-chip-row">
                   <span className="summary-chip">

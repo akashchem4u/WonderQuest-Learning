@@ -57,8 +57,8 @@ export function PlayBetaSupport({
   onVisualOnly,
 }: PlayBetaSupportProps) {
   const voiceCopy = voiceAvailable
-    ? "Audio is ready when this browser can speak."
-    : "This browser cannot play audio, so the screen keeps the full job.";
+    ? "Tap 'Hear it again' any time the child wants to replay the question."
+    : "Audio is not available right now — the pictures and buttons carry the whole quest.";
 
   return (
     <section className={styles.board} data-tone={helperTone}>
@@ -70,7 +70,7 @@ export function PlayBetaSupport({
         </div>
         <div className={styles.statusStack}>
           <span className={styles.statusPill}>Stars stay safe</span>
-          <span className={styles.statusPill}>Touch targets 44px+</span>
+          <span className={styles.statusPill}>Retries are free</span>
           <span className={`${styles.statusPill} ${voiceAvailable ? styles.statusReady : styles.statusMuted}`}>
             {getAssistLabel(assistMode)}
           </span>
