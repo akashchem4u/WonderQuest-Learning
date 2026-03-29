@@ -60,9 +60,6 @@ export default async function HomePage() {
             <Link className="landing-mini-link" href="/owner">
               Platform ops
             </Link>
-            <Link className="landing-mini-link" href="/design-system">
-              Design system
-            </Link>
           </div>
 
           <div className="landing-topbar-actions">
