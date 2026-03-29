@@ -1,12 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   OWNER_COOKIE_NAME,
+  OwnerAccessThrottleError,
+  assertOwnerAccessAllowed,
   isOwnerAccessConfigured,
   isValidOwnerCode,
   issueOwnerAccessToken,
+  recordOwnerAccessAttempt,
 } from "@/lib/owner-access";
+import { getRequestIpAddress, getRequestUserAgent } from "@/lib/child-access";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const ipAddress = getRequestIpAddress(request);
+  const userAgent = getRequestUserAgent(request);
+
   try {
     const body = (await request.json()) as { code?: string };
     const code = body.code?.trim() ?? "";
@@ -18,12 +25,17 @@ export async function POST(request: Request) {
       );
     }
 
+    await assertOwnerAccessAllowed(ipAddress);
+
     if (!isValidOwnerCode(code)) {
+      await recordOwnerAccessAttempt({ ipAddress, userAgent, succeeded: false });
       return NextResponse.json(
         { error: "Owner access code is not valid." },
         { status: 401 },
       );
     }
+
+    await recordOwnerAccessAttempt({ ipAddress, userAgent, succeeded: true });
 
     const response = NextResponse.json({ ok: true });
     response.cookies.set({
@@ -38,12 +50,10 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
+    const status = error instanceof OwnerAccessThrottleError ? 429 : 400;
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Owner access failed.",
-      },
-      { status: 400 },
+      { error: error instanceof Error ? error.message : "Owner access failed." },
+      { status },
     );
   }
 }

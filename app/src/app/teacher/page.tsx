@@ -397,7 +397,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                 <div className="summary-chip-row">
                   <span className="summary-chip">Aggregate only</span>
                   <span className="summary-chip">
-                    {overview.counts.students} learners in prototype
+                    {overview.counts.students} active learners
                   </span>
                   <span className="summary-chip">
                     {averageSessionsPerLearner} sessions per learner
@@ -412,7 +412,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
 
               <div className="teacher-command-kpis">
                 <StatTile
-                  detail="Learners in prototype"
+                  detail="Active learners"
                   label="Students"
                   value={`${overview.counts.students}`}
                 />

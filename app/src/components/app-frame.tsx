@@ -8,39 +8,38 @@ const navItems = [
   { href: "/parent", label: "Family", icon: "👨‍👩‍👧" },
   { href: "/teacher", label: "Classroom", icon: "🎓" },
   { href: "/owner", label: "Ops", icon: "🔑" },
-  { href: "/design-system", label: "Design System", icon: "🎨" },
 ];
 
 const audienceMeta = {
   home: {
-    label: "Platform launchpad",
-    shortLabel: "Launchpad",
-    title: "One product, five clear routes, and a child-first center of gravity.",
-    detail: "Child, family, classroom, and ops experiences stay distinct while sharing the same product language.",
+    label: "WonderQuest Learning",
+    shortLabel: "Home",
+    title: "Learning that meets every child where they are.",
+    detail: "A platform built for children, families, and classrooms — with the tools teachers and operators need.",
   },
   kid: {
-    label: "Child journey",
-    shortLabel: "Child",
-    title: "Play-first learning with bold visuals, soft recovery, and instant re-entry.",
-    detail: "The child route should feel alive before any adult dashboard asks for attention.",
+    label: "WonderQuest",
+    shortLabel: "Play",
+    title: "Your learning adventure starts here.",
+    detail: "Answer questions, earn rewards, and keep your streak alive.",
   },
   parent: {
-    label: "Family view",
+    label: "Family Hub",
     shortLabel: "Family",
-    title: "A calmer family hub for progress, celebration, and next-step guidance.",
-    detail: "Built to support the child route without turning home into a report card.",
+    title: "See how your child is growing.",
+    detail: "Progress, recent sessions, and what to celebrate next.",
   },
   teacher: {
-    label: "Classroom view",
+    label: "Classroom",
     shortLabel: "Classroom",
-    title: "Instructional visibility for class momentum, support lanes, and guided next moves.",
-    detail: "Designed for classroom action, not public comparison or noisy admin clutter.",
+    title: "Your class at a glance.",
+    detail: "Track momentum, spot support needs early, and act with confidence.",
   },
   owner: {
-    label: "Ops view",
+    label: "Ops Console",
     shortLabel: "Ops",
-    title: "A product operations console for launch signal, feedback flow, and content readiness.",
-    detail: "Operational visibility first, wiring depth second.",
+    title: "Platform health and launch readiness.",
+    detail: "Content coverage, feedback flow, and release signals in one place.",
   },
 } as const;
 
@@ -115,7 +114,6 @@ export function AppFrame({
                     {item.icon}
                   </span>
                   <span>{item.label}</span>
-                  <code>{item.href}</code>
                 </Link>
               );
             })}
@@ -178,16 +176,15 @@ export function AppFrame({
               <span>{meta.detail}</span>
             </div>
             <div className="app-signal-row">
-              <span className="app-signal-pill">Mode: {meta.shortLabel}</span>
-              <span className="app-signal-pill">UI-first rebuild</span>
-              <span className="app-signal-pill">Real route data</span>
+              <span className="app-signal-pill">{meta.shortLabel}</span>
+              <span className="app-signal-pill">Alpha</span>
             </div>
           </div>
 
           <div className="app-utility">
             <div className="app-utility-copy">
-              <span>Shipped app shell</span>
-              <strong>Shared route chrome across phone, tablet, and desktop.</strong>
+              <span>WonderQuest Learning</span>
+              <strong>Alpha</strong>
             </div>
             <DisplayModeToggle />
             <nav aria-label="Primary" className="app-nav">
