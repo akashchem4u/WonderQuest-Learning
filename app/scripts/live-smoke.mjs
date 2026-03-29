@@ -145,6 +145,20 @@ async function main() {
   assert(recovery.correct === true, "correct answer should set correct=true");
   assert(recovery.pointsEarned > 0, "correct answer should earn points");
 
+  // ── Child session cookie durability ───────────────────────────────────────
+
+  const childSessionHeaders = {};
+  const childCookieHeader = buildCookieHeader();
+  if (childCookieHeader) childSessionHeaders.Cookie = childCookieHeader;
+  const childRestoreRaw = await fetch(`${baseUrl}/api/child/session`, {
+    method: "GET",
+    headers: childSessionHeaders,
+  });
+  assert(childRestoreRaw.ok, `GET /api/child/session should succeed (got ${childRestoreRaw.status})`);
+  const childRestore = await childRestoreRaw.json();
+  assert(childRestore.student?.id === child.student.id, "session-restored student id should match original");
+  assert(typeof childRestore.progression?.totalPoints === "number", "session-restored progression should be present");
+
   // ── Parent access + session cookie durability ─────────────────────────────
 
   const { payload: parent } = await postJson(baseUrl, "/api/parent/access", {
@@ -197,6 +211,8 @@ async function main() {
       {
         baseUrl,
         childCreated: child.created,
+        childSessionCookieSet: cookieJar.has("wonderquest-child-session"),
+        childSessionRestoreStudentId: childRestore.student?.id ?? null,
         sessionId: session.sessionId,
         firstQuestion: firstQuestion.questionKey,
         retryNeedsExplainer: retry.needsRetry,

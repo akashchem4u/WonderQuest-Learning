@@ -112,6 +112,24 @@ export default function ChildAccessPage() {
     avatars.find((item) => item.avatar_key === selectedAvatar)?.display_name ?? "";
 
   useEffect(() => {
+    let cancelled = false;
+    async function trySessionRestore() {
+      try {
+        const response = await fetch("/api/child/session", { method: "GET" });
+        if (!response.ok || cancelled) return;
+        if (cancelled) return;
+        router.push("/play?sessionMode=guided-quest&entry=returning");
+      } catch {
+        // no valid session — stay on credential form
+      }
+    }
+    void trySessionRestore();
+    return () => {
+      cancelled = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (!avatars.some((item) => item.avatar_key === selectedAvatar)) {
       setSelectedAvatar(avatars[0]?.avatar_key ?? "");
     }

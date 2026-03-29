@@ -83,6 +83,48 @@ async function ensureProgressionState(studentId: string) {
 
 // ─── Exported service functions ───────────────────────────────────────────────
 
+export async function restoreChildSession(studentId: string) {
+  const result = await db.query(
+    `
+      select
+        sp.id,
+        sp.username,
+        sp.display_name,
+        sp.avatar_key,
+        sp.launch_band_code,
+        sp.preferred_theme_code,
+        ps.total_points,
+        ps.current_level,
+        ps.badge_count,
+        ps.trophy_count
+      from public.student_profiles sp
+      left join public.progression_states ps
+        on ps.student_id = sp.id
+      where sp.id = $1
+      limit 1
+    `,
+    [studentId],
+  );
+
+  if (!result.rowCount) {
+    throw new Error("Student profile not found.");
+  }
+
+  const row = result.rows[0];
+
+  return {
+    student: {
+      id: row.id as string,
+      username: row.username as string,
+      displayName: row.display_name as string,
+      avatarKey: row.avatar_key as string,
+      launchBandCode: row.launch_band_code as string,
+      preferredThemeCode: (row.preferred_theme_code as string | undefined) ?? null,
+    },
+    progression: toProgression(row),
+  };
+}
+
 export async function accessChild(
   input: ChildAccessInput,
   context: ChildAccessContext = {},
