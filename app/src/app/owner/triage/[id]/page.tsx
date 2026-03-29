@@ -246,11 +246,6 @@ export default async function OwnerTriageDetailPage({
                       ? detail.reviewerNote
                       : "Add a note with what changed, who owns the next action, and current status — fixed, deferred, or still in review."}
                   </p>
-                  <div className="summary-chip-row">
-                    <span className="summary-chip">Assign</span>
-                    <span className="summary-chip">Route</span>
-                    <span className="summary-chip">Mark resolved</span>
-                  </div>
                 </div>
               </ShellCard>
             </section>
