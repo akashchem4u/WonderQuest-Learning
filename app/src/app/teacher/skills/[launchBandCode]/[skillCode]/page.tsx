@@ -112,7 +112,7 @@ export default async function TeacherSkillDetailPage({
               value={detail ? `${detail.skill.masteryRate}%` : "n/a"}
             />
             <StatTile
-              detail="Before support"
+              detail="Without support"
               label="First try"
               value={detail ? `${detail.firstTryRate}%` : "n/a"}
             />
@@ -250,10 +250,10 @@ export default async function TeacherSkillDetailPage({
                   </div>
                 ) : (
                   <div className="teacher-empty-state">
-                    <strong>No recent activity on this skill yet</strong>
+                    <strong>No activity yet</strong>
                     <p>
-                      Once the class practices this skill again, the latest
-                      movement will appear here.
+                      Students will appear here once they have attempted this skill.
+                      Assign a session or run a guided quest to generate signal.
                     </p>
                   </div>
                 )}

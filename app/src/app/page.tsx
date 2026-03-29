@@ -81,9 +81,10 @@ export default async function HomePage() {
               with real <em>route clarity</em>.
             </h1>
             <p>
-              WonderQuest should feel alive in the child route, calm in the family
-              route, useful in the classroom route, and operationally sharp in the
-              ops route. This home screen is the launcher for that system.
+              WonderQuest helps children learn at their own pace, helps families
+              understand how things are going, helps teachers spot where students
+              need support, and keeps the platform running smoothly. Everything
+              starts here.
             </p>
 
             <div className="landing-chip-row">
@@ -112,11 +113,11 @@ export default async function HomePage() {
           <article className="landing-featured-card tone-kid">
             <div className="landing-featured-copy">
               <span className="landing-featured-label">Kid journey</span>
-              <h2>Put the child route in front. Let the adult routes support it from the edge.</h2>
+              <h2>Your child's learning comes first.</h2>
               <p>
-                The shipped UI should open with a bold child path, then let family,
-                classroom, and ops surfaces do their jobs without stealing the
-                center of gravity.
+                When you open WonderQuest, the child's journey is front and center.
+                Families, teachers, and platform admins each have their own space
+                that supports the child without getting in the way.
               </p>
               <div className="landing-chip-row">
                 <span className="landing-chip">Quick child access</span>
@@ -144,7 +145,7 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Question bank</span>
               <strong>{launchStatus.templateCount >= 8 ? "100+" : "Growing"}</strong>
-              <p>Enough content to keep the real routes from feeling like one repeated stub.</p>
+              <p>Real practice questions across multiple age levels and subjects.</p>
             </article>
             <article className="landing-metric-card">
               <span>Saved progress</span>
@@ -154,7 +155,7 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Adult routes</span>
               <strong>3</strong>
-              <p>Family, classroom, and ops surfaces stay purpose-built instead of blended together.</p>
+              <p>Families, teachers, and platform admins each have a focused space with no overlap.</p>
             </article>
           </div>
 
@@ -188,8 +189,8 @@ export default async function HomePage() {
             </div>
             <h2>Live product signal, not just a static mockup.</h2>
             <p>
-              These routes point at the actual app, so UI changes here affect the
-              real experience rather than a detached mock lane.
+              These routes connect to the live app — what you see here is the
+              actual product experience, not a prototype.
             </p>
           </div>
 
