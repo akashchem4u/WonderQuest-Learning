@@ -1311,7 +1311,7 @@ export default function PlayClient() {
               <span className="eyebrow">Almost ready</span>
               <h1>Getting your quest ready.</h1>
               <p>
-                Picking the right questions for your band and skill level.
+                Picking the right questions for your level.
               </p>
             </div>
           </section>
@@ -1324,11 +1324,11 @@ export default function PlayClient() {
     return (
       <AppFrame audience="kid" currentPath="/child">
         <main className="page-shell page-shell-split">
-          <ShellCard eyebrow="Play" title="We could not start the session">
-            <p>{error || "The session could not be prepared."}</p>
+          <ShellCard eyebrow="Play" title="Something went wrong">
+            <p>{error ? "Questions could not be loaded. Go back and try again." : "Your quest could not be prepared."}</p>
             <div className="form-actions">
               <Link className="primary-link" href="/child">
-                Back to child setup
+                Go back to setup
               </Link>
             </div>
           </ShellCard>
@@ -1382,16 +1382,16 @@ export default function PlayClient() {
       ? {
           eyebrow: "Trophy unlocked",
           title: "A new trophy just landed on the shelf!",
-          body: "This quest ended with a big celebration moment and a new trophy to replay later.",
+          body: "You earned this by finishing strong — it's saved to your trophy shelf.",
         }
       : answerState?.milestones.badgeEarned
         ? {
             eyebrow: "Badge earned",
             title: "New badge added to the collection.",
-            body: "This short quest added a fresh badge to the reward shelf for your next visit.",
+            body: "Saved to your badge collection — it will be there on your next visit.",
           }
         : {
-            eyebrow: "Next path opened",
+            eyebrow: "Next quest ready",
             title: nextQuestTeaser.title,
             body: nextQuestTeaser.body,
           };
@@ -1404,8 +1404,8 @@ export default function PlayClient() {
         },
         {
           emoji: "🧭",
-          title: "Saved quest spot",
-          body: `${questWorldLabel} · ${Math.min(currentIndex + 1, session.questions.length)} of ${session.questions.length} steps are ready to resume.`,
+          title: "Continue from where you left off",
+          body: `${questWorldLabel} · ${Math.min(currentIndex + 1, session.questions.length)} of ${session.questions.length} questions ready.`,
         },
         {
           emoji: "🎁",
@@ -1874,7 +1874,7 @@ export default function PlayClient() {
               </>
             )}
             {answerState?.needsRetry && !answerState.correct ? (
-              <p className="status-banner">Not quite — tap another answer.</p>
+              <p className="status-banner">Not quite! Check the hint and try a different answer.</p>
             ) : null}
             {error ? <p className="status-banner status-error">{error}</p> : null}
             {answerState?.correct && !finished ? (
@@ -1920,7 +1920,7 @@ export default function PlayClient() {
           <div className="play-side">
             <ShellCard
               className="shell-card-emphasis play-progress-card"
-              eyebrow="Session"
+              eyebrow="Quest"
               title="Progress right now"
             >
               <div className="reward-strip">
@@ -1930,7 +1930,7 @@ export default function PlayClient() {
                   detail={
                     earlyLearnerMode
                       ? "Short guided challenge"
-                      : `${progressPercent}% through this loop`
+                      : `${progressPercent}% through this quest`
                   }
                 />
                 {!earlyLearnerMode ? (
