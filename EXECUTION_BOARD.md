@@ -46,8 +46,9 @@ Reference milestone docs:
 As of 2026-03-30:
 
 - local `main` is at `cfc0e87` (`RELEASE-01` board/log sync after pushing `e65bceb` to Render)
-- the newest committed batches after `3feb0bc` are `35a4ea9` (`PLAY-04`), `991506e` (`PARENT-03`), `e65bceb` (`OPS-01`), and `cfc0e87` (`RELEASE-01` coordination log)
-- the current repo is dirty only with this review-lane sync update, a local maintenance patch to `tools/render_post_setup_check.sh`, and untracked live patch artifacts under `supabase/.temp/`
+- local `main` is at `bae63a4` (`chore(board): close release revalidation and refresh render check`)
+- the newest committed batches after `3feb0bc` are `35a4ea9` (`PLAY-04`), `991506e` (`PARENT-03`), `e65bceb` (`OPS-01`), `cfc0e87` (`RELEASE-01` coordination log), and `bae63a4` (board/tools sync)
+- the current repo is clean except untracked live patch artifacts under `supabase/.temp/`
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
 - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass on the current committed head — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
@@ -204,7 +205,7 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Coordination Baseline
 
-- use the current synced head `cfc0e87`
+- use the current synced head `bae63a4`
 - completed and locally validated on committed `main`: `ACCESS-01`, `PLAY-03`, `PARENT-02`, `DEVICE-02`, `CONTENT-01`, `CONTENT-SYNC-01`, `PLAY-04`, `PARENT-03`, and `OPS-01`
 - this next engineering round is explicitly approved now; the developer lane should start `PLAY-04` immediately and does not need another wait-state review entry before beginning
 - latest committed verification on current head:
@@ -658,7 +659,7 @@ Template:
 
 - control-plane freshness is still the primary coordination risk; the earlier developer-log backfill gap is closed, but `Ground Truth`, `Next Round Plan`, and `Review Log` must keep matching the real repo head as new batches land.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
-- `render_post_setup_check.sh` had stale route-copy expectations for `/child` and `/owner`; the local review-lane patch fixes the false negatives, but that tools update is not committed yet.
+- `render_post_setup_check.sh` needed route-copy maintenance for `/child` and `/owner`; that patch is now committed in `bae63a4`, so future live checks should no longer false-fail on current copy.
 - the design inventory is now large enough to distract execution if not tightly controlled.
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
@@ -1224,6 +1225,23 @@ Template:
   - yes
 
 ## Review Log
+
+### 2026-03-30 18:35 CDT — Board / Tools Sync Review
+
+- Reviewed:
+  - committed `main` through `bae63a4`
+  - `EXECUTION_BOARD.md`
+  - `tools/render_post_setup_check.sh`
+- Findings:
+  - P0: none
+  - P1: this commit is control-plane and QA-tooling maintenance only. No product behavior changed.
+  - P1: the board now reflects the real current head and no longer claims the Render-check copy patch is uncommitted.
+  - P2: the repo is clean except untracked `supabase/.temp/` artifacts from earlier live patching work.
+- Decision:
+  - approved: current committed progress through `bae63a4`
+- Next action:
+  - push `main`
+  - keep the stop condition active and wait for fresh testing signal before starting another product batch
 
 ### 2026-03-30 18:29 CDT — Live Deploy Revalidation Review
 
