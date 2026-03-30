@@ -177,14 +177,14 @@ export function AppFrame({
             </div>
             <div className="app-signal-row">
               <span className="app-signal-pill">{meta.shortLabel}</span>
-              <span className="app-signal-pill">Alpha</span>
+              <span className="app-signal-pill">Early Access</span>
             </div>
           </div>
 
           <div className="app-utility">
             <div className="app-utility-copy">
               <span>WonderQuest Learning</span>
-              <strong>Alpha</strong>
+              <strong>Early Access</strong>
             </div>
             <DisplayModeToggle />
             <nav aria-label="Primary" className="app-nav">
