@@ -357,8 +357,8 @@ export default async function OwnerPage() {
               <strong>{topBanner.title}</strong>
               <p>{topBanner.detail}</p>
             </div>
-            <Link className="owner-inline-link" href={primaryFeedback ? `/owner/triage/${primaryFeedback.id}` : "/owner"}>
-              Review now
+            <Link className="owner-inline-link" href={topBanner.actionHref}>
+              {topBanner.actionLabel} →
             </Link>
           </section>
         ) : null}
@@ -582,10 +582,15 @@ export default async function OwnerPage() {
                       <strong>{item.summary}</strong>
                       <span className="summary-chip">{item.urgency}</span>
                     </div>
-                    <p>{item.category} · assigned to {item.routingTarget} · {item.reviewStatus}</p>
-                    <Link className="owner-inline-link" href={`/owner/triage/${item.id}`}>
-                      Open detail
-                    </Link>
+                    <p>{item.category} · assigned to {item.routingTarget}</p>
+                    <div className="owner-feedback-status-row">
+                      <span className={`owner-review-status-chip is-${item.reviewStatus}`}>
+                        {item.reviewStatus}
+                      </span>
+                      <Link className="owner-inline-link" href={`/owner/triage/${item.id}`}>
+                        Open detail
+                      </Link>
+                    </div>
                   </article>
                 ))}
               </div>

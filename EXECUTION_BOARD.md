@@ -661,6 +661,25 @@ Template:
 
 ## Developer Log
 
+### 2026-03-30 CDT — adult-ops + shell (OPS-01: improve teacher/owner triage clarity)
+
+- Files changed:
+  - `app/src/app/owner/page.tsx`
+  - `app/src/app/globals.css`
+- Built:
+  - Owner priority banner bug fix: The "Review now" CTA in the `owner-priority-banner` was hardcoded to the primary feedback triage item even when the active blocker was about route health or content gaps. Changed the link to use `topBanner.actionHref` and `topBanner.actionLabel` so the banner CTA always routes to the correct next action for whatever blocker is surfaced.
+  - Owner feedback list: `reviewStatus` was rendered as raw inline text (hard to scan). Extracted into a `.owner-review-status-chip` badge with three tonal variants (pending = yellow, reviewed = mint, resolved = muted) inside a new `.owner-feedback-status-row` flex row. Now immediately scannable without reading the full text.
+  - Teacher queue: `.teacher-queue-action-text` was styled as muted gray text, making the actionable instruction the hardest thing to read in each queue item. Changed to a green pill badge (`border-radius: 999px`, `background: rgba(23, 122, 110, 0.07)`, `color: var(--parent-accent)`, `font-size: 0.82rem / font-weight: 800`) so the action instruction pops visually.
+  - No auth-model, permission, or schema changes. All changes are triage-clarity only.
+- Still unresolved:
+  - live Render still not redeployed; RELEASE-01 still queued
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = not re-run (no changes to session, feedback API, or scoring paths; OPS-01 is UI/copy-clarity only)
+- Review requested:
+  - no — continuing to RELEASE-01 per Queue Discipline
+
 ### 2026-03-30 CDT — parent + shell (PARENT-03: tighten active-child visibility and child-switching clarity)
 
 - Files changed:
