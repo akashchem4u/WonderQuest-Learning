@@ -43,14 +43,16 @@ Reference milestone docs:
 
 ## Ground Truth
 
-As of 2026-03-29:
+As of 2026-03-30:
 
-- local `main` is at `362312a` (backfill developer log for a0de407, 219de2f, 70d892e)
-- the current repo is dirty only with a board-only Ground Truth update and live patch artifacts under `supabase/.temp/`
+- local `main` is at `3feb0bc` (`CONTENT-01 + CONTENT-SYNC-01` — widen question coverage to `136` questions and `22` explainers)
+- the newest committed batches after `362312a` are `0618674` (`ACCESS-01 + PARENT-02`), `0b5bc22` (`PLAY-03`), and `3feb0bc` (`CONTENT-01 + CONTENT-SYNC-01`)
+- the current repo is dirty only with this board-sync update and untracked live patch artifacts under `supabase/.temp/`
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
-- `npm run smoke:local` = pass — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
-- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (re-run 2026-03-29 23:13 CDT against current deployed build after user-confirmed live migration)
+- `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3003 npm run smoke:local` = pass on the current committed head — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
+- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (re-run 2026-03-29 23:13 CDT against the current live deployment after user-confirmed live migration)
+- live Render has not yet been redeployed with `3feb0bc`, so the expanded `136/22` content bank is committed and synced in Supabase but not yet available in the deployed app
 
 Real shipped app surface:
 
@@ -196,278 +198,135 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Round Objective
 
-- keep build momentum moving even if owner-led testing does not start tomorrow morning
-- fix the newly surfaced alpha risk: existing-account login paths do not scan clearly enough on access routes
-- keep the next engineering round tightly focused on access clarity and alpha survival issues, not broad polish
+- keep momentum moving without waiting for owner-led testing to start
+- treat access clarity, parent scanability, early-learner inline help, phone-width audit, and first-pass content expansion as completed groundwork, not active queue items
+- move the next engineering round to deeper child/play momentum, parent comprehension under real switching, ops triage clarity, and release coordination for the expanded content bank
 
 ### Coordination Baseline
 
-- use the current synced head `362312a`
-- use the currently deployed Render app that passed `./tools/render_post_setup_check.sh` on 2026-03-29 23:13 CDT
-- do not wait for owner-led testing to begin before starting the next bounded build batch
-- `Developer Log` backfill for `a0de407`, `219de2f`, and `70d892e` is now complete in committed head `362312a`
+- use the current synced head `3feb0bc`
+- completed and validated on committed `main`: `ACCESS-01`, `PLAY-03`, `PARENT-02`, `DEVICE-02`, `CONTENT-01`, and `CONTENT-SYNC-01`
+- this next engineering round is explicitly approved now; the developer lane should start `PLAY-04` immediately and does not need another wait-state review entry before beginning
+- latest committed verification on current head:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3003 npm run smoke:local` = pass
+- public live validation remains green on the currently deployed Render build:
+  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = `7/7 pass`
+- deployed Render does not yet reflect `3feb0bc`, so the expanded `136/22` content bank is still a release-coordination item, not a live-validated one
 - poll this board before any new work and before every commit
 
-### Immediate Build Batch
+### Newly Closed This Round
 
-`ACCESS-01` — make first-time setup versus existing-account sign-in unmistakable on child, parent, and owner routes.
+- `ACCESS-01` — existing child, parent, and owner sign-in paths are now explicit on their access routes
+- `PLAY-03` — early-learner help actions now stay near the question instead of relying on the side rail alone
+- `PARENT-02` — the parent hub now answers what happened, what is going well, and what to do next in one scan
+- `DEVICE-02` — no code changes were needed after CSS audit; current breakpoints satisfy the defined `375px` hardening criteria
+- `CONTENT-01 + CONTENT-SYNC-01` — launch content widened from `100` to `136` questions and `12` to `22` explainers, with sync completed successfully
 
-Why this batch is first:
-
-- the current routes technically support returning access, but the sign-in path is too easy to miss
-- this is an alpha trust issue, not a copy nicety: a real user can believe there is no login path for an existing child, parent, or owner
-- it is bounded and does not require schema or auth-model changes
-
-### Files Expected In Scope
-
-- `app/src/app/child/page.tsx`
-- `app/src/app/child/child-beta-panel.tsx`
-- `app/src/app/parent/page.tsx`
-- `app/src/app/owner/page.tsx`
-- `app/src/app/owner/owner-gate.tsx`
-- `app/src/app/globals.css` only if layout/supporting emphasis is needed
-
-### Route-Specific Requirements
-
-#### Child
-
-- make Step 1 read as an explicit choice between:
-  - new child profile
-  - existing child sign-in
-- replace soft language like "Coming back" with direct sign-in language
-- make the returning card and helper copy clearly say an already-registered child uses the same username + 4-digit PIN
-- keep the current auto-restore behavior for valid child session cookies
-
-#### Parent
-
-- the preview/access card must clearly distinguish:
-  - first-time parent setup
-  - existing parent sign-in
-- make it obvious that an existing parent uses username + PIN
-- do not imply that display name and child username are required every time; those are first-link/setup inputs
-- preserve current cookie-based parent session restore behavior
-
-#### Owner
-
-- make the gate read as sign-in to an existing protected console, not as a vague locked feature
-- use explicit operator language around existing owner access code / sign-in
-- do not change owner auth behavior; this batch is clarity only
-
-### Acceptance Criteria
-
-- a user can scan `/child` and immediately see how an already-created child signs in
-- a user can scan `/parent` and immediately see how an existing parent account signs in without assuming they must repeat first-time setup
-- a user can scan `/owner` and understand it is an existing-owner sign-in gate
-- no route copy suggests that returning users need to recreate profiles
-- current cookie/session restore behavior still works for child and parent
-
-### Validation Required
-
-- `npm run lint`
-- `npm run build`
-- `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local`
-- one quick browser spot-check of `/child`, `/parent`, and `/owner` at desktop width after the copy/layout change
-
-### Review Priority
-
-- this access-clarity batch should happen before any more play polish, reward tuning, or broad wording work
-- if the route needs stronger visual separation between setup and sign-in, that is allowed
-- if the route only needs wording and hierarchy changes, keep it that small
-
-### Explicitly Out Of Scope For ACCESS-01
-
-- auth-model changes
-- new database work
-- owner permission changes
-- broad redesign of parent or child hubs
-- unrelated play-loop polish
-
-### Overnight Execution Queue
+### Active Execution Queue
 
 Work this queue in order. Do not skip ahead unless the current item is blocked and the blocker is written to `Developer Log`.
 
-#### 1. ACCESS-01
+#### 1. PLAY-04
 
-- mandatory first item
-- commit only after route-level clarity is visibly improved on `/child`, `/parent`, and `/owner`
+`PLAY-04` — strengthen completion-to-replay momentum in the first `60-90 seconds`, especially for `PREK` / `K1`.
 
-#### 2. PLAY-03
+Why this is first now:
 
-`PLAY-03` — keep the most important early-learner help actions in the same viewport as the question.
-
-Why this is next:
-
-- for `PREK` / `K1`, replay/help actions currently live in the side support rail and can drift below the main question area on tighter screens
-- this weakens the first `60-90 seconds` and increases the chance that an adult has to translate what to do next
+- access and setup comprehension were the last explicit trust gap and are now closed
+- the question bank is wider, so the next product risk is whether completion states actually pull a child into another attempt instead of stalling out
+- this is still core alpha behavior, not polish
 
 Expected scope:
 
 - `app/src/app/play/play-client.tsx`
-- `app/src/app/play/play-beta-support.tsx` only if needed
 - `app/src/app/globals.css`
+- `app/src/app/play/play-beta-support.tsx` only if the support rail needs a small follow-through change
 
 Acceptance:
 
-- on early-learner play routes, the child-facing question card exposes the most important assist action without depending on the side rail
-- replay / slow / visual fallback remain understandable on phone-width layouts
-- no regression to existing retry / explainer / reward behavior
+- after answer completion, the next best action is visually obvious without extra adult narration
+- replay / continue / return states do not compete with each other or hide the intended next step
+- no regression to retry explainer, reward, or session persistence behavior
 
-#### 3. PARENT-02
+#### 2. PARENT-03
 
-`PARENT-02` — make the parent hub answer the three core questions in one scan: what happened, what is going well, and what to do next.
+`PARENT-03` — tighten child-switching comprehension and active-child interpretation on the family hub.
 
-Why this is after `PLAY-03`:
+Why this is second:
 
-- once access clarity is fixed, the next trust issue is whether the family view explains the child’s current state fast enough
-- this should improve interpretation, not expand the parent feature set
+- `PARENT-02` improved high-level scanability, but the next likely alpha hesitation is whether a real parent can immediately tell which child they are viewing and how to switch context
+- this should stay interpretation-focused, not become a feature expansion
 
 Expected scope:
 
 - `app/src/app/parent/page.tsx`
-- `app/src/app/globals.css` only if layout needs tightening
+- `app/src/app/globals.css` only if the current selector / summary hierarchy needs tightening
 
 Acceptance:
 
-- above the first meaningful scroll, the active child state is readable in plain language
-- a parent can identify one strength, one current focus, and one next action without hunting through the page
-- no new metrics or data sources are introduced
+- a parent can tell which child is active without reading the whole page
+- switching children is obvious and low-friction if more than one child is linked
+- no new metrics, APIs, or schema work are introduced
 
-#### 4. DEVICE-02
+#### 3. OPS-01
 
-`DEVICE-02` — harden the access surfaces and first play view for `375px` phones and small tablets after the above changes land.
+`OPS-01` — improve teacher / owner triage clarity only where it directly helps interpret live issues or test outcomes.
 
-Why this stays last:
+Why this stays bounded:
 
-- it should be a cleanup pass after the route hierarchy settles
-- it must remain reproduction-driven, not speculative
+- adult-ops work should help close alpha loops, not open a new redesign lane
+- any change here should map directly to faster issue recognition, session interpretation, or operator action
 
 Expected scope:
 
-- `app/src/app/globals.css`
-- touched route components only if a CSS-only fix is insufficient
+- `app/src/app/teacher/page.tsx`
+- `app/src/app/owner/page.tsx`
+- `app/src/app/owner/owner-gate.tsx`
+- `app/src/app/globals.css` only if hierarchy changes need small support styling
 
 Acceptance:
 
-- no horizontal overflow on `/child`, `/parent`, `/owner`, or the first play question at `375px`
-- no clipped primary CTA
-- no stacked card state where the intended first action falls off-screen unnecessarily
+- teacher / owner surfaces make the next operational action easier to identify
+- no auth-model, permission, or schema changes are introduced
+- changes remain clearly tied to live test support, not generic copy cleanup
 
-#### 5. CONTENT-01
+#### 4. RELEASE-01
 
-`CONTENT-01` — increase launch-ready question coverage only after `ACCESS-01`, `PLAY-03`, `PARENT-02`, and `DEVICE-02` are complete or blocked.
-
-Why this is later:
-
-- question volume matters, but it is not the first thing currently breaking user trust
-- access clarity and first-session usability are higher-priority alpha gates than raw question count
-
-Current launch inventory snapshot:
-
-- `PREK` = `26` sample questions across `early-literacy` and `math`
-- `K1` = `26` sample questions across `phonics`, `math`, and `reading`
-- `G23` = `24` sample questions across `reading`, `math`, and `logic`
-- `G45` = `24` sample questions across `math`, `reading`, and `world-knowledge`
-- each launch band is still concentrated in roughly three skill families, so the first content-expansion pass should widen usable variation, not just add duplicates inside one skill
-
-First-pass content targets:
-
-- `PREK`:
-  - widen beyond `letter-b-recognition`, `count-to-3`, and `shape-circle`
-  - add one more letter-recognition family, one more shape family, and more count variation
-- `K1`:
-  - widen beyond `short-a-sound`, `add-to-10`, and `read-simple-word`
-  - add more phonics variation, more within-10 number variation, and more decodable word recognition
-- `G23`:
-  - widen beyond `main-idea`, `multiply-3x4`, and `pattern-next-item`
-  - add another comprehension family, another arithmetic family, and another reasoning family
-- `G45`:
-  - widen beyond `compare-fractions`, `use-context-clues`, and `engineering-basics`
-  - add another fraction/number-sense family, another reading-comprehension family, and another science/world-knowledge family
-
-Suggested first-pass quantity targets:
-
-- `PREK`: move from `26` to `36+`
-- `K1`: move from `26` to `36+`
-- `G23`: move from `24` to `32+`
-- `G45`: move from `24` to `32+`
-
-Lowest-risk fallback if new skill families are not ready:
-
-- add `4-6` new question variations inside each existing launch skill family first
-- reuse existing explainer keys where the misconception is unchanged
-- keep early-learner guided ordering unchanged while increasing pool variety behind it
-
-#### 6. CONTENT-SYNC-01
-
-`CONTENT-SYNC-01` — after any content-bank expansion, sync launch content so new question keys do not fail runtime lookup in `example_items`.
+`RELEASE-01` — deploy `3feb0bc` and verify the widened content bank on live Render once the current code lane pauses.
 
 Why this matters:
 
-- the app will reject a question at answer time if the content exists in `sample_questions.json` but is not synced into the database-backed `example_items` table
-- content growth is only real product progress if the synced runtime path stays green
+- local and synced runtime paths are green, but deployed Render still serves the pre-`3feb0bc` build
+- content growth is not truly shipped progress until live serves it
 
 Expected scope:
 
-- `app/scripts/sync-launch-content.mjs`
-- launch data files only if sync assumptions need updating
+- Render deploy / release only
+- `./tools/render_post_setup_check.sh`
+- targeted live route / content spot-checks
+- board updates only
 
 Acceptance:
 
-- every newly added `question_key` resolves through the launch sync path
-- no `Question content is not synced yet` failures on the updated content set
-- `smoke:local` remains green after sync
+- live Render serves the current code at or after `3feb0bc`
+- public live checks remain green after deploy
+- at least one spot-check confirms new content is reachable on the live app without sync failures
 
-#### 7. CONTENT-02
+#### 5. CONDITIONAL CONTENT-02
 
-`CONTENT-02` — build a second-pass explainer sweep only where new question families require it.
+`CONTENT-02` is no longer the default next item. Pull it only if a new question family lands without good retry/explainer coverage or if testing shows current explainer copy is too weak.
 
-Why this is after sync:
-
-- new skills without matching explainers weaken retry trust
-- but explainer work should follow actual question-bank changes, not speculative design
-
-Expected scope:
+Safe scope if needed:
 
 - `data/launch/explainers.json`
-- optional supporting script changes only if key management requires it
+- supporting content files only if a new key path is required
 
 Acceptance:
 
 - every newly introduced misconception family has a matching explainer path
 - explainer copy stays short, child-safe, and visually hintable
-
-#### 8. SAFE-OVERFLOW-WORK
-
-If route files are busy because another agent is actively editing child / parent / play / owner surfaces, the safe non-overlapping backlog is:
-
-- expand `data/launch/sample_questions.json`
-- expand `data/launch/explainers.json`
-- prepare / verify `sync-launch-content` work
-- update content inventory counts and targets in this board
-- do not touch route UI files until the hot lane is quiet
-
-#### 9. LATER-ALPHA-BACKLOG
-
-Only pull these after `DEVICE-02`, `CONTENT-01`, `CONTENT-SYNC-01`, and `CONTENT-02` are complete or blocked:
-
-- `PLAY-04`:
-  - strengthen completion-to-replay momentum if children ignore the current completion state
-- `PARENT-03`:
-  - tighten child-switching comprehension if real parents hesitate between linked children
-- `OPS-01`:
-  - improve teacher / owner triage clarity only where it directly helps interpret live testing issues
-
-Expected scope:
-
-- `app/src/lib/content-bank.ts`
-- `app/scripts/sync-launch-content.mjs` only if content synchronization is needed
-- `app/scripts/live-smoke.mjs` only if sequencing or coverage assumptions change
-
-Acceptance:
-
-- increase usable launch-band question density without breaking the current early-learner guided ordering
-- keep questions visibly on-tone for child alpha use, not filler copy
-- preserve `lint`, `build`, and `smoke:local` green status after expansion
 
 ### Queue Discipline
 
@@ -479,7 +338,7 @@ Acceptance:
 
 ### Stop Condition
 
-- if `ACCESS-01`, `PLAY-03`, `PARENT-02`, and `DEVICE-02` are all complete, validated, and logged, stop and wait for fresh review instead of inventing more backlog
+- if `PLAY-04`, `PARENT-03`, `OPS-01`, and `RELEASE-01` are all complete or blocked, stop and wait for fresh review instead of inventing more backlog
 - if owner-led testing begins and produces real findings, switch priority from the queue to observed `P0` / `P1` failures
 
 ### When Owner Testing Starts Later
@@ -794,12 +653,35 @@ Template:
 
 ## Active Risks
 
-- developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
+- control-plane freshness is still the primary coordination risk; the earlier developer-log backfill gap is closed, but `Ground Truth`, `Next Round Plan`, and `Review Log` must keep matching the real repo head as new batches land.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
+- deployed Render is still behind committed head `3feb0bc`, so the widened `136/22` content bank is not live yet.
 - the design inventory is now large enough to distract execution if not tightly controlled.
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
 ## Developer Log
+
+### 2026-03-30 CDT — play + shell (PLAY-04: strengthen completion-to-replay momentum for PREK/K1)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx`
+  - `app/src/app/globals.css`
+- Built:
+  - Mid-session correct-answer panel: hid the adult stats chip row (Total points / Level / badges+trophies) for `earlyLearnerMode` — these numbers distract a 5–7 year old before the next-step button; the stats row still renders for older bands.
+  - Mid-session "Next question" button renamed to "Keep going ➜" for `earlyLearnerMode` with a new `.quest-next-btn` style — large green pill, 52px min-height, full width, visually dominant so the next step is obvious without adult narration.
+  - Completion screen: removed the duplicate `<strong>Quest complete!</strong>` block and its copy paragraph that were rendered after the `earlyLearnerMode`-specific `finished-quest-hero` section (the hero block already says "finished the quest!").
+  - Completion screen: removed the redundant `finished-quest-strip` (Level/Stars/Rewards) for `earlyLearnerMode` — already visible in the hero; also removed `finished-quest-note` for `earlyLearnerMode` — content already in the `finished-map-overlay` teaser.
+  - Completion screen: collapsed the three-button problem for `earlyLearnerMode` (previously "Start another short quest" + "Take a break" + "Parent view" — two of which pointed to `/child`) into a single `.quest-replay-row` with one prominent `.quest-replay-cta` ("Play next quest ➜" → `/child`) and one quiet `.quest-replay-secondary` ("Parent view" → `/parent`). Decision paralysis for child / parent eliminated.
+  - Non-earlyLearner completion screen is unchanged and still shows the summary chips, next-step note, and "Play again" / "Parent view" pair.
+  - No changes to retry, explainer, reward overlay, session persistence, or smoke-test assertions.
+- Still unresolved:
+  - live Render still not redeployed past `3feb0bc`; RELEASE-01 still queued
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = not re-run (no changes to scoring, session, answer, or guided quest ordering paths; PLAY-04 is UI-only for completion/mid-session panels)
+- Review requested:
+  - no — continuing to PARENT-03 per Queue Discipline
 
 ### 2026-03-30 CDT — content (DEVICE-02: 375px hardening verification — no changes needed)
 
@@ -1284,6 +1166,44 @@ Template:
   - yes
 
 ## Review Log
+
+### 2026-03-30 11:40 CDT — Execution Authorization Clarification
+
+- Reviewed:
+  - current `Next Round Plan`
+  - latest `Developer Log` and `Review Log` interaction
+- Findings:
+  - P0: none
+  - P1: the developer lane had enough approval to continue, but an older historical `Testing Freeze` note could still be misread as an active stop condition.
+  - P1: the intended next action remains unchanged: start `PLAY-04`, then continue to `PARENT-03`, with `OPS-01` and `RELEASE-01` after that.
+- Decision:
+  - approved to continue immediately into the next engineering round
+  - approved to start `PLAY-04` now without waiting for another review pass
+- Next action:
+  - developer lane should begin `PLAY-04` immediately
+  - re-poll the board before the next commit and log the batch under `Developer Log`
+
+### 2026-03-30 09:33 CDT — Post-Access/Content Round Review
+
+- Reviewed:
+  - committed `main` through `3feb0bc`
+  - `0618674` (`ACCESS-01 + PARENT-02`)
+  - `0b5bc22` (`PLAY-03`)
+  - `3feb0bc` (`CONTENT-01 + CONTENT-SYNC-01`)
+  - current `Ground Truth`, `Next Round Plan`, `Active Risks`, and `Developer Log`
+- Findings:
+  - P0: none
+  - P1: `ACCESS-01` closes the previously surfaced trust gap around existing-account sign-in on `/child`, `/parent`, and `/owner` without changing auth behavior.
+  - P1: `PLAY-03` and `PARENT-02` materially improve first-session readability by keeping early-learner help near the question and summarizing parent answers in one scan.
+  - P1: `CONTENT-01 + CONTENT-SYNC-01` is real product progress, not just backlog movement: launch inventory widened from `100` to `136` questions and from `12` to `22` explainers, with local sync and smoke verification green on `3feb0bc`.
+  - P1: the main remaining release gap is live deployment, not local quality. Render is still serving a build older than `3feb0bc`, so the widened content bank is not live yet.
+  - P2: the board had drifted behind the repo queue, but this control-plane sync closes that gap and makes the next active queue explicit again.
+- Decision:
+  - approved: current committed progress through `3feb0bc`
+- Next action:
+  - developer lane should work `PLAY-04` first, then `PARENT-03`, while keeping `OPS-01` tightly bounded to live-test support value
+  - run `RELEASE-01` when the current code lane pauses so live Render catches up to `3feb0bc`
+  - keep the board-first cadence intact before the next non-board commit
 
 ### 2026-03-29 00:00 CDT — Board Initialization Review
 
