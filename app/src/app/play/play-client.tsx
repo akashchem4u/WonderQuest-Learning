@@ -1374,6 +1374,11 @@ export default function PlayClient() {
   const nextQuestTeaser = buildNextQuestTeaser(session.student.launchBandCode);
   const questWorldLabel = buildQuestWorldLabel(session.student.launchBandCode);
   const questSkillLabel = formatQuestLabel(currentQuestion?.skill);
+  const inlineSupportMessage =
+    answerState?.needsRetry && answerState.explainer
+      ? buildShortSupportLine(answerState.explainer.script)
+      : promptCue;
+  const inlineSupportSteps = coachSteps.slice(0, 3);
   const completedNodeCount = questNodes.filter(
     (node) => node.state === "done" || node.state === "just-completed",
   ).length;
@@ -1754,6 +1759,69 @@ export default function PlayClient() {
                   <div className="kid-prompt-bubble">
                     <span className="kid-prompt-label">Say it simply</span>
                     <strong>{currentQuestion.prompt}</strong>
+                  </div>
+                ) : null}
+                {earlyLearnerMode ? (
+                  <div
+                    className={`play-inline-support ${
+                      answerState?.needsRetry && !answerState.correct ? "is-retrying" : ""
+                    }`.trim()}
+                  >
+                    <div className="play-inline-support-copy">
+                      <span className="kid-prompt-label">
+                        {answerState?.needsRetry && !answerState.correct
+                          ? "Try again"
+                          : "Need help?"}
+                      </span>
+                      <strong>
+                        {answerState?.needsRetry && !answerState.correct
+                          ? "Replay the clue, then take one small step."
+                          : "Replay the clue without leaving the question."}
+                      </strong>
+                      <p>{inlineSupportMessage}</p>
+                    </div>
+                    <div className="play-inline-support-actions">
+                      <button
+                        aria-pressed={assistMode === "voice"}
+                        className={`play-inline-support-btn ${
+                          assistMode === "voice" ? "is-active" : ""
+                        }`.trim()}
+                        disabled={!voiceEnabled}
+                        onClick={() => replayQuestion("voice")}
+                        type="button"
+                      >
+                        Hear again
+                      </button>
+                      <button
+                        aria-pressed={assistMode === "slow"}
+                        className={`play-inline-support-btn ${
+                          assistMode === "slow" ? "is-active" : ""
+                        }`.trim()}
+                        disabled={!voiceEnabled}
+                        onClick={() => replayQuestion("slow")}
+                        type="button"
+                      >
+                        Hear slowly
+                      </button>
+                      <button
+                        aria-pressed={assistMode === "visual"}
+                        className={`play-inline-support-btn ${
+                          assistMode === "visual" ? "is-active" : ""
+                        }`.trim()}
+                        onClick={() => setAssistMode("visual")}
+                        type="button"
+                      >
+                        Picture only
+                      </button>
+                    </div>
+                    <div className="play-inline-support-steps" aria-hidden="true">
+                      {inlineSupportSteps.map((step, index) => (
+                        <span className="play-inline-support-step" key={`${currentQuestion.questionKey}-${step}`}>
+                          <b>{index + 1}</b>
+                          <span>{step}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
                 {currentScene ? (
