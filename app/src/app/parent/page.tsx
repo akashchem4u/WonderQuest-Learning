@@ -1344,6 +1344,19 @@ export default function ParentAccessPage() {
               </aside>
 
               <div className="parent-family-center-rail">
+                {result.linkedChildren.length > 1 ? (
+                  <div className="parent-active-child-bar">
+                    <span className="parent-active-child-avatar" aria-hidden="true">
+                      {getAvatarSymbol(activeChild.avatarKey)}
+                    </span>
+                    <div className="parent-active-child-copy">
+                      <span>Now viewing</span>
+                      <strong>{activeChild.displayName}</strong>
+                      <em>{getBandLabel(activeChild.launchBandCode)}</em>
+                    </div>
+                    <span className="parent-active-child-hint">Switch in the left panel</span>
+                  </div>
+                ) : null}
                 <article
                   className={`parent-family-week-hero ${
                     result.linkedChildren.length > 1 ? "is-family" : "is-single"

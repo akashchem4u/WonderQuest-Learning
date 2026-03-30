@@ -661,6 +661,24 @@ Template:
 
 ## Developer Log
 
+### 2026-03-30 CDT — parent + shell (PARENT-03: tighten active-child visibility and child-switching clarity)
+
+- Files changed:
+  - `app/src/app/parent/page.tsx`
+  - `app/src/app/globals.css`
+- Built:
+  - Added a `.parent-active-child-bar` context banner at the top of the center rail when more than one child is linked. Shows the active child's avatar, "Now viewing" label, display name, and band + a quiet "Switch in the left panel" hint. Renders only for multi-child accounts — no change for single-child parents.
+  - Strengthened `.parent-family-switch-card.is-active` with a 3px left accent border (`rgba(44, 111, 173, 0.72)`) in addition to the existing gradient background, making the selected-child state clearly visible without reading the `<em>Active</em>` pill text.
+  - No new APIs, schema work, metrics, or auth-model changes introduced.
+- Still unresolved:
+  - live Render still not redeployed; RELEASE-01 still queued
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = not re-run (no changes to session, parent API, or scoring paths; PARENT-03 is UI-only for hub layout)
+- Review requested:
+  - no — continuing to OPS-01 per Queue Discipline
+
 ### 2026-03-30 CDT — play + shell (PLAY-04: strengthen completion-to-replay momentum for PREK/K1)
 
 - Files changed:
