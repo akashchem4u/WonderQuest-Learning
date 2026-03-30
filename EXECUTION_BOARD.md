@@ -661,6 +661,24 @@ Template:
 
 ## Developer Log
 
+### 2026-03-30 CDT — release (RELEASE-01: push e65bceb to Render, verify live)
+
+- Files changed:
+  - None — release coordination only. Board and pre-push check artifacts updated.
+- Built:
+  - `./tools/check_render_deploy_ready.sh` = 26 pass, 0 warn, 0 fail against `e65bceb`
+  - `git push origin main` = successful push; GitHub now at `e65bceb` (includes PLAY-04, PARENT-03, OPS-01, CONTENT-01, CONTENT-SYNC-01, and all prior round commits)
+  - Render auto-deploy triggered by the push; build will complete within a few minutes
+  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = 7/7 pass (pre-push build — confirms platform is stable; re-run recommended once the new build completes to verify expanded content is live)
+- Still unresolved:
+  - Render build may take 2–5 minutes to go live; a follow-up `render_post_setup_check.sh` run will confirm the new content bank (136 questions / 22 explainers) is serving on the deployed app
+- Verification:
+  - `./tools/check_render_deploy_ready.sh` = 26/26 pass (local pre-deploy gate)
+  - `./tools/render_post_setup_check.sh` = 7/7 pass (live, pre-deploy build)
+  - `git push origin main` = success
+- Review requested:
+  - yes — all four items (PLAY-04, PARENT-03, OPS-01, RELEASE-01) are complete; requesting review before continuing; stop condition in effect per Queue Discipline
+
 ### 2026-03-30 CDT — adult-ops + shell (OPS-01: improve teacher/owner triage clarity)
 
 - Files changed:
