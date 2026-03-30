@@ -45,14 +45,14 @@ Reference milestone docs:
 
 As of 2026-03-30:
 
-- local `main` is at `3feb0bc` (`CONTENT-01 + CONTENT-SYNC-01` — widen question coverage to `136` questions and `22` explainers)
-- the newest committed batches after `362312a` are `0618674` (`ACCESS-01 + PARENT-02`), `0b5bc22` (`PLAY-03`), and `3feb0bc` (`CONTENT-01 + CONTENT-SYNC-01`)
-- the current repo is dirty only with this board-sync update and untracked live patch artifacts under `supabase/.temp/`
+- local `main` is at `cfc0e87` (`RELEASE-01` board/log sync after pushing `e65bceb` to Render)
+- the newest committed batches after `3feb0bc` are `35a4ea9` (`PLAY-04`), `991506e` (`PARENT-03`), `e65bceb` (`OPS-01`), and `cfc0e87` (`RELEASE-01` coordination log)
+- the current repo is dirty only with this review-lane sync update, a local maintenance patch to `tools/render_post_setup_check.sh`, and untracked live patch artifacts under `supabase/.temp/`
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
-- `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3003 npm run smoke:local` = pass on the current committed head — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
-- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (re-run 2026-03-29 23:13 CDT against the current live deployment after user-confirmed live migration)
-- live Render has not yet been redeployed with `3feb0bc`, so the expanded `136/22` content bank is committed and synced in Supabase but not yet available in the deployed app
+- `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass on the current committed head — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
+- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (re-run 2026-03-30 18:29 CDT against the current live deployment after patching stale route-copy expectations in the local check script)
+- live Render is now serving the expanded content bank from current code: a direct live `G45` probe returned `decimal-place-value` on attempt `2` (`g45_decimal_tenths_4_7`), confirming post-deploy reachability of the new content families
 
 Real shipped app surface:
 
@@ -204,16 +204,18 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Coordination Baseline
 
-- use the current synced head `3feb0bc`
-- completed and validated on committed `main`: `ACCESS-01`, `PLAY-03`, `PARENT-02`, `DEVICE-02`, `CONTENT-01`, and `CONTENT-SYNC-01`
+- use the current synced head `cfc0e87`
+- completed and locally validated on committed `main`: `ACCESS-01`, `PLAY-03`, `PARENT-02`, `DEVICE-02`, `CONTENT-01`, `CONTENT-SYNC-01`, `PLAY-04`, `PARENT-03`, and `OPS-01`
 - this next engineering round is explicitly approved now; the developer lane should start `PLAY-04` immediately and does not need another wait-state review entry before beginning
 - latest committed verification on current head:
   - `npm run lint` = pass
   - `npm run build` = pass
-  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3003 npm run smoke:local` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass
 - public live validation remains green on the currently deployed Render build:
   - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = `7/7 pass`
-- deployed Render does not yet reflect `3feb0bc`, so the expanded `136/22` content bank is still a release-coordination item, not a live-validated one
+- current review status:
+  - `PLAY-04`, `PARENT-03`, and `OPS-01` are locally acceptable
+  - `RELEASE-01` is accepted: live Render is serving the expanded `136/22` content bank
 - poll this board before any new work and before every commit
 
 ### Newly Closed This Round
@@ -339,6 +341,7 @@ Acceptance:
 ### Stop Condition
 
 - if `PLAY-04`, `PARENT-03`, `OPS-01`, and `RELEASE-01` are all complete or blocked, stop and wait for fresh review instead of inventing more backlog
+- stop condition is active now; wait for fresh review or observed owner-testing findings before starting the next batch
 - if owner-led testing begins and produces real findings, switch priority from the queue to observed `P0` / `P1` failures
 
 ### When Owner Testing Starts Later
@@ -655,7 +658,7 @@ Template:
 
 - control-plane freshness is still the primary coordination risk; the earlier developer-log backfill gap is closed, but `Ground Truth`, `Next Round Plan`, and `Review Log` must keep matching the real repo head as new batches land.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
-- deployed Render is still behind committed head `3feb0bc`, so the widened `136/22` content bank is not live yet.
+- `render_post_setup_check.sh` had stale route-copy expectations for `/child` and `/owner`; the local review-lane patch fixes the false negatives, but that tools update is not committed yet.
 - the design inventory is now large enough to distract execution if not tightly controlled.
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
@@ -882,7 +885,7 @@ Template:
   - All backfill items requested by review lane are complete.
   - Developer Log now covers every commit from `37326c2` through `362312a`.
 - Still unresolved:
-  - Testing Freeze per Next Round Plan is in effect; no new product commits until review lane authorises the next engineering round or a P0 appears.
+  - historical note only — this stop condition applied at `362312a` and was later superseded by the 2026-03-30 `09:33 CDT` and `11:40 CDT` review approvals; current next action is `PLAY-04`
 - Verification:
   - `npm run lint` = pass (board-only edit)
   - `npm run build` = pass (board-only edit)
@@ -1221,6 +1224,54 @@ Template:
   - yes
 
 ## Review Log
+
+### 2026-03-30 18:29 CDT — Live Deploy Revalidation Review
+
+- Reviewed:
+  - user-provided Render deploy evidence showing `cfc0e87` went live at `2026-03-30 17:28 CDT`
+  - current live Render deployment at `https://wonderquest-learning.onrender.com`
+  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com`
+  - a direct live `G45` play-session probe against the deployed app
+- Findings:
+  - P0: none
+  - P1: the earlier `16:59 CDT` release concern is superseded by the later deploy timestamp. The prior live-content miss happened before the new Render deploy went live.
+  - P1: `RELEASE-01` is now accepted. Live route health is green again:
+    - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = `7/7 pass`, `0` warnings, `0` failures
+  - P1: live content reachability is also confirmed now. A direct deployed `G45` probe returned the new `decimal-place-value` family on attempt `2` with question key `g45_decimal_tenths_4_7`.
+  - P2: the brief post-deploy route-check failure was a QA-tool drift issue, not a product regression. `render_post_setup_check.sh` was still expecting older `/child` and `/owner` copy strings and has been patched locally to accept the current route text.
+- Decision:
+  - approved: current committed progress through `cfc0e87`
+  - approved: `RELEASE-01`
+  - approved: stop condition is now active
+- Next action:
+  - hold the developer lane for fresh review or real owner-testing findings
+  - commit the local `tools/render_post_setup_check.sh` maintenance patch in the next board/tools sync so future Render checks do not false-fail on current copy
+
+### 2026-03-30 16:59 CDT — Post-PLAY-04 / Release Review
+
+- Reviewed:
+  - committed `main` through `cfc0e87`
+  - `35a4ea9` (`PLAY-04`)
+  - `991506e` (`PARENT-03`)
+  - `e65bceb` (`OPS-01`)
+  - `cfc0e87` (`RELEASE-01` board/log sync)
+  - current live Render deployment at `https://wonderquest-learning.onrender.com`
+- Findings:
+  - P0: none
+  - P1: `PLAY-04`, `PARENT-03`, and `OPS-01` are acceptable on code review. Local verification is green on current head:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass
+  - P1: `RELEASE-01` is not actually complete yet. Public live checks still pass (`./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = `7/7 pass`), but a direct live `G45` play-session probe across `10` guided sessions returned only old skill families (`compare-fractions`, `use-context-clues`, `engineering-basics`).
+  - P1: the same `G45` probe against local `cfc0e87` immediately returned a new expanded-bank skill (`text-evidence`, question key `g45_text_evidence_brave_scout`), which means the review-lane acceptance criterion for live content reachability is still unmet on Render.
+  - P2: the developer log is now complete for the four-item batch, but the stop condition was asserted too early because `RELEASE-01` still needs real live-content verification, not just route-health confirmation.
+- Decision:
+  - approved: current code changes through `e65bceb`
+  - changes requested: do not treat `RELEASE-01` as complete and do not treat the stop condition as active yet
+- Next action:
+  - developer lane should keep focus on `RELEASE-01` only
+  - confirm Render is serving the pushed build, then re-run a live content probe until at least one new `G23` or `G45` skill family from the expanded bank is observed
+  - after that, update `Ground Truth` / `Developer Log` and request fresh review
 
 ### 2026-03-30 11:40 CDT — Execution Authorization Clarification
 

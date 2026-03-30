@@ -117,9 +117,16 @@ printf 'Base URL: %s\n' "${BASE_URL}"
 
 section "Public Route Checks"
 check_route_contains "/" "WonderQuest Learning" "Home page loads"
-check_route_contains_any "/child" "Child route loads" "Child quickstart" "Choose the quickest path"
+check_route_contains_any "/child" "Child route loads" \
+  "Child quickstart" \
+  "Choose the quickest path" \
+  "Create a profile or sign in" \
+  "One big tap to start, one calm setup, then straight into play."
 check_route_contains "/parent" "Parent journey" "Parent route loads"
-check_route_contains "/owner" "Unlock owner console" "Owner gate loads"
+check_route_contains_any "/owner" "Owner gate loads" \
+  "Unlock owner console" \
+  "Sign in to the owner console." \
+  "Existing owner sign-in"
 check_route_contains "/teacher" "Unlock teacher dashboard" "Teacher gate loads"
 
 section "Runtime Signal Checks"
