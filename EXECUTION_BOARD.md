@@ -384,6 +384,79 @@ First-pass content targets:
   - widen beyond `compare-fractions`, `use-context-clues`, and `engineering-basics`
   - add another fraction/number-sense family, another reading-comprehension family, and another science/world-knowledge family
 
+Suggested first-pass quantity targets:
+
+- `PREK`: move from `26` to `36+`
+- `K1`: move from `26` to `36+`
+- `G23`: move from `24` to `32+`
+- `G45`: move from `24` to `32+`
+
+Lowest-risk fallback if new skill families are not ready:
+
+- add `4-6` new question variations inside each existing launch skill family first
+- reuse existing explainer keys where the misconception is unchanged
+- keep early-learner guided ordering unchanged while increasing pool variety behind it
+
+#### 6. CONTENT-SYNC-01
+
+`CONTENT-SYNC-01` — after any content-bank expansion, sync launch content so new question keys do not fail runtime lookup in `example_items`.
+
+Why this matters:
+
+- the app will reject a question at answer time if the content exists in `sample_questions.json` but is not synced into the database-backed `example_items` table
+- content growth is only real product progress if the synced runtime path stays green
+
+Expected scope:
+
+- `app/scripts/sync-launch-content.mjs`
+- launch data files only if sync assumptions need updating
+
+Acceptance:
+
+- every newly added `question_key` resolves through the launch sync path
+- no `Question content is not synced yet` failures on the updated content set
+- `smoke:local` remains green after sync
+
+#### 7. CONTENT-02
+
+`CONTENT-02` — build a second-pass explainer sweep only where new question families require it.
+
+Why this is after sync:
+
+- new skills without matching explainers weaken retry trust
+- but explainer work should follow actual question-bank changes, not speculative design
+
+Expected scope:
+
+- `data/launch/explainers.json`
+- optional supporting script changes only if key management requires it
+
+Acceptance:
+
+- every newly introduced misconception family has a matching explainer path
+- explainer copy stays short, child-safe, and visually hintable
+
+#### 8. SAFE-OVERFLOW-WORK
+
+If route files are busy because another agent is actively editing child / parent / play / owner surfaces, the safe non-overlapping backlog is:
+
+- expand `data/launch/sample_questions.json`
+- expand `data/launch/explainers.json`
+- prepare / verify `sync-launch-content` work
+- update content inventory counts and targets in this board
+- do not touch route UI files until the hot lane is quiet
+
+#### 9. LATER-ALPHA-BACKLOG
+
+Only pull these after `DEVICE-02`, `CONTENT-01`, `CONTENT-SYNC-01`, and `CONTENT-02` are complete or blocked:
+
+- `PLAY-04`:
+  - strengthen completion-to-replay momentum if children ignore the current completion state
+- `PARENT-03`:
+  - tighten child-switching comprehension if real parents hesitate between linked children
+- `OPS-01`:
+  - improve teacher / owner triage clarity only where it directly helps interpret live testing issues
+
 Expected scope:
 
 - `app/src/lib/content-bank.ts`
@@ -727,6 +800,49 @@ Template:
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
 ## Developer Log
+
+### 2026-03-30 CDT — content (DEVICE-02: 375px hardening verification — no changes needed)
+
+- Files changed:
+  - none — CSS audit confirmed existing breakpoints cover all new elements from ACCESS-01, PLAY-03, and PARENT-02
+- Built:
+  - Reviewed all new CSS classes at 375px: `parent-access-mode-card` uses flexible grid, `parent-family-answer-grid` collapses at 1180px, `play-inline-support-actions` collapses at 820px with full-width buttons, `play-layout` collapses at 640px
+  - No horizontal overflow risk identified for `/child`, `/parent`, `/owner`, or play question card at 375px
+  - No clipped CTAs — `.primary-link` goes full-width at 640px, mode cards use `minmax(0, 1fr)` text column
+- Still unresolved:
+  - none — DEVICE-02 acceptance criteria satisfied by existing breakpoints
+- Verification:
+  - static CSS audit — pass
+  - `npm run lint` = pass (no code changes)
+  - `npm run build` = pass (no code changes)
+  - `npm run smoke:local` = pass (verified during ACCESS-01+PLAY-03+PARENT-02 batch)
+- Review requested:
+  - no — no code changes; continuing to CONTENT-01
+
+### 2026-03-30 CDT — content (CONTENT-01 + CONTENT-SYNC-01: widen question coverage to 36/36/32/32 and sync to Supabase)
+
+- Files changed:
+  - `data/launch/sample_questions.json` — added 36 new questions: PREK +10 (letter-a-recognition ×4, shape-triangle ×3, count-to-5 ×3); K1 +10 (short-e-sound ×4, subtract-from-10 ×3, decodable-cvc-word ×3); G23 +8 (cause-effect ×4, add-3-digit ×4); G45 +8 (decimal-place-value ×4, text-evidence ×4). Total: 100 → 136 questions
+  - `data/launch/explainers.json` — added 10 new explainers covering all new skill families: prek_letter_a, prek_shape_triangle, prek_count_5, k1_short_e, k1_subtraction, k1_decodable_word, g23_cause_effect, g23_add_3_digit, g45_decimal, g45_text_evidence. Total: 12 → 22
+  - `supabase/seed/content_seed.sql` — added 10 new skill rows (letter-a-recognition, shape-triangle, count-to-5, short-e-sound, subtract-from-10, decodable-cvc-word, cause-effect, add-3-digit, decimal-place-value, text-evidence) with `on conflict do nothing` for idempotent re-seeding
+- Built:
+  - PREK: 26 → 36 questions across 6 skill families (was 3)
+  - K1: 26 → 36 questions across 6 skill families (was 3)
+  - G23: 24 → 32 questions across 5 skill families (was 3)
+  - G45: 24 → 32 questions across 5 skill families (was 3)
+  - 10 new skill codes inserted directly into live Supabase `public.skills` table
+  - `sync-launch-content.mjs` ran successfully: 136 questions and 22 explainers synced to `example_items` and `explainer_assets`
+  - Guided quest ordering for PREK/K1 is unchanged — new skills are outside the hardcoded early-learner sequence
+- Still unresolved:
+  - live Render has not been redeployed against these changes; new questions will not be usable in the live app until next deploy
+  - new skill families do not have custom `content_templates` entries; they reuse or fall back to existing template patterns
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3003 npm run smoke:local` = pass (all assertions green; guided quest ordering unchanged)
+  - `sync-launch-content.mjs` = 136/22 synced, 0 pruned
+- Review requested:
+  - yes — confirm CONTENT-01 + CONTENT-SYNC-01 expansion is acceptable; confirm new skill families (letter-a, shape-triangle, count-to-5, short-e, subtract-from-10, decodable-cvc-word, cause-effect, add-3-digit, decimal-place-value, text-evidence) are on-tone for alpha; decide whether to deploy to Render before or after owner-led testing begins
 
 ### 2026-03-29 23:55 CDT — child + parent + owner (ACCESS-01: make first-time setup vs. existing sign-in unmistakable)
 

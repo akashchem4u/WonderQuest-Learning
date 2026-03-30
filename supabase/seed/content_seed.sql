@@ -17,7 +17,17 @@ values
   ('pattern-next-item', 'logic', 'G23', 'Predict Pattern', 'Choose the next item in a repeating pattern.'),
   ('compare-fractions', 'math', 'G45', 'Compare Fractions', 'Compare simple fractions with equal numerators or denominators.'),
   ('use-context-clues', 'reading', 'G45', 'Use Context Clues', 'Use nearby sentence clues to infer word meaning.'),
-  ('engineering-basics', 'world-knowledge', 'G45', 'Engineering Basics', 'Understand simple why-questions about testing and design.')
+  ('engineering-basics', 'world-knowledge', 'G45', 'Engineering Basics', 'Understand simple why-questions about testing and design.'),
+  ('letter-a-recognition', 'early-literacy', 'PREK', 'Letter A Recognition', 'Identify the uppercase letter A in a small set.'),
+  ('shape-triangle', 'math', 'PREK', 'Recognize Triangles', 'Identify the triangle from a few common shapes.'),
+  ('count-to-5', 'math', 'PREK', 'Count to 5', 'Count a set of five visible objects accurately.'),
+  ('short-e-sound', 'phonics', 'K1', 'Short E Sound', 'Match simple words with the short e vowel sound.'),
+  ('subtract-from-10', 'math', 'K1', 'Subtract from 10', 'Solve single-step subtraction problems within 10.'),
+  ('decodable-cvc-word', 'reading', 'K1', 'Decode CVC Word', 'Read and select a short consonant-vowel-consonant word.'),
+  ('cause-effect', 'reading', 'G23', 'Cause and Effect', 'Identify what caused an event and what resulted from it.'),
+  ('add-3-digit', 'math', 'G23', 'Add 3-Digit Numbers', 'Solve addition problems with three-digit numbers without regrouping.'),
+  ('decimal-place-value', 'math', 'G45', 'Decimal Place Value', 'Identify the digit in the tenths or hundredths place.'),
+  ('text-evidence', 'reading', 'G45', 'Find Text Evidence', 'Select the sentence that best supports a stated claim.')
 on conflict (code) do nothing;
 
 insert into public.content_templates (
