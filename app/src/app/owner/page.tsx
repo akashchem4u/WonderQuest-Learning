@@ -49,10 +49,10 @@ export default async function OwnerPage() {
           <section className="page-hero">
             <div>
               <span className="eyebrow">Operations</span>
-              <h1>Access the owner console.</h1>
+              <h1>Sign in to the owner console.</h1>
               <p>
-                This dashboard is separate from the child and family experience.
-                Authentication is required to protect operational data.
+                This protected console is separate from the child and family experience.
+                Sign in with an existing owner code to view operational data.
               </p>
             </div>
           </section>
@@ -60,7 +60,7 @@ export default async function OwnerPage() {
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Owner"
-            title="Unlock owner console"
+            title="Existing owner sign-in"
           >
             <OwnerGate configured={configured} />
           </ShellCard>
@@ -88,7 +88,7 @@ export default async function OwnerPage() {
       <AppFrame audience="owner" currentPath="/owner">
         <main className="page-shell owner-command-shell">
           <ShellCard eyebrow="Owner" title="Dashboard data is not available">
-            <p>{error || "Owner dashboard is not available yet."}</p>
+            <p>{error || "Owner console data is not available yet."}</p>
           </ShellCard>
         </main>
       </AppFrame>

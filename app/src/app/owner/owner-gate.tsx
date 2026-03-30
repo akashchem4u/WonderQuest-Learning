@@ -76,13 +76,13 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
 
   return (
     <form className="gate-form gate-form-owner" onSubmit={handleSubmit}>
-      <div className="gate-role-badge">Owner access</div>
+      <div className="gate-role-badge">Existing owner sign-in</div>
       <div className="gate-heading">
-        <strong>Enter access code</strong>
+        <strong>Enter your owner code</strong>
         <p>
           {configured
-            ? "Use the owner code to unlock the product and ops console."
-            : "This feature is not set up yet. Contact your administrator."}
+            ? "Use your existing owner code to open the protected product and ops console."
+            : "Owner sign-in is not set up yet. Contact your administrator to provision access."}
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
 
       {error ? (
         <div className="gate-error-card">
-          <strong>{lockedOut ? "Owner access locked." : "That code did not match."}</strong>
+          <strong>{lockedOut ? "Owner sign-in locked." : "That owner code did not match."}</strong>
           <p>
             {lockedOut
               ? "Too many tries. Ask the owner admin for a fresh code before trying again."
@@ -131,7 +131,7 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
 
       {!configured ? (
         <p className="soft-copy">
-          Ops console access is not available right now.
+          Existing owner sign-in is not available right now.
         </p>
       ) : null}
 
@@ -141,7 +141,7 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
           disabled={!configured || lockedOut || submitting || code.length === 0}
           type="submit"
         >
-          {submitting ? "Checking..." : "Enter owner console"}
+          {submitting ? "Checking..." : "Sign in to owner console"}
         </button>
         <button
           className="secondary-link button-link"
@@ -149,7 +149,7 @@ export default function OwnerGate({ configured }: OwnerGateProps) {
           onClick={clearDigits}
           type="button"
         >
-          Clear code
+          Clear sign-in code
         </button>
       </div>
     </form>

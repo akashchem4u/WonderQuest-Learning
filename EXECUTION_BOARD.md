@@ -282,6 +282,133 @@ Why this batch is first:
 - broad redesign of parent or child hubs
 - unrelated play-loop polish
 
+### Overnight Execution Queue
+
+Work this queue in order. Do not skip ahead unless the current item is blocked and the blocker is written to `Developer Log`.
+
+#### 1. ACCESS-01
+
+- mandatory first item
+- commit only after route-level clarity is visibly improved on `/child`, `/parent`, and `/owner`
+
+#### 2. PLAY-03
+
+`PLAY-03` — keep the most important early-learner help actions in the same viewport as the question.
+
+Why this is next:
+
+- for `PREK` / `K1`, replay/help actions currently live in the side support rail and can drift below the main question area on tighter screens
+- this weakens the first `60-90 seconds` and increases the chance that an adult has to translate what to do next
+
+Expected scope:
+
+- `app/src/app/play/play-client.tsx`
+- `app/src/app/play/play-beta-support.tsx` only if needed
+- `app/src/app/globals.css`
+
+Acceptance:
+
+- on early-learner play routes, the child-facing question card exposes the most important assist action without depending on the side rail
+- replay / slow / visual fallback remain understandable on phone-width layouts
+- no regression to existing retry / explainer / reward behavior
+
+#### 3. PARENT-02
+
+`PARENT-02` — make the parent hub answer the three core questions in one scan: what happened, what is going well, and what to do next.
+
+Why this is after `PLAY-03`:
+
+- once access clarity is fixed, the next trust issue is whether the family view explains the child’s current state fast enough
+- this should improve interpretation, not expand the parent feature set
+
+Expected scope:
+
+- `app/src/app/parent/page.tsx`
+- `app/src/app/globals.css` only if layout needs tightening
+
+Acceptance:
+
+- above the first meaningful scroll, the active child state is readable in plain language
+- a parent can identify one strength, one current focus, and one next action without hunting through the page
+- no new metrics or data sources are introduced
+
+#### 4. DEVICE-02
+
+`DEVICE-02` — harden the access surfaces and first play view for `375px` phones and small tablets after the above changes land.
+
+Why this stays last:
+
+- it should be a cleanup pass after the route hierarchy settles
+- it must remain reproduction-driven, not speculative
+
+Expected scope:
+
+- `app/src/app/globals.css`
+- touched route components only if a CSS-only fix is insufficient
+
+Acceptance:
+
+- no horizontal overflow on `/child`, `/parent`, `/owner`, or the first play question at `375px`
+- no clipped primary CTA
+- no stacked card state where the intended first action falls off-screen unnecessarily
+
+#### 5. CONTENT-01
+
+`CONTENT-01` — increase launch-ready question coverage only after `ACCESS-01`, `PLAY-03`, `PARENT-02`, and `DEVICE-02` are complete or blocked.
+
+Why this is later:
+
+- question volume matters, but it is not the first thing currently breaking user trust
+- access clarity and first-session usability are higher-priority alpha gates than raw question count
+
+Current launch inventory snapshot:
+
+- `PREK` = `26` sample questions across `early-literacy` and `math`
+- `K1` = `26` sample questions across `phonics`, `math`, and `reading`
+- `G23` = `24` sample questions across `reading`, `math`, and `logic`
+- `G45` = `24` sample questions across `math`, `reading`, and `world-knowledge`
+- each launch band is still concentrated in roughly three skill families, so the first content-expansion pass should widen usable variation, not just add duplicates inside one skill
+
+First-pass content targets:
+
+- `PREK`:
+  - widen beyond `letter-b-recognition`, `count-to-3`, and `shape-circle`
+  - add one more letter-recognition family, one more shape family, and more count variation
+- `K1`:
+  - widen beyond `short-a-sound`, `add-to-10`, and `read-simple-word`
+  - add more phonics variation, more within-10 number variation, and more decodable word recognition
+- `G23`:
+  - widen beyond `main-idea`, `multiply-3x4`, and `pattern-next-item`
+  - add another comprehension family, another arithmetic family, and another reasoning family
+- `G45`:
+  - widen beyond `compare-fractions`, `use-context-clues`, and `engineering-basics`
+  - add another fraction/number-sense family, another reading-comprehension family, and another science/world-knowledge family
+
+Expected scope:
+
+- `app/src/lib/content-bank.ts`
+- `app/scripts/sync-launch-content.mjs` only if content synchronization is needed
+- `app/scripts/live-smoke.mjs` only if sequencing or coverage assumptions change
+
+Acceptance:
+
+- increase usable launch-band question density without breaking the current early-learner guided ordering
+- keep questions visibly on-tone for child alpha use, not filler copy
+- preserve `lint`, `build`, and `smoke:local` green status after expansion
+
+### Queue Discipline
+
+- before starting each queued item, re-poll `Ground Truth`, this `Next Round Plan`, and the latest `Review Log`
+- append a `Developer Log` entry before every non-board commit
+- if an item passes validation and the next item is still in scope, continue without waiting
+- if an item would require auth changes, schema work, or broad redesign, stop and record the blocker instead of expanding the batch
+- ignore `supabase/.temp/` unless a later task explicitly requires cleanup of patch artifacts
+
+### Stop Condition
+
+- if `ACCESS-01`, `PLAY-03`, `PARENT-02`, and `DEVICE-02` are all complete, validated, and logged, stop and wait for fresh review instead of inventing more backlog
+- if owner-led testing begins and produces real findings, switch priority from the queue to observed `P0` / `P1` failures
+
 ### When Owner Testing Starts Later
 
 - `2-3` child sessions focused on the early learner path (`PREK` / `K1`)
@@ -600,6 +727,98 @@ Template:
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
 ## Developer Log
+
+### 2026-03-29 23:55 CDT — child + parent + owner (ACCESS-01: make first-time setup vs. existing sign-in unmistakable)
+
+- Files changed:
+  - `app/src/app/child/page.tsx` — "Coming back" button renamed to "Sign in — existing child"; returning card title changed from "Welcome back" to "Sign in to your account"; returning card body copy explicit about username+PIN being from earlier setup; hint copy updated for non-early-learner path
+  - `app/src/app/child/child-beta-panel.tsx` — kicker label changed from "Returning player" to "Existing child sign-in"; heading, body, and readiness item copy all updated to explicit sign-in language
+  - `app/src/app/parent/page.tsx` — added `ParentAccessMode` type and `accessMode` / `returningAccessMode` state; access card title splits "Sign in to an existing parent account" vs "Create parent access"; mode toggle shows "Existing parent sign-in" / "First-time parent setup" choice cards; display name and child username fields hidden in sign-in mode; form helper text adapts per mode; submit label adapts per mode
+  - `app/src/app/owner/page.tsx` — hero h1 changed to "Sign in to the owner console."; hero body copy updated to explicit sign-in framing; ShellCard title changed to "Existing owner sign-in"
+  - `app/src/app/owner/owner-gate.tsx` — gate-role-badge changed to "Existing owner sign-in"; heading strong changed to "Enter your owner code"; body copy updated to explicit existing-access language; error and lockout strings updated; submit button changed to "Sign in to owner console"; clear button changed to "Clear sign-in code"
+  - `app/src/app/globals.css` — added `parent-access-mode-row`, `parent-access-mode-card`, `parent-access-mode-icon` styles to support the new parent mode toggle cards
+- Built:
+  - A user can scan `/child` and immediately see "Sign in — existing child" as a distinct second path; no copy implies a returning child must create a new profile
+  - A user can scan `/parent` and see "Existing parent sign-in" vs "First-time parent setup" as an explicit choice; sign-in mode hides the setup-only fields
+  - A user can scan `/owner` and see it is an existing-owner sign-in gate with explicit operator language throughout
+  - Cookie/session restore behavior unchanged for both child and parent routes
+- Still unresolved:
+  - commits pending on this branch
+  - live Render has not been redeployed against these changes
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3002 npm run smoke:local` = pass (all assertions green)
+- Review requested:
+  - yes — confirm ACCESS-01 clarity changes are acceptable before merge to main
+
+### 2026-03-29 23:39 CDT — parent + shell (PARENT-02: answer the three caregiver questions in one scan)
+
+- Files changed:
+  - `app/src/app/parent/page.tsx`
+  - `app/src/app/globals.css`
+- Built:
+  - Added a top-of-hub parent answer strip so the signed-in family view now surfaces three plain-language answers early: what happened, what is going well, and what to do next.
+  - The new strip uses existing child dashboard data only; no new metrics, APIs, or feature flows were introduced.
+  - This tightens scanability for the active child without broad redesign of the parent route.
+- Still unresolved:
+  - batch is local / uncommitted
+  - quick manual browser spot-check for the signed-in parent hub was not run in this pass
+  - `supabase/.temp/` remains present from earlier live patching work and was not touched by this batch
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass
+  - browser spot-check = not run
+- Review requested:
+  - yes — confirm `PARENT-02` is acceptable and decide whether the next queue item should move to reproduction-backed `DEVICE-02` or hold for real parent-test findings
+
+### 2026-03-29 23:38 CDT — play + shell (PLAY-03: inline early-learner help actions near the question)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx`
+  - `app/src/app/globals.css`
+- Built:
+  - Added a compact inline help block for early-learner play so the child-facing question card now keeps replay controls and simple step cues in the main question area instead of relying only on the side support rail.
+  - Retry states now surface the clue inline as part of the main question flow, reducing the chance that an adult has to hunt for the support controls on tighter layouts.
+  - The existing side support rail remains in place; this batch improves first-minute visibility without changing scoring, retry, explainer, or reward behavior.
+- Still unresolved:
+  - batch is local / uncommitted
+  - quick manual browser spot-check for phone-width play was not run in this pass
+  - `supabase/.temp/` remains present from earlier live patching work and was not touched by this batch
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass
+  - browser spot-check = not run
+- Review requested:
+  - yes — confirm `PLAY-03` is acceptable and decide whether the next queue item should proceed to `PARENT-02` or hold for observed parent-test findings first
+
+### 2026-03-29 23:36 CDT — child + parent + adult-ops + shell (ACCESS-01: explicit existing-account sign-in across access routes)
+
+- Files changed:
+  - `app/src/app/child/page.tsx`
+  - `app/src/app/child/child-beta-panel.tsx`
+  - `app/src/app/parent/page.tsx`
+  - `app/src/app/owner/page.tsx`
+  - `app/src/app/owner/owner-gate.tsx`
+  - `app/src/app/globals.css`
+- Built:
+  - Child access now reads as a clear choice between first-time profile creation and existing-child sign-in; returning copy now explicitly tells adults to use the same child username and 4-digit PIN.
+  - Parent access now exposes an explicit split between existing parent sign-in and first-time setup; returning mode hides first-time-only fields so existing accounts do not look like they must be recreated.
+  - Owner route and owner gate now read as explicit existing-owner sign-in to a protected console, not vague unlock/setup language.
+  - Added supporting parent access card styling so the sign-in/setup split scans clearly without changing auth behavior.
+- Still unresolved:
+  - batch is local / uncommitted
+  - quick manual browser spot-check for `/child`, `/parent`, and `/owner` was not run in this pass
+  - `supabase/.temp/` remains present from earlier live patching work and was not touched by this batch
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass
+  - browser spot-check = not run
+- Review requested:
+  - yes — confirm `ACCESS-01` is acceptable and decide whether queue should continue to `PLAY-03` next or pivot to observed owner-test findings first
 
 ### 2026-03-29 23:30 CDT — control plane (ground truth sync + board-first cadence reset)
 

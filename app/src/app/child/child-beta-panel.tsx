@@ -21,18 +21,22 @@ function buildReadinessItems(props: ChildBetaPanelProps) {
   return [
     {
       done: props.username.trim().length > 0,
-      detail: props.accessMode === "returning" ? "Same username is ready to log back in." : "Quest name is set for the first run.",
+      detail:
+        props.accessMode === "returning"
+          ? "The existing child username is ready for sign-in."
+          : "Quest name is set for the first run.",
       label: "Username ready",
     },
     {
       done: props.pinLength >= 4,
-      detail: "4-digit PIN is set — the child will use it to sign back in next time.",
+      detail:
+        "The 4-digit PIN is set — the child will use the same PIN to sign in again.",
       label: "PIN ready",
     },
     {
       done: props.returningMode || props.selectedAvatarLabel.trim().length > 0,
       detail: props.returningMode
-        ? "Returning kids skip the avatar step and jump back in faster."
+        ? "Existing child sign-in skips the avatar step and goes straight to play."
         : `${props.selectedAvatarLabel || "Pick one guide"} is standing by for the child.`,
       label: "Profile picture ready",
     },
@@ -66,16 +70,16 @@ export function ChildBetaPanel(props: ChildBetaPanelProps) {
       <div className={styles.header}>
         <div className={styles.headerCopy}>
           <span className={styles.kicker}>
-            {props.returningMode ? "Returning player" : "Setup guide"}
+            {props.returningMode ? "Existing child sign-in" : "Setup guide"}
           </span>
           <h2>
             {props.returningMode
-              ? "Get the child back into the quest fast."
+              ? "Sign the child back in with the saved username and PIN."
               : "Set up the device so the child can take over smoothly."}
           </h2>
           <p>
-            Check that the profile, PIN, and play mode are ready. When everything looks good,
-            tap launch and hand the device to the child.
+            Check that the profile, PIN, and play mode are ready. For an existing child,
+            this means using the saved username and 4-digit PIN again before launch.
           </p>
         </div>
         <div className={styles.scoreCard} aria-label={`${readinessPercent} percent ready for handoff`}>
@@ -149,7 +153,7 @@ export function ChildBetaPanel(props: ChildBetaPanelProps) {
                 <strong>{props.selectedBandProfile.title}</strong>
                 <p>
                   {props.returningMode
-                    ? "Hand the device back and use the same username and PIN."
+                    ? "Use the same username and 4-digit PIN to sign the child back in."
                     : "Finish the setup, then let the child take the next step."}
                 </p>
               </div>

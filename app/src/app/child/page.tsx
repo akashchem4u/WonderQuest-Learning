@@ -275,9 +275,9 @@ export default function ChildAccessPage() {
           <ShellCard
             className="shell-card-soft"
             eyebrow="Access"
-            title="Choose the quickest path"
+            title="Create a profile or sign in"
           >
-            <span className="step-chip">Step 1 · New or returning?</span>
+            <span className="step-chip">Step 1 · New child or existing child?</span>
             <div className="child-entry-grid">
               <button
                 className={`child-entry-card child-entry-card-new ${accessMode === "new" ? "is-selected" : ""}`}
@@ -312,8 +312,8 @@ export default function ChildAccessPage() {
                   ⚡
                 </span>
                 <span className="child-entry-copy">
-                  <strong>Coming back</strong>
-                  <small>Use the same username and 4-digit PIN to jump back in fast.</small>
+                  <strong>Existing child sign-in</strong>
+                  <small>Already registered? Enter the same username and 4-digit PIN to sign in.</small>
                 </span>
                 <span className="child-entry-arrow" aria-hidden="true">
                   →
@@ -322,8 +322,8 @@ export default function ChildAccessPage() {
             </div>
             <p className="soft-copy child-entry-hint">
               {earlyLearnerBand
-                ? "Grown-up help is only needed here. After this, the child follows pictures and short prompts on their own."
-                : "Quick sign-in — returning kids are back in the quest in seconds."}
+                ? "Already set up? Choose existing child sign-in, enter the same username and PIN, then hand the device back."
+                : "Already have a profile? Sign in here with the same username and 4-digit PIN."}
             </p>
           </ShellCard>
 
@@ -378,7 +378,7 @@ export default function ChildAccessPage() {
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Identity"
-            title={returningMode ? "Welcome back" : "Set up the child profile"}
+            title={returningMode ? "Sign in to an existing child profile" : "Set up the child profile"}
           >
             <span className="step-chip">
               {returningMode
@@ -394,12 +394,12 @@ export default function ChildAccessPage() {
                 </span>
                 <div className="child-returning-copy">
                   <strong>
-                    {username ? `Welcome back, ${username}` : "Return to your adventure"}
+                    {username ? `Sign in as ${username}` : "Existing child sign-in"}
                   </strong>
                   <small>
                     {earlyLearnerBand
-                      ? "Use the same name and 4-digit PIN so a grown-up can open the next quest fast."
-                      : "Enter the same username and 4-digit PIN so progress, badges, and trophies stay with the same child."}
+                      ? "Use the child's existing username and the same 4-digit PIN created during first-time setup."
+                      : "Enter the username and 4-digit PIN from the child's first-time setup. Progress, badges, and trophies stay attached."}
                   </small>
                 </div>
               </div>
@@ -418,7 +418,7 @@ export default function ChildAccessPage() {
                 autoComplete="username"
                 helper={
                   returningMode
-                    ? "Use the same username from the child's earlier setup."
+                    ? "Use the username that was already created for this child."
                     : "Use the same username each time."
                 }
                 label="Username"
@@ -442,10 +442,10 @@ export default function ChildAccessPage() {
               <div className="pin-panel-header">
                 <strong>4-digit PIN</strong>
                 <span>
-                  {earlyLearnerBand
-                    ? "Tap four numbers for the grown-up setup step."
-                    : returningMode
-                      ? "Same 4 digits from last time."
+                  {returningMode
+                    ? "Enter the same 4 digits from the child's earlier setup."
+                    : earlyLearnerBand
+                      ? "Tap four numbers for the grown-up setup step."
                       : "Tap four numbers for quick sign-in next time."}
                 </span>
               </div>
@@ -610,7 +610,7 @@ export default function ChildAccessPage() {
             ) : null}
             <div className="summary-chip-row">
               <span className="summary-chip">
-                {returningMode ? "Returning adventurer" : selectedBandProfile.title}
+                {returningMode ? "Existing child sign-in" : selectedBandProfile.title}
               </span>
               {!returningMode ? (
                 <span className="summary-chip">{selectedAvatarSymbol} guide</span>
@@ -644,7 +644,7 @@ export default function ChildAccessPage() {
             {error ? <p className="status-banner status-error">{error}</p> : null}
             {result ? (
               <div className="status-panel">
-                <strong>{result.created ? "Profile created." : "Welcome back."}</strong>
+                <strong>{result.created ? "Profile created." : "Signed in."}</strong>
                 <p>
                   {result.student.displayName} is at level{" "}
                   {result.progression.currentLevel} with{" "}
@@ -661,7 +661,7 @@ export default function ChildAccessPage() {
                 {submitting
                   ? "Starting..."
                   : returningMode
-                    ? "Continue adventure"
+                    ? "Sign in and play"
                     : `Start as ${selectedBandProfile.title}`}
               </button>
               <Link className="secondary-link" href="/parent">

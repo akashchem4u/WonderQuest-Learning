@@ -73,6 +73,7 @@ type ParentAccessResponse = {
   childDashboard: ChildDashboard | null;
 };
 
+type ParentAccessMode = "new" | "returning";
 type AccessSection = "profile" | "notifications" | "relink";
 
 function formatMinutes(totalTimeSpentMs: number) {
@@ -340,6 +341,7 @@ const parentPreviewWeekly = {
 };
 
 export default function ParentAccessPage() {
+  const [accessMode, setAccessMode] = useState<ParentAccessMode>("returning");
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
   const [username, setUsername] = useState("");
@@ -354,6 +356,7 @@ export default function ParentAccessPage() {
   const [openAccessSection, setOpenAccessSection] = useState<AccessSection | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [selectedSkillCode, setSelectedSkillCode] = useState<string | null>(null);
+  const returningAccessMode = accessMode === "returning";
   const activeChildId =
     selectedChildId ??
     result?.linkedChild?.id ??
@@ -490,6 +493,32 @@ export default function ParentAccessPage() {
       label: "Open family detail",
     },
   ];
+  const parentTopAnswers = [
+    {
+      detail: `${formatMinutes(activeChildDashboard?.effectiveTimeSpentMs ?? 0)} effective time · last active ${formatLastSeen(activeChildDashboard?.lastSessionAt ?? null)}`,
+      label: "What happened",
+      tone: "summary" as const,
+      value: `${activeChildDashboard?.completedSessions ?? 0} lesson${
+        activeChildDashboard?.completedSessions === 1 ? "" : "s"
+      } finished`,
+    },
+    {
+      detail: primaryStrength
+        ? `${activeChild?.displayName ?? "Your child"} is looking steadier in this skill right now.`
+        : "A stronger pattern will appear after a few more sessions.",
+      label: "What is going well",
+      tone: "strength" as const,
+      value: primaryStrength?.displayName ?? "Confidence is building",
+    },
+    {
+      detail: primarySupport
+        ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
+        : `Keep the next practice short and calm around ${activeChildDashboard?.recommendedFocus?.toLowerCase() ?? "the next focus"}.`,
+      label: "What to do next",
+      tone: "next" as const,
+      value: primarySupport?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next focus",
+    },
+  ];
 
   // Attempt cookie-based session restore on first mount.
   // If the parent already has a valid wonderquest-parent-session cookie,
@@ -591,9 +620,9 @@ export default function ParentAccessPage() {
         body: JSON.stringify({
           username,
           pin,
-          displayName,
-          childUsername,
-          relationship,
+          displayName: returningAccessMode ? "" : displayName,
+          childUsername: returningAccessMode ? "" : childUsername,
+          relationship: returningAccessMode ? "parent" : relationship,
           notifyWeekly,
           notifyMilestones,
         }),
@@ -1041,17 +1070,61 @@ export default function ParentAccessPage() {
             <aside className="parent-preview-side">
               <ShellCard
                 className="shell-card-emphasis parent-access-manager-card"
-                eyebrow="Quick access"
-                title="Set up parent access"
+                eyebrow="Parent access"
+                title={
+                  returningAccessMode
+                    ? "Sign in to an existing parent account"
+                    : "Create parent access"
+                }
               >
                 <p className="soft-copy">
-                  Set up once and your family summary will be ready every time
-                  you come back.
+                  {returningAccessMode
+                    ? "Use the same parent username and 4-digit PIN. Linked children and family summaries appear right after sign-in."
+                    : "Create parent access once, link the child profile, and later visits use the same username and PIN."}
                 </p>
+                <div className="parent-access-mode-row">
+                  <button
+                    className={`parent-access-mode-card ${returningAccessMode ? "is-current" : ""}`}
+                    onClick={() => {
+                      setAccessMode("returning");
+                      setError("");
+                    }}
+                    type="button"
+                  >
+                    <span className="parent-access-mode-icon" aria-hidden="true">
+                      🔐
+                    </span>
+                    <div>
+                      <strong>Existing parent sign-in</strong>
+                      <small>Use the same parent username and 4-digit PIN.</small>
+                    </div>
+                  </button>
+                  <button
+                    className={`parent-access-mode-card ${!returningAccessMode ? "is-current" : ""}`}
+                    onClick={() => {
+                      setAccessMode("new");
+                      setError("");
+                    }}
+                    type="button"
+                  >
+                    <span className="parent-access-mode-icon" aria-hidden="true">
+                      ✨
+                    </span>
+                    <div>
+                      <strong>First-time parent setup</strong>
+                      <small>Create access, add the adult name, and link the child profile once.</small>
+                    </div>
+                  </button>
+                </div>
                 <form className="parent-access-compact-form" onSubmit={handleSubmit}>
                   <div className="field-grid">
                     <FieldBlock
                       autoComplete="username"
+                      helper={
+                        returningAccessMode
+                          ? "Use the same parent username from the earlier setup."
+                          : "Create the username this adult will use for future sign-in."
+                      }
                       label="Username"
                       onChange={(event) => setUsername(event.target.value)}
                       placeholder="parent username"
@@ -1059,7 +1132,11 @@ export default function ParentAccessPage() {
                     />
                     <FieldBlock
                       autoComplete="current-password"
-                      helper="Use the same 4-digit PIN you set up."
+                      helper={
+                        returningAccessMode
+                          ? "Use the same 4-digit PIN from the parent account."
+                          : "Create a 4-digit PIN for future sign-in."
+                      }
                       label="4-digit PIN"
                       maxLength={4}
                       onChange={(event) => setPin(event.target.value)}
@@ -1067,52 +1144,72 @@ export default function ParentAccessPage() {
                       type="password"
                       value={pin}
                     />
-                    <FieldBlock
-                      helper="Shown in family summaries."
-                      label="Display name"
-                      onChange={(event) => setDisplayName(event.target.value)}
-                      placeholder="Parent name"
-                      value={displayName}
-                    />
-                    <FieldBlock
-                      helper="Use the child username already created in the app."
-                      label="Child username"
-                      onChange={(event) => setChildUsername(event.target.value)}
-                      placeholder="child quest name"
-                      value={childUsername}
-                    />
+                    {!returningAccessMode ? (
+                      <FieldBlock
+                        helper="Shown in family summaries."
+                        label="Display name"
+                        onChange={(event) => setDisplayName(event.target.value)}
+                        placeholder="Parent name"
+                        value={displayName}
+                      />
+                    ) : null}
+                    {!returningAccessMode ? (
+                      <FieldBlock
+                        helper="Use the child username already created in the app."
+                        label="Child username"
+                        onChange={(event) => setChildUsername(event.target.value)}
+                        placeholder="child quest name"
+                        value={childUsername}
+                      />
+                    ) : null}
                   </div>
 
-                  <div className="parent-preview-toggle-list">
-                    <button
-                      className={`parent-toggle-row ${notifyWeekly ? "is-on" : ""}`}
-                      onClick={() => setNotifyWeekly((value) => !value)}
-                      type="button"
-                    >
-                      <div>
-                        <strong>Weekly summary</strong>
-                        <span>Time spent, calm insights, and next focus.</span>
-                      </div>
-                      <b>{notifyWeekly ? "On" : "Off"}</b>
-                    </button>
-                    <button
-                      className={`parent-toggle-row ${notifyMilestones ? "is-on" : ""}`}
-                      onClick={() => setNotifyMilestones((value) => !value)}
-                      type="button"
-                    >
-                      <div>
-                        <strong>Milestones</strong>
-                        <span>Badges, trophies, and level moments.</span>
-                      </div>
-                      <b>{notifyMilestones ? "On" : "Off"}</b>
-                    </button>
-                  </div>
+                  {returningAccessMode ? (
+                    <div className="parent-access-inline-note">
+                      <strong>Existing parent sign-in only needs username + PIN.</strong>
+                      <p>
+                        Display name, child linking, and notification choices are first-time setup steps,
+                        not required every time you return.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="parent-preview-toggle-list">
+                      <button
+                        className={`parent-toggle-row ${notifyWeekly ? "is-on" : ""}`}
+                        onClick={() => setNotifyWeekly((value) => !value)}
+                        type="button"
+                      >
+                        <div>
+                          <strong>Weekly summary</strong>
+                          <span>Time spent, calm insights, and next focus.</span>
+                        </div>
+                        <b>{notifyWeekly ? "On" : "Off"}</b>
+                      </button>
+                      <button
+                        className={`parent-toggle-row ${notifyMilestones ? "is-on" : ""}`}
+                        onClick={() => setNotifyMilestones((value) => !value)}
+                        type="button"
+                      >
+                        <div>
+                          <strong>Milestones</strong>
+                          <span>Badges, trophies, and level moments.</span>
+                        </div>
+                        <b>{notifyMilestones ? "On" : "Off"}</b>
+                      </button>
+                    </div>
+                  )}
 
                   {error ? <p className="status-banner status-error">{error}</p> : null}
 
                   <div className="form-actions">
                     <button className="primary-link button-link" disabled={submitting} type="submit">
-                      {submitting ? "Saving..." : "Enter family view"}
+                      {submitting
+                        ? returningAccessMode
+                          ? "Signing in..."
+                          : "Saving..."
+                        : returningAccessMode
+                          ? "Sign in to family view"
+                          : "Create parent access"}
                     </button>
                     <Link className="secondary-link" href="/child">
                       Child access
@@ -1286,6 +1383,18 @@ export default function ParentAccessPage() {
                       <strong>{activeChildDashboard.recommendedFocus}</strong>
                       <small>{activeChildDashboard.readinessLabel}</small>
                     </div>
+                  </div>
+                </article>
+
+                <article className="parent-family-answer-strip" aria-label="Parent quick answers">
+                  <div className="parent-family-answer-grid">
+                    {parentTopAnswers.map((item) => (
+                      <div className={`parent-family-answer-card is-${item.tone}`} key={item.label}>
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                        <p>{item.detail}</p>
+                      </div>
+                    ))}
                   </div>
                 </article>
 
