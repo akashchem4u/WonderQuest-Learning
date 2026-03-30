@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 19:10 CDT
+Updated: 2026-03-29 19:25 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,7 +45,7 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- local `main` is at `6db80e1` (app-frame "Alpha" → "Early Access" copy fix)
+- local `main` is at `3c3411b` (board update — app-frame copy fix + Render pass)
 - the current repo is clean
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
@@ -446,9 +446,31 @@ Template:
 - developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
-- migration `20260329_000004_parent_access_sessions.sql` still needs to be applied to the live Supabase instance before Render parent durability and teacher / owner throttling are considered live-ready. All other Render routes currently pass.
+- ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
 ## Developer Log
+
+### 2026-03-29 19:25 CDT — platform (migration close: 20260329_000004 live schema verification)
+
+- Files changed:
+  - None — no code changes. Schema was already fully applied; migration tracking repaired via `supabase migration repair`.
+- Built:
+  - Confirmed all 4 schema changes from `20260329_000004_parent_access_sessions.sql` are live in the Supabase production database:
+    - `guardian_id uuid` column exists on `access_sessions`, nullable
+    - `student_id` on `access_sessions` is nullable (was NOT NULL)
+    - `access_sessions_access_type_check` constraint present (child/parent)
+    - `access_sessions_identity_check` constraint present
+    - `access_attempts_access_type_check` covers child/parent/teacher/owner
+    - `idx_access_sessions_guardian` index present
+  - Migration tracking table repaired: `20260329` marked as applied
+  - Render 7/7 pass confirmed after migration verification
+- Still unresolved:
+  - Nothing blocking alpha — all previously identified backlog items are now closed
+- Verification:
+  - Schema verified via Node.js `pg` client direct query against live Supabase
+  - `./tools/render_post_setup_check.sh` = 7/7 pass (2026-03-29 19:22 CDT)
+- Review requested:
+  - yes — confirm migration close and note no remaining blocking items for test-ready alpha
 
 ### 2026-03-29 19:10 CDT — shell (copy fix: app-frame "Alpha" → "Early Access" + Render validation)
 
@@ -1066,3 +1088,27 @@ Template:
   - developer lane should append a `Developer Log` entry for `a0de407`, `219de2f`, and `70d892e` with exact files changed and verification
   - keep the next batch focused on deeper child/play alpha behavior and device hardening, not another broad cross-route wording sweep
   - rerun live Render validation after the next deploy that includes `70d892e`
+
+### 2026-03-29 20:04 CDT — Synced Main Review Through 3c3411b
+
+- Reviewed:
+  - `6db80e1`
+  - `3c3411b`
+  - current synced `main` / `origin/main`
+- Findings:
+  - P0: none
+  - P1: `6db80e1` is the right shell-level copy fix. Replacing unconditional "Alpha" labels with "Early Access" removes internal release language from every audience, including child-facing views, without changing behavior.
+  - P1: `3c3411b` is a valid control-plane sync commit. Recording the Render `7/7` pass and the shell copy fix improves operational clarity and lowers uncertainty about live state.
+  - P1: current committed head has strong verification coverage across local and live checks:
+    - `npm run lint` = pass
+    - `npm run build` = pass
+    - `npm run smoke:local` = pass
+    - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = pass (`7/7`, `0` warnings, `0` failures)
+  - P1: the main remaining coordination issue is narrower now. The shell copy fix is logged, but the earlier `a0de407` / `219de2f` / `70d892e` batch still needs a matching `Developer Log` entry if the board is going to stay auditably complete.
+  - P2: no new product-risk findings surfaced in `6db80e1` or `3c3411b`; this is mostly terminology cleanup plus state reporting.
+- Decision:
+  - approved: current committed progress through `3c3411b`
+- Next action:
+  - developer lane should backfill the missing `Developer Log` entry for `a0de407`, `219de2f`, and `70d892e`
+  - keep the next build batch pointed at deeper child/play alpha behavior and device hardening
+  - maintain the board-first cadence before the next commit lands
