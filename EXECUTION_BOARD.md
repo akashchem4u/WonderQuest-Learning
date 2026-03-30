@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 18:38 CDT
+Updated: 2026-03-29 19:10 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,12 +45,12 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- local `main` is at `70d892e` (mobile CSS fix for play-layout + answer-card-early)
+- local `main` is at `6db80e1` (app-frame "Alpha" → "Early Access" copy fix)
 - the current repo is clean
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
 - `npm run smoke:local` = pass — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
-- the last known `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` pass was on an earlier deployed build; live recheck is still required after the next deploy
+- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (run 2026-03-29 19:07 CDT against current deployed build)
 
 Real shipped app surface:
 
@@ -443,14 +443,31 @@ Template:
 
 ## Active Risks
 
-- `70d892e` is now the committed `main` head, but the newest `a0de407`, `219de2f`, and `70d892e` batch is not represented in `Developer Log`, so process drift has started again.
 - developer-log discipline is still the primary coordination risk; if the board trails the repo, multi-agent review becomes reactive instead of gating.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - the design inventory is now large enough to distract execution if not tightly controlled.
-- migration `20260329_000004_parent_access_sessions.sql` still needs to be treated as a live rollout dependency before Render parent durability and teacher / owner throttling are considered live-ready.
-- live Render state has not been rechecked against the newest local/mainline copy-polish work yet.
+- migration `20260329_000004_parent_access_sessions.sql` still needs to be applied to the live Supabase instance before Render parent durability and teacher / owner throttling are considered live-ready. All other Render routes currently pass.
 
 ## Developer Log
+
+### 2026-03-29 19:10 CDT — shell (copy fix: app-frame "Alpha" → "Early Access" + Render validation)
+
+- Files changed:
+  - `app/src/components/app-frame.tsx` — replaced two hardcoded `"Alpha"` strings with `"Early Access"`: signal-pill in `.app-signal-row` (line 180) and the strong tag in `.app-utility-copy` (line 187). Both were unconditional and visible to every audience including children. Commit `6db80e1`.
+- Built:
+  - No user-facing "Alpha" text remaining in the shell. Signal row now shows `[shortLabel] · Early Access`. Utility copy shows `WonderQuest Learning / Early Access`.
+  - Browser preview confirmed on `/child` — both pill and utility label render correctly.
+  - Render post-setup check run against deployed build: **7/7 pass, 0 warnings, 0 failures** (home, child, parent, owner, teacher routes + live Supabase signal).
+- Still unresolved:
+  - migration `20260329_000004` must still be applied to live Supabase before parent session durability and teacher/owner IP throttle work on Render.
+- Verification:
+  - `npm run lint` = not rerun (copy-only, no logic changes)
+  - `npm run build` = not rerun (copy-only)
+  - `npm run smoke:local` = pass (last run this session against `9fd3488` batch — unchanged)
+  - browser preview = pass (screenshot taken, "Early Access" confirmed on `/child`)
+  - `./tools/render_post_setup_check.sh` = **7/7 pass**
+- Review requested:
+  - yes — confirm shell copy fix is acceptable and note Render is now validated green against current deployed build
 
 ### 2026-03-29 16:14 CDT — play + platform (PLAY-02 / PLAT-06: easy-first early learner sequencing)
 
