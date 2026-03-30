@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 23:13 CDT
+Updated: 2026-03-29 23:30 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -45,8 +45,8 @@ Reference milestone docs:
 
 As of 2026-03-29:
 
-- local `main` is at `3c3411b` (board update — app-frame copy fix + Render pass)
-- the current repo is dirty only with review-lane board edits and live patch artifacts under `supabase/.temp/`
+- local `main` is at `362312a` (backfill developer log for a0de407, 219de2f, 70d892e)
+- the current repo is dirty only with a board-only Ground Truth update and live patch artifacts under `supabase/.temp/`
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
 - `npm run smoke:local` = pass — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
@@ -191,6 +191,157 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 - SIS import depth
 - multiplayer / live rooms
 - large backlog expansion beyond alpha needs
+
+## Next Round Plan
+
+### Round Objective
+
+- keep build momentum moving even if owner-led testing does not start tomorrow morning
+- fix the newly surfaced alpha risk: existing-account login paths do not scan clearly enough on access routes
+- keep the next engineering round tightly focused on access clarity and alpha survival issues, not broad polish
+
+### Coordination Baseline
+
+- use the current synced head `362312a`
+- use the currently deployed Render app that passed `./tools/render_post_setup_check.sh` on 2026-03-29 23:13 CDT
+- do not wait for owner-led testing to begin before starting the next bounded build batch
+- `Developer Log` backfill for `a0de407`, `219de2f`, and `70d892e` is now complete in committed head `362312a`
+- poll this board before any new work and before every commit
+
+### Immediate Build Batch
+
+`ACCESS-01` — make first-time setup versus existing-account sign-in unmistakable on child, parent, and owner routes.
+
+Why this batch is first:
+
+- the current routes technically support returning access, but the sign-in path is too easy to miss
+- this is an alpha trust issue, not a copy nicety: a real user can believe there is no login path for an existing child, parent, or owner
+- it is bounded and does not require schema or auth-model changes
+
+### Files Expected In Scope
+
+- `app/src/app/child/page.tsx`
+- `app/src/app/child/child-beta-panel.tsx`
+- `app/src/app/parent/page.tsx`
+- `app/src/app/owner/page.tsx`
+- `app/src/app/owner/owner-gate.tsx`
+- `app/src/app/globals.css` only if layout/supporting emphasis is needed
+
+### Route-Specific Requirements
+
+#### Child
+
+- make Step 1 read as an explicit choice between:
+  - new child profile
+  - existing child sign-in
+- replace soft language like "Coming back" with direct sign-in language
+- make the returning card and helper copy clearly say an already-registered child uses the same username + 4-digit PIN
+- keep the current auto-restore behavior for valid child session cookies
+
+#### Parent
+
+- the preview/access card must clearly distinguish:
+  - first-time parent setup
+  - existing parent sign-in
+- make it obvious that an existing parent uses username + PIN
+- do not imply that display name and child username are required every time; those are first-link/setup inputs
+- preserve current cookie-based parent session restore behavior
+
+#### Owner
+
+- make the gate read as sign-in to an existing protected console, not as a vague locked feature
+- use explicit operator language around existing owner access code / sign-in
+- do not change owner auth behavior; this batch is clarity only
+
+### Acceptance Criteria
+
+- a user can scan `/child` and immediately see how an already-created child signs in
+- a user can scan `/parent` and immediately see how an existing parent account signs in without assuming they must repeat first-time setup
+- a user can scan `/owner` and understand it is an existing-owner sign-in gate
+- no route copy suggests that returning users need to recreate profiles
+- current cookie/session restore behavior still works for child and parent
+
+### Validation Required
+
+- `npm run lint`
+- `npm run build`
+- `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local`
+- one quick browser spot-check of `/child`, `/parent`, and `/owner` at desktop width after the copy/layout change
+
+### Review Priority
+
+- this access-clarity batch should happen before any more play polish, reward tuning, or broad wording work
+- if the route needs stronger visual separation between setup and sign-in, that is allowed
+- if the route only needs wording and hierarchy changes, keep it that small
+
+### Explicitly Out Of Scope For ACCESS-01
+
+- auth-model changes
+- new database work
+- owner permission changes
+- broad redesign of parent or child hubs
+- unrelated play-loop polish
+
+### When Owner Testing Starts Later
+
+- `2-3` child sessions focused on the early learner path (`PREK` / `K1`)
+- `1-2` parent sessions using real child linking and the family hub
+- one short operator walkthrough of teacher and owner routes to confirm they still feel action-oriented and understandable
+- keep each child session short enough to observe the first `60-90 seconds`, one retry moment, and the completion / return feeling
+
+### What To Capture
+
+- where the child hesitates before the first tap
+- whether an adult had to translate text or instructions
+- whether the retry / explainer moment reduced confusion or added it
+- whether reward and return states felt motivating or easy to ignore
+- whether the parent can answer: what happened, what changed, and what to do next
+- any phone or tablet layout breakage, especially at the play and parent routes
+
+### Observation Format
+
+- route + launch band
+- exact step where friction happened
+- what the child / parent said or did
+- whether adult rescue was needed
+- severity:
+  - `P0` = blocked session, broken layout, lost progress, broken auth/session behavior
+  - `P1` = confusion that did not fully block but clearly hurt trust or momentum
+  - `P2` = polish, wording, or preference-level feedback
+
+### Immediate Post-Test Triage
+
+- same-day hotfix lane:
+  - broken child-to-play entry
+  - retry / explainer failures
+  - reward / return regressions
+  - parent linking / child switching confusion that blocks use
+  - phone-width breakage on child, play, or parent routes
+- hold for the next planned batch:
+  - copy-only ideas that do not fix a real observed failure
+  - visual redesign urges that are not tied to tester confusion
+  - backlog expansion outside the alpha slice
+
+### Allowed Next Engineering Round
+
+- child / play:
+  - strengthen the first `60-90 seconds`
+  - reduce reading load further where testing shows adult translation
+  - improve reward / return clarity if children do not react to the current state
+- parent:
+  - simplify the family hub only where real parents fail to scan or choose next steps
+  - tighten child switching and activity interpretation if it causes hesitation
+- device hardening:
+  - fix any observed `375px` or tablet breakage immediately after reproduction
+- adult ops:
+  - only take teacher / owner changes that directly improve issue triage or test-session interpretation
+
+### Explicitly Not In The Next Round
+
+- another broad cross-route wording sweep
+- design-system adoption detours
+- new backlog themes not tied to observed failures
+- large refactors that destabilize the test slice
 
 ## Execution Phases
 
@@ -449,6 +600,24 @@ Template:
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
 ## Developer Log
+
+### 2026-03-29 23:30 CDT — control plane (ground truth sync + board-first cadence reset)
+
+- Files changed:
+  - `EXECUTION_BOARD.md` — updated Ground Truth from `3c3411b` to `362312a`; all procedural items from the 23:13 CDT review log entry are now closed. No product code changes.
+- Built:
+  - Board is now fully synced with committed `main` / `origin/main` at `362312a`.
+  - All backfill items requested by review lane are complete.
+  - Developer Log now covers every commit from `37326c2` through `362312a`.
+- Still unresolved:
+  - Testing Freeze per Next Round Plan is in effect; no new product commits until review lane authorises the next engineering round or a P0 appears.
+- Verification:
+  - `npm run lint` = pass (board-only edit)
+  - `npm run build` = pass (board-only edit)
+  - `npm run smoke:local` = pass (last clean run this session, no code changes since)
+  - `./tools/render_post_setup_check.sh` = 7/7 pass (23:13 CDT, still valid — no deploys since)
+- Review requested:
+  - yes — confirm board is fully synced and authorise the next engineering round from the Allowed Next Engineering Round list (child/play first-90-seconds hardening; device hardening at 375px; parent simplification only where real testers fail)
 
 ### 2026-03-29 19:25 CDT — platform (migration close: 20260329_000004 live schema verification)
 
