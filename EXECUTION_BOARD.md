@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 19:25 CDT
+Updated: 2026-03-29 23:13 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -46,11 +46,11 @@ Reference milestone docs:
 As of 2026-03-29:
 
 - local `main` is at `3c3411b` (board update — app-frame copy fix + Render pass)
-- the current repo is clean
+- the current repo is dirty only with review-lane board edits and live patch artifacts under `supabase/.temp/`
 - `npm run lint` passes on the current local tree
 - `npm run build` passes on the current local tree
 - `npm run smoke:local` = pass — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
-- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (run 2026-03-29 19:07 CDT against current deployed build)
+- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (re-run 2026-03-29 23:13 CDT against current deployed build after user-confirmed live migration)
 
 Real shipped app surface:
 
@@ -490,6 +490,55 @@ Template:
   - `./tools/render_post_setup_check.sh` = **7/7 pass**
 - Review requested:
   - yes — confirm shell copy fix is acceptable and note Render is now validated green against current deployed build
+
+### 2026-03-29 18:37 CDT — shell (SHELL-02: mobile fix — play-layout overflow + answer-card-early height)
+
+- Files changed:
+  - `app/src/app/globals.css` — added `@media (max-width: 640px)` block: `.play-layout` collapses to `grid-template-columns: 1fr` (was `minmax(320px, ...)` which caused horizontal overflow on 375px viewports); `.answer-card-early` reduced to `min-height: 116px` (was 148px — excessive on small screens, now matches the existing `.answer-card` mobile reduction). Commit `70d892e`.
+- Built:
+  - Play layout no longer overflows on 375px mobile. Answer cards are visually appropriate at phone widths.
+  - Responsive fix covers both the question panel and the sidebar/support rail grid on phones.
+- Still unresolved:
+  - migration `20260329_000004` still pending live Supabase application at time of commit (since resolved)
+- Verification:
+  - browser preview verified at 375px via preview resize — no horizontal overflow
+  - `npm run lint` = pass (CSS-only, no logic changes)
+  - `npm run build` = pass
+  - `npm run smoke:local` = not rerun (CSS-only change)
+- Review requested:
+  - yes — confirm mobile CSS fix is acceptable
+
+### 2026-03-29 16:44 CDT — parent lane (copy: remove jargon, improve empty states)
+
+- Files changed:
+  - `app/src/app/parent/page.tsx` — 6 copy replacements: "session" → "lesson" in confidence headline and empty state; "support lane" → "skill to strengthen" in insight chips; "Current signal" → "Progress so far" in skill detail card header; "answered prompts" → "questions answered"; activity log empty state simplified. Commit `219de2f`.
+- Built:
+  - Parent route reads cleanly for a real family without internal product jargon. All metric labels match the vocabulary parents would use.
+- Still unresolved:
+  - migration `20260329_000004` still pending at time of commit
+- Verification:
+  - browser preview verified
+  - `npm run lint` = pass (copy-only)
+  - `npm run build` = pass
+  - `npm run smoke:local` = not rerun
+- Review requested:
+  - yes — confirm parent copy pass is acceptable
+
+### 2026-03-29 16:42 CDT — play lane (copy: loading, errors, retry, and completion states)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx` — 12 copy changes: loading copy removes "band" jargon ("for your level"); error state replaced with child-friendly message ("quest" not "session"); retry feedback warmed ("Not quite! Check the hint and try a different answer"); progress eyebrow changed "Session" → "Quest" and "through this loop" → "through this quest"; completion trophy/badge body copy made warmer; return highlight "Continue from where you left off"; completion fallback "Next quest ready". Commit `a0de407`.
+- Built:
+  - Play loop copy is now child-appropriate throughout. No raw API errors or internal terms visible to players.
+- Still unresolved:
+  - migration `20260329_000004` still pending at time of commit
+- Verification:
+  - browser preview verified (play client rendered and retry state confirmed)
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = pass (retry/explainer assertions green)
+- Review requested:
+  - yes — confirm play copy pass is acceptable
 
 ### 2026-03-29 16:14 CDT — play + platform (PLAY-02 / PLAT-06: easy-first early learner sequencing)
 
@@ -1112,3 +1161,25 @@ Template:
   - developer lane should backfill the missing `Developer Log` entry for `a0de407`, `219de2f`, and `70d892e`
   - keep the next build batch pointed at deeper child/play alpha behavior and device hardening
   - maintain the board-first cadence before the next commit lands
+
+### 2026-03-29 23:13 CDT — Live Migration Follow-Up Review
+
+- Reviewed:
+  - user-confirmed completion of live migration `20260329_000004_parent_access_sessions.sql`
+  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com`
+  - current synced `main` / `origin/main` at `3c3411b`
+- Findings:
+  - P0: none
+  - P1: the migration blocker is now cleared from the release checklist based on the user-confirmed live patch plus a fresh green Render post-setup check.
+  - P1: public live validation remains green after migration:
+    - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = pass (`7/7`, `0` warnings, `0` failures)
+  - P1: no new code delta was introduced in this follow-up review; this was a live-state verification pass and board sync.
+  - P2: I revalidated the public deployed routes and live Supabase signal, but I did not directly re-exercise deeper authenticated live parent/teacher/owner flows from this lane in this pass.
+  - P2: the main remaining coordination defect is still procedural: the `Developer Log` gap for `a0de407`, `219de2f`, and `70d892e` remains open until the developer lane backfills it.
+- Decision:
+  - approved: live migration blocker cleared
+  - approved: current committed progress still holds through `3c3411b`
+- Next action:
+  - developer lane should backfill the missing `Developer Log` entry for `a0de407`, `219de2f`, and `70d892e`
+  - keep the next build batch focused on deeper alpha behavior, not more broad copy sweeps
+  - treat local/live verification as green unless a new commit reopens it
