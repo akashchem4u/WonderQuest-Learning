@@ -1918,7 +1918,7 @@ export default function PlayClient() {
                     <div className="play-inline-support-actions">
                       <button
                         aria-pressed={assistMode === "voice"}
-                        aria-label={isSpeaking && assistMode === "voice" ? "Playing audio" : "Hear again"}
+                        aria-label={isSpeaking && assistMode === "voice" ? "Playing audio" : "Replay audio"}
                         className={[
                           "play-inline-support-btn",
                           assistMode === "voice" ? "is-active" : "",
@@ -1928,11 +1928,11 @@ export default function PlayClient() {
                         onClick={() => replayQuestion("voice")}
                         type="button"
                       >
-                        {isSpeaking && assistMode === "voice" ? "🔊" : "Hear again"}
+                        {isSpeaking && assistMode === "voice" ? "🔊" : "Replay"}
                       </button>
                       <button
                         aria-pressed={assistMode === "slow"}
-                        aria-label={isSpeaking && assistMode === "slow" ? "Playing slowly" : "Hear slowly"}
+                        aria-label={isSpeaking && assistMode === "slow" ? "Playing audio slowly" : "Replay slowly"}
                         className={[
                           "play-inline-support-btn",
                           assistMode === "slow" ? "is-active" : "",
@@ -1942,7 +1942,7 @@ export default function PlayClient() {
                         onClick={() => replayQuestion("slow")}
                         type="button"
                       >
-                        {isSpeaking && assistMode === "slow" ? "🔊" : "Hear slowly"}
+                        {isSpeaking && assistMode === "slow" ? "🔊" : "Slow replay"}
                       </button>
                       <button
                         aria-pressed={assistMode === "visual"}

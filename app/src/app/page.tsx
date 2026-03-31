@@ -9,8 +9,8 @@ const routeCards = [
     href: "/parent",
     audience: "For families",
     icon: "👨‍👩‍👧",
-    title: "See the week at a glance",
-    description: "Calm wins, simple signals, and one next step.",
+    title: "See the week fast",
+    description: "Calm wins and one next step.",
     cta: "Open family hub",
     tone: "parent",
   },
@@ -19,7 +19,7 @@ const routeCards = [
     audience: "For teachers",
     icon: "🏫",
     title: "Spot support fast",
-    description: "Progress, cues, and next moves in one view.",
+    description: "Progress, cues, and next moves.",
     cta: "Open classroom view",
     tone: "teacher",
   },
@@ -27,8 +27,8 @@ const routeCards = [
     href: "/owner",
     audience: "Platform management",
     icon: "⚙️",
-    title: "Track launches in one place",
-    description: "Content status, feedback, and readiness stay separate.",
+    title: "Track launches",
+    description: "Status, feedback, and readiness stay separate.",
     cta: "Open ops console",
     tone: "owner",
   },
@@ -73,13 +73,12 @@ export default async function HomePage() {
               Early access · Ages 2 to 10 · {launchStatus.launchBandCount} live bands
             </span>
             <h1>
-              Child-first learning
+              Learning that
               <br />
-              with real <em>clarity</em>.
+              stays <em>clear</em>.
             </h1>
             <p>
-              WonderQuest keeps the child front and center while families, teachers,
-              and ops each get a focused view around them.
+              WonderQuest keeps the child front and center while families, teachers, and ops stay in their own lane.
             </p>
 
             <div className="landing-chip-row">
@@ -107,31 +106,49 @@ export default async function HomePage() {
             <div className="landing-hero-visual-frame">
               <div className="landing-hero-visual-top">
                 <span>Product snapshot</span>
-                <strong>Clear layers for child, family, and ops.</strong>
+                <strong>Three focused views, one clean launch surface.</strong>
               </div>
 
               <div className="landing-hero-visual-grid">
                 <article className="landing-hero-visual-card is-child">
                   <span aria-hidden="true">🧒</span>
+                  <div className="landing-hero-visual-art" aria-hidden="true">
+                    <span className="is-one" />
+                    <span className="is-two" />
+                    <span className="is-three" />
+                    <span className="is-bar" />
+                  </div>
                   <strong>Child</strong>
-                  <p>Big visuals, short prompts, saved progress.</p>
+                  <p>Big visuals, short prompts, and saved progress.</p>
                 </article>
                 <article className="landing-hero-visual-card is-family">
                   <span aria-hidden="true">🏠</span>
+                  <div className="landing-hero-visual-art" aria-hidden="true">
+                    <span className="is-one" />
+                    <span className="is-two" />
+                    <span className="is-three" />
+                    <span className="is-bar" />
+                  </div>
                   <strong>Family</strong>
-                  <p>Calm summaries and one clear next step.</p>
+                  <p>Calm summaries with one clear next step.</p>
                 </article>
                 <article className="landing-hero-visual-card is-ops">
                   <span aria-hidden="true">⚙️</span>
+                  <div className="landing-hero-visual-art" aria-hidden="true">
+                    <span className="is-one" />
+                    <span className="is-two" />
+                    <span className="is-three" />
+                    <span className="is-bar" />
+                  </div>
                   <strong>Ops</strong>
                   <p>Status, readiness, and launch notes stay separate.</p>
                 </article>
               </div>
 
               <div className="landing-hero-visual-strip" aria-hidden="true">
-                <span>Images</span>
-                <span>Audio</span>
-                <span>Progress</span>
+                <span>Visual cues</span>
+                <span>Audio support</span>
+                <span>Saved progress</span>
               </div>
             </div>
           </div>
@@ -143,8 +160,7 @@ export default async function HomePage() {
               <span className="landing-featured-label">Kid journey</span>
               <h2>The child path stays front and center.</h2>
               <p>
-                Families, teachers, and ops each get a separate space that supports
-                the child without crowding the experience.
+                Families, teachers, and ops each get a separate space that supports the child without crowding it.
               </p>
               <div className="landing-chip-row">
                 <span className="landing-chip">Quick child access</span>
@@ -167,17 +183,17 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Launch bands</span>
               <strong>{launchStatus.launchBandCount}</strong>
-              <p>Age-appropriate learning pathways for children ages 2–10.</p>
+              <p>Age-appropriate pathways for ages 2–10.</p>
             </article>
             <article className="landing-metric-card">
               <span>Question bank</span>
-              <strong>{launchStatus.templateCount >= 8 ? "100+" : "Building"}</strong>
+              <strong>{launchStatus.templateCount >= 8 ? "Deep bank" : "Building"}</strong>
               <p>Real practice across multiple ages and subjects.</p>
             </article>
             <article className="landing-metric-card">
               <span>Saved progress</span>
               <strong>Live</strong>
-              <p>Points, badges, and trophies carry over automatically.</p>
+              <p>Points, badges, and trophies carry over.</p>
             </article>
             <article className="landing-metric-card">
               <span>Adult views</span>
@@ -243,11 +259,11 @@ export default async function HomePage() {
         </section>
 
         <section className="landing-trust-strip">
-          <span className="landing-trust-item">🔒 COPPA-conscious design</span>
-          <span className="landing-trust-item">🎓 Built for home and school</span>
-          <span className="landing-trust-item">🚫 No peer chat</span>
-          <span className="landing-trust-item">👁️ No public rankings for children</span>
-          <span className="landing-trust-item">📱 Shared UI across phone, tablet, and desktop</span>
+          <span className="landing-trust-item">🔒 COPPA-safe</span>
+          <span className="landing-trust-item">🎓 Home + school</span>
+          <span className="landing-trust-item">🚫 No chat</span>
+          <span className="landing-trust-item">👁️ No child rankings</span>
+          <span className="landing-trust-item">📱 Phone / tablet / desktop</span>
         </section>
 
         {launchStatus.source === "fallback" ? (

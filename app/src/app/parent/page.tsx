@@ -146,52 +146,52 @@ function describeSkillInParentLanguage(skillCode: string, displayName: string) {
   const label = `${skillCode} ${displayName}`.toLowerCase();
 
   if (label.includes("count")) {
-    return "Match numbers to real groups and count one item at a time.";
+    return "Count real things one by one.";
   }
 
   if (label.includes("letter") || label.includes("phonics")) {
-    return "Hear a sound, spot the matching letter, and connect it to a word.";
+    return "Hear a sound, spot the letter, and connect it.";
   }
 
   if (label.includes("shape")) {
-    return "Notice the corners, sides, and curves that make a shape unique.";
+    return "Look for sides, corners, and curves.";
   }
 
   if (label.includes("add")) {
-    return "Put small amounts together and notice how the numbers combine.";
+    return "Put small amounts together and notice the total.";
   }
 
   if (label.includes("read") || label.includes("word")) {
     return "Recognize a word quickly and connect it to meaning.";
   }
 
-  return "A current building block for comfort, accuracy, and growth.";
+  return "A current step toward comfort and growth.";
 }
 
 function buildParentSkillAction(skillCode: string, displayName: string) {
   const label = `${skillCode} ${displayName}`.toLowerCase();
 
   if (label.includes("count")) {
-    return "Try one quick count-together moment and keep the pace slow.";
+    return "Count a few objects together once.";
   }
 
   if (label.includes("letter") || label.includes("phonics")) {
-    return "Pick one familiar letter or sound and point it out for a minute or two.";
+    return "Point to one familiar letter or sound.";
   }
 
   if (label.includes("shape")) {
-    return "Find the same shape in the room and name it together.";
+    return "Find the same shape in the room.";
   }
 
   if (label.includes("add")) {
-    return "Use small groups of objects and let your child combine them physically.";
+    return "Use small objects and let them combine.";
   }
 
   if (label.includes("read") || label.includes("word")) {
-    return "Repeat one target word in a calm context and celebrate quick recognition.";
+    return "Say one target word and spot it again.";
   }
 
-  return `Keep the next practice short and calm around ${displayName.toLowerCase()}.`;
+  return `Keep practice short around ${displayName.toLowerCase()}.`;
 }
 
 function buildParentSkillSignal(masteryRate: number) {
@@ -216,45 +216,45 @@ function buildParentWeekSummary(
 
   if (leadStrength && leadSupport) {
     return {
-      headline: `${childName} is making steady progress this week.`,
-      body: `${leadStrength} looks more comfortable, and ${leadSupport.toLowerCase()} is the best place for one calm practice moment next.`,
+      headline: `${childName} is steadier this week.`,
+      body: `${leadStrength} is looking easier. ${leadSupport.toLowerCase()} is the clearest next focus.`,
       chips: [
         `${dashboard.strengths.length} strengths`,
-        `${dashboard.supportAreas.length} building`,
-        `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
+        `${dashboard.supportAreas.length} focus`,
+        `${Math.min(Math.max(skillCount, 1), 3)} ideas`,
       ],
     };
   }
 
   if (leadStrength) {
     return {
-      headline: `${childName} had a strong week in the app.`,
-      body: `${leadStrength} looks confident, and a few short sessions can keep that momentum going.`,
+      headline: `${childName} had a strong week.`,
+      body: `${leadStrength} is looking confident. Keep the next return short.`,
       chips: [
         `${dashboard.strengths.length} strengths`,
-        `${dashboard.completedSessions} finished sessions`,
-        `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
+        `${dashboard.completedSessions} sessions`,
+        `${Math.min(Math.max(skillCount, 1), 3)} ideas`,
       ],
     };
   }
 
   return {
-    headline: `${childName} is building confidence one short lesson at a time.`,
+    headline: `${childName} is building confidence.`,
     body: `Keep practice calm, short, and centered on ${dashboard.recommendedFocus.toLowerCase()}.`,
     chips: [
-      `${dashboard.completedSessions} finished sessions`,
-      `${dashboard.supportAreas.length} skill to strengthen`,
-      `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
+      `${dashboard.completedSessions} sessions`,
+      `${dashboard.supportAreas.length} focus`,
+      `${Math.min(Math.max(skillCount, 1), 3)} ideas`,
     ],
   };
 }
 
 function buildParentTeacherMessage(childName: string, dashboard: ChildDashboard) {
   if (dashboard.strengths[0]?.displayName) {
-    return `"${childName} is gaining comfort in ${dashboard.strengths[0].displayName.toLowerCase()}. A short follow-up around ${dashboard.recommendedFocus.toLowerCase()} is the best next step at home."`;
+    return `"${childName} is gaining comfort in ${dashboard.strengths[0].displayName.toLowerCase()}. Next, try ${dashboard.recommendedFocus.toLowerCase()} in one calm moment."`;
   }
 
-  return `"The best next step for ${childName} is a short, calm practice moment around ${dashboard.recommendedFocus.toLowerCase()}. Keep it light and stop while it still feels successful."`;
+  return `"Try one short, calm practice moment around ${dashboard.recommendedFocus.toLowerCase()}."`;
 }
 
 function buildParentWeekendActivities(
@@ -276,7 +276,7 @@ function buildParentWeekendActivities(
     activities.push({
       icon: "✨",
       title: `Keep ${secondarySkill.displayName} feeling easy`,
-      body: `Let your child lead one quick moment around ${secondarySkill.displayName.toLowerCase()} so the app momentum feels familiar.`,
+      body: `Let your child lead one quick moment around ${secondarySkill.displayName.toLowerCase()}.`,
       tag: "Confidence",
     });
   }
@@ -284,7 +284,7 @@ function buildParentWeekendActivities(
   activities.push({
     icon: "🎒",
     title: "End while it still feels easy",
-    body: "Stop after one or two wins. The goal is to keep the next return to WonderQuest feeling calm and inviting.",
+    body: "Stop after one or two wins so the next return feels calm and easy.",
     tag: "Routine",
   });
 
@@ -295,18 +295,18 @@ const parentPreviewWeekly = {
   childName: "Maya",
   bandLabel: "Kinder – Grade 1",
   summary:
-    "Maya had a calmer week with stronger counting confidence and one clear next step in sight words.",
-  chips: ["3 strengths", "1 building", "2 next ideas"],
+    "Maya had a steadier week with one clear next step in sight words.",
+  chips: ["3 strengths", "1 focus", "2 ideas"],
   kpis: [
     {
       label: "Days practiced",
       value: "4",
-      detail: "short sessions",
+      detail: "short visits",
     },
     {
       label: "Effective time",
       value: "18 min",
-      detail: "steady engagement",
+      detail: "steady play",
     },
     {
       label: "Badges earned",
@@ -315,26 +315,26 @@ const parentPreviewWeekly = {
     },
   ],
   strengths: ["Counting objects", "Matching shapes", "Quick number recognition"],
-  support: "Sight words · List 2",
+  support: "Sight words",
   teacherMessage:
-    "Maya is looking more comfortable with counting. A short, playful sight-word check-in at home would be the best next step this week.",
+    "Maya is looking more comfortable with counting. A short sight-word check-in at home would help next.",
   activities: [
     {
       icon: "📚",
-      title: "Two-minute sight word warmup",
-      body: "Pick one target word, say it together, then spot it once in a book or label nearby.",
+      title: "Sight-word warmup",
+      body: "Pick one word, say it together, then spot it once nearby.",
       tag: "2 min",
     },
     {
       icon: "🍓",
-      title: "Count small groups out loud",
-      body: "Use snacks, blocks, or fruit and let Maya touch each item while counting slowly.",
+      title: "Count small groups",
+      body: "Use snacks, blocks, or fruit and count each item slowly.",
       tag: "Confidence",
     },
     {
       icon: "🎉",
-      title: "Stop after one clear win",
-      body: "Leave the session while it still feels easy so the next return to WonderQuest feels positive.",
+      title: "Stop on a win",
+      body: "Leave while it still feels easy.",
       tag: "Routine",
     },
   ],
@@ -658,29 +658,27 @@ export default function ParentAccessPage() {
         <section className="page-hero parent-hero">
           <div>
             <span className="eyebrow">Parent journey</span>
-            <h1>Family learning with calm signals.</h1>
-            <p>
-              Sign in once, link a child, and choose only the updates that matter.
-            </p>
+            <h1>Family learning, in one scan.</h1>
+            <p>Sign in once, see the current focus, and keep the next practice calm.</p>
             <div className="summary-chip-row">
-              <span className="summary-chip">Quiet-hour friendly updates</span>
-              <span className="summary-chip">Strength + support split</span>
-              <span className="summary-chip">Feedback built in</span>
+              <span className="summary-chip">Quick scan</span>
+              <span className="summary-chip">Strengths + next step</span>
+              <span className="summary-chip">Quiet updates</span>
             </div>
           </div>
           <div className="hero-route-summary">
             <StatTile
-              detail="Child-aware"
+              detail="Linked child"
               label="Parent view"
               value="Linked"
             />
             <StatTile
-              detail="Quiet hours"
+              detail="Optional alerts"
               label="Notifications"
               value="Opt-in"
             />
             <StatTile
-              detail="Time + quality"
+              detail="Fast signal"
               label="Signals"
               value="Clear"
             />
@@ -694,19 +692,18 @@ export default function ParentAccessPage() {
               eyebrow="Access manager"
               title="Family access is ready"
             >
-              <div className="parent-access-ready-banner">
-                <span className="parent-access-ready-icon" aria-hidden="true">
-                  ✓
-                </span>
-                <div className="parent-access-ready-copy">
-                  <strong>{result.guardian.displayName} can see the family view.</strong>
-                  <p>
-                    {result.linkedChildren.length} linked child
-                    {result.linkedChildren.length === 1 ? "" : "ren"} with calm
-                    weekly summaries and milestone updates.
-                  </p>
+                <div className="parent-access-ready-banner">
+                  <span className="parent-access-ready-icon" aria-hidden="true">
+                    ✓
+                  </span>
+                  <div className="parent-access-ready-copy">
+                    <strong>{result.guardian.displayName} can see the family view.</strong>
+                    <p>
+                      {result.linkedChildren.length} linked child
+                    {result.linkedChildren.length === 1 ? "" : "ren"} with weekly summaries and milestone updates.
+                    </p>
+                  </div>
                 </div>
-              </div>
 
               <div className="parent-access-ready-grid">
                 <article className="parent-access-identity-card">
@@ -747,7 +744,7 @@ export default function ParentAccessPage() {
                     </div>
                     <div className="parent-access-status-cell">
                       <strong>{result.linkedChildren.length}</strong>
-                      <span>Linked children</span>
+                      <span>Children</span>
                     </div>
                   </div>
 
@@ -925,7 +922,7 @@ export default function ParentAccessPage() {
               <article className="parent-summary-hero is-single parent-preview-hero">
                 <div className="parent-hub-greeting">
                   <span className="eyebrow">This week</span>
-                  <h2>Family learning snapshot with calmer, actionable signals.</h2>
+                  <h2>Family learning snapshot with calmer signals.</h2>
                   <p>{parentPreviewWeekly.summary}</p>
                   <div className="parent-week-chip-row">
                     {parentPreviewWeekly.chips.map((chip) => (
@@ -951,9 +948,7 @@ export default function ParentAccessPage() {
                   <span className="parent-weekly-label">Weekly summary</span>
                   <strong>{parentPreviewWeekly.childName}</strong>
                   <p>
-                    {parentPreviewWeekly.bandLabel}. Each week you'll see your
-                    child's strongest skill, the best area for practice, and
-                    ready-to-use activity ideas.
+                    {parentPreviewWeekly.bandLabel}. See the strongest skill, the best practice area, and one quick idea.
                   </p>
                   <div className="parent-weekly-stats">
                     <div>
@@ -975,8 +970,7 @@ export default function ParentAccessPage() {
                   <span className="parent-insight-label">Strongest next step</span>
                   <strong>{parentPreviewWeekly.support}</strong>
                   <p>
-                    Keep the next practice short, calm, and clear. One targeted
-                    activity is more useful than a long session.
+                    Keep the next practice short and clear. One targeted activity is enough.
                   </p>
                   <div className="parent-action-list">
                     <div>
@@ -998,7 +992,7 @@ export default function ParentAccessPage() {
               <ShellCard
                 className="shell-card-soft parent-preview-highlights"
                 eyebrow="Family view"
-                title="What parents need in seconds"
+                title="What parents need now"
               >
                 <div className="parent-answer-list">
                   <div className="parent-answer-row">
@@ -1006,8 +1000,8 @@ export default function ParentAccessPage() {
                       ✅
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>What's going well?</strong>
-                      <p>{parentPreviewWeekly.strengths.join(", ")} are reading as current strengths.</p>
+                      <strong>Going well</strong>
+                      <p>{parentPreviewWeekly.strengths.join(", ")} are current strengths.</p>
                     </div>
                   </div>
                   <div className="parent-answer-row">
@@ -1015,8 +1009,8 @@ export default function ParentAccessPage() {
                       🌱
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>What needs support?</strong>
-                      <p>{parentPreviewWeekly.support} is the clearest place for one calm home follow-up.</p>
+                      <strong>Needs support</strong>
+                      <p>{parentPreviewWeekly.support} is the clearest next focus.</p>
                     </div>
                   </div>
                   <div className="parent-answer-row">
@@ -1024,8 +1018,8 @@ export default function ParentAccessPage() {
                       🧭
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>What should we do next?</strong>
-                      <p>Start with one tiny practice idea, then stop while it still feels easy.</p>
+                      <strong>Next move</strong>
+                      <p>Start small, then stop while it still feels easy.</p>
                     </div>
                   </div>
                 </div>
@@ -1040,7 +1034,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>Teacher guidance</strong>
-                      <p>Shared in plain family language</p>
+                      <p>Plain family language</p>
                     </div>
                   </div>
                   <blockquote>{parentPreviewWeekly.teacherMessage}</blockquote>
@@ -1078,8 +1072,8 @@ export default function ParentAccessPage() {
               >
                 <p className="soft-copy">
                   {returningAccessMode
-                    ? "Use the same parent username and 4-digit PIN. Linked children and family summaries appear right after sign-in."
-                    : "Create parent access once, link the child profile, and later visits use the same username and PIN."}
+                    ? "Use the same username and 4-digit PIN. Family summaries appear right after sign-in."
+                    : "Create access once, link the child profile, and later visits use the same username and PIN."}
                 </p>
                 <div className="parent-access-mode-row">
                   <button
@@ -1095,7 +1089,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>Existing parent sign-in</strong>
-                      <small>Use the same parent username and 4-digit PIN.</small>
+                      <small>Use the same username and 4-digit PIN.</small>
                     </div>
                   </button>
                   <button
@@ -1111,7 +1105,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>First-time parent setup</strong>
-                      <small>Create access, add the adult name, and link the child profile once.</small>
+                      <small>Create access, add the adult name, and link the child once.</small>
                     </div>
                   </button>
                 </div>
@@ -1121,7 +1115,7 @@ export default function ParentAccessPage() {
                       autoComplete="username"
                       helper={
                         returningAccessMode
-                          ? "Use the same parent username from the earlier setup."
+                          ? "Use the same username from setup."
                           : "Create the username this adult will use for future sign-in."
                       }
                       label="Username"
@@ -1133,7 +1127,7 @@ export default function ParentAccessPage() {
                       autoComplete="current-password"
                       helper={
                         returningAccessMode
-                          ? "Use the same 4-digit PIN from the parent account."
+                          ? "Use the same 4-digit PIN."
                           : "Create a 4-digit PIN for future sign-in."
                       }
                       label="4-digit PIN"
@@ -1165,11 +1159,8 @@ export default function ParentAccessPage() {
 
                   {returningAccessMode ? (
                     <div className="parent-access-inline-note">
-                      <strong>Existing parent sign-in only needs username + PIN.</strong>
-                      <p>
-                        Display name, child linking, and notification choices are first-time setup steps,
-                        not required every time you return.
-                      </p>
+                      <strong>Existing sign-in only needs username + PIN.</strong>
+                      <p>Display name, child linking, and alerts are first-time setup steps.</p>
                     </div>
                   ) : (
                     <div className="parent-preview-toggle-list">
@@ -1219,10 +1210,9 @@ export default function ParentAccessPage() {
 
               <article className="parent-settings-card parent-preview-settings-card">
                 <span className="parent-insight-label">What opens next</span>
-                <strong>Linked children, weekly reports, and next-home-practice ideas</strong>
+                <strong>Linked children, weekly reports, and next steps</strong>
                 <p>
-                  After access is saved, the route switches into the calmer family hub with child switching,
-                  activity history, and recommended next steps.
+                  After access is saved, the route switches into the family hub with child switching, activity history, and next steps.
                 </p>
                 <div className="parent-settings-list">
                   <div className="parent-settings-row">
@@ -1650,7 +1640,7 @@ export default function ParentAccessPage() {
               <ShellCard
                 className="shell-card-soft"
                 eyebrow="Recent activity"
-                title="Latest learning activity"
+                title="Recent sessions"
               >
                 {activeChildDashboard.recentSessions.length ? (
                   <div className="activity-list">
@@ -1676,7 +1666,7 @@ export default function ParentAccessPage() {
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    Activity will appear here after your child completes their first lesson.
+                    Activity appears here after the first lesson.
                   </p>
                 )}
               </ShellCard>
