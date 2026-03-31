@@ -167,20 +167,35 @@ function selectEasyFirstGuidedQuestions(
     }
   }
 
-  const remainingQuestions = shuffleArray(
-    [
-      ...pool.filter(
-        (item) =>
-          !usedQuestionKeys.has(item.question_key) &&
-          !recentQuestionKeys.has(item.question_key),
-      ),
-      ...pool.filter(
-        (item) =>
-          !usedQuestionKeys.has(item.question_key) &&
-          recentQuestionKeys.has(item.question_key),
-      ),
-    ],
+  // Skill-diversity fill: prefer questions from skills not yet represented,
+  // then fall back to any non-recent, then recently-seen as a last resort.
+  const usedSkills = new Set(selected.map((item) => item.skill));
+
+  const freshNewSkill = pool.filter(
+    (item) =>
+      !usedQuestionKeys.has(item.question_key) &&
+      !recentQuestionKeys.has(item.question_key) &&
+      !usedSkills.has(item.skill),
   );
+
+  const freshSameSkill = pool.filter(
+    (item) =>
+      !usedQuestionKeys.has(item.question_key) &&
+      !recentQuestionKeys.has(item.question_key) &&
+      usedSkills.has(item.skill),
+  );
+
+  const staleFallback = pool.filter(
+    (item) =>
+      !usedQuestionKeys.has(item.question_key) &&
+      recentQuestionKeys.has(item.question_key),
+  );
+
+  const remainingQuestions = [
+    ...shuffleArray(freshNewSkill),
+    ...shuffleArray(freshSameSkill),
+    ...shuffleArray(staleFallback),
+  ];
 
   return [...selected, ...remainingQuestions].slice(0, questionLimit);
 }
@@ -205,7 +220,7 @@ async function selectSessionQuestions(
     ];
     const challengeWindow = Math.min(
       prioritizedPool.length,
-      Math.max(questionLimit + 3, questionLimit * 2),
+      Math.max(questionLimit * 4, 32),
     );
 
     return shuffleArray(prioritizedPool.slice(0, challengeWindow)).slice(0, questionLimit);
@@ -265,7 +280,7 @@ function getRequestedQuestionSequence(
     .map((item) => item.question_key);
 }
 
-async function getRecentSessionQuestionKeys(studentId: string, lookbackSessions = 4) {
+async function getRecentSessionQuestionKeys(studentId: string, lookbackSessions = 8) {
   const recentSessions = await db.query(
     `
       select requested_focus
