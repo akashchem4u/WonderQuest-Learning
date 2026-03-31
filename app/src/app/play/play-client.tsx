@@ -176,27 +176,63 @@ function getWordPreview(answer: string): WordPreview {
 }
 
 function isCountSkill(question: SessionQuestion) {
-  return question.skill === "count-to-3";
+  return question.skill === "count-to-3" || question.skill === "count-to-5";
 }
 
 function isLetterSkill(question: SessionQuestion) {
-  return question.skill === "letter-b-recognition";
+  return question.skill === "letter-b-recognition" || question.skill === "letter-a-recognition";
 }
 
 function isShapeSkill(question: SessionQuestion) {
-  return question.skill === "shape-circle";
+  return question.skill === "shape-circle" || question.skill === "shape-triangle";
 }
 
 function isShortASkill(question: SessionQuestion) {
-  return question.skill === "short-a-sound";
+  return (
+    question.skill === "short-a-sound" ||
+    question.skill === "short-e-sound" ||
+    question.skill === "short-i-sound"
+  );
 }
 
 function isAddToTenSkill(question: SessionQuestion) {
-  return question.skill === "add-to-10";
+  return (
+    question.skill === "add-to-10" ||
+    question.skill === "subtract-from-10" ||
+    question.skill === "number-bonds-to-5"
+  );
 }
 
 function isReadSimpleWordSkill(question: SessionQuestion) {
-  return question.skill === "read-simple-word";
+  return (
+    question.skill === "read-simple-word" ||
+    question.skill === "decodable-cvc-word" ||
+    question.skill === "sight-words-basic"
+  );
+}
+
+function isBiggerSmallerSkill(question: SessionQuestion) {
+  return question.skill === "bigger-smaller";
+}
+
+function isRhymeSkill(question: SessionQuestion) {
+  return question.skill === "rhyme-match";
+}
+
+function isColorSkill(question: SessionQuestion) {
+  return question.skill === "color-recognition";
+}
+
+function isComparisonSkill(question: SessionQuestion) {
+  return question.skill === "compare-numbers";
+}
+
+function isSkipCountSkill(question: SessionQuestion) {
+  return question.skill === "skip-count-by-5";
+}
+
+function isTimeSkill(question: SessionQuestion) {
+  return question.skill === "time-to-hour";
 }
 
 function getCountSceneToken(question: SessionQuestion) {
@@ -264,35 +300,69 @@ function buildQuestionVisualScene(question: SessionQuestion) {
   if (isLetterSkill(question)) {
     return {
       title: `Find the letter ${question.correctAnswer}`,
-      helper: "Listen first, then tap the matching letter.",
+      helper: "Listen, then tap the matching letter.",
     } satisfies QuestionVisualScene;
   }
 
   if (isShapeSkill(question)) {
+    const shapeName = question.skill === "shape-triangle" ? "triangle" : "circle";
     return {
-      title: "Find the circle",
-      helper: "Look for the round shape with no corners.",
+      title: `Find the ${shapeName}`,
+      helper: shapeName === "triangle" ? "Look for the shape with three points." : "Look for the round shape.",
     } satisfies QuestionVisualScene;
   }
 
   if (isShortASkill(question)) {
+    const soundLabel =
+      question.skill === "short-e-sound"
+        ? "short e"
+        : question.skill === "short-i-sound"
+          ? "short i"
+          : "short a";
     return {
-      title: "Find the short a word",
-      helper: "Say the word, listen for the short a sound, then tap the match.",
+      title: `Find the ${soundLabel} word`,
+      helper: `Listen for the ${soundLabel} sound, then tap the match.`,
     } satisfies QuestionVisualScene;
   }
 
   if (isAddToTenSkill(question)) {
+    const verbLabel =
+      question.skill === "subtract-from-10"
+        ? "Subtract and tap the answer"
+        : question.skill === "number-bonds-to-5"
+          ? "Find the pair that makes 5"
+          : "Add and tap the total";
     return {
-      title: "Add and tap the total",
-      helper: "Start with the first number, add more, then tap the answer.",
+      title: verbLabel,
+      helper: "Look at the numbers, then tap the answer.",
     } satisfies QuestionVisualScene;
   }
 
   if (isReadSimpleWordSkill(question)) {
     return {
       title: `Read the word ${question.correctAnswer}`,
-      helper: "Look at each card, then tap the word that matches.",
+      helper: "Look at each card, then tap the match.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isBiggerSmallerSkill(question)) {
+    return {
+      title: "Which is bigger?",
+      helper: "Look at both groups and tap the bigger one.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isRhymeSkill(question)) {
+    return {
+      title: "Find the rhyme",
+      helper: "Say the words out loud and tap the two that sound alike.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isColorSkill(question)) {
+    return {
+      title: "Find the color",
+      helper: `Tap the card that shows ${question.correctAnswer.toLowerCase()}.`,
     } satisfies QuestionVisualScene;
   }
 
@@ -322,6 +392,18 @@ function buildSceneClass(question: SessionQuestion) {
 
   if (isReadSimpleWordSkill(question)) {
     return "scene-reading";
+  }
+
+  if (isBiggerSmallerSkill(question)) {
+    return "scene-count";
+  }
+
+  if (isRhymeSkill(question)) {
+    return "scene-phonics";
+  }
+
+  if (isColorSkill(question)) {
+    return "scene-shape";
   }
 
   if (question.subject === "early-literacy") {
@@ -747,11 +829,11 @@ function renderAnswerContent(
 }
 
 function buildAnswerCardVariant(question: SessionQuestion) {
-  if (isCountSkill(question)) {
+  if (isCountSkill(question) || isBiggerSmallerSkill(question) || isSkipCountSkill(question) || isComparisonSkill(question)) {
     return "count";
   }
 
-  if (isAddToTenSkill(question)) {
+  if (isAddToTenSkill(question) || isTimeSkill(question)) {
     return "count";
   }
 
@@ -759,11 +841,11 @@ function buildAnswerCardVariant(question: SessionQuestion) {
     return "letter";
   }
 
-  if (isShortASkill(question)) {
+  if (isShortASkill(question) || isRhymeSkill(question)) {
     return "picture";
   }
 
-  if (isShapeSkill(question)) {
+  if (isShapeSkill(question) || isColorSkill(question)) {
     return "shape";
   }
 
@@ -784,7 +866,7 @@ function buildAnswerCardVariant(question: SessionQuestion) {
 
 function buildAnswerTapCue(question: SessionQuestion) {
   if (isCountSkill(question)) {
-    return "Tap the picture group that matches.";
+    return "Tap the group that matches.";
   }
 
   if (isLetterSkill(question)) {
@@ -792,19 +874,48 @@ function buildAnswerTapCue(question: SessionQuestion) {
   }
 
   if (isShortASkill(question)) {
-    return "Tap the word that sounds like cat.";
+    const sound =
+      question.skill === "short-e-sound" ? "net" : question.skill === "short-i-sound" ? "sit" : "cat";
+    return `Tap the word that sounds like ${sound}.`;
   }
 
   if (isShapeSkill(question)) {
-    return "Tap the round shape.";
+    const shape = question.skill === "shape-triangle" ? "triangle" : "circle";
+    return `Tap the ${shape}.`;
   }
 
   if (isAddToTenSkill(question)) {
-    return "Tap the total after six and four more.";
+    if (question.skill === "subtract-from-10") return "Tap the number left.";
+    if (question.skill === "number-bonds-to-5") return "Tap the missing part.";
+    return "Tap the total.";
   }
 
   if (isReadSimpleWordSkill(question)) {
-    return `Tap the word that says ${question.correctAnswer}.`;
+    return `Tap the word ${question.correctAnswer}.`;
+  }
+
+  if (isBiggerSmallerSkill(question)) {
+    return "Tap the bigger group.";
+  }
+
+  if (isRhymeSkill(question)) {
+    return "Tap the word that rhymes.";
+  }
+
+  if (isColorSkill(question)) {
+    return `Tap ${question.correctAnswer.toLowerCase()}.`;
+  }
+
+  if (isSkipCountSkill(question)) {
+    return "Tap the next number in the pattern.";
+  }
+
+  if (isComparisonSkill(question)) {
+    return "Tap the correct comparison.";
+  }
+
+  if (isTimeSkill(question)) {
+    return "Tap the clock that shows the right time.";
   }
 
   if (question.subject === "early-literacy") {
@@ -812,10 +923,10 @@ function buildAnswerTapCue(question: SessionQuestion) {
   }
 
   if (question.subject === "math") {
-    return "Tap the group that matches.";
+    return "Tap the answer.";
   }
 
-  return "Tap the answer that matches.";
+  return "Tap your answer.";
 }
 
 function buildQuestNodeLabel(question: SessionQuestion) {
@@ -823,8 +934,14 @@ function buildQuestNodeLabel(question: SessionQuestion) {
   if (isLetterSkill(question)) return "Letter";
   if (isShapeSkill(question)) return "Shape";
   if (isShortASkill(question)) return "Sound";
-  if (isAddToTenSkill(question)) return "Add";
+  if (isAddToTenSkill(question)) return question.skill === "subtract-from-10" ? "Subtract" : "Add";
   if (isReadSimpleWordSkill(question)) return "Read";
+  if (isBiggerSmallerSkill(question)) return "Compare";
+  if (isRhymeSkill(question)) return "Rhyme";
+  if (isColorSkill(question)) return "Color";
+  if (isSkipCountSkill(question)) return "Count";
+  if (isComparisonSkill(question)) return "Compare";
+  if (isTimeSkill(question)) return "Time";
 
   if (question.subject === "math") return "Math";
   if (question.subject === "early-literacy") return "Word";
@@ -835,10 +952,16 @@ function buildQuestNodeLabel(question: SessionQuestion) {
 function buildQuestNodeIcon(question: SessionQuestion) {
   if (isCountSkill(question)) return getCountSceneToken(question);
   if (isLetterSkill(question)) return "🔤";
-  if (isShapeSkill(question)) return "⭕";
-  if (isShortASkill(question)) return "🐱";
-  if (isAddToTenSkill(question)) return "⚽";
+  if (isShapeSkill(question)) return question.skill === "shape-triangle" ? "🔺" : "⭕";
+  if (isShortASkill(question)) return question.skill === "short-e-sound" ? "🦁" : question.skill === "short-i-sound" ? "🐝" : "🐱";
+  if (isAddToTenSkill(question)) return question.skill === "subtract-from-10" ? "➖" : "⚽";
   if (isReadSimpleWordSkill(question)) return "📖";
+  if (isBiggerSmallerSkill(question)) return "⚖️";
+  if (isRhymeSkill(question)) return "🎵";
+  if (isColorSkill(question)) return "🎨";
+  if (isSkipCountSkill(question)) return "5️⃣";
+  if (isComparisonSkill(question)) return "⚖️";
+  if (isTimeSkill(question)) return "🕐";
 
   if (question.subject === "math") return "🔢";
   if (question.subject === "early-literacy") return "📚";
@@ -1466,11 +1589,11 @@ export default function PlayClient() {
                 ? `${session.student.displayName}'s quest is ready.`
                 : `${session.student.displayName}'s quest loop.`}
             </h1>
-            <p>
-              {earlyLearnerMode
-                ? "Short, guided questions with voice support, visuals, and fast wins."
-                : "Answer questions, earn points, and keep the streak going. Retries and explainers are ready if you need them."}
-            </p>
+            {!earlyLearnerMode ? (
+              <p>
+                Answer questions, earn points, and keep the streak going. Retries and explainers are ready if you need them.
+              </p>
+            ) : null}
             <div className="summary-chip-row">
               <span className="summary-chip">{session.student.launchBandCode} band</span>
               <span className="summary-chip">
@@ -1761,7 +1884,7 @@ export default function PlayClient() {
                 </p>
                 {earlyLearnerMode ? (
                   <div className="kid-prompt-bubble">
-                    <span className="kid-prompt-label">Hear it once</span>
+                    <span className="kid-prompt-label" aria-hidden="true">🔊</span>
                     <strong>{currentQuestion.prompt}</strong>
                   </div>
                 ) : null}
@@ -1774,15 +1897,9 @@ export default function PlayClient() {
                     <div className="play-inline-support-copy">
                       <span className="kid-prompt-label">
                         {answerState?.needsRetry && !answerState.correct
-                          ? "Try again"
-                          : "Need a replay?"}
+                          ? "Try again 🔁"
+                          : "🔊 Replay"}
                       </span>
-                      <strong>
-                        {answerState?.needsRetry && !answerState.correct
-                          ? "Replay the clue, then take one small step."
-                          : "Replay here and stay on the question."}
-                      </strong>
-                      <p>{inlineSupportMessage}</p>
                     </div>
                     <div className="play-inline-support-actions">
                       <button
@@ -1935,8 +2052,7 @@ export default function PlayClient() {
                 ) : null}
                 {earlyLearnerMode ? (
                   <div className={`early-answer-cue early-answer-cue-${answerCardVariant}`}>
-                    <strong>Find it and tap.</strong>
-                    <span>{answerTapCue}</span>
+                    <span>👆 {answerTapCue}</span>
                   </div>
                 ) : null}
                 <div className={`answer-grid ${earlyLearnerMode ? "answer-grid-early" : ""}`.trim()}>

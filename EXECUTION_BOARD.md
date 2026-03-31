@@ -2002,3 +2002,20 @@ Template:
   - `sync-launch-content.mjs` = `3000/77` synced, `0` pruned
 - Review requested:
   - no — continuing to CONTENT-QA-01
+
+### 2026-03-31 CDT — play (CONTENT-QA-01 + PLAY-BETA-02: content report verified, visual-first early-learner play)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx` — CONTENT-QA-01: content bank report (`content-bank-report.mjs`) already covers all acceptance criteria (totals, band counts, top skills, duplicate keys, missing explainers, thin explainers); report ran clean after CONTENT-BETA-02 (0 dups, 0 missing, balanced bands) — no script changes needed. PLAY-BETA-02: expanded skill detection to cover all new skills added in CONTENT-BETA-02 (`count-to-5`, `letter-a-recognition`, `shape-triangle`, `short-e-sound`, `short-i-sound`, `subtract-from-10`, `number-bonds-to-5`, `decodable-cvc-word`, `sight-words-basic`, `bigger-smaller`, `rhyme-match`, `color-recognition`, `time-to-hour`, `skip-count-by-5`, `compare-numbers`); new visual scenes added for `bigger-smaller`, `rhyme-match`, `color-recognition`; new icons and labels added for all 15 new skills; hero paragraph hidden for earlyLearnerMode; `kid-prompt-label` "Hear it once" replaced with 🔊 emoji; inline support panel body text removed (button row + visual cues remain); early-answer-cue simplified from two lines to single emoji+cue line.
+- Built:
+  - Early-learner play is visibly less text-heavy: hero section no longer shows a description paragraph; the replay panel shows only "🔊 Replay" / "Try again 🔁" header without a full-sentence body; the answer cue uses `👆 Tap …` without a redundant "Find it and tap." heading.
+  - All 12 new CONTENT-BETA-02 skills now get proper visual scenes, icons, node labels, and tap cues in the early-learner play UI.
+  - No changes to scoring, session restore, API paths, or the guided question ordering.
+- Still unresolved:
+  - PARENT-BETA-02 still pending — continuing immediately
+- Verification:
+  - `npm run lint` = pass
+  - `npm run smoke:local` = pass (all guided ordering, session restore, and feedback paths green)
+  - `node ./scripts/content-bank-report.mjs` = clean (0 dups, 0 missing explainers)
+- Review requested:
+  - no — continuing to PARENT-BETA-02
