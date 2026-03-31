@@ -2134,3 +2134,53 @@ Template:
   - DB: `dbExampleItems: 3688`, `dbExplainers: 77`
 - Review requested:
   - no — continuing to CHILD-BETA-02
+
+### 2026-03-31 CDT — child + play (CHILD-BETA-02 + PLAY-BETA-03: simplify child entry, tighten play reward panel)
+
+- Commits: `f45dcd3` (CHILD-BETA-02), `1f3ef43` (PLAY-BETA-03)
+- Files changed:
+  - `app/src/app/child/page.tsx` (CHILD-BETA-02) — removed StatTile detail props from hero; removed `<small>` from both access-mode cards; removed child-entry-hint paragraph; collapsed band-toggle `<div>` to a single `<strong>`; shortened returning-card `<small>` to "Band → Age" / "Username + PIN"; removed FieldBlock helper props; removed pin-panel-header `<span>`.
+  - `app/src/app/play/play-client.tsx` (PLAY-BETA-03) — shortened all buildWelcomeBackCopy bodies to ≤1 short phrase; shortented buildRewardOverlay trophy/badge bodies to counts+emoji; earlyLearner correct flash body → "⭐ Keep going!"; all buildNextQuestTeaser bodies → ≤4 words; buildCompletionMoment bodies shortened; removed play-hero non-earlyLearner `<p>`; removed StatTile detail props; removed completion `<p>` in earlyLearner panel; removed completionMoment body `<p>` in finished-map-header; shrank completionHighlight body from `<p>` to `<small>`; replaced verbose non-earlyLearner completion `<p>` with chip row; removed finished-quest-note `<p>`.
+- Built:
+  - Child setup reads as icon+label taps rather than a multi-step form with explanatory text at each field.
+  - Play completion and reward surfaces are now visual-first: emoji+title+count conveys each moment without narrative paragraphs.
+  - No changes to scoring, session, API, or smoke-test assertion paths.
+- Still unresolved:
+  - Continuing to PARENT-BETA-03 (extended backlog item 6).
+- Verification:
+  - `npm run lint` = pass (both files)
+  - `npm run smoke:local` = not yet re-run — continuing; no scoring or session-service changes were made
+- Review requested:
+  - no — continuing to PARENT-BETA-03
+
+### 2026-03-31 CDT — parent (PARENT-BETA-03: compress parent copy, remove form helpers, slim preview prose)
+
+- Commit: `3eba1ba`
+- Files changed:
+  - `app/src/app/parent/page.tsx` — removed hero `<p>` and all three hero StatTile `detail` props; removed form soft-copy paragraph; shortened mode-card `<small>` to 1-phrase summaries; removed all FieldBlock helper props (Username, PIN, Display name, Child username); removed relink warning `<p>`; collapsed returning-mode inline note; replaced linked-children `<p>` with `<small>`; removed `parentWeekSummary.body` `<p>`; replaced answer-card `detail` `<p>` with `<small>`; removed both `activity.body` `<p>` (title + tag sufficient); removed teacher-strip "Shared in plain family language" `<p>`; shrank weekly-card `<p>` to `<small>` showing band label only; removed next-step-card `<p>`; converted answer-row `<p>` to `<small>`; removed skill-detail-banner "One calm practice beat" `<p>`; removed "What opens next" settings card `<p>`.
+- Built:
+  - Parent page scans top-to-bottom as label+value structures rather than alternating paragraphs. The signal grouping (Strengths / Building / Next) reads immediately at each section break.
+  - No API, scoring, session, or auth-model changes.
+- Still unresolved:
+  - Continuing to ADULT-OPS-BETA-02 (extended backlog item 7).
+- Verification:
+  - `npm run lint` = pass
+- Review requested:
+  - no — continuing to ADULT-OPS-BETA-02
+
+### 2026-03-31 CDT — adult-ops (ADULT-OPS-BETA-02: strip prose from teacher and owner routes)
+
+- Commit: `4eeb44b`
+- Files changed:
+  - `app/src/app/teacher/page.tsx` — remaining `<p>` tags converted to `<small>` throughout: band-coverage row (lead/support labels), queue hint, queue item summary, drilldown topline trend label, suggested-next-move body, next-action card detail, timeline row body (band · time · status), both empty-state bodies (no history / no skill selected), session-card mode label. Gate hero `<p>`, command section `<p>`, all 4 StatTile `detail` props, rail-card `<p>`, signal-row `<p>` × 3, win-card `<p>`, tier-card `<p>` × 4, and drilldown metric `<p>` × 3 had been removed in the prior session. Error display `<p>` retained.
+  - `app/src/app/owner/page.tsx` — gate hero `<p>` → `<small>`; hero body `<p>` removed; all 4 KPI sub-labels `<p>` → `<small>` (shorter text); priority-banner body `<p>` → `<small>`; readiness-copy `<p>` → `<small>`; release-check detail `<p>` → `<small>`; blocker detail `<p>` → `<small>`; route-health detail `<p>` → `<small>`; band-row `<p>` → `<small>`; dominant-band support note `<p>` → `<small>`; feedback message `<p>` → `<small>`; mini-stat `<p>` × 3 → `<small>` (triage panel); triage empty-state `<p>` → `<small>`; feedback-list item `<p>` → `<small>`; session effectiveness `<p>` → `<small>`; feedback-mix mini-stat `<p>` × 2 → `<small>`; content-row `<p>` → `<small>`; launch-note `<p>` → `<small>`. Error fallback `<p>` retained.
+- Built:
+  - Teacher route: every panel section now reads as label → strong value → small annotation. No paragraph-length sentences remain in the active dashboard view.
+  - Owner route: KPI cards, release checks, blockers, route health, band rows, feedback list, and mini-stats all use `<small>` for secondary text. The scanning pattern is consistent with the parent and home routes.
+  - No API, scoring, session, or auth-model changes.
+- Still unresolved:
+  - Extended backlog items 8–14 (`QA-BETA-01`, `RELEASE-BETA-01`, `COMEBACK-BETA-01`, `HOME-BETA-03`, `PARENT-IA-01`, `QA-BETA-02`) remain.
+- Verification:
+  - `npm run lint` = pass
+- Review requested:
+  - yes — ADULT-OPS-BETA-02 complete. Full extended backlog items 1–7 are now committed (`CONTENT-BETA-03`, `CONTENT-BETA-04`, `HOME-BETA-02`, `CHILD-BETA-02`, `PLAY-BETA-03`, `PARENT-BETA-03`, `ADULT-OPS-BETA-02`). Requesting review before continuing to items 8+.
