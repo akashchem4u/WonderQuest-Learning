@@ -270,17 +270,9 @@ export default function ChildAccessPage() {
             </div>
           </div>
           <div className="hero-route-summary hero-route-summary-kid">
-            <StatTile label="Access" value="Quick" detail="Username + 4-digit PIN" />
-            <StatTile
-              label="Progress"
-              value="Saved"
-              detail="Badges, trophies, and points persist"
-            />
-            <StatTile
-              label="Support"
-              value="Adaptive"
-              detail="Wrong answers trigger fast explainers"
-            />
+            <StatTile label="Access" value="Quick" />
+            <StatTile label="Progress" value="Saved" />
+            <StatTile label="Support" value="Adaptive" />
           </div>
         </section>
 
@@ -319,7 +311,6 @@ export default function ChildAccessPage() {
                 </span>
                 <span className="child-entry-copy">
                   <strong>New adventurer</strong>
-                  <small>Create a child profile with a band, avatar, and quest name.</small>
                 </span>
                 <span className="child-entry-arrow" aria-hidden="true">
                   →
@@ -339,18 +330,12 @@ export default function ChildAccessPage() {
                 </span>
                 <span className="child-entry-copy">
                   <strong>Existing child sign-in</strong>
-                  <small>Already registered? Enter the same username and 4-digit PIN to sign in.</small>
                 </span>
                 <span className="child-entry-arrow" aria-hidden="true">
                   →
                 </span>
               </button>
             </div>
-            <p className="soft-copy child-entry-hint">
-              {earlyLearnerBand
-                ? "Already set up? Choose existing child sign-in, enter the same username and PIN, then hand the device back."
-                : "Already have a profile? Sign in here with the same username and 4-digit PIN."}
-            </p>
           </ShellCard>
 
           <ShellCard
@@ -373,18 +358,11 @@ export default function ChildAccessPage() {
                   type="button"
                 >
                   <span aria-hidden="true">{fixSavedBand ? "✅" : "🛠️"}</span>
-                  <div>
-                    <strong>
-                      {fixSavedBand
-                        ? `Use ${selectedBandProfile.ageLabel} for this child`
-                        : "Questions feel too easy or too hard?"}
-                    </strong>
-                    <small>
-                      {fixSavedBand
-                        ? "The saved child band will be updated after sign-in."
-                        : "Turn this on if the child is in a different age or grade band now."}
-                    </small>
-                  </div>
+                  <strong>
+                    {fixSavedBand
+                      ? `Switch to ${selectedBandProfile.ageLabel}`
+                      : "Fix the band?"}
+                  </strong>
                 </button>
                 {fixSavedBand ? (
                   <>
@@ -415,9 +393,7 @@ export default function ChildAccessPage() {
                       })}
                     </div>
                     <div className="status-banner">
-                      <strong>{selectedBandProfile.title}</strong>{" "}
-                      will switch this child to questions tuned for{" "}
-                      {selectedBandProfile.ageLabel.toLowerCase()}.
+                      {selectedBandProfile.emoji} <strong>{selectedBandProfile.title}</strong> · {selectedBandProfile.ageLabel}
                     </div>
                   </>
                 ) : (
@@ -483,11 +459,7 @@ export default function ChildAccessPage() {
                     {username ? `Sign in as ${username}` : "Existing child sign-in"}
                   </strong>
                   <small>
-                    {fixSavedBand
-                      ? `Use the same username and PIN. The saved band will update to ${selectedBandProfile.ageLabel}.`
-                      : earlyLearnerBand
-                        ? "Use the child's existing username and the same 4-digit PIN created during first-time setup."
-                        : "Enter the username and 4-digit PIN from the child's first-time setup. Progress, badges, and trophies stay attached."}
+                    {fixSavedBand ? `Band → ${selectedBandProfile.ageLabel}` : "Username + PIN"}
                   </small>
                 </div>
               </div>
@@ -500,20 +472,14 @@ export default function ChildAccessPage() {
             <div className="field-grid">
               <FieldBlock
                 autoComplete="username"
-                helper={
-                  returningMode
-                    ? "Use the username that was already created for this child."
-                    : "Use the same username each time."
-                }
                 label="Username"
                 name="username"
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="your quest name"
+                placeholder="quest name"
                 value={username}
               />
               {!returningMode ? (
                 <FieldBlock
-                  helper="Shown inside the game world."
                   label="Display name"
                   name="displayName"
                   onChange={(event) => setDisplayName(event.target.value)}
@@ -525,13 +491,6 @@ export default function ChildAccessPage() {
             <div className="pin-panel">
               <div className="pin-panel-header">
                 <strong>4-digit PIN</strong>
-                <span>
-                  {returningMode
-                    ? "Enter the same 4 digits from the child's earlier setup."
-                    : earlyLearnerBand
-                      ? "Tap four numbers for the grown-up setup step."
-                      : "Tap four numbers for quick sign-in next time."}
-                </span>
               </div>
               <div className="pin-display" aria-label="PIN display">
                 {pinDigits.map((index) => (
