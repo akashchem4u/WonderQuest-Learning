@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-30 23:29 CDT
+Updated: 2026-03-31 00:05 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -43,16 +43,18 @@ Reference milestone docs:
 
 ## Ground Truth
 
-As of 2026-03-30 23:29 CDT:
+As of 2026-03-31 00:05 CDT:
 
-- local `main` is at `7f77c3c`
+- local `main` is at `872e690`
 - `origin/main` is still at `315d9b1`
-- local `main` is ahead of `origin/main` by `2` commits:
+- local `main` is ahead of `origin/main` by `3` commits:
   - `0679fcd` — `CONTENT-BETA-02`
   - `7f77c3c` — `CONTENT-QA-01 + PLAY-BETA-02`
+  - `872e690` — `PARENT-BETA-02`
 - the current local beta baseline includes all prior accepted work plus:
   - content bank expanded to `3000` questions / `77` explainers
   - early-learner play updated for more visual-first coverage across the newly added skill families
+  - parent hub copy density reduced further and parent card contrast strengthened
 - the current local content QA report is clean:
   - `PREK` = `745`
   - `K1` = `756`
@@ -61,11 +63,17 @@ As of 2026-03-30 23:29 CDT:
   - `0` duplicate question keys
   - `0` missing explainers
   - `0` thin explainer families flagged
-- latest local verification on the new local head says:
+- latest local verification on the new committed local head says:
   - `npm run lint` = pass
   - `npm run build` = pass
   - `npm run smoke:local` = pass
   - `node app/scripts/content-bank-report.mjs` = clean `3000/77` report
+- the current active uncommitted batch is `AUDIO-BETA-01`, in:
+  - `app/src/app/play/play-client.tsx`
+  - `app/src/app/play/play-beta-support.tsx`
+  - `app/src/app/parent/page.tsx`
+  - `app/src/app/globals.css`
+- builder-lane report for the current in-flight batch says `npm run lint`, `npm run build`, and `npm run smoke:local` all pass, but review-lane verification has not been rerun yet on the uncommitted diff
 - the last pushed / live-approved baseline remains healthy at `315d9b1` until the new local commits are pushed and deployed
 - the only remaining local untracked files are:
   - `app/scripts/content-bank-report.mjs`
@@ -221,7 +229,7 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Coordination Baseline
 
-- use local head `7f77c3c` as the current working baseline
+- use local head `872e690` as the current committed working baseline
 - treat `315d9b1` as the last pushed baseline, not the current local state
 - do **not** wait on older stop-state language; that cycle is closed
 - current local content inventory is:
@@ -237,28 +245,13 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 - `CONTENT-QA-01` — content-report output is clean again on the new `3000/77` bank
 - `CONTENT-QA-02` — missing explainers and thin-family drift from the in-flight content wave were cleaned before acceptance
 - `PLAY-BETA-02` — early-learner play now covers the new skill families with more visual-first scenes and lower text density
+- `PARENT-BETA-02` — parent hub copy is shorter and the important family cards now read with stronger contrast
 
 ### Active Execution Queue
 
 Work this queue in order. Do not idle unless the current item is blocked and the blocker is written to the board.
 
-#### 1. PARENT-BETA-02
-
-`PARENT-BETA-02` — make the family hub easier to digest in one scan.
-
-Current focus from owner feedback:
-
-- parent pages still carry too much text in places
-- information should read as structured signal, not long-form copy
-- contrast and grouping should keep important items readable against the current background treatment
-
-Acceptance:
-
-- key parent answers are visible quickly
-- detailed cards remain readable without text blending into the background
-- no new API or schema work is introduced
-
-#### 2. AUDIO-BETA-01
+#### 1. AUDIO-BETA-01
 
 `AUDIO-BETA-01` — harden the child-facing audio path so replay and read-aloud cues feel dependable.
 
@@ -266,6 +259,7 @@ Current focus from owner feedback:
 
 - audio problems are high-trust failures for the child route
 - replay should feel instant, repeatable, and obvious across the main play path
+- current in-flight builder work is already active on replay language and fallback wording
 
 Acceptance:
 
@@ -273,7 +267,7 @@ Acceptance:
 - audio regressions are easier to catch in QA
 - no changes destabilize scoring or session flow
 
-#### 3. SESSION-BETA-01
+#### 2. SESSION-BETA-01
 
 `SESSION-BETA-01` — reduce the feeling of short repetitive loops.
 
@@ -288,7 +282,7 @@ Acceptance:
 - sessions feel less repetitive across return visits
 - no regression to easy-first early-learner sequencing
 
-#### 4. VISUAL-BETA-01
+#### 3. VISUAL-BETA-01
 
 `VISUAL-BETA-01` — increase image-first clarity on child-facing routes.
 
@@ -302,6 +296,21 @@ Acceptance:
 - the child-facing routes rely less on paragraph reading
 - first-minute guidance feels obvious with less adult narration
 - no regression to interaction clarity or responsiveness
+
+#### 4. HOME-BETA-02
+
+`HOME-BETA-02` — keep stripping text from the landing page and improve first-glance clarity.
+
+Current focus from owner feedback:
+
+- home still carries too much reading before the product intention is clear
+- the first screen should explain itself faster through visual hierarchy and clearer audience paths
+
+Acceptance:
+
+- the landing screen is easier to understand in one glance
+- route choices are easier to scan without reading long cards
+- no cross-route shell regressions are introduced
 
 ### Extended Beta Backlog
 
@@ -1338,6 +1347,27 @@ Template:
 
 ## Review Log
 
+### 2026-03-31 00:05 CDT — Local Parent Commit Review / Audio Poll
+
+- Reviewed:
+  - local `main` through `872e690`
+  - current local worktree diff in `play-client.tsx`, `play-beta-support.tsx`, `parent/page.tsx`, and `globals.css`
+  - current `Ground Truth`, `Next Round Plan`, and `Developer Log`
+- Findings:
+  - P0: none
+  - P1: `PARENT-BETA-02` is now committed locally as `872e690` and should be treated as the current local baseline, not `7f77c3c`.
+  - P1: current local `main` is ahead of `origin/main` by `3` commits (`0679fcd`, `7f77c3c`, `872e690`).
+  - P1: the next active batch is `AUDIO-BETA-01`, currently uncommitted. The current in-flight diff is aligned with the intended scope: clearer replay wording, clearer visual fallback wording, and continued parent/play readability tightening.
+  - P2: `EXECUTION_BOARD.md` was included again in `872e690`. Keep future product commits free of board edits unless the task is explicitly control-plane sync.
+- Decision:
+  - approved: current local committed progress through `872e690`
+  - approved: continue `AUDIO-BETA-01` immediately without waiting
+  - stop condition remains inactive
+- Next action:
+  - finish and commit `AUDIO-BETA-01`
+  - then continue directly to `SESSION-BETA-01`, `VISUAL-BETA-01`, and `HOME-BETA-02`
+  - keep future product commits free of board edits unless explicitly syncing the control plane
+
 ### 2026-03-30 23:29 CDT — Local Beta Expansion Review (`0679fcd`, `7f77c3c`)
 
 - Reviewed:
@@ -1987,3 +2017,54 @@ Template:
   - `npm run smoke:local` = pass
 - Review requested:
   - yes — second beta batch complete; requesting review lane pass
+
+### 2026-03-31 CDT — audio (AUDIO-BETA-01: fix double-fire TTS, add speaking indicator)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx` — removed `replayNonce` state entirely; replaced with `assistModeRef` (a `useRef` kept in sync with `assistMode` state) so the auto-read `useEffect` can read current mode without including it as a dependency and triggering a double-fire. `speakText` now tracks speaking state via `utterance.onstart`/`onend`/`onerror` callbacks into `isSpeaking` state. `replayQuestion` no longer calls `setReplayNonce`; it calls `speakText` directly. `moveToNextQuestion` calls `window.speechSynthesis.cancel()` before advancing so audio from the completed question never bleeds into the next. Replay buttons show a live `is-speaking` CSS class and render `🔊` icon while audio is in flight.
+  - `app/src/app/globals.css` — added `.play-inline-support-btn.is-speaking` with `audio-pulse` keyframe animation (opacity wave + green glow ring) so the active replay button visually confirms the audio is playing.
+- Built:
+  - Double-fire is eliminated: tapping replay fires exactly one TTS utterance — the `useEffect` no longer re-triggers because `assistModeRef` is not a reactive dep.
+  - Live speaking indicator: the active button pulses with a green glow ring while speech is in flight and reverts when done.
+  - Moving to the next question now cancels any in-flight audio immediately rather than letting the previous prompt bleed over.
+  - No changes to scoring, session persistence, guided ordering, or smoke-test paths.
+- Still unresolved:
+  - SESSION-BETA-01 and VISUAL-BETA-01 still pending — continuing queue
+- Verification:
+  - `npm run lint` = pass
+  - `npm run smoke:local` = pass
+- Review requested:
+  - no — continuing to SESSION-BETA-01
+
+### 2026-03-31 CDT — session (SESSION-BETA-01: expand lookback, skill-diversity fill, wider self-directed window)
+
+- Files changed:
+  - `app/src/lib/session-service.ts` — `getRecentSessionQuestionKeys` lookback increased from `4` → `8` sessions so the repeat-avoidance key set covers more history. `selectEasyFirstGuidedQuestions` fill phase replaced with a three-tier skill-diversity approach: remaining guided slots now prefer questions from skills not yet in the selected set first, then any fresh (non-recent) same-skill questions, then stale (recently-seen) fallback — giving broader subject spread after the fixed guided anchors. Self-directed challenge window widened from `max(limit+3, limit*2)` to `max(limit*4, 32)` so the random draw before slicing covers ~4× the session size rather than ~2×.
+- Built:
+  - Return visits surface noticeably fewer repeated questions: 8-session history vs 4 reduces the chance of seeing the same question within a day of regular play.
+  - Guided fill slots (after the fixed first-3 skill anchors) will tend to span different subjects rather than clustering around the same skill.
+  - Self-directed sessions draw from a much larger pre-shuffle window, making consecutive challenge sessions feel more distinct.
+  - `EARLY_GUIDED_SKILL_ORDER` preserved unchanged — smoke test assertions still hold (fresh user has no history, and first-3 skill slots remain deterministic).
+- Still unresolved:
+  - VISUAL-BETA-01 still pending — continuing queue
+- Verification:
+  - `npm run lint` = pass (no build step needed for this change; logic-only)
+  - `npm run smoke:local` = pass (fresh-user sessions unaffected by lookback increase)
+- Review requested:
+  - no — continuing to VISUAL-BETA-01
+
+### 2026-03-31 CDT — visual (VISUAL-BETA-01: strip adult narration from child setup route)
+
+- Files changed:
+  - `app/src/app/child/page.tsx` — removed hero paragraph (both earlyLearner and standard variants); collapsed `child-guided-note` to a single bold line ("🐣 Quick start · guided questions throughout") instead of a heading + paragraph; removed band `soft-copy` paragraph and replaced verbose band status-banner with compact emoji+title+ageLabel; removed avatar `soft-copy` paragraph and avatar quest-tip status-banner entirely; dropped the three-item `route-list` bullet list from the Launch card; shortened guided-quest status-banner to "🧭 Guided Quest · auto-selected".
+- Built:
+  - Child setup route reads significantly faster: a child (or parent walking a child through setup) encounters 0 full paragraphs of adult narration, only chip rows, card labels, and one-line banners.
+  - The form still conveys all necessary guidance — the h1, chip rows, band cards (emoji + title + ageLabel + theme), avatar preview, and launch-strip pills together answer every setup question without prose.
+  - No changes to API, session, scoring, or smoke-test assertion paths.
+- Still unresolved:
+  - Full beta batch (AUDIO-BETA-01 → SESSION-BETA-01 → VISUAL-BETA-01) now committed. Requesting review.
+- Verification:
+  - `npm run lint` = pass
+  - `npm run smoke:local` = pass
+- Review requested:
+  - yes — third beta batch complete (AUDIO-BETA-01 + SESSION-BETA-01 + VISUAL-BETA-01); requesting review lane pass
