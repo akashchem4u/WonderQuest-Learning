@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-31 00:05 CDT
+Updated: 2026-03-31 08:18 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -43,18 +43,19 @@ Reference milestone docs:
 
 ## Ground Truth
 
-As of 2026-03-31 00:05 CDT:
+As of 2026-03-31 08:18 CDT:
 
-- local `main` is at `872e690`
+- local `main` is at `7134341`
 - `origin/main` is still at `315d9b1`
-- local `main` is ahead of `origin/main` by `3` commits:
-  - `0679fcd` — `CONTENT-BETA-02`
-  - `7f77c3c` — `CONTENT-QA-01 + PLAY-BETA-02`
-  - `872e690` — `PARENT-BETA-02`
-- the current local beta baseline includes all prior accepted work plus:
+- local `main` is ahead of `origin/main` by `12` commits
+- the current local committed beta baseline includes all prior accepted work plus:
   - content bank expanded to `3000` questions / `77` explainers
   - early-learner play updated for more visual-first coverage across the newly added skill families
   - parent hub copy density reduced further and parent card contrast strengthened
+  - audio replay hardened: double-fire fixed, speaking indicator added, replay wording cleaned up
+  - session variety widened: larger recent-history lookback, stronger skill-diversity fill, wider self-directed challenge window
+  - child setup route stripped of adult narration and verbose banners
+  - landing page reduced to faster first-glance read with heavier reliance on hierarchy instead of paragraphs
 - the current local content QA report is clean:
   - `PREK` = `745`
   - `K1` = `756`
@@ -63,17 +64,23 @@ As of 2026-03-31 00:05 CDT:
   - `0` duplicate question keys
   - `0` missing explainers
   - `0` thin explainer families flagged
-- latest local verification on the new committed local head says:
+- latest local verification on the committed local beta batch says:
   - `npm run lint` = pass
   - `npm run build` = pass
   - `npm run smoke:local` = pass
   - `node app/scripts/content-bank-report.mjs` = clean `3000/77` report
-- the current active uncommitted batch is `AUDIO-BETA-01`, in:
-  - `app/src/app/play/play-client.tsx`
-  - `app/src/app/play/play-beta-support.tsx`
-  - `app/src/app/parent/page.tsx`
-  - `app/src/app/globals.css`
-- builder-lane report for the current in-flight batch says `npm run lint`, `npm run build`, and `npm run smoke:local` all pass, but review-lane verification has not been rerun yet on the uncommitted diff
+- the current active uncommitted batch is `CONTENT-BETA-03`, in:
+  - `data/launch/sample_questions.json`
+- current local in-flight content report on that uncommitted diff is:
+  - `3548` questions / `77` explainers
+  - `PREK` = `925`
+  - `K1` = `876`
+  - `G23` = `878`
+  - `G45` = `869`
+  - `0` duplicate question keys
+  - `0` missing explainers
+  - `0` thin explainers flagged
+- review-lane has rerun the content report on the current in-flight content diff, but has **not** rerun full lint/build/smoke on that new uncommitted wave yet
 - the last pushed / live-approved baseline remains healthy at `315d9b1` until the new local commits are pushed and deployed
 - the only remaining local untracked files are:
   - `app/scripts/content-bank-report.mjs`
@@ -229,7 +236,7 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Coordination Baseline
 
-- use local head `872e690` as the current committed working baseline
+- use local head `7134341` as the current committed working baseline
 - treat `315d9b1` as the last pushed baseline, not the current local state
 - do **not** wait on older stop-state language; that cycle is closed
 - current local content inventory is:
@@ -246,71 +253,75 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 - `CONTENT-QA-02` — missing explainers and thin-family drift from the in-flight content wave were cleaned before acceptance
 - `PLAY-BETA-02` — early-learner play now covers the new skill families with more visual-first scenes and lower text density
 - `PARENT-BETA-02` — parent hub copy is shorter and the important family cards now read with stronger contrast
+- `AUDIO-BETA-01` — replay double-fire fixed; speaking indicator and clearer replay state landed
+- `SESSION-BETA-01` — repeat avoidance and skill diversity widened for return visits
+- `VISUAL-BETA-01` — child setup route no longer leans on adult narration or verbose banners
+- `HOME-BETA-02` — landing page paragraphs stripped back for faster first-glance understanding
 
 ### Active Execution Queue
 
 Work this queue in order. Do not idle unless the current item is blocked and the blocker is written to the board.
 
-#### 1. AUDIO-BETA-01
+#### 1. CONTENT-BETA-03
 
-`AUDIO-BETA-01` — harden the child-facing audio path so replay and read-aloud cues feel dependable.
+`CONTENT-BETA-03` — keep increasing the bank beyond `3000` while preserving quality and practical balance.
 
-Current focus from owner feedback:
+Current focus:
 
-- audio problems are high-trust failures for the child route
-- replay should feel instant, repeatable, and obvious across the main play path
-- current in-flight builder work is already active on replay language and fallback wording
-
-Acceptance:
-
-- child replay audio works consistently on the supported play surfaces
-- audio regressions are easier to catch in QA
-- no changes destabilize scoring or session flow
-
-#### 2. SESSION-BETA-01
-
-`SESSION-BETA-01` — reduce the feeling of short repetitive loops.
-
-Current focus from owner feedback:
-
-- children should not feel trapped in the same tiny prompt cycle
-- the expanded bank should translate into a more varied session feeling, not just bigger JSON files
+- the active uncommitted wave has already moved the bank to `3548` questions
+- report is still clean, but `PREK` is now pulling ahead and should not keep running away from the other bands
+- deeper content should continue to support the beta goal: more replayable, less repetitive, more image-first early content
 
 Acceptance:
 
-- within-band variety improves
-- sessions feel less repetitive across return visits
-- no regression to easy-first early-learner sequencing
+- content report remains clean
+- band spread stays within a tight practical range
+- next content milestone is recorded in `Developer Log`
+- any required explainers remain covered
 
-#### 3. VISUAL-BETA-01
+#### 2. CONTENT-BETA-04
 
-`VISUAL-BETA-01` — increase image-first clarity on child-facing routes.
+`CONTENT-BETA-04` — improve early-learner content tone and image-first feel.
 
-Current focus from owner feedback:
+Current focus:
 
-- children should want to come back because the product feels playful, not text-heavy
-- more of the first minute should read through images, icons, and obvious tap targets
-
-Acceptance:
-
-- the child-facing routes rely less on paragraph reading
-- first-minute guidance feels obvious with less adult narration
-- no regression to interaction clarity or responsiveness
-
-#### 4. HOME-BETA-02
-
-`HOME-BETA-02` — keep stripping text from the landing page and improve first-glance clarity.
-
-Current focus from owner feedback:
-
-- home still carries too much reading before the product intention is clear
-- the first screen should explain itself faster through visual hierarchy and clearer audience paths
+- early content should feel playful, not worksheet-like
+- more of the content bank should support an inviting child feel, not just coverage volume
 
 Acceptance:
 
-- the landing screen is easier to understand in one glance
-- route choices are easier to scan without reading long cards
-- no cross-route shell regressions are introduced
+- PREK / K1 content feels more image-first and replayable
+- no duplicate-key or explainer regressions appear
+
+#### 3. COMEBACK-BETA-01
+
+`COMEBACK-BETA-01` — make return states and post-completion moments feel worth coming back to.
+
+Current focus from owner feedback:
+
+- children should want to come back because the product feels rewarding, not like a digital worksheet
+- return moments should feel obvious and inviting with low reading load
+
+Acceptance:
+
+- comeback moments feel motivating
+- next-step actions are obvious
+- no regression to child/session flow
+
+#### 4. PARENT-IA-01
+
+`PARENT-IA-01` — keep converting parent interpretation into structured, fast-scan blocks.
+
+Current focus from owner feedback:
+
+- parent detail should read as signal, not essays
+- what happened / what matters / what next should remain obvious without digging
+
+Acceptance:
+
+- parent route stays high-contrast and easy to digest
+- next-step interpretation gets clearer without adding more text
+- no API or schema expansion is introduced
 
 ### Extended Beta Backlog
 
@@ -1347,6 +1358,29 @@ Template:
 
 ## Review Log
 
+### 2026-03-31 08:18 CDT — Local Beta Queue Review Through `7134341`
+
+- Reviewed:
+  - local `main` through `7134341`
+  - commit surfaces for `4533c5c`, `a50d4e4`, `a94d59c`, `0d5993e`, `f826feb`, `c8395fd`, `bc7e557`, and `7134341`
+  - current `Ground Truth`, `Next Round Plan`, and `Developer Log`
+  - current local `node app/scripts/content-bank-report.mjs` output on the uncommitted content diff
+- Findings:
+  - P0: none
+  - P1: the local beta queue that followed `PARENT-BETA-02` is now committed locally through `7134341`: audio hardening, session variety, child-route narration reduction, and landing-page text reduction are all landed.
+  - P1: local `main` is now ahead of `origin/main` by `12` commits, so the true local baseline is materially beyond the last pushed head `315d9b1`.
+  - P1: the active uncommitted work has shifted again. It is now a fresh `CONTENT-BETA-03` wave in `sample_questions.json`, and the current report is still clean at `3548/77`.
+  - P1: the new content wave is not yet review-accepted because only the content report has been rerun on that uncommitted diff; full lint/build/smoke have not yet been rerun by the review lane on that specific wave.
+  - P2: control-plane freshness is still the main coordination risk. The board had already logged the queue-complete status in the Developer Log, but the top-of-board state was stale until this review sync.
+- Decision:
+  - approved: current local committed progress through `7134341`
+  - approved: continue directly into `CONTENT-BETA-03`
+  - stop condition remains inactive
+- Next action:
+  - keep the builder lane on `CONTENT-BETA-03`, then `CONTENT-BETA-04`
+  - after the next content commit, rerun the full local verification set and continue into `COMEBACK-BETA-01` / `PARENT-IA-01`
+  - keep future board sync separate from product commits where possible
+
 ### 2026-03-31 00:05 CDT — Local Parent Commit Review / Audio Poll
 
 - Reviewed:
@@ -2082,3 +2116,21 @@ Template:
   - `npm run lint` = pass
 - Review requested:
   - no — continuing to CONTENT-BETA-03 (extended backlog item 1)
+
+### 2026-03-31 CDT — content (CONTENT-BETA-03 + CONTENT-BETA-04: deepen thin skills, rebalance bank)
+
+- Commits: `7a3d92c` (CONTENT-BETA-03 rebalance), `fcd8b72` (CONTENT-BETA-04 deepen)
+- Files changed:
+  - `data/launch/sample_questions.json` — expanded from `3000` to `3688` questions. The 12 thin skills added in CONTENT-BETA-02 (each at 40-50 questions) were deepened to 80-130 each: `bigger-smaller` → 110, `color-recognition` → 130, `rhyme-match` → 90, `number-bonds-to-5` → 95, `short-i-sound` → 95, `sight-words-basic` → 95, `time-to-hour` → 95, `skip-count-by-5` → 95, `compare-numbers` → 95, `inference-making` → 80, `percent-basics` → 95, `ratio-simple` → 95.
+- Built:
+  - Content bank report: 0 duplicate keys, 0 missing explainers, 0 thin explainers.
+  - Band counts remain balanced: PREK 930, K1 921, G23 923, G45 914.
+  - All 12 BETA-02 thin skills are now depth-matched to within 2× of the strongest original skills.
+  - DB synced with batched upsert; all 548 new questions in `public.example_items`.
+- Still unresolved:
+  - Continuing to CHILD-BETA-02 and PLAY-BETA-03 (extended backlog items 4 and 5).
+- Verification:
+  - `node app/scripts/content-bank-report.mjs` = clean (0 dups, 0 missing, balanced bands)
+  - DB: `dbExampleItems: 3688`, `dbExplainers: 77`
+- Review requested:
+  - no — continuing to CHILD-BETA-02
