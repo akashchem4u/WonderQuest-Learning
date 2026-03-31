@@ -133,9 +133,8 @@ export async function accessChild(
   const pin = ensureText(input.pin);
   const displayName = ensureText(input.displayName);
   const avatarKey = ensureText(input.avatarKey);
-  const launchBandCode = ensureLaunchBandCode(
-    ensureText(input.launchBandCode) || "K1",
-  );
+  const requestedLaunchBandCode = ensureText(input.launchBandCode);
+  const launchBandCode = ensureLaunchBandCode(requestedLaunchBandCode || "K1");
 
   if (!username) {
     throw new Error("Username is required.");
@@ -172,6 +171,7 @@ export async function accessChild(
 
   if (existing.rowCount) {
     const row = existing.rows[0];
+    let activeLaunchBandCode = row.launch_band_code as string;
 
     if (!verifyPin(pin, username, row.pin_hash as string)) {
       await recordChildAccessAttempt({
@@ -182,6 +182,21 @@ export async function accessChild(
         failureReason: "wrong-pin",
       });
       throw new Error("Wrong username or PIN.");
+    }
+
+    if (
+      requestedLaunchBandCode &&
+      requestedLaunchBandCode !== activeLaunchBandCode
+    ) {
+      await db.query(
+        `
+          update public.student_profiles
+          set launch_band_code = $2
+          where id = $1
+        `,
+        [row.id, requestedLaunchBandCode],
+      );
+      activeLaunchBandCode = requestedLaunchBandCode;
     }
 
     await ensureProgressionState(row.id as string);
@@ -201,7 +216,7 @@ export async function accessChild(
         username: row.username as string,
         displayName: row.display_name as string,
         avatarKey: row.avatar_key as string,
-        launchBandCode: row.launch_band_code as string,
+        launchBandCode: activeLaunchBandCode,
         preferredThemeCode: (row.preferred_theme_code as string | undefined) ?? null,
       },
       progression: toProgression(row),

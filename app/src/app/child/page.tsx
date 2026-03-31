@@ -91,6 +91,7 @@ export default function ChildAccessPage() {
   const router = useRouter();
   const [accessMode, setAccessMode] = useState<"new" | "returning">("new");
   const [selectedBand, setSelectedBand] = useState("K1");
+  const [fixSavedBand, setFixSavedBand] = useState(false);
   const [selectedMode, setSelectedMode] = useState("guided-quest");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
@@ -102,11 +103,23 @@ export default function ChildAccessPage() {
   const [result, setResult] = useState<ChildAccessResponse | null>(null);
 
   const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
-  const earlyLearnerBand = selectedBand === "PREK" || selectedBand === "K1";
   const returningMode = accessMode === "returning";
+  const selectedBandIsEarlyLearner =
+    selectedBand === "PREK" || selectedBand === "K1";
+  const earlyLearnerBand = returningMode
+    ? fixSavedBand
+      ? selectedBandIsEarlyLearner
+      : false
+    : selectedBandIsEarlyLearner;
   const guidedOnlyMode = earlyLearnerBand || returningMode;
   const pinDigits = [0, 1, 2, 3];
   const selectedBandProfile = getBandProfile(selectedBand);
+  const launchBandTitle =
+    returningMode && !fixSavedBand ? "Saved child band" : selectedBandProfile.title;
+  const launchBandLabel =
+    returningMode && !fixSavedBand
+      ? "Use the band already attached to this child"
+      : selectedBandProfile.ageLabel;
   const selectedAvatarSymbol = getAvatarSymbol(selectedAvatar);
   const selectedAvatarLabel =
     avatars.find((item) => item.avatar_key === selectedAvatar)?.display_name ?? "";
@@ -114,6 +127,14 @@ export default function ChildAccessPage() {
   useEffect(() => {
     let cancelled = false;
     async function trySessionRestore() {
+      const manualChildSwitch =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("manual") === "1";
+
+      if (manualChildSwitch) {
+        return;
+      }
+
       try {
         const response = await fetch("/api/child/session", { method: "GET" });
         if (!response.ok || cancelled) return;
@@ -141,6 +162,12 @@ export default function ChildAccessPage() {
     }
   }, [guidedOnlyMode]);
 
+  useEffect(() => {
+    if (!returningMode) {
+      setFixSavedBand(false);
+    }
+  }, [returningMode]);
+
   function appendPinDigit(digit: string) {
     setPin((current) => (current.length >= 4 ? current : `${current}${digit}`));
   }
@@ -151,6 +178,10 @@ export default function ChildAccessPage() {
 
   function clearPin() {
     setPin("");
+  }
+
+  function handlePinFieldChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setPin(event.target.value.replace(/\D/g, "").slice(0, 4));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -170,7 +201,7 @@ export default function ChildAccessPage() {
           pin,
           displayName,
           avatarKey: selectedAvatar,
-          launchBandCode: selectedBand,
+          launchBandCode: returningMode && !fixSavedBand ? "" : selectedBand,
         }),
       });
 
@@ -327,53 +358,120 @@ export default function ChildAccessPage() {
             </p>
           </ShellCard>
 
-          {!returningMode ? (
           <ShellCard
             className="shell-card-soft"
             eyebrow="Band"
-            title="Choose your age or grade band"
+            title={
+              returningMode
+                ? "Check the saved age or grade band"
+                : "Choose your age or grade band"
+            }
           >
-            <span className="step-chip">Step 2 · Band</span>
-            <div className="child-band-grid">
-              {launchBands.map((band) => (
-                (() => {
-                  const profile = getBandProfile(band.code);
+            <span className="step-chip">
+              {returningMode ? "Optional · Correct the saved band" : "Step 2 · Band"}
+            </span>
+            {returningMode ? (
+              <>
+                <button
+                  className={`child-band-toggle ${fixSavedBand ? "is-selected" : ""}`}
+                  onClick={() => setFixSavedBand((current) => !current)}
+                  type="button"
+                >
+                  <span aria-hidden="true">{fixSavedBand ? "✅" : "🛠️"}</span>
+                  <div>
+                    <strong>
+                      {fixSavedBand
+                        ? `Use ${selectedBandProfile.ageLabel} for this child`
+                        : "Questions feel too easy or too hard?"}
+                    </strong>
+                    <small>
+                      {fixSavedBand
+                        ? "The saved child band will be updated after sign-in."
+                        : "Turn this on if the child is in a different age or grade band now."}
+                    </small>
+                  </div>
+                </button>
+                {fixSavedBand ? (
+                  <>
+                    <div className="child-band-grid">
+                      {launchBands.map((band) => {
+                        const profile = getBandProfile(band.code);
 
-                  return (
-                    <button
-                      key={band.code}
-                      className={`child-band-card ${selectedBand === band.code ? "is-selected" : ""}`}
-                      onClick={() => setSelectedBand(band.code)}
-                      type="button"
-                    >
-                      <span className="child-band-check" aria-hidden="true">
-                        ✓
-                      </span>
-                      <span className="child-band-emoji" aria-hidden="true">
-                        {profile.emoji}
-                      </span>
-                      <strong>{profile.title}</strong>
-                      <small>{profile.ageLabel}</small>
-                      <span className="child-band-theme">
-                        {band.primaryTheme}
-                      </span>
-                    </button>
-                  );
-                })()
-              ))}
-            </div>
-            <p className="soft-copy">
-              {earlyLearnerBand
-                ? "This sets the voice pace, support level, and visual style."
-                : "This shapes question language, support level, and explainer style."}
-            </p>
-            <div className="status-banner">
-              <strong>{selectedBandProfile.title}</strong>{" "}
-              will get a setup flow and question tone tuned for{" "}
-              {selectedBandProfile.ageLabel.toLowerCase()}.
-            </div>
+                        return (
+                          <button
+                            key={band.code}
+                            className={`child-band-card ${selectedBand === band.code ? "is-selected" : ""}`}
+                            onClick={() => setSelectedBand(band.code)}
+                            type="button"
+                          >
+                            <span className="child-band-check" aria-hidden="true">
+                              ✓
+                            </span>
+                            <span className="child-band-emoji" aria-hidden="true">
+                              {profile.emoji}
+                            </span>
+                            <strong>{profile.title}</strong>
+                            <small>{profile.ageLabel}</small>
+                            <span className="child-band-theme">
+                              {band.primaryTheme}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="status-banner">
+                      <strong>{selectedBandProfile.title}</strong>{" "}
+                      will switch this child to questions tuned for{" "}
+                      {selectedBandProfile.ageLabel.toLowerCase()}.
+                    </div>
+                  </>
+                ) : (
+                  <div className="child-band-helper">
+                    Keep the saved band if the questions already feel right.
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="child-band-grid">
+                  {launchBands.map((band) => {
+                    const profile = getBandProfile(band.code);
+
+                    return (
+                      <button
+                        key={band.code}
+                        className={`child-band-card ${selectedBand === band.code ? "is-selected" : ""}`}
+                        onClick={() => setSelectedBand(band.code)}
+                        type="button"
+                      >
+                        <span className="child-band-check" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span className="child-band-emoji" aria-hidden="true">
+                          {profile.emoji}
+                        </span>
+                        <strong>{profile.title}</strong>
+                        <small>{profile.ageLabel}</small>
+                        <span className="child-band-theme">
+                          {band.primaryTheme}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="soft-copy">
+                  {earlyLearnerBand
+                    ? "This sets the voice pace, support level, and visual style."
+                    : "This shapes question language, support level, and explainer style."}
+                </p>
+                <div className="status-banner">
+                  <strong>{selectedBandProfile.title}</strong>{" "}
+                  will get a setup flow and question tone tuned for{" "}
+                  {selectedBandProfile.ageLabel.toLowerCase()}.
+                </div>
+              </>
+            )}
           </ShellCard>
-          ) : null}
 
           <ShellCard
             className="shell-card-emphasis"
@@ -397,9 +495,11 @@ export default function ChildAccessPage() {
                     {username ? `Sign in as ${username}` : "Existing child sign-in"}
                   </strong>
                   <small>
-                    {earlyLearnerBand
-                      ? "Use the child's existing username and the same 4-digit PIN created during first-time setup."
-                      : "Enter the username and 4-digit PIN from the child's first-time setup. Progress, badges, and trophies stay attached."}
+                    {fixSavedBand
+                      ? `Use the same username and PIN. The saved band will update to ${selectedBandProfile.ageLabel}.`
+                      : earlyLearnerBand
+                        ? "Use the child's existing username and the same 4-digit PIN created during first-time setup."
+                        : "Enter the username and 4-digit PIN from the child's first-time setup. Progress, badges, and trophies stay attached."}
                   </small>
                 </div>
               </div>
@@ -455,6 +555,24 @@ export default function ChildAccessPage() {
                     {pin[index] ? "★" : ""}
                   </span>
                 ))}
+              </div>
+              <div className="pin-entry-row">
+                <label className="pin-entry-label" htmlFor="child-pin-input">
+                  Type PIN with keyboard or use the keypad
+                </label>
+                <input
+                  autoComplete="one-time-code"
+                  className="pin-entry-input"
+                  id="child-pin-input"
+                  inputMode="numeric"
+                  maxLength={4}
+                  name="pin"
+                  onChange={handlePinFieldChange}
+                  pattern="[0-9]*"
+                  placeholder="1234"
+                  type="password"
+                  value={pin}
+                />
               </div>
               <div className="numpad">
                 {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
@@ -592,9 +710,11 @@ export default function ChildAccessPage() {
             {guidedOnlyMode ? (
               <div className="child-launch-strip">
                 <div className="child-launch-pill">
-                  <span aria-hidden="true">{selectedBandProfile.emoji}</span>
-                  <strong>{selectedBandProfile.title}</strong>
-                  <small>{selectedBandProfile.ageLabel}</small>
+                  <span aria-hidden="true">
+                    {returningMode && !fixSavedBand ? "🗂️" : selectedBandProfile.emoji}
+                  </span>
+                  <strong>{launchBandTitle}</strong>
+                  <small>{launchBandLabel}</small>
                 </div>
                 <div className="child-launch-pill">
                   <span aria-hidden="true">{returningMode ? "🔐" : selectedAvatarSymbol}</span>

@@ -659,6 +659,27 @@ Template:
 
 ## Developer Log
 
+### 2026-03-30 CDT — child + access + platform (ACCESS-BETA-01: band-fix flow, manual switch guard, keyboard entry for all gates)
+
+- Files changed:
+  - `app/src/app/child/page.tsx` — `fixSavedBand` state: when a returning child selects "Correct band", the band selector becomes active and the new band is sent to the API; band title/label show "Saved child band" in normal returning mode; `?manual=1` URL param now bypasses auto-session-restore so a manual child switch does not snap back to the old saved session; `handlePinFieldChange` added so a keyboard-connected device can type the PIN directly into a text input instead of tap-only.
+  - `app/src/app/owner/owner-gate.tsx` — keyboard input field added below the tap pad, mirrors current code state, accepts only numeric input, disabled on lockout.
+  - `app/src/app/teacher/teacher-gate.tsx` — same keyboard input pattern as owner-gate.
+  - `app/src/lib/prototype-service.ts` — `accessChild` now accepts an empty `launchBandCode` for returning children (preserves the stored band) and performs a live band update when a non-empty `requestedLaunchBandCode` differs from the saved one.
+- Built:
+  - A returning parent can now fix a wrong saved band for a child without creating a new profile.
+  - Manual child switching no longer auto-restores the previous session.
+  - Teacher and owner gates now work with a hardware keyboard in addition to the tap pad.
+  - No new schema columns or API routes introduced.
+- Still unresolved:
+  - PLAY-BETA-01 and PARENT-BETA-01 still uncommitted — continuing immediately
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = pass (auth/session paths unchanged)
+- Review requested:
+  - no — continuing to PLAY-BETA-01
+
 ### 2026-03-30 CDT — content + platform (CONTENT-BETA-01: sync 1208/38 bank and lengthen session question counts)
 
 - Files changed:

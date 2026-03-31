@@ -34,6 +34,15 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
     setError("");
   }
 
+  function handleCodeFieldChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (lockedOut) {
+      return;
+    }
+
+    setCode(event.target.value.replace(/\D/g, "").slice(0, 10));
+    setError("");
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -92,6 +101,26 @@ export default function TeacherGate({ configured }: TeacherGateProps) {
             {code[index] ?? ""}
           </span>
         ))}
+      </div>
+
+      <div className="gate-entry-row">
+        <label className="gate-entry-label" htmlFor="teacher-code-input">
+          Type the code with your keyboard or use the keypad
+        </label>
+        <input
+          autoComplete="one-time-code"
+          className="gate-entry-input"
+          disabled={lockedOut}
+          id="teacher-code-input"
+          inputMode="numeric"
+          maxLength={10}
+          name="teacherCode"
+          onChange={handleCodeFieldChange}
+          pattern="[0-9]*"
+          placeholder="Enter code"
+          type="password"
+          value={code}
+        />
       </div>
 
       {error ? (
