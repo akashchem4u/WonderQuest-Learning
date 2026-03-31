@@ -1119,13 +1119,15 @@ export default function PlayClient() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [assistMode, setAssistMode] = useState<AssistMode>("voice");
-  const [replayNonce, setReplayNonce] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [coachMode, setCoachMode] = useState<"listen" | "clue" | "support">(
     "listen",
   );
   const [playedWelcomeVoice, setPlayedWelcomeVoice] = useState(false);
   const [rewardOverlay, setRewardOverlay] = useState<RewardOverlay | null>(null);
   const voiceSupportRef = useRef(false);
+  const assistModeRef = useRef<AssistMode>("voice");
+  assistModeRef.current = assistMode;
 
   useEffect(() => {
     const voiceSupported =
@@ -1186,7 +1188,7 @@ export default function PlayClient() {
         setSession(payload);
         setProgression(payload.progression);
         setAssistMode(voiceSupportRef.current ? "voice" : "visual");
-        setReplayNonce(0);
+        setIsSpeaking(false);
         setCoachMode("listen");
         setPlayedWelcomeVoice(false);
         setRewardOverlay(null);
@@ -1231,6 +1233,8 @@ export default function PlayClient() {
     }
 
     window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+
     const utterance = new window.SpeechSynthesisUtterance(text);
     const voice = pickChildVoice(availableVoices, session.student.launchBandCode);
     const settings = getVoiceSettings(session.student.launchBandCode, intent);
@@ -1243,9 +1247,20 @@ export default function PlayClient() {
     utterance.pitch = settings.pitch;
     utterance.volume = 0.92;
     utterance.lang = "en-US";
-    window.speechSynthesis.speak(utterance);
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setIsSpeaking(false);
+    }
   }
 
+  // Auto-read fires only when a new question loads or voices become available.
+  // assistMode and replayNonce are intentionally excluded so that direct
+  // speakText() calls in replayQuestion do not double-fire through this effect.
   useEffect(() => {
     if (!session || !currentQuestion || !voiceEnabled) {
       return;
@@ -1255,41 +1270,38 @@ export default function PlayClient() {
       return;
     }
 
-    if (assistMode === "visual") {
+    if (assistModeRef.current === "visual") {
       return;
     }
 
     speakText(
       buildReadAloudText(currentQuestion, currentScene),
-      assistMode === "slow" ? "support" : "prompt",
+      assistModeRef.current === "slow" ? "support" : "prompt",
     );
 
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
+        setIsSpeaking(false);
       }
     };
-  }, [
-    assistMode,
-    currentQuestion,
-    currentScene,
-    replayNonce,
-    session,
-    voiceEnabled,
-    availableVoices,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestion, currentScene, session, voiceEnabled, availableVoices]);
 
+  // Explainer auto-play: fires when a retry answer state arrives.
+  // assistMode excluded from deps — replayQuestion handles mode-triggered replays directly.
   useEffect(() => {
     if (!answerState?.needsRetry || !answerState.explainer || !voiceEnabled) {
       return;
     }
 
-    if (assistMode === "visual") {
+    if (assistModeRef.current === "visual") {
       return;
     }
 
     speakText(answerState.explainer.script, "support");
-  }, [assistMode, answerState, voiceEnabled, availableVoices]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answerState, voiceEnabled, availableVoices]);
 
   useEffect(() => {
     if (!session || !answerState?.correct) {
@@ -1326,7 +1338,7 @@ export default function PlayClient() {
       return;
     }
 
-    if (assistMode === "visual") {
+    if (assistModeRef.current === "visual") {
       return;
     }
 
@@ -1338,15 +1350,8 @@ export default function PlayClient() {
 
     speakText(`${welcomeBackCopy.title} ${welcomeBackCopy.body}`, "support");
     setPlayedWelcomeVoice(true);
-  }, [
-    assistMode,
-    availableVoices,
-    playedWelcomeVoice,
-    progression,
-    returningEntry,
-    session,
-    voiceEnabled,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableVoices, playedWelcomeVoice, progression, returningEntry, session, voiceEnabled]);
 
   async function submitAnswer(answer: string) {
     if (!session || !currentQuestion) {
@@ -1412,6 +1417,11 @@ export default function PlayClient() {
       return;
     }
 
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsSpeaking(false);
     setCurrentIndex((value) => value + 1);
     setAttempt(1);
     setAnswerState(null);
@@ -1425,8 +1435,10 @@ export default function PlayClient() {
       return;
     }
 
+    // Update mode for button visual state — but do NOT touch replayNonce since
+    // speakText is called directly below. setAssistMode alone cannot re-fire the
+    // auto-read useEffect (assistMode is excluded from its deps).
     setAssistMode(mode);
-    setReplayNonce((value) => value + 1);
 
     const replayText =
       answerState?.needsRetry && answerState.explainer
@@ -1906,25 +1918,31 @@ export default function PlayClient() {
                     <div className="play-inline-support-actions">
                       <button
                         aria-pressed={assistMode === "voice"}
-                        className={`play-inline-support-btn ${
-                          assistMode === "voice" ? "is-active" : ""
-                        }`.trim()}
+                        aria-label={isSpeaking && assistMode === "voice" ? "Playing audio" : "Hear again"}
+                        className={[
+                          "play-inline-support-btn",
+                          assistMode === "voice" ? "is-active" : "",
+                          isSpeaking && assistMode === "voice" ? "is-speaking" : "",
+                        ].filter(Boolean).join(" ")}
                         disabled={!voiceEnabled}
                         onClick={() => replayQuestion("voice")}
                         type="button"
                       >
-                        Replay
+                        {isSpeaking && assistMode === "voice" ? "🔊" : "Hear again"}
                       </button>
                       <button
                         aria-pressed={assistMode === "slow"}
-                        className={`play-inline-support-btn ${
-                          assistMode === "slow" ? "is-active" : ""
-                        }`.trim()}
+                        aria-label={isSpeaking && assistMode === "slow" ? "Playing slowly" : "Hear slowly"}
+                        className={[
+                          "play-inline-support-btn",
+                          assistMode === "slow" ? "is-active" : "",
+                          isSpeaking && assistMode === "slow" ? "is-speaking" : "",
+                        ].filter(Boolean).join(" ")}
                         disabled={!voiceEnabled}
                         onClick={() => replayQuestion("slow")}
                         type="button"
                       >
-                        Slow replay
+                        {isSpeaking && assistMode === "slow" ? "🔊" : "Hear slowly"}
                       </button>
                       <button
                         aria-pressed={assistMode === "visual"}
