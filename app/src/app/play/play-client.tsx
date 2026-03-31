@@ -253,7 +253,7 @@ function buildQuestionVisualScene(question: SessionQuestion) {
   if (isCountSkill(question)) {
     return {
       title: "Count the pictures",
-      helper: "Point and count each picture one time.",
+      helper: "Count once, then tap the match.",
       tokens: Array.from(
         { length: Number(question.correctAnswer) || 0 },
         () => getCountSceneToken(question),
@@ -659,7 +659,11 @@ function getVoiceSettings(launchBandCode: string, intent: "prompt" | "support") 
     : { rate: 0.88, pitch: 0.98 };
 }
 
-function renderAnswerContent(question: SessionQuestion, answer: string) {
+function renderAnswerContent(
+  question: SessionQuestion,
+  answer: string,
+  compact = false,
+) {
   if (isCountSkill(question) && /^\d+$/.test(answer)) {
     return (
       <>
@@ -673,7 +677,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
           </div>
           <strong>{answer}</strong>
         </div>
-        <small>Count the pictures, then tap the matching group.</small>
+        {!compact ? <small>Count the pictures, then tap the matching group.</small> : null}
       </>
     );
   }
@@ -685,7 +689,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
           <span className={`shape-preview shape-${answer}`} aria-hidden="true" />
           <strong>{answer}</strong>
         </div>
-        <small>Tap the shape you hear.</small>
+        {!compact ? <small>Tap the shape you hear.</small> : null}
       </>
     );
   }
@@ -699,7 +703,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
           </span>
           <strong>{answer}</strong>
         </div>
-        <small>Tap the letter you hear.</small>
+        {!compact ? <small>Tap the letter you hear.</small> : null}
       </>
     );
   }
@@ -715,7 +719,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
           </span>
           <strong>{answer}</strong>
         </div>
-        <small>{preview.helper}</small>
+        {!compact ? <small>{preview.helper}</small> : null}
       </>
     );
   }
@@ -729,7 +733,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
           </span>
           <strong>{answer}</strong>
         </div>
-        <small>Tap to lock in this answer.</small>
+        {!compact ? <small>Tap to lock in this answer.</small> : null}
       </>
     );
   }
@@ -1300,6 +1304,19 @@ export default function PlayClient() {
 
     setAssistMode(mode);
     setReplayNonce((value) => value + 1);
+
+    const replayText =
+      answerState?.needsRetry && answerState.explainer
+        ? answerState.explainer.script
+        : buildReadAloudText(currentQuestion, currentScene);
+    const replayIntent =
+      answerState?.needsRetry && answerState.explainer ? "support" : "prompt";
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.resume();
+    }
+
+    speakText(replayText, mode === "slow" ? "support" : replayIntent);
   }
 
   if (loading) {
@@ -1694,25 +1711,25 @@ export default function PlayClient() {
                       </div>
                       <div className="returning-quest-copy">
                         <span className="kid-prompt-label">
-                          {earlyLearnerMode ? "Welcome back" : "Saved progress"}
+                          {earlyLearnerMode ? "Back again" : "Saved progress"}
                         </span>
                         <strong>{welcomeBackCopy.title}</strong>
                         <p>{welcomeBackCopy.body}</p>
                       </div>
                       {earlyLearnerMode ? (
-                        <span className="returning-quest-pill">Saved spot</span>
+                        <span className="returning-quest-pill">Pick up here</span>
                       ) : null}
                     </div>
                     {earlyLearnerMode ? (
                       <div className="returning-resume-card">
-                        <span className="returning-resume-label">Continue this quest</span>
+                        <span className="returning-resume-label">Continue here</span>
                         <div className="returning-resume-row">
                           <div>
                             <strong>
                               {questWorldLabel} · {questSkillLabel}
                             </strong>
                             <p>
-                              Step {questionNumber} of {session.questions.length} is ready to go.
+                              Step {questionNumber} of {session.questions.length} is ready.
                             </p>
                           </div>
                           <span className="returning-resume-count">
@@ -1744,7 +1761,7 @@ export default function PlayClient() {
                 </p>
                 {earlyLearnerMode ? (
                   <div className="kid-prompt-bubble">
-                    <span className="kid-prompt-label">Say it simply</span>
+                    <span className="kid-prompt-label">Hear it once</span>
                     <strong>{currentQuestion.prompt}</strong>
                   </div>
                 ) : null}
@@ -1758,12 +1775,12 @@ export default function PlayClient() {
                       <span className="kid-prompt-label">
                         {answerState?.needsRetry && !answerState.correct
                           ? "Try again"
-                          : "Need help?"}
+                          : "Need a replay?"}
                       </span>
                       <strong>
                         {answerState?.needsRetry && !answerState.correct
                           ? "Replay the clue, then take one small step."
-                          : "Replay the clue without leaving the question."}
+                          : "Replay here and stay on the question."}
                       </strong>
                       <p>{inlineSupportMessage}</p>
                     </div>
@@ -1801,6 +1818,20 @@ export default function PlayClient() {
                         Picture only
                       </button>
                     </div>
+                    <div className="play-inline-support-visual" aria-hidden="true">
+                      <span className="play-inline-support-visual-card">
+                        <b>Hear</b>
+                        <small>Voice clue</small>
+                      </span>
+                      <span className="play-inline-support-visual-card">
+                        <b>Look</b>
+                        <small>Picture cue</small>
+                      </span>
+                      <span className="play-inline-support-visual-card">
+                        <b>Tap</b>
+                        <small>Choose one</small>
+                      </span>
+                    </div>
                     <div className="play-inline-support-steps" aria-hidden="true">
                       {inlineSupportSteps.map((step, index) => (
                         <span className="play-inline-support-step" key={`${currentQuestion.questionKey}-${step}`}>
@@ -1818,7 +1849,7 @@ export default function PlayClient() {
                   >
                     <div className="visual-scene-copy">
                       <strong>{currentScene.title}</strong>
-                      <p>{currentScene.helper}</p>
+                      {!earlyLearnerMode ? <p>{currentScene.helper}</p> : null}
                     </div>
                     {currentScene.tokens?.length ? (
                       <div className="visual-token-grid">
@@ -1904,7 +1935,7 @@ export default function PlayClient() {
                 ) : null}
                 {earlyLearnerMode ? (
                   <div className={`early-answer-cue early-answer-cue-${answerCardVariant}`}>
-                    <strong>Tap the match</strong>
+                    <strong>Find it and tap.</strong>
                     <span>{answerTapCue}</span>
                   </div>
                 ) : null}
@@ -1922,7 +1953,7 @@ export default function PlayClient() {
                           {String.fromCharCode(65 + index)}
                         </span>
                       ) : null}
-                      {renderAnswerContent(currentQuestion, answer)}
+                      {renderAnswerContent(currentQuestion, answer, earlyLearnerMode)}
                     </button>
                   ))}
                 </div>
@@ -2039,7 +2070,7 @@ export default function PlayClient() {
                 <p className="status-banner status-success">New trophy!</p>
               ) : null}
               <div className="form-actions">
-                <Link className="secondary-link" href="/child">
+                <Link className="secondary-link" href="/child?manual=1">
                   Switch child
                 </Link>
                 <Link className="secondary-link" href="/parent">

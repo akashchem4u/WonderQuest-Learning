@@ -659,6 +659,23 @@ Template:
 
 ## Developer Log
 
+### 2026-03-30 CDT — play (PLAY-BETA-01: compact answer cards, replay fires from tap, lower text density)
+
+- Files changed:
+  - `app/src/app/play/play-client.tsx` — `renderAnswerContent` now accepts a `compact` flag; when `compact=true` the helper text beneath each answer card is omitted (reduces reading load during active answer selection). Replay buttons now immediately call `speakText()` on tap instead of only updating state and waiting for a `useEffect` to fire — audio starts right away. Count-scene helper copy shortened from "Point and count each picture one time." to "Count once, then tap the match." Returning banner label changed from "Welcome back" to "Back again" for early-learner brevity.
+- Built:
+  - Play loop is visibly quieter: answer tiles show the visual and label without a line of instruction text underneath each one during the active question phase.
+  - Replay is instant: tapping "Hear again" or "Hear slowly" now fires the TTS call synchronously on the button handler rather than relying on a subsequent render cycle.
+  - No changes to scoring, session persistence, reward overlay, explainer, or smoke-test assertion paths.
+- Still unresolved:
+  - PARENT-BETA-01 still uncommitted — continuing immediately
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = pass (no changes to session/answer/guided-order paths)
+- Review requested:
+  - no — continuing to PARENT-BETA-01
+
 ### 2026-03-30 CDT — child + access + platform (ACCESS-BETA-01: band-fix flow, manual switch guard, keyboard entry for all gates)
 
 - Files changed:
