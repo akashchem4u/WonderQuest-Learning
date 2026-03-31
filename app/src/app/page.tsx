@@ -77,10 +77,6 @@ export default async function HomePage() {
               <br />
               stays <em>clear</em>.
             </h1>
-            <p>
-              WonderQuest keeps the child front and center while families, teachers, and ops stay in their own lane.
-            </p>
-
             <div className="landing-chip-row">
               <span className="landing-chip">Child-first</span>
               <span className="landing-chip">Separate views</span>
@@ -106,7 +102,6 @@ export default async function HomePage() {
             <div className="landing-hero-visual-frame">
               <div className="landing-hero-visual-top">
                 <span>Product snapshot</span>
-                <strong>Three focused views, one clean launch surface.</strong>
               </div>
 
               <div className="landing-hero-visual-grid">
@@ -119,7 +114,6 @@ export default async function HomePage() {
                     <span className="is-bar" />
                   </div>
                   <strong>Child</strong>
-                  <p>Big visuals, short prompts, and saved progress.</p>
                 </article>
                 <article className="landing-hero-visual-card is-family">
                   <span aria-hidden="true">🏠</span>
@@ -130,7 +124,6 @@ export default async function HomePage() {
                     <span className="is-bar" />
                   </div>
                   <strong>Family</strong>
-                  <p>Calm summaries with one clear next step.</p>
                 </article>
                 <article className="landing-hero-visual-card is-ops">
                   <span aria-hidden="true">⚙️</span>
@@ -141,7 +134,6 @@ export default async function HomePage() {
                     <span className="is-bar" />
                   </div>
                   <strong>Ops</strong>
-                  <p>Status, readiness, and launch notes stay separate.</p>
                 </article>
               </div>
 
@@ -159,9 +151,6 @@ export default async function HomePage() {
             <div className="landing-featured-copy">
               <span className="landing-featured-label">Kid journey</span>
               <h2>The child path stays front and center.</h2>
-              <p>
-                Families, teachers, and ops each get a separate space that supports the child without crowding it.
-              </p>
               <div className="landing-chip-row">
                 <span className="landing-chip">Quick child access</span>
                 <span className="landing-chip">Voice + visuals</span>
@@ -183,22 +172,18 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Launch bands</span>
               <strong>{launchStatus.launchBandCount}</strong>
-              <p>Age-appropriate pathways for ages 2–10.</p>
             </article>
             <article className="landing-metric-card">
               <span>Question bank</span>
               <strong>{launchStatus.templateCount >= 8 ? "Deep bank" : "Building"}</strong>
-              <p>Real practice across multiple ages and subjects.</p>
             </article>
             <article className="landing-metric-card">
               <span>Saved progress</span>
               <strong>Live</strong>
-              <p>Points, badges, and trophies carry over.</p>
             </article>
             <article className="landing-metric-card">
               <span>Adult views</span>
               <strong>3</strong>
-              <p>Families, teachers, and platform admins stay separated.</p>
             </article>
           </div>
 
@@ -231,29 +216,24 @@ export default async function HomePage() {
               <strong>{sourceLabel}</strong>
             </div>
             <h2>Live product, not a mock.</h2>
-            <p>These routes connect to the real app experience.</p>
           </div>
 
           <div className="landing-band-row">
             <article className="landing-band-pill">
               <strong>Child</strong>
               <span>Quick access</span>
-              <small>Low-text entry, saved progress</small>
             </article>
             <article className="landing-band-pill">
               <strong>Parent</strong>
               <span>Family dashboard</span>
-              <small>Weekly progress and next-step ideas</small>
             </article>
             <article className="landing-band-pill">
               <strong>Teacher</strong>
-              <span>Command center</span>
-              <small>Student support and skill breakdowns</small>
+              <span>Classroom view</span>
             </article>
             <article className="landing-band-pill">
               <strong>Owner</strong>
               <span>Ops console</span>
-              <small>Launch readiness and platform status</small>
             </article>
           </div>
         </section>
