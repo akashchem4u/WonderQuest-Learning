@@ -32,7 +32,7 @@ function getAssistLabel(mode: AssistMode) {
     case "visual":
       return "Visual-only";
     default:
-      return "Voice on";
+      return "Voice ready";
   }
 }
 
@@ -57,15 +57,15 @@ export function PlayBetaSupport({
   onVisualOnly,
 }: PlayBetaSupportProps) {
   const voiceCopy = voiceAvailable
-    ? "Tap 'Hear it again' any time the child wants to replay the question."
-    : "Audio is not available right now — the pictures and buttons carry the whole quest.";
+    ? "Tap replay to hear the clue again. Slow replay gives more thinking time, and visual-only keeps it quiet."
+    : "Audio is not available right now - the pictures and buttons carry the whole quest.";
 
   return (
     <section className={styles.board} data-tone={helperTone}>
       <div className={styles.header}>
         <div className={styles.headerCopy}>
           <span className={styles.kicker}>Support</span>
-          <h2>{voiceAvailable ? "Replay, slow down, or keep it visual." : "Visual fallback keeps the quest moving."}</h2>
+          <h2>{voiceAvailable ? "Listen again, slow it down, or keep it visual." : "Visual fallback keeps the quest moving."}</h2>
           <p>{voiceCopy}</p>
         </div>
         <div className={styles.statusStack}>
@@ -102,7 +102,7 @@ export function PlayBetaSupport({
           onClick={() => onReplay("voice")}
           type="button"
         >
-          Hear it again
+          Replay
         </button>
         <button
           className={`${styles.actionButton} ${assistMode === "slow" ? styles.isActive : ""}`}
@@ -111,7 +111,7 @@ export function PlayBetaSupport({
           onClick={() => onReplay("slow")}
           type="button"
         >
-          Hear it slowly
+          Slow replay
         </button>
         <button
           className={`${styles.actionButton} ${assistMode === "visual" ? styles.isActive : ""}`}
@@ -119,7 +119,7 @@ export function PlayBetaSupport({
           onClick={onVisualOnly}
           type="button"
         >
-          Visual-only mode
+          Pictures only
         </button>
       </div>
 

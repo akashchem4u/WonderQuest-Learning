@@ -1898,7 +1898,9 @@ export default function PlayClient() {
                       <span className="kid-prompt-label">
                         {answerState?.needsRetry && !answerState.correct
                           ? "Try again 🔁"
-                          : "🔊 Replay"}
+                          : voiceEnabled
+                            ? "Voice ready"
+                            : "Picture cue"}
                       </span>
                     </div>
                     <div className="play-inline-support-actions">
@@ -1911,7 +1913,7 @@ export default function PlayClient() {
                         onClick={() => replayQuestion("voice")}
                         type="button"
                       >
-                        Hear again
+                        Replay
                       </button>
                       <button
                         aria-pressed={assistMode === "slow"}
@@ -1922,7 +1924,7 @@ export default function PlayClient() {
                         onClick={() => replayQuestion("slow")}
                         type="button"
                       >
-                        Hear slowly
+                        Slow replay
                       </button>
                       <button
                         aria-pressed={assistMode === "visual"}
@@ -1932,7 +1934,7 @@ export default function PlayClient() {
                         onClick={() => setAssistMode("visual")}
                         type="button"
                       >
-                        Picture only
+                        Pictures only
                       </button>
                     </div>
                     <div className="play-inline-support-visual" aria-hidden="true">
