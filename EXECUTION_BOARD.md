@@ -2068,3 +2068,17 @@ Template:
   - `npm run smoke:local` = pass
 - Review requested:
   - yes — third beta batch complete (AUDIO-BETA-01 + SESSION-BETA-01 + VISUAL-BETA-01); requesting review lane pass
+
+### 2026-03-31 CDT — home (HOME-BETA-02: strip landing-page prose, improve first-glance clarity)
+
+- Files changed:
+  - `app/src/app/page.tsx` — removed hero `<p>` (value statement already in h1 + chip row); removed `<strong>` subheading from hero-visual-top ("Three focused views…"); removed `<p>` from all three hero-visual mini-cards; removed featured-card `<p>` (chip row already says it); removed `<p>` from all four metric cards (label + value is sufficient); removed status-strip `<p>` ("These routes connect…"); removed `<small>` from all four band pills (strong + span is enough at pill scale); updated Teacher band-pill span to "Classroom view" for consistency with nav.
+- Built:
+  - Landing page now reads icon → label/value → action with zero explanatory paragraphs. Every section still communicates its purpose through visual hierarchy, short labels, and chip rows.
+  - No route changes, no shell regressions, no API or auth-model changes.
+- Still unresolved:
+  - Active queue (AUDIO-BETA-01 → SESSION-BETA-01 → VISUAL-BETA-01 → HOME-BETA-02) now fully committed. Continuing to extended backlog.
+- Verification:
+  - `npm run lint` = pass
+- Review requested:
+  - no — continuing to CONTENT-BETA-03 (extended backlog item 1)
