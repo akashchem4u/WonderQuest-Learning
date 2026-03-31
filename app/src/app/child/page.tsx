@@ -259,11 +259,6 @@ export default function ChildAccessPage() {
                 ? "One big tap to start, one calm setup, then straight into play."
                 : "Fast child setup now, real quest momentum right after."}
             </h1>
-            <p>
-              {earlyLearnerBand
-                ? "The grown-up setup is quick. Once done, the child jumps straight into picture prompts, voice cues, and one-tap answers."
-                : "Use the same username, avatar, and PIN to keep badges, points, and world progress attached to one adventurer."}
-            </p>
             <div className="summary-chip-row">
               <span className="summary-chip">
                 {earlyLearnerBand ? "Quick grown-up setup" : "1 minute setup"}
@@ -459,15 +454,8 @@ export default function ChildAccessPage() {
                     );
                   })}
                 </div>
-                <p className="soft-copy">
-                  {earlyLearnerBand
-                    ? "This sets the voice pace, support level, and visual style."
-                    : "This shapes question language, support level, and explainer style."}
-                </p>
                 <div className="status-banner">
-                  <strong>{selectedBandProfile.title}</strong>{" "}
-                  will get a setup flow and question tone tuned for{" "}
-                  {selectedBandProfile.ageLabel.toLowerCase()}.
+                  {selectedBandProfile.emoji} <strong>{selectedBandProfile.title}</strong> · {selectedBandProfile.ageLabel}
                 </div>
               </>
             )}
@@ -506,11 +494,7 @@ export default function ChildAccessPage() {
             ) : null}
             {earlyLearnerBand && !returningMode ? (
               <div className="child-guided-note">
-                <strong>Quick start for little learners</strong>
-                <p>
-                  Pick the band, type a simple quest name, choose one picture,
-                  and press start. The adventure uses guided questions throughout.
-                </p>
+                <strong>🐣 Quick start · guided questions throughout</strong>
               </div>
             ) : null}
             <div className="field-grid">
@@ -647,17 +631,6 @@ export default function ChildAccessPage() {
                 </button>
               ))}
             </div>
-            <p className="soft-copy">
-              {earlyLearnerBand
-                ? "Use the same picture each time so the child can spot the right profile fast."
-                : "Avatars make it easy for younger kids to recognize their profile."}
-            </p>
-            <div className="status-banner">
-              <strong>Quest tip:</strong>{" "}
-              {earlyLearnerBand
-                ? "little learners do best when the picture and PIN stay the same."
-                : "choose the same avatar each time so younger learners can find their account faster."}
-            </div>
           </ShellCard>
           ) : null}
 
@@ -741,26 +714,9 @@ export default function ChildAccessPage() {
             </div>
             {guidedOnlyMode ? (
               <div className="status-banner child-launch-banner">
-                Guided Quest is set automatically — keeps setup short and gets kids playing right away.
+                🧭 Guided Quest · auto-selected
               </div>
             ) : null}
-            <ul className="route-list">
-              <li>
-                {earlyLearnerBand
-                  ? "Short, guided questions begin right away."
-                  : "Points, badges, trophies, and progress stay attached to the profile."}
-              </li>
-              <li>
-                {earlyLearnerBand
-                  ? "Wrong answers trigger a quick picture and voice hint."
-                  : "Wrong answers lead to quick explainers instead of dead ends."}
-              </li>
-              <li>
-                {earlyLearnerBand
-                  ? "Parents can come back later to review progress."
-                  : "Parents can link later and review time spent and effectiveness."}
-              </li>
-            </ul>
             {error ? <p className="status-banner status-error">{error}</p> : null}
             {result ? (
               <div className="status-panel">
