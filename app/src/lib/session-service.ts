@@ -121,11 +121,17 @@ function selectEasyFirstGuidedQuestions(
   launchBandCode: string,
   pool: ReturnType<typeof getSessionQuestionPool>,
   questionLimit: number,
+  recentQuestionKeys: Set<string>,
 ) {
   const skillPriority = EARLY_GUIDED_SKILL_ORDER[launchBandCode];
 
   if (!skillPriority?.length) {
-    return shuffleArray(pool).slice(0, questionLimit);
+    const prioritizedPool = [
+      ...pool.filter((item) => !recentQuestionKeys.has(item.question_key)),
+      ...pool.filter((item) => recentQuestionKeys.has(item.question_key)),
+    ];
+
+    return shuffleArray(prioritizedPool).slice(0, questionLimit);
   }
 
   const groupedBySkill = new Map<string, typeof pool>();
@@ -140,9 +146,14 @@ function selectEasyFirstGuidedQuestions(
   const usedQuestionKeys = new Set<string>();
 
   for (const skill of skillPriority) {
-    const nextQuestion = shuffleArray(groupedBySkill.get(skill) ?? []).find(
-      (item) => !usedQuestionKeys.has(item.question_key),
-    );
+    const skillPool = shuffleArray(groupedBySkill.get(skill) ?? []);
+    const nextQuestion =
+      skillPool.find(
+        (item) =>
+          !usedQuestionKeys.has(item.question_key) &&
+          !recentQuestionKeys.has(item.question_key),
+      ) ??
+      skillPool.find((item) => !usedQuestionKeys.has(item.question_key));
 
     if (!nextQuestion) {
       continue;
@@ -157,33 +168,55 @@ function selectEasyFirstGuidedQuestions(
   }
 
   const remainingQuestions = shuffleArray(
-    pool.filter((item) => !usedQuestionKeys.has(item.question_key)),
+    [
+      ...pool.filter(
+        (item) =>
+          !usedQuestionKeys.has(item.question_key) &&
+          !recentQuestionKeys.has(item.question_key),
+      ),
+      ...pool.filter(
+        (item) =>
+          !usedQuestionKeys.has(item.question_key) &&
+          recentQuestionKeys.has(item.question_key),
+      ),
+    ],
   );
 
   return [...selected, ...remainingQuestions].slice(0, questionLimit);
 }
 
-function selectSessionQuestions(launchBandCode: string, sessionMode: string) {
+async function selectSessionQuestions(
+  studentId: string,
+  launchBandCode: string,
+  sessionMode: string,
+) {
   const pool = getSessionQuestionPool(launchBandCode, sessionMode);
   const questionLimit = getQuestionLimit(launchBandCode, sessionMode);
+  const recentQuestionKeys = await getRecentSessionQuestionKeys(studentId);
 
   if (pool.length <= questionLimit) {
     return pool;
   }
 
   if (sessionMode === "self-directed-challenge") {
+    const prioritizedPool = [
+      ...pool.filter((item) => !recentQuestionKeys.has(item.question_key)),
+      ...pool.filter((item) => recentQuestionKeys.has(item.question_key)),
+    ];
     const challengeWindow = Math.min(
-      pool.length,
+      prioritizedPool.length,
       Math.max(questionLimit + 3, questionLimit * 2),
     );
 
-    return shuffleArray(pool.slice(0, challengeWindow)).slice(
-      0,
-      questionLimit,
-    );
+    return shuffleArray(prioritizedPool.slice(0, challengeWindow)).slice(0, questionLimit);
   }
 
-  return selectEasyFirstGuidedQuestions(launchBandCode, pool, questionLimit);
+  return selectEasyFirstGuidedQuestions(
+    launchBandCode,
+    pool,
+    questionLimit,
+    recentQuestionKeys,
+  );
 }
 
 function buildRequestedFocus(questionKeys: string[], sessionMode: string) {
@@ -194,10 +227,8 @@ function buildRequestedFocus(questionKeys: string[], sessionMode: string) {
   });
 }
 
-function getRequestedQuestionSequence(
+function extractRequestedQuestionKeys(
   requestedFocus: string | null | undefined,
-  launchBandCode: string,
-  sessionMode: string,
   totalQuestions: number,
 ) {
   try {
@@ -206,21 +237,58 @@ function getRequestedQuestionSequence(
     };
 
     if (Array.isArray(parsed.questionKeys)) {
-      const sanitized = parsed.questionKeys
+      return parsed.questionKeys
         .filter((item): item is string => typeof item === "string" && item.length > 0)
         .slice(0, totalQuestions);
-
-      if (sanitized.length) {
-        return sanitized;
-      }
     }
   } catch {
-    // Fall back to the deterministic launch order for older sessions.
+    // Fall back to the stored session order when the JSON payload is missing or stale.
+  }
+
+  return [];
+}
+
+function getRequestedQuestionSequence(
+  requestedFocus: string | null | undefined,
+  launchBandCode: string,
+  sessionMode: string,
+  totalQuestions: number,
+) {
+  const sanitized = extractRequestedQuestionKeys(requestedFocus, totalQuestions);
+
+  if (sanitized.length) {
+    return sanitized;
   }
 
   return getSessionQuestionPool(launchBandCode, sessionMode)
     .slice(0, totalQuestions)
     .map((item) => item.question_key);
+}
+
+async function getRecentSessionQuestionKeys(studentId: string, lookbackSessions = 4) {
+  const recentSessions = await db.query(
+    `
+      select requested_focus
+      from public.challenge_sessions
+      where student_id = $1
+      order by started_at desc
+      limit $2
+    `,
+    [studentId, lookbackSessions],
+  );
+
+  const recentQuestionKeys = new Set<string>();
+
+  for (const row of recentSessions.rows) {
+    for (const questionKey of extractRequestedQuestionKeys(
+      (row.requested_focus as string | undefined) ?? null,
+      Number.MAX_SAFE_INTEGER,
+    )) {
+      recentQuestionKeys.add(questionKey);
+    }
+  }
+
+  return recentQuestionKeys;
 }
 
 // ─── Progression math ─────────────────────────────────────────────────────────
@@ -319,7 +387,8 @@ export async function createPlaySession(input: PlaySessionInput) {
 
   await ensureProgressionState(studentRow.id as string);
 
-  const selectedQuestions = selectSessionQuestions(
+  const selectedQuestions = await selectSessionQuestions(
+    input.studentId,
     studentRow.launch_band_code as string,
     sessionMode,
   );
