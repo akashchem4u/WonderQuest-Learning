@@ -142,10 +142,6 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
             <div>
               <span className="eyebrow">Teacher dashboard</span>
               <h1>Access your class dashboard.</h1>
-              <p>
-                View class-wide progress and skill signals designed for classroom
-                planning — not student comparison.
-              </p>
             </div>
           </section>
 
@@ -389,10 +385,6 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
               <div className="teacher-command-copy shell-card shell-card-spotlight">
                 <span className="shell-eyebrow">Teacher command</span>
                 <h1>Class progress, intervention queue, and guided next steps.</h1>
-                <p>
-                  Designed for classroom action. Review skills needing attention,
-                  monitor class progress, and dive into details without leaving this view.
-                </p>
                 <div className="summary-chip-row">
                   <span className="summary-chip">Aggregate only</span>
                   <span className="summary-chip">
@@ -411,22 +403,18 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
 
               <div className="teacher-command-kpis">
                 <StatTile
-                  detail="Active learners"
                   label="Students"
                   value={`${overview.counts.students}`}
                 />
                 <StatTile
-                  detail="Practice sessions recorded"
                   label="Sessions"
                   value={`${overview.counts.sessions}`}
                 />
                 <StatTile
-                  detail="Finished session loops"
                   label="Completion"
                   value={`${overview.counts.completedSessions}`}
                 />
                 <StatTile
-                  detail="Average scored session quality"
                   label="Effectiveness"
                   value={
                     averageEffectiveness === null ? "No score" : `${averageEffectiveness}%`
@@ -440,10 +428,6 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                 <div className="teacher-rail-card">
                   <span className="teacher-rail-label">Class summary</span>
                   <strong>Class command</strong>
-                  <p>
-                    Track which skills need attention and plan your next
-                    teaching moves.
-                  </p>
                   <div className="teacher-rail-metric-grid">
                     <div className="teacher-rail-metric">
                       <span>Avg sessions</span>
@@ -462,21 +446,21 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                     <article className="teacher-signal-row is-flag">
                       <div>
                         <strong>{supportSignalCount}</strong>
-                        <p>Flag skills need guided support</p>
+                        <small>Need guided support</small>
                       </div>
                       <span>Flag</span>
                     </article>
                     <article className="teacher-signal-row is-watch">
                       <div>
                         <strong>{watchSignalCount}</strong>
-                        <p>Watch skills show mixed consistency</p>
+                        <small>Mixed consistency</small>
                       </div>
                       <span>Watch</span>
                     </article>
                     <article className="teacher-signal-row is-strong">
                       <div>
                         <strong>{strongSignalCount}</strong>
-                        <p>Strong skills can anchor confidence</p>
+                        <small>Anchor confidence</small>
                       </div>
                       <span>Strong</span>
                     </article>
@@ -492,10 +476,9 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                           <strong>{band.displayName}</strong>
                           <span>{band.studentCount}</span>
                         </div>
-                        <p>
-                          Lead: {band.leadSkill?.displayName ?? "Waiting for wins"} ·
-                          Support: {band.supportSkill?.displayName ?? "No support lane yet"}
-                        </p>
+                        <small>
+                          Lead: {band.leadSkill?.displayName ?? "—"} · Support: {band.supportSkill?.displayName ?? "—"}
+                        </small>
                       </article>
                     ))}
                   </div>
@@ -545,9 +528,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                           </Link>
                         ))}
                       </div>
-                      <p className="teacher-queue-hint">
-                        Filter by priority, then select a skill to see detailed classroom data.
-                      </p>
+                      <small className="teacher-queue-hint">Filter by priority · select a skill to inspect.</small>
                     </div>
                     <div className="teacher-queue-list" id="teacher-support-queue">
                       {filteredQueue.length ? (
@@ -570,7 +551,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                                   </span>
                                 </div>
                                 <strong>{skill.displayName}</strong>
-                                <p>{skill.queueSummary}</p>
+                                <small>{skill.queueSummary}</small>
                                 <div className="summary-chip-row">
                                   <span className="summary-chip">
                                     {skill.launchBandCode}
@@ -598,7 +579,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                       ) : (
                         <div className="teacher-empty-state">
                           <strong>Queue is clear for this filter</strong>
-                          <p>No skills need attention at this level. Switch to another tier or have students complete more practice sessions.</p>
+                          <small>No skills need attention at this level.</small>
                           <div className="form-actions">
                             <Link className="secondary-link" href="/child">Start a test session</Link>
                           </div>
@@ -619,10 +600,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                           key={`${skill.skillCode}-${skill.launchBandCode}`}
                         >
                           <strong>{skill.displayName}</strong>
-                          <p>
-                            {skill.launchBandCode} band · {skill.masteryRate}% mastery ·{" "}
-                            {skill.learnerCount} learners confident
-                          </p>
+                          <small>{skill.launchBandCode} · {skill.masteryRate}% · {skill.learnerCount} learners</small>
                         </article>
                       ))}
                     </div>
@@ -647,7 +625,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                             {selectedSkillTier ? getTeacherQueueTierLabel(selectedSkillTier) : "Watch"}
                           </span>
                           <strong>{selectedSkill.displayName}</strong>
-                          <p>{selectedSkillTrendLabel}</p>
+                          <small>{selectedSkillTrendLabel}</small>
                         </div>
                         <div className="summary-chip-row">
                           <span className="summary-chip">
@@ -666,22 +644,22 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         <article className="teacher-tier-card is-support">
                           <span>Need support</span>
                           <strong>{selectedSkillTierCounts.support}</strong>
-                          <p>Learners still need explicit guidance on this skill.</p>
+                          <small>Explicit guidance needed</small>
                         </article>
                         <article className="teacher-tier-card is-watch">
                           <span>Watch</span>
                           <strong>{selectedSkillTierCounts.watch}</strong>
-                          <p>Mixed consistency means one more guided pass is useful.</p>
+                          <small>One more guided pass useful</small>
                         </article>
                         <article className="teacher-tier-card is-track">
                           <span>On track</span>
                           <strong>{selectedSkillTierCounts.onTrack}</strong>
-                          <p>These learners are close enough to stretch with light support.</p>
+                          <small>Light support to stretch</small>
                         </article>
                         <article className="teacher-tier-card is-strong">
                           <span>Strong</span>
                           <strong>{selectedSkillTierCounts.strong}</strong>
-                          <p>Confidence anchors you can reuse to open the next block.</p>
+                          <small>Reuse to open next block</small>
                         </article>
                       </div>
 
@@ -689,17 +667,14 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         <article className="teacher-drilldown-card">
                           <span>Correct answers</span>
                           <strong>{selectedSkill.correctAttempts}</strong>
-                          <p>Questions landed correctly across the current dataset.</p>
                         </article>
                         <article className="teacher-drilldown-card">
                           <span>First-try success</span>
                           <strong>{selectedSkillFirstTryRate}%</strong>
-                          <p>How often learners get it right before support is needed.</p>
                         </article>
                         <article className="teacher-drilldown-card">
                           <span>Remediation moments</span>
                           <strong>{selectedSkill.remediationCount}</strong>
-                          <p>Support was triggered this many times for the selected skill.</p>
                         </article>
                       </div>
 
@@ -709,9 +684,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         </div>
                         <div>
                           <strong>Suggested next move</strong>
-                          <p>
-                            {selectedSkillDetail?.recommendedAction ?? selectedSkill.queueSummary}
-                          </p>
+                          <small>{selectedSkillDetail?.recommendedAction ?? selectedSkill.queueSummary}</small>
                         </div>
                       </div>
 
@@ -726,7 +699,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                                 {action.icon}
                               </span>
                               <strong>{action.title}</strong>
-                              <p>{action.detail}</p>
+                              <small>{action.detail}</small>
                               <em>{action.kicker}</em>
                             </article>
                           ))}
@@ -783,14 +756,14 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                                   </span>
                                   <div className="teacher-timeline-body">
                                     <strong>{title}</strong>
-                                    <p>
-                                      {activity.launchBandCode} band · {timeSpentSeconds}s response ·{" "}
+                                    <small>
+                                      {activity.launchBandCode} · {timeSpentSeconds}s ·{" "}
                                       {activity.remediationTriggered
                                         ? "support used"
                                         : activity.correct
                                           ? "landed"
                                           : "still building"}
-                                    </p>
+                                    </small>
                                     <small>{formatDateTime(activity.startedAt)}</small>
                                   </div>
                                 </article>
@@ -800,7 +773,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         ) : (
                           <div className="teacher-empty-state">
                             <strong>No intervention history yet</strong>
-                            <p>The timeline will appear after students complete practice on this skill.</p>
+                            <small>Timeline appears after students practice this skill.</small>
                           </div>
                         )}
                       </div>
@@ -808,9 +781,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                   ) : (
                     <div className="teacher-empty-state">
                       <strong>No skill selected yet</strong>
-                      <p>
-                        Choose a skill from the intervention queue above to see detailed progress and recommended next steps.
-                      </p>
+                      <small>Select a skill from the queue to see progress and next steps.</small>
                     </div>
                   )}
                 </ShellCard>
@@ -880,7 +851,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                           <strong>{session.launchBandCode}</strong>
                           <span>{formatShortDate(session.startedAt)}</span>
                         </div>
-                        <p>{session.sessionMode}</p>
+                        <small>{session.sessionMode}</small>
                         <div className="summary-chip-row">
                           <span className="summary-chip">
                             {session.effectivenessScore === null

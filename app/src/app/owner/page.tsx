@@ -50,10 +50,7 @@ export default async function OwnerPage() {
             <div>
               <span className="eyebrow">Operations</span>
               <h1>Sign in to the owner console.</h1>
-              <p>
-                This protected console is separate from the child and family experience.
-                Sign in with an existing owner code to view operational data.
-              </p>
+              <small>Protected console. Sign in with an existing owner code.</small>
             </div>
           </section>
 
@@ -297,10 +294,6 @@ export default async function OwnerPage() {
           <div className="owner-command-copy">
             <span className="shell-eyebrow">Operations</span>
             <h1>Release readiness, feedback pressure, and platform health in one command center.</h1>
-            <p>
-              This dashboard shows whether beta is safe to open, what still
-              needs attention, and where the next product decision belongs.
-            </p>
             <div className="summary-chip-row">
               <span className="summary-chip">Release gate first</span>
               <span className="summary-chip">Feedback triage next</span>
@@ -312,22 +305,22 @@ export default async function OwnerPage() {
             <article className={`owner-kpi-card is-${readinessTone}`}>
               <span className="owner-kpi-label">Release readiness</span>
               <strong>{readinessScore}</strong>
-              <p>{readinessLabel} for beta opening</p>
+              <small>{readinessLabel} for beta</small>
             </article>
             <article className="owner-kpi-card">
               <span className="owner-kpi-label">Feedback queue</span>
               <strong>{overview.counts.feedbackItems}</strong>
-              <p>{pendingReviewCount} pending owner reviews</p>
+              <small>{pendingReviewCount} pending review</small>
             </article>
             <article className="owner-kpi-card">
               <span className="owner-kpi-label">Question bank</span>
               <strong>{overview.counts.exampleItems}</strong>
-              <p>Live synced questions</p>
+              <small>Live synced</small>
             </article>
             <article className="owner-kpi-card">
               <span className="owner-kpi-label">Active households</span>
               <strong>{overview.counts.guardians}</strong>
-              <p>{overview.counts.sessions} learner sessions recorded</p>
+              <small>{overview.counts.sessions} sessions</small>
             </article>
           </div>
         </section>
@@ -355,7 +348,7 @@ export default async function OwnerPage() {
             <div>
               <span className="owner-panel-kicker">Needs attention now</span>
               <strong>{topBanner.title}</strong>
-              <p>{topBanner.detail}</p>
+              <small>{topBanner.detail}</small>
             </div>
             <Link className="owner-inline-link" href={topBanner.actionHref}>
               {topBanner.actionLabel} →
@@ -382,11 +375,11 @@ export default async function OwnerPage() {
                 </div>
                 <div className="owner-readiness-copy">
                   <strong>{blockers.length} open blocker{blockers.length === 1 ? "" : "s"}</strong>
-                  <p>
+                  <small>
                     {readinessScore >= 90
-                      ? "Release gate is clear. Confirm the checklist before opening to testers."
-                      : `Score needs to reach 90 to unlock. Fix the ${blockers.length} blocking signal${blockers.length === 1 ? "" : "s"} below to move the needle.`}
-                  </p>
+                      ? "Gate clear — confirm checklist before opening."
+                      : `Needs 90 to unlock. Fix ${blockers.length} signal${blockers.length === 1 ? "" : "s"} below.`}
+                  </small>
                   <div className="owner-readiness-bar" aria-hidden="true">
                     <span
                       className={`is-${readinessTone}`}
@@ -404,7 +397,7 @@ export default async function OwnerPage() {
                     </span>
                     <div className="owner-release-copy">
                       <strong>{check.label}</strong>
-                      <p>{check.detail}</p>
+                      <small>{check.detail}</small>
                     </div>
                   </article>
                 ))}
@@ -417,7 +410,7 @@ export default async function OwnerPage() {
                       <span className="owner-blocker-chip">{blocker.severity.toUpperCase()}</span>
                       <div>
                         <strong>{blocker.title}</strong>
-                        <p>{blocker.detail}</p>
+                        <small>{blocker.detail}</small>
                         <Link className="secondary-link" href={blocker.actionHref}>{blocker.actionLabel} →</Link>
                       </div>
                     </article>
@@ -441,7 +434,7 @@ export default async function OwnerPage() {
                       <span className={`owner-status-dot is-${item.status}`} aria-hidden="true" />
                       <div>
                         <strong>{item.route}</strong>
-                        <p>{item.detail}</p>
+                        <small>{item.detail}</small>
                       </div>
                     </div>
                     <span className={`owner-route-badge is-${item.status}`}>
@@ -465,10 +458,7 @@ export default async function OwnerPage() {
                   <article className="owner-band-row" key={band.code}>
                     <div className="owner-band-copy">
                       <strong>{band.displayName}</strong>
-                      <p>
-                        {band.studentCount} learners ·{" "}
-                        {formatShare(band.studentCount, totalBandStudents)}
-                      </p>
+                      <small>{band.studentCount} · {formatShare(band.studentCount, totalBandStudents)}</small>
                     </div>
                     <div className="owner-adoption-track" aria-hidden="true">
                       <span
@@ -484,9 +474,7 @@ export default async function OwnerPage() {
                   </article>
                 ))}
                 {dominantBand ? (
-                  <p className="owner-support-note">
-                    Most active band right now: {dominantBand.displayName}.
-                  </p>
+                  <small className="owner-support-note">Most active: {dominantBand.displayName}.</small>
                 ) : null}
               </div>
             </section>
@@ -513,7 +501,7 @@ export default async function OwnerPage() {
                       <span className="summary-chip">{primaryFeedback.reviewStatus}</span>
                     </div>
                     <strong>{primaryFeedback.summary}</strong>
-                    <p>{primaryFeedback.message}</p>
+                    <small>{primaryFeedback.message}</small>
                     <div className="summary-chip-row">
                       <span className="summary-chip">
                         Assigned to {primaryFeedback.routingTarget}
@@ -535,35 +523,32 @@ export default async function OwnerPage() {
                     <article className="owner-mini-stat">
                       <span>Pending review</span>
                       <strong>{pendingReviewCount}</strong>
-                      <p>Still waiting on owner action.</p>
+                      <small>Waiting on owner action.</small>
                     </article>
                     <article className="owner-mini-stat">
                       <span>Hottest category</span>
                       <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
-                      <p>
+                      <small>
                         {feedbackHotspot
-                          ? `${feedbackHotspot.count} items in the busiest lane.`
-                          : "No category pressure yet."}
-                      </p>
+                          ? `${feedbackHotspot.count} items.`
+                          : "No pressure yet."}
+                      </small>
                     </article>
                     <article className="owner-mini-stat">
                       <span>Review status</span>
                       <strong>{reviewHotspot?.reviewStatus ?? "quiet"}</strong>
-                      <p>
+                      <small>
                         {reviewHotspot
-                          ? `${reviewHotspot.count} items currently share this status.`
-                          : "No review status data yet."}
-                      </p>
+                          ? `${reviewHotspot.count} items.`
+                          : "No data yet."}
+                      </small>
                     </article>
                   </div>
                 </>
               ) : (
                 <div className="teacher-empty-state">
                   <strong>No triage items yet</strong>
-                  <p>
-                    As feedback and testing volume rises, the queue will show items
-                    to route, review, and resolve.
-                  </p>
+                  <small>Queue fills as feedback and testing volume rises.</small>
                   <div className="form-actions">
                     <Link className="secondary-link" href="/child">
                       Start a test session
@@ -582,7 +567,7 @@ export default async function OwnerPage() {
                       <strong>{item.summary}</strong>
                       <span className="summary-chip">{item.urgency}</span>
                     </div>
-                    <p>{item.category} · assigned to {item.routingTarget}</p>
+                    <small>{item.category} · {item.routingTarget}</small>
                     <div className="owner-feedback-status-row">
                       <span className={`owner-review-status-chip is-${item.reviewStatus}`}>
                         {item.reviewStatus}
@@ -611,12 +596,11 @@ export default async function OwnerPage() {
                         <strong>{session.displayName}</strong>
                         <span className="summary-chip">{session.sessionMode}</span>
                       </div>
-                      <p>
+                      <small>
                         {session.effectivenessScore === null
-                          ? "Still in progress"
-                          : `${session.effectivenessScore}% effective`}{" "}
-                        · recorded during session
-                      </p>
+                          ? "In progress"
+                          : `${session.effectivenessScore}% effective`}
+                      </small>
                     </article>
                   ))}
                 </div>
@@ -633,20 +617,20 @@ export default async function OwnerPage() {
                   <article className="owner-mini-stat">
                     <span>Top category</span>
                     <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
-                    <p>
+                    <small>
                       {feedbackHotspot
-                        ? `${feedbackHotspot.count} recent items in the largest category.`
-                        : "No feedback has been triaged yet."}
-                    </p>
+                        ? `${feedbackHotspot.count} items.`
+                        : "Nothing triaged yet."}
+                    </small>
                   </article>
                   <article className="owner-mini-stat">
                     <span>Top review status</span>
                     <strong>{reviewHotspot?.reviewStatus ?? "Quiet"}</strong>
-                    <p>
+                    <small>
                       {reviewHotspot
-                        ? `${reviewHotspot.count} items share this status.`
-                        : "No review status data yet."}
-                    </p>
+                        ? `${reviewHotspot.count} items.`
+                        : "No data yet."}
+                    </small>
                   </article>
                 </div>
               </section>
@@ -675,9 +659,7 @@ export default async function OwnerPage() {
                     <article className="owner-content-row" key={item.label}>
                       <div className="owner-content-copy">
                         <strong>{item.label}</strong>
-                        <p>
-                          {item.value} live now · target {item.target}
-                        </p>
+                        <small>{item.value} live · target {item.target}</small>
                       </div>
                       <div className="owner-content-meter" aria-hidden="true">
                         <span
@@ -721,10 +703,9 @@ export default async function OwnerPage() {
                   <h2>Current beta opening posture</h2>
                 </div>
               </div>
-              <p className="owner-support-note">
-                Keep beta closed until: readiness score reaches 90+, pending
-                feedback is cleared, and real parent households are linked.
-              </p>
+              <small className="owner-support-note">
+                Keep closed until: score ≥ 90, feedback cleared, households linked.
+              </small>
             </section>
           </aside>
         </section>
