@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-30 22:58 CDT
+Updated: 2026-03-30 23:29 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -43,47 +43,31 @@ Reference milestone docs:
 
 ## Ground Truth
 
-As of 2026-03-30 22:09 CDT:
+As of 2026-03-30 23:29 CDT:
 
-- committed `main` / `origin/main` is at `315d9b1`
-- the current committed beta baseline includes:
-  - `1be676f` — `CONTENT-BETA-01`
-  - `448da40` — `ACCESS-BETA-01`
-  - `319c73b` — `PLAY-BETA-01`
-  - `315d9b1` — `PARENT-BETA-01`
-- the current committed content bank is `1208` questions / `38` explainers:
-  - `PREK` = `302`
-  - `K1` = `302`
-  - `G23` = `302`
-  - `G45` = `302`
-- the current content QA report is clean:
+- local `main` is at `7f77c3c`
+- `origin/main` is still at `315d9b1`
+- local `main` is ahead of `origin/main` by `2` commits:
+  - `0679fcd` — `CONTENT-BETA-02`
+  - `7f77c3c` — `CONTENT-QA-01 + PLAY-BETA-02`
+- the current local beta baseline includes all prior accepted work plus:
+  - content bank expanded to `3000` questions / `77` explainers
+  - early-learner play updated for more visual-first coverage across the newly added skill families
+- the current local content QA report is clean:
+  - `PREK` = `745`
+  - `K1` = `756`
+  - `G23` = `750`
+  - `G45` = `749`
   - `0` duplicate question keys
   - `0` missing explainers
-  - `0` thin explainer families currently flagged
-- latest developer-log verification on the committed beta batch says:
+  - `0` thin explainer families flagged
+- latest local verification on the new local head says:
   - `npm run lint` = pass
   - `npm run build` = pass
   - `npm run smoke:local` = pass
-  - `sync-launch-content.mjs` = completed successfully for the `1208/38` bank
-- the last approved live release remains healthy:
-  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures**
-  - live Render previously confirmed expanded-bank reachability on `G45` (`g45_decimal_tenths_4_7`)
-- there is now an active local content-expansion wave on top of the committed baseline in:
-  - `data/launch/sample_questions.json`
-  - `data/launch/explainers.json`
-  - `supabase/seed/content_seed.sql`
-- current local in-flight content inventory is already beyond the committed baseline:
-  - `2792` questions
-  - `72` explainers
-  - `PREK` = `705`
-  - `K1` = `716`
-  - `G23` = `694`
-  - `G45` = `677`
-- that local in-flight wave is **not yet accepted** because the current content report shows QA drift:
-  - missing explainers exist for several added question groups
-  - band counts have drifted unevenly
-  - `g45_engineering` is currently thin in usage
-- additional local untracked files remain:
+  - `node app/scripts/content-bank-report.mjs` = clean `3000/77` report
+- the last pushed / live-approved baseline remains healthy at `315d9b1` until the new local commits are pushed and deployed
+- the only remaining local untracked files are:
   - `app/scripts/content-bank-report.mjs`
   - `supabase/.temp/`
 
@@ -237,99 +221,28 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Coordination Baseline
 
-- use committed head `315d9b1` as the current synced working baseline
-- do **not** wait on the old `bae63a4` / `50b0240` stop-state language; that cycle is closed
-- the four-item beta wave is already committed and pushed
-- current content inventory is real and committed:
-  - `1208` questions
-  - `38` explainers
-  - `302` questions per band
+- use local head `7f77c3c` as the current working baseline
+- treat `315d9b1` as the last pushed baseline, not the current local state
+- do **not** wait on older stop-state language; that cycle is closed
+- current local content inventory is:
+  - `3000` questions
+  - `77` explainers
+  - roughly balanced across the four bands
 - the active queue below is pre-approved; do not pause for routine manual approval between items
 - keep polling this board before work and before every commit, but do not idle while the queue below is active
 
 ### Newly Closed This Round
 
-- `CONTENT-BETA-01` — content bank expanded and synced to the working runtime
-- `ACCESS-BETA-01` — wrong-band recovery, manual child switching guard, and keyboard gate entry landed
-- `PLAY-BETA-01` — replay audio now fires immediately and child-facing answer surfaces are quieter
-- `PARENT-BETA-01` — parent copy and skill-detail surfaces are shorter, more structured, and easier to scan
+- `CONTENT-BETA-02` — content bank expanded from `1208/38` to `3000/77`
+- `CONTENT-QA-01` — content-report output is clean again on the new `3000/77` bank
+- `CONTENT-QA-02` — missing explainers and thin-family drift from the in-flight content wave were cleaned before acceptance
+- `PLAY-BETA-02` — early-learner play now covers the new skill families with more visual-first scenes and lower text density
 
 ### Active Execution Queue
 
 Work this queue in order. Do not idle unless the current item is blocked and the blocker is written to the board.
 
-#### 1. CONTENT-BETA-02
-
-`CONTENT-BETA-02` — materially deepen the bank again instead of stopping at `1208`.
-
-Current target:
-
-- push from `1208` toward `2000+` questions as the next concrete milestone
-- push explainers from `38` toward `60+`
-- keep counts balanced across `PREK`, `K1`, `G23`, and `G45`
-- stay inside existing runtime-safe content structure unless support for a new family is already proven in product code
-
-Expected scope:
-
-- `data/launch/sample_questions.json`
-- `data/launch/explainers.json`
-- `app/scripts/content-bank-report.mjs` if content QA/reporting needs hardening
-
-Acceptance:
-
-- no duplicate `question_key` values
-- no missing explainers for committed questions
-- content-bank report stays clean after the next wave
-- next milestone count is recorded in `Developer Log`
-
-#### 2. CONTENT-QA-01
-
-`CONTENT-QA-01` — make the content bank easier to inspect as it grows.
-
-Current need:
-
-- the bank is now large enough that drift can hide inside volume
-- report output should remain the fast check before every content commit
-
-Acceptance:
-
-- `app/scripts/content-bank-report.mjs` is kept current if needed
-- report output clearly shows totals, per-band counts, top skills, duplicate keys, and missing explainers
-- review lane can inspect content quality without hand-counting raw JSON
-
-#### 3. CONTENT-QA-02
-
-`CONTENT-QA-02` — keep large content waves clean before they are treated as real progress.
-
-Current focus:
-
-- the in-flight local content wave has already outrun the last committed milestone
-- missing explainers, thin explainer usage, and band imbalance must be corrected before the next content commit is accepted
-
-Acceptance:
-
-- report returns `0` duplicate keys
-- report returns `0` missing explainers
-- band distribution is brought back within a tight practical spread
-- thin explainer families are either strengthened or intentionally trimmed
-
-#### 4. PLAY-BETA-02
-
-`PLAY-BETA-02` — keep cutting text and increasing visual guidance for child-facing play.
-
-Current focus from owner feedback:
-
-- children should not feel like they are reading a book to play
-- active question surfaces should prefer taps, images, audio, and simple cues over dense text
-- replay / clue / completion moments should feel inviting enough to come back
-
-Acceptance:
-
-- early-learner play feels more visual than textual
-- replay/help remains obvious without adult translation
-- no regression to scoring, session restore, or band targeting
-
-#### 5. PARENT-BETA-02
+#### 1. PARENT-BETA-02
 
 `PARENT-BETA-02` — make the family hub easier to digest in one scan.
 
@@ -345,7 +258,7 @@ Acceptance:
 - detailed cards remain readable without text blending into the background
 - no new API or schema work is introduced
 
-#### 6. AUDIO-BETA-01
+#### 2. AUDIO-BETA-01
 
 `AUDIO-BETA-01` — harden the child-facing audio path so replay and read-aloud cues feel dependable.
 
@@ -360,7 +273,7 @@ Acceptance:
 - audio regressions are easier to catch in QA
 - no changes destabilize scoring or session flow
 
-#### 7. SESSION-BETA-01
+#### 3. SESSION-BETA-01
 
 `SESSION-BETA-01` — reduce the feeling of short repetitive loops.
 
@@ -374,6 +287,21 @@ Acceptance:
 - within-band variety improves
 - sessions feel less repetitive across return visits
 - no regression to easy-first early-learner sequencing
+
+#### 4. VISUAL-BETA-01
+
+`VISUAL-BETA-01` — increase image-first clarity on child-facing routes.
+
+Current focus from owner feedback:
+
+- children should want to come back because the product feels playful, not text-heavy
+- more of the first minute should read through images, icons, and obvious tap targets
+
+Acceptance:
+
+- the child-facing routes rely less on paragraph reading
+- first-minute guidance feels obvious with less adult narration
+- no regression to interaction clarity or responsiveness
 
 ### Extended Beta Backlog
 
@@ -427,6 +355,7 @@ After the current queue is green, keep moving in this order unless real `P0` / `
 - if an item passes validation and the next item is still in scope, continue without waiting
 - do not pause for owner approval between normal queued items; the active queue is pre-approved
 - if a task hits a true external blocker such as missing credentials, destructive approval, or a tool/system restriction, note the blocker clearly and move to the next unblocked item instead of idling
+- do not include `EXECUTION_BOARD.md` in product commits unless the task is explicitly a board/control-plane sync
 - if an item would require auth changes, schema work, or broad redesign, stop and record the blocker instead of expanding the batch
 - ignore `supabase/.temp/` unless a later task explicitly requires cleanup of patch artifacts
 
@@ -753,15 +682,16 @@ Template:
 ## Active Risks
 
 - control-plane freshness remains the primary coordination risk; stale stop-state language already caused one false idle period and must not recur.
-- content quality drift is now the main build risk:
-  - the bank is already `1208` questions / `38` explainers and is still growing
-  - volume can hide duplication, weak paraphrase churn, or band imbalance if the content report is not kept current
-  - the current local in-flight wave has already expanded beyond the committed baseline and presently shows explainer coverage drift that must be cleaned before acceptance
+- content quality drift remains an ongoing build risk even though the current local `3000/77` report is clean:
+  - volume can still hide weak paraphrase churn or band skew if the content report is not kept current
+  - future large waves must stay report-clean before they are treated as real progress
 - owner feedback still indicates product-surface pressure on text density and visual hierarchy:
   - home page still wants a more visual, lighter first impression
   - child/play still need to feel more game-like and less instruction-heavy
   - parent detail surfaces still need careful contrast and grouping discipline
+- audio reliability and replay feel are still high-trust child-path risks until the next audio-specific pass is closed.
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
+- `EXECUTION_BOARD.md` was pulled into product commits during the latest content/play wave; future product commits should avoid board edits unless they are explicitly control-plane sync commits.
 - `app/scripts/content-bank-report.mjs` is currently untracked despite being useful to police the larger bank; either commit and maintain it or replace it with an equivalent checked-in report path.
 - `render_post_setup_check.sh` needed route-copy maintenance for `/child` and `/owner`; that patch is now committed in `bae63a4`, so future live checks should no longer false-fail on current copy.
 - the design inventory is now large enough to distract execution if not tightly controlled.
@@ -1408,6 +1338,28 @@ Template:
 
 ## Review Log
 
+### 2026-03-30 23:29 CDT — Local Beta Expansion Review (`0679fcd`, `7f77c3c`)
+
+- Reviewed:
+  - local `main` through `7f77c3c`
+  - current `Ground Truth`, `Next Round Plan`, and `Active Risks`
+  - current local `node app/scripts/content-bank-report.mjs` output
+  - commit surfaces for `0679fcd` and `7f77c3c`
+- Findings:
+  - P0: none
+  - P1: the local beta baseline has materially advanced beyond `origin/main`. Local `main` is now ahead by two commits: `0679fcd` (`CONTENT-BETA-02`) and `7f77c3c` (`CONTENT-QA-01 + PLAY-BETA-02`).
+  - P1: content depth is now materially stronger again: `3000` questions / `77` explainers, with balanced band counts and a clean report (`0` duplicate keys, `0` missing explainers, `0` thin explainers).
+  - P1: the next product pressure point is no longer content depth. It is parent/home readability plus child-path audio/session feel.
+  - P2: `EXECUTION_BOARD.md` was included in the latest product commits even though the task was not a control-plane-only batch. Keep future board sync separate from normal product commits.
+- Decision:
+  - approved: current local committed progress through `7f77c3c`
+  - approved: continue immediately without waiting
+  - stop condition remains inactive
+- Next action:
+  - move directly to `PARENT-BETA-02`
+  - then continue to `AUDIO-BETA-01`, `SESSION-BETA-01`, and `VISUAL-BETA-01`
+  - do not include board edits in future product commits unless the task is explicitly board sync
+
 ### 2026-03-30 22:58 CDT — Auto-Approval Queue Rule / In-Flight Content Check
 
 - Reviewed:
@@ -2019,3 +1971,19 @@ Template:
   - `node ./scripts/content-bank-report.mjs` = clean (0 dups, 0 missing explainers)
 - Review requested:
   - no — continuing to PARENT-BETA-02
+
+### 2026-03-31 CDT — parent (PARENT-BETA-02: reduce text density, improve card contrast)
+
+- Files changed:
+  - `app/src/app/parent/page.tsx` — removed `<p>` body from `parent-family-skill-highlight` buttons (label + value + "View" is sufficient for scan); removed verbose `<p>` from snapshot card (stats grid shows the same data inline); replaced Progress skill-detail `<p>` with compact `<small>{mastery}% · {attempts} questions</small>`; shortened `parent-sns-cell` captions ("Needs one short follow-up" → "Needs follow-up", "Close to the next unlock" → "Almost there"); trimmed session history chart caption to "Taller bars = stronger sessions."
+  - `app/src/app/globals.css` — `parent-skill-detail-card` gains `border-left: 3px` accent with nth-child(1/2/3) variants in green/blue/amber to visually differentiate Meaning / Progress / Try Next without relying on text; `parent-family-answer-card span` label opacity increased; `strong` bumped to 1.26rem/900 weight for headline readability; `p` reduced to 0.86rem for clearer hierarchy.
+- Built:
+  - Parent hub reads as structured signal: skill highlight buttons show label + value only; snapshot shows stat grid directly; skill detail cards have distinct left-border accents for immediate visual grouping.
+  - No new APIs, schema changes, or behavioral changes introduced.
+- Still unresolved:
+  - Full beta batch (CONTENT-BETA-02 → CONTENT-QA-01 → PLAY-BETA-02 → PARENT-BETA-02) now committed. Requesting review.
+- Verification:
+  - `npm run lint` = pass
+  - `npm run smoke:local` = pass
+- Review requested:
+  - yes — second beta batch complete; requesting review lane pass

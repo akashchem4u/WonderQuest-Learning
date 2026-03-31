@@ -1425,17 +1425,17 @@ export default function ParentAccessPage() {
                     <div className="parent-family-sns-cell is-strength">
                       <span>Strengths</span>
                       <strong>{activeChildDashboard.strengths.length}</strong>
-                      <small>Feeling steady</small>
+                      <small>Steady</small>
                     </div>
                     <div className="parent-family-sns-cell is-support">
                       <span>Building</span>
                       <strong>{activeChildDashboard.supportAreas.length}</strong>
-                      <small>Needs one short follow-up</small>
+                      <small>Needs follow-up</small>
                     </div>
                     <div className="parent-family-sns-cell is-next">
-                      <span>Almost there</span>
+                      <span>Next unlock</span>
                       <strong>{parentNextMilestone ? "1" : "0"}</strong>
-                      <small>Close to the next unlock</small>
+                      <small>Almost there</small>
                     </div>
                   </div>
 
@@ -1456,7 +1456,6 @@ export default function ParentAccessPage() {
                         <div className="parent-family-skill-copy">
                           <small>{item.label}</small>
                           <strong>{item.value}</strong>
-                          <p>{item.detail}</p>
                         </div>
                         <b>View</b>
                       </button>
@@ -1526,10 +1525,6 @@ export default function ParentAccessPage() {
                 <article className="parent-family-panel parent-family-snapshot-card">
                   <div className="parent-family-panel-label">Snapshot</div>
                   <strong>{activeChild.displayName}</strong>
-                  <p>
-                    Last active {formatLastSeen(activeChildDashboard.lastSessionAt)}.{" "}
-                    {activeChild.badgeCount} badges and {activeChild.trophyCount} trophies earned so far.
-                  </p>
                   <div className="parent-family-snapshot-grid">
                     <div>
                       <span>Comfort</span>
@@ -1598,9 +1593,7 @@ export default function ParentAccessPage() {
                       <article className="parent-skill-detail-card">
                         <span>Progress</span>
                         <strong>{buildParentSkillSignal(activeSkill.masteryRate)}</strong>
-                        <p>
-                          {activeSkill.masteryRate}% correct across {activeSkill.attempts} questions answered.
-                        </p>
+                        <small>{activeSkill.masteryRate}% · {activeSkill.attempts} questions</small>
                       </article>
                       <article className="parent-skill-detail-card">
                         <span>Try next</span>
@@ -1644,10 +1637,7 @@ export default function ParentAccessPage() {
                         <span key={session.id}>{formatShortDay(session.startedAt)}</span>
                       ))}
                     </div>
-                    <p className="soft-copy">
-                      Recent sessions show whether time spent is becoming more
-                      effective over the week.
-                    </p>
+                    <p className="soft-copy">Taller bars = stronger sessions.</p>
                   </div>
                 ) : (
                   <p className="soft-copy">
