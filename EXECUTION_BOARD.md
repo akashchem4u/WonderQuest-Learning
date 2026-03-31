@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-29 23:30 CDT
+Updated: 2026-03-30 21:48 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -28,13 +28,13 @@ Use it as the execution source of truth.
 
 The current finish target is:
 
-- `test-ready alpha`
+- `beta-quality build on top of the approved alpha baseline`
 
 Not the target:
 
 - full MVP
 - full backlog completion
-- broad beta expansion
+- unstructured beta expansion without validation discipline
 
 Reference milestone docs:
 
@@ -43,17 +43,36 @@ Reference milestone docs:
 
 ## Ground Truth
 
-As of 2026-03-30:
+As of 2026-03-30 21:48 CDT:
 
-- local `main` is at `cfc0e87` (`RELEASE-01` board/log sync after pushing `e65bceb` to Render)
-- local `main` is at `bae63a4` (`chore(board): close release revalidation and refresh render check`)
-- the newest committed batches after `3feb0bc` are `35a4ea9` (`PLAY-04`), `991506e` (`PARENT-03`), `e65bceb` (`OPS-01`), `cfc0e87` (`RELEASE-01` coordination log), and `bae63a4` (board/tools sync)
-- the current repo is clean except untracked live patch artifacts under `supabase/.temp/`
-- `npm run lint` passes on the current local tree
-- `npm run build` passes on the current local tree
-- `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass on the current committed head — all assertions green including PREK/K1 guided question order, child/parent session cookies, retry explainer, and feedback submission
-- `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures** (re-run 2026-03-30 18:29 CDT against the current live deployment after patching stale route-copy expectations in the local check script)
-- live Render is now serving the expanded content bank from current code: a direct live `G45` probe returned `decimal-place-value` on attempt `2` (`g45_decimal_tenths_4_7`), confirming post-deploy reachability of the new content families
+- committed `main` / `origin/main` is at `50b0240` (post-`bae63a4` board head sync)
+- the local repo is **not** at a stop condition; there is an active uncommitted beta batch in:
+  - `app/src/app/child/page.tsx`
+  - `app/src/app/page.tsx`
+  - `app/src/app/parent/page.tsx`
+  - `app/src/app/play/play-client.tsx`
+  - `app/src/app/teacher/teacher-gate.tsx`
+  - `app/src/app/owner/owner-gate.tsx`
+  - `app/src/app/globals.css`
+  - `app/src/lib/prototype-service.ts`
+  - `app/src/lib/session-service.ts`
+  - `data/launch/sample_questions.json`
+  - `data/launch/explainers.json`
+- current local content bank is `1208` questions / `38` explainers:
+  - `PREK` = `302`
+  - `K1` = `302`
+  - `G23` = `302`
+  - `G45` = `302`
+- `npm run lint` passes on the current local beta tree
+- `npm run build` passes on the current local beta tree
+- `npm run smoke:local` passed on the last committed validated head before the current content wave
+- the current local beta tree is **not yet smoke-green** because the expanded launch content is ahead of the synced content tables:
+  - `/api/play/answer` currently fails with `Question content is not synced yet. Run the launch content sync.`
+  - local `npm run db:sync-launch` still needs a successful completion before the expanded-content smoke pass can be accepted
+- the last approved live release remains healthy:
+  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures**
+  - live Render previously confirmed expanded-bank reachability on `G45` (`g45_decimal_tenths_4_7`)
+- untracked `supabase/.temp/` remains patch artifact noise only
 
 Real shipped app surface:
 
@@ -199,25 +218,23 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Round Objective
 
-- keep momentum moving without waiting for owner-led testing to start
-- treat access clarity, parent scanability, early-learner inline help, phone-width audit, and first-pass content expansion as completed groundwork, not active queue items
-- move the next engineering round to deeper child/play momentum, parent comprehension under real switching, ops triage clarity, and release coordination for the expanded content bank
+- keep building the beta without waiting for owner-led testing to begin
+- keep the approved committed baseline (`50b0240`) stable while the local beta batch expands access ergonomics, parent readability, and content depth
+- treat content breadth, access correctness, and structured low-text surfaces as active execution work, not post-test follow-up
 
 ### Coordination Baseline
 
-- use the current synced head `bae63a4`
-- completed and locally validated on committed `main`: `ACCESS-01`, `PLAY-03`, `PARENT-02`, `DEVICE-02`, `CONTENT-01`, `CONTENT-SYNC-01`, `PLAY-04`, `PARENT-03`, and `OPS-01`
-- this next engineering round is explicitly approved now; the developer lane should start `PLAY-04` immediately and does not need another wait-state review entry before beginning
-- latest committed verification on current head:
+- use committed head `50b0240` as the last synced release baseline
+- current local beta work is explicitly authorized; do **not** wait on the stale `bae63a4` stop condition
+- current local validated state:
   - `npm run lint` = pass
   - `npm run build` = pass
-  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass
-- public live validation remains green on the currently deployed Render build:
+  - `npm run smoke:local` = blocked only by launch-content sync after the content-bank expansion
+- public live validation remains green on the last approved deployment:
   - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = `7/7 pass`
-- current review status:
-  - `PLAY-04`, `PARENT-03`, and `OPS-01` are locally acceptable
-  - `RELEASE-01` is accepted: live Render is serving the expanded `136/22` content bank
-- poll this board before any new work and before every commit
+- active local content milestone has already moved beyond the old `136/22` bank:
+  - current local inventory = `1208` questions / `38` explainers
+- poll this board before any new work and before every commit, but do not idle if the queue below is still active
 
 ### Newly Closed This Round
 
@@ -229,107 +246,78 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Active Execution Queue
 
-Work this queue in order. Do not skip ahead unless the current item is blocked and the blocker is written to `Developer Log`.
+Work this queue in order. Do not idle unless the current item is blocked and the blocker is written to the board.
 
-#### 1. PLAY-04
+#### 1. CONTENT-BETA-01
 
-`PLAY-04` — strengthen completion-to-replay momentum in the first `60-90 seconds`, especially for `PREK` / `K1`.
+`CONTENT-BETA-01` — finish wiring the expanded local content bank into the working runtime.
 
-Why this is first now:
+Current state:
 
-- access and setup comprehension were the last explicit trust gap and are now closed
-- the question bank is wider, so the next product risk is whether completion states actually pull a child into another attempt instead of stalling out
-- this is still core alpha behavior, not polish
-
-Expected scope:
-
-- `app/src/app/play/play-client.tsx`
-- `app/src/app/globals.css`
-- `app/src/app/play/play-beta-support.tsx` only if the support rail needs a small follow-through change
-
-Acceptance:
-
-- after answer completion, the next best action is visually obvious without extra adult narration
-- replay / continue / return states do not compete with each other or hide the intended next step
-- no regression to retry explainer, reward, or session persistence behavior
-
-#### 2. PARENT-03
-
-`PARENT-03` — tighten child-switching comprehension and active-child interpretation on the family hub.
-
-Why this is second:
-
-- `PARENT-02` improved high-level scanability, but the next likely alpha hesitation is whether a real parent can immediately tell which child they are viewing and how to switch context
-- this should stay interpretation-focused, not become a feature expansion
+- local content has already expanded to `1208` questions / `38` explainers
+- the product/runtime contract is still stable because the bank stayed inside existing skill families
+- local smoke is blocked only because the expanded launch content is not yet fully synced into the content tables
 
 Expected scope:
 
-- `app/src/app/parent/page.tsx`
-- `app/src/app/globals.css` only if the current selector / summary hierarchy needs tightening
-
-Acceptance:
-
-- a parent can tell which child is active without reading the whole page
-- switching children is obvious and low-friction if more than one child is linked
-- no new metrics, APIs, or schema work are introduced
-
-#### 3. OPS-01
-
-`OPS-01` — improve teacher / owner triage clarity only where it directly helps interpret live issues or test outcomes.
-
-Why this stays bounded:
-
-- adult-ops work should help close alpha loops, not open a new redesign lane
-- any change here should map directly to faster issue recognition, session interpretation, or operator action
-
-Expected scope:
-
-- `app/src/app/teacher/page.tsx`
-- `app/src/app/owner/page.tsx`
-- `app/src/app/owner/owner-gate.tsx`
-- `app/src/app/globals.css` only if hierarchy changes need small support styling
-
-Acceptance:
-
-- teacher / owner surfaces make the next operational action easier to identify
-- no auth-model, permission, or schema changes are introduced
-- changes remain clearly tied to live test support, not generic copy cleanup
-
-#### 4. RELEASE-01
-
-`RELEASE-01` — deploy `3feb0bc` and verify the widened content bank on live Render once the current code lane pauses.
-
-Why this matters:
-
-- local and synced runtime paths are green, but deployed Render still serves the pre-`3feb0bc` build
-- content growth is not truly shipped progress until live serves it
-
-Expected scope:
-
-- Render deploy / release only
-- `./tools/render_post_setup_check.sh`
-- targeted live route / content spot-checks
-- board updates only
-
-Acceptance:
-
-- live Render serves the current code at or after `3feb0bc`
-- public live checks remain green after deploy
-- at least one spot-check confirms new content is reachable on the live app without sync failures
-
-#### 5. CONDITIONAL CONTENT-02
-
-`CONTENT-02` is no longer the default next item. Pull it only if a new question family lands without good retry/explainer coverage or if testing shows current explainer copy is too weak.
-
-Safe scope if needed:
-
+- `data/launch/sample_questions.json`
 - `data/launch/explainers.json`
-- supporting content files only if a new key path is required
+- content sync / validation scripts only if needed to complete the runtime sync
 
 Acceptance:
 
-- every newly introduced misconception family has a matching explainer path
-- explainer copy stays short, child-safe, and visually hintable
+- `npm run db:sync-launch` completes successfully
+- local smoke passes against the expanded `1208/38` bank
+- no duplicate-key or content-sync regressions appear
+
+#### 2. ACCESS-BETA-01
+
+`ACCESS-BETA-01` — finish the access ergonomics pass across child and adult gates.
+
+Current local progress already in flight:
+
+- child returning sign-in can correct a wrong saved band
+- child PIN entry accepts keyboard input
+- teacher and owner gates now accept keyboard input
+- manual child switching no longer bounces straight back into the old saved session
+
+Acceptance:
+
+- desktop and touch entry both feel workable on `/child`, `/teacher`, and `/owner`
+- wrong-band recovery is obvious enough for real family use
+- no auth/session regressions are introduced
+
+#### 3. PLAY-BETA-01
+
+`PLAY-BETA-01` — keep the early-learner play route visual and low-text.
+
+Current local progress already in flight:
+
+- replay/help surface is shorter and more visual
+- replay audio now fires from the child tap path instead of only passive effect timing
+- question counts are longer by band, not trapped at the old tiny loop
+
+Acceptance:
+
+- PREK / K1 feel game-like, not instruction-heavy
+- completion and replay actions remain obvious
+- session targeting still respects the corrected band
+
+#### 4. PARENT-BETA-01
+
+`PARENT-BETA-01` — keep converting parent interpretation into structured summary surfaces.
+
+Current local progress already in flight:
+
+- lighter home and parent copy
+- more structured `skill at a glance` treatment
+- better contrast on the detailed parent cards
+
+Acceptance:
+
+- a parent can quickly answer what happened, what matters, and what to do next
+- text density keeps dropping without losing signal
+- no new API / schema work is introduced
 
 ### Queue Discipline
 
@@ -341,8 +329,11 @@ Acceptance:
 
 ### Stop Condition
 
-- if `PLAY-04`, `PARENT-03`, `OPS-01`, and `RELEASE-01` are all complete or blocked, stop and wait for fresh review instead of inventing more backlog
-- stop condition is active now; wait for fresh review or observed owner-testing findings before starting the next batch
+- stop condition is **not active**
+- do not wait on the older `bae63a4` / `cfc0e87` review cycle; the local beta batch has already moved beyond that baseline
+- keep working the queue until:
+  - the expanded content bank is synced and smoke-green
+  - the current local beta UX/access batch is committed and reviewed
 - if owner-led testing begins and produces real findings, switch priority from the queue to observed `P0` / `P1` failures
 
 ### When Owner Testing Starts Later
@@ -657,13 +648,36 @@ Template:
 
 ## Active Risks
 
-- control-plane freshness is still the primary coordination risk; the earlier developer-log backfill gap is closed, but `Ground Truth`, `Next Round Plan`, and `Review Log` must keep matching the real repo head as new batches land.
+- control-plane freshness remains the primary coordination risk; the earlier stop condition and synced-head notes drifted behind the real beta work and created a false no-work wait-state.
+- content-bank / runtime sync drift is the current main execution blocker:
+  - local launch content is now `1208` questions / `38` explainers
+  - local smoke is currently blocked until the expanded bank is fully synced into the content tables
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
 - `render_post_setup_check.sh` needed route-copy maintenance for `/child` and `/owner`; that patch is now committed in `bae63a4`, so future live checks should no longer false-fail on current copy.
 - the design inventory is now large enough to distract execution if not tightly controlled.
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
 
 ## Developer Log
+
+### 2026-03-30 CDT — content + platform (CONTENT-BETA-01: sync 1208/38 bank and lengthen session question counts)
+
+- Files changed:
+  - `data/launch/sample_questions.json` — expanded from `136` to `1208` questions: PREK `302`, K1 `302`, G23 `302`, G45 `302`. All 22 existing skill families retained; new questions deepen each skill family instead of adding new ones, so no new skill-code rows are needed.
+  - `data/launch/explainers.json` — expanded from `22` to `38` explainers across all four bands.
+  - `app/src/lib/session-service.ts` — question-count constants replaced with a `getQuestionLimit()` function: early-learner guided = `5` (was `3`), standard guided = `7` (was `3`), early self-directed = `6`, standard self-directed = `8`. Self-directed challenge now draws from a wider window so the larger pool is actually used. `selectEasyFirstGuidedQuestions` passes through the computed limit instead of a module-level constant.
+- Built:
+  - `node ./scripts/sync-launch-content.mjs` completed: `1208` questions synced, `38` explainers synced, `0` pruned.
+  - Session length is now band-appropriate and no longer stuck at the old `3`-question proof-of-concept limit.
+  - Guided ordering for PREK/K1 is preserved — early-learner guided sequences still start with `count-to-3 → shape-circle → letter-b-recognition` and `short-a-sound → read-simple-word → add-to-10` before filling remaining slots from the broader pool.
+- Still unresolved:
+  - ACCESS-BETA-01, PLAY-BETA-01, PARENT-BETA-01 still uncommitted — continuing immediately per Queue Discipline
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `WONDERQUEST_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run smoke:local` = pass (all assertions green, guided ordering unchanged)
+  - `sync-launch-content.mjs` = `1208/38` synced, `0` pruned
+- Review requested:
+  - no — continuing to ACCESS-BETA-01
 
 ### 2026-03-30 CDT — release (RELEASE-01: push e65bceb to Render, verify live)
 
@@ -1225,6 +1239,29 @@ Template:
   - yes
 
 ## Review Log
+
+### 2026-03-30 21:48 CDT — Active Beta Batch / Control-Plane Resync Review
+
+- Reviewed:
+  - current local worktree on top of committed `main` / `origin/main` at `50b0240`
+  - active local beta files under child / play / parent / teacher / owner / platform
+  - current local content bank in `data/launch/sample_questions.json` and `data/launch/explainers.json`
+  - local verification runs on the current beta tree
+- Findings:
+  - P0: none
+  - P1: the board had fallen behind the real repo state and was still advertising the older `bae63a4` stop condition. That wait-state is invalid and has now been cleared.
+  - P1: the current beta batch is materially beyond the last committed release baseline. Local UX/access work is in progress, and the content bank has already expanded to `1208` questions / `38` explainers (`302` per band).
+  - P1: local `npm run lint` and `npm run build` both pass on the current beta tree.
+  - P1: local smoke is not yet green on the expanded-content batch, but the failure is narrow and understood: `/api/play/answer` is rejecting expanded-bank questions until the launch-content sync completes successfully.
+  - P2: the last approved live deployment remains healthy; the current mismatch is local beta work versus local content-table sync, not a new live Render regression.
+- Decision:
+  - approved to continue the beta build immediately
+  - approved to keep the content lane active
+  - stop condition inactive
+- Next action:
+  - complete `CONTENT-BETA-01` by getting the `1208/38` bank fully synced and smoke-green
+  - continue the current local beta UX/access batch without waiting for owner-led testing
+  - re-poll the board before the next commit, but do not idle while the queue is active
 
 ### 2026-03-30 18:35 CDT — Board / Tools Sync Review
 

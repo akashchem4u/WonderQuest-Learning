@@ -66,11 +66,32 @@ function shuffleArray<T>(items: T[]) {
 
 // ─── Question selection ───────────────────────────────────────────────────────
 
-const GUIDED_QUESTION_LIMIT = 3;
+const EARLY_GUIDED_QUESTION_LIMIT = 5;
+const STANDARD_GUIDED_QUESTION_LIMIT = 7;
+const EARLY_SELF_DIRECTED_QUESTION_LIMIT = 6;
+const STANDARD_SELF_DIRECTED_QUESTION_LIMIT = 8;
 const EARLY_GUIDED_SKILL_ORDER: Record<string, string[]> = {
   PREK: ["count-to-3", "shape-circle", "letter-b-recognition"],
   K1: ["short-a-sound", "read-simple-word", "add-to-10"],
 };
+
+function isEarlyLearnerBand(launchBandCode: string) {
+  return launchBandCode === "PREK" || launchBandCode === "K1";
+}
+
+function getQuestionLimit(launchBandCode: string, sessionMode: string) {
+  const earlyLearnerBand = isEarlyLearnerBand(launchBandCode);
+
+  if (sessionMode === "self-directed-challenge") {
+    return earlyLearnerBand
+      ? EARLY_SELF_DIRECTED_QUESTION_LIMIT
+      : STANDARD_SELF_DIRECTED_QUESTION_LIMIT;
+  }
+
+  return earlyLearnerBand
+    ? EARLY_GUIDED_QUESTION_LIMIT
+    : STANDARD_GUIDED_QUESTION_LIMIT;
+}
 
 function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
   const pool = getSampleQuestions().filter(
@@ -99,11 +120,12 @@ function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
 function selectEasyFirstGuidedQuestions(
   launchBandCode: string,
   pool: ReturnType<typeof getSessionQuestionPool>,
+  questionLimit: number,
 ) {
   const skillPriority = EARLY_GUIDED_SKILL_ORDER[launchBandCode];
 
   if (!skillPriority?.length) {
-    return shuffleArray(pool).slice(0, GUIDED_QUESTION_LIMIT);
+    return shuffleArray(pool).slice(0, questionLimit);
   }
 
   const groupedBySkill = new Map<string, typeof pool>();
@@ -129,7 +151,7 @@ function selectEasyFirstGuidedQuestions(
     selected.push(nextQuestion);
     usedQuestionKeys.add(nextQuestion.question_key);
 
-    if (selected.length === GUIDED_QUESTION_LIMIT) {
+    if (selected.length === questionLimit) {
       return selected;
     }
   }
@@ -138,24 +160,30 @@ function selectEasyFirstGuidedQuestions(
     pool.filter((item) => !usedQuestionKeys.has(item.question_key)),
   );
 
-  return [...selected, ...remainingQuestions].slice(0, GUIDED_QUESTION_LIMIT);
+  return [...selected, ...remainingQuestions].slice(0, questionLimit);
 }
 
 function selectSessionQuestions(launchBandCode: string, sessionMode: string) {
   const pool = getSessionQuestionPool(launchBandCode, sessionMode);
+  const questionLimit = getQuestionLimit(launchBandCode, sessionMode);
 
-  if (pool.length <= GUIDED_QUESTION_LIMIT) {
+  if (pool.length <= questionLimit) {
     return pool;
   }
 
   if (sessionMode === "self-directed-challenge") {
-    return shuffleArray(pool.slice(0, Math.min(pool.length, 6))).slice(
+    const challengeWindow = Math.min(
+      pool.length,
+      Math.max(questionLimit + 3, questionLimit * 2),
+    );
+
+    return shuffleArray(pool.slice(0, challengeWindow)).slice(
       0,
-      GUIDED_QUESTION_LIMIT,
+      questionLimit,
     );
   }
 
-  return selectEasyFirstGuidedQuestions(launchBandCode, pool);
+  return selectEasyFirstGuidedQuestions(launchBandCode, pool, questionLimit);
 }
 
 function buildRequestedFocus(questionKeys: string[], sessionMode: string) {
