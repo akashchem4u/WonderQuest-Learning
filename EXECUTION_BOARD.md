@@ -1,6 +1,6 @@
 # WonderQuest Execution Board
 
-Updated: 2026-03-30 21:48 CDT
+Updated: 2026-03-30 22:58 CDT
 Owner of this board: Architect / PM / Investor / User / QA review lane
 Builder lane: Developer-only implementation lane
 
@@ -43,36 +43,49 @@ Reference milestone docs:
 
 ## Ground Truth
 
-As of 2026-03-30 21:48 CDT:
+As of 2026-03-30 22:09 CDT:
 
-- committed `main` / `origin/main` is at `50b0240` (post-`bae63a4` board head sync)
-- the local repo is **not** at a stop condition; there is an active uncommitted beta batch in:
-  - `app/src/app/child/page.tsx`
-  - `app/src/app/page.tsx`
-  - `app/src/app/parent/page.tsx`
-  - `app/src/app/play/play-client.tsx`
-  - `app/src/app/teacher/teacher-gate.tsx`
-  - `app/src/app/owner/owner-gate.tsx`
-  - `app/src/app/globals.css`
-  - `app/src/lib/prototype-service.ts`
-  - `app/src/lib/session-service.ts`
-  - `data/launch/sample_questions.json`
-  - `data/launch/explainers.json`
-- current local content bank is `1208` questions / `38` explainers:
+- committed `main` / `origin/main` is at `315d9b1`
+- the current committed beta baseline includes:
+  - `1be676f` — `CONTENT-BETA-01`
+  - `448da40` — `ACCESS-BETA-01`
+  - `319c73b` — `PLAY-BETA-01`
+  - `315d9b1` — `PARENT-BETA-01`
+- the current committed content bank is `1208` questions / `38` explainers:
   - `PREK` = `302`
   - `K1` = `302`
   - `G23` = `302`
   - `G45` = `302`
-- `npm run lint` passes on the current local beta tree
-- `npm run build` passes on the current local beta tree
-- `npm run smoke:local` passed on the last committed validated head before the current content wave
-- the current local beta tree is **not yet smoke-green** because the expanded launch content is ahead of the synced content tables:
-  - `/api/play/answer` currently fails with `Question content is not synced yet. Run the launch content sync.`
-  - local `npm run db:sync-launch` still needs a successful completion before the expanded-content smoke pass can be accepted
+- the current content QA report is clean:
+  - `0` duplicate question keys
+  - `0` missing explainers
+  - `0` thin explainer families currently flagged
+- latest developer-log verification on the committed beta batch says:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = pass
+  - `sync-launch-content.mjs` = completed successfully for the `1208/38` bank
 - the last approved live release remains healthy:
   - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = **7/7 pass, 0 warnings, 0 failures**
   - live Render previously confirmed expanded-bank reachability on `G45` (`g45_decimal_tenths_4_7`)
-- untracked `supabase/.temp/` remains patch artifact noise only
+- there is now an active local content-expansion wave on top of the committed baseline in:
+  - `data/launch/sample_questions.json`
+  - `data/launch/explainers.json`
+  - `supabase/seed/content_seed.sql`
+- current local in-flight content inventory is already beyond the committed baseline:
+  - `2792` questions
+  - `72` explainers
+  - `PREK` = `705`
+  - `K1` = `716`
+  - `G23` = `694`
+  - `G45` = `677`
+- that local in-flight wave is **not yet accepted** because the current content report shows QA drift:
+  - missing explainers exist for several added question groups
+  - band counts have drifted unevenly
+  - `g45_engineering` is currently thin in usage
+- additional local untracked files remain:
+  - `app/scripts/content-bank-report.mjs`
+  - `supabase/.temp/`
 
 Real shipped app surface:
 
@@ -218,123 +231,214 @@ WonderQuest is `test-ready alpha` only when all of these are true:
 
 ### Round Objective
 
-- keep building the beta without waiting for owner-led testing to begin
-- keep the approved committed baseline (`50b0240`) stable while the local beta batch expands access ergonomics, parent readability, and content depth
-- treat content breadth, access correctness, and structured low-text surfaces as active execution work, not post-test follow-up
+- keep building the beta without waiting for owner-led testing
+- push beyond the current `1208/38` content milestone instead of treating it as finished
+- keep reducing reading load on home, child/play, and parent surfaces so the product feels lighter and more replayable for children and easier to scan for adults
 
 ### Coordination Baseline
 
-- use committed head `50b0240` as the last synced release baseline
-- current local beta work is explicitly authorized; do **not** wait on the stale `bae63a4` stop condition
-- current local validated state:
-  - `npm run lint` = pass
-  - `npm run build` = pass
-  - `npm run smoke:local` = blocked only by launch-content sync after the content-bank expansion
-- public live validation remains green on the last approved deployment:
-  - `./tools/render_post_setup_check.sh https://wonderquest-learning.onrender.com` = `7/7 pass`
-- active local content milestone has already moved beyond the old `136/22` bank:
-  - current local inventory = `1208` questions / `38` explainers
-- poll this board before any new work and before every commit, but do not idle if the queue below is still active
+- use committed head `315d9b1` as the current synced working baseline
+- do **not** wait on the old `bae63a4` / `50b0240` stop-state language; that cycle is closed
+- the four-item beta wave is already committed and pushed
+- current content inventory is real and committed:
+  - `1208` questions
+  - `38` explainers
+  - `302` questions per band
+- the active queue below is pre-approved; do not pause for routine manual approval between items
+- keep polling this board before work and before every commit, but do not idle while the queue below is active
 
 ### Newly Closed This Round
 
-- `ACCESS-01` — existing child, parent, and owner sign-in paths are now explicit on their access routes
-- `PLAY-03` — early-learner help actions now stay near the question instead of relying on the side rail alone
-- `PARENT-02` — the parent hub now answers what happened, what is going well, and what to do next in one scan
-- `DEVICE-02` — no code changes were needed after CSS audit; current breakpoints satisfy the defined `375px` hardening criteria
-- `CONTENT-01 + CONTENT-SYNC-01` — launch content widened from `100` to `136` questions and `12` to `22` explainers, with sync completed successfully
+- `CONTENT-BETA-01` — content bank expanded and synced to the working runtime
+- `ACCESS-BETA-01` — wrong-band recovery, manual child switching guard, and keyboard gate entry landed
+- `PLAY-BETA-01` — replay audio now fires immediately and child-facing answer surfaces are quieter
+- `PARENT-BETA-01` — parent copy and skill-detail surfaces are shorter, more structured, and easier to scan
 
 ### Active Execution Queue
 
 Work this queue in order. Do not idle unless the current item is blocked and the blocker is written to the board.
 
-#### 1. CONTENT-BETA-01
+#### 1. CONTENT-BETA-02
 
-`CONTENT-BETA-01` — finish wiring the expanded local content bank into the working runtime.
+`CONTENT-BETA-02` — materially deepen the bank again instead of stopping at `1208`.
 
-Current state:
+Current target:
 
-- local content has already expanded to `1208` questions / `38` explainers
-- the product/runtime contract is still stable because the bank stayed inside existing skill families
-- local smoke is blocked only because the expanded launch content is not yet fully synced into the content tables
+- push from `1208` toward `2000+` questions as the next concrete milestone
+- push explainers from `38` toward `60+`
+- keep counts balanced across `PREK`, `K1`, `G23`, and `G45`
+- stay inside existing runtime-safe content structure unless support for a new family is already proven in product code
 
 Expected scope:
 
 - `data/launch/sample_questions.json`
 - `data/launch/explainers.json`
-- content sync / validation scripts only if needed to complete the runtime sync
+- `app/scripts/content-bank-report.mjs` if content QA/reporting needs hardening
 
 Acceptance:
 
-- `npm run db:sync-launch` completes successfully
-- local smoke passes against the expanded `1208/38` bank
-- no duplicate-key or content-sync regressions appear
+- no duplicate `question_key` values
+- no missing explainers for committed questions
+- content-bank report stays clean after the next wave
+- next milestone count is recorded in `Developer Log`
 
-#### 2. ACCESS-BETA-01
+#### 2. CONTENT-QA-01
 
-`ACCESS-BETA-01` — finish the access ergonomics pass across child and adult gates.
+`CONTENT-QA-01` — make the content bank easier to inspect as it grows.
 
-Current local progress already in flight:
+Current need:
 
-- child returning sign-in can correct a wrong saved band
-- child PIN entry accepts keyboard input
-- teacher and owner gates now accept keyboard input
-- manual child switching no longer bounces straight back into the old saved session
-
-Acceptance:
-
-- desktop and touch entry both feel workable on `/child`, `/teacher`, and `/owner`
-- wrong-band recovery is obvious enough for real family use
-- no auth/session regressions are introduced
-
-#### 3. PLAY-BETA-01
-
-`PLAY-BETA-01` — keep the early-learner play route visual and low-text.
-
-Current local progress already in flight:
-
-- replay/help surface is shorter and more visual
-- replay audio now fires from the child tap path instead of only passive effect timing
-- question counts are longer by band, not trapped at the old tiny loop
+- the bank is now large enough that drift can hide inside volume
+- report output should remain the fast check before every content commit
 
 Acceptance:
 
-- PREK / K1 feel game-like, not instruction-heavy
-- completion and replay actions remain obvious
-- session targeting still respects the corrected band
+- `app/scripts/content-bank-report.mjs` is kept current if needed
+- report output clearly shows totals, per-band counts, top skills, duplicate keys, and missing explainers
+- review lane can inspect content quality without hand-counting raw JSON
 
-#### 4. PARENT-BETA-01
+#### 3. CONTENT-QA-02
 
-`PARENT-BETA-01` — keep converting parent interpretation into structured summary surfaces.
+`CONTENT-QA-02` — keep large content waves clean before they are treated as real progress.
 
-Current local progress already in flight:
+Current focus:
 
-- lighter home and parent copy
-- more structured `skill at a glance` treatment
-- better contrast on the detailed parent cards
+- the in-flight local content wave has already outrun the last committed milestone
+- missing explainers, thin explainer usage, and band imbalance must be corrected before the next content commit is accepted
 
 Acceptance:
 
-- a parent can quickly answer what happened, what matters, and what to do next
-- text density keeps dropping without losing signal
-- no new API / schema work is introduced
+- report returns `0` duplicate keys
+- report returns `0` missing explainers
+- band distribution is brought back within a tight practical spread
+- thin explainer families are either strengthened or intentionally trimmed
+
+#### 4. PLAY-BETA-02
+
+`PLAY-BETA-02` — keep cutting text and increasing visual guidance for child-facing play.
+
+Current focus from owner feedback:
+
+- children should not feel like they are reading a book to play
+- active question surfaces should prefer taps, images, audio, and simple cues over dense text
+- replay / clue / completion moments should feel inviting enough to come back
+
+Acceptance:
+
+- early-learner play feels more visual than textual
+- replay/help remains obvious without adult translation
+- no regression to scoring, session restore, or band targeting
+
+#### 5. PARENT-BETA-02
+
+`PARENT-BETA-02` — make the family hub easier to digest in one scan.
+
+Current focus from owner feedback:
+
+- parent pages still carry too much text in places
+- information should read as structured signal, not long-form copy
+- contrast and grouping should keep important items readable against the current background treatment
+
+Acceptance:
+
+- key parent answers are visible quickly
+- detailed cards remain readable without text blending into the background
+- no new API or schema work is introduced
+
+#### 6. AUDIO-BETA-01
+
+`AUDIO-BETA-01` — harden the child-facing audio path so replay and read-aloud cues feel dependable.
+
+Current focus from owner feedback:
+
+- audio problems are high-trust failures for the child route
+- replay should feel instant, repeatable, and obvious across the main play path
+
+Acceptance:
+
+- child replay audio works consistently on the supported play surfaces
+- audio regressions are easier to catch in QA
+- no changes destabilize scoring or session flow
+
+#### 7. SESSION-BETA-01
+
+`SESSION-BETA-01` — reduce the feeling of short repetitive loops.
+
+Current focus from owner feedback:
+
+- children should not feel trapped in the same tiny prompt cycle
+- the expanded bank should translate into a more varied session feeling, not just bigger JSON files
+
+Acceptance:
+
+- within-band variety improves
+- sessions feel less repetitive across return visits
+- no regression to easy-first early-learner sequencing
+
+### Extended Beta Backlog
+
+After the current queue is green, keep moving in this order unless real `P0` / `P1` findings supersede it:
+
+1. `CONTENT-BETA-03`
+   - continue past the next milestone and push the bank toward `3000+` if quality remains high
+   - deepen variant coverage inside the strongest existing skill families before inventing new ones
+2. `CONTENT-BETA-04`
+   - increase image-first / audio-first prompt quality for `PREK` and `K1`
+   - make sure early-learner content feels playful, not worksheet-like
+3. `HOME-BETA-02`
+   - cut landing-page text again
+   - make the first screen more visual and easier to understand at a glance
+4. `CHILD-BETA-02`
+   - further simplify child entry and make profile / band choices feel less like forms
+   - keep keyboard and touch parity intact
+5. `PLAY-BETA-03`
+   - strengthen the reward / return loop so children have a reason to come back
+   - prefer visual celebration and clear next-step buttons over explanatory copy
+6. `PARENT-BETA-03`
+   - keep compressing long-form interpretation into structured summary cards
+   - improve progression, next-step, and recent-activity grouping
+7. `ADULT-OPS-BETA-02`
+   - keep teacher and owner routes action-oriented, fast to scan, and useful during testing
+   - avoid dumping more raw text into operator surfaces
+8. `QA-BETA-01`
+   - keep a living test runbook, bug-capture template, and regression checklist ready for live testing
+9. `RELEASE-BETA-01`
+   - deploy the next accepted beta wave
+   - verify local and live parity again after the next major content + UI pass
+10. `VISUAL-BETA-01`
+   - add more image-first and illustration-first surfaces for child-facing routes where the runtime already supports them
+   - reduce dependency on paragraph reading for first-minute use
+11. `COMEBACK-BETA-01`
+   - make return states and post-completion moments feel worth replaying
+   - favor obvious rewards, next-step momentum, and lower-friction re-entry
+12. `HOME-BETA-03`
+   - strip more text from the landing page and make the first screen easier to understand in one glance
+   - keep the audience split obvious without reading long cards
+13. `PARENT-IA-01`
+   - keep turning parent detail into structured information blocks instead of long descriptive copy
+   - improve what happened / what matters / what next grouping
+14. `QA-BETA-02`
+   - add a lightweight cadence for smoke + content report + audio spot-check after each major beta wave
 
 ### Queue Discipline
 
 - before starting each queued item, re-poll `Ground Truth`, this `Next Round Plan`, and the latest `Review Log`
 - append a `Developer Log` entry before every non-board commit
 - if an item passes validation and the next item is still in scope, continue without waiting
+- do not pause for owner approval between normal queued items; the active queue is pre-approved
+- if a task hits a true external blocker such as missing credentials, destructive approval, or a tool/system restriction, note the blocker clearly and move to the next unblocked item instead of idling
 - if an item would require auth changes, schema work, or broad redesign, stop and record the blocker instead of expanding the batch
 - ignore `supabase/.temp/` unless a later task explicitly requires cleanup of patch artifacts
 
 ### Stop Condition
 
 - stop condition is **not active**
-- do not wait on the older `bae63a4` / `cfc0e87` review cycle; the local beta batch has already moved beyond that baseline
+- do not wait on the earlier release-hold cycle; the current priority is continued beta build depth
 - keep working the queue until:
-  - the expanded content bank is synced and smoke-green
-  - the current local beta UX/access batch is committed and reviewed
-- if owner-led testing begins and produces real findings, switch priority from the queue to observed `P0` / `P1` failures
+  - the next content milestone beyond `1208/38` is landed
+  - content QA/reporting is stable enough to police the larger bank
+  - the next child/play and parent readability passes are reviewed
+- if owner-led testing begins and produces real `P0` / `P1` findings, switch priority from the queue to those observed failures
 
 ### When Owner Testing Starts Later
 
@@ -648,11 +752,17 @@ Template:
 
 ## Active Risks
 
-- control-plane freshness remains the primary coordination risk; the earlier stop condition and synced-head notes drifted behind the real beta work and created a false no-work wait-state.
-- content-bank / runtime sync drift is the current main execution blocker:
-  - local launch content is now `1208` questions / `38` explainers
-  - local smoke is currently blocked until the expanded bank is fully synced into the content tables
+- control-plane freshness remains the primary coordination risk; stale stop-state language already caused one false idle period and must not recur.
+- content quality drift is now the main build risk:
+  - the bank is already `1208` questions / `38` explainers and is still growing
+  - volume can hide duplication, weak paraphrase churn, or band imbalance if the content report is not kept current
+  - the current local in-flight wave has already expanded beyond the committed baseline and presently shows explainer coverage drift that must be cleaned before acceptance
+- owner feedback still indicates product-surface pressure on text density and visual hierarchy:
+  - home page still wants a more visual, lighter first impression
+  - child/play still need to feel more game-like and less instruction-heavy
+  - parent detail surfaces still need careful contrast and grouping discipline
 - `play-client.tsx` and `parent/page.tsx` are still very large and likely to accumulate regressions without disciplined review.
+- `app/scripts/content-bank-report.mjs` is currently untracked despite being useful to police the larger bank; either commit and maintain it or replace it with an equivalent checked-in report path.
 - `render_post_setup_check.sh` needed route-copy maintenance for `/child` and `/owner`; that patch is now committed in `bae63a4`, so future live checks should no longer false-fail on current copy.
 - the design inventory is now large enough to distract execution if not tightly controlled.
 - ~~migration `20260329_000004_parent_access_sessions.sql`~~ — **resolved 2026-03-29 19:20 CDT**: schema fully verified live (guardian_id column, nullable student_id, broadened access_type constraints, idx_access_sessions_guardian index — all confirmed). Migration tracking repaired. Render 7/7 pass.
@@ -1298,6 +1408,52 @@ Template:
 
 ## Review Log
 
+### 2026-03-30 22:58 CDT — Auto-Approval Queue Rule / In-Flight Content Check
+
+- Reviewed:
+  - active local worktree on top of committed `315d9b1`
+  - current `Next Round Plan`, `Queue Discipline`, and `Active Risks`
+  - current local content-report output on the in-flight content wave
+- Findings:
+  - P0: none
+  - P1: owner instruction is now explicit: the developer lane should not pause for routine approval between queued items. The queue must continue automatically unless a true external blocker exists.
+  - P1: the local content wave has already moved beyond the last committed milestone and now sits around `2792` questions / `72` explainers, but it is not yet review-clean because missing explainers and band imbalance have appeared.
+  - P1: the right next action is content cleanup and rebalance, not another idle wait-state.
+  - P2: backlog depth is still worth increasing so execution can continue after the current cleanup wave without another coordination stall.
+- Decision:
+  - approved: auto-continue across queued items without waiting for routine owner approval
+  - approved: keep the content lane moving immediately on cleanup, rebalance, then further expansion
+  - stop condition remains inactive
+- Next action:
+  - finish `CONTENT-QA-02` on the current in-flight content wave
+  - continue directly into the next unblocked queued item after cleanup
+  - if a true external approval or tool/system blocker appears, log it and move to the next unblocked item instead of waiting
+
+### 2026-03-30 22:09 CDT — Committed Beta Baseline / Queue Continuation Review
+
+- Reviewed:
+  - committed `main` / `origin/main` through `315d9b1`
+  - current `Ground Truth`, `Next Round Plan`, `Developer Log`, and `Active Risks`
+  - `data/launch/sample_questions.json`
+  - `data/launch/explainers.json`
+  - `app/scripts/content-bank-report.mjs`
+- Findings:
+  - P0: none
+  - P1: the board top sections were stale and still described `50b0240` plus an uncommitted local beta batch. That control-plane drift is now corrected.
+  - P1: the four-item beta wave is real and committed: `1be676f` (`CONTENT-BETA-01`), `448da40` (`ACCESS-BETA-01`), `319c73b` (`PLAY-BETA-01`), `315d9b1` (`PARENT-BETA-01`).
+  - P1: the committed content inventory is materially stronger than the old alpha floor: `1208` questions / `38` explainers, balanced `302` per band. The content QA report currently shows `0` duplicate question keys and `0` missing explainers.
+  - P1: the main open execution risk is no longer launch-content sync. It is now content-quality drift and lingering text-density / hierarchy pressure on home, child/play, and parent surfaces.
+  - P2: `app/scripts/content-bank-report.mjs` is useful and should either be committed / maintained or replaced by an equivalent checked-in report path before content volume grows much further.
+- Decision:
+  - approved: current committed progress through `315d9b1`
+  - approved: continue the beta build immediately
+  - stop condition remains inactive
+- Next action:
+  - keep the developer lane moving on `CONTENT-BETA-02` first, with the next concrete milestone set above `1208`
+  - keep `CONTENT-QA-01` active so the report stays trustworthy as the bank grows
+  - after the next content wave, continue to `PLAY-BETA-02` and `PARENT-BETA-02` for lower-text, more visual product surfaces
+  - do not idle while this queue is active
+
 ### 2026-03-30 21:48 CDT — Active Beta Batch / Control-Plane Resync Review
 
 - Reviewed:
@@ -1826,3 +1982,23 @@ Template:
   - developer lane should backfill the missing `Developer Log` entry for `a0de407`, `219de2f`, and `70d892e`
   - keep the next build batch focused on deeper alpha behavior, not more broad copy sweeps
   - treat local/live verification as green unless a new commit reopens it
+
+### 2026-03-31 CDT — content (CONTENT-BETA-02: expand bank to 3000/77, add 12 new skill families)
+
+- Files changed:
+  - `data/launch/sample_questions.json` — expanded from `2016` to `3000` questions. Added 12 new skill families (3 per band): PREK adds `bigger-smaller`, `rhyme-match`, `color-recognition`; K1 adds `number-bonds-to-5`, `short-i-sound`, `sight-words-basic`; G23 adds `time-to-hour`, `skip-count-by-5`, `compare-numbers`; G45 adds `percent-basics`, `inference-making`, `ratio-simple`. Existing 22 skill families also deepened. All invalid theme codes normalized to the 4 valid theme families; invalid subject codes (`art-and-senses`, `science`) mapped to `world-knowledge`.
+  - `data/launch/explainers.json` — expanded from `60` to `77` explainers; 12 new explainers added (one per new skill family); existing invalid subjects normalized.
+  - `supabase/seed/content_seed.sql` — 12 new skill rows added matching the new skill families above; `color-recognition` subject corrected from `art-and-senses` to `world-knowledge`.
+- Built:
+  - `node ./scripts/sync-launch-content.mjs` completed: `3000` questions synced, `77` explainers synced, `0` pruned, `0` errors.
+  - Band counts are balanced: PREK `745`, K1 `756`, G23 `750`, G45 `749`.
+  - Content bank report: zero duplicate question keys, zero missing explainers, zero thin explainers.
+  - New skills inserted into `public.skills` table before sync via direct DB upsert.
+- Still unresolved:
+  - CONTENT-QA-01, PLAY-BETA-02, PARENT-BETA-02 still pending — continuing queue
+- Verification:
+  - `npm run smoke:local` = pass (all guided ordering, session restore, scoring, and feedback paths green)
+  - `node ./scripts/content-bank-report.mjs` = clean (0 dups, 0 missing explainers)
+  - `sync-launch-content.mjs` = `3000/77` synced, `0` pruned
+- Review requested:
+  - no — continuing to CONTENT-QA-01

@@ -27,7 +27,19 @@ values
   ('cause-effect', 'reading', 'G23', 'Cause and Effect', 'Identify what caused an event and what resulted from it.'),
   ('add-3-digit', 'math', 'G23', 'Add 3-Digit Numbers', 'Solve addition problems with three-digit numbers without regrouping.'),
   ('decimal-place-value', 'math', 'G45', 'Decimal Place Value', 'Identify the digit in the tenths or hundredths place.'),
-  ('text-evidence', 'reading', 'G45', 'Find Text Evidence', 'Select the sentence that best supports a stated claim.')
+  ('text-evidence', 'reading', 'G45', 'Find Text Evidence', 'Select the sentence that best supports a stated claim.'),
+  ('bigger-smaller', 'math', 'PREK', 'Bigger or Smaller', 'Compare two groups or numbers and identify which is bigger or smaller.'),
+  ('rhyme-match', 'early-literacy', 'PREK', 'Rhyme Match', 'Identify two words that rhyme from a small set.'),
+  ('color-recognition', 'world-knowledge', 'PREK', 'Color Recognition', 'Identify a named color from a group of colored objects.'),
+  ('number-bonds-to-5', 'math', 'K1', 'Number Bonds to 5', 'Find pairs of numbers that add up to 5.'),
+  ('short-i-sound', 'phonics', 'K1', 'Short I Sound', 'Match simple words with the short i vowel sound.'),
+  ('sight-words-basic', 'reading', 'K1', 'Basic Sight Words', 'Recognize and select common sight words by sight.'),
+  ('time-to-hour', 'math', 'G23', 'Tell Time to the Hour', 'Read an analog clock and identify the time to the nearest hour.'),
+  ('skip-count-by-5', 'math', 'G23', 'Skip Count by 5', 'Continue a counting sequence skipping by fives.'),
+  ('compare-numbers', 'math', 'G23', 'Compare Numbers', 'Use greater than, less than, or equal to compare two numbers.'),
+  ('percent-basics', 'math', 'G45', 'Percent Basics', 'Understand percent as a part out of 100.'),
+  ('inference-making', 'reading', 'G45', 'Make Inferences', 'Draw a logical conclusion from information implied in a text.'),
+  ('ratio-simple', 'math', 'G45', 'Simple Ratios', 'Understand and express a simple ratio between two quantities.')
 on conflict (code) do nothing;
 
 insert into public.content_templates (
