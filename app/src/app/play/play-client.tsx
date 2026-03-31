@@ -597,20 +597,20 @@ function buildWelcomeBackCopy(
   if (launchBandCode === "PREK") {
     return {
       title: `Welcome back, ${displayName}!`,
-      body: "Your helper is ready, your stars are saved, and we can do one small step at a time.",
+      body: "Stars saved. Ready to go.",
     };
   }
 
   if (launchBandCode === "K1") {
     return {
       title: `Welcome back, ${displayName}!`,
-      body: "Your points, badges, and quick wins are waiting right where you left them.",
+      body: "Points and badges are right where you left them.",
     };
   }
 
   return {
     title: `Welcome back, ${displayName}.`,
-    body: `Your progress is still here: ${progression?.totalPoints ?? 0} points, ${progression?.badgeCount ?? 0} badges, and ${progression?.trophyCount ?? 0} trophies.`,
+    body: `${progression?.totalPoints ?? 0} pts · ${progression?.badgeCount ?? 0} badges · ${progression?.trophyCount ?? 0} trophies`,
   };
 }
 
@@ -625,8 +625,8 @@ function buildRewardOverlay(
       emoji: "🏆",
       title: "New trophy!",
       body: earlyLearnerMode
-        ? "A shiny new trophy joined your collection."
-        : `New trophy unlocked. You now have ${progression?.trophyCount ?? 0} trophies.`,
+        ? `🏆 ×${progression?.trophyCount ?? 1}`
+        : `${progression?.trophyCount ?? 1} trophies total`,
     } satisfies RewardOverlay;
   }
 
@@ -636,8 +636,8 @@ function buildRewardOverlay(
       emoji: "🏅",
       title: "New badge!",
       body: earlyLearnerMode
-        ? "You earned a brand-new badge for this quest."
-        : `Badge earned. You now have ${progression?.badgeCount ?? 0} badges.`,
+        ? `🏅 ×${progression?.badgeCount ?? 1}`
+        : `${progression?.badgeCount ?? 1} badges total`,
     } satisfies RewardOverlay;
   }
 
@@ -655,7 +655,7 @@ function buildRewardOverlay(
       tone: "mint",
       emoji: "⭐",
       title: "You got it!",
-      body: "That was the right answer. Keep going one step at a time.",
+      body: "⭐ Keep going!",
     } satisfies RewardOverlay;
   }
 
@@ -1039,30 +1039,15 @@ function buildQuestNodes(
 function buildNextQuestTeaser(launchBandCode: string) {
   switch (launchBandCode) {
     case "PREK":
-      return {
-        title: "Next quest: Number Garden",
-        body: "More tiny counting and letter adventures are waiting in the same friendly world.",
-      };
+      return { title: "Next: Number Garden", body: "More counting and letters." };
     case "K1":
-      return {
-        title: "Next quest: Violet Trail",
-        body: "A new short challenge is ready with more words, numbers, and quick wins.",
-      };
+      return { title: "Next: Violet Trail", body: "More words and quick wins." };
     case "G23":
-      return {
-        title: "Next quest: Orbit Trail",
-        body: "The next route opens with bigger reading and logic moments to explore.",
-      };
+      return { title: "Next: Orbit Trail", body: "Bigger reading and logic." };
     case "G45":
-      return {
-        title: "Next quest: Builder Summit",
-        body: "The next stretch adds stronger puzzles, strategy, and world-building challenges.",
-      };
+      return { title: "Next: Builder Summit", body: "Stronger puzzles ahead." };
     default:
-      return {
-        title: "Next quest is ready",
-        body: "A fresh challenge is waiting whenever you want another short round.",
-      };
+      return { title: "Next quest ready", body: "Fresh challenge waiting." };
   }
 }
 
@@ -1073,9 +1058,7 @@ function buildCompletionMoment(
   if (answerState?.milestones.trophyEarned) {
     return {
       title: earlyLearnerMode ? "Big trophy moment!" : "Trophy unlocked.",
-      body: earlyLearnerMode
-        ? "A shiny new trophy joined your shelf for finishing this quest."
-        : "A new trophy was added to the progression shelf.",
+      body: earlyLearnerMode ? "🏆 Trophy earned!" : "Added to progression.",
       emoji: "🏆",
     };
   }
@@ -1083,18 +1066,14 @@ function buildCompletionMoment(
   if (answerState?.milestones.badgeEarned) {
     return {
       title: earlyLearnerMode ? "Badge earned!" : "New badge earned.",
-      body: earlyLearnerMode
-        ? "A new badge joined your collection for this quest."
-        : "A new badge was earned from the current session.",
+      body: earlyLearnerMode ? "🏅 Badge earned!" : "Added to collection.",
       emoji: "🏅",
     };
   }
 
   return {
     title: earlyLearnerMode ? "Quest path complete!" : "Session path complete.",
-    body: earlyLearnerMode
-      ? "You finished every step in this short quest."
-      : "This loop is finished and the next route is ready when you are.",
+    body: earlyLearnerMode ? "All steps done! ⭐" : "Next route is ready.",
     emoji: "⭐",
   };
 }
@@ -1601,11 +1580,6 @@ export default function PlayClient() {
                 ? `${session.student.displayName}'s quest is ready.`
                 : `${session.student.displayName}'s quest loop.`}
             </h1>
-            {!earlyLearnerMode ? (
-              <p>
-                Answer questions, earn points, and keep the streak going. Retries and explainers are ready if you need them.
-              </p>
-            ) : null}
             <div className="summary-chip-row">
               <span className="summary-chip">{session.student.launchBandCode} band</span>
               <span className="summary-chip">
@@ -1630,23 +1604,16 @@ export default function PlayClient() {
                     ? "Guided"
                     : "Challenge"
               }
-              detail={
-                earlyLearnerMode
-                  ? "One tap answer at a time"
-                  : `Question ${questionNumber} of ${session.questions.length}`
-              }
             />
             {!earlyLearnerMode ? (
               <>
                 <StatTile
                   label="Level"
                   value={`L${progression?.currentLevel ?? 1}`}
-                  detail={`${progression?.totalPoints ?? 0} points`}
                 />
                 <StatTile
                   label="Rewards"
-                  value={`${progression?.badgeCount ?? 0} badges`}
-                  detail={`${progression?.trophyCount ?? 0} trophies`}
+                  value={`${progression?.badgeCount ?? 0}🏅`}
                 />
               </>
             ) : null}
@@ -1680,11 +1647,6 @@ export default function PlayClient() {
                           {returningEntry ? "Welcome back win" : "Quest complete"}
                         </span>
                         <strong>{session.student.displayName} finished the quest!</strong>
-                        <p>
-                          {returningEntry
-                            ? "You jumped back in, kept your saved progress, and finished the whole quest."
-                            : "That whole quest is done. Your stars and rewards are saved, and a new short adventure is ready next."}
-                        </p>
                       </div>
                     </div>
 
@@ -1721,7 +1683,6 @@ export default function PlayClient() {
                       <div className="finished-map-header">
                         <span className="kid-prompt-label">Quest map</span>
                         <strong>{completionMoment.title}</strong>
-                        <p>{completionMoment.body}</p>
                       </div>
                       <div className="finished-map-world">
                         <span>{questWorldLabel}</span>
@@ -1761,7 +1722,7 @@ export default function PlayClient() {
                         <div>
                           <span className="kid-prompt-label">Up next</span>
                           <strong>{completionHighlight.title}</strong>
-                          <p>{completionHighlight.body}</p>
+                          <small>{completionHighlight.body}</small>
                         </div>
                         <span className="finished-map-teaser-badge">
                           {completionHighlight.eyebrow}
@@ -1773,24 +1734,13 @@ export default function PlayClient() {
                 {!earlyLearnerMode ? (
                   <>
                     <strong>Quest complete!</strong>
-                    <p>
-                      {`${session.student.displayName} finished all ${session.questions.length} questions with ${progression?.totalPoints ?? 0} total points at level ${progression?.currentLevel ?? 1}${returningEntry ? ", picking up right where they left off" : ""}.`}
-                    </p>
                     <div className="summary-chip-row">
-                      <span className="summary-chip">
-                        Level {progression?.currentLevel ?? 1}
-                      </span>
-                      <span className="summary-chip">
-                        {progression?.totalPoints ?? 0} points
-                      </span>
-                      <span className="summary-chip">
-                        {progression?.badgeCount ?? 0} badges ·{" "}
-                        {progression?.trophyCount ?? 0} trophies
-                      </span>
+                      <span className="summary-chip">L{progression?.currentLevel ?? 1}</span>
+                      <span className="summary-chip">{progression?.totalPoints ?? 0} pts</span>
+                      <span className="summary-chip">{progression?.badgeCount ?? 0}🏅 · {progression?.trophyCount ?? 0}🏆</span>
                     </div>
                     <div className="finished-quest-note">
-                      <strong>Next step</strong>
-                      <p>{nextQuestTeaser.body}</p>
+                      <strong>{nextQuestTeaser.title}</strong>
                     </div>
                     <div className="form-actions">
                       <Link className="primary-link" href="/child">
