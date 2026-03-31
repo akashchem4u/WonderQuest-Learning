@@ -659,6 +659,26 @@ Template:
 
 ## Developer Log
 
+### 2026-03-30 CDT — parent + home + shell (PARENT-BETA-01: tighten parent copy, add skill-detail surface, trim home hero)
+
+- Files changed:
+  - `app/src/app/parent/page.tsx` — all `describeSkillInParentLanguage`, `buildParentSkillAction`, and `buildParentSkillSignal` copy tightened to shorter, more direct sentences; signal labels shortened (e.g. "This looks like a growing strength." → "Growing strength."). No behavior changes.
+  - `app/src/app/page.tsx` — home hero paragraph and route card copy tightened; landing chips shortened; added `landing-hero-visual` preview frame below the hero copy showing child / family / ops layer cards.
+  - `app/src/app/globals.css` — added: `.gate-entry-row`, `.gate-entry-label`, `.gate-entry-input` (keyboard PIN input for owner/teacher gates); `.child-band-toggle`, `.child-band-helper` (band-fix selector UI); `.landing-hero-visual-*` (home hero preview frame); `.parent-skill-summary-*`, `.parent-skill-detail-*`, `.parent-skill-detail-banner` (structured skill-at-a-glance cards for parent hub); `.parent-skill-detail-layout`, `.parent-skill-detail-shell` (layout wrappers).
+- Built:
+  - Parent route copy is consistently short, direct, and uses parent language throughout skill descriptions, action suggestions, and signal labels.
+  - Home hero is cleaner and matches the product's child-first positioning.
+  - CSS supports all new visual surfaces across the access gates, child band selector, parent skill detail, and home visual.
+  - No new APIs, schema changes, or auth-model changes introduced.
+- Still unresolved:
+  - Full beta batch is now committed. Smoke and build remain green.
+- Verification:
+  - `npm run lint` = pass
+  - `npm run build` = pass
+  - `npm run smoke:local` = pass (no changes to parent API, session, or scoring paths)
+- Review requested:
+  - yes — full CONTENT-BETA-01 + ACCESS-BETA-01 + PLAY-BETA-01 + PARENT-BETA-01 batch complete; requesting review
+
 ### 2026-03-30 CDT — play (PLAY-BETA-01: compact answer cards, replay fires from tap, lower text density)
 
 - Files changed:

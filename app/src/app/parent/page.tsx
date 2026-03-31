@@ -146,64 +146,64 @@ function describeSkillInParentLanguage(skillCode: string, displayName: string) {
   const label = `${skillCode} ${displayName}`.toLowerCase();
 
   if (label.includes("count")) {
-    return "This skill is about matching numbers to real groups of objects and counting one item at a time.";
+    return "Match numbers to real groups and count one item at a time.";
   }
 
   if (label.includes("letter") || label.includes("phonics")) {
-    return "This skill is about hearing a sound, noticing the matching letter, and connecting that sound to a familiar word.";
+    return "Hear a sound, spot the matching letter, and connect it to a word.";
   }
 
   if (label.includes("shape")) {
-    return "This skill is about noticing what makes a shape look the way it does, like corners, sides, and curved edges.";
+    return "Notice the corners, sides, and curves that make a shape unique.";
   }
 
   if (label.includes("add")) {
-    return "This skill is about putting small amounts together and noticing how numbers combine.";
+    return "Put small amounts together and notice how the numbers combine.";
   }
 
   if (label.includes("read") || label.includes("word")) {
-    return "This skill is about recognizing a word quickly and understanding what it means in the moment.";
+    return "Recognize a word quickly and connect it to meaning.";
   }
 
-  return "This skill is one of the current building blocks the app is using to judge comfort, accuracy, and growth.";
+  return "A current building block for comfort, accuracy, and growth.";
 }
 
 function buildParentSkillAction(skillCode: string, displayName: string) {
   const label = `${skillCode} ${displayName}`.toLowerCase();
 
   if (label.includes("count")) {
-    return "Try one quick count-together moment with toys, snacks, or steps and keep the pace slow.";
+    return "Try one quick count-together moment and keep the pace slow.";
   }
 
   if (label.includes("letter") || label.includes("phonics")) {
-    return "Pick one familiar letter or sound and point it out in books, labels, or signs for a minute or two.";
+    return "Pick one familiar letter or sound and point it out for a minute or two.";
   }
 
   if (label.includes("shape")) {
-    return "Look for the same shape in the room and name it together before asking your child to point to it.";
+    return "Find the same shape in the room and name it together.";
   }
 
   if (label.includes("add")) {
-    return "Use small groups of objects, like blocks or fruit, and let your child combine them physically.";
+    return "Use small groups of objects and let your child combine them physically.";
   }
 
   if (label.includes("read") || label.includes("word")) {
-    return "Repeat one target word in a calm, familiar context and celebrate fast recognition instead of drilling.";
+    return "Repeat one target word in a calm context and celebrate quick recognition.";
   }
 
-  return `Keep the next practice short and calm, with one clear goal around ${displayName.toLowerCase()}.`;
+  return `Keep the next practice short and calm around ${displayName.toLowerCase()}.`;
 }
 
 function buildParentSkillSignal(masteryRate: number) {
   if (masteryRate >= 80) {
-    return "This looks like a growing strength.";
+    return "Growing strength.";
   }
 
   if (masteryRate >= 60) {
-    return "This is improving, but it still benefits from short guided practice.";
+    return "Improving, but still worth a short guided practice.";
   }
 
-  return "This still needs gentle support and slower repetition.";
+  return "Needs gentle support and slower repetition.";
 }
 
 function buildParentWeekSummary(
@@ -217,7 +217,7 @@ function buildParentWeekSummary(
   if (leadStrength && leadSupport) {
     return {
       headline: `${childName} is making steady progress this week.`,
-      body: `${leadStrength} is starting to feel more comfortable, and ${leadSupport.toLowerCase()} is the clearest place for one calm practice moment next.`,
+      body: `${leadStrength} looks more comfortable, and ${leadSupport.toLowerCase()} is the best place for one calm practice moment next.`,
       chips: [
         `${dashboard.strengths.length} strengths`,
         `${dashboard.supportAreas.length} building`,
@@ -229,7 +229,7 @@ function buildParentWeekSummary(
   if (leadStrength) {
     return {
       headline: `${childName} had a strong week in the app.`,
-      body: `${leadStrength} looks confident right now, and the next few short sessions can keep that momentum going.`,
+      body: `${leadStrength} looks confident, and a few short sessions can keep that momentum going.`,
       chips: [
         `${dashboard.strengths.length} strengths`,
         `${dashboard.completedSessions} finished sessions`,
@@ -240,7 +240,7 @@ function buildParentWeekSummary(
 
   return {
     headline: `${childName} is building confidence one short lesson at a time.`,
-    body: `The next step is to keep practice calm, short, and centered on ${dashboard.recommendedFocus.toLowerCase()}.`,
+    body: `Keep practice calm, short, and centered on ${dashboard.recommendedFocus.toLowerCase()}.`,
     chips: [
       `${dashboard.completedSessions} finished sessions`,
       `${dashboard.supportAreas.length} skill to strengthen`,
@@ -251,7 +251,7 @@ function buildParentWeekSummary(
 
 function buildParentTeacherMessage(childName: string, dashboard: ChildDashboard) {
   if (dashboard.strengths[0]?.displayName) {
-    return `"${childName} is showing growing comfort in ${dashboard.strengths[0].displayName.toLowerCase()}. A short follow-up around ${dashboard.recommendedFocus.toLowerCase()} would be the best next step at home."`;
+    return `"${childName} is gaining comfort in ${dashboard.strengths[0].displayName.toLowerCase()}. A short follow-up around ${dashboard.recommendedFocus.toLowerCase()} is the best next step at home."`;
   }
 
   return `"The best next step for ${childName} is a short, calm practice moment around ${dashboard.recommendedFocus.toLowerCase()}. Keep it light and stop while it still feels successful."`;
@@ -495,8 +495,8 @@ export default function ParentAccessPage() {
   ];
   const parentTopAnswers = [
     {
-      detail: `${formatMinutes(activeChildDashboard?.effectiveTimeSpentMs ?? 0)} effective time · last active ${formatLastSeen(activeChildDashboard?.lastSessionAt ?? null)}`,
-      label: "What happened",
+      detail: `${formatMinutes(activeChildDashboard?.effectiveTimeSpentMs ?? 0)} effective · last active ${formatLastSeen(activeChildDashboard?.lastSessionAt ?? null)}`,
+      label: "Session snapshot",
       tone: "summary" as const,
       value: `${activeChildDashboard?.completedSessions ?? 0} lesson${
         activeChildDashboard?.completedSessions === 1 ? "" : "s"
@@ -504,9 +504,9 @@ export default function ParentAccessPage() {
     },
     {
       detail: primaryStrength
-        ? `${activeChild?.displayName ?? "Your child"} is looking steadier in this skill right now.`
-        : "A stronger pattern will appear after a few more sessions.",
-      label: "What is going well",
+        ? `${activeChild?.displayName ?? "Your child"} is steadier in this skill right now.`
+        : "A stronger pattern will show after a few more sessions.",
+      label: "What's steady",
       tone: "strength" as const,
       value: primaryStrength?.displayName ?? "Confidence is building",
     },
@@ -514,7 +514,7 @@ export default function ParentAccessPage() {
       detail: primarySupport
         ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
         : `Keep the next practice short and calm around ${activeChildDashboard?.recommendedFocus?.toLowerCase() ?? "the next focus"}.`,
-      label: "What to do next",
+      label: "Next move",
       tone: "next" as const,
       value: primarySupport?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next focus",
     },
@@ -658,10 +658,9 @@ export default function ParentAccessPage() {
         <section className="page-hero parent-hero">
           <div>
             <span className="eyebrow">Parent journey</span>
-            <h1>Family learning snapshot with calm, actionable signals.</h1>
+            <h1>Family learning with calm signals.</h1>
             <p>
-              Use the same lightweight access model, connect to a child profile,
-              and choose the notifications that matter.
+              Sign in once, link a child, and choose only the updates that matter.
             </p>
             <div className="summary-chip-row">
               <span className="summary-chip">Quiet-hour friendly updates</span>
@@ -671,19 +670,19 @@ export default function ParentAccessPage() {
           </div>
           <div className="hero-route-summary">
             <StatTile
-              detail="Child-aware reporting"
+              detail="Child-aware"
               label="Parent view"
               value="Linked"
             />
             <StatTile
-              detail="Quiet-hours friendly"
+              detail="Quiet hours"
               label="Notifications"
               value="Opt-in"
             />
             <StatTile
-              detail="Time plus learning quality"
+              detail="Time + quality"
               label="Signals"
-              value="Effectiveness"
+              value="Clear"
             />
           </div>
         </section>
@@ -999,7 +998,7 @@ export default function ParentAccessPage() {
               <ShellCard
                 className="shell-card-soft parent-preview-highlights"
                 eyebrow="Family view"
-                title="What parents should understand in seconds"
+                title="What parents need in seconds"
               >
                 <div className="parent-answer-list">
                   <div className="parent-answer-row">
@@ -1007,7 +1006,7 @@ export default function ParentAccessPage() {
                       ✅
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>What is going well right now?</strong>
+                      <strong>What's going well?</strong>
                       <p>{parentPreviewWeekly.strengths.join(", ")} are reading as current strengths.</p>
                     </div>
                   </div>
@@ -1016,7 +1015,7 @@ export default function ParentAccessPage() {
                       🌱
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>What needs a little more support?</strong>
+                      <strong>What needs support?</strong>
                       <p>{parentPreviewWeekly.support} is the clearest place for one calm home follow-up.</p>
                     </div>
                   </div>
@@ -1557,9 +1556,9 @@ export default function ParentAccessPage() {
 
             <section className="route-grid route-grid-parent parent-family-detail-grid" id="parent-family-detail">
               <ShellCard
-                className="shell-card-emphasis"
+                className="shell-card-soft parent-skill-detail-shell"
                 eyebrow="Skill detail"
-                title={activeSkill ? `${activeSkill.displayName}, explained simply` : "Skill detail"}
+                title={activeSkill ? `${activeSkill.displayName} at a glance` : "Skill detail"}
               >
                 {activeSkill ? (
                   <div className="parent-skill-detail-layout">
@@ -1576,20 +1575,35 @@ export default function ParentAccessPage() {
                       ))}
                     </div>
 
+                    <div className="parent-skill-summary-row">
+                      <article className="parent-skill-summary-card">
+                        <span>Current skill</span>
+                        <strong>{activeSkill.displayName}</strong>
+                      </article>
+                      <article className="parent-skill-summary-card">
+                        <span>Accuracy</span>
+                        <strong>{activeSkill.masteryRate}%</strong>
+                      </article>
+                      <article className="parent-skill-summary-card">
+                        <span>Questions seen</span>
+                        <strong>{activeSkill.attempts}</strong>
+                      </article>
+                    </div>
+
                     <div className="parent-skill-detail-grid">
                       <article className="parent-skill-detail-card">
-                        <span>What this means</span>
+                        <span>Meaning</span>
                         <strong>{describeSkillInParentLanguage(activeSkill.skillCode, activeSkill.displayName)}</strong>
                       </article>
                       <article className="parent-skill-detail-card">
-                        <span>Progress so far</span>
+                        <span>Progress</span>
                         <strong>{buildParentSkillSignal(activeSkill.masteryRate)}</strong>
                         <p>
                           {activeSkill.masteryRate}% correct across {activeSkill.attempts} questions answered.
                         </p>
                       </article>
                       <article className="parent-skill-detail-card">
-                        <span>What to try next at home</span>
+                        <span>Try next</span>
                         <strong>{buildParentSkillAction(activeSkill.skillCode, activeSkill.displayName)}</strong>
                       </article>
                     </div>
@@ -1597,17 +1611,14 @@ export default function ParentAccessPage() {
                     <div className="parent-skill-detail-banner">
                       <span aria-hidden="true">🏠</span>
                       <div>
-                        <strong>Keep it short and calm</strong>
-                        <p>
-                          Use one tiny practice moment, then stop while the child
-                          is still feeling successful.
-                        </p>
+                        <strong>Keep it short</strong>
+                        <p>One calm practice beat is enough.</p>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    Complete a few more sessions and we'll show your child's strongest skills, areas for practice, and specific activity ideas.
+                    A few more sessions will surface strengths, support areas, and next activities.
                   </p>
                 )}
               </ShellCard>

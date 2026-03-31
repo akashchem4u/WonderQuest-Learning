@@ -9,9 +9,8 @@ const routeCards = [
     href: "/parent",
     audience: "For families",
     icon: "👨‍👩‍👧",
-    title: "See the week without turning home into a report card",
-    description:
-      "Track comfort, celebrate wins, and get simple next-step ideas that support your child without drowning in admin.",
+    title: "See the week at a glance",
+    description: "Calm wins, simple signals, and one next step.",
     cta: "Open family hub",
     tone: "parent",
   },
@@ -19,9 +18,8 @@ const routeCards = [
     href: "/teacher",
     audience: "For teachers",
     icon: "🏫",
-    title: "Spot where students need support and keep class momentum on track",
-    description:
-      "Use class progress, skill breakdowns, and intervention cues to decide where guided help or stretch work belongs next.",
+    title: "Spot support fast",
+    description: "Progress, cues, and next moves in one view.",
     cta: "Open classroom view",
     tone: "teacher",
   },
@@ -29,9 +27,8 @@ const routeCards = [
     href: "/owner",
     audience: "Platform management",
     icon: "⚙️",
-    title: "Manage launches, track content status, and review feedback in one place",
-    description:
-      "Keep platform health, incoming feedback, and launch readiness visible without mixing them into child or family experiences.",
+    title: "Track launches in one place",
+    description: "Content status, feedback, and readiness stay separate.",
     cta: "Open ops console",
     tone: "owner",
   },
@@ -81,21 +78,19 @@ export default async function HomePage() {
               with real <em>clarity</em>.
             </h1>
             <p>
-              WonderQuest helps children learn at their own pace, helps families
-              understand how things are going, helps teachers spot where students
-              need support, and keeps the platform running smoothly. Everything
-              starts here.
+              WonderQuest keeps the child front and center while families, teachers,
+              and ops each get a focused view around them.
             </p>
 
             <div className="landing-chip-row">
-              <span className="landing-chip">Child-first launcher</span>
-              <span className="landing-chip">Separate family and teacher views</span>
+              <span className="landing-chip">Child-first</span>
+              <span className="landing-chip">Separate views</span>
               <span className="landing-chip">
                 {launchStatus.source === "supabase"
                   ? "Live data"
                   : "Demo data"}
               </span>
-              <span className="landing-chip">Saved progress and badges</span>
+              <span className="landing-chip">Saved progress</span>
             </div>
 
             <div className="landing-hero-actions">
@@ -107,22 +102,54 @@ export default async function HomePage() {
               </a>
             </div>
           </div>
+
+          <div className="landing-hero-visual" aria-label="WonderQuest preview">
+            <div className="landing-hero-visual-frame">
+              <div className="landing-hero-visual-top">
+                <span>Product snapshot</span>
+                <strong>Clear layers for child, family, and ops.</strong>
+              </div>
+
+              <div className="landing-hero-visual-grid">
+                <article className="landing-hero-visual-card is-child">
+                  <span aria-hidden="true">🧒</span>
+                  <strong>Child</strong>
+                  <p>Big visuals, short prompts, saved progress.</p>
+                </article>
+                <article className="landing-hero-visual-card is-family">
+                  <span aria-hidden="true">🏠</span>
+                  <strong>Family</strong>
+                  <p>Calm summaries and one clear next step.</p>
+                </article>
+                <article className="landing-hero-visual-card is-ops">
+                  <span aria-hidden="true">⚙️</span>
+                  <strong>Ops</strong>
+                  <p>Status, readiness, and launch notes stay separate.</p>
+                </article>
+              </div>
+
+              <div className="landing-hero-visual-strip" aria-hidden="true">
+                <span>Images</span>
+                <span>Audio</span>
+                <span>Progress</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="landing-launcher-stack" id="audiences">
           <article className="landing-featured-card tone-kid">
             <div className="landing-featured-copy">
               <span className="landing-featured-label">Kid journey</span>
-              <h2>Your child's learning comes first.</h2>
+              <h2>The child path stays front and center.</h2>
               <p>
-                When you open WonderQuest, the child's journey is front and center.
-                Families, teachers, and platform admins each have their own space
-                that supports the child without getting in the way.
+                Families, teachers, and ops each get a separate space that supports
+                the child without crowding the experience.
               </p>
               <div className="landing-chip-row">
                 <span className="landing-chip">Quick child access</span>
-                <span className="landing-chip">Voice + visual support</span>
-                <span className="landing-chip">Saved badges and trophies</span>
+                <span className="landing-chip">Voice + visuals</span>
+                <span className="landing-chip">Badges and trophies</span>
               </div>
             </div>
 
@@ -145,17 +172,17 @@ export default async function HomePage() {
             <article className="landing-metric-card">
               <span>Question bank</span>
               <strong>{launchStatus.templateCount >= 8 ? "100+" : "Building"}</strong>
-              <p>Real practice questions across multiple age levels and subjects.</p>
+              <p>Real practice across multiple ages and subjects.</p>
             </article>
             <article className="landing-metric-card">
               <span>Saved progress</span>
               <strong>Live</strong>
-              <p>Points, badges, and trophies carry over every time a child comes back.</p>
+              <p>Points, badges, and trophies carry over automatically.</p>
             </article>
             <article className="landing-metric-card">
               <span>Adult views</span>
               <strong>3</strong>
-              <p>Families, teachers, and platform admins each have a focused space with no overlap.</p>
+              <p>Families, teachers, and platform admins stay separated.</p>
             </article>
           </div>
 
@@ -187,11 +214,8 @@ export default async function HomePage() {
               <span className="landing-status-dot" aria-hidden="true" />
               <strong>{sourceLabel}</strong>
             </div>
-            <h2>Live data, not a demo.</h2>
-            <p>
-              These views connect to the live app — what you see here is the
-              actual product experience, not a prototype.
-            </p>
+            <h2>Live product, not a mock.</h2>
+            <p>These routes connect to the real app experience.</p>
           </div>
 
           <div className="landing-band-row">
