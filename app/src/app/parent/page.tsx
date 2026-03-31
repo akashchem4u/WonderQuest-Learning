@@ -659,7 +659,6 @@ export default function ParentAccessPage() {
           <div>
             <span className="eyebrow">Parent journey</span>
             <h1>Family learning, in one scan.</h1>
-            <p>Sign in once, see the current focus, and keep the next practice calm.</p>
             <div className="summary-chip-row">
               <span className="summary-chip">Quick scan</span>
               <span className="summary-chip">Strengths + next step</span>
@@ -667,21 +666,9 @@ export default function ParentAccessPage() {
             </div>
           </div>
           <div className="hero-route-summary">
-            <StatTile
-              detail="Linked child"
-              label="Parent view"
-              value="Linked"
-            />
-            <StatTile
-              detail="Optional alerts"
-              label="Notifications"
-              value="Opt-in"
-            />
-            <StatTile
-              detail="Fast signal"
-              label="Signals"
-              value="Clear"
-            />
+            <StatTile label="Parent view" value="Linked" />
+            <StatTile label="Notifications" value="Opt-in" />
+            <StatTile label="Signals" value="Clear" />
           </div>
         </section>
 
@@ -698,10 +685,7 @@ export default function ParentAccessPage() {
                   </span>
                   <div className="parent-access-ready-copy">
                     <strong>{result.guardian.displayName} can see the family view.</strong>
-                    <p>
-                      {result.linkedChildren.length} linked child
-                    {result.linkedChildren.length === 1 ? "" : "ren"} with weekly summaries and milestone updates.
-                    </p>
+                    <small>{result.linkedChildren.length} linked child{result.linkedChildren.length === 1 ? "" : "ren"}</small>
                   </div>
                 </div>
 
@@ -873,12 +857,8 @@ export default function ParentAccessPage() {
                     <div className="parent-access-inline-panel">
                       <div className="parent-inline-warning">
                         <strong>Relinking is uncommon.</strong>
-                        <p>
-                          Use it only when the wrong child is connected or the family setup changed.
-                        </p>
                       </div>
                       <FieldBlock
-                        helper="Use the child username already created in the app."
                         label="Child username"
                         onChange={(event) => setChildUsername(event.target.value)}
                         placeholder="child quest name"
@@ -947,9 +927,7 @@ export default function ParentAccessPage() {
                 <article className="parent-weekly-card parent-preview-card">
                   <span className="parent-weekly-label">Weekly summary</span>
                   <strong>{parentPreviewWeekly.childName}</strong>
-                  <p>
-                    {parentPreviewWeekly.bandLabel}. See the strongest skill, the best practice area, and one quick idea.
-                  </p>
+                  <small>{parentPreviewWeekly.bandLabel}</small>
                   <div className="parent-weekly-stats">
                     <div>
                       <span>Strengths</span>
@@ -969,9 +947,6 @@ export default function ParentAccessPage() {
                 <article className="parent-next-step-card">
                   <span className="parent-insight-label">Strongest next step</span>
                   <strong>{parentPreviewWeekly.support}</strong>
-                  <p>
-                    Keep the next practice short and clear. One targeted activity is enough.
-                  </p>
                   <div className="parent-action-list">
                     <div>
                       <span>Best practice window</span>
@@ -1001,7 +976,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div className="parent-answer-copy">
                       <strong>Going well</strong>
-                      <p>{parentPreviewWeekly.strengths.join(", ")} are current strengths.</p>
+                      <small>{parentPreviewWeekly.strengths.join(", ")}</small>
                     </div>
                   </div>
                   <div className="parent-answer-row">
@@ -1010,7 +985,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div className="parent-answer-copy">
                       <strong>Needs support</strong>
-                      <p>{parentPreviewWeekly.support} is the clearest next focus.</p>
+                      <small>{parentPreviewWeekly.support}</small>
                     </div>
                   </div>
                   <div className="parent-answer-row">
@@ -1019,7 +994,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div className="parent-answer-copy">
                       <strong>Next move</strong>
-                      <p>Start small, then stop while it still feels easy.</p>
+                      <small>Start small, stop while it's easy.</small>
                     </div>
                   </div>
                 </div>
@@ -1034,7 +1009,6 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>Teacher guidance</strong>
-                      <p>Plain family language</p>
                     </div>
                   </div>
                   <blockquote>{parentPreviewWeekly.teacherMessage}</blockquote>
@@ -1050,7 +1024,6 @@ export default function ParentAccessPage() {
                         </span>
                         <div>
                           <strong>{activity.title}</strong>
-                          <p>{activity.body}</p>
                         </div>
                         <small>{activity.tag}</small>
                       </div>
@@ -1070,11 +1043,6 @@ export default function ParentAccessPage() {
                     : "Create parent access"
                 }
               >
-                <p className="soft-copy">
-                  {returningAccessMode
-                    ? "Use the same username and 4-digit PIN. Family summaries appear right after sign-in."
-                    : "Create access once, link the child profile, and later visits use the same username and PIN."}
-                </p>
                 <div className="parent-access-mode-row">
                   <button
                     className={`parent-access-mode-card ${returningAccessMode ? "is-current" : ""}`}
@@ -1089,7 +1057,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>Existing parent sign-in</strong>
-                      <small>Use the same username and 4-digit PIN.</small>
+                      <small>Username + PIN</small>
                     </div>
                   </button>
                   <button
@@ -1105,7 +1073,7 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>First-time parent setup</strong>
-                      <small>Create access, add the adult name, and link the child once.</small>
+                      <small>First time — set name, PIN, link child</small>
                     </div>
                   </button>
                 </div>
@@ -1113,11 +1081,6 @@ export default function ParentAccessPage() {
                   <div className="field-grid">
                     <FieldBlock
                       autoComplete="username"
-                      helper={
-                        returningAccessMode
-                          ? "Use the same username from setup."
-                          : "Create the username this adult will use for future sign-in."
-                      }
                       label="Username"
                       onChange={(event) => setUsername(event.target.value)}
                       placeholder="parent username"
@@ -1125,11 +1088,6 @@ export default function ParentAccessPage() {
                     />
                     <FieldBlock
                       autoComplete="current-password"
-                      helper={
-                        returningAccessMode
-                          ? "Use the same 4-digit PIN."
-                          : "Create a 4-digit PIN for future sign-in."
-                      }
                       label="4-digit PIN"
                       maxLength={4}
                       onChange={(event) => setPin(event.target.value)}
@@ -1139,7 +1097,6 @@ export default function ParentAccessPage() {
                     />
                     {!returningAccessMode ? (
                       <FieldBlock
-                        helper="Shown in family summaries."
                         label="Display name"
                         onChange={(event) => setDisplayName(event.target.value)}
                         placeholder="Parent name"
@@ -1148,7 +1105,6 @@ export default function ParentAccessPage() {
                     ) : null}
                     {!returningAccessMode ? (
                       <FieldBlock
-                        helper="Use the child username already created in the app."
                         label="Child username"
                         onChange={(event) => setChildUsername(event.target.value)}
                         placeholder="child quest name"
@@ -1159,8 +1115,7 @@ export default function ParentAccessPage() {
 
                   {returningAccessMode ? (
                     <div className="parent-access-inline-note">
-                      <strong>Existing sign-in only needs username + PIN.</strong>
-                      <p>Display name, child linking, and alerts are first-time setup steps.</p>
+                      <strong>Username + PIN only needed to sign in.</strong>
                     </div>
                   ) : (
                     <div className="parent-preview-toggle-list">
@@ -1211,9 +1166,6 @@ export default function ParentAccessPage() {
               <article className="parent-settings-card parent-preview-settings-card">
                 <span className="parent-insight-label">What opens next</span>
                 <strong>Linked children, weekly reports, and next steps</strong>
-                <p>
-                  After access is saved, the route switches into the family hub with child switching, activity history, and next steps.
-                </p>
                 <div className="parent-settings-list">
                   <div className="parent-settings-row">
                     <div>
@@ -1354,8 +1306,7 @@ export default function ParentAccessPage() {
                   <div className="parent-family-week-copy">
                     <span className="eyebrow">This week</span>
                     <h2>{parentWeekSummary?.headline}</h2>
-                    <p>{parentWeekSummary?.body}</p>
-                    <div className="parent-week-chip-row">
+                      <div className="parent-week-chip-row">
                       {parentWeekSummary?.chips.map((chip) => (
                         <span className="parent-week-chip" key={chip}>
                           {chip}
@@ -1394,7 +1345,7 @@ export default function ParentAccessPage() {
                       <div className={`parent-family-answer-card is-${item.tone}`} key={item.label}>
                         <span>{item.label}</span>
                         <strong>{item.value}</strong>
-                        <p>{item.detail}</p>
+                        <small>{item.detail}</small>
                       </div>
                     ))}
                   </div>
@@ -1463,7 +1414,6 @@ export default function ParentAccessPage() {
                         </span>
                         <div>
                           <strong>{activity.title}</strong>
-                          <p>{activity.body}</p>
                         </div>
                         <small>{activity.tag}</small>
                       </div>
@@ -1481,7 +1431,6 @@ export default function ParentAccessPage() {
                     </span>
                     <div>
                       <strong>Teacher guidance</strong>
-                      <p>Shared in plain family language</p>
                     </div>
                   </div>
                   <blockquote>{parentTeacherMessage}</blockquote>
@@ -1595,8 +1544,7 @@ export default function ParentAccessPage() {
                       <span aria-hidden="true">🏠</span>
                       <div>
                         <strong>Keep it short</strong>
-                        <p>One calm practice beat is enough.</p>
-                      </div>
+                        </div>
                     </div>
                   </div>
                 ) : (
