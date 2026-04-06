@@ -244,6 +244,12 @@ export default function ParentAccessPage() {
         const defaultId = payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null;
         setSelectedChildId(defaultId);
         if (defaultId) localStorage.setItem("wq_active_student_id", defaultId);
+        // If landed here via middleware redirect, go back to the requested page
+        const nextPath = new URLSearchParams(window.location.search).get("next");
+        if (nextPath && nextPath.startsWith("/parent/")) {
+          window.location.assign(nextPath);
+          return;
+        }
         setResult(payload);
       } catch {
         // No valid session — stay on the credential form.
@@ -287,6 +293,14 @@ export default function ParentAccessPage() {
       const defaultId = payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null;
       setSelectedChildId(defaultId);
       if (defaultId) localStorage.setItem("wq_active_student_id", defaultId);
+      // Redirect to the originally requested page if present
+      const nextPath = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("next")
+        : null;
+      if (nextPath && nextPath.startsWith("/parent/")) {
+        window.location.assign(nextPath);
+        return;
+      }
       setResult(payload);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Parent access failed.");
