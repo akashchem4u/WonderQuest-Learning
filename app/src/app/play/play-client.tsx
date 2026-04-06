@@ -63,6 +63,9 @@ type AnswerPayload = {
   correctAnswer: string;
   needsRetry: boolean;
   sessionCompleted: boolean;
+  adaptiveQuestion: SessionQuestion | null;
+  adaptiveAction: string | null;
+  adaptiveMessage: string | null;
   explainer: {
     format: string;
     script: string;
@@ -1339,6 +1342,23 @@ function PlayClientInner() {
 
       setAnswerState(payload);
       setProgression(payload.progression);
+
+      // If the server inserted an adaptive follow-up question, append it to
+      // the client's question list so moveToNextQuestion can navigate to it.
+      if (payload.correct && payload.adaptiveQuestion) {
+        setSession((prev) => {
+          if (!prev) return prev;
+          // Only insert if not already present (idempotent)
+          const alreadyPresent = prev.questions.some(
+            (q) => q.questionKey === payload.adaptiveQuestion!.questionKey,
+          );
+          if (alreadyPresent) return prev;
+          const insertAt = currentIndex + 1;
+          const next = [...prev.questions];
+          next.splice(insertAt, 0, payload.adaptiveQuestion!);
+          return { ...prev, questions: next };
+        });
+      }
 
       if (payload.correct) {
         setAttempt(1);
