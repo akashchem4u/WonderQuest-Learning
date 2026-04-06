@@ -915,7 +915,7 @@ export default function ParentNotificationsPage() {
   }
 
   return (
-    <AppFrame audience="parent" currentPath="/parent">
+    <AppFrame audience="parent" currentPath="/parent/notifications">
       <main style={{ background: BASE, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif" }}>
         {/* ── Tab bar ── */}
         <div

@@ -158,7 +158,7 @@ export default function PracticePlannerPage() {
   ];
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent/practice-planner">
       <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px", fontFamily: "system-ui,-apple-system,sans-serif" }}>
         {/* Page header */}
         <div style={{ marginBottom: 24, maxWidth: 680 }}>

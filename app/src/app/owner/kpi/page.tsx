@@ -54,7 +54,7 @@ export default async function KpiPage() {
   const allowed = configured && (await hasOwnerAccess());
 
   return (
-    <AppFrame audience="owner">
+    <AppFrame audience="owner" currentPath="/owner/kpi">
       {!allowed ? (
         <OwnerGate configured={configured} />
       ) : (

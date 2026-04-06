@@ -80,7 +80,7 @@ export default function ParentFamilyPage() {
   const guardianName = session?.guardian?.displayName ?? "there";
 
   return (
-    <AppFrame audience="parent" currentPath="/parent">
+    <AppFrame audience="parent" currentPath="/parent/family">
       <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px 60px" }}>
 
         {/* Header */}

@@ -178,7 +178,7 @@ export default function TeacherInterventionDetailPage() {
   const studentName = interventions[0]?.studentName ?? "Student";
 
   return (
-    <AppFrame audience="teacher" currentPath="/teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/intervention-overview">
       <div
         style={{
           minHeight: "100vh",

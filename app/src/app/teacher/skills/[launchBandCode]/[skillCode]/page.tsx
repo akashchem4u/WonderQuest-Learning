@@ -150,7 +150,7 @@ export default function TeacherSkillDrilldownPage() {
   };
 
   return (
-    <AppFrame audience="teacher" currentPath="/teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/band-coverage">
       <div
         style={{
           minHeight: "100vh",

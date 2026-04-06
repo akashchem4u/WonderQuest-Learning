@@ -93,7 +93,7 @@ export default async function IncidentPage() {
   const allowed = configured && (await hasOwnerAccess());
 
   return (
-    <AppFrame audience="owner">
+    <AppFrame audience="owner" currentPath="/owner/incident">
       {!allowed ? (
         <OwnerGate configured={configured} />
       ) : (

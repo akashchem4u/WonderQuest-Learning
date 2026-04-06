@@ -141,7 +141,7 @@ export default function PrintReportPage() {
   const topSkills = report?.skills.slice(0, 6) ?? [];
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent">
       <div style={{ background: C.base, minHeight: "100vh", padding: 24, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", color: C.text }}>
 
         {/* Tab bar */}

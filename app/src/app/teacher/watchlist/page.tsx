@@ -157,7 +157,7 @@ export default function TeacherWatchlistPage() {
   const displayStudents = activeTab === "empty" ? [] : students;
 
   return (
-    <AppFrame audience="teacher" currentPath="/teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/class-health">
       <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
 
         {/* Back nav */}

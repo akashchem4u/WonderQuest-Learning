@@ -446,7 +446,7 @@ export default function ParentSkillDetailPage() {
 
   if (!ready || !stub) {
     return (
-      <AppFrame audience="parent" currentPath="/parent">
+      <AppFrame audience="parent" currentPath="/parent/skills">
         <div
           style={{
             minHeight: "60vh",
@@ -472,7 +472,7 @@ export default function ParentSkillDetailPage() {
   }
 
   return (
-    <AppFrame audience="parent" currentPath="/parent">
+    <AppFrame audience="parent" currentPath="/parent/skills">
       <div
         style={{
           minHeight: "100vh",

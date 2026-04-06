@@ -519,7 +519,7 @@ function ParentWeeklyReportPageInner() {
   const mapped = report ? mapReportToUI(report) : null;
 
   return (
-    <AppFrame audience="parent" currentPath="/parent">
+    <AppFrame audience="parent" currentPath="/parent/report">
       <div
         style={{
           minHeight: "100vh",

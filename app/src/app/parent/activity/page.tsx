@@ -237,7 +237,7 @@ export default function ParentActivityPage() {
   const visibleGroups = showAll ? groups : groups.slice(0, 2);
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent">
       <div
         style={{
           minHeight: "100vh",

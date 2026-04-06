@@ -156,7 +156,7 @@ export default async function OwnerContentPage() {
   }
 
   return (
-    <AppFrame audience="owner" currentPath="/owner">
+    <AppFrame audience="owner" currentPath="/owner/content">
       <main
         style={{
           minHeight: "100vh",

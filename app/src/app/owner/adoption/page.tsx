@@ -141,7 +141,7 @@ export default function AdoptionPage() {
     ` 762,210`;
 
   return (
-    <AppFrame audience="owner">
+    <AppFrame audience="owner" currentPath="/owner/adoption">
       <main
         style={{
           minHeight: "100vh",

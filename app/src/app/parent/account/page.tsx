@@ -214,7 +214,7 @@ export default function ParentAccountPage() {
     : (guardian?.displayName ?? "P").charAt(0).toUpperCase();
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent/account">
       <div style={{ background: BASE, minHeight: "100vh", display: "flex" }}>
 
         {/* Sidebar */}

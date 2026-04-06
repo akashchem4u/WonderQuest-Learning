@@ -324,7 +324,7 @@ export default function ParentQuietHoursPage() {
   const notifBlocks = timelineBlock(s.notifQuietStart, s.notifQuietEnd);
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent">
       <div
         style={{
           minHeight: "100vh",

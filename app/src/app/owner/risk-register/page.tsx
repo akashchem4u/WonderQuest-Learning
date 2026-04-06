@@ -291,7 +291,7 @@ export default function OwnerRiskRegisterPage() {
   });
 
   return (
-    <AppFrame audience="owner">
+    <AppFrame audience="owner" currentPath="/owner">
       <div style={{ background: BASE, minHeight: "100vh", padding: "32px 24px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <h1 style={{ fontSize: 20, fontWeight: 900, color: TEXT, marginBottom: 24 }}>

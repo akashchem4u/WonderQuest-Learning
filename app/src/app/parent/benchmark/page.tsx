@@ -814,7 +814,7 @@ export default function ParentBenchmarkPage() {
   }, []);
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent">
       <div
         style={{
           minHeight: "100vh",

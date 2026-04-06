@@ -82,7 +82,7 @@ export default async function OwnerBetaRostersPage() {
 
   if (!configured || !allowed) {
     return (
-      <AppFrame audience="owner">
+      <AppFrame audience="owner" currentPath="/owner">
         <OwnerGate configured={configured} />
       </AppFrame>
     );
@@ -94,7 +94,7 @@ export default async function OwnerBetaRostersPage() {
     Math.round((FAMILIES.reduce((s, f) => s + f.sessionsWk, 0) / FAMILIES.length) * 10) / 10;
 
   return (
-    <AppFrame audience="owner">
+    <AppFrame audience="owner" currentPath="/owner">
       <div style={{ background: C.bg, minHeight: "100vh", padding: "32px 16px 64px", fontFamily: "Inter, system-ui, sans-serif" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 

@@ -37,7 +37,7 @@ export default function WrongChildPage() {
   ];
 
   return (
-    <AppFrame audience="parent">
+    <AppFrame audience="parent" currentPath="/parent">
       <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px", fontFamily: "system-ui,-apple-system,sans-serif" }}>
         {/* Page header */}
         <div style={{ marginBottom: 24, maxWidth: 720 }}>
