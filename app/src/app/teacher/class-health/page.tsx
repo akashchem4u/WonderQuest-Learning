@@ -1,313 +1,755 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
+// ── Palette ────────────────────────────────────────────────────────────────
 const C = {
   base: "#100b2e",
   surface: "#161b22",
   border: "rgba(255,255,255,0.06)",
   violet: "#9b72ff",
-  blue: "#38bdf8",
   mint: "#22c55e",
   gold: "#ffd166",
   amber: "#f59e0b",
-  red: "#ef4444",
   text: "#f0f6ff",
   muted: "#8b949e",
-  green: "#50e890",
+} as const;
+
+// ── Roster shape from /api/teacher/class ──────────────────────────────────
+interface Student {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
+}
+
+interface ClassData {
+  roster: Student[];
+}
+
+// ── Computed stats ─────────────────────────────────────────────────────────
+interface Stats {
+  total: number;
+  activeCount: number;
+  supportQueueCount: number;
+  avgStreak: number;
+  onStreakCount: number;
+  longStreakCount: number;   // streak >= 7
+  midStreakCount: number;    // streak 3-6
+  noStreakCount: number;     // streak 0
+  avgAccuracy: number;       // correctLast7d / totalLast7d
+  highAccuracyCount: number; // accuracy >= 0.8
+  buildingCount: number;     // accuracy 0.5-0.79
+}
+
+function computeStats(roster: Student[]): Stats {
+  const total = roster.length;
+  const now = Date.now();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+  const activeCount = roster.filter((s) => {
+    if (!s.lastSessionAt) return false;
+    return now - new Date(s.lastSessionAt).getTime() <= sevenDaysMs;
+  }).length;
+
+  const supportQueueCount = roster.filter((s) => s.inInterventionQueue).length;
+
+  const onStreakCount = roster.filter((s) => s.streak > 0).length;
+  const longStreakCount = roster.filter((s) => s.streak >= 7).length;
+  const midStreakCount = roster.filter((s) => s.streak >= 3 && s.streak < 7).length;
+  const noStreakCount = roster.filter((s) => s.streak === 0).length;
+
+  const avgStreak =
+    total === 0
+      ? 0
+      : Math.round(roster.reduce((acc, s) => acc + s.streak, 0) / total);
+
+  const accuracies = roster
+    .filter((s) => s.totalLast7d > 0)
+    .map((s) => s.correctLast7d / s.totalLast7d);
+
+  const avgAccuracy =
+    accuracies.length === 0
+      ? 0
+      : accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
+
+  const highAccuracyCount = accuracies.filter((a) => a >= 0.8).length;
+  const buildingCount = accuracies.filter((a) => a >= 0.5 && a < 0.8).length;
+
+  return {
+    total,
+    activeCount,
+    supportQueueCount,
+    avgStreak,
+    onStreakCount,
+    longStreakCount,
+    midStreakCount,
+    noStreakCount,
+    avgAccuracy,
+    highAccuracyCount,
+    buildingCount,
+  };
+}
+
+// ── Stub stats for loading / error states ─────────────────────────────────
+const STUB: Stats = {
+  total: 0,
+  activeCount: 0,
+  supportQueueCount: 0,
+  avgStreak: 0,
+  onStreakCount: 0,
+  longStreakCount: 0,
+  midStreakCount: 0,
+  noStreakCount: 0,
+  avgAccuracy: 0,
+  highAccuracyCount: 0,
+  buildingCount: 0,
 };
 
-// Dark-theme badge colours (never use red on this component)
-function badgeStyle(variant: "green" | "amber" | "blue"): React.CSSProperties {
-  const map = {
+// ── SparkBar component ─────────────────────────────────────────────────────
+function SparkBar({ color }: { color: string }) {
+  const heights = [8, 12, 10, 15, 18, 16, 20];
+  const activeFrom = 3;
+  return (
+    <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 22 }}>
+      {heights.map((h, i) => (
+        <div
+          key={i}
+          style={{
+            width: 6,
+            borderRadius: 2,
+            background: i >= activeFrom ? color : "rgba(255,255,255,0.1)",
+            height: h,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Circle stat ────────────────────────────────────────────────────────────
+function CircleStat({
+  value,
+  label,
+  color,
+  bgColor,
+}: {
+  value: string | number;
+  label: string;
+  color: string;
+  bgColor: string;
+}) {
+  return (
+    <div
+      style={{
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+        background: bgColor,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        flexShrink: 0,
+        border: `1.5px solid ${color}40`,
+      }}
+    >
+      <span style={{ fontSize: 17, fontWeight: 900, lineHeight: 1, color }}>
+        {value}
+      </span>
+      <span
+        style={{
+          fontSize: 8,
+          fontWeight: 700,
+          color: C.muted,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          marginTop: 1,
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ── Badge ──────────────────────────────────────────────────────────────────
+type BadgeVariant = "green" | "amber" | "violet";
+function Badge({ variant, children }: { variant: BadgeVariant; children: string }) {
+  const styles: Record<BadgeVariant, React.CSSProperties> = {
     green: { background: "rgba(34,197,94,0.15)", color: C.mint },
     amber: { background: "rgba(245,158,11,0.15)", color: C.amber },
-    blue: { background: "rgba(56,189,248,0.15)", color: C.blue },
+    violet: { background: "rgba(155,114,255,0.15)", color: C.violet },
   };
-  return { fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 8, ...map[variant] };
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 800,
+        padding: "3px 10px",
+        borderRadius: 8,
+        ...styles[variant],
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
-function segColor(variant: "blue" | "green" | "grey"): string {
-  return variant === "blue" ? C.blue : variant === "green" ? C.mint : "rgba(255,255,255,0.12)";
+// ── Segment bar ────────────────────────────────────────────────────────────
+function SegBar({ segs }: { segs: { flex: number; color: string }[] }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 2,
+        height: 8,
+        borderRadius: 4,
+        overflow: "hidden",
+        marginBottom: 6,
+      }}
+    >
+      {segs.map((s, i) => (
+        <div key={i} style={{ flex: s.flex, height: 8, background: s.color }} />
+      ))}
+    </div>
+  );
 }
 
-type TabType = "mini" | "expanded" | "mobile";
-
-interface SparkBarDef {
-  height: number;
-  active: boolean;
+// ── Nav link button ────────────────────────────────────────────────────────
+function NavBtn({ href, children }: { href: string; children: string }) {
+  return (
+    <a
+      href={href}
+      style={{
+        display: "inline-block",
+        padding: "10px 22px",
+        borderRadius: 10,
+        background: "rgba(155,114,255,0.12)",
+        border: `1px solid rgba(155,114,255,0.3)`,
+        color: C.violet,
+        fontSize: 13,
+        fontWeight: 700,
+        textDecoration: "none",
+        fontFamily: "system-ui,-apple-system,sans-serif",
+        transition: "background 0.15s",
+      }}
+    >
+      {children}
+    </a>
+  );
 }
 
-const SPARK_BARS: SparkBarDef[] = [
-  { height: 8, active: false },
-  { height: 12, active: false },
-  { height: 10, active: true },
-  { height: 15, active: false },
-  { height: 18, active: true },
-  { height: 16, active: true },
-  { height: 20, active: true },
-];
-
+// ── Page ───────────────────────────────────────────────────────────────────
 export default function ClassHealthPage() {
-  const [tab, setTab] = useState<TabType>("mini");
+  const [stats, setStats] = useState<Stats>(STUB);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: "8px 18px",
-    borderRadius: 20,
-    border: "none",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: "system-ui",
-    background: active ? "#2563eb" : "rgba(255,255,255,0.08)",
-    color: active ? "#fff" : C.muted,
-    transition: "all 0.18s",
-  });
+  useEffect(() => {
+    const teacherId = getTeacherId();
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<ClassData>;
+      })
+      .then((data) => {
+        setStats(computeStats(data.roster ?? []));
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(String(e));
+        setLoading(false);
+      });
+  }, []);
+
+  const engagementBadge: BadgeVariant =
+    stats.total === 0
+      ? "amber"
+      : stats.activeCount / stats.total >= 0.75
+      ? "green"
+      : "amber";
+
+  const masteryBadge: BadgeVariant =
+    stats.highAccuracyCount > stats.buildingCount ? "green" : "amber";
+
+  const queueBadge: BadgeVariant =
+    stats.supportQueueCount === 0 ? "green" : "amber";
+
+  const streakBadge: BadgeVariant =
+    stats.total === 0
+      ? "amber"
+      : stats.onStreakCount / stats.total >= 0.5
+      ? "green"
+      : "amber";
 
   return (
     <AppFrame audience="teacher">
-      <div style={{ background: C.base, minHeight: "100vh", padding: 24, fontFamily: "system-ui,-apple-system,sans-serif", color: C.text }}>
-
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 24, maxWidth: 960 }}>
-          <button style={tabBtnStyle(tab === "mini")} onClick={() => setTab("mini")}>Mini Board</button>
-          <button style={tabBtnStyle(tab === "expanded")} onClick={() => setTab("expanded")}>Expanded</button>
-          <button style={tabBtnStyle(tab === "mobile")} onClick={() => setTab("mobile")}>Mobile Strip</button>
+      <div
+        style={{
+          background: C.base,
+          minHeight: "100vh",
+          padding: "28px 24px",
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          color: C.text,
+        }}
+      >
+        {/* ── Page header ───────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28, maxWidth: 900 }}>
+          <div
+            style={{ fontSize: 26, fontWeight: 900, color: C.text, marginBottom: 4 }}
+          >
+            📊 Class Health
+          </div>
+          <div style={{ fontSize: 14, color: C.muted }}>
+            Teacher view · This week
+            {loading && (
+              <span
+                style={{
+                  marginLeft: 12,
+                  fontSize: 12,
+                  color: C.violet,
+                  fontWeight: 700,
+                }}
+              >
+                Loading…
+              </span>
+            )}
+            {error && (
+              <span
+                style={{
+                  marginLeft: 12,
+                  fontSize: 12,
+                  color: C.amber,
+                  fontWeight: 700,
+                }}
+              >
+                Using stub data
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* ─── Mini Board ─── */}
-        {tab === "mini" && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 16 }}>Class health mini board — right column panel</div>
-            <div style={{ background: C.surface, borderRadius: 16, padding: "20px 22px", maxWidth: 480, border: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: C.text }}>📊 Class Health</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>This week</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, cursor: "pointer" }}>Full view</span>
-                </div>
+        {/* ── 2×2 card grid ─────────────────────────────────────────── */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: 16,
+            maxWidth: 880,
+            marginBottom: 28,
+          }}
+        >
+          {/* ─ Engagement ─ */}
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 14,
+              padding: "18px 20px",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>🏃</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                  Engagement
+                </span>
               </div>
+              <Badge variant={engagementBadge}>
+                {engagementBadge === "green" ? "Good" : "Watch"}
+              </Badge>
+            </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {/* Engagement */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0, width: 24, textAlign: "center" }}>🏃</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 2 }}>Engagement</div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.3 }}>22 of 28 students active this week <span style={{ fontSize: 10, fontWeight: 700, color: C.mint }}>↑3</span></div>
-                  </div>
-                  <span style={badgeStyle("green")}>Good</span>
-                </div>
-
-                {/* Mastery velocity */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0, width: 24, textAlign: "center" }}>💪</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 2 }}>Mastery velocity</div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.3 }}>12 skills mastered this week <span style={{ fontSize: 10, fontWeight: 700, color: C.amber }}>↓2 vs last week</span></div>
-                  </div>
-                  <span style={badgeStyle("amber")}>Watch</span>
-                </div>
-
-                {/* Support queue */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0, width: 24, textAlign: "center" }}>⚠️</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 2 }}>Support queue</div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.3 }}>4 students need check-in</div>
-                  </div>
-                  <span style={badgeStyle("amber")}>4 open</span>
-                </div>
-
-                {/* Streak health */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
-                  <span style={{ fontSize: 18, flexShrink: 0, width: 24, textAlign: "center" }}>🔥</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 2 }}>Streak health</div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.3 }}>16 students on active streak <span style={{ fontSize: 10, fontWeight: 700, color: C.mint }}>↑4</span></div>
-                  </div>
-                  <span style={badgeStyle("blue")}>Great</span>
-                </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <CircleStat
+                value={stats.activeCount}
+                label="Active"
+                color={C.mint}
+                bgColor="rgba(34,197,94,0.12)"
+              />
+              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.65 }}>
+                <strong style={{ color: C.text }}>{stats.activeCount}</strong>
+                {stats.total > 0 && (
+                  <span> of {stats.total}</span>
+                )}{" "}
+                students active this week
+                <br />
+                Session activity in the last 7 days
               </div>
             </div>
+
+            <SparkBar color={C.mint} />
+
+            <a
+              href="/teacher/class"
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+                marginTop: 8,
+              }}
+            >
+              View student activity →
+            </a>
           </div>
-        )}
 
-        {/* ─── Expanded Board ─── */}
-        {tab === "expanded" && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 16 }}>Expanded class health board — command center / class overview</div>
-            <div style={{ background: C.surface, borderRadius: 16, padding: 22, maxWidth: 860, border: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>📊 Class Health — This Week</div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {["This week", "Last week", "4 weeks"].map((label, i) => (
-                    <button key={label} style={{ padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", background: i === 0 ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.04)", color: i === 0 ? C.blue : C.muted, border: i === 0 ? "none" : `1px solid ${C.border}` }}>{label}</button>
-                  ))}
-                </div>
+          {/* ─ Mastery Velocity ─ */}
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 14,
+              padding: "18px 20px",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>💪</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                  Mastery Velocity
+                </span>
               </div>
+              <Badge variant={masteryBadge}>
+                {masteryBadge === "green" ? "Good" : "Watch"}
+              </Badge>
+            </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 18 }}>
-                {/* Engagement card */}
-                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>🏃</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Engagement</span>
-                    </div>
-                    <span style={badgeStyle("green")}>Good</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", flexShrink: 0 }}>
-                      <span style={{ fontSize: 16, fontWeight: 900, lineHeight: 1, color: C.mint }}>22</span>
-                      <span style={{ fontSize: 8, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Active</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6 }}>
-                      <strong style={{ color: C.text }}>22 of 28</strong> students active this week<br />
-                      <span style={{ color: C.mint }}>↑3</span> vs last week<br />
-                      Avg 3.2 sessions/student
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 20, marginTop: 4 }}>
-                    {SPARK_BARS.map((bar, i) => (
-                      <div key={i} style={{ width: 6, borderRadius: 2, background: bar.active ? C.blue : "rgba(255,255,255,0.1)", height: bar.height }} />
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.blue, cursor: "pointer", marginTop: 6 }}>View student activity →</div>
-                </div>
-
-                {/* Mastery velocity card */}
-                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>💪</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Mastery Velocity</span>
-                    </div>
-                    <span style={badgeStyle("amber")}>Watch</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", flexShrink: 0 }}>
-                      <span style={{ fontSize: 16, fontWeight: 900, lineHeight: 1, color: C.amber }}>12</span>
-                      <span style={{ fontSize: 8, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Skills</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6 }}>
-                      <strong style={{ color: C.text }}>12 skills</strong> mastered this week<br />
-                      <span style={{ color: C.amber }}>↓2</span> vs last week (14)<br />
-                      Slight dip — typical mid-term
-                    </div>
-                  </div>
-                  <div style={{ margin: "6px 0" }}>
-                    <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ flex: 4, height: 8, background: C.mint }} />
-                      <div style={{ flex: 2, height: 8, background: C.amber }} />
-                      <div style={{ flex: 2, height: 8, background: "rgba(255,255,255,0.12)" }} />
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
-                      {[{ dot: C.mint, label: "Strong (4)" }, { dot: C.amber, label: "Building (6)" }, { dot: "rgba(255,255,255,0.2)", label: "Just started (2)" }].map((leg) => (
-                        <div key={leg.label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: C.muted }}>
-                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: leg.dot }} />
-                          {leg.label}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.blue, cursor: "pointer", marginTop: 4 }}>View skill breakdown →</div>
-                </div>
-
-                {/* Support queue card */}
-                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>⚠️</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Support Queue</span>
-                    </div>
-                    <span style={badgeStyle("amber")}>4 open</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {[{ label: "Confidence floor", val: "2" }, { label: "Absence follow-up", val: "1" }, { label: "Band ceiling", val: "1" }].map((row) => (
-                        <div key={row.label} style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span>{row.label}</span>
-                          <span style={{ fontWeight: 700, color: C.text }}>{row.val}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, cursor: "pointer" }}>Review queue →</div>
-                </div>
-
-                {/* Streak health card */}
-                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>🔥</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Streak Health</span>
-                    </div>
-                    <span style={badgeStyle("blue")}>Great</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(56,189,248,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", flexShrink: 0 }}>
-                      <span style={{ fontSize: 16, fontWeight: 900, lineHeight: 1, color: C.blue }}>16</span>
-                      <span style={{ fontSize: 8, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Active</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6 }}>
-                      <strong style={{ color: C.text }}>16 of 28</strong> on active streak<br />
-                      <span style={{ color: C.mint }}>↑4</span> vs last week<br />
-                      Longest: Ethan (7 days)
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 4, overflow: "hidden", marginBottom: 4 }}>
-                    <div style={{ flex: 2, height: 8, background: C.blue }} />
-                    <div style={{ flex: 7, height: 8, background: C.mint }} />
-                    <div style={{ flex: 4, height: 8, background: "rgba(255,255,255,0.12)" }} />
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {[{ dot: C.blue, label: "7+ days (2)" }, { dot: C.mint, label: "3–6 days (7)" }, { dot: "rgba(255,255,255,0.2)", label: "No streak (12)" }].map((leg) => (
-                      <div key={leg.label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: C.muted }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: leg.dot }} />
-                        {leg.label}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.blue, cursor: "pointer", marginTop: 6 }}>View streak breakdown →</div>
-                </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <CircleStat
+                value={`${Math.round(stats.avgAccuracy * 100)}%`}
+                label="Accuracy"
+                color={C.gold}
+                bgColor="rgba(255,209,102,0.12)"
+              />
+              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.65 }}>
+                <strong style={{ color: C.text }}>
+                  {stats.highAccuracyCount}
+                </strong>{" "}
+                students at strong accuracy
+                <br />
+                <strong style={{ color: C.text }}>
+                  {stats.buildingCount}
+                </strong>{" "}
+                building toward mastery
               </div>
             </div>
-          </div>
-        )}
 
-        {/* ─── Mobile Strip ─── */}
-        {tab === "mobile" && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 16 }}>Mobile horizontal scroll strip</div>
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, maxWidth: 960 }}>
+            <SegBar
+              segs={[
+                {
+                  flex: Math.max(stats.highAccuracyCount, 1),
+                  color: C.mint,
+                },
+                {
+                  flex: Math.max(stats.buildingCount, 1),
+                  color: C.amber,
+                },
+                {
+                  flex: Math.max(
+                    stats.total - stats.highAccuracyCount - stats.buildingCount,
+                    1
+                  ),
+                  color: "rgba(255,255,255,0.1)",
+                },
+              ]}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
               {[
-                { icon: "🏃", label: "Engagement", val: "22", sub: "/28", delta: null, badge: "Good", badgeVariant: "green" as const },
-                { icon: "💪", label: "Mastery", val: "12", sub: "", delta: { sign: "↓", val: "2", color: C.amber }, badge: "Watch", badgeVariant: "amber" as const },
-                { icon: "⚠️", label: "Queue", val: "4", sub: "", delta: null, badge: "Open", badgeVariant: "amber" as const },
-                { icon: "🔥", label: "Streaks", val: "16", sub: "", delta: { sign: "↑", val: "4", color: C.mint }, badge: "Great", badgeVariant: "blue" as const },
-                { icon: "⭐", label: "Stars", val: "1,847", sub: "", delta: null, badge: "This week", badgeVariant: "amber" as const },
-              ].map((tile) => (
-                <div key={tile.label} style={{ background: C.surface, borderRadius: 12, padding: "12px 14px", flexShrink: 0, width: 110, border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 18, marginBottom: 5 }}>{tile.icon}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 3 }}>{tile.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>
-                    {tile.val}
-                    {tile.sub && <span style={{ fontSize: 11, color: C.muted }}>{tile.sub}</span>}
-                    {tile.delta && <span style={{ fontSize: 10, color: tile.delta.color, marginLeft: 2 }}>{tile.delta.sign}{tile.delta.val}</span>}
-                  </div>
-                  <span style={{ ...badgeStyle(tile.badgeVariant), marginTop: 4, display: "inline-block" }}>{tile.badge}</span>
+                { dot: C.mint, label: `Strong (${stats.highAccuracyCount})` },
+                { dot: C.amber, label: `Building (${stats.buildingCount})` },
+                {
+                  dot: "rgba(255,255,255,0.2)",
+                  label: `Early (${Math.max(
+                    stats.total - stats.highAccuracyCount - stats.buildingCount,
+                    0
+                  )})`,
+                },
+              ].map((leg) => (
+                <div
+                  key={leg.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 10,
+                    color: C.muted,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: leg.dot,
+                    }}
+                  />
+                  {leg.label}
                 </div>
               ))}
             </div>
 
-            {/* Colour rule note */}
-            <div style={{ marginTop: 20, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", maxWidth: 480, fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
-              <strong style={{ color: C.text }}>Colour rules:</strong> Green = healthy. Amber = attention needed (not alarming). Blue = informational/positive. <strong style={{ color: C.text }}>Red is never used here</strong> — red is reserved for system errors only. Down deltas (↓) are always amber, never red.
-            </div>
+            <a
+              href="/teacher/skill-mastery"
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+              }}
+            >
+              View skill breakdown →
+            </a>
           </div>
-        )}
+
+          {/* ─ Support Queue ─ */}
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 14,
+              padding: "18px 20px",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>⚠️</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                  Support Queue
+                </span>
+              </div>
+              <Badge variant={queueBadge}>
+                {stats.supportQueueCount === 0
+                  ? "All clear"
+                  : `${stats.supportQueueCount} open`}
+              </Badge>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <CircleStat
+                value={stats.supportQueueCount}
+                label="Need help"
+                color={C.amber}
+                bgColor="rgba(245,158,11,0.12)"
+              />
+              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.65 }}>
+                {stats.supportQueueCount === 0 ? (
+                  <>
+                    No students flagged for
+                    <br />
+                    intervention right now.
+                  </>
+                ) : (
+                  <>
+                    <strong style={{ color: C.text }}>
+                      {stats.supportQueueCount}
+                    </strong>{" "}
+                    student
+                    {stats.supportQueueCount !== 1 ? "s" : ""} flagged for
+                    <br />
+                    teacher check-in or follow-up.
+                  </>
+                )}
+              </div>
+            </div>
+
+            <SparkBar color={C.amber} />
+
+            <a
+              href="/teacher/support"
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+                marginTop: 8,
+              }}
+            >
+              Review support queue →
+            </a>
+          </div>
+
+          {/* ─ Streak Health ─ */}
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 14,
+              padding: "18px 20px",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>🔥</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                  Streak Health
+                </span>
+              </div>
+              <Badge variant={streakBadge}>
+                {streakBadge === "green" ? "Great" : "Watch"}
+              </Badge>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <CircleStat
+                value={stats.onStreakCount}
+                label="On streak"
+                color={C.violet}
+                bgColor="rgba(155,114,255,0.12)"
+              />
+              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.65 }}>
+                <strong style={{ color: C.text }}>{stats.onStreakCount}</strong>
+                {stats.total > 0 && <span> of {stats.total}</span>} on active
+                streak
+                <br />
+                Avg streak:{" "}
+                <strong style={{ color: C.text }}>{stats.avgStreak}</strong> days
+              </div>
+            </div>
+
+            <SegBar
+              segs={[
+                { flex: Math.max(stats.longStreakCount, 1), color: C.gold },
+                { flex: Math.max(stats.midStreakCount, 1), color: C.mint },
+                { flex: Math.max(stats.noStreakCount, 1), color: "rgba(255,255,255,0.1)" },
+              ]}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
+              {[
+                { dot: C.gold, label: `7+ days (${stats.longStreakCount})` },
+                { dot: C.mint, label: `3–6 days (${stats.midStreakCount})` },
+                {
+                  dot: "rgba(255,255,255,0.2)",
+                  label: `No streak (${stats.noStreakCount})`,
+                },
+              ].map((leg) => (
+                <div
+                  key={leg.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 10,
+                    color: C.muted,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: leg.dot,
+                    }}
+                  />
+                  {leg.label}
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="/teacher/class"
+              style={{
+                display: "block",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+              }}
+            >
+              View streak breakdown →
+            </a>
+          </div>
+        </div>
+
+        {/* ── Footer nav ────────────────────────────────────────────── */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", maxWidth: 880 }}>
+          <NavBtn href="/teacher/support">Support Queue</NavBtn>
+          <NavBtn href="/teacher/class">Full Class Roster</NavBtn>
+        </div>
       </div>
     </AppFrame>
   );

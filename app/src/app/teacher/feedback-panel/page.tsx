@@ -1,322 +1,453 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
-// ── Palette ────────────────────────────────────────────────────────────────
 const C = {
-  base: "#100b2e",
+  bg: "#100b2e",
   surface: "#161b22",
-  surfaceAlt: "rgba(255,255,255,0.04)",
   border: "rgba(255,255,255,0.06)",
-  violet: "#9b72ff",
-  violetDim: "rgba(155,114,255,0.14)",
-  blue: "#38bdf8",
-  blueDim: "rgba(56,189,248,0.12)",
-  blueBorder: "rgba(56,189,248,0.28)",
-  mint: "#22c55e",
-  mintDim: "rgba(34,197,94,0.12)",
-  gold: "#ffd166",
-  amber: "#f59e0b",
-  amberDim: "rgba(245,158,11,0.12)",
-  red: "#ef4444",
-  redDim: "rgba(239,68,68,0.10)",
   text: "#f0f6ff",
   muted: "#8b949e",
-  faint: "rgba(255,255,255,0.08)",
-  faintBorder: "rgba(255,255,255,0.10)",
+  violet: "#9b72ff",
+  blue: "#38bdf8",
+  mint: "#22c55e",
+  gold: "#ffd166",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  faint: "rgba(255,255,255,0.05)",
 } as const;
 
-// ── Types ──────────────────────────────────────────────────────────────────
-type FeedbackType = "bug" | "feature" | "content" | "question";
-type Tab = "form" | "submitted" | "notifs";
-
-// ── Stub Data ──────────────────────────────────────────────────────────────
-const FEEDBACK_ITEMS = [
-  {
-    type: "bug" as const,
-    severity: "Moderate",
-    date: "Today · 9:14am",
-    title: "Mastery bar not updating after session ends",
-    preview: "Stale mastery bar on student detail page until page refresh. Workaround exists.",
-    status: "Under review",
-    statusColor: "#f59e0b",
-  },
-  {
-    type: "feature" as const,
-    severity: "",
-    date: "Mar 18",
-    title: "Export class progress as PDF for parent-teacher conferences",
-    preview: "Would love a printable 1-page summary per student I can share at parent-teacher night.",
-    status: "In review by product team",
-    statusColor: "#38bdf8",
-  },
-  {
-    type: "content" as const,
-    severity: "",
-    date: "Mar 10",
-    title: "Fractions question — ambiguous diagram in P2 question set",
-    preview: "One question in the Fractions: Comparing set has a diagram that could be read two ways. Students keep selecting wrong answer.",
-    status: "Resolved — question updated Mar 14",
-    statusColor: "#22c55e",
-  },
-];
-
-const NOTIFS = [
-  {
-    icon: "🚀",
-    title: "WonderQuest v2.4 — New features released",
-    body: "New: Teacher assignment system, parent message center, and class health board are now live. Check the What's New guide for a walkthrough.",
-    date: "Today · 8:00am",
-    unread: true,
-  },
-  {
-    icon: "🔧",
-    title: "Scheduled maintenance — Sunday Mar 30, 2am–4am",
-    body: "Brief platform downtime for database upgrades. Student sessions will be unavailable during this window. No data will be lost.",
-    date: "Mar 22 · 10:00am",
-    unread: false,
-  },
-  {
-    icon: "📚",
-    title: "Content update — P3 question bank expanded",
-    body: "14 new questions added to Long Division and Fractions: Mixed Numbers. Students will see these automatically in adaptive sessions.",
-    date: "Mar 19 · 2:00pm",
-    unread: false,
-  },
-  {
-    icon: "✅",
-    title: "Your feedback resolved — content issue Mar 10",
-    body: "The ambiguous Fractions: Comparing diagram you flagged has been updated. The question now displays clearly. Thank you for the report!",
-    date: "Mar 14 · 11:30am",
-    unread: false,
-  },
-];
-
-const TYPE_OPTIONS: { id: FeedbackType; icon: string; label: string; sub: string }[] = [
-  { id: "bug", icon: "🐛", label: "Bug report", sub: "Something isn't working" },
-  { id: "feature", icon: "💡", label: "Feature request", sub: "Suggest an improvement" },
-  { id: "content", icon: "📚", label: "Content issue", sub: "Problem with a question" },
-  { id: "question", icon: "❓", label: "Question", sub: "How does something work?" },
-];
-
-const TYPE_BADGE: Record<FeedbackType, { label: string; bg: string; color: string }> = {
-  bug: { label: "Bug", bg: C.redDim, color: "#f87171" },
-  feature: { label: "Feature request", bg: C.blueDim, color: C.blue },
-  content: { label: "Content issue", bg: C.amberDim, color: "#fbbf24" },
-  question: { label: "Question", bg: C.mintDim, color: "#4ade80" },
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
 };
 
-export default function FeedbackPanelPage() {
-  const [tab, setTab] = useState<Tab>("form");
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>("bug");
-  const [rating, setRating] = useState(4);
+function avatarColor(name: string): string {
+  const colors = ["#475569", "#ec4899", "#0ea5e9", "#16a34a", "#f59e0b", "#8b5cf6", "#0d9065"];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "form", label: "Submit Feedback" },
-    { id: "submitted", label: "My Feedback" },
-    { id: "notifs", label: "Notifications" },
-  ];
+function initial(name: string): string {
+  return name.charAt(0).toUpperCase();
+}
+
+function accuracyPct(s: RosterStudent): number {
+  if (!s.totalLast7d) return 0;
+  return Math.round((s.correctLast7d / s.totalLast7d) * 100);
+}
+
+function daysSinceSession(lastSessionAt: string | null): number | null {
+  if (!lastSessionAt) return null;
+  const then = new Date(lastSessionAt).getTime();
+  const now = Date.now();
+  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
+}
+
+function StudentPill({
+  student,
+  accent,
+  detail,
+}: {
+  student: RosterStudent;
+  accent: string;
+  detail: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 14px",
+        background: "rgba(255,255,255,0.03)",
+        borderRadius: 10,
+        border: `1px solid ${C.border}`,
+      }}
+    >
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          background: avatarColor(student.displayName),
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          fontWeight: 900,
+          color: "#fff",
+          flexShrink: 0,
+        }}
+      >
+        {initial(student.displayName)}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{student.displayName}</div>
+        <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{detail}</div>
+      </div>
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          padding: "2px 8px",
+          borderRadius: 8,
+          background: `${accent}20`,
+          color: accent,
+          flexShrink: 0,
+        }}
+      >
+        {student.launchBandCode}
+      </span>
+    </div>
+  );
+}
+
+function Section({
+  icon,
+  title,
+  subtitle,
+  accentColor,
+  children,
+  empty,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  accentColor: string;
+  children: React.ReactNode;
+  empty: boolean;
+}) {
+  return (
+    <div
+      style={{
+        background: C.surface,
+        borderRadius: 16,
+        padding: "20px 22px",
+        border: `1px solid ${C.border}`,
+      }}
+    >
+      {/* Section header */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: `${accentColor}18`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 18,
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{title}</div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 2, lineHeight: 1.4 }}>{subtitle}</div>
+        </div>
+      </div>
+
+      {empty ? (
+        <div
+          style={{
+            textAlign: "center" as const,
+            padding: "20px 12px",
+            color: C.muted,
+            fontSize: 12,
+            fontStyle: "italic",
+          }}
+        >
+          No signals detected — all clear.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>{children}</div>
+      )}
+    </div>
+  );
+}
+
+function SkeletonSection() {
+  return (
+    <div
+      style={{
+        background: C.surface,
+        borderRadius: 16,
+        padding: "20px 22px",
+        border: `1px solid ${C.border}`,
+      }}
+    >
+      <div
+        style={{
+          height: 14,
+          width: "50%",
+          background: "rgba(255,255,255,0.06)",
+          borderRadius: 6,
+          marginBottom: 14,
+        }}
+      />
+      {[1, 2].map((i) => (
+        <div
+          key={i}
+          style={{
+            height: 52,
+            background: "rgba(255,255,255,0.03)",
+            borderRadius: 10,
+            marginBottom: 8,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function FeedbackPanelPage() {
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const teacherId = getTeacherId();
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<{ roster: RosterStudent[] }>;
+      })
+      .then((data) => {
+        setRoster(data.roster ?? []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Could not load class data. Please try again.");
+        setLoading(false);
+      });
+  }, []);
+
+  // Confidence signals: students in intervention queue
+  const confidenceStudents = roster.filter((s) => s.inInterventionQueue);
+
+  // Hint patterns: students with low accuracy (<50%) and at least 3 sessions in 7d
+  const hintPatternStudents = roster.filter(
+    (s) => s.sessionsLast7d >= 3 && accuracyPct(s) < 50,
+  );
+
+  // Absence flags: no sessions in 7+ days OR lastSessionAt null
+  const absenceStudents = roster.filter((s) => {
+    const days = daysSinceSession(s.lastSessionAt);
+    return days === null || days >= 7;
+  });
 
   return (
     <AppFrame audience="teacher">
-      <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px", fontFamily: "system-ui,-apple-system,sans-serif" }}>
-        {/* Page header */}
-        <div style={{ marginBottom: 24, maxWidth: 860 }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 4 }}>Feedback &amp; Notifications</div>
-          <div style={{ fontSize: 14, color: C.muted }}>Report issues, suggest improvements, or check platform updates.</div>
+      <div
+        style={{
+          padding: "28px 20px 72px",
+          minHeight: "100vh",
+          background: C.bg,
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          maxWidth: 860,
+          margin: "0 auto",
+        }}
+      >
+        {/* ── Header ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 24, fontWeight: 900, color: C.text, marginBottom: 4 }}>
+            💬 Feedback Panel — Student Signals
+          </div>
+          <div style={{ fontSize: 13, color: C.muted }}>
+            Signals derived from live play data. Updated each time students complete a session.
+          </div>
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 28, flexWrap: "wrap", maxWidth: 860 }}>
-          {tabs.map((t) => (
+        {/* ── Info banner ── */}
+        <div
+          style={{
+            background: "rgba(155,114,255,0.10)",
+            border: `1px solid rgba(155,114,255,0.28)`,
+            borderRadius: 12,
+            padding: "12px 16px",
+            marginBottom: 28,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 18, flexShrink: 0 }}>🤖</span>
+          <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+            <strong>Auto-detected from play sessions.</strong> No manual entry needed. These signals
+            surface students who may need your attention based on their in-game behaviour.
+          </div>
+        </div>
+
+        {/* ── Error state ── */}
+        {error && (
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 14,
+              padding: "20px 22px",
+              border: `1px solid rgba(239,68,68,0.3)`,
+              textAlign: "center" as const,
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.red, marginBottom: 8 }}>{error}</div>
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => window.location.reload()}
               style={{
-                padding: "8px 18px",
-                borderRadius: 20,
-                border: tab === t.id ? `1.5px solid ${C.blue}` : `1.5px solid ${C.border}`,
-                background: tab === t.id ? C.blueDim : C.surfaceAlt,
-                color: tab === t.id ? C.blue : C.muted,
-                fontSize: 13,
+                padding: "7px 18px",
+                borderRadius: 8,
+                background: "transparent",
+                border: `1.5px solid rgba(239,68,68,0.4)`,
+                color: C.red,
+                fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
-                fontFamily: "system-ui",
-                transition: "all .15s",
               }}
             >
-              {t.label}
+              Retry
             </button>
-          ))}
+          </div>
+        )}
+
+        {/* ── Sections ── */}
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
+          {loading ? (
+            <>
+              <SkeletonSection />
+              <SkeletonSection />
+              <SkeletonSection />
+            </>
+          ) : (
+            <>
+              {/* Section 1: Confidence Signals */}
+              <Section
+                icon="📉"
+                title="Confidence Signals"
+                subtitle="Students flagged in the intervention queue — hitting skill floors repeatedly."
+                accentColor={C.amber}
+                empty={confidenceStudents.length === 0}
+              >
+                {confidenceStudents.map((s) => (
+                  <StudentPill
+                    key={s.studentId}
+                    student={s}
+                    accent={C.amber}
+                    detail={`In intervention queue · ${s.sessionsLast7d} session${s.sessionsLast7d === 1 ? "" : "s"} this week`}
+                  />
+                ))}
+              </Section>
+
+              {/* Section 2: Hint Patterns */}
+              <Section
+                icon="💡"
+                title="Hint Patterns"
+                subtitle="Students with low accuracy this week — may be relying on hints or struggling with content."
+                accentColor={C.violet}
+                empty={hintPatternStudents.length === 0}
+              >
+                {hintPatternStudents.map((s) => (
+                  <StudentPill
+                    key={s.studentId}
+                    student={s}
+                    accent={C.violet}
+                    detail={`${accuracyPct(s)}% accuracy · ${s.sessionsLast7d} session${s.sessionsLast7d === 1 ? "" : "s"} this week`}
+                  />
+                ))}
+              </Section>
+
+              {/* Section 3: Absence Flags */}
+              <Section
+                icon="📅"
+                title="Absence Flags"
+                subtitle="Students with no sessions in 7 or more days — may need a check-in."
+                accentColor={C.blue}
+                empty={absenceStudents.length === 0}
+              >
+                {absenceStudents.map((s) => {
+                  const days = daysSinceSession(s.lastSessionAt);
+                  const detail =
+                    days === null
+                      ? "No sessions recorded yet"
+                      : `Last session ${days} day${days === 1 ? "" : "s"} ago`;
+                  return (
+                    <StudentPill
+                      key={s.studentId}
+                      student={s}
+                      accent={C.blue}
+                      detail={detail}
+                    />
+                  );
+                })}
+              </Section>
+            </>
+          )}
         </div>
 
-        {/* ── Submit Feedback tab ───────────────────────────────────── */}
-        {tab === "form" && (
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap", maxWidth: 860 }}>
-            {/* Main form card */}
-            <div style={{ flex: "1 1 320px", background: C.surface, borderRadius: 16, padding: "22px 24px", border: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: C.muted, marginBottom: 18 }}>💬 Send Feedback</div>
-
-              {/* Type selector */}
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: C.muted, marginBottom: 10 }}>What type of feedback?</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
-                {TYPE_OPTIONS.map((opt) => (
-                  <div
-                    key={opt.id}
-                    onClick={() => setFeedbackType(opt.id)}
-                    style={{
-                      padding: "12px 14px",
-                      borderRadius: 10,
-                      border: feedbackType === opt.id ? `2px solid ${C.blue}` : `2px solid ${C.border}`,
-                      background: feedbackType === opt.id ? C.blueDim : C.surfaceAlt,
-                      cursor: "pointer",
-                      transition: "all .15s",
-                    }}
-                  >
-                    <div style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{opt.label}</div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{opt.sub}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Summary */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: C.muted, marginBottom: 6 }}>Summary</div>
-                <input
-                  defaultValue="Mastery bar not updating after session ends"
-                  style={{ width: "100%", padding: "9px 12px", border: `1.5px solid ${C.blueBorder}`, borderRadius: 10, fontSize: 13, fontFamily: "system-ui", background: C.surfaceAlt, color: C.text, outline: "none" }}
-                />
-              </div>
-
-              {/* Details */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: C.muted, marginBottom: 6 }}>Details</div>
-                <textarea
-                  defaultValue="I viewed a student's profile after their session ended but the mastery bar for Long Division still shows the old value. Refreshing the page fixes it but the stale state is confusing."
-                  style={{ width: "100%", padding: "9px 12px", border: `1.5px solid ${C.blueBorder}`, borderRadius: 10, fontSize: 13, fontFamily: "system-ui", background: C.surfaceAlt, color: C.text, outline: "none", resize: "vertical", minHeight: 90 }}
-                />
-              </div>
-
-              {/* Where */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: C.muted, marginBottom: 6 }}>Where did this happen?</div>
-                <select style={{ width: "100%", padding: "9px 12px", border: `1.5px solid ${C.blueBorder}`, borderRadius: 10, fontSize: 13, fontFamily: "system-ui", background: C.surface, color: C.text, outline: "none" }}>
-                  <option>Student detail page</option>
-                  <option>Teacher home</option>
-                  <option>Support queue</option>
-                  <option>Command center</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              {/* Severity */}
-              <div style={{ marginBottom: 22 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: C.muted, marginBottom: 6 }}>Severity</div>
-                <select style={{ width: "100%", padding: "9px 12px", border: `1.5px solid ${C.blueBorder}`, borderRadius: 10, fontSize: 13, fontFamily: "system-ui", background: C.surface, color: C.text, outline: "none" }}>
-                  <option>Minor — doesn't block my work</option>
-                  <option>Moderate — causes confusion but workaround exists</option>
-                  <option>Major — significantly impacts my teaching</option>
-                  <option>Critical — platform is unusable</option>
-                </select>
-                <div style={{ fontSize: 10, color: C.muted, marginTop: 4, lineHeight: 1.4 }}>Critical = P0, gets immediate response. Major = P1, reviewed within 24h.</div>
-              </div>
-
-              <button style={{ width: "100%", padding: "12px 16px", background: C.blue, color: "#0c1a27", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>
-                Submit feedback
-              </button>
-            </div>
-
-            {/* Right column */}
-            <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* How we use feedback */}
-              <div style={{ background: C.surface, borderRadius: 16, padding: "18px 20px", border: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: C.muted, marginBottom: 14 }}>📊 How we use feedback</div>
-                <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.75 }}>
-                  <div>🐛 <strong style={{ color: C.text }}>Bugs</strong> — investigated within 48h. Critical bugs get same-day response.</div>
-                  <div style={{ marginTop: 8 }}>💡 <strong style={{ color: C.text }}>Feature requests</strong> — reviewed monthly. Popular requests get prioritised.</div>
-                  <div style={{ marginTop: 8 }}>📚 <strong style={{ color: C.text }}>Content issues</strong> — reviewed by curriculum team within 5 days.</div>
-                  <div style={{ marginTop: 8 }}>❓ <strong style={{ color: C.text }}>Questions</strong> — answered within 2 business days.</div>
-                </div>
-              </div>
-
-              {/* NPS rating */}
-              <div style={{ background: C.surface, borderRadius: 16, padding: "18px 20px", border: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".06em", color: C.muted, marginBottom: 12 }}>⭐ How's WonderQuest?</div>
-                <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>Rate your experience this term</div>
-                <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span
-                      key={star}
-                      onClick={() => setRating(star)}
-                      style={{ fontSize: 22, cursor: "pointer", opacity: star <= rating ? 1 : 0.28, transition: "opacity .12s" }}
-                    >
-                      ⭐
-                    </span>
-                  ))}
-                </div>
-                <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>{rating} of 5 — What would make it 5?</div>
-                <textarea
-                  placeholder="Optional comment…"
-                  style={{ width: "100%", padding: "8px 10px", border: `1.5px solid ${C.blueBorder}`, borderRadius: 10, fontSize: 12, fontFamily: "system-ui", background: C.surfaceAlt, color: C.text, outline: "none", resize: "vertical", minHeight: 60 }}
-                />
-                <button style={{ width: "100%", marginTop: 10, padding: "9px 14px", background: "transparent", color: C.blue, border: `1.5px solid ${C.blueBorder}`, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>
-                  Submit rating
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Submitted Feedback tab ────────────────────────────────── */}
-        {tab === "submitted" && (
-          <div style={{ maxWidth: 680 }}>
-            {FEEDBACK_ITEMS.map((item, i) => {
-              const badge = TYPE_BADGE[item.type];
-              return (
-                <div key={i} style={{ background: C.surface, borderRadius: 12, padding: "16px 18px", border: `1px solid ${C.border}`, marginBottom: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: badge.bg, color: badge.color }}>{badge.label}</span>
-                      {item.severity && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: C.amberDim, color: "#fbbf24" }}>{item.severity}</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: 10, color: C.muted }}>{item.date}</span>
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{item.title}</div>
-                  <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5, marginBottom: 8 }}>{item.preview}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: item.statusColor, flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>{item.status}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Notifications tab ─────────────────────────────────────── */}
-        {tab === "notifs" && (
-          <div style={{ maxWidth: 680 }}>
-            {NOTIFS.map((notif, i) => (
-              <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", background: C.surface, borderRadius: 12, padding: "16px 18px", border: `1px solid ${notif.unread ? C.blueBorder : C.border}`, marginBottom: 10 }}>
-                <div style={{ fontSize: 22, flexShrink: 0 }}>{notif.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-                    {notif.unread && (
-                      <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.blue, marginRight: 6, verticalAlign: "middle" }} />
-                    )}
-                    {notif.title}
-                  </div>
-                  <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5, marginBottom: 6 }}>{notif.body}</div>
-                  <div style={{ fontSize: 10, color: C.muted }}>{notif.date}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* ── Footer links ── */}
+        <div
+          style={{
+            marginTop: 28,
+            paddingTop: 20,
+            borderTop: `1px solid ${C.border}`,
+            display: "flex",
+            gap: 16,
+            flexWrap: "wrap" as const,
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Jump to:</span>
+          <a
+            href="/teacher/support"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: C.blue,
+              textDecoration: "none",
+              padding: "5px 12px",
+              borderRadius: 8,
+              background: "rgba(56,189,248,0.08)",
+              border: `1px solid rgba(56,189,248,0.2)`,
+            }}
+          >
+            Support queue →
+          </a>
+          <a
+            href="/teacher/intervention-overview"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: C.amber,
+              textDecoration: "none",
+              padding: "5px 12px",
+              borderRadius: 8,
+              background: "rgba(245,158,11,0.08)",
+              border: `1px solid rgba(245,158,11,0.2)`,
+            }}
+          >
+            Intervention Overview →
+          </a>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>
+            Signals refresh each session. Data is class-level only — no cross-class comparisons.
+          </span>
+        </div>
       </div>
     </AppFrame>
   );

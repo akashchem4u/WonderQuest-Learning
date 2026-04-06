@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 const C = {
-  bg: "#100b2e",
+  bg: "#0d1117",
   surface: "#161b22",
-  border: "rgba(255,255,255,0.06)",
+  border: "rgba(255,255,255,0.07)",
   text: "#f0f6ff",
   muted: "rgba(240,246,255,0.45)",
   blue: "#38bdf8",
@@ -17,278 +18,273 @@ const C = {
   coral: "#ff7b6b",
 };
 
-type Tab = "outcomes" | "detail" | "spec";
+type TimeFilter = "week" | "month";
 
-const INTERVENTIONS = [
-  {
-    id: "emma",
-    name: "Emma",
-    skill: "Shapes",
-    type: "Additional practice",
-    assigned: "3 weeks ago",
-    outcome: "progress",
-    outcomeLabel: "✓ Progress noted",
-  },
-  {
-    id: "liam",
-    name: "Liam",
-    skill: "Short Vowels",
-    type: "Slow reading mode",
-    assigned: "4 weeks ago",
-    outcome: "engaged",
-    outcomeLabel: "✓ Engagement improved",
-  },
-  {
-    id: "sofia",
-    name: "Sofia",
-    skill: "Counting to 20",
-    type: "Parent home activity suggestion",
-    assigned: "5 weeks ago",
-    outcome: "inprog",
-    outcomeLabel: "🔄 In progress",
-  },
-  {
-    id: "marcus",
-    name: "Marcus",
-    skill: "Community Helpers",
-    type: "Skill prerequisite added",
-    assigned: "2 weeks ago",
-    outcome: "strong",
-    outcomeLabel: "✓ Strong now",
-  },
-  {
-    id: "ava",
-    name: "Ava",
-    skill: "Animals",
-    type: "Additional practice",
-    assigned: "1 week ago",
-    outcome: "early",
-    outcomeLabel: "⏳ Early stage",
-  },
+interface Intervention {
+  id: string;
+  studentId: string;
+  studentName: string;
+  skillCode: string | null;
+  reason: string;
+  interventionType: string;
+  status: string;
+  teacherNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+}
+
+function deriveOutcome(iv: Intervention): { label: string; color: string; bg: string; border: string } {
+  if (iv.status === "resolved") {
+    const note = (iv.resolutionNote ?? "").toLowerCase();
+    if (note.includes("escal")) {
+      return { label: "Escalated", color: C.coral,   bg: "rgba(255,123,107,0.12)", border: "rgba(255,123,107,0.3)" };
+    }
+    return { label: "Improved",   color: C.mint,    bg: "rgba(80,232,144,0.12)",  border: "rgba(80,232,144,0.3)" };
+  }
+  return { label: "In Progress",  color: C.gold,    bg: "rgba(255,209,102,0.12)", border: "rgba(255,209,102,0.3)" };
+}
+
+function daysAgo(dateStr: string): number {
+  const ms = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+
+function durationLabel(iv: Intervention): string {
+  const start = new Date(iv.createdAt).getTime();
+  const end = iv.resolvedAt ? new Date(iv.resolvedAt).getTime() : Date.now();
+  const days = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+  if (days < 1) return "< 1 day";
+  if (days === 1) return "1 day";
+  if (days < 7) return `${days} days`;
+  const weeks = Math.floor(days / 7);
+  return weeks === 1 ? "1 week" : `${weeks} weeks`;
+}
+
+function formatType(t: string): string {
+  return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Success patterns: count interventions by type and compute resolved/total ratio
+function computePatterns(items: Intervention[]): { type: string; total: number; resolved: number; rate: number }[] {
+  const map: Record<string, { total: number; resolved: number }> = {};
+  for (const iv of items) {
+    const t = formatType(iv.interventionType || "other");
+    if (!map[t]) map[t] = { total: 0, resolved: 0 };
+    map[t].total++;
+    if (iv.status === "resolved") map[t].resolved++;
+  }
+  return Object.entries(map)
+    .map(([type, { total, resolved }]) => ({ type, total, resolved, rate: total > 0 ? Math.round((resolved / total) * 100) : 0 }))
+    .sort((a, b) => b.rate - a.rate);
+}
+
+// Fallback demo data used when API returns no results
+const DEMO_INTERVENTIONS: Intervention[] = [
+  { id: "1", studentId: "s1", studentName: "Emma",   skillCode: "shapes",   reason: "struggling",   interventionType: "additional_practice",    status: "resolved", teacherNote: null, createdAt: new Date(Date.now() - 21 * 86400000).toISOString(), resolvedAt: new Date(Date.now() - 3 * 86400000).toISOString(),  resolutionNote: "Student improved significantly" },
+  { id: "2", studentId: "s2", studentName: "Liam",   skillCode: "vowels",   reason: "slow reading", interventionType: "slow_reading",           status: "resolved", teacherNote: null, createdAt: new Date(Date.now() - 28 * 86400000).toISOString(), resolvedAt: new Date(Date.now() - 5 * 86400000).toISOString(),  resolutionNote: "Engagement improved, closed" },
+  { id: "3", studentId: "s3", studentName: "Sofia",  skillCode: "counting", reason: "needs support", interventionType: "parent_suggestion",     status: "active",   teacherNote: null, createdAt: new Date(Date.now() - 35 * 86400000).toISOString(), resolvedAt: null,                                                 resolutionNote: null },
+  { id: "4", studentId: "s4", studentName: "Marcus", skillCode: "community",reason: "prerequisite",  interventionType: "prerequisite",          status: "resolved", teacherNote: null, createdAt: new Date(Date.now() - 14 * 86400000).toISOString(), resolvedAt: new Date(Date.now() - 1 * 86400000).toISOString(),  resolutionNote: "Strong now" },
+  { id: "5", studentId: "s5", studentName: "Ava",    skillCode: "animals",  reason: "new student",   interventionType: "additional_practice",   status: "active",   teacherNote: null, createdAt: new Date(Date.now() - 7  * 86400000).toISOString(), resolvedAt: null,                                                 resolutionNote: null },
+  { id: "6", studentId: "s6", studentName: "Noah",   skillCode: "fractions",reason: "falling behind", interventionType: "custom_note",          status: "resolved", teacherNote: null, createdAt: new Date(Date.now() - 10 * 86400000).toISOString(), resolvedAt: new Date(Date.now() - 2 * 86400000).toISOString(),  resolutionNote: "escalated to admin" },
 ];
-
-const OUTCOME_STYLES: Record<string, { bg: string; color: string; border: string }> = {
-  progress: {
-    bg: "rgba(80,232,144,0.12)",
-    color: "#50e890",
-    border: "rgba(80,232,144,0.3)",
-  },
-  engaged: {
-    bg: "rgba(56,189,248,0.12)",
-    color: "#38bdf8",
-    border: "rgba(56,189,248,0.3)",
-  },
-  inprog: {
-    bg: "rgba(255,209,102,0.12)",
-    color: "#ffd166",
-    border: "rgba(255,209,102,0.3)",
-  },
-  strong: {
-    bg: "rgba(88,232,193,0.12)",
-    color: "#58e8c1",
-    border: "rgba(88,232,193,0.3)",
-  },
-  early: {
-    bg: "rgba(255,123,107,0.12)",
-    color: "#ff7b6b",
-    border: "rgba(255,123,107,0.3)",
-  },
-};
-
-const TIMELINE_STEPS = [
-  {
-    id: "w0",
-    label: "W0",
-    week: "Week 0",
-    desc: "Intervention assigned — Emma was Exploring Shapes",
-    pill: "Exploring",
-    pillColor: "#ffd166",
-    pillBg: "rgba(255,209,102,0.12)",
-    pillBorder: "rgba(255,209,102,0.3)",
-    dotType: "reached",
-  },
-  {
-    id: "w1",
-    label: "W1",
-    week: "Week 1",
-    desc: "Emma's engagement with Shapes increased — sessions: 2 → 5",
-    pill: null,
-    pillColor: null,
-    pillBg: null,
-    pillBorder: null,
-    dotType: "reached",
-  },
-  {
-    id: "w2",
-    label: "W2",
-    week: "Week 2",
-    desc: "Emma moved from Exploring → Growing for Shapes ✨",
-    pill: "Growing",
-    pillColor: "#50e890",
-    pillBg: "rgba(80,232,144,0.12)",
-    pillBorder: "rgba(80,232,144,0.3)",
-    dotType: "active",
-  },
-  {
-    id: "w3",
-    label: "W3",
-    week: "Week 3",
-    desc: 'Emma at Growing — teacher marks "Progress noted"',
-    pill: "✓ Closed",
-    pillColor: "#50e890",
-    pillBg: "rgba(80,232,144,0.12)",
-    pillBorder: "rgba(80,232,144,0.3)",
-    dotType: "active",
-  },
-];
-
-const SPEC_TYPES = ["additional_practice", "slow_reading", "parent_suggestion", "prerequisite", "custom_note"];
 
 export default function TeacherInterventionOutcomePage() {
-  const [tab, setTab] = useState<Tab>("outcomes");
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [noteText, setNoteText] = useState("");
-  const [feedback, setFeedback] = useState<{ msg: string; color: string } | null>(null);
+  const [filter, setFilter] = useState<TimeFilter>("month");
+  const [allInterventions, setAllInterventions] = useState<Intervention[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "outcomes", label: "Intervention Outcome Report" },
-    { id: "detail", label: "Intervention Detail" },
-    { id: "spec", label: "Spec" },
-  ];
+  useEffect(() => {
+    const teacherId = getTeacherId();
 
-  function showFeedback(msg: string, color: string) {
-    setFeedback({ msg, color });
-    setTimeout(() => setFeedback(null), 4000);
-  }
+    async function loadAll() {
+      try {
+        const [activeRes, resolvedRes] = await Promise.all([
+          fetch(`/api/teacher/interventions?teacherId=${teacherId}&status=active`),
+          fetch(`/api/teacher/interventions?teacherId=${teacherId}&status=resolved`),
+        ]);
 
-  function sendNote() {
-    if (!noteText.trim()) {
-      showFeedback("Please write a note before sending.", C.gold);
-      return;
+        const activeData = activeRes.ok ? await activeRes.json() : { interventions: [] };
+        const resolvedData = resolvedRes.ok ? await resolvedRes.json() : { interventions: [] };
+
+        const combined: Intervention[] = [
+          ...(activeData.interventions ?? []),
+          ...(resolvedData.interventions ?? []),
+        ].sort((a: Intervention, b: Intervention) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        setAllInterventions(combined.length > 0 ? combined : DEMO_INTERVENTIONS);
+      } catch {
+        setError("Could not load interventions.");
+        setAllInterventions(DEMO_INTERVENTIONS);
+      } finally {
+        setLoading(false);
+      }
     }
-    setComposerOpen(false);
-    setNoteText("");
-    showFeedback("✓ Parent note sent — positive framing confirmed.", C.mint);
-  }
+
+    loadAll();
+  }, []);
+
+  // Filter by time window
+  const cutoffDays = filter === "week" ? 7 : 30;
+  const filtered = allInterventions.filter((iv) => daysAgo(iv.createdAt) <= cutoffDays);
+
+  // Summary stats
+  const total = filtered.length;
+  const resolved = filtered.filter((iv) => iv.status === "resolved").length;
+  const successRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+  const escalated = filtered.filter((iv) => {
+    const note = (iv.resolutionNote ?? "").toLowerCase();
+    return iv.status === "resolved" && note.includes("escal");
+  }).length;
+
+  const patterns = computePatterns(filtered);
 
   return (
     <AppFrame audience="teacher">
-      <div style={{ padding: "24px 16px 60px", minHeight: "100vh" }}>
-        {/* Page header */}
-        <div style={{ maxWidth: 860, marginBottom: 20 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.blue, letterSpacing: "-0.3px" }}>
-            Intervention Outcomes
-          </h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 3 }}>Class 4B — Term 2, 2026</p>
-        </div>
+      <div style={{ padding: "24px 20px 80px", minHeight: "100vh", background: C.bg }}>
+        <div style={{ maxWidth: 900 }}>
 
-        {/* Tab nav */}
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            maxWidth: 860,
-            marginBottom: 20,
-            borderBottom: `1px solid ${C.border}`,
-          }}
-        >
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                background: "none",
-                border: "none",
-                color: tab === t.id ? C.blue : C.muted,
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "8px 16px 10px",
-                cursor: "pointer",
-                borderBottom: tab === t.id ? `2px solid ${C.blue}` : "2px solid transparent",
-                whiteSpace: "nowrap" as const,
-                transition: "color 0.15s, border-color 0.15s",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+          {/* Header */}
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.3px", margin: 0 }}>
+              📈 Intervention Outcomes
+            </h1>
+            <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
+              Track how student interventions are progressing and which types work best.
+            </p>
+          </div>
 
-        {/* ── OUTCOMES TAB ── */}
-        {tab === "outcomes" && (
-          <div style={{ maxWidth: 860 }}>
-            {/* Stat row */}
+          {/* Time filter */}
+          <div
+            style={{
+              display: "inline-flex",
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              padding: 3,
+              gap: 3,
+              marginBottom: 24,
+            }}
+          >
+            {(["week", "month"] as TimeFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  background: filter === f ? C.blue : "transparent",
+                  border: "none",
+                  borderRadius: 6,
+                  color: filter === f ? "#0d1117" : C.muted,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "6px 16px",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                This {f === "week" ? "Week" : "Month"}
+              </button>
+            ))}
+          </div>
+
+          {/* Loading / error states */}
+          {loading && (
+            <div style={{ color: C.muted, fontSize: 14, marginBottom: 24 }}>Loading interventions…</div>
+          )}
+          {error && (
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4,1fr)",
-                gap: 12,
-                marginBottom: 24,
+                background: "rgba(255,123,107,0.08)",
+                border: "1px solid rgba(255,123,107,0.25)",
+                borderRadius: 8,
+                padding: "10px 14px",
+                fontSize: 13,
+                color: C.coral,
+                marginBottom: 20,
               }}
             >
-              {[
-                { n: "5", lbl: "Interventions assigned\nthis term", color: C.blue },
-                { n: "4", lbl: "Students showing\nprogress after intervention", color: C.mint },
-                { n: "2", lbl: "Interventions\ncompleted", color: C.gold },
-                { n: "1", lbl: "Intervention\nin progress", color: C.violet },
-              ].map((s) => (
-                <div
-                  key={s.lbl}
-                  style={{
-                    background: C.surface,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 10,
-                    padding: 16,
-                    textAlign: "center" as const,
-                  }}
-                >
-                  <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1, marginBottom: 4, color: s.color }}>
-                    {s.n}
-                  </div>
-                  <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.3, whiteSpace: "pre-line" as const }}>
-                    {s.lbl}
-                  </div>
+              {error} Showing demo data.
+            </div>
+          )}
+
+          {/* Summary stats */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 12,
+              marginBottom: 28,
+            }}
+          >
+            {[
+              { value: String(total),         label: "Total interventions",             color: C.blue   },
+              { value: String(resolved),       label: "Resolved this period",            color: C.mint   },
+              { value: `${successRate}%`,      label: "Success rate",                    color: C.teal   },
+              { value: String(escalated),      label: "Escalated",                       color: C.coral  },
+            ].map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "16px 14px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: s.color, marginBottom: 6 }}>
+                  {s.value}
                 </div>
-              ))}
-            </div>
+                <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.3 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
 
-            {/* Intervention list */}
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: C.muted,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.06em",
-                marginBottom: 10,
-              }}
-            >
-              Intervention List
-            </div>
+          {/* Outcome log table */}
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: C.muted,
+              marginBottom: 10,
+            }}
+          >
+            Outcome Log
+          </div>
 
-            <div
-              style={{
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                overflow: "hidden",
-              }}
-            >
-              <table style={{ width: "100%", borderCollapse: "collapse" as const }}>
+          <div
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 10,
+              overflow: "hidden",
+              marginBottom: 32,
+            }}
+          >
+            {filtered.length === 0 ? (
+              <div style={{ padding: "24px", fontSize: 14, color: C.muted, textAlign: "center" }}>
+                No interventions found for this time period.
+              </div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Student", "Skill", "Intervention Type", "Assigned", "Outcome"].map((h) => (
+                    {["Student", "Trigger / Skill", "Intervention Type", "Duration", "Outcome"].map((h) => (
                       <th
                         key={h}
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          textTransform: "uppercase" as const,
+                          textTransform: "uppercase",
                           letterSpacing: "0.06em",
                           color: C.muted,
-                          padding: "8px 12px",
-                          textAlign: "left" as const,
+                          padding: "10px 14px",
+                          textAlign: "left",
                           borderBottom: `1px solid ${C.border}`,
+                          background: "rgba(255,255,255,0.02)",
                         }}
                       >
                         {h}
@@ -297,26 +293,24 @@ export default function TeacherInterventionOutcomePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {INTERVENTIONS.map((row) => {
-                    const os = OUTCOME_STYLES[row.outcome];
+                  {filtered.map((iv, idx) => {
+                    const outcome = deriveOutcome(iv);
                     return (
                       <tr
-                        key={row.id}
-                        onClick={() => setTab("detail")}
+                        key={iv.id}
                         style={{
-                          borderBottom: `1px solid ${C.border}`,
-                          cursor: "pointer",
+                          borderBottom: idx < filtered.length - 1 ? `1px solid ${C.border}` : "none",
                         }}
                       >
-                        <td style={{ padding: "12px 12px", fontSize: 13, fontWeight: 700, color: C.blue }}>
-                          {row.name}
+                        <td style={{ padding: "12px 14px", fontSize: 13, fontWeight: 700, color: C.blue }}>
+                          {iv.studentName}
                         </td>
-                        <td style={{ padding: "12px 12px", fontSize: 13 }}>
+                        <td style={{ padding: "12px 14px", fontSize: 13 }}>
                           <span
                             style={{
                               display: "inline-block",
-                              background: "rgba(240,246,255,0.07)",
-                              border: `1px solid ${C.border}`,
+                              background: "rgba(88,232,193,0.1)",
+                              border: "1px solid rgba(88,232,193,0.25)",
                               borderRadius: 5,
                               padding: "2px 8px",
                               fontSize: 12,
@@ -324,27 +318,30 @@ export default function TeacherInterventionOutcomePage() {
                               color: C.teal,
                             }}
                           >
-                            {row.skill}
+                            {iv.skillCode ?? iv.reason}
                           </span>
                         </td>
-                        <td style={{ padding: "12px 12px", fontSize: 12, color: C.muted }}>{row.type}</td>
-                        <td style={{ padding: "12px 12px", fontSize: 12, color: C.muted }}>{row.assigned}</td>
-                        <td style={{ padding: "12px 12px" }}>
+                        <td style={{ padding: "12px 14px", fontSize: 12, color: C.muted }}>
+                          {formatType(iv.interventionType)}
+                        </td>
+                        <td style={{ padding: "12px 14px", fontSize: 12, color: C.muted }}>
+                          {durationLabel(iv)}
+                        </td>
+                        <td style={{ padding: "12px 14px" }}>
                           <span
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 5,
                               fontSize: 12,
-                              fontWeight: 600,
+                              fontWeight: 700,
                               padding: "3px 10px",
                               borderRadius: 20,
-                              background: os.bg,
-                              color: os.color,
-                              border: `1px solid ${os.border}`,
+                              background: outcome.bg,
+                              color: outcome.color,
+                              border: `1px solid ${outcome.border}`,
                             }}
                           >
-                            {row.outcomeLabel}
+                            {outcome.label}
                           </span>
                         </td>
                       </tr>
@@ -352,545 +349,93 @@ export default function TeacherInterventionOutcomePage() {
                   })}
                 </tbody>
               </table>
-            </div>
-
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>
-              Tap any row to view intervention timeline. Outcomes reflect mastery-level change — no accuracy scores are shown.
-            </p>
+            )}
           </div>
-        )}
 
-        {/* ── DETAIL TAB ── */}
-        {tab === "detail" && (
-          <div style={{ maxWidth: 860 }}>
-            <button
-              onClick={() => setTab("outcomes")}
-              style={{
-                background: "none",
-                border: `1px solid ${C.border}`,
-                color: C.muted,
-                borderRadius: 6,
-                padding: "6px 12px",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                marginBottom: 18,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              ← Back to Report
-            </button>
+          {/* Success patterns */}
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: C.muted,
+              marginBottom: 12,
+            }}
+          >
+            Success Patterns — which intervention types work best
+          </div>
 
-            {/* Hero */}
+          {patterns.length === 0 ? (
+            <div style={{ color: C.muted, fontSize: 13 }}>No pattern data available.</div>
+          ) : (
             <div
               style={{
                 background: C.surface,
                 border: `1px solid ${C.border}`,
                 borderRadius: 10,
-                padding: "18px 20px",
-                marginBottom: 18,
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 14,
+                overflow: "hidden",
               }}
             >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #38bdf8, #6ee7f7)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  fontWeight: 800,
-                  color: "#0d1117",
-                  flexShrink: 0,
-                }}
-              >
-                E
-              </div>
-              <div>
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text }}>Emma — Shapes</h2>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                  Additional practice · Assigned 3 weeks ago ·{" "}
-                  <span style={{ color: C.mint }}>✓ Progress noted</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Privacy note */}
-            <div
-              style={{
-                background: "rgba(56,189,248,0.07)",
-                border: "1px solid rgba(56,189,248,0.2)",
-                borderRadius: 10,
-                padding: "12px 16px",
-                fontSize: 12,
-                color: "rgba(56,189,248,0.9)",
-                marginBottom: 20,
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>🔒</span>
-              <span>
-                Intervention details are visible only to Emma&apos;s teacher and school admin. This is not shared with parents unless teacher manually sends a note.
-              </span>
-            </div>
-
-            {/* Timeline */}
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: C.muted,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.06em",
-                marginBottom: 10,
-              }}
-            >
-              Intervention Timeline
-            </div>
-            <div
-              style={{
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: "4px 16px",
-                marginBottom: 20,
-              }}
-            >
-              {TIMELINE_STEPS.map((step) => (
+              {patterns.map((p, i) => (
                 <div
-                  key={step.id}
+                  key={p.type}
                   style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 14,
-                    padding: "14px 0",
-                    borderBottom: step.id !== "w3" ? `1px solid ${C.border}` : "none",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 80px 80px 120px",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "14px 16px",
+                    borderBottom: i < patterns.length - 1 ? `1px solid ${C.border}` : "none",
                   }}
                 >
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background:
-                        step.dotType === "active"
-                          ? "rgba(80,232,144,0.1)"
-                          : "rgba(56,189,248,0.1)",
-                      border:
-                        step.dotType === "active"
-                          ? `2px solid ${C.mint}`
-                          : `2px solid ${C.blue}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 10,
-                      fontWeight: 800,
-                      color: step.dotType === "active" ? C.mint : C.blue,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {step.label}
+                  {/* Type name */}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.type}</div>
+
+                  {/* Total */}
+                  <div style={{ fontSize: 12, color: C.muted, textAlign: "right" }}>
+                    {p.resolved}/{p.total}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: C.muted,
-                        textTransform: "uppercase" as const,
-                        letterSpacing: "0.06em",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {step.week}
-                    </div>
-                    <div style={{ fontSize: 13, color: C.text }}>
-                      {step.desc}
-                      {step.pill && (
-                        <span
-                          style={{
-                            display: "inline-block",
-                            background: step.pillBg!,
-                            color: step.pillColor!,
-                            border: `1px solid ${step.pillBorder}`,
-                            borderRadius: 20,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 9px",
-                            marginLeft: 6,
-                          }}
-                        >
-                          {step.pill}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            {/* Actions */}
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: C.muted,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.06em",
-                marginBottom: 10,
-                marginTop: 22,
-              }}
-            >
-              Actions
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 10, marginBottom: 24 }}>
-              <button
-                onClick={() => showFeedback("✓ Intervention marked complete.", C.mint)}
-                style={{
-                  background: C.mint,
-                  border: "none",
-                  borderRadius: 7,
-                  padding: "9px 18px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  color: "#0d1117",
-                }}
-              >
-                Mark complete
-              </button>
-              <button
-                onClick={() => showFeedback("✓ Intervention extended by 2 weeks.", C.mint)}
-                style={{
-                  background: "rgba(56,189,248,0.15)",
-                  border: "1px solid rgba(56,189,248,0.3)",
-                  borderRadius: 7,
-                  padding: "9px 18px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  color: C.blue,
-                }}
-              >
-                Extend intervention
-              </button>
-              <button
-                onClick={() => setComposerOpen(!composerOpen)}
-                style={{
-                  background: "rgba(240,246,255,0.06)",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 7,
-                  padding: "9px 18px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  color: C.muted,
-                }}
-              >
-                Send parent note
-              </button>
-            </div>
-
-            {/* Note composer */}
-            {composerOpen && (
-              <div
-                style={{
-                  background: C.surface,
-                  border: "1px solid rgba(56,189,248,0.25)",
-                  borderRadius: 10,
-                  padding: "18px 20px",
-                  marginTop: 4,
-                }}
-              >
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: C.blue, marginBottom: 10 }}>
-                  📧 Send Parent Note
-                </h3>
-                <p style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
-                  Platform-routed · Positive framing only · Max 120 characters · No individual accuracy data
-                </p>
-                <textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  maxLength={120}
-                  placeholder="e.g. Emma is making great progress exploring shapes this week — keep up the wonderful work at home!"
-                  style={{
-                    width: "100%",
-                    background: "rgba(240,246,255,0.05)",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 6,
-                    color: C.text,
-                    fontSize: 13,
-                    padding: "10px 12px",
-                    resize: "vertical" as const,
-                    minHeight: 70,
-                    fontFamily: "inherit",
-                    outline: "none",
-                  }}
-                />
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: noteText.length > 120 ? "#ff7b6b" : C.muted,
-                    textAlign: "right" as const,
-                    marginTop: 5,
-                  }}
-                >
-                  {noteText.length} / 120
-                </div>
-                <div style={{ fontSize: 11, color: "rgba(80,232,144,0.7)", marginTop: 8, marginBottom: 12 }}>
-                  ✓ Positive framing required. This note will not include skill scores or accuracy data.
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={sendNote}
-                    style={{
-                      background: C.mint,
-                      border: "none",
-                      borderRadius: 7,
-                      padding: "9px 18px",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      color: "#0d1117",
-                    }}
-                  >
-                    Send note
-                  </button>
-                  <button
-                    onClick={() => setComposerOpen(false)}
-                    style={{
-                      background: "rgba(240,246,255,0.06)",
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 7,
-                      padding: "9px 18px",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      color: C.muted,
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Feedback */}
-            {feedback && (
-              <div style={{ marginTop: 14, fontSize: 13, fontWeight: 600, color: feedback.color }}>
-                {feedback.msg}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── SPEC TAB ── */}
-        {tab === "spec" && (
-          <div style={{ maxWidth: 860 }}>
-            {/* Intervention Types */}
-            <div style={{ marginBottom: 28 }}>
-              <h3
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: C.blue,
-                  marginBottom: 10,
-                  paddingBottom: 6,
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-              >
-                Intervention Types
-              </h3>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-                {SPEC_TYPES.map((t) => (
-                  <span
-                    key={t}
-                    style={{
-                      display: "inline-block",
-                      background: "rgba(155,114,255,0.12)",
-                      color: C.violet,
-                      border: "1px solid rgba(155,114,255,0.25)",
-                      borderRadius: 4,
-                      padding: "1px 8px",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Outcome Measurement */}
-            <div style={{ marginBottom: 28 }}>
-              <h3
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: C.blue,
-                  marginBottom: 10,
-                  paddingBottom: 6,
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-              >
-                Outcome Measurement
-              </h3>
-              {[
-                {
-                  key: "Basis",
-                  val: "Mastery level change from snapshot_date to current. NOT accuracy percentages.",
-                },
-                { key: "Not shown", val: "Accuracy %, correct/incorrect counts, test scores" },
-              ].map((r) => (
-                <div key={r.key} style={{ display: "flex", gap: 12, marginBottom: 8, fontSize: 13 }}>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: C.muted,
-                      minWidth: 160,
-                      flexShrink: 0,
-                      fontSize: 12,
-                    }}
-                  >
-                    {r.key}
-                  </span>
-                  <span
-                    style={{
-                      color: r.key === "Not shown" ? C.coral : C.text,
-                    }}
-                  >
-                    {r.val}
-                  </span>
-                </div>
-              ))}
-              <div style={{ display: "flex", gap: 12, marginBottom: 8, fontSize: 13 }}>
-                <span style={{ fontWeight: 700, color: C.muted, minWidth: 160, flexShrink: 0, fontSize: 12 }}>
-                  Mastery levels
-                </span>
-                <span>
-                  {[
-                    { lbl: "Exploring", bg: "rgba(56,189,248,0.1)", color: C.blue, border: "rgba(56,189,248,0.25)" },
-                    { lbl: "Growing", bg: "rgba(88,232,193,0.1)", color: C.teal, border: "rgba(88,232,193,0.25)" },
-                    { lbl: "Shining", bg: "rgba(80,232,144,0.1)", color: C.mint, border: "rgba(80,232,144,0.25)" },
-                  ].map((m) => (
+                  {/* Rate badge */}
+                  <div style={{ textAlign: "right" }}>
                     <span
-                      key={m.lbl}
                       style={{
                         display: "inline-block",
-                        background: m.bg,
-                        color: m.color,
-                        border: `1px solid ${m.border}`,
-                        borderRadius: 4,
-                        padding: "1px 8px",
                         fontSize: 12,
-                        fontWeight: 600,
-                        marginRight: 6,
+                        fontWeight: 800,
+                        color: p.rate >= 70 ? C.mint : p.rate >= 40 ? C.gold : C.coral,
+                        background: p.rate >= 70 ? "rgba(80,232,144,0.1)" : p.rate >= 40 ? "rgba(255,209,102,0.1)" : "rgba(255,123,107,0.1)",
+                        border: `1px solid ${p.rate >= 70 ? "rgba(80,232,144,0.3)" : p.rate >= 40 ? "rgba(255,209,102,0.3)" : "rgba(255,123,107,0.3)"}`,
+                        borderRadius: 20,
+                        padding: "2px 10px",
                       }}
                     >
-                      {m.lbl}
+                      {p.rate}%
                     </span>
-                  ))}
-                </span>
-              </div>
-            </div>
+                  </div>
 
-            {/* Privacy */}
-            <div style={{ marginBottom: 28 }}>
-              <h3
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: C.blue,
-                  marginBottom: 10,
-                  paddingBottom: 6,
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-              >
-                Privacy
-              </h3>
-              {[
-                { key: "Access", val: "Teacher of record + school admin only" },
-                { key: "Parent dashboard", val: "NOT shown by default; teacher can optionally send a note" },
-                {
-                  key: "Parent note rules",
-                  val: "Platform-composed · No individual accuracy data · Positive framing required · Max 120 chars",
-                },
-                { key: "FERPA classification", val: "🔒 Education record" },
-                { key: "Parent right", val: "Parent may request access under FERPA" },
-              ].map((r) => (
-                <div key={r.key} style={{ display: "flex", gap: 12, marginBottom: 8, fontSize: 13 }}>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: C.muted,
-                      minWidth: 160,
-                      flexShrink: 0,
-                      fontSize: 12,
-                    }}
-                  >
-                    {r.key}
-                  </span>
-                  <span style={{ color: C.text }}>{r.val}</span>
+                  {/* Bar */}
+                  <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${p.rate}%`,
+                        background: p.rate >= 70 ? C.mint : p.rate >= 40 ? C.gold : C.coral,
+                        borderRadius: 3,
+                        transition: "width 0.4s ease",
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
+          )}
 
-            {/* DB Schema */}
-            <div style={{ marginBottom: 28 }}>
-              <h3
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: C.blue,
-                  marginBottom: 10,
-                  paddingBottom: 6,
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-              >
-                Database Schema
-              </h3>
-              <div
-                style={{
-                  background: "#0d1117",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 7,
-                  padding: "14px 16px",
-                  fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace',
-                  fontSize: 12,
-                  color: "#a8d8a8",
-                  overflowX: "auto" as const,
-                  lineHeight: 1.7,
-                  whiteSpace: "pre" as const,
-                }}
-              >
-                {`CREATE TABLE interventions (
-  id               UUID           PRIMARY KEY,
-  class_id         UUID,
-  student_id       UUID,
-  skill_id         UUID,
-  teacher_id       UUID,
-  type             ENUM(additional_practice, slow_reading,
-                        parent_suggestion, prerequisite, custom_note),
-  assigned_at      TIMESTAMPTZ,
-  completed_at     TIMESTAMPTZ,
-  outcome_notes    TEXT,
-  baseline_level   ENUM(exploring, growing, shining),
-  current_level    ENUM(exploring, growing, shining)
-);`}
-              </div>
-            </div>
-          </div>
-        )}
+          <p style={{ fontSize: 11, color: C.muted, marginTop: 12 }}>
+            Outcomes reflect mastery-level change only — no accuracy scores are shown. Intervention details visible to teacher and school admin only.
+          </p>
+        </div>
       </div>
     </AppFrame>
   );

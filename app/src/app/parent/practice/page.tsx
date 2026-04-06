@@ -1,316 +1,484 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
   base: "#100b2e",
+  surface: "#161b22",
   violet: "#9b72ff",
-  mint: "#58e8c1",
+  mint: "#22c55e",
   gold: "#ffd166",
-  green: "#22c55e",
-  surface: "rgba(255,255,255,0.04)",
-  border: "rgba(155,114,255,0.18)",
+  amber: "#f59e0b",
   text: "#f0f6ff",
   muted: "rgba(255,255,255,0.5)",
+  faint: "rgba(255,255,255,0.1)",
+  border: "rgba(155,114,255,0.2)",
 } as const;
 
-// ── Activity data ──────────────────────────────────────────────────────────
-type Subject = "reading" | "math";
-type Activity = {
-  id: string;
-  icon: string;
-  iconBg: string;
-  name: string;
-  desc: string;
-  skill: string;
-  subject: Subject;
-  duration: string;
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type SkillRow = {
+  skillCode?: string;
+  skillLabel?: string;
+  skillName?: string;
+  skillId?: string;
+  subject?: string;
+  subjectCode?: string;
+  accuracy?: number;
+  masteryPct?: number;
+  sessionsCount?: number;
+  sessionCount?: number;
+  correctCount?: number;
+  totalCount?: number;
 };
 
-const ACTIVITIES: Activity[] = [
-  {
-    id: "sound-safari",
-    icon: "📖",
-    iconBg: "rgba(88,232,193,0.15)",
-    name: "Sound safari walk",
-    desc: "On your next walk, point to 5 things and sound out the first letter together — say &lsquo;tree&rsquo; and blend t-r-ee! Try it with 5 things you see.",
-    skill: "Blending sounds · Reading",
-    subject: "reading",
-    duration: "5 min",
-  },
-  {
-    id: "read-aloud",
-    icon: "📚",
-    iconBg: "rgba(88,232,193,0.15)",
-    name: "Read-aloud pause game",
-    desc: "Read any picture book and pause on unfamiliar words. Ask what sound it starts with before reading it aloud.",
-    skill: "Blending sounds · Reading",
-    subject: "reading",
-    duration: "10 min",
-  },
-  {
-    id: "skip-stairs",
-    icon: "🔢",
-    iconBg: "rgba(155,114,255,0.15)",
-    name: "Skip count the stairs",
-    desc: "Every time you climb stairs together, count by 2s: 2, 4, 6, 8 — first to 20 wins! Mix in 5s when ready.",
-    skill: "Skip counting · Math",
-    subject: "math",
-    duration: "2 min",
-  },
-  {
-    id: "grocery",
-    icon: "🛒",
-    iconBg: "rgba(155,114,255,0.15)",
-    name: "Grocery skip count",
-    desc: "At the shop, ask Maya to count items in groups of 2 or 5. How many apples? Count by 2s!",
-    skill: "Skip counting · Math",
-    subject: "math",
-    duration: "5 min",
-  },
-  {
-    id: "skip-song",
-    icon: "🎵",
-    iconBg: "rgba(255,209,102,0.12)",
-    name: "Skip count song",
-    desc: "Look up a skip-counting-by-2s song on YouTube (Numberblocks, etc.) — 3 minutes of silly singing beats a worksheet any day!",
-    skill: "Skip counting · Math",
-    subject: "math",
-    duration: "3 min",
-  },
-];
+type ReportStats = {
+  starsEarned: number;
+  sessions: number;
+  learningMinutes: number;
+  streakDays: number;
+};
 
-type FilterChip = { id: string; label: string };
-const FILTERS: FilterChip[] = [
-  { id: "all", label: "All" },
-  { id: "reading", label: "🌿 Reading" },
-  { id: "math", label: "➗ Math" },
-  { id: "5min", label: "⏱ 5 min" },
-  { id: "10min", label: "⏱ 10 min" },
-];
+type ReportData = {
+  displayName: string;
+  launchBandCode: string;
+  stats: ReportStats;
+  skills: SkillRow[];
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function getStudentIdFromCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("wonderquest-child-id="));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
+
+function skillName(s: SkillRow): string {
+  return s.skillLabel ?? s.skillName ?? s.skillCode ?? "Unknown skill";
+}
+
+function skillAccuracy(s: SkillRow): number {
+  if (typeof s.accuracy === "number") return s.accuracy;
+  if (typeof s.masteryPct === "number") return s.masteryPct;
+  if (s.correctCount != null && s.totalCount != null && s.totalCount > 0) {
+    return Math.round((s.correctCount / s.totalCount) * 100);
+  }
+  return 0;
+}
+
+function skillSessions(s: SkillRow): number {
+  return s.sessionsCount ?? s.sessionCount ?? 0;
+}
+
+function subjectLabel(s: SkillRow): string {
+  const raw = s.subject ?? s.subjectCode ?? "";
+  if (raw.toLowerCase().includes("read") || raw.toLowerCase().includes("phonics")) return "Reading";
+  if (raw.toLowerCase().includes("math") || raw.toLowerCase().includes("number")) return "Maths";
+  return raw || "General";
+}
+
+function subjectColor(s: SkillRow): string {
+  const sub = subjectLabel(s).toLowerCase();
+  if (sub === "reading") return C.mint;
+  if (sub === "maths") return C.violet;
+  return C.gold;
+}
+
+// Sort skills by "needs practice most": lowest accuracy first, tie-break by fewest sessions
+function prioritySort(skills: SkillRow[]): SkillRow[] {
+  return [...skills].sort((a, b) => {
+    const accDiff = skillAccuracy(a) - skillAccuracy(b);
+    if (accDiff !== 0) return accDiff;
+    return skillSessions(a) - skillSessions(b);
+  });
+}
+
+// ── Stat card ──────────────────────────────────────────────────────────────
+
+function StatCard({ icon, value, label }: { icon: string; value: string | number; label: string }) {
+  return (
+    <div
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: "14px 16px",
+        flex: 1,
+        minWidth: 0,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{value}</div>
+      <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+// ── Accuracy bar ───────────────────────────────────────────────────────────
+
+function AccuracyBar({ pct, color }: { pct: number; color: string }) {
+  const capped = Math.min(100, Math.max(0, pct));
+  return (
+    <div
+      style={{
+        height: 6,
+        background: C.faint,
+        borderRadius: 4,
+        overflow: "hidden",
+        marginTop: 6,
+      }}
+    >
+      <div
+        style={{
+          height: "100%",
+          width: `${capped}%`,
+          background: color,
+          borderRadius: 4,
+          transition: "width 0.4s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ParentPracticePage() {
-  const [filter, setFilter] = useState("all");
-  const [saved, setSaved] = useState<Set<string>>(new Set(["sound-safari", "skip-stairs"]));
-  const [tab, setTab] = useState<"planner" | "checklist">("planner");
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = ACTIVITIES.filter((a) => {
-    if (filter === "all") return true;
-    if (filter === "reading") return a.subject === "reading";
-    if (filter === "math") return a.subject === "math";
-    if (filter === "5min") return a.duration === "5 min";
-    if (filter === "10min") return a.duration === "10 min";
-    return true;
-  });
+  useEffect(() => {
+    const studentId = getStudentIdFromCookie();
+    if (!studentId) {
+      setError("No child selected. Please select a child from your dashboard.");
+      setLoading(false);
+      return;
+    }
 
-  const savedActivities = ACTIVITIES.filter((a) => saved.has(a.id));
-  const totalMins = [...saved].reduce((sum, id) => {
-    const a = ACTIVITIES.find((x) => x.id === id);
-    return sum + (a ? parseInt(a.duration) : 0);
-  }, 0);
+    fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=0`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.report) {
+          setReport(data.report as ReportData);
+        } else {
+          setError(data.error ?? "Could not load practice data.");
+        }
+      })
+      .catch(() => setError("Could not load practice data."))
+      .finally(() => setLoading(false));
+  }, []);
 
-  function toggleSaved(id: string) {
-    setSaved((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
+  const allSkills = report?.skills ?? [];
+  const sorted = prioritySort(allSkills);
+  const focusSkills = sorted.slice(0, 3);
+  const childName = report?.displayName ?? "your child";
+  const stats = report?.stats;
+
+  // Sessions this week from stats
+  const sessionsThisWeek = stats?.sessions ?? 0;
+  const starsEarned = stats?.starsEarned ?? 0;
+  const skillsPracticed = allSkills.length;
 
   return (
-    <AppFrame audience="parent" currentPath="/parent">
-      <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px 60px" }}>
+    <AppFrame audience="parent" currentPath="/parent/practice">
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.base,
+          padding: "28px 20px 72px",
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          color: C.text,
+          maxWidth: 560,
+          margin: "0 auto",
+        }}
+      >
+        {/* Back nav */}
+        <div style={{ marginBottom: 20 }}>
+          <Link
+            href="/parent"
+            style={{ color: C.violet, fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+          >
+            ← Dashboard
+          </Link>
+        </div>
+
         {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 4 }}>
-            Parent
-          </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>At-home Practice</h1>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, marginBottom: 4 }}>
+            📚 Practice
+          </h1>
+          {!loading && !error && (
+            <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>
+              {childName}&apos;s skill practice overview
+            </p>
+          )}
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-          {(["planner", "checklist"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: "8px 18px",
-                borderRadius: 20,
-                border: "none",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: "system-ui",
-                background: tab === t ? C.violet : "rgba(255,255,255,0.06)",
-                color: tab === t ? "#fff" : C.muted,
-                transition: "all .18s",
-              }}
-            >
-              {t === "planner" ? "Activity Suggestions" : "Saved Checklist"}
-            </button>
-          ))}
-        </div>
-
-        {tab === "planner" && (
-          <div style={{ maxWidth: 520 }}>
-            {/* Info box */}
-            <div style={{ background: "rgba(155,114,255,0.1)", borderLeft: `4px solid ${C.violet}`, borderRadius: "0 10px 10px 0", padding: "12px 14px", fontSize: 12, color: "#c4a0ff", lineHeight: 1.5, marginBottom: 16 }}>
-              These suggestions are tied to <strong>Blending sounds</strong> and <strong>Skip counting</strong> — skills Maya is building toward this week.
-            </div>
-
-            {/* Filter chips */}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-              {FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFilter(f.id)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    border: `1.5px solid ${filter === f.id ? C.violet : "rgba(155,114,255,0.2)"}`,
-                    background: filter === f.id ? C.violet : "transparent",
-                    color: filter === f.id ? "#fff" : C.muted,
-                    fontFamily: "system-ui",
-                    transition: "all .15s",
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Activity cards */}
-            {filtered.map((a) => {
-              const isSaved = saved.has(a.id);
-              return (
-                <div
-                  key={a.id}
-                  onClick={() => toggleSaved(a.id)}
-                  style={{
-                    border: `2px solid ${isSaved ? C.violet : "rgba(155,114,255,0.2)"}`,
-                    borderRadius: 14,
-                    padding: 16,
-                    marginBottom: 10,
-                    cursor: "pointer",
-                    background: isSaved ? "rgba(155,114,255,0.06)" : "transparent",
-                    transition: "all .15s",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, background: a.iconBg }}>
-                      {a.icon}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>{a.name}</div>
-                      <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>{a.desc}</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.violet, marginTop: 4 }}>{a.skill}</div>
-                    </div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 600, flexShrink: 0 }}>{a.duration}</div>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: "50%",
-                      border: `2px solid ${isSaved ? C.violet : "rgba(255,255,255,0.2)"}`,
-                      flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 11,
-                      background: isSaved ? C.violet : "transparent",
-                      color: "#fff",
-                      transition: "all .15s",
-                    }}>
-                      {isSaved && "✓"}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Summary */}
-            <div style={{ display: "flex", gap: 8, background: "rgba(155,114,255,0.08)", borderRadius: 12, padding: "12px 14px", marginTop: 14, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>✅ {saved.size} saved · {ACTIVITIES.length - saved.size} not saved</span>
-              <span style={{ fontSize: 12, color: C.muted }}>·</span>
-              <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>⏱ ~{totalMins} min total</span>
-            </div>
-
-            <button
-              onClick={() => setTab("checklist")}
-              style={{
-                width: "100%", padding: 14, background: C.violet, color: "#fff",
-                border: "none", borderRadius: 12, fontSize: 15, fontWeight: 700,
-                fontFamily: "system-ui", cursor: "pointer", marginTop: 14,
-              }}
-            >
-              Save selected to checklist
-            </button>
+        {/* Loading state */}
+        {loading && (
+          <div
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 16,
+              padding: 32,
+              textAlign: "center",
+              color: C.muted,
+              fontSize: 14,
+            }}
+          >
+            Loading practice data…
           </div>
         )}
 
-        {tab === "checklist" && (
-          <div style={{ maxWidth: 440 }}>
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 22, border: `1px solid rgba(155,114,255,0.15)` }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 4 }}>This week&apos;s checklist</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>Apr 7–13 · For Maya</div>
+        {/* Error state */}
+        {!loading && error && (
+          <div
+            style={{
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.3)",
+              borderRadius: 14,
+              padding: "16px 20px",
+              fontSize: 14,
+              color: "#f87171",
+              marginBottom: 24,
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-              {savedActivities.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 16px", color: C.muted }}>
-                  <div style={{ fontSize: 40, marginBottom: 10 }}>📋</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>No activities saved yet</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.5 }}>Go to Activity Suggestions and tap activities to save them here.</div>
+        {/* Main content */}
+        {!loading && !error && report && (
+          <>
+            {/* Quick stats strip */}
+            <div
+              style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}
+            >
+              <StatCard icon="🎯" value={sessionsThisWeek} label="Sessions this week" />
+              <StatCard icon="⭐" value={starsEarned} label="Stars earned" />
+              <StatCard icon="📖" value={skillsPracticed} label="Skills practiced" />
+            </div>
+
+            {/* Today's focus */}
+            <div style={{ marginBottom: 28 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.07em",
+                  color: C.muted,
+                  marginBottom: 12,
+                }}
+              >
+                Today&apos;s focus
+              </div>
+
+              {focusSkills.length === 0 ? (
+                <div
+                  style={{
+                    background: "rgba(34,197,94,0.08)",
+                    border: "1px solid rgba(34,197,94,0.2)",
+                    borderRadius: 14,
+                    padding: "16px 20px",
+                    fontSize: 14,
+                    color: C.mint,
+                  }}
+                >
+                  🌟 All skills looking strong this week — keep it up!
                 </div>
               ) : (
-                <div style={{ marginBottom: 10 }}>
-                  {savedActivities.map((a, i) => (
-                    <div
-                      key={a.id}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 12,
-                        padding: "12px 0",
-                        borderBottom: i < savedActivities.length - 1 ? "1px solid rgba(155,114,255,0.12)" : "none",
-                      }}
-                    >
-                      <div style={{ width: 22, height: 22, borderRadius: 6, background: "rgba(255,255,255,0.06)", border: "2px solid rgba(255,255,255,0.15)", flexShrink: 0, cursor: "pointer" }} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{a.name}</div>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{a.skill} · {a.duration}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {focusSkills.map((skill, i) => {
+                    const acc = skillAccuracy(skill);
+                    const sessions = skillSessions(skill);
+                    const color = subjectColor(skill);
+                    const label = subjectLabel(skill);
+                    return (
+                      <div
+                        key={skill.skillCode ?? skill.skillId ?? i}
+                        style={{
+                          background: C.surface,
+                          border: `1px solid ${C.border}`,
+                          borderRadius: 14,
+                          padding: "14px 16px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 14,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            background: `${color}20`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 18,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {label === "Reading" ? "📖" : label === "Maths" ? "🔢" : "✨"}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: C.text,
+                              marginBottom: 2,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {skillName(skill)}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted }}>
+                            {label} · {sessions} {sessions === 1 ? "session" : "sessions"}
+                          </div>
+                          <AccuracyBar pct={acc} color={color} />
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 800,
+                            color: acc < 50 ? C.amber : color,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {acc}%
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
-
-              {savedActivities.length > 0 && (
-                <div style={{ background: "rgba(88,232,193,0.08)", border: "1px solid rgba(88,232,193,0.2)", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: C.mint, lineHeight: 1.5 }}>
-                  🎉 {saved.size} {saved.size === 1 ? "activity" : "activities"} saved for this week — great support for Maya!
-                </div>
-              )}
-
-              <button
-                onClick={() => setTab("planner")}
-                style={{ marginTop: 14, fontSize: 12, color: C.violet, fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                + Add more activities
-              </button>
             </div>
-          </div>
-        )}
 
-        {/* Footer nav */}
-        <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[
-            { href: "/parent", label: "← Dashboard" },
-            { href: "/parent/report", label: "Weekly Report" },
-            { href: "/parent/skills/phonics-blending", label: "Skills" },
-          ].map((l) => (
-            <Link key={l.href} href={l.href} style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>
-              {l.label}
+            {/* Skill areas grid */}
+            {allSkills.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.07em",
+                    color: C.muted,
+                    marginBottom: 12,
+                  }}
+                >
+                  Skill areas
+                </div>
+                <div
+                  style={{
+                    background: C.surface,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                  }}
+                >
+                  {sorted.map((skill, i) => {
+                    const acc = skillAccuracy(skill);
+                    const color = subjectColor(skill);
+                    return (
+                      <div
+                        key={skill.skillCode ?? skill.skillId ?? i}
+                        style={{
+                          padding: "12px 16px",
+                          borderBottom:
+                            i < sorted.length - 1 ? `1px solid ${C.faint}` : "none",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: C.text,
+                              marginBottom: 4,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {skillName(skill)}
+                          </div>
+                          <AccuracyBar pct={acc} color={color} />
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: acc < 50 ? C.amber : color,
+                            flexShrink: 0,
+                            minWidth: 38,
+                            textAlign: "right",
+                          }}
+                        >
+                          {acc}%
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Start practice CTA */}
+            <Link
+              href="/play"
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "15px 20px",
+                background: C.violet,
+                color: "#fff",
+                border: "none",
+                borderRadius: 14,
+                fontSize: 16,
+                fontWeight: 800,
+                textAlign: "center",
+                textDecoration: "none",
+                marginBottom: 16,
+                boxSizing: "border-box",
+              }}
+            >
+              Start practice ✨
             </Link>
-          ))}
-        </div>
+
+            {/* Footer links */}
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+              <Link
+                href="/parent/report"
+                style={{ fontSize: 13, fontWeight: 700, color: C.violet, textDecoration: "none" }}
+              >
+                Full report →
+              </Link>
+              <Link
+                href="/parent/planner"
+                style={{ fontSize: 13, fontWeight: 700, color: C.muted, textDecoration: "none" }}
+              >
+                Practice planner →
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </AppFrame>
   );
