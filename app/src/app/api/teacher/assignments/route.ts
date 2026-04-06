@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTeacherAssignments, createAssignment } from "@/lib/teacher-service";
+import { isValidTeacherId } from "@/lib/teacher-identity";
 
 export async function GET(request: NextRequest) {
   const teacherId = request.nextUrl.searchParams.get("teacherId");
 
-  if (!teacherId) {
-    return NextResponse.json({ error: "teacherId is required" }, { status: 400 });
+  if (!isValidTeacherId(teacherId)) {
+    return NextResponse.json({ assignments: [] });
   }
 
   try {
