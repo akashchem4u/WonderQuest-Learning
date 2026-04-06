@@ -282,10 +282,26 @@ export default function TeacherInterventionOverviewPage() {
     fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<{ interventions: Intervention[] }>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return r.json() as Promise<{ interventions: any[] }>;
       })
       .then((data) => {
-        setInterventions(data.interventions ?? []);
+        // Normalise API field names → page type
+        const normalised: Intervention[] = (data.interventions ?? []).map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (i: any) => ({
+            id: i.id,
+            studentId: i.studentId,
+            studentName: i.studentName,
+            skillCode: i.skillCode ?? null,
+            skillLabel: i.skillLabel ?? i.skillCode ?? null,
+            triggerType: i.triggerType ?? i.interventionType ?? i.reason ?? "check_in",
+            status: i.status as "active" | "resolved",
+            createdAt: i.createdAt,
+            resolvedAt: i.resolvedAt ?? null,
+          }),
+        );
+        setInterventions(normalised);
         setLoading(false);
       })
       .catch((err) => {

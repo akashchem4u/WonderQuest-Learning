@@ -154,7 +154,14 @@ export default function TeacherPage() {
     ])
       .then(([classData, intData]) => {
         setRoster(classData.roster ?? []);
-        setInterventions(intData.interventions ?? []);
+        // Normalise API field names: interventionType → triggerType, skillCode → skillLabel
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawInts: any[] = intData.interventions ?? [];
+        setInterventions(rawInts.map((i) => ({
+          ...i,
+          triggerType: i.triggerType ?? i.interventionType ?? i.reason ?? "check_in",
+          skillLabel: i.skillLabel ?? i.skillCode ?? null,
+        })));
       })
       .catch(() => {/* ignore */})
       .finally(() => setLoading(false));
