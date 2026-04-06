@@ -723,6 +723,130 @@ function buildCompletionMoment(answerState: AnswerPayload | null, earlyLearnerMo
   return { title: earlyLearnerMode ? "Quest path complete!" : "Session path complete.", body: earlyLearnerMode ? "All steps done! ⭐" : "Next route is ready.", emoji: "⭐" };
 }
 
+function buildQuestionStageLabel(question: SessionQuestion, scene: QuestionVisualScene | null) {
+  if (scene?.title) return scene.title;
+  if (isReadSimpleWordSkill(question)) return "Which word matches the picture?";
+  if (isShortASkill(question)) return "Which word has the matching sound?";
+  if (isAddToTenSkill(question)) {
+    if (question.skill === "subtract-from-10") return "Subtract and tap the answer";
+    if (question.skill === "number-bonds-to-5") return "Find the pair that makes 5";
+    return "Add and tap the total";
+  }
+  if (question.subject === "math") return "Solve the math problem";
+  if (question.subject === "early-literacy") return "Look and tap the match";
+  return "Choose the best answer";
+}
+
+function renderQuestionStageVisual(
+  question: SessionQuestion,
+  scene: QuestionVisualScene | null,
+  isAnsweredCorrect: boolean,
+) {
+  const frameStyle = {
+    ...s.questImage,
+    ...(isAnsweredCorrect
+      ? {
+          borderColor: C.mintGreen,
+          background: "linear-gradient(135deg, #1a3a20, #2a5a30)",
+          boxShadow: "0 0 28px rgba(80,232,144,0.2)",
+        }
+      : {}),
+  };
+
+  if (scene?.tokens?.length) {
+    return (
+      <div style={frameStyle}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap" as const,
+            gap: 6,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 10,
+            maxWidth: 104,
+          }}
+        >
+          {scene.tokens.map((token, index) => (
+            <span key={`${question.questionKey}-${index}`} style={{ fontSize: 20 }} aria-hidden="true">
+              {token}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isAddToTenSkill(question)) {
+    const values = (question.prompt.match(/\d+/g) ?? [])
+      .slice(0, 2)
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value >= 0);
+    const left = values[0] ?? 0;
+    const right = values[1] ?? 0;
+    const operator = question.skill === "subtract-from-10" ? "−" : "+";
+
+    return (
+      <div style={frameStyle}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column" as const,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            width: "100%",
+            padding: 10,
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, justifyContent: "center" }}>
+            {Array.from({ length: left }, (_, index) => (
+              <span key={`left-${index}`} style={{ fontSize: 15 }} aria-hidden="true">⭐</span>
+            ))}
+          </div>
+          <span style={{ fontSize: 18, fontWeight: 900, color: C.gold }} aria-hidden="true">{operator}</span>
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 4, justifyContent: "center" }}>
+            {Array.from({ length: right }, (_, index) => (
+              <span key={`right-${index}`} style={{ fontSize: 15 }} aria-hidden="true">⭐</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isReadSimpleWordSkill(question) || isShortASkill(question)) {
+    const preview = getWordPreview(question.correctAnswer);
+    return (
+      <div style={frameStyle}>
+        <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 52 }} aria-hidden="true">{preview.icon}</span>
+          <small style={{ fontSize: 12, color: C.text, fontWeight: 800 }}>{preview.helper}</small>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLetterSkill(question)) {
+    return (
+      <div style={frameStyle}>
+        <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 54, fontWeight: 900, color: "#fff" }} aria-hidden="true">
+            {question.correctAnswer}
+          </span>
+          <small style={{ fontSize: 12, color: C.text, fontWeight: 800 }}>letter clue</small>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={frameStyle}>
+      <span aria-hidden="true">{buildQuestNodeIcon(question)}</span>
+    </div>
+  );
+}
+
 // ── Inline styles ─────────────────────────────────────────────────────────────
 
 const s = {
@@ -1343,22 +1467,51 @@ function PlayClientInner() {
     setSubmitting(true);
     setError("");
     setSelectedAnswer(answer);
+    const sessionId = session.sessionId;
+    const questionKey = currentQuestion.questionKey;
+
+    function isRetryablePlayError(message: string) {
+      const normalized = message.toLowerCase();
+
+      return (
+        normalized.includes("timeout") ||
+        normalized.includes("connect") ||
+        normalized.includes("network") ||
+        normalized.includes("connection hiccup") ||
+        normalized.includes("stale connection")
+      );
+    }
 
     // Kids sometimes take a long time on a question; the DB connection may
     // have gone stale. Retry the POST up to 2 times before showing an error.
-    async function attemptPost(retriesLeft: number): Promise<Response> {
+    async function attemptPost(retriesLeft: number): Promise<AnswerPayload> {
       try {
-        return await fetch("/api/play/answer", {
+        const response = await fetch("/api/play/answer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sessionId: session!.sessionId,
-            questionKey: currentQuestion!.questionKey,
+            sessionId,
+            questionKey,
             answer,
             attempt,
             timeSpentMs: Date.now() - questionStartedAt,
           }),
         });
+
+        const payload = (await response.json()) as AnswerPayload & { error?: string };
+
+        if (!response.ok) {
+          const errorMessage = payload.error ?? "Could not submit answer.";
+
+          if (retriesLeft > 0 && isRetryablePlayError(errorMessage)) {
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+            return attemptPost(retriesLeft - 1);
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        return payload;
       } catch (fetchErr) {
         if (retriesLeft <= 0) throw fetchErr;
         await new Promise((r) => setTimeout(r, 1200));
@@ -1367,10 +1520,7 @@ function PlayClientInner() {
     }
 
     try {
-      const response = await attemptPost(2);
-
-      const payload = (await response.json()) as AnswerPayload & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Could not submit answer.");
+      const payload = await attemptPost(2);
 
       setAnswerState(payload);
       setProgression(payload.progression);
@@ -1823,24 +1973,11 @@ function PlayClientInner() {
                   ? "✓ That's right!"
                   : isRetrying
                     ? "Not quite — give it another try!"
-                    : "Which word matches the picture?"}
+                    : buildQuestionStageLabel(currentQuestion, currentScene)}
               </div>
 
               {/* Visual / image area */}
-              {currentScene?.tokens?.length ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 16, maxWidth: 320 }}>
-                  {currentScene.tokens.map((token, i) => (
-                    <span key={i} style={{ fontSize: 36 }} aria-hidden="true">{token}</span>
-                  ))}
-                </div>
-              ) : (
-                <div style={{
-                  ...s.questImage,
-                  ...(isAnsweredCorrect ? { borderColor: C.mintGreen, background: "linear-gradient(135deg, #1a3a20, #2a5a30)", boxShadow: `0 0 28px rgba(80,232,144,0.2)` } : {}),
-                }}>
-                  <span aria-hidden="true">{buildQuestNodeIcon(currentQuestion)}</span>
-                </div>
-              )}
+              {renderQuestionStageVisual(currentQuestion, currentScene, isAnsweredCorrect)}
 
               {/* Prompt */}
               <div style={{ ...s.questPrompt, ...(isAnsweredCorrect ? { color: C.mintGreen } : {}) }}>
@@ -1855,6 +1992,37 @@ function PlayClientInner() {
                     ? (inlineSupportMessage || "Listen again and try once more.")
                     : promptCue}
               </div>
+
+              {!isAnsweredCorrect ? (
+                <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}>
+                  <button
+                    type="button"
+                    aria-pressed={assistMode === "voice"}
+                    disabled={!voiceEnabled}
+                    onClick={() => replayQuestion("voice")}
+                    style={{ background: assistMode === "voice" ? C.surface2 : "transparent", border: `2px solid ${assistMode === "voice" ? C.violet : C.border}`, borderRadius: 10, color: assistMode === "voice" ? C.violet : C.muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "7px 14px", cursor: "pointer" }}
+                  >
+                    {isSpeaking && assistMode === "voice" ? "🔊 Playing…" : "🔊 Replay"}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={assistMode === "slow"}
+                    disabled={!voiceEnabled}
+                    onClick={() => replayQuestion("slow")}
+                    style={{ background: assistMode === "slow" ? C.surface2 : "transparent", border: `2px solid ${assistMode === "slow" ? C.violet : C.border}`, borderRadius: 10, color: assistMode === "slow" ? C.violet : C.muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "7px 14px", cursor: "pointer" }}
+                  >
+                    {isSpeaking && assistMode === "slow" ? "🔊 Playing…" : "🐢 Slow replay"}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={assistMode === "visual"}
+                    onClick={() => setAssistMode("visual")}
+                    style={{ background: assistMode === "visual" ? C.surface2 : "transparent", border: `2px solid ${assistMode === "visual" ? C.mint : C.border}`, borderRadius: 10, color: assistMode === "visual" ? C.mint : C.muted, fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "7px 14px", cursor: "pointer" }}
+                  >
+                    🖼 Pictures only
+                  </button>
+                </div>
+              ) : null}
 
               {/* Answer grid */}
               <div style={s.answerGrid}>

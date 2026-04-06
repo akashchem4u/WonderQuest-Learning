@@ -464,6 +464,32 @@ async function selectEasyFirstGuidedQuestions(
     }
   }
 
+  const ladderSkills = SKILL_LADDERS[launchBandCode] ?? [];
+
+  for (const skill of ladderSkills) {
+    if (skillPriority.includes(skill) || selected.some((item) => item.skill === skill)) {
+      continue;
+    }
+
+    const nextQuestion = await pickQuestion(
+      launchBandCode,
+      skill,
+      usedQuestionKeys,
+      recentQuestionKeys,
+    );
+
+    if (!nextQuestion) {
+      continue;
+    }
+
+    selected.push(nextQuestion);
+    usedQuestionKeys.add(nextQuestion.question_key);
+
+    if (selected.length === questionLimit) {
+      return selected;
+    }
+  }
+
   const remainingQuestions = await loadBandQuestionWindow(
     launchBandCode,
     usedQuestionKeys,
@@ -472,7 +498,65 @@ async function selectEasyFirstGuidedQuestions(
     Math.max(questionLimit * 8, 32),
   );
 
-  return [...selected, ...shuffleArray(remainingQuestions)].slice(0, questionLimit);
+  const usedSkills = new Set(selected.map((item) => item.skill));
+  const remainingBySkill = new Map<string, SessionQuestionRecord[]>();
+
+  for (const question of remainingQuestions) {
+    const bucket = remainingBySkill.get(question.skill) ?? [];
+    bucket.push(question);
+    remainingBySkill.set(question.skill, bucket);
+  }
+
+  const skillOrder = shuffleArray(Array.from(remainingBySkill.keys()));
+  skillOrder.sort((leftSkill, rightSkill) => {
+    const leftSeen = usedSkills.has(leftSkill) ? 1 : 0;
+    const rightSeen = usedSkills.has(rightSkill) ? 1 : 0;
+
+    return leftSeen - rightSeen;
+  });
+
+  const diversifiedRemainder: SessionQuestionRecord[] = [];
+
+  while (selected.length + diversifiedRemainder.length < questionLimit) {
+    let appended = false;
+    const previousSkill =
+      diversifiedRemainder[diversifiedRemainder.length - 1]?.skill ??
+      selected[selected.length - 1]?.skill ??
+      null;
+
+    for (const skill of skillOrder) {
+      const queue = remainingBySkill.get(skill);
+
+      if (!queue?.length) {
+        continue;
+      }
+
+      if (queue.length > 1 && skill === previousSkill) {
+        continue;
+      }
+
+      diversifiedRemainder.push(queue.shift()!);
+      appended = true;
+      break;
+    }
+
+    if (appended) {
+      continue;
+    }
+
+    const fallbackNext = skillOrder
+      .map((skill) => remainingBySkill.get(skill))
+      .find((queue): queue is SessionQuestionRecord[] => Boolean(queue?.length))
+      ?.shift();
+
+    if (!fallbackNext) {
+      break;
+    }
+
+    diversifiedRemainder.push(fallbackNext);
+  }
+
+  return [...selected, ...diversifiedRemainder].slice(0, questionLimit);
 }
 
 async function maybeReplaceSessionQuestionsWithLiveVariants(

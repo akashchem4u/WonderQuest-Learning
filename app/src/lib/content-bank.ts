@@ -67,6 +67,16 @@ const SUBJECTS_BY_MODULE = Object.entries(MODULE_BY_SUBJECT).reduce<
   return accumulator;
 }, {});
 
+const AMBIGUOUS_EARLY_WORD_DISTRACTORS: Record<
+  string,
+  { blocked: string[]; replacements: string[] }
+> = {
+  bat: {
+    blocked: ["ball", "net", "goal", "kick", "team", "pass"],
+    replacements: ["bag", "hat", "map", "cap", "jam", "van"],
+  },
+};
+
 function questionModuleFromSubject(subject: string) {
   return MODULE_BY_SUBJECT[subject] ?? "general";
 }
@@ -107,19 +117,71 @@ function toGenerationMetadata(value: unknown) {
   return {};
 }
 
+function sanitizeEarlyLearnerWordQuestion(input: {
+  skill: string;
+  correctAnswer: string;
+  distractors: string[];
+}) {
+  const skill = input.skill.toLowerCase();
+  const correctAnswer = input.correctAnswer.toLowerCase();
+  const ambiguousConfig = AMBIGUOUS_EARLY_WORD_DISTRACTORS[correctAnswer];
+  const isWordReadingSkill =
+    skill === "read-simple-word" ||
+    skill === "decodable-cvc-word" ||
+    skill === "short-a-sound" ||
+    skill === "short-e-sound" ||
+    skill === "short-i-sound";
+
+  if (!isWordReadingSkill || !ambiguousConfig) {
+    return input.distractors;
+  }
+
+  const blocked = new Set(
+    ambiguousConfig.blocked.map((value) => value.toLowerCase()),
+  );
+  const sanitized = input.distractors.filter(
+    (value) => !blocked.has(value.toLowerCase()),
+  );
+  const used = new Set([
+    correctAnswer,
+    ...sanitized.map((value) => value.toLowerCase()),
+  ]);
+
+  for (const replacement of ambiguousConfig.replacements) {
+    if (sanitized.length >= input.distractors.length) {
+      break;
+    }
+
+    if (used.has(replacement.toLowerCase())) {
+      continue;
+    }
+
+    sanitized.push(replacement);
+    used.add(replacement.toLowerCase());
+  }
+
+  return sanitized.slice(0, input.distractors.length);
+}
+
 function mapQuestionRow(row: Record<string, unknown>): ContentQuestion {
   const subject = String(row.subject ?? "");
+  const skill = String(row.skill ?? "");
+  const correctAnswer = String(row.correct_answer ?? "");
 
   return {
     question_key: String(row.question_key ?? ""),
     launch_band: String(row.launch_band ?? ""),
     module: questionModuleFromSubject(subject),
     subject,
-    skill: String(row.skill ?? ""),
+    skill,
     theme: String(row.theme ?? ""),
     prompt: String(row.prompt ?? ""),
-    correct_answer: String(row.correct_answer ?? ""),
-    distractors: toStringArray(row.distractors),
+    correct_answer: correctAnswer,
+    distractors: sanitizeEarlyLearnerWordQuestion({
+      skill,
+      correctAnswer,
+      distractors: toStringArray(row.distractors),
+    }),
     modality: "tap",
     difficulty: Number(row.difficulty ?? 1),
     explanation_text: String(row.explanation_text ?? ""),
