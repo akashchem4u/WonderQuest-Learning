@@ -161,7 +161,16 @@ export default function ChildThemePage() {
 
   const activeTheme = THEMES.find((t) => t.id === selectedTheme) ?? THEMES[0];
 
-  function handleSave() {
+  async function handleSave() {
+    try {
+      await fetch("/api/child/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferredThemeCode: selectedTheme }),
+      });
+    } catch {
+      // best-effort — still show confirmation
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
