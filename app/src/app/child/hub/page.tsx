@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 const font = "'Nunito', system-ui, sans-serif";
@@ -19,46 +19,95 @@ const green = "#50e890";
 
 type Tab = "home" | "band" | "worlds";
 
-const nodes = [
-  { emoji: "🌟", num: 1, state: "done" },
-  { emoji: "🔮", num: 2, state: "done" },
-  { emoji: "💎", num: 3, state: "done" },
-  { emoji: "🗝️", num: 4, state: "done" },
-  { emoji: "🌈", num: 5, state: "done" },
-  { emoji: "🔥", num: 6, state: "done" },
-  { emoji: "🏔️", num: 7, state: "active" },
-  { emoji: "🌙", num: 8, state: "locked" },
-  { emoji: "⚡", num: 9, state: "locked" },
-  { emoji: "🦋", num: 10, state: "locked" },
-  { emoji: "🌟", num: 11, state: "locked" },
-  { emoji: "👑", num: 12, state: "locked" },
-];
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const quests = [
-  { icon: "🔤", name: "Word Builders", world: "Crystal Caverns", stars: "⭐⭐⭐ earn up to 3" },
-  { icon: "🔢", name: "Number Tower", world: "Crystal Caverns", stars: "⭐⭐ earn up to 2" },
-  { icon: "🎵", name: "Sound Hunt", world: "Crystal Caverns", stars: "⭐⭐⭐ earn up to 3" },
-];
+type SessionData = {
+  student: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarKey: string;
+    launchBandCode: string;
+    preferredThemeCode: string | null;
+  };
+  progression: {
+    totalPoints: number;
+    currentLevel: number;
+    badgeCount: number;
+    trophyCount: number;
+  };
+};
 
-const recentWins = [
-  { icon: "⭐", text: "Earned 3 stars!", meta: "today" },
-  { icon: "🏅", text: "New badge unlocked", meta: "today" },
-  { icon: "🔥", text: "5-day streak!", meta: "today" },
-  { icon: "🗝️", text: "Node 6 complete", meta: "yesterday" },
-];
+// ─── Avatar emoji helper ──────────────────────────────────────────────────────
 
-const badges = [
-  { emoji: "🌟", locked: false },
-  { emoji: "🔥", locked: false },
-  { emoji: "💎", locked: false },
-  { emoji: "🏆", locked: true },
-  { emoji: "👑", locked: true },
-  { emoji: "🦋", locked: true },
-];
+function getAvatarEmoji(avatarKey: string) {
+  if (avatarKey.includes("bunny")) return "🐰";
+  if (avatarKey.includes("bear")) return "🐻";
+  if (avatarKey.includes("lion")) return "🦁";
+  if (avatarKey.includes("fox")) return "🦊";
+  if (avatarKey.includes("panda")) return "🐼";
+  if (avatarKey.includes("owl")) return "🦉";
+  return "🦋";
+}
+
+// ─── World data derived from band ────────────────────────────────────────────
+
+function getWorldForBand(bandCode: string) {
+  switch (bandCode) {
+    case "PREK":
+      return {
+        name: "Rainbow Meadows 🌈",
+        totalNodes: 10,
+        completedNodes: 2,
+        nodes: ["🌸", "🌻", "🌈", "🦋", "🍀", "⭐", "🌙", "🌊", "🌺", "🎈"],
+        quests: [
+          { icon: "🔤", name: "Letter Match", world: "Rainbow Meadows", stars: "⭐⭐⭐ earn up to 3" },
+          { icon: "🔢", name: "Count & Go", world: "Rainbow Meadows", stars: "⭐⭐ earn up to 2" },
+          { icon: "🎨", name: "Shape Hunt", world: "Rainbow Meadows", stars: "⭐⭐⭐ earn up to 3" },
+        ],
+      };
+    case "G23":
+      return {
+        name: "Starship Academy 🚀",
+        totalNodes: 14,
+        completedNodes: 5,
+        nodes: ["🚀", "🌍", "🌙", "⭐", "🛸", "🪐", "☄️", "🌌", "🔭", "🛰️", "🌠", "🌟", "💫", "👾"],
+        quests: [
+          { icon: "📖", name: "Story Missions", world: "Starship Academy", stars: "⭐⭐⭐ earn up to 3" },
+          { icon: "➗", name: "Math Blasters", world: "Starship Academy", stars: "⭐⭐⭐ earn up to 3" },
+          { icon: "🔬", name: "Lab Puzzles", world: "Starship Academy", stars: "⭐⭐ earn up to 2" },
+        ],
+      };
+    case "G45":
+      return {
+        name: "Engineer's Forge 🏗️",
+        totalNodes: 16,
+        completedNodes: 4,
+        nodes: ["🔧", "⚙️", "🏗️", "🧱", "🔩", "💡", "🛠️", "🔌", "📐", "🧮", "🪛", "⚡", "🏆", "🎯", "🌐", "👑"],
+        quests: [
+          { icon: "📚", name: "Word Craft", world: "Engineer's Forge", stars: "⭐⭐⭐ earn up to 3" },
+          { icon: "🧮", name: "Equation Lab", world: "Engineer's Forge", stars: "⭐⭐⭐ earn up to 3" },
+          { icon: "🧩", name: "Logic Bridge", world: "Engineer's Forge", stars: "⭐⭐ earn up to 2" },
+        ],
+      };
+    default: // K1
+      return {
+        name: "Crystal Caverns 💎",
+        totalNodes: 12,
+        completedNodes: 6,
+        nodes: ["🌟", "🔮", "💎", "🗝️", "🌈", "🔥", "🏔️", "🌙", "⚡", "🦋", "🌟", "👑"],
+        quests: [
+          { icon: "🔤", name: "Word Builders", world: "Crystal Caverns", stars: "⭐⭐⭐ earn up to 3" },
+          { icon: "🔢", name: "Number Tower", world: "Crystal Caverns", stars: "⭐⭐ earn up to 2" },
+          { icon: "🎵", name: "Sound Hunt", world: "Crystal Caverns", stars: "⭐⭐⭐ earn up to 3" },
+        ],
+      };
+  }
+}
 
 const bands = [
   {
-    key: "p0",
+    key: "PREK",
     icon: "🌈",
     name: "Pre-K Explorers",
     ages: "Ages 3\u20135 \u00b7 Early learners",
@@ -68,7 +117,7 @@ const bands = [
     nameColor: gold,
   },
   {
-    key: "p1",
+    key: "K1",
     icon: "⚡",
     name: "K\u20131 Adventurers",
     ages: "Ages 5\u20137 \u00b7 Kindergarten\u2013Grade 1",
@@ -78,7 +127,7 @@ const bands = [
     nameColor: violet,
   },
   {
-    key: "p2",
+    key: "G23",
     icon: "🌊",
     name: "G2\u20133 Questers",
     ages: "Ages 7\u20139 \u00b7 Grades 2\u20133",
@@ -88,7 +137,7 @@ const bands = [
     nameColor: mint,
   },
   {
-    key: "p3",
+    key: "G45",
     icon: "🔥",
     name: "G4\u20135 Champions",
     ages: "Ages 9\u201311 \u00b7 Grades 4\u20135",
@@ -112,15 +161,91 @@ const sidebarItems = [
   { icon: "🏠", label: "Home", key: "home" },
   { icon: "🗺️", label: "World Map", key: "worlds" },
   { icon: "⭐", label: "My Stars", key: "stars" },
-  { icon: "🏅", label: "Badges", key: "badges", badge: "3" },
+  { icon: "🏅", label: "Badges", key: "badges" },
   { icon: "🏆", label: "Trophies", key: "trophies" },
   { icon: "🎯", label: "Daily Quest", key: "daily" },
 ];
 
 export default function ChildHubPage() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
-  const [selectedBand, setSelectedBand] = useState("p1");
+  const [selectedBand, setSelectedBand] = useState("K1");
   const [sidebarActive, setSidebarActive] = useState("home");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: SessionData) => {
+        setSession(data);
+        setSelectedBand(data.student.launchBandCode);
+      })
+      .catch(() => {
+        // No-op: render with null session — stubs remain visible
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const streak = 0; // streak not yet in backend; placeholder
+  const stars = session?.progression.totalPoints ?? 0;
+  const badgeCount = session?.progression.badgeCount ?? 0;
+  const avatarEmoji = session ? getAvatarEmoji(session.student.avatarKey) : "🦋";
+  const world = getWorldForBand(session?.student.launchBandCode ?? "K1");
+  const activeNodes = world.nodes;
+  const completedNodes = world.completedNodes;
+  const totalNodes = world.totalNodes;
+  const progressPct = Math.round((completedNodes / totalNodes) * 100);
+  const activeNodeIndex = completedNodes; // 0-based index of active node
+
+  const recentWins = session
+    ? [
+        { icon: "🎮", text: "Session started", meta: "today" },
+        ...(badgeCount > 0 ? [{ icon: "🏅", text: "Badge unlocked", meta: "today" }] : []),
+        ...(stars > 0 ? [{ icon: "⭐", text: `${stars} stars collected`, meta: "today" }] : []),
+      ]
+    : [
+        { icon: "⭐", text: "Earned 3 stars!", meta: "today" },
+        { icon: "🏅", text: "New badge unlocked", meta: "today" },
+        { icon: "🔥", text: "5-day streak!", meta: "today" },
+        { icon: "🗝️", text: "Node 6 complete", meta: "yesterday" },
+      ];
+
+  const badges = [
+    { emoji: "🌟", locked: false },
+    { emoji: "🔥", locked: badgeCount < 1 },
+    { emoji: "💎", locked: badgeCount < 2 },
+    { emoji: "🏆", locked: true },
+    { emoji: "👑", locked: true },
+    { emoji: "🦋", locked: true },
+  ];
+
+  const sidebarItemsWithBadge = sidebarItems.map((item) =>
+    item.key === "badges" && badgeCount > 0
+      ? { ...item, badge: String(badgeCount) }
+      : { ...item, badge: null as string | null },
+  );
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div
+          style={{
+            minHeight: "100vh",
+            background: bg,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: font,
+            color: textPrimary,
+            fontSize: 18,
+            fontWeight: 700,
+          }}
+        >
+          Loading your quest hub…
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -175,10 +300,10 @@ export default function ChildHubPage() {
           {/* Nav links */}
           <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
             <Link href="/child" style={{ padding: "8px 14px", background: "#1e1a40", border: "2px solid #2e2a50", borderRadius: 8, color: textMuted, fontFamily: font, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-              ← Back
+              Back
             </Link>
             <Link href="/play" style={{ padding: "8px 14px", background: violet, border: `2px solid ${violet}`, borderRadius: 8, color: "#fff", fontFamily: font, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-              Play →
+              Play
             </Link>
           </div>
         </div>
@@ -210,12 +335,17 @@ export default function ChildHubPage() {
               <div style={{ fontSize: 22, fontWeight: 900, color: violet, letterSpacing: -0.5, fontFamily: font }}>
                 Wonder<span style={{ color: gold }}>Quest</span>
               </div>
+              {session && (
+                <div style={{ fontSize: 14, fontWeight: 700, color: textMuted, fontFamily: font }}>
+                  Hi, {session.student.displayName}!
+                </div>
+              )}
               <div style={{ flex: 1 }} />
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, color: "#ff9d3b", fontFamily: font }}>
-                🔥 5 days
+                🔥 {streak} days
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, fontWeight: 900, color: gold, fontFamily: font }}>
-                ⭐ 42
+                ⭐ {stars}
               </div>
               <div
                 style={{
@@ -230,7 +360,7 @@ export default function ChildHubPage() {
                   cursor: "pointer",
                 }}
               >
-                🦋
+                {avatarEmoji}
               </div>
             </div>
 
@@ -245,7 +375,7 @@ export default function ChildHubPage() {
                 gap: 4,
               }}
             >
-              {sidebarItems.map((item) => (
+              {sidebarItemsWithBadge.map((item) => (
                 <div
                   key={item.key}
                   onClick={() => setSidebarActive(item.key)}
@@ -304,14 +434,13 @@ export default function ChildHubPage() {
               >
                 <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, background: "radial-gradient(circle, rgba(155,114,255,0.2) 0%, transparent 70%)", borderRadius: "50%" }} />
                 <div style={{ fontSize: 11, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontFamily: font }}>Current World</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", marginBottom: 4, fontFamily: font }}>Crystal Caverns 💎</div>
-                <div style={{ fontSize: 14, color: "#b8a0e8", marginBottom: 14, fontFamily: font }}>Unlock the secrets of the shining gems!</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", marginBottom: 4, fontFamily: font }}>{world.name}</div>
                 <div style={{ height: 12, background: "#2a1880", borderRadius: 7, overflow: "hidden", marginBottom: 6 }}>
                   <div
                     className="hub-shimmer"
                     style={{
                       height: "100%",
-                      width: "58%",
+                      width: `${progressPct}%`,
                       borderRadius: 7,
                       background: "linear-gradient(90deg, #9b72ff, #c4a0ff)",
                       position: "relative",
@@ -319,8 +448,8 @@ export default function ChildHubPage() {
                   />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: violet, fontFamily: font }}>
-                  <span>Node 7 of 12</span>
-                  <span>58% explored</span>
+                  <span>Node {completedNodes + 1} of {totalNodes}</span>
+                  <span>{progressPct}% explored</span>
                 </div>
                 <Link
                   href="/play"
@@ -342,69 +471,72 @@ export default function ChildHubPage() {
                     textAlign: "center",
                   }}
                 >
-                  ▶ Continue Adventure
+                  Continue Adventure
                 </Link>
               </div>
 
               {/* Node map */}
               <div style={{ fontSize: 13, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontFamily: font }}>
-                Today&apos;s Nodes
+                Quest Nodes
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-                {nodes.map((node) => (
-                  <div
-                    key={node.num}
-                    className={node.state === "active" ? "hub-node-active" : ""}
-                    style={{
-                      width: 60,
-                      height: 60,
-                      borderRadius: 16,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 26,
-                      border: `2px solid ${node.state === "done" ? green : node.state === "active" ? violet : "#2a2060"}`,
-                      background: node.state === "done" ? "#0a2a15" : node.state === "active" ? "#2a1880" : "#1a1060",
-                      cursor: node.state === "locked" ? "default" : "pointer",
-                      position: "relative",
-                      opacity: node.state === "locked" ? 0.35 : 1,
-                    }}
-                  >
-                    {node.emoji}
-                    {node.state === "done" && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: -4,
-                          right: -4,
-                          width: 18,
-                          height: 18,
-                          background: green,
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 10,
-                          color: "#0a2a15",
-                          fontWeight: 900,
-                        }}
-                      >
-                        ✓
+                {activeNodes.map((emoji, idx) => {
+                  const state = idx < completedNodes ? "done" : idx === activeNodeIndex ? "active" : "locked";
+                  return (
+                    <div
+                      key={idx}
+                      className={state === "active" ? "hub-node-active" : ""}
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 16,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 26,
+                        border: `2px solid ${state === "done" ? green : state === "active" ? violet : "#2a2060"}`,
+                        background: state === "done" ? "#0a2a15" : state === "active" ? "#2a1880" : "#1a1060",
+                        cursor: state === "locked" ? "default" : "pointer",
+                        position: "relative",
+                        opacity: state === "locked" ? 0.35 : 1,
+                      }}
+                    >
+                      {emoji}
+                      {state === "done" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: -4,
+                            right: -4,
+                            width: 18,
+                            height: 18,
+                            background: green,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 10,
+                            color: "#0a2a15",
+                            fontWeight: 900,
+                          }}
+                        >
+                          ✓
+                        </div>
+                      )}
+                      <div style={{ position: "absolute", bottom: 2, fontSize: 9, fontWeight: 900, color: "#6a5090", fontFamily: font }}>
+                        {idx + 1}
                       </div>
-                    )}
-                    <div style={{ position: "absolute", bottom: 2, fontSize: 9, fontWeight: 900, color: "#6a5090", fontFamily: font }}>
-                      {node.num}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Stats row */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
                 {[
-                  { icon: "🔥", val: "5", label: "Day quest streak" },
-                  { icon: "⭐", val: "42", label: "Stars collected" },
+                  { icon: "🔥", val: String(streak), label: "Day quest streak" },
+                  { icon: "⭐", val: String(stars), label: "Stars collected" },
                 ].map((s) => (
                   <div key={s.label} style={{ background: "#1a1060", border: "2px solid #2a2060", borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 28 }}>{s.icon}</span>
@@ -421,7 +553,7 @@ export default function ChildHubPage() {
                 Jump Into a Quest
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                {quests.map((q) => (
+                {world.quests.map((q) => (
                   <div
                     key={q.name}
                     style={{
@@ -455,7 +587,7 @@ export default function ChildHubPage() {
               {/* Recent wins */}
               <div style={{ background: panel, border: "1px solid #2a2060", borderRadius: 14, padding: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontFamily: font }}>
-                  Recent Wins 🎉
+                  Recent Wins
                 </div>
                 {recentWins.map((w, i) => (
                   <div
@@ -482,7 +614,7 @@ export default function ChildHubPage() {
               {/* Badges */}
               <div style={{ background: panel, border: "1px solid #2a2060", borderRadius: 14, padding: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontFamily: font }}>
-                  My Badges 🏅
+                  My Badges
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {badges.map((b, i) => (
@@ -511,7 +643,7 @@ export default function ChildHubPage() {
               {/* Daily challenge */}
               <div style={{ background: panel, border: "1px solid #2a2060", borderRadius: 14, padding: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 900, color: violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontFamily: font }}>
-                  Daily Challenge ⚡
+                  Daily Challenge
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0" }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>🎯</div>
@@ -531,7 +663,7 @@ export default function ChildHubPage() {
                       cursor: "pointer",
                     }}
                   >
-                    Try It! ⚡
+                    Try It!
                   </button>
                 </div>
               </div>
@@ -584,7 +716,7 @@ export default function ChildHubPage() {
                   boxShadow: "0 6px 20px rgba(155,114,255,0.4)",
                 }}
               >
-                Start Questing! ⚡
+                Start Questing!
               </button>
               <div style={{ fontSize: 12, color: "#5a4080", fontWeight: 700, marginTop: 10, fontFamily: font }}>Your parent can adjust this any time</div>
             </div>
@@ -595,8 +727,10 @@ export default function ChildHubPage() {
         {activeTab === "worlds" && (
           <div style={{ maxWidth: 1000, margin: "0 auto", padding: 20 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", fontFamily: font }}>Choose Your World 🗺️</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#7a6090", fontFamily: font }}>K–1 Adventurers band</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", fontFamily: font }}>Choose Your World</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#7a6090", fontFamily: font }}>
+                {session ? session.student.launchBandCode : "K1"} band
+              </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
               {worlds.map((w) => (

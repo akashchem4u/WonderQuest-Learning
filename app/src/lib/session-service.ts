@@ -455,6 +455,53 @@ export async function createPlaySession(input: PlaySessionInput) {
   };
 }
 
+export async function getPlaySessionHistory(studentId: string, limit = 10) {
+  const sessions = await db.query(
+    `
+      select
+        cs.id,
+        cs.session_mode,
+        cs.started_at,
+        cs.ended_at,
+        cs.total_questions,
+        cs.effectiveness_score,
+        coalesce(
+          (
+            select count(*)
+            from public.session_results sr
+            where sr.session_id = cs.id and sr.correct = true
+          ), 0
+        ) as correct_count,
+        coalesce(
+          (
+            select sum(sr.points_earned)
+            from public.session_results sr
+            where sr.session_id = cs.id
+          ), 0
+        ) as points_earned
+      from public.challenge_sessions cs
+      where cs.student_id = $1
+      order by cs.started_at desc
+      limit $2
+    `,
+    [studentId, limit],
+  );
+
+  return {
+    sessions: sessions.rows.map((row) => ({
+      sessionId: row.id as string,
+      sessionMode: row.session_mode as string,
+      startedAt: row.started_at as string,
+      endedAt: (row.ended_at as string | null) ?? null,
+      totalQuestions: Number(row.total_questions ?? 0),
+      correctCount: Number(row.correct_count ?? 0),
+      pointsEarned: Number(row.points_earned ?? 0),
+      effectivenessScore: row.effectiveness_score != null ? Number(row.effectiveness_score) : null,
+      completed: row.ended_at != null,
+    })),
+  };
+}
+
 export async function answerQuestion(input: AnswerInput) {
   const session = await db.query(
     `
