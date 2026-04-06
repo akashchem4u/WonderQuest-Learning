@@ -3,6 +3,23 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
+
+// ── Auto-queue types ─────────────────────────────────────────────────────────
+type AutoIntervention = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  skillCode: string | null;
+  reason: string;
+  interventionType: string;
+  status: string;
+  teacherNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+  autoTriggered: boolean;
+};
 
 // ── Design tokens ───────────────────────────────────────────────────────────
 const C = {
@@ -77,9 +94,11 @@ export default function TeacherWatchlistPage() {
   const [loading, setLoading] = useState(true);
   const [addInput, setAddInput] = useState("");
   const [activeTab, setActiveTab] = useState<"watchlist" | "empty">("watchlist");
+  const [autoInterventions, setAutoInterventions] = useState<AutoIntervention[]>([]);
+  const [autoLoading, setAutoLoading] = useState(true);
 
   useEffect(() => {
-    const teacherId = localStorage.getItem("wq_teacher_id") ?? "demo-teacher";
+    const teacherId = getTeacherId();
     fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=active`)
       .then((r) => r.json())
       .then((data: { interventions?: ApiIntervention[] }) => {
@@ -89,6 +108,16 @@ export default function TeacherWatchlistPage() {
       })
       .catch(() => {/* leave empty */})
       .finally(() => setLoading(false));
+
+    fetch(`/api/teacher/interventions/auto-queue?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => r.json())
+      .then((data: { interventions?: AutoIntervention[] }) => {
+        if (data.interventions) {
+          setAutoInterventions(data.interventions.filter((i) => i.autoTriggered));
+        }
+      })
+      .catch(() => {/* leave empty */})
+      .finally(() => setAutoLoading(false));
   }, []);
 
   function removeStudent(id: string) {
@@ -368,6 +397,72 @@ export default function TeacherWatchlistPage() {
                 }}
               >+ Add</button>
             </div>
+          </div>
+        )}
+
+        {/* Auto-flagged by system */}
+        {!autoLoading && autoInterventions.length > 0 && (
+          <div style={{
+            marginTop: 24,
+            maxWidth: 560,
+            background: C.surface,
+            border: `1px solid ${C.amber}44`,
+            borderRadius: 16,
+            padding: "20px 22px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: ".06em", color: C.amber }}>
+                Auto-flagged by system
+              </span>
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                background: C.amber + "22",
+                color: C.amber,
+                padding: "2px 8px",
+                borderRadius: 8,
+              }}>{autoInterventions.length}</span>
+            </div>
+            <p style={{ fontSize: 11, color: C.muted, marginBottom: 14, lineHeight: 1.4 }}>
+              These students were automatically flagged because they scored below 50% accuracy on a skill across recent sessions.
+            </p>
+            {autoInterventions.map((inv, i) => (
+              <div key={inv.id} style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "10px 0",
+                borderBottom: i < autoInterventions.length - 1 ? `1px solid ${C.border}` : "none",
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: AVATAR_COLORS[i % AVATAR_COLORS.length],
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: 900, color: "#fff", flexShrink: 0, marginTop: 2,
+                }}>{inv.studentName.charAt(0).toUpperCase()}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" as const }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{inv.studentName}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      background: C.amber + "22",
+                      color: C.amber,
+                      padding: "2px 7px",
+                      borderRadius: 8,
+                    }}>Auto</span>
+                    {inv.skillCode && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        background: C.mint + "22",
+                        color: C.mint,
+                        padding: "2px 7px",
+                        borderRadius: 8,
+                      }}>{inv.skillCode}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{inv.reason}</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

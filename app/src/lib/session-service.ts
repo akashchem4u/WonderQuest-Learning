@@ -744,6 +744,16 @@ export async function answerQuestion(input: AnswerInput) {
     checkAndTriggerInterventions(input.studentId, input.sessionId).catch(
       (err) => console.error("[intervention-trigger]", err),
     );
+
+    // Fire-and-forget: detect and store milestone notifications for parents
+    detectNewMilestones(input.studentId, input.sessionId, {
+      totalPoints: previousProgression.totalPoints,
+      currentLevel: previousProgression.currentLevel,
+      badgeCount: previousProgression.badgeCount,
+      streakCount: prevStreakCount,
+    })
+      .then((milestones) => storeMilestoneNotifications(input.studentId, milestones))
+      .catch((err) => console.error("[milestone-service]", err));
   }
 
   const explainer = getExplainerByKey(question.explainer_key);
