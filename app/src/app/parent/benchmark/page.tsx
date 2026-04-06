@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
@@ -7,16 +8,28 @@ import { AppFrame } from "@/components/app-frame";
 
 const BASE    = "#100b2e";
 const VIOLET  = "#9b72ff";
-const BLUE    = "#38bdf8";
-const MINT    = "#22c55e";
+const MINT    = "#50e890";
 const GOLD    = "#ffd166";
 const AMBER   = "#f59e0b";
 const TEXT    = "#f0f6ff";
 const MUTED   = "#8b949e";
 const SURFACE = "#161b22";
 const BORDER  = "rgba(255,255,255,0.06)";
+const VBORDER = "rgba(155,114,255,0.2)";
 
-// ─── API type ─────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type LinkedChild = {
+  id: string;
+  displayName: string;
+  avatarKey?: string;
+  launchBandCode?: string;
+};
+
+type ParentSession = {
+  linkedChildren: LinkedChild[];
+  linkedChild?: LinkedChild;
+};
 
 type SkillProgress = {
   skillCode: string;
@@ -29,138 +42,72 @@ type SkillProgress = {
   lastPracticed: string | null;
 };
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Band definitions ─────────────────────────────────────────────────────────
 
-type ExplainerTab = "full" | "modal" | "faq";
-
-type Band = {
-  id: string;
-  name: string;
-  grades: string;
-  desc: string;
-  dotColor: string;
-  borderColor: string;
-  bgColor: string;
-};
-
-type StatusDef = {
+type BandDef = {
+  code: string;
   label: string;
-  icon: string;
-  bg: string;
+  grades: string;
   color: string;
-  desc: string;
+  bg: string;
+  border: string;
+  domains: DomainDef[];
 };
 
-type MasteryStep = {
-  num: string;
-  title: string;
-  body: string;
+type DomainDef = {
+  name: string;
+  icon: string;
+  expectedSkills: string[];
 };
 
-type FaqItem = {
-  q: string;
-  a: string;
-};
-
-// ─── Static data ─────────────────────────────────────────────────────────────
-
-const BANDS: Band[] = [
+const BANDS: BandDef[] = [
   {
-    id: "p0",
-    name: "Pre-K Band",
+    code: "PREK",
+    label: "Pre-K",
     grades: "Ages 4–5",
-    desc: "Letter recognition, phonics foundations, counting to 20",
-    dotColor: GOLD,
-    borderColor: "rgba(255,209,102,0.4)",
-    bgColor: "rgba(255,209,102,0.08)",
+    color: GOLD,
+    bg: "rgba(255,209,102,0.08)",
+    border: "rgba(255,209,102,0.3)",
+    domains: [
+      { name: "Reading", icon: "📖", expectedSkills: ["Letter recognition", "Phonics foundations", "Rhyming words", "Print concepts"] },
+      { name: "Math", icon: "🔢", expectedSkills: ["Counting to 20", "Number recognition", "Shape identification", "Comparing sizes"] },
+    ],
   },
   {
-    id: "p1",
-    name: "K–1 Band",
+    code: "K1",
+    label: "Kindergarten–Grade 1",
     grades: "Ages 5–7",
-    desc: "Sight words, blending, addition facts, basic spelling",
-    dotColor: VIOLET,
-    borderColor: "rgba(155,114,255,0.4)",
-    bgColor: "rgba(155,114,255,0.08)",
+    color: VIOLET,
+    bg: "rgba(155,114,255,0.08)",
+    border: "rgba(155,114,255,0.3)",
+    domains: [
+      { name: "Reading", icon: "📖", expectedSkills: ["Sight words (Dolch list)", "Blending CVC words", "Decoding consonant blends", "Basic spelling patterns"] },
+      { name: "Math", icon: "🔢", expectedSkills: ["Addition facts to 10", "Subtraction facts", "Place value (tens/ones)", "Measurement basics"] },
+    ],
   },
   {
-    id: "p2",
-    name: "Grades 2–3",
+    code: "G23",
+    label: "Grades 2–3",
     grades: "Ages 7–9",
-    desc: "Fluency, multi-digit math, vocabulary expansion",
-    dotColor: MINT,
-    borderColor: "rgba(34,197,94,0.35)",
-    bgColor: "rgba(34,197,94,0.07)",
+    color: MINT,
+    bg: "rgba(80,232,144,0.07)",
+    border: "rgba(80,232,144,0.25)",
+    domains: [
+      { name: "Reading", icon: "📖", expectedSkills: ["Reading fluency", "Vocabulary expansion", "Comprehension strategies", "Multi-syllabic words"] },
+      { name: "Math", icon: "🔢", expectedSkills: ["Multi-digit addition/subtraction", "Multiplication facts", "Division basics", "Fractions intro"] },
+    ],
   },
   {
-    id: "p3",
-    name: "Grades 4–5",
+    code: "G45",
+    label: "Grades 4–5",
     grades: "Ages 9–11",
-    desc: "Comprehension, fractions, complex spelling patterns",
-    dotColor: AMBER,
-    borderColor: "rgba(245,158,11,0.4)",
-    bgColor: "rgba(245,158,11,0.07)",
-  },
-];
-
-const STATUS_DEFS: StatusDef[] = [
-  {
-    label: "Strong",
-    icon: "⭐",
-    bg: "rgba(34,197,94,0.15)",
-    color: "#4ade80",
-    desc: "A solid grasp of this skill. Keep going — higher levels await!",
-  },
-  {
-    label: "Building",
-    icon: "🌱",
-    bg: "rgba(245,158,11,0.15)",
     color: AMBER,
-    desc: "This skill is actively developing. Normal and expected — a few more sessions will build it up.",
-  },
-  {
-    label: "Just started",
-    icon: "🌱",
-    bg: "rgba(155,114,255,0.15)",
-    color: "#c4a8ff",
-    desc: "Brand new skill — only seen it a few times. Early days!",
-  },
-];
-
-const MASTERY_STEPS: MasteryStep[] = [
-  {
-    num: "1",
-    title: "Your child answers questions on a skill",
-    body: "WonderQuest tracks how consistently they get them right over multiple sessions — not just one.",
-  },
-  {
-    num: "2",
-    title: "The mastery bar fills up",
-    body: "It rises when they consistently succeed, and holds steady (doesn't drop) when they get a few wrong — because one bad day doesn't undo learning.",
-  },
-  {
-    num: "3",
-    title: "They earn stars along the way",
-    body: "Stars reward effort and consistency — not perfection. This keeps learning fun.",
-  },
-];
-
-const FAQ_ITEMS: FaqItem[] = [
-  {
-    q: "Can the mastery score go down?",
-    a: "No — the mastery score only increases or holds steady. One difficult session doesn't undo earlier learning. Progress is always net-positive here.",
-  },
-  {
-    q: "Why doesn't your child see accuracy percentages?",
-    a: "Research shows accuracy percentages can reduce motivation and create test anxiety in young learners. They see stars and progress signals. You see fuller data in the weekly report because context helps you understand and support — not judge.",
-  },
-  {
-    q: "Is the K–1 band a grade level placement?",
-    a: "No. Band placement is a starting point based on a short placement activity, and it adjusts automatically as your child progresses. A child in the K–1 band who's crushing it will unlock Grades 2–3 content organically.",
-  },
-  {
-    q: "How long does it take to reach Strong status?",
-    a: "Typically 4–8 sessions with consistent success will move a skill from Just started to Building. Building to Strong usually takes 3–5 more sessions. Every child's pace is different — all normal.",
+    bg: "rgba(245,158,11,0.07)",
+    border: "rgba(245,158,11,0.3)",
+    domains: [
+      { name: "Reading", icon: "📖", expectedSkills: ["Deep comprehension", "Inferencing", "Complex spelling patterns", "Literary analysis"] },
+      { name: "Math", icon: "🔢", expectedSkills: ["Fractions & decimals", "Long division", "Geometry basics", "Word problems"] },
+    ],
   },
 ];
 
@@ -174,7 +121,7 @@ function masteryStatus(pct: number): "Strong" | "Building" | "Just started" {
   return "Just started";
 }
 
-function statusStyle(status: "Strong" | "Building" | "Just started") {
+function statusStyle(status: ReturnType<typeof masteryStatus>) {
   const map = {
     Strong:         { bg: "rgba(34,197,94,0.15)",    color: "#4ade80", bar: MINT   },
     Building:       { bg: "rgba(255,209,102,0.15)",  color: GOLD,      bar: GOLD   },
@@ -183,638 +130,244 @@ function statusStyle(status: "Strong" | "Building" | "Just started") {
   return map[status];
 }
 
+function subjectFromCode(code: string): string {
+  const c = code?.toLowerCase() ?? "";
+  if (c.includes("read") || c.includes("phonics") || c.includes("spell") || c.includes("vocab") || c.includes("literacy")) return "Reading";
+  if (c.includes("math") || c.includes("number") || c.includes("arithm")) return "Math";
+  return "Other";
+}
+
+// Group skills by domain
+function groupByDomain(skills: SkillProgress[]): Record<string, SkillProgress[]> {
+  const out: Record<string, SkillProgress[]> = { Reading: [], Math: [], Other: [] };
+  for (const sk of skills) {
+    const d = subjectFromCode(sk.subjectCode ?? "");
+    (out[d] = out[d] ?? []).push(sk);
+  }
+  return out;
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SectionCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        background: SURFACE,
-        border: `1px solid ${BORDER}`,
-        borderRadius: "16px",
-        padding: "24px",
-        marginBottom: "20px",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function SectionHeading({ children }: { children: string }) {
-  return (
-    <div
-      style={{
-        fontSize: "0.84rem",
-        fontWeight: 800,
-        color: TEXT,
-        marginBottom: "14px",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 function MasteryBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div
+    <div style={{ height: 9, background: "rgba(255,255,255,0.08)", borderRadius: 5, overflow: "hidden" }}>
+      <div style={{ height: "100%", width: `${Math.min(100, Math.max(0, pct))}%`, background: `linear-gradient(90deg, ${color}, ${MINT})`, borderRadius: 5, transition: "width 0.5s ease" }} />
+    </div>
+  );
+}
+
+function CheckBadge({ mastered }: { mastered: boolean }) {
+  return (
+    <span
       style={{
-        height: "10px",
-        background: "rgba(255,255,255,0.08)",
-        borderRadius: "5px",
-        overflow: "hidden",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        background: mastered ? "rgba(80,232,144,0.2)" : "rgba(255,255,255,0.06)",
+        border: mastered ? "1.5px solid rgba(80,232,144,0.4)" : `1.5px solid ${BORDER}`,
+        fontSize: "0.7rem",
+        color: mastered ? MINT : MUTED,
+        flexShrink: 0,
       }}
     >
-      <div
-        style={{
-          height: "100%",
-          width: `${pct}%`,
-          background: `linear-gradient(90deg, ${color}, ${MINT})`,
-          borderRadius: "5px",
-        }}
-      />
+      {mastered ? "✓" : ""}
+    </span>
+  );
+}
+
+function LoginPrompt() {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px" }}>
+      <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>🔒</div>
+      <div style={{ fontSize: "1.1rem", fontWeight: 700, color: TEXT, marginBottom: 8 }}>
+        Parent sign-in required
+      </div>
+      <div style={{ fontSize: "0.85rem", color: MUTED, marginBottom: 24 }}>
+        Sign in to your parent account to view skill benchmarks.
+      </div>
+      <Link
+        href="/parent"
+        style={{ display: "inline-block", padding: "12px 28px", background: VIOLET, color: "#fff", borderRadius: 12, fontWeight: 700, fontSize: "0.9rem", textDecoration: "none" }}
+      >
+        Sign in →
+      </Link>
     </div>
   );
 }
 
-function SkillMasteryList({ skills, loading }: { skills: SkillProgress[]; loading: boolean }) {
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: "0.88rem" }}>
-        Loading skill data…
-      </div>
-    );
-  }
-  if (skills.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "32px 0" }}>
-        <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🌱</div>
-        <div style={{ fontSize: "0.88rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
-          No skills practiced yet
-        </div>
-        <div style={{ fontSize: "0.78rem", color: MUTED }}>
-          Skill mastery data will appear here after the first sessions.
-        </div>
-      </div>
-    );
-  }
+// Domain section showing expected skills + live progress
+function DomainSection({
+  domain,
+  icon,
+  expectedSkills,
+  practisedSkills,
+  bandColor,
+}: {
+  domain: string;
+  icon: string;
+  expectedSkills: string[];
+  practisedSkills: SkillProgress[];
+  bandColor: string;
+}) {
+  // Map practised skills by normalized name for matching
+  const practisedNames = new Set(practisedSkills.map((s) => s.skillName?.toLowerCase() ?? ""));
+  const masteredCount = practisedSkills.filter((s) => s.masteryPct >= MASTERY_TARGET).length;
+  const totalExpected = expectedSkills.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      {skills.map((sk) => {
-        const status = masteryStatus(sk.masteryPct);
-        const ss = statusStyle(status);
-        const targetDiff = MASTERY_TARGET - sk.masteryPct;
-        return (
-          <div
-            key={sk.skillCode}
-            style={{
-              padding: "16px",
-              background: "rgba(255,255,255,0.03)",
-              borderRadius: "12px",
-              border: `1px solid ${BORDER}`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-              <div>
-                <div style={{ fontSize: "0.88rem", fontWeight: 700, color: TEXT }}>{sk.skillName}</div>
-                <div style={{ fontSize: "0.72rem", color: MUTED, marginTop: "2px" }}>{sk.subjectCode}</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span
-                  style={{
-                    background: ss.bg,
-                    color: ss.color,
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    padding: "3px 10px",
-                    borderRadius: "20px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {status}
-                </span>
-                <span style={{ fontSize: "0.88rem", fontWeight: 800, color: ss.color }}>
-                  {sk.masteryPct}%
-                </span>
-              </div>
-            </div>
-            <MasteryBar pct={sk.masteryPct} color={ss.bar} />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: "6px",
-                fontSize: "0.65rem",
-                color: MUTED,
-              }}
-            >
-              <span>0</span>
-              <span style={{ color: AMBER }}>Target: {MASTERY_TARGET}%{targetDiff > 0 ? ` (${targetDiff}% to go)` : ""}</span>
-              <span style={{ color: "#4ade80" }}>Strong (65+)</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function FullExplainer({ skills, loading }: { skills: SkillProgress[]; loading: boolean }) {
-  return (
-    <>
-      {/* Eyebrow + intro */}
-      <SectionCard>
-        <div
-          style={{
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: VIOLET,
-            marginBottom: "8px",
-          }}
-        >
-          ℹ️ How WonderQuest works
+    <div style={{ marginBottom: 24 }}>
+      {/* Domain header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: "1.1rem" }}>{icon}</span>
+          <span style={{ fontSize: "0.95rem", fontWeight: 700, color: TEXT }}>{domain}</span>
         </div>
-        <h2
-          style={{
-            fontSize: "1.5rem",
-            fontWeight: 900,
-            color: TEXT,
-            marginBottom: "10px",
-            lineHeight: 1.2,
-          }}
-        >
-          Skill mastery benchmark
-        </h2>
-        <p
-          style={{
-            fontSize: "0.88rem",
-            color: MUTED,
-            lineHeight: 1.7,
-          }}
-        >
-          WonderQuest uses learning bands, mastery scores, and stars to show how your child is developing — not percentages or grades. Each skill below shows their current mastery vs the target of 65%.
-        </p>
-      </SectionCard>
+        {practisedSkills.length > 0 && (
+          <span style={{ fontSize: "0.72rem", color: MUTED }}>
+            {masteredCount}/{practisedSkills.length} mastered
+          </span>
+        )}
+      </div>
 
-      {/* Live skill mastery */}
-      <SectionCard>
-        <SectionHeading>Skill mastery vs target</SectionHeading>
-        <SkillMasteryList skills={skills} loading={loading} />
-      </SectionCard>
-
-      {/* 4 learning bands */}
-      <SectionCard>
-        <SectionHeading>The 4 learning bands</SectionHeading>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "12px",
-          }}
-        >
-          {BANDS.map((band) => (
-            <div
-              key={band.id}
-              style={{
-                borderRadius: "12px",
-                padding: "16px",
-                position: "relative",
-                background: band.bgColor,
-                border: `2px solid ${band.borderColor}`,
-              }}
-            >
+      {/* Live skill progress */}
+      {practisedSkills.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+          {practisedSkills.map((sk) => {
+            const status = masteryStatus(sk.masteryPct);
+            const ss = statusStyle(status);
+            const mastered = sk.masteryPct >= MASTERY_TARGET;
+            return (
               <div
+                key={sk.skillCode}
                 style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  background: band.dotColor,
-                  position: "absolute",
-                  top: "14px",
-                  right: "14px",
-                }}
-              />
-              <div style={{ fontSize: "0.88rem", fontWeight: 800, color: TEXT, marginBottom: "2px" }}>
-                {band.name}
-              </div>
-              <div style={{ fontSize: "0.72rem", color: MUTED, marginBottom: "8px" }}>
-                {band.grades}
-              </div>
-              <div style={{ fontSize: "0.76rem", color: MUTED, lineHeight: 1.4 }}>
-                {band.desc}
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      {/* Skill status badges */}
-      <SectionCard>
-        <SectionHeading>Skill status badges</SectionHeading>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {STATUS_DEFS.map((s) => (
-            <div key={s.label} style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <span
-                style={{
-                  background: s.bg,
-                  color: s.color,
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
-                  padding: "4px 12px",
-                  borderRadius: "20px",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {s.icon} {s.label}
-              </span>
-              <span style={{ fontSize: "0.84rem", color: MUTED, lineHeight: 1.5 }}>{s.desc}</span>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      {/* How the mastery bar works */}
-      <SectionCard>
-        <SectionHeading>How the mastery bar works</SectionHeading>
-        <div
-          style={{
-            padding: "14px 16px",
-            background: "rgba(155,114,255,0.06)",
-            border: `1px solid rgba(155,114,255,0.15)`,
-            borderRadius: "10px",
-            marginBottom: "18px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "8px",
-            }}
-          >
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: TEXT }}>Example skill</span>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: VIOLET }}>74 / 100</span>
-          </div>
-          <MasteryBar pct={74} color={VIOLET} />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: "6px",
-              fontSize: "0.65rem",
-              color: MUTED,
-            }}
-          >
-            <span>Just started</span>
-            <span style={{ color: AMBER }}>Building (40–64)</span>
-            <span style={{ color: "#4ade80" }}>Strong (65+)</span>
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          {MASTERY_STEPS.map((step) => (
-            <div key={step.num} style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
-              <div
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  borderRadius: "50%",
-                  background: VIOLET,
-                  color: "#fff",
-                  fontSize: "0.85rem",
-                  fontWeight: 800,
+                  padding: "12px 14px",
+                  background: "rgba(255,255,255,0.03)",
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 11,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: "1px",
+                  gap: 12,
                 }}
               >
-                {step.num}
-              </div>
-              <div style={{ fontSize: "0.84rem", color: MUTED, lineHeight: 1.6 }}>
-                <span style={{ fontWeight: 700, color: TEXT, display: "block", marginBottom: "2px" }}>
-                  {step.title}
-                </span>
-                {step.body}
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      {/* Why no % callout */}
-      <div
-        style={{
-          padding: "18px 20px",
-          background: "rgba(155,114,255,0.1)",
-          border: `1px solid rgba(155,114,255,0.25)`,
-          borderRadius: "14px",
-          fontSize: "0.85rem",
-          color: "#c4a8ff",
-          lineHeight: 1.6,
-        }}
-      >
-        <strong style={{ color: TEXT }}>Why doesn't your child see percentages?</strong>
-        <br />
-        Research shows that showing accuracy percentages to young learners can reduce motivation and create anxiety. Stars celebrate effort. You see fuller data in the weekly report because context helps you understand and support — not judge.
-      </div>
-    </>
-  );
-}
-
-function ModalDemo() {
-  const [open, setOpen] = useState(true);
-
-  return (
-    <div>
-      <div style={{ marginBottom: "16px", fontSize: "0.85rem", color: MUTED }}>
-        Example: tapping "?" next to a mastery bar opens this inline modal.
-      </div>
-
-      {/* Trigger row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "14px 18px",
-          background: SURFACE,
-          border: `1px solid ${BORDER}`,
-          borderRadius: "12px",
-          marginBottom: "20px",
-          maxWidth: "400px",
-        }}
-      >
-        <span style={{ fontSize: "0.82rem", fontWeight: 600, color: TEXT }}>Rhyming words</span>
-        <div
-          style={{
-            flex: 1,
-            height: "8px",
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: "4px",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ height: "100%", width: "74%", background: `linear-gradient(90deg, ${VIOLET}, ${MINT})` }} />
-        </div>
-        <span style={{ fontSize: "0.78rem", fontWeight: 700, color: VIOLET }}>74</span>
-        <button
-          onClick={() => setOpen(true)}
-          style={{
-            width: "22px",
-            height: "22px",
-            borderRadius: "50%",
-            background: "rgba(155,114,255,0.2)",
-            border: `1px solid rgba(155,114,255,0.4)`,
-            color: VIOLET,
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          ?
-        </button>
-      </div>
-
-      {/* Modal */}
-      {open && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(8,5,20,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              width: "400px",
-              maxWidth: "90vw",
-              background: "#1a1f2e",
-              borderRadius: "20px",
-              padding: "26px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-              border: `1px solid rgba(155,114,255,0.2)`,
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "16px",
-              }}
-            >
-              <div style={{ fontSize: "1rem", fontWeight: 800, color: TEXT }}>
-                What does this mean?
-              </div>
-              <button
-                onClick={() => setOpen(false)}
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "8px",
-                  background: "rgba(255,255,255,0.07)",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                  color: MUTED,
-                  flexShrink: 0,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ fontSize: "0.84rem", color: MUTED, lineHeight: 1.6, marginBottom: "18px" }}>
-              The <strong style={{ color: TEXT }}>mastery bar</strong> shows how well your child has learned this skill over time — not just their score in one session.
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "18px" }}>
-              {[
-                { label: "⭐ Strong (65+)",        bg: "rgba(34,197,94,0.15)",   color: "#4ade80", desc: "Consistent success across sessions" },
-                { label: "🌱 Building (40–64)",    bg: "rgba(245,158,11,0.15)",  color: AMBER,    desc: "Actively developing — normal progress" },
-                { label: "🌱 Just started (<40)", bg: "rgba(155,114,255,0.15)", color: "#c4a8ff", desc: "Brand new — early days" },
-              ].map((s) => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span
-                    style={{
-                      background: s.bg,
-                      color: s.color,
-                      fontSize: "0.7rem",
-                      fontWeight: 700,
-                      padding: "3px 10px",
-                      borderRadius: "20px",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {s.label}
-                  </span>
-                  <span style={{ fontSize: "0.78rem", color: MUTED }}>{s.desc}</span>
+                <CheckBadge mastered={mastered} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                    <span style={{ fontSize: "0.84rem", fontWeight: 600, color: TEXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {sk.skillName}
+                    </span>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 800, color: ss.color, flexShrink: 0, marginLeft: 10 }}>
+                      {sk.masteryPct}%
+                    </span>
+                  </div>
+                  <MasteryBar pct={sk.masteryPct} color={ss.bar} />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: "0.64rem", color: MUTED }}>
+                    <span style={{ background: ss.bg, color: ss.color, padding: "1px 8px", borderRadius: 10, fontWeight: 700 }}>{status}</span>
+                    <span>Target: {MASTERY_TARGET}%</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                background: "rgba(155,114,255,0.1)",
-                borderRadius: "10px",
-                padding: "14px",
-                fontSize: "0.8rem",
-                color: "#c4a8ff",
-                lineHeight: 1.5,
-                marginBottom: "18px",
-              }}
-            >
-              The bar doesn't decrease when your child gets something wrong — learning is non-linear, and one bad session doesn't undo progress.
-            </div>
-
-            <button
-              onClick={() => setOpen(false)}
-              style={{
-                width: "100%",
-                padding: "13px",
-                background: VIOLET,
-                color: "#fff",
-                border: "none",
-                borderRadius: "12px",
-                fontSize: "0.9rem",
-                fontWeight: 700,
-                fontFamily: "system-ui",
-                cursor: "pointer",
-              }}
-            >
-              Got it!
-            </button>
-          </div>
+              </div>
+            );
+          })}
         </div>
       )}
-    </div>
-  );
-}
 
-function FaqSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
-  return (
-    <>
-      <div style={{ fontSize: "1.4rem", fontWeight: 800, color: TEXT, marginBottom: "6px" }}>
-        Frequently asked questions
-      </div>
-      <div style={{ fontSize: "0.85rem", color: MUTED, marginBottom: "24px" }}>
-        Common questions from parents about WonderQuest's approach
-      </div>
-      <div
-        style={{
-          background: SURFACE,
-          border: `1px solid ${BORDER}`,
-          borderRadius: "16px",
-          overflow: "hidden",
-        }}
-      >
-        {FAQ_ITEMS.map((item, i) => (
-          <div
-            key={i}
-            style={{
-              borderBottom: i < FAQ_ITEMS.length - 1 ? `1px solid ${BORDER}` : "none",
-            }}
-          >
-            <button
-              onClick={() => setOpenIndex(openIndex === i ? null : i)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: "18px 22px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px",
-              }}
-            >
-              <span style={{ fontSize: "0.88rem", fontWeight: 700, color: TEXT, lineHeight: 1.4 }}>
-                {item.q}
-              </span>
+      {/* Expected benchmark skills (not yet practiced) */}
+      <div>
+        <div style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: MUTED, marginBottom: 8 }}>
+          Expected for this band
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {expectedSkills.map((skillName) => {
+            const practiced = practisedNames.has(skillName.toLowerCase());
+            const matchedSk = practisedSkills.find((s) => s.skillName?.toLowerCase() === skillName.toLowerCase());
+            const mastered = matchedSk ? matchedSk.masteryPct >= MASTERY_TARGET : false;
+            return (
               <span
+                key={skillName}
                 style={{
-                  fontSize: "0.9rem",
-                  color: VIOLET,
-                  flexShrink: 0,
-                  transform: openIndex === i ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                  display: "inline-block",
+                  padding: "4px 12px",
+                  borderRadius: 20,
+                  fontSize: "0.74rem",
+                  fontWeight: 600,
+                  background: mastered
+                    ? "rgba(80,232,144,0.12)"
+                    : practiced
+                    ? `rgba(${bandColor === VIOLET ? "155,114,255" : bandColor === GOLD ? "255,209,102" : bandColor === MINT ? "80,232,144" : "245,158,11"},0.1)`
+                    : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${mastered ? "rgba(80,232,144,0.25)" : practiced ? "rgba(155,114,255,0.2)" : BORDER}`,
+                  color: mastered ? MINT : practiced ? "#c4a8ff" : MUTED,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
                 }}
               >
-                ▾
+                {mastered && <span>✓</span>}
+                {skillName}
               </span>
-            </button>
-            {openIndex === i && (
-              <div
-                style={{
-                  padding: "0 22px 18px",
-                  fontSize: "0.84rem",
-                  color: MUTED,
-                  lineHeight: 1.7,
-                }}
-              >
-                {item.a}
-              </div>
-            )}
-          </div>
-        ))}
+            );
+          })}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const TABS: { id: ExplainerTab; label: string }[] = [
-  { id: "full",  label: "📖 Skill Benchmark" },
-  { id: "modal", label: "🪟 As Modal"         },
-  { id: "faq",   label: "❓ FAQ"               },
-];
-
 export default function ParentBenchmarkPage() {
-  const [activeTab, setActiveTab] = useState<ExplainerTab>("full");
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [children, setChildren] = useState<LinkedChild[]>([]);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [activeChild, setActiveChild] = useState<LinkedChild | null>(null);
   const [skills, setSkills] = useState<SkillProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Step 1: session
   useEffect(() => {
-    const studentId =
-      typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
-    if (!studentId) {
-      setLoading(false);
-      return;
-    }
-    fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setSkills(data.skills ?? []);
+    fetch("/api/parent/session")
+      .then((r) => {
+        if (!r.ok) { setAuthed(false); setLoading(false); return null; }
+        return r.json() as Promise<ParentSession>;
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (!data) return;
+        const list = data.linkedChildren ?? [];
+        setChildren(list);
+        const stored = typeof localStorage !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+        const chosen = stored && list.some((c) => c.id === stored) ? stored : (list[0]?.id ?? null);
+        setActiveChildId(chosen);
+        setActiveChild(list.find((c) => c.id === chosen) ?? list[0] ?? null);
+        setAuthed(true);
+      })
+      .catch(() => { setAuthed(false); setLoading(false); });
   }, []);
 
+  // Step 2: skills
+  useEffect(() => {
+    if (!activeChildId || authed !== true) return;
+    setLoading(true);
+    fetch(`/api/parent/skills?childId=${encodeURIComponent(activeChildId)}`)
+      .then((r) => r.json())
+      .then((data) => { setSkills(data.skills ?? []); })
+      .catch(() => setSkills([]))
+      .finally(() => setLoading(false));
+  }, [activeChildId, authed]);
+
+  // Sync activeChild when selection changes
+  useEffect(() => {
+    setActiveChild(children.find((c) => c.id === activeChildId) ?? null);
+  }, [activeChildId, children]);
+
+  const bandCode = activeChild?.launchBandCode ?? "K1";
+  const bandDef = BANDS.find((b) => b.code === bandCode) ?? BANDS[1];
+  const groupedSkills = groupByDomain(skills);
+
   return (
-    <AppFrame audience="parent" currentPath="/parent">
+    <AppFrame audience="parent" currentPath="/parent/benchmark">
       <div
         style={{
           minHeight: "100vh",
@@ -823,51 +376,185 @@ export default function ParentBenchmarkPage() {
           fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
         }}
       >
-        {/* Tab bar */}
-        <div
-          style={{
-            display: "flex",
-            gap: "4px",
-            padding: "16px 32px 0",
-            borderBottom: `1px solid ${BORDER}`,
-            overflowX: "auto",
-            background: "rgba(22,27,34,0.95)",
-          }}
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                padding: "10px 18px",
-                border: "none",
-                background: "transparent",
-                color: activeTab === t.id ? TEXT : MUTED,
-                fontSize: "0.82rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                borderRadius: "6px 6px 0 0",
-                borderBottom: activeTab === t.id ? `2px solid ${VIOLET}` : "2px solid transparent",
-                whiteSpace: "nowrap",
-                transition: "all 0.18s",
+        {/* Top bar */}
+        <div style={{ background: "rgba(22,27,34,0.95)", borderBottom: `1px solid ${BORDER}`, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <Link href="/parent" style={{ fontSize: "0.8rem", fontWeight: 600, color: MUTED, textDecoration: "none" }}>
+            ← Dashboard
+          </Link>
+          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: TEXT }}>Skill Benchmarks</div>
+          {children.length > 1 && (
+            <select
+              value={activeChildId ?? ""}
+              onChange={(e) => {
+                setActiveChildId(e.target.value);
+                if (e.target.value) localStorage.setItem("wq_active_student_id", e.target.value);
               }}
+              style={{ background: SURFACE, border: `1px solid ${VBORDER}`, borderRadius: 8, color: TEXT, fontSize: "0.8rem", padding: "5px 10px", cursor: "pointer" }}
             >
-              {t.label}
-            </button>
-          ))}
+              {children.map((c) => (
+                <option key={c.id} value={c.id}>{c.displayName}</option>
+              ))}
+            </select>
+          )}
+          {children.length <= 1 && <div style={{ width: 80 }} />}
         </div>
 
-        {/* Content */}
-        <div
-          style={{
-            maxWidth: "700px",
-            margin: "0 auto",
-            padding: "36px 32px",
-          }}
-        >
-          {activeTab === "full"  && <FullExplainer skills={skills} loading={loading} />}
-          {activeTab === "modal" && <ModalDemo />}
-          {activeTab === "faq"   && <FaqSection />}
+        <div style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 80px" }}>
+
+          {authed === false && <LoginPrompt />}
+
+          {authed !== false && loading && (
+            <div style={{ textAlign: "center", padding: "60px 0", color: MUTED }}>
+              <div style={{ fontSize: "2rem", marginBottom: 12 }}>📊</div>
+              <div style={{ fontSize: "0.9rem" }}>Loading benchmark data…</div>
+            </div>
+          )}
+
+          {authed === true && !loading && (
+            <>
+              {/* Page heading */}
+              <div style={{ marginBottom: 28 }}>
+                <h1 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0, marginBottom: 6 }}>
+                  📐 Skill Benchmark
+                </h1>
+                <p style={{ fontSize: "0.85rem", color: MUTED, margin: 0 }}>
+                  {activeChild ? `${activeChild.displayName}'s` : "Your child's"} progress toward age/grade expectations
+                </p>
+              </div>
+
+              {/* Band badge */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 18px",
+                  background: bandDef.bg,
+                  border: `2px solid ${bandDef.border}`,
+                  borderRadius: 14,
+                  marginBottom: 28,
+                }}
+              >
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: bandDef.color, flexShrink: 0, display: "inline-block" }} />
+                <div>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 800, color: TEXT }}>{bandDef.label}</div>
+                  <div style={{ fontSize: "0.72rem", color: MUTED }}>{bandDef.grades}</div>
+                </div>
+              </div>
+
+              {/* All 4 bands overview */}
+              <div
+                style={{
+                  background: SURFACE,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 28,
+                }}
+              >
+                <div style={{ fontSize: "0.72rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.07em", color: MUTED, marginBottom: 14 }}>
+                  Learning bands
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
+                  {BANDS.map((band) => (
+                    <div
+                      key={band.code}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        background: band.bg,
+                        border: `1.5px solid ${band.code === bandCode ? band.border : "transparent"}`,
+                        position: "relative",
+                        opacity: band.code === bandCode ? 1 : 0.55,
+                      }}
+                    >
+                      {band.code === bandCode && (
+                        <span style={{ position: "absolute", top: 10, right: 10, width: 8, height: 8, borderRadius: "50%", background: band.color, display: "inline-block" }} />
+                      )}
+                      <div style={{ fontSize: "0.84rem", fontWeight: 800, color: TEXT }}>{band.label}</div>
+                      <div style={{ fontSize: "0.7rem", color: MUTED, marginTop: 2 }}>{band.grades}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Domain breakdown */}
+              <div
+                style={{
+                  background: SURFACE,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 16,
+                  padding: "24px",
+                  marginBottom: 24,
+                }}
+              >
+                <div style={{ fontSize: "1rem", fontWeight: 700, color: TEXT, marginBottom: 20 }}>
+                  {bandDef.label} — expected skills &amp; progress
+                </div>
+
+                {bandDef.domains.map((domain) => {
+                  const domainKey = domain.name === "Reading" ? "Reading" : domain.name === "Math" ? "Math" : "Other";
+                  const practised = groupedSkills[domainKey] ?? [];
+                  return (
+                    <DomainSection
+                      key={domain.name}
+                      domain={domain.name}
+                      icon={domain.icon}
+                      expectedSkills={domain.expectedSkills}
+                      practisedSkills={practised}
+                      bandColor={bandDef.color}
+                    />
+                  );
+                })}
+
+                {/* Other skills not in defined domains */}
+                {(groupedSkills["Other"] ?? []).length > 0 && !bandDef.domains.find((d) => d.name === "Other") && (
+                  <DomainSection
+                    domain="Other skills"
+                    icon="✨"
+                    expectedSkills={[]}
+                    practisedSkills={groupedSkills["Other"] ?? []}
+                    bandColor={bandDef.color}
+                  />
+                )}
+
+                {skills.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: "0.88rem" }}>
+                    <div style={{ fontSize: "2rem", marginBottom: 10 }}>🌱</div>
+                    No skills practiced yet. Skill progress will appear here after the first sessions.
+                  </div>
+                )}
+              </div>
+
+              {/* How mastery works callout */}
+              <div
+                style={{
+                  padding: "18px 22px",
+                  background: "rgba(155,114,255,0.08)",
+                  border: `1px solid rgba(155,114,255,0.2)`,
+                  borderRadius: 14,
+                  marginBottom: 24,
+                  fontSize: "0.84rem",
+                  color: "#c4a8ff",
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong style={{ color: TEXT }}>Why no percentages for your child?</strong>
+                <br />
+                Research shows showing accuracy scores to young learners can reduce motivation. They see stars and progress cues — you see the full mastery data here because context helps you support, not judge.
+              </div>
+
+              {/* Footer nav */}
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <Link href="/parent/practice" style={{ fontSize: "0.84rem", fontWeight: 700, color: VIOLET, textDecoration: "none" }}>
+                  Practice today →
+                </Link>
+                <Link href="/parent/weekly" style={{ fontSize: "0.84rem", fontWeight: 700, color: MUTED, textDecoration: "none" }}>
+                  Weekly report →
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </AppFrame>

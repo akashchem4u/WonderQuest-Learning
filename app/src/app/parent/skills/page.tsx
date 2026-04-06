@@ -248,65 +248,15 @@ function EmptyState({ filtered }: { filtered: boolean }) {
   );
 }
 
-// ─── Subject group ────────────────────────────────────────────────────────────
-
-function SubjectSection({
-  label,
-  icon,
-  skills,
-}: {
-  label: string;
-  icon: string;
-  skills: SkillProgress[];
-}) {
-  return (
-    <div style={{ marginBottom: "32px" }}>
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        marginBottom: "14px",
-      }}>
-        <span style={{ fontSize: "1.1rem" }}>{icon}</span>
-        <h2 style={{
-          margin: 0,
-          fontSize: "0.78rem",
-          fontWeight: 700,
-          color: "rgba(255,255,255,0.5)",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-        }}>
-          {label}
-        </h2>
-        <span style={{
-          marginLeft: "auto",
-          fontSize: "0.70rem",
-          color: "rgba(255,255,255,0.28)",
-          fontWeight: 600,
-        }}>
-          {skills.length} skill{skills.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-        gap: "12px",
-      }}>
-        {skills.map((s) => (
-          <SkillCard key={s.skillCode} skill={s} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ParentSkillsPage() {
   const [skills, setSkills] = useState<SkillProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "strong" | "building" | "started">("all");
+  const [tab, setTab] = useState<Tab>("all");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortKey>("mastery-desc");
 
   useEffect(() => {
     const studentId =
@@ -352,33 +302,44 @@ export default function ParentSkillsPage() {
       });
   }, []);
 
-  // Filter + group
-  const filtered = skills.filter((s) => {
-    if (filter === "all") return true;
+  // ── Derived counts ──
+  const masteredCount   = skills.filter((s) => skillStatus(s.masteryPct, s.totalCount) === "Mastered").length;
+  const inProgressCount = skills.filter((s) => {
     const st = skillStatus(s.masteryPct, s.totalCount);
-    if (filter === "strong") return st === "Strong";
-    if (filter === "building") return st === "Building";
-    if (filter === "started") return st === "Just started";
-    return true;
-  });
+    return st === "Building" || (st === "Just starting" && s.totalCount > 0);
+  }).length;
+  const notStartedCount = skills.filter((s) => s.totalCount === 0).length;
 
-  // Group by subject
-  const grouped = new Map<string, SkillProgress[]>();
-  for (const s of filtered) {
-    const label = subjectLabel(s.subjectCode);
-    if (!grouped.has(label)) grouped.set(label, []);
-    grouped.get(label)!.push(s);
-  }
+  // ── Tab + search + sort ──
+  const filtered = useMemo(() => {
+    let list = skills.slice();
+    if (tab === "mastered")   list = list.filter((s) => skillStatus(s.masteryPct, s.totalCount) === "Mastered");
+    if (tab === "inprogress") list = list.filter((s) => {
+      const st = skillStatus(s.masteryPct, s.totalCount);
+      return st === "Building" || st === "Just starting";
+    });
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((s) => s.skillName.toLowerCase().includes(q) || subjectLabel(s.subjectCode).toLowerCase().includes(q));
+    }
+    if (sort === "mastery-desc") list.sort((a, b) => b.masteryPct - a.masteryPct);
+    else if (sort === "mastery-asc") list.sort((a, b) => a.masteryPct - b.masteryPct);
+    else if (sort === "name") list.sort((a, b) => a.skillName.localeCompare(b.skillName));
+    else if (sort === "last-practiced") list.sort((a, b) => lastPracticedMs(b.lastPracticed) - lastPracticedMs(a.lastPracticed));
+    return list;
+  }, [skills, tab, search, sort]);
 
-  const strongCount = skills.filter((s) => skillStatus(s.masteryPct, s.totalCount) === "Strong").length;
-  const buildingCount = skills.filter((s) => skillStatus(s.masteryPct, s.totalCount) === "Building").length;
-  const startedCount = skills.filter((s) => skillStatus(s.masteryPct, s.totalCount) === "Just started").length;
+  const TABS: { id: Tab; label: string; count: number }[] = [
+    { id: "all",        label: "All Skills",  count: skills.length },
+    { id: "mastered",   label: "Mastered ✓",  count: masteredCount },
+    { id: "inprogress", label: "In Progress", count: inProgressCount },
+  ];
 
-  const FILTER_TABS = [
-    { id: "all" as const, label: "All", count: skills.length },
-    { id: "strong" as const, label: "💜 Strong", count: strongCount },
-    { id: "building" as const, label: "🌟 Building", count: buildingCount },
-    { id: "started" as const, label: "🌱 New", count: startedCount },
+  const SORTS: { id: SortKey; label: string }[] = [
+    { id: "mastery-desc",   label: "Mastery ↓" },
+    { id: "mastery-asc",    label: "Mastery ↑" },
+    { id: "name",           label: "Name" },
+    { id: "last-practiced", label: "Last practiced" },
   ];
 
   return (
@@ -423,10 +384,25 @@ export default function ParentSkillsPage() {
             }}>
               Weekly Report
             </Link>
+            <Link href="/parent/milestones" style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              color: "rgba(255,255,255,0.45)",
+              textDecoration: "none",
+              fontWeight: 600,
+              fontSize: "13px",
+              padding: "6px 12px",
+              background: "rgba(255,255,255,0.04)",
+              borderRadius: "8px",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}>
+              🏆 Milestones
+            </Link>
           </div>
 
-          {/* ── Header ── */}
-          <div style={{ marginBottom: "24px" }}>
+          {/* ── Header + summary ── */}
+          <div style={{ marginBottom: "20px" }}>
             <h1 style={{
               margin: "0 0 6px",
               fontSize: "clamp(1.4rem, 3vw, 2rem)",
@@ -436,57 +412,125 @@ export default function ParentSkillsPage() {
             }}>
               Skills Progress
             </h1>
-            {!loading && !error && (
+            {!loading && !error && skills.length > 0 && (
               <p style={{ margin: 0, fontSize: "0.84rem", color: "rgba(255,255,255,0.42)" }}>
-                {skills.length} skill{skills.length !== 1 ? "s" : ""} practiced ·{" "}
-                {strongCount} strong · {buildingCount} building · {startedCount} just started
+                <span style={{ color: "#50e890", fontWeight: 700 }}>{masteredCount} mastered</span>
+                {" · "}
+                <span style={{ color: "#ffd166", fontWeight: 700 }}>{inProgressCount} in progress</span>
+                {notStartedCount > 0 && (
+                  <>{" · "}<span style={{ color: "rgba(255,255,255,0.38)", fontWeight: 700 }}>{notStartedCount} not started</span></>
+                )}
               </p>
             )}
           </div>
 
-          {/* ── Filter tabs ── */}
+          {/* ── Tabs ── */}
           {!loading && !error && skills.length > 0 && (
-            <div style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-              marginBottom: "28px",
-            }}>
-              {FILTER_TABS.map((tab) => (
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
+              {TABS.map((t) => (
                 <button
-                  key={tab.id}
-                  onClick={() => setFilter(tab.id)}
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
                   style={{
-                    padding: "7px 14px",
+                    padding: "7px 16px",
                     borderRadius: "20px",
-                    border: filter === tab.id
+                    border: tab === t.id
                       ? "1px solid rgba(155,114,255,0.55)"
-                      : "1px solid rgba(255,255,255,0.1)",
-                    background: filter === tab.id
+                      : "1px solid rgba(255,255,255,0.10)",
+                    background: tab === t.id
                       ? "rgba(155,114,255,0.18)"
                       : "rgba(255,255,255,0.04)",
-                    color: filter === tab.id ? "#c4a8ff" : "rgba(255,255,255,0.45)",
+                    color: tab === t.id ? "#c4a8ff" : "rgba(255,255,255,0.45)",
                     fontWeight: 700,
-                    fontSize: "0.78rem",
+                    fontSize: "0.80rem",
                     cursor: "pointer",
                     transition: "all 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
                   }}
                 >
-                  {tab.label}
-                  {tab.count > 0 && (
+                  {t.label}
+                  {t.count > 0 && (
                     <span style={{
-                      marginLeft: "6px",
-                      background: filter === tab.id ? "rgba(155,114,255,0.3)" : "rgba(255,255,255,0.08)",
-                      color: filter === tab.id ? "#c4a8ff" : "rgba(255,255,255,0.35)",
+                      background: tab === t.id ? "rgba(155,114,255,0.3)" : "rgba(255,255,255,0.08)",
+                      color: tab === t.id ? "#c4a8ff" : "rgba(255,255,255,0.35)",
                       borderRadius: "20px",
                       padding: "1px 7px",
                       fontSize: "0.70rem",
                     }}>
-                      {tab.count}
+                      {t.count}
                     </span>
                   )}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* ── Search + sort bar ── */}
+          {!loading && !error && skills.length > 0 && (
+            <div style={{
+              display: "flex",
+              gap: "10px",
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: "28px",
+            }}>
+              <div style={{ position: "relative", flex: "1 1 200px", minWidth: "180px" }}>
+                <span style={{
+                  position: "absolute",
+                  left: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  fontSize: "0.82rem",
+                  color: "rgba(255,255,255,0.35)",
+                  pointerEvents: "none",
+                }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search skills…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px 8px 34px",
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: "10px",
+                    color: "#f0f6ff",
+                    fontSize: "0.84rem",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>Sort:</span>
+                {SORTS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setSort(s.id)}
+                    style={{
+                      padding: "5px 11px",
+                      borderRadius: "8px",
+                      border: sort === s.id
+                        ? "1px solid rgba(155,114,255,0.45)"
+                        : "1px solid rgba(255,255,255,0.08)",
+                      background: sort === s.id
+                        ? "rgba(155,114,255,0.14)"
+                        : "rgba(255,255,255,0.03)",
+                      color: sort === s.id ? "#c4a8ff" : "rgba(255,255,255,0.38)",
+                      fontWeight: 600,
+                      fontSize: "0.73rem",
+                      cursor: "pointer",
+                      transition: "all 0.12s",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -533,33 +577,25 @@ export default function ParentSkillsPage() {
             </div>
           )}
 
-          {/* ── Empty state ── */}
-          {!loading && !error && skills.length === 0 && <EmptyState />}
+          {/* ── Empty state (no skills at all) ── */}
+          {!loading && !error && skills.length === 0 && <EmptyState filtered={false} />}
 
-          {/* ── Skill groups ── */}
-          {!loading && !error && filtered.length > 0 && (
-            <div>
-              {Array.from(grouped.entries()).map(([label, groupSkills]) => (
-                <SubjectSection
-                  key={label}
-                  label={label}
-                  icon={subjectIcon(groupSkills[0].subjectCode)}
-                  skills={groupSkills}
-                />
+          {/* ── Skill grid ── */}
+          {!loading && !error && skills.length > 0 && filtered.length > 0 && (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+              gap: "12px",
+            }}>
+              {filtered.map((s) => (
+                <SkillCard key={s.skillCode} skill={s} />
               ))}
             </div>
           )}
 
-          {/* ── No results after filter ── */}
+          {/* ── No results after filter/search ── */}
           {!loading && !error && skills.length > 0 && filtered.length === 0 && (
-            <div style={{
-              textAlign: "center",
-              padding: "60px 0",
-              color: "rgba(255,255,255,0.38)",
-              fontSize: "0.88rem",
-            }}>
-              No skills match this filter yet.
-            </div>
+            <EmptyState filtered={true} />
           )}
 
         </div>
