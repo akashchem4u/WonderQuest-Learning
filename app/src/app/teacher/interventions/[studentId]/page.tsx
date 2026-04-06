@@ -90,7 +90,7 @@ const INTERVENTION = {
       date: "Mar 22, 2026 — 2:30pm",
       title: "Teacher check-in logged",
       detail:
-        "Teacher acknowledged queue item and logged note: "Spoke with Maya. Visual model suggested."",
+        "Teacher acknowledged queue item and logged note: Spoke with Maya — visual model suggested.",
     },
     {
       icon: "📈",
