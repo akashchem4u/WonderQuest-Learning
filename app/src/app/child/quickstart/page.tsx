@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
-// ── Stub data ──────────────────────────────────────────────────────────────
+// ── Session type ───────────────────────────────────────────────────────────
+
+type SessionData = {
+  student: { displayName: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
+
+// ── Static data ────────────────────────────────────────────────────────────
 
 const AVATARS = [
   { emoji: "🦋", label: "Butterfly" },
@@ -175,14 +182,38 @@ function StepIndicator({ step }: { step: number }) {
 
 export default function ChildQuickstartPage() {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
-  const [name, setName] = useState("Zara");
+  const [name, setName] = useState("");
   const [avatarIdx, setAvatarIdx] = useState(0);
   const [bandId, setBandId] = useState("p1");
   const [worldId, setWorldId] = useState("forest");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        if (data?.student?.displayName) setName(data.student.displayName);
+        const code = data?.student?.launchBandCode ?? "k1";
+        const bandMap: Record<string, string> = { p0: "p0", prereader: "p0", k1: "p1", g23: "p2", g45: "p3" };
+        setBandId(bandMap[code] ?? "p1");
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const selectedBand = BANDS.find((b) => b.id === bandId) ?? BANDS[1];
   const selectedWorld = WORLDS.find((w) => w.id === worldId) ?? WORLDS[0];
   const displayName = name.trim() || "Explorer";
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: "#100b2e", display: "flex", alignItems: "center", justifyContent: "center", color: "#9b8ec4", fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 16, fontWeight: 700 }}>
+          Getting ready...
+        </div>
+      </AppFrame>
+    );
+  }
 
   const wrapperStyle: React.CSSProperties = {
     ...font,

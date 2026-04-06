@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type SessionData = {
+  student: { displayName: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
 
 type ScreenId = "pick" | "complete";
 
@@ -14,7 +19,7 @@ type Interest = {
   name: string;
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── Interest data ────────────────────────────────────────────────────────────
 
 const MAX_INTERESTS = 5;
 

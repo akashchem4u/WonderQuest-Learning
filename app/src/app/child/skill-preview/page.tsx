@@ -663,10 +663,12 @@ function SkillDetailView({
   skill,
   relatedSkills,
   onBack,
+  bandCode,
 }: {
   skill: Skill;
   relatedSkills: Skill[];
   onBack: () => void;
+  bandCode: string;
 }) {
   return (
     <div
@@ -731,7 +733,7 @@ function SkillDetailView({
             fontFamily: "'Nunito', system-ui, sans-serif",
           }}
         >
-          {skill.category} · K–1 Band
+          {skill.category} · {bandCode.toUpperCase()} Band
         </div>
 
         {/* Description */}
