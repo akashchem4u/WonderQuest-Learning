@@ -41,7 +41,26 @@ function ensureBoolean(value: unknown) {
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 
+async function repairGuardianStudentLinks(guardianId: string) {
+  const deleted = await db.query(
+    `
+      delete from public.guardian_student_links gsl
+      where gsl.guardian_id = $1
+        and not exists (
+          select 1
+          from public.student_profiles sp
+          where sp.id = gsl.student_id
+        )
+    `,
+    [guardianId],
+  );
+
+  return deleted.rowCount ?? 0;
+}
+
 async function getLinkedChildren(guardianId: string) {
+  await repairGuardianStudentLinks(guardianId);
+
   const result = await db.query(
     `
       select
@@ -76,6 +95,19 @@ async function getLinkedChildren(guardianId: string) {
     badgeCount: Number(row.badge_count ?? 0),
     trophyCount: Number(row.trophy_count ?? 0),
   }));
+}
+
+function mapNotificationPreferenceType(type: string) {
+  if (
+    type === "level_up" ||
+    type === "badge" ||
+    type === "streak" ||
+    type === "milestone-earned"
+  ) {
+    return "milestone-earned";
+  }
+
+  return type;
 }
 
 async function getChildDashboard(studentId: string) {
@@ -409,6 +441,8 @@ export async function accessParent(
 }
 
 export async function restoreParentSession(guardianId: string) {
+  await repairGuardianStudentLinks(guardianId);
+
   const guardianResult = await db.query(
     `
       select id, username, display_name
@@ -440,5 +474,173 @@ export async function restoreParentSession(guardianId: string) {
     linkedChildren,
     childDashboards,
     childDashboard,
+  };
+}
+
+export async function getParentNotifications(
+  guardianId: string,
+  options: {
+    includeRead?: boolean;
+    limit?: number;
+  } = {},
+) {
+  await repairGuardianStudentLinks(guardianId);
+
+  const includeRead = Boolean(options.includeRead);
+  const limit = Math.min(Math.max(Math.floor(options.limit ?? 25), 1), 100);
+  const unreadCountResult = await db.query(
+    `
+      select count(*) as unread_count
+      from public.student_notifications sn
+      join public.guardian_student_links gsl
+        on gsl.student_id = sn.student_id
+       and gsl.guardian_id = $1
+      left join public.notification_preferences np
+        on np.guardian_id = $1
+       and np.channel = 'in-app'
+       and np.notification_type = (
+         case
+           when sn.type in ('level_up', 'badge', 'streak', 'milestone-earned')
+             then 'milestone-earned'
+           else sn.type
+         end
+       )
+      where (sn.guardian_id is null or sn.guardian_id = $1)
+        and sn.read = false
+        and coalesce(np.enabled, true) = true
+    `,
+    [guardianId],
+  );
+  const result = await db.query(
+    `
+      select
+        sn.id,
+        sn.student_id,
+        sn.type,
+        sn.title,
+        sn.description,
+        sn.value,
+        sn.read,
+        sn.created_at,
+        sp.display_name as student_display_name,
+        sp.avatar_key,
+        sp.launch_band_code
+      from public.student_notifications sn
+      join public.guardian_student_links gsl
+        on gsl.student_id = sn.student_id
+       and gsl.guardian_id = $1
+      join public.student_profiles sp
+        on sp.id = sn.student_id
+      left join public.notification_preferences np
+        on np.guardian_id = $1
+       and np.channel = 'in-app'
+       and np.notification_type = (
+         case
+           when sn.type in ('level_up', 'badge', 'streak', 'milestone-earned')
+             then 'milestone-earned'
+           else sn.type
+         end
+       )
+      where (sn.guardian_id is null or sn.guardian_id = $1)
+        and ($2::boolean or sn.read = false)
+        and coalesce(np.enabled, true) = true
+      order by sn.created_at desc, sn.id desc
+      limit $3
+    `,
+    [guardianId, includeRead, limit],
+  );
+
+  const unreadCount = Number(unreadCountResult.rows[0]?.unread_count ?? 0);
+
+  return {
+    guardianId,
+    unreadCount,
+    notifications: result.rows.map((row) => ({
+      id: String(row.id),
+      studentId: String(row.student_id),
+      studentDisplayName: String(row.student_display_name),
+      avatarKey: String(row.avatar_key),
+      launchBandCode: String(row.launch_band_code),
+      preferenceType: mapNotificationPreferenceType(String(row.type)),
+      type: String(row.type),
+      title: String(row.title),
+      description: String(row.description),
+      value: row.value === null || row.value === undefined ? null : String(row.value),
+      read: Boolean(row.read),
+      createdAt: String(row.created_at),
+    })),
+  };
+}
+
+export async function getParentLinkHealth(guardianId: string) {
+  const repairedBrokenLinks = await repairGuardianStudentLinks(guardianId);
+  const linkRows = await db.query(
+    `
+      select
+        gsl.id as link_id,
+        gsl.student_id,
+        sp.id as profile_student_id,
+        sp.username,
+        sp.display_name,
+        sp.launch_band_code
+      from public.guardian_student_links gsl
+      left join public.student_profiles sp
+        on sp.id = gsl.student_id
+      where gsl.guardian_id = $1
+      order by coalesce(sp.display_name, sp.username, '') asc, gsl.id asc
+    `,
+    [guardianId],
+  );
+
+  const links = await Promise.all(
+    linkRows.rows.map(async (row) => {
+      const studentId =
+        row.student_id === null || row.student_id === undefined
+          ? null
+          : String(row.student_id);
+      const hasStudentProfile =
+        row.profile_student_id !== null && row.profile_student_id !== undefined;
+      let dashboardReady = false;
+      let issue: string | null = null;
+
+      if (!studentId || !hasStudentProfile) {
+        issue = "missing-student-profile";
+      } else {
+        try {
+          await getChildDashboard(studentId);
+          dashboardReady = true;
+        } catch {
+          issue = "dashboard-fetch-failed";
+        }
+      }
+
+      return {
+        linkId: String(row.link_id),
+        studentId,
+        username:
+          row.username === null || row.username === undefined
+            ? null
+            : String(row.username),
+        displayName:
+          row.display_name === null || row.display_name === undefined
+            ? null
+            : String(row.display_name),
+        launchBandCode:
+          row.launch_band_code === null || row.launch_band_code === undefined
+            ? null
+            : String(row.launch_band_code),
+        hasStudentProfile,
+        dashboardReady,
+        issue,
+      };
+    }),
+  );
+
+  return {
+    guardianId,
+    repairedBrokenLinks,
+    linkedChildren: links.length,
+    healthy: links.every((link) => link.hasStudentProfile && link.dashboardReady),
+    links,
   };
 }

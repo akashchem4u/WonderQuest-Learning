@@ -22,8 +22,13 @@ import { hashPin, normalizeUsername, validatePin, verifyPin } from "@/lib/pin";
 
 // ─── Re-exports ───────────────────────────────────────────────────────────────
 
-export { createPlaySession, answerQuestion, getPlaySessionHistory } from "@/lib/session-service";
-export { accessParent, restoreParentSession } from "@/lib/parent-service";
+export { createPlaySession, answerQuestion } from "@/lib/session-service";
+export {
+  accessParent,
+  restoreParentSession,
+  getParentNotifications,
+  getParentLinkHealth,
+} from "@/lib/parent-service";
 export {
   getOwnerOverview,
   getTeacherOverview,
@@ -31,6 +36,14 @@ export {
   getOwnerTriageDetail,
 } from "@/lib/analytics-service";
 export { createFeedback } from "@/lib/feedback-service";
+export {
+  listTeacherAssignments,
+  getTeacherAssignmentDetail,
+  createTeacherAssignment,
+  updateTeacherAssignment,
+  deleteTeacherAssignment,
+  getAssignmentProgress,
+} from "@/lib/assignment-service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,7 +80,6 @@ function toProgression(row?: Record<string, unknown>) {
     currentLevel: Number(row?.current_level ?? 1),
     badgeCount: Number(row?.badge_count ?? 0),
     trophyCount: Number(row?.trophy_count ?? 0),
-    streakCount: Number(row?.streak_count ?? 0),
   };
 }
 
@@ -97,8 +109,7 @@ export async function restoreChildSession(studentId: string) {
         ps.total_points,
         ps.current_level,
         ps.badge_count,
-        ps.trophy_count,
-        ps.streak_count
+        ps.trophy_count
       from public.student_profiles sp
       left join public.progression_states ps
         on ps.student_id = sp.id
@@ -161,8 +172,7 @@ export async function accessChild(
         ps.total_points,
         ps.current_level,
         ps.badge_count,
-        ps.trophy_count,
-        ps.streak_count
+        ps.trophy_count
       from public.student_profiles sp
       left join public.progression_states ps
         on ps.student_id = sp.id

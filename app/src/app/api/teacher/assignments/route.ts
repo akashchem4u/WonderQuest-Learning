@@ -1,44 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTeacherAssignments, createAssignment } from "@/lib/teacher-service";
-import { isValidTeacherId } from "@/lib/teacher-identity";
+import {
+  createTeacherAssignment,
+  listTeacherAssignments,
+} from "@/lib/prototype-service";
+import { hasTeacherAccess } from "@/lib/teacher-access";
+
+function readTeacherId(value: string | null) {
+  return value?.trim() ?? "";
+}
 
 export async function GET(request: NextRequest) {
-  const teacherId = request.nextUrl.searchParams.get("teacherId");
+  if (!(await hasTeacherAccess())) {
+    return NextResponse.json(
+      { error: "Teacher access is required." },
+      { status: 401 },
+    );
+  }
 
-  if (!isValidTeacherId(teacherId)) {
-    return NextResponse.json({ assignments: [] });
+  const teacherId = readTeacherId(request.nextUrl.searchParams.get("teacherId"));
+
+  if (!teacherId) {
+    return NextResponse.json(
+      { error: "teacherId is required." },
+      { status: 400 },
+    );
   }
 
   try {
-    const assignments = await getTeacherAssignments(teacherId);
-    return NextResponse.json({ assignments });
+    const payload = await listTeacherAssignments(teacherId);
+    return NextResponse.json(payload);
   } catch (error) {
-    console.error("[api/teacher/assignments GET] error:", error);
-    return NextResponse.json({ error: "Failed to fetch assignments" }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "Assignments could not be loaded.";
+    const status = message === "Teacher profile was not found." ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await hasTeacherAccess())) {
+    return NextResponse.json(
+      { error: "Teacher access is required." },
+      { status: 401 },
+    );
+  }
+
   try {
-    const body = await request.json() as {
-      teacherId?: string;
-      title?: string;
-      description?: string;
-      skillCodes?: string[];
-      launchBandCode?: string;
-      sessionMode?: string;
-      dueDate?: string;
-      studentIds?: string[];
-    };
-
-    if (!body.teacherId || !body.title || !body.skillCodes) {
-      return NextResponse.json(
-        { error: "teacherId, title, and skillCodes are required" },
-        { status: 400 },
-      );
-    }
-
-    const result = await createAssignment({
+    const body = await request.json();
+    const payload = await createTeacherAssignment({
       teacherId: body.teacherId,
       title: body.title,
       description: body.description,
@@ -46,12 +55,14 @@ export async function POST(request: NextRequest) {
       launchBandCode: body.launchBandCode,
       sessionMode: body.sessionMode,
       dueDate: body.dueDate,
-      studentIds: body.studentIds ?? [],
+      studentIds: body.studentIds,
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(payload, { status: 201 });
   } catch (error) {
-    console.error("[api/teacher/assignments POST] error:", error);
-    return NextResponse.json({ error: "Failed to create assignment" }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "Assignment could not be created.";
+    const status = message === "Teacher profile was not found." ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
