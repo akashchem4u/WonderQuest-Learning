@@ -92,6 +92,8 @@ export default function TeacherAssignmentPage() {
 
   const [progressModal, setProgressModal] = useState<AssignmentProgress | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [skillList, setSkillList] = useState<{ id: string; name: string; subject: string; band: string }[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(true);
 
   const STEPS = [
     { n: 1, label: "Type" },
@@ -121,16 +123,21 @@ export default function TeacherAssignmentPage() {
 
   // Fetch real roster
   useEffect(() => {
-    if (!teacherId) { setRosterLoading(false); return; }
-    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
-      .then((r) => r.ok ? r.json() : { roster: [] })
-      .then((data: { roster?: RosterStudent[] }) => {
-        const students = data.roster ?? [];
+    if (!teacherId) { setRosterLoading(false); setSkillsLoading(false); return; }
+    // Fetch roster and skills in parallel
+    Promise.all([
+      fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`).then((r) => r.ok ? r.json() : { roster: [] }),
+      fetch(`/api/teacher/skills?teacherId=${encodeURIComponent(teacherId)}`).then((r) => r.ok ? r.json() : { skills: [] }),
+    ])
+      .then(([classData, skillsData]: [{ roster?: RosterStudent[] }, { skills?: { code: string; name: string; subject: string; band: string }[] }]) => {
+        const students = classData.roster ?? [];
         setRoster(students);
         setSelectedStudents(new Set(students.map((s) => s.studentId)));
+        const skills = (skillsData.skills ?? []).map((s) => ({ id: s.code, name: s.name, subject: s.subject, band: s.band }));
+        setSkillList(skills.length > 0 ? skills : SKILLS);
       })
-      .catch(() => {})
-      .finally(() => setRosterLoading(false));
+      .catch(() => { setSkillList(SKILLS); })
+      .finally(() => { setRosterLoading(false); setSkillsLoading(false); });
   }, []);
 
   function openProgressModal(assignmentId: string) {
@@ -171,7 +178,7 @@ export default function TeacherAssignmentPage() {
     const assignmentTitle =
       title.trim() ||
       (assignmentType === "skill"
-        ? `Skill Practice — ${[...selectedSkills].map((id) => SKILLS.find((s) => s.id === id)?.name).join(", ") || "Mixed"}`
+        ? `Skill Practice — ${[...selectedSkills].map((id) => skillList.find((s) => s.id === id)?.name).join(", ") || "Mixed"}`
         : assignmentType === "quest"
         ? "Quest Assignment"
         : "Free Practice");
@@ -297,7 +304,9 @@ export default function TeacherAssignmentPage() {
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 }}>Select skills to assign</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Students will practice these skills in their next sessions</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
-              {SKILLS.map((s) => {
+              {skillsLoading && <div style={{ fontSize: 13, color: C.muted, padding: "12px 0" }}>Loading skills…</div>}
+              {!skillsLoading && skillList.length === 0 && <div style={{ fontSize: 13, color: C.muted, padding: "12px 0" }}>No skills found for this classroom.</div>}
+              {skillList.map((s) => {
                 const selected = selectedSkills.has(s.id);
                 return (
                   <div key={s.id} onClick={() => toggleSkill(s.id)} style={{ background: selected ? "rgba(80,232,144,0.06)" : C.surface, border: `1.5px solid ${selected ? C.mint : C.border}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
@@ -371,7 +380,7 @@ export default function TeacherAssignmentPage() {
               <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Assignment Summary</div>
               {[
                 ["Type", assignmentType === "skill" ? "Skill Practice" : assignmentType === "quest" ? "Quest Assignment" : "Free Practice"],
-                ["Skills", selectedSkills.size > 0 ? [...selectedSkills].map((id) => SKILLS.find((s) => s.id === id)?.name).join(", ") : "None selected"],
+                ["Skills", selectedSkills.size > 0 ? [...selectedSkills].map((id) => skillList.find((s) => s.id === id)?.name).join(", ") : "None selected"],
                 ["Due date", new Date(dueDate).toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })],
                 ["Students", `${selectedStudents.size} of ${roster.length} students`],
               ].map(([label, val]) => (
