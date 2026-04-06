@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -18,9 +19,15 @@ const C = {
   border: "rgba(255,255,255,0.06)",
 };
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type MasteryStatus = "strong" | "building" | "started";
+
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string;
+};
 
 type StudentRow = {
   id: string;
@@ -32,18 +39,22 @@ type StudentRow = {
   lastActive: string;
 };
 
-const SKILL = {
-  name: "Fractions: Addition",
-  band: "P2",
-  gradeRange: "G2\u20133",
-  subject: "Mathematics",
-  difficulty: "Intermediate",
-  icon: "\u2795",
-  studentsOnSkill: 18,
-  strongThisWeek: 8,
-  totalSessions: 47,
-  classAvgAccuracy: 72,
-};
+function formatSkillName(code: string): string {
+  return code
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function formatBandLabel(code: string): string {
+  const labels: Record<string, string> = {
+    "pre-k": "Pre-K (P0)",
+    "k-1": "K–1 (P1)",
+    "g2-3": "G2–3 (P2)",
+    "g4-5": "G4–5 (P3)",
+  };
+  return labels[code?.toLowerCase()] ?? code;
+}
 
 const TREND_WEEKS = [
   { label: "Week 1", pct: 40, sessions: 8 },
@@ -84,7 +95,35 @@ function statusLabel(s: MasteryStatus): string {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TeacherSkillDrilldownPage() {
+  const params = useParams();
+  const launchBandCode = typeof params?.launchBandCode === "string" ? params.launchBandCode : "";
+  const skillCode = typeof params?.skillCode === "string" ? params.skillCode : "";
+  const skillDisplayName = skillCode ? formatSkillName(skillCode) : "Skill";
+  const bandLabel = launchBandCode ? formatBandLabel(launchBandCode) : "";
+
   const [activeTab, setActiveTab] = useState<"drilldown" | "compare">("drilldown");
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [rosterLoaded, setRosterLoaded] = useState(false);
+
+  useEffect(() => {
+    const teacherId =
+      (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ??
+      "demo-teacher";
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.roster && Array.isArray(data.roster)) {
+          setRoster(data.roster as RosterStudent[]);
+        }
+      })
+      .catch(() => {/* silently ignore */})
+      .finally(() => setRosterLoaded(true));
+  }, []);
+
+  const bandStudents = roster.filter(
+    (s) => s.launchBandCode?.toLowerCase() === launchBandCode?.toLowerCase(),
+  );
+  const studentsOnSkillCount = bandStudents.length > 0 ? bandStudents.length : STUDENTS.length;
 
   const glassCard: React.CSSProperties = {
     background: C.surface,
@@ -148,7 +187,7 @@ export default function TeacherSkillDrilldownPage() {
           </Link>
           <span style={{ color: C.border, fontSize: 14 }}>|</span>
           <span style={{ fontSize: 12, color: C.muted }}>
-            {SKILL.band} \u203a {SKILL.name}
+            {bandLabel || launchBandCode} › {skillDisplayName}
           </span>
           <div style={{ marginLeft: "auto" }}>
             <Link
@@ -180,16 +219,16 @@ export default function TeacherSkillDrilldownPage() {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ fontSize: 42, flexShrink: 0 }}>{SKILL.icon}</div>
+            <div style={{ fontSize: 42, flexShrink: 0 }}>✨</div>
 
             <div style={{ flex: 1, minWidth: 220 }}>
               <div
                 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 3 }}
               >
-                {SKILL.name}
+                {skillDisplayName}
               </div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>
-                {SKILL.band} \u00b7 {SKILL.gradeRange} \u00b7 {SKILL.subject}
+                {bandLabel || launchBandCode}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <span
@@ -200,38 +239,30 @@ export default function TeacherSkillDrilldownPage() {
                     border: `1px solid ${C.mint}44`,
                   }}
                 >
-                  {SKILL.band} {SKILL.gradeRange}
+                  {bandLabel || launchBandCode}
                 </span>
-                <span
-                  style={{
-                    ...chip,
-                    background: `${C.blue}22`,
-                    color: C.blue,
-                    border: `1px solid ${C.blue}44`,
-                  }}
-                >
-                  {SKILL.subject}
-                </span>
-                <span
-                  style={{
-                    ...chip,
-                    background: "rgba(255,255,255,0.06)",
-                    color: C.muted,
-                    border: `1px solid ${C.border}`,
-                  }}
-                >
-                  {SKILL.difficulty}
-                </span>
+                {rosterLoaded && (
+                  <span
+                    style={{
+                      ...chip,
+                      background: "rgba(255,255,255,0.06)",
+                      color: C.muted,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    {studentsOnSkillCount} students
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Stat row */}
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
               {[
-                { val: SKILL.studentsOnSkill, lbl: "Students on skill" },
-                { val: SKILL.strongThisWeek, lbl: "Strong this week" },
-                { val: SKILL.totalSessions, lbl: "Total sessions" },
-                { val: `${SKILL.classAvgAccuracy}%`, lbl: "Class avg accuracy" },
+                { val: studentsOnSkillCount, lbl: "Students on skill" },
+                { val: DISTRIBUTION[0].count, lbl: "Strong this week" },
+                { val: TREND_WEEKS[TREND_WEEKS.length - 1].sessions, lbl: "Sessions (this wk)" },
+                { val: `${72}%`, lbl: "Class avg accuracy" },
               ].map((s) => (
                 <div key={s.lbl} style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 24, fontWeight: 900, color: C.text, lineHeight: 1 }}>
@@ -253,7 +284,7 @@ export default function TeacherSkillDrilldownPage() {
           >
             {/* Distribution card */}
             <div style={glassCard}>
-              <div style={cardTitle}>Class Distribution \u2014 {SKILL.name}</div>
+              <div style={cardTitle}>Class Distribution — {skillDisplayName}</div>
 
               {DISTRIBUTION.map((d) => (
                 <div

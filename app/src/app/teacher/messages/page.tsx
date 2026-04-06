@@ -51,7 +51,7 @@ type Conv = {
   messages: Msg[];
 };
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── Seed conversations ────────────────────────────────────────────────────────
 const CONVS: Conv[] = [
   {
     id: "conv-jordan",
@@ -258,7 +258,7 @@ export default function TeacherMessagesPage() {
     void load();
   }, []);
 
-  // Build sidebar items: stub CONVS + real students that don't have a stub conv
+  // Build sidebar items: seed CONVS + real students that don't have a seeded conv
   const stubStudentNames = new Set(CONVS.filter((c) => !c.isAnnouncement).map((c) => c.studentName.toLowerCase()));
   const extraStudents = roster.filter((s) => !stubStudentNames.has(s.displayName.toLowerCase()));
 

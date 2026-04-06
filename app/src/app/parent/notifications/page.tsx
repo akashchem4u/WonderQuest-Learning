@@ -92,7 +92,7 @@ function sessionToNotification(s: ApiSession, idx: number): Notification {
   };
 }
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── Seed notifications (badge/levelup/system items not from API) ─────────────
 
 const STUB: Notification[] = [
   {

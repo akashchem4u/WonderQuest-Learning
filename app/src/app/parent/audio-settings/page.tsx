@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -27,6 +27,8 @@ type Child = {
   bgColor: string;
 };
 
+type ApiStudent = { studentId: string; displayName: string; launchBandCode: string };
+
 type AudioSettings = {
   audioMaster: boolean;
   readoutEnabled: boolean;
@@ -40,13 +42,24 @@ type AudioSettings = {
   voiceLocale: "en-GB" | "en-US" | "en-AU";
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
-
-const CHILDREN: Child[] = [
-  { id: "emma", name: "Emma", initial: "E", color: GOLD,  bgColor: "rgba(255,209,102,0.2)" },
-  { id: "noah", name: "Noah", initial: "N", color: MINT,  bgColor: "rgba(88,232,193,0.2)"  },
-  { id: "lily", name: "Lily", initial: "L", color: CORAL, bgColor: "rgba(255,123,107,0.2)" },
+const CHILD_COLORS = [GOLD, MINT, CORAL, PARENT, "#38bdf8"];
+const CHILD_BG_COLORS = [
+  "rgba(255,209,102,0.2)",
+  "rgba(88,232,193,0.2)",
+  "rgba(255,123,107,0.2)",
+  "rgba(167,139,250,0.2)",
+  "rgba(56,189,248,0.2)",
 ];
+
+function apiStudentToChild(s: ApiStudent, idx: number): Child {
+  return {
+    id: s.studentId,
+    name: s.displayName,
+    initial: s.displayName.charAt(0).toUpperCase(),
+    color: CHILD_COLORS[idx % CHILD_COLORS.length],
+    bgColor: CHILD_BG_COLORS[idx % CHILD_BG_COLORS.length],
+  };
+}
 
 const DEFAULT_AUDIO: AudioSettings = {
   audioMaster: true,
@@ -181,14 +194,32 @@ function ToggleRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentAudioSettingsPage() {
-  const [activeChild, setActiveChild] = useState<string>("emma");
+  const [children, setChildren] = useState<Child[]>([]);
+  const [activeChild, setActiveChild] = useState<string>("");
   const [saved, setSaved] = useState(false);
-  const [settings, setSettings] = useState<Record<string, AudioSettings>>(
-    Object.fromEntries(CHILDREN.map((c) => [c.id, { ...DEFAULT_AUDIO }]))
-  );
+  const [settings, setSettings] = useState<Record<string, AudioSettings>>({});
 
-  const s = settings[activeChild];
-  const childObj = CHILDREN.find((c) => c.id === activeChild)!;
+  useEffect(() => {
+    fetch("/api/parent/session")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.students || !Array.isArray(data.students) || data.students.length === 0) return;
+        const mapped: Child[] = (data.students as ApiStudent[]).map((s, i) =>
+          apiStudentToChild(s, i),
+        );
+        setChildren(mapped);
+        const stored =
+          typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+        const firstId =
+          stored && mapped.find((c) => c.id === stored) ? stored : mapped[0].id;
+        setActiveChild(firstId);
+        setSettings(Object.fromEntries(mapped.map((c) => [c.id, { ...DEFAULT_AUDIO }])));
+      })
+      .catch(() => {/* ignore */});
+  }, []);
+
+  const s = settings[activeChild] ?? DEFAULT_AUDIO;
+  const childObj = children.find((c) => c.id === activeChild) ?? children[0];
 
   function update(patch: Partial<AudioSettings>) {
     setSettings((prev) => ({
@@ -204,6 +235,7 @@ export default function ParentAudioSettingsPage() {
   }
 
   const audioOff = !s.audioMaster;
+  const childName = childObj?.name ?? "your child";
 
   return (
     <AppFrame audience="parent">
@@ -247,7 +279,7 @@ export default function ParentAudioSettingsPage() {
 
           {/* Child selector */}
           <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" as const }}>
-            {CHILDREN.map((child) => {
+            {children.map((child) => {
               const active = child.id === activeChild;
               return (
                 <button
@@ -306,10 +338,10 @@ export default function ParentAudioSettingsPage() {
           >
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: TEXT, marginBottom: 4 }}>
-                Sound for {childObj.name}
+                Sound for {childName}
               </div>
               <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.4 }}>
-                When off, {childObj.name} can still play all questions using text and images. No
+                When off, {childName} can still play all questions using text and images. No
                 content is hidden.
               </div>
             </div>
@@ -520,7 +552,7 @@ export default function ParentAudioSettingsPage() {
               icon="🔒"
               iconBg="rgba(255,209,102,0.1)"
               title="Lock to Slow"
-              desc={`${childObj.name} can't change this speed setting`}
+              desc={`${childName} can't change this speed setting`}
               checked={s.voiceSpeedLocked}
               onChange={(v) => update({ voiceSpeedLocked: v })}
             />

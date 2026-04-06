@@ -20,7 +20,7 @@ const C = {
   red: "#ff7b6b",
 };
 
-// ── Stub data ───────────────────────────────────────────────────────────────
+// ── Class overview data ──────────────────────────────────────────────────────
 const STATS = [
   { val: "18", lbl: "Active today", delta: "+3 vs yesterday", up: true },
   { val: "⭐ 284", lbl: "Class stars", delta: "+62 this week", up: true },

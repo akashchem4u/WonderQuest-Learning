@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -19,6 +19,8 @@ const BORDER  = "rgba(255,255,255,0.06)";
 
 type Child = { id: string; name: string };
 
+type ApiStudent = { studentId: string; displayName: string; launchBandCode: string };
+
 type AccessibilitySettings = {
   displayMode: "dark" | "light" | "high-contrast";
   textSize: number; // 0=Small 1=Med 2=Large 3=XL
@@ -35,14 +37,6 @@ type AccessibilitySettings = {
   highContrastAnswerButtons: boolean;
   showQuestionNumber: boolean;
 };
-
-// ─── Stub data ────────────────────────────────────────────────────────────────
-
-const CHILDREN: Child[] = [
-  { id: "emma", name: "Emma" },
-  { id: "noah", name: "Noah" },
-  { id: "lily", name: "Lily" },
-];
 
 const DEFAULT_SETTINGS: AccessibilitySettings = {
   displayMode: "dark",
@@ -173,13 +167,32 @@ function SectionCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentAccessibilityPage() {
-  const [activeChild, setActiveChild] = useState<string>("emma");
+  const [children, setChildren] = useState<Child[]>([]);
+  const [activeChild, setActiveChild] = useState<string>("");
   const [saved, setSaved] = useState(false);
-  const [settings, setSettings] = useState<Record<string, AccessibilitySettings>>(
-    Object.fromEntries(CHILDREN.map((c) => [c.id, { ...DEFAULT_SETTINGS }]))
-  );
+  const [settings, setSettings] = useState<Record<string, AccessibilitySettings>>({});
 
-  const s = settings[activeChild];
+  useEffect(() => {
+    fetch("/api/parent/session")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.students || !Array.isArray(data.students) || data.students.length === 0) return;
+        const mapped: Child[] = (data.students as ApiStudent[]).map((s) => ({
+          id: s.studentId,
+          name: s.displayName,
+        }));
+        setChildren(mapped);
+        const stored =
+          typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+        const firstId =
+          stored && mapped.find((c) => c.id === stored) ? stored : mapped[0].id;
+        setActiveChild(firstId);
+        setSettings(Object.fromEntries(mapped.map((c) => [c.id, { ...DEFAULT_SETTINGS }])));
+      })
+      .catch(() => {/* ignore */});
+  }, []);
+
+  const s = settings[activeChild] ?? DEFAULT_SETTINGS;
 
   function update(patch: Partial<AccessibilitySettings>) {
     setSettings((prev) => ({
@@ -225,7 +238,7 @@ export default function ParentAccessibilityPage() {
 
           {/* Child selector */}
           <div style={{ display: "flex", gap: 8, marginBottom: 28, flexWrap: "wrap" as const }}>
-            {CHILDREN.map((child) => {
+            {children.map((child) => {
               const active = child.id === activeChild;
               return (
                 <button
