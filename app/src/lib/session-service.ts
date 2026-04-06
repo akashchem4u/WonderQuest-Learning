@@ -101,6 +101,16 @@ const MODULE_BY_SUBJECT: Record<string, string> = {
   writing: "writing",
   history: "history",
 };
+const BAND_DIFFICULTY_RANGES: Record<
+  string,
+  { floor: number; ceiling: number }
+> = {
+  PREK: { floor: 1, ceiling: 2 },
+  K1: { floor: 2, ceiling: 3 },
+  G23: { floor: 3, ceiling: 4 },
+  G45: { floor: 4, ceiling: 5 },
+  G6: { floor: 5, ceiling: 6 },
+};
 const SKILL_LADDERS: Record<string, string[]> = {
   PREK: [
     "letter-a-recognition",
@@ -315,6 +325,45 @@ function mergeQuestionLists(...lists: SessionQuestionRecord[][]) {
   return [...merged.values()];
 }
 
+function getBandDifficultySequence(
+  launchBandCode: string,
+  orderBy: "difficulty_asc" | "difficulty_desc",
+) {
+  const range = BAND_DIFFICULTY_RANGES[launchBandCode] ?? { floor: 1, ceiling: 6 };
+  const values = Array.from(
+    { length: range.ceiling - range.floor + 1 },
+    (_, index) => range.floor + index,
+  );
+
+  return orderBy === "difficulty_desc" ? values.reverse() : values;
+}
+
+async function collectBandQuestionsByDifficulty(input: {
+  launchBandCode: string;
+  baseExcludeQuestionKeys: string[];
+  orderBy: "difficulty_asc" | "difficulty_desc";
+  limit: number;
+}) {
+  const difficultySequence = getBandDifficultySequence(
+    input.launchBandCode,
+    input.orderBy,
+  );
+  const bucketResults = await Promise.all(
+    difficultySequence.map((difficulty) =>
+      findQuestions({
+        launchBands: [input.launchBandCode],
+        excludeQuestionKeys: input.baseExcludeQuestionKeys,
+        minDifficulty: difficulty,
+        maxDifficulty: difficulty,
+        orderBy: "question_key_asc",
+        limit: input.limit,
+      }),
+    ),
+  );
+
+  return bucketResults.flat().slice(0, input.limit);
+}
+
 async function pickQuestion(
   launchBandCode: string,
   skillCode: string,
@@ -352,21 +401,25 @@ async function loadBandQuestionWindow(
   orderBy: "difficulty_asc" | "difficulty_desc",
   limit: number,
 ) {
-  const freshQuestions = await findQuestions({
-    launchBands: [launchBandCode],
-    excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
+  const freshQuestions = await collectBandQuestionsByDifficulty({
+    launchBandCode,
+    baseExcludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
     orderBy,
     limit,
   });
 
-  const fallbackQuestions = await findQuestions({
-    launchBands: [launchBandCode],
-    excludeQuestionKeys: [...usedQuestionKeys],
+  if (freshQuestions.length >= limit || recentQuestionKeys.size === 0) {
+    return freshQuestions.slice(0, limit);
+  }
+
+  const fallbackQuestions = await collectBandQuestionsByDifficulty({
+    launchBandCode,
+    baseExcludeQuestionKeys: [...usedQuestionKeys],
     orderBy,
     limit,
   });
 
-  return mergeQuestionLists(freshQuestions, fallbackQuestions);
+  return mergeQuestionLists(freshQuestions, fallbackQuestions).slice(0, limit);
 }
 
 async function selectEasyFirstGuidedQuestions(
@@ -654,11 +707,13 @@ async function getRequestedQuestionSequence(
   }
 
   return (
-    await findQuestions({
-      launchBands: [launchBandCode],
-      limit: totalQuestions,
-      orderBy: "difficulty_asc",
-    })
+    await loadBandQuestionWindow(
+      launchBandCode,
+      new Set<string>(),
+      new Set<string>(),
+      "difficulty_asc",
+      totalQuestions,
+    )
   ).map((item) => item.question_key);
 }
 
