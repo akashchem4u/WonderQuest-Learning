@@ -81,7 +81,8 @@ function formatDayLabel(iso: string): string {
 }
 
 function sessionToFeedItem(s: RecentSession): FeedItem {
-  const skills = s.skillNames.length > 0 ? s.skillNames.join(", ") : "General practice";
+  const skillList = Array.isArray(s.skillNames) ? s.skillNames : [];
+  const skills = skillList.length > 0 ? skillList.join(", ") : "General practice";
   const dur = s.durationMinutes != null ? `${s.durationMinutes} minutes` : null;
   const meta = [dur, skills].filter(Boolean).join(" · ");
   return {

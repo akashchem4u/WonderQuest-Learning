@@ -833,6 +833,11 @@ export default function ParentNotificationsPage() {
 
   function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, unread: false })));
+    fetch("/api/parent/notifications/read-all", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ read: true }),
+    }).catch(() => {/* silently ignore */});
   }
 
   const unreadCount = notifications.filter((n) => n.unread).length;
