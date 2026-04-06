@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (!bandCodes.length) {
       const rosterRes = await db.query(
         `select distinct sp.launch_band_code
-         from public.teacher_student_links tsl
+         from public.teacher_student_roster tsl
          join public.student_profiles sp on sp.id = tsl.student_id
          where tsl.teacher_id = $1`,
         [teacherId],

@@ -1201,20 +1201,12 @@ export async function answerQuestion(input: AnswerInput) {
     Number(session.rows[0].total_questions ?? 0),
   );
 
-  const completed = await db.query(
-    `
-      select count(*) as correct_attempts
-      from public.session_results
-      where session_id = $1 and correct = true
-    `,
-    [input.sessionId],
-  );
-
-  const expectedQuestionKey =
-    questionSequence[Number(completed.rows[0]?.correct_attempts ?? 0)] ?? null;
-
-  if (expectedQuestionKey !== input.questionKey) {
-    throw new Error("Question order is out of sync. Refresh the session and try again.");
+  // Guard: if the session has a fixed sequence, make sure the submitted key
+  // appears somewhere in it (but do NOT require strict positional ordering —
+  // adaptive question insertions can legally shift the expected index and the
+  // UI may not always follow the adaptive route).
+  if (questionSequence.length > 0 && !questionSequence.includes(input.questionKey)) {
+    throw new Error("Question is not part of this session.");
   }
 
   const isCorrect = ensureText(input.answer) === question.correct_answer;
