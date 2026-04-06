@@ -94,6 +94,20 @@ type HeatmapDay = { label: string; sessions: number; active: boolean };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function getWeekLabel(offset: number): string {
+  if (offset === 0) return "This week";
+  if (offset === 1) return "Last week";
+  const anchor = new Date();
+  anchor.setDate(anchor.getDate() - offset * 7);
+  const dayOfWeek = anchor.getDay();
+  const daysToMonday = (dayOfWeek + 6) % 7;
+  const monday = new Date(anchor);
+  monday.setDate(anchor.getDate() - daysToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return `${monday.toLocaleDateString([], { month: "short", day: "numeric" })} – ${sunday.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+}
+
 function masteryStatus(pct: number): "Strong" | "Building" | "Just started" {
   if (pct >= 65) return "Strong";
   if (pct >= 40) return "Building";
@@ -300,7 +314,7 @@ function FullReportTab({
           {report.displayName}&apos;s week 🌟
         </div>
         <div style={{ fontSize: "0.88rem", color: MUTED, marginBottom: "16px" }}>
-          {report.weekLabel}
+          {getWeekLabel(weekOffset)}
         </div>
 
         {/* Week nav */}

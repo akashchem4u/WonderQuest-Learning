@@ -103,6 +103,22 @@ function avatarEmoji(key: string): string {
   return "⭐";
 }
 
+// ─── Week label helper ────────────────────────────────────────────────────────
+
+function getWeekLabel(offset: number): string {
+  if (offset === 0) return "This week";
+  if (offset === 1) return "Last week";
+  const anchor = new Date();
+  anchor.setDate(anchor.getDate() - offset * 7);
+  const dayOfWeek = anchor.getDay();
+  const daysToMonday = (dayOfWeek + 6) % 7;
+  const monday = new Date(anchor);
+  monday.setDate(anchor.getDate() - daysToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return `${monday.toLocaleDateString([], { month: "short", day: "numeric" })} – ${sunday.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+}
+
 // ─── Data mapping helpers ─────────────────────────────────────────────────────
 
 function minutesToHoursStr(minutes: number): string {
@@ -655,7 +671,7 @@ function ParentWeeklyReportPageInner() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span>{mapped.weekLabel}</span>
+                  <span>{getWeekLabel(weekOffset)}</span>
                   <button
                     onClick={() => setWeekOffset((o) => o + 1)}
                     style={{

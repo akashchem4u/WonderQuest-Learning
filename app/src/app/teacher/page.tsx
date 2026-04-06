@@ -720,6 +720,22 @@ export default function TeacherPage() {
                       C.muted,
                   }}>{status}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 60, textAlign: "right" }}>⭐ {s.totalPoints}</span>
+                  <Link
+                    href={`/teacher/students/${s.studentId}`}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: C.blue,
+                      textDecoration: "none",
+                      padding: "4px 10px",
+                      border: `1px solid ${C.blue}44`,
+                      borderRadius: 8,
+                      whiteSpace: "nowrap" as const,
+                      flexShrink: 0,
+                    }}
+                  >
+                    View report →
+                  </Link>
                 </div>
               );
             })}
