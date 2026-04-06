@@ -16,6 +16,7 @@ const C = {
   mint: "#22c55e",
   gold: "#ffd166",
   amber: "#f59e0b",
+  coral: "#ff7b6b",
   red: "#ef4444",
   faint: "rgba(255,255,255,0.05)",
 } as const;
@@ -46,26 +47,41 @@ function initial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
 
-function accuracyPct(s: RosterStudent): number {
-  if (!s.totalLast7d) return 0;
-  return Math.round((s.correctLast7d / s.totalLast7d) * 100);
+function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function daysSinceSession(lastSessionAt: string | null): number | null {
-  if (!lastSessionAt) return null;
-  const then = new Date(lastSessionAt).getTime();
-  const now = Date.now();
-  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
+function isThisWeek(iso: string | null): boolean {
+  if (!iso) return false;
+  const d = daysSince(iso);
+  return d !== null && d <= 7;
+}
+
+// Determine if a student had a "win" this week
+function winReason(s: RosterStudent): string | null {
+  // On a 3+ day streak
+  if (s.streak >= 3) return `${s.streak}-day streak`;
+  // First-ever session this week (totalPoints very low & had a session)
+  if (s.sessionsLast7d >= 1 && s.totalPoints <= 50) return "Earned their first session!";
+  // High accuracy session this week
+  if (s.sessionsLast7d >= 1 && s.totalLast7d > 0) {
+    const acc = Math.round((s.correctLast7d / s.totalLast7d) * 100);
+    if (acc >= 80) return `${acc}% accuracy this week`;
+  }
+  return null;
 }
 
 function StudentPill({
   student,
   accent,
   detail,
+  extra,
 }: {
   student: RosterStudent;
   accent: string;
   detail: string;
+  extra?: React.ReactNode;
 }) {
   return (
     <div
@@ -100,19 +116,23 @@ function StudentPill({
         <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{student.displayName}</div>
         <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{detail}</div>
       </div>
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          padding: "2px 8px",
-          borderRadius: 8,
-          background: `${accent}20`,
-          color: accent,
-          flexShrink: 0,
-        }}
-      >
-        {student.launchBandCode}
-      </span>
+      {extra ? (
+        extra
+      ) : (
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            padding: "2px 8px",
+            borderRadius: 8,
+            background: `${accent}20`,
+            color: accent,
+            flexShrink: 0,
+          }}
+        >
+          {student.launchBandCode}
+        </span>
+      )}
     </div>
   );
 }
@@ -141,7 +161,6 @@ function Section({
         border: `1px solid ${C.border}`,
       }}
     >
-      {/* Section header */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16 }}>
         <div
           style={{
@@ -183,6 +202,24 @@ function Section({
   );
 }
 
+function TipCard({ tip }: { tip: string }) {
+  return (
+    <div
+      style={{
+        padding: "12px 16px",
+        background: "rgba(155,114,255,0.06)",
+        borderRadius: 10,
+        border: `1px solid rgba(155,114,255,0.15)`,
+        fontSize: 12,
+        color: C.text,
+        lineHeight: 1.6,
+      }}
+    >
+      {tip}
+    </div>
+  );
+}
+
 function SkeletonSection() {
   return (
     <div
@@ -193,25 +230,9 @@ function SkeletonSection() {
         border: `1px solid ${C.border}`,
       }}
     >
-      <div
-        style={{
-          height: 14,
-          width: "50%",
-          background: "rgba(255,255,255,0.06)",
-          borderRadius: 6,
-          marginBottom: 14,
-        }}
-      />
+      <div style={{ height: 14, width: "50%", background: "rgba(255,255,255,0.06)", borderRadius: 6, marginBottom: 14 }} />
       {[1, 2].map((i) => (
-        <div
-          key={i}
-          style={{
-            height: 52,
-            background: "rgba(255,255,255,0.03)",
-            borderRadius: 10,
-            marginBottom: 8,
-          }}
-        />
+        <div key={i} style={{ height: 52, background: "rgba(255,255,255,0.03)", borderRadius: 10, marginBottom: 8 }} />
       ))}
     </div>
   );
@@ -219,7 +240,9 @@ function SkeletonSection() {
 
 export default function FeedbackPanelPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => {
+    setAuthed(!!getTeacherId());
+  }, []);
 
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -247,26 +270,67 @@ export default function FeedbackPanelPage() {
   if (!authed) {
     return (
       <AppFrame audience="teacher" currentPath="/teacher/feedback-panel">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: "24px",
+          }}
+        >
           <TeacherGate configured={true} />
         </div>
       </AppFrame>
     );
   }
 
-  // Confidence signals: students in intervention queue
-  const confidenceStudents = roster.filter((s) => s.inInterventionQueue);
+  // ── This week's wins ──────────────────────────────────────────────────────
+  const winsThisWeek = roster
+    .map((s) => ({ student: s, reason: winReason(s) }))
+    .filter(({ reason }) => reason !== null) as { student: RosterStudent; reason: string }[];
 
-  // Hint patterns: students with low accuracy (<50%) and at least 3 sessions in 7d
-  const hintPatternStudents = roster.filter(
-    (s) => s.sessionsLast7d >= 3 && accuracyPct(s) < 50,
+  // ── Needs attention: inactive 5+ days ────────────────────────────────────
+  const inactiveStudents = roster
+    .map((s) => ({ student: s, days: daysSince(s.lastSessionAt) }))
+    .filter(({ days }) => days === null || days >= 5)
+    .sort((a, b) => {
+      const aDays = a.days ?? 9999;
+      const bDays = b.days ?? 9999;
+      return bDays - aDays;
+    });
+
+  // ── Teaching suggestions based on class bands ─────────────────────────────
+  const bands = new Set(roster.map((s) => s.launchBandCode));
+  const tips: string[] = [];
+  const hasPrek = [...bands].some((b) => b === "PREK" || b === "P0");
+  const hasK1 = [...bands].some((b) => b === "K1" || b === "P1" || b === "P2");
+  const hasG23Plus = [...bands].some((b) =>
+    ["G2", "G3", "P3", "P4", "P5"].includes(b),
   );
 
-  // Absence flags: no sessions in 7+ days OR lastSessionAt null
-  const absenceStudents = roster.filter((s) => {
-    const days = daysSinceSession(s.lastSessionAt);
-    return days === null || days >= 7;
-  });
+  if (hasPrek) {
+    tips.push(
+      "Young learners benefit from 5-minute sessions — encourage short, frequent play rather than long sittings.",
+    );
+  }
+  if (hasK1) {
+    tips.push(
+      "Phonics and counting come before abstract math — check their letter skills and number recognition before moving ahead.",
+    );
+  }
+  if (hasG23Plus) {
+    tips.push(
+      "These students can self-direct — try assigning them the challenge mode and review their accuracy trends weekly.",
+    );
+  }
+  if (tips.length === 0) {
+    tips.push(
+      "Keep sessions consistent — students who play at least 3 times per week show the fastest mastery gains.",
+      "Review the Skill Mastery page to spot which skills are lagging across the whole class.",
+      "Celebrate streaks openly — public recognition of streaks motivates the whole class to keep going.",
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/feedback-panel">
@@ -280,44 +344,24 @@ export default function FeedbackPanelPage() {
           margin: "0 auto",
         }}
       >
-        {/* ── Header ── */}
+        {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: C.text, marginBottom: 4 }}>
-            💬 Feedback Panel — Student Signals
+            Feedback Panel
           </div>
           <div style={{ fontSize: 13, color: C.muted }}>
-            Signals derived from live play data. Updated each time students complete a session.
+            Actionable insights from live class data. Updated each time students complete a session.
           </div>
         </div>
 
-        {/* ── Info banner ── */}
-        <div
-          style={{
-            background: "rgba(155,114,255,0.10)",
-            border: `1px solid rgba(155,114,255,0.28)`,
-            borderRadius: 12,
-            padding: "12px 16px",
-            marginBottom: 28,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span style={{ fontSize: 18, flexShrink: 0 }}>🤖</span>
-          <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-            <strong>Auto-detected from play sessions.</strong> No manual entry needed. These signals
-            surface students who may need your attention based on their in-game behaviour.
-          </div>
-        </div>
-
-        {/* ── Error state ── */}
+        {/* Error state */}
         {error && (
           <div
             style={{
               background: C.surface,
               borderRadius: 14,
               padding: "20px 22px",
-              border: `1px solid rgba(239,68,68,0.3)`,
+              border: "1px solid rgba(239,68,68,0.3)",
               textAlign: "center" as const,
               marginBottom: 20,
             }}
@@ -329,7 +373,7 @@ export default function FeedbackPanelPage() {
                 padding: "7px 18px",
                 borderRadius: 8,
                 background: "transparent",
-                border: `1.5px solid rgba(239,68,68,0.4)`,
+                border: "1.5px solid rgba(239,68,68,0.4)",
                 color: C.red,
                 fontSize: 12,
                 fontWeight: 700,
@@ -341,7 +385,7 @@ export default function FeedbackPanelPage() {
           </div>
         )}
 
-        {/* ── Sections ── */}
+        {/* Sections */}
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 16 }}>
           {loading ? (
             <>
@@ -351,71 +395,93 @@ export default function FeedbackPanelPage() {
             </>
           ) : (
             <>
-              {/* Section 1: Confidence Signals */}
+              {/* Section 1: This week's wins */}
               <Section
-                icon="📉"
-                title="Confidence Signals"
-                subtitle="Students flagged in the intervention queue — hitting skill floors repeatedly."
-                accentColor={C.amber}
-                empty={confidenceStudents.length === 0}
+                icon="🔥"
+                title="This week's wins"
+                subtitle="Students on a streak, earning their first session, or posting great accuracy this week."
+                accentColor={C.mint}
+                empty={winsThisWeek.length === 0}
               >
-                {confidenceStudents.map((s) => (
+                {winsThisWeek.map(({ student, reason }) => (
                   <StudentPill
-                    key={s.studentId}
-                    student={s}
-                    accent={C.amber}
-                    detail={`In intervention queue · ${s.sessionsLast7d} session${s.sessionsLast7d === 1 ? "" : "s"} this week`}
+                    key={student.studentId}
+                    student={student}
+                    accent={C.mint}
+                    detail={reason}
                   />
                 ))}
               </Section>
 
-              {/* Section 2: Hint Patterns */}
+              {/* Section 2: Needs your attention */}
               <Section
-                icon="💡"
-                title="Hint Patterns"
-                subtitle="Students with low accuracy this week — may be relying on hints or struggling with content."
-                accentColor={C.violet}
-                empty={hintPatternStudents.length === 0}
+                icon="⚠️"
+                title="Needs your attention"
+                subtitle="Students who haven't played in 5 or more days — a quick check-in can help."
+                accentColor={C.coral}
+                empty={inactiveStudents.length === 0}
               >
-                {hintPatternStudents.map((s) => (
-                  <StudentPill
-                    key={s.studentId}
-                    student={s}
-                    accent={C.violet}
-                    detail={`${accuracyPct(s)}% accuracy · ${s.sessionsLast7d} session${s.sessionsLast7d === 1 ? "" : "s"} this week`}
-                  />
-                ))}
-              </Section>
-
-              {/* Section 3: Absence Flags */}
-              <Section
-                icon="📅"
-                title="Absence Flags"
-                subtitle="Students with no sessions in 7 or more days — may need a check-in."
-                accentColor={C.blue}
-                empty={absenceStudents.length === 0}
-              >
-                {absenceStudents.map((s) => {
-                  const days = daysSinceSession(s.lastSessionAt);
-                  const detail =
+                {inactiveStudents.map(({ student, days }) => {
+                  const daysLabel =
                     days === null
                       ? "No sessions recorded yet"
-                      : `Last session ${days} day${days === 1 ? "" : "s"} ago`;
+                      : `${days} day${days === 1 ? "" : "s"} inactive`;
                   return (
                     <StudentPill
-                      key={s.studentId}
-                      student={s}
-                      accent={C.blue}
-                      detail={detail}
+                      key={student.studentId}
+                      student={student}
+                      accent={C.coral}
+                      detail={daysLabel}
+                      extra={
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 8,
+                              background: `${C.coral}20`,
+                              color: C.coral,
+                            }}
+                          >
+                            {daysLabel}
+                          </span>
+                          <a
+                            href={`/teacher/students/${student.studentId}`}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: C.blue,
+                              textDecoration: "none",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            View report →
+                          </a>
+                        </div>
+                      }
                     />
                   );
                 })}
+              </Section>
+
+              {/* Section 3: Teaching suggestions */}
+              <Section
+                icon="💡"
+                title="Teaching suggestions"
+                subtitle="Tailored to your class composition — based on the learning bands in your roster."
+                accentColor={C.violet}
+                empty={false}
+              >
+                {tips.map((tip, i) => (
+                  <TipCard key={i} tip={tip} />
+                ))}
               </Section>
             </>
           )}
         </div>
 
-        {/* ── Footer links ── */}
+        {/* Footer links */}
         <div
           style={{
             marginTop: 28,
@@ -429,19 +495,19 @@ export default function FeedbackPanelPage() {
         >
           <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Jump to:</span>
           <a
-            href="/teacher/support"
+            href="/teacher/skill-mastery"
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: C.blue,
+              color: C.mint,
               textDecoration: "none",
               padding: "5px 12px",
               borderRadius: 8,
-              background: "rgba(56,189,248,0.08)",
-              border: `1px solid rgba(56,189,248,0.2)`,
+              background: "rgba(34,197,94,0.08)",
+              border: "1px solid rgba(34,197,94,0.2)",
             }}
           >
-            Support queue →
+            Skill Mastery →
           </a>
           <a
             href="/teacher/intervention-overview"
@@ -453,14 +519,14 @@ export default function FeedbackPanelPage() {
               padding: "5px 12px",
               borderRadius: 8,
               background: "rgba(245,158,11,0.08)",
-              border: `1px solid rgba(245,158,11,0.2)`,
+              border: "1px solid rgba(245,158,11,0.2)",
             }}
           >
             Intervention Overview →
           </a>
           <div style={{ flex: 1 }} />
           <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>
-            Signals refresh each session. Data is class-level only — no cross-class comparisons.
+            Data is class-level only — no cross-class comparisons.
           </span>
         </div>
       </div>
