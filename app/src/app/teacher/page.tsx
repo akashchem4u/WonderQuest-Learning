@@ -21,48 +21,71 @@ const C = {
   red: "#ff7b6b",
 };
 
-// ── Class overview data ──────────────────────────────────────────────────────
-const STATS = [
-  { val: "18", lbl: "Active today", delta: "+3 vs yesterday", up: true },
-  { val: "⭐ 284", lbl: "Class stars", delta: "+62 this week", up: true },
-  { val: "67", lbl: "Sessions today", delta: "→ Typical", up: null },
-  { val: "4", lbl: "Need check-in", delta: "⚠ Support queue", up: false },
-  { val: "3", lbl: "Bands covered", delta: "P0 / P1 / P2", up: null },
-];
+// ── Band code helpers ────────────────────────────────────────────────────────
+function bandLabel(code: string): string {
+  if (code === "PREK" || code === "P0") return "Pre-K (P0)";
+  if (code === "K1" || code === "P1") return "K–1 (P1)";
+  if (code === "G23" || code === "P2") return "G2–3 (P2)";
+  if (code === "G45" || code === "P3") return "G4–5 (P3)";
+  return code;
+}
 
-const ACTIVE_STUDENTS = [
-  { initial: "A", name: "Aaliya", band: "Mint Band · Sight words", stars: 7, color: C.mint },
-  { initial: "B", name: "Ben", band: "Violet Band · Addition facts", stars: 5, color: C.violet },
-  { initial: "C", name: "Chloe", band: "Mint Band · Blending", stars: 9, color: C.mint },
-  { initial: "D", name: "Daniel", band: "Pre-K Band · Letters", stars: 4, color: C.gold },
-];
+function bandColor(code: string): string {
+  if (code === "PREK" || code === "P0") return C.gold;
+  if (code === "K1" || code === "P1") return C.violet;
+  if (code === "G23" || code === "P2") return C.mint;
+  if (code === "G45" || code === "P3") return C.red;
+  return C.muted;
+}
 
-const SUPPORT_QUEUE = [
-  { name: "Emma", issue: "Hit confidence floor 4x on blending sounds — same question type each time", action: "Check in" },
-  { name: "Marcus", issue: "No sessions in 5 days — streak broken", action: "Reach out" },
-  { name: "Priya", issue: "Repeated hint requests on skip counting — may need a different approach", action: "Check in" },
-  { name: "Tommy", issue: "Band placement may need review — consistently above ceiling", action: "Review band" },
-];
+function bandKey(code: string): string {
+  if (code === "PREK" || code === "P0") return "P0";
+  if (code === "K1" || code === "P1") return "P1";
+  if (code === "G23" || code === "P2") return "P2";
+  if (code === "G45" || code === "P3") return "P3";
+  return code;
+}
 
-const BANDS = [
-  { name: "Pre-K (P0)", count: 5, pct: 21, color: C.gold },
-  { name: "K–1 (P1)", count: 9, pct: 38, color: C.violet },
-  { name: "G2–3 (P2)", count: 10, pct: 42, color: C.mint },
-  { name: "G4–5 (P3)", count: 0, pct: 0, color: C.red },
-];
+function triggerToIssue(triggerType: string): string {
+  if (triggerType === "confidence_floor") return "Hit confidence floor repeatedly — same question type each time";
+  if (triggerType === "no_sessions") return "No sessions in 5+ days — streak broken";
+  if (triggerType === "repeated_hints") return "Repeated hint requests — may need a different approach";
+  if (triggerType === "band_ceiling") return "Band placement may need review — consistently above ceiling";
+  return triggerType;
+}
 
-const SKILL_GAPS = [
-  { label: "Blending sounds", count: 6 },
-  { label: "Skip counting", count: 4 },
-  { label: "CVC spelling", count: 3 },
-];
+function triggerToAction(triggerType: string): string {
+  if (triggerType === "no_sessions") return "Reach out";
+  if (triggerType === "band_ceiling") return "Review band";
+  return "Check in";
+}
 
-const WEEK_STATS = [
-  { lbl: "Sessions completed", val: "187" },
-  { lbl: "Stars earned (class)", val: "⭐ 284" },
-  { lbl: "Badges earned", val: "🏅 7" },
-  { lbl: "Students not active", val: "6", warn: true },
-];
+// ── API types ────────────────────────────────────────────────────────────────
+interface RosterStudent {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
+}
+
+interface Intervention {
+  id: string;
+  studentId: string;
+  studentName: string;
+  skillCode: string;
+  skillLabel: string;
+  triggerType: string;
+  status: string;
+  createdAt: string;
+}
 
 // ── Shared sub-components ───────────────────────────────────────────────────
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
@@ -99,6 +122,9 @@ export default function TeacherPage() {
   const [profileName, setProfileName] = useState("");
   const [profileSchool, setProfileSchool] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
 
   useEffect(() => {
     const teacherId = getTeacherId();
@@ -112,6 +138,92 @@ export default function TeacherPage() {
       })
       .catch(() => {/* ignore */});
   }, []);
+
+  useEffect(() => {
+    const teacherId = getTeacherId();
+    Promise.all([
+      fetch(`/api/teacher/class?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { roster: [] }),
+      fetch(`/api/teacher/interventions?teacherId=${teacherId}`).then((r) => r.ok ? r.json() : { interventions: [] }),
+    ])
+      .then(([classData, intData]) => {
+        setRoster(classData.roster ?? []);
+        setInterventions(intData.interventions ?? []);
+      })
+      .catch(() => {/* ignore */})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ── Derived stats ────────────────────────────────────────────────────────
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  const activeToday = roster.filter(
+    (s) => s.lastSessionAt && now - new Date(s.lastSessionAt).getTime() < oneDayMs
+  );
+  const classStars = roster.reduce((sum, s) => sum + s.totalPoints, 0);
+  const sessionsToday = Math.round(roster.reduce((sum, s) => sum + s.sessionsLast7d, 0) / 7);
+  const needCheckIn = roster.filter((s) => s.inInterventionQueue);
+
+  // Band breakdown
+  const bandCounts: Record<string, number> = { P0: 0, P1: 0, P2: 0, P3: 0 };
+  for (const s of roster) {
+    const k = bandKey(s.launchBandCode);
+    if (k in bandCounts) bandCounts[k]++;
+  }
+  const totalStudents = roster.length || 1;
+  const BANDS = [
+    { name: "Pre-K (P0)", count: bandCounts.P0, pct: Math.round((bandCounts.P0 / totalStudents) * 100), color: C.gold },
+    { name: "K–1 (P1)", count: bandCounts.P1, pct: Math.round((bandCounts.P1 / totalStudents) * 100), color: C.violet },
+    { name: "G2–3 (P2)", count: bandCounts.P2, pct: Math.round((bandCounts.P2 / totalStudents) * 100), color: C.mint },
+    { name: "G4–5 (P3)", count: bandCounts.P3, pct: Math.round((bandCounts.P3 / totalStudents) * 100), color: C.red },
+  ];
+  const bandsWithStudents = BANDS.filter((b) => b.count > 0).map((b) => b.name.split(" (")[1].replace(")", "")).join(" / ");
+
+  const STATS = [
+    { val: loading ? "—" : String(activeToday.length), lbl: "Active today", delta: "vs yesterday", up: true },
+    { val: loading ? "—" : `⭐ ${classStars}`, lbl: "Class stars", delta: "this week", up: true },
+    { val: loading ? "—" : String(sessionsToday), lbl: "Sessions today", delta: "→ Typical", up: null },
+    { val: loading ? "—" : String(needCheckIn.length), lbl: "Need check-in", delta: "⚠ Support queue", up: needCheckIn.length > 0 ? false : null },
+    { val: loading ? "—" : String(BANDS.filter((b) => b.count > 0).length), lbl: "Bands covered", delta: bandsWithStudents || "—", up: null },
+  ];
+
+  // Active students: top 4 by sessionsLast7d
+  const ACTIVE_STUDENTS = [...roster]
+    .sort((a, b) => b.sessionsLast7d - a.sessionsLast7d)
+    .slice(0, 4)
+    .map((s) => ({
+      initial: s.displayName.charAt(0).toUpperCase(),
+      name: s.displayName,
+      band: `${bandLabel(s.launchBandCode)}`,
+      stars: s.totalPoints,
+      color: bandColor(s.launchBandCode),
+    }));
+
+  // Support queue: first 4 active interventions
+  const SUPPORT_QUEUE = interventions
+    .filter((i) => i.status === "active")
+    .slice(0, 4)
+    .map((i) => ({
+      name: i.studentName,
+      issue: triggerToIssue(i.triggerType),
+      action: triggerToAction(i.triggerType),
+    }));
+
+  // Week stats derived from roster
+  const totalSessions7d = roster.reduce((sum, s) => sum + s.sessionsLast7d, 0);
+  const inactiveStudents = roster.filter((s) => !s.lastSessionAt || now - new Date(s.lastSessionAt).getTime() > 7 * oneDayMs).length;
+  const WEEK_STATS = [
+    { lbl: "Sessions completed", val: String(totalSessions7d) },
+    { lbl: "Stars earned (class)", val: `⭐ ${classStars}` },
+    { lbl: "Badges earned", val: "🏅 —" },
+    { lbl: "Students not active", val: String(inactiveStudents), warn: true },
+  ];
+
+  const SKILL_GAPS = [
+    { label: "Blending sounds", count: 6 },
+    { label: "Skip counting", count: 4 },
+    { label: "CVC spelling", count: 3 },
+  ];
 
   function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
@@ -240,7 +352,7 @@ export default function TeacherPage() {
         {/* Page header */}
         <div style={{ marginBottom: 6 }}>
           <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>Good morning, Ms Johnson 👋</h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Tuesday, March 24 · Grade 2 class · 24 students</p>
+          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Tuesday, March 24 · Grade 2 class · {loading ? "—" : `${roster.length} students`}</p>
         </div>
 
         {/* Quick nav links */}
@@ -293,7 +405,7 @@ export default function TeacherPage() {
                   padding: "14px 16px",
                   border: `1px solid ${C.border}`,
                 }}>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: C.text, marginBottom: 2, lineHeight: 1 }}>{s.val}</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: loading ? C.muted : C.text, marginBottom: 2, lineHeight: 1 }}>{s.val}</div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>{s.lbl}</div>
                   <div style={{
                     fontSize: 11,
@@ -309,7 +421,7 @@ export default function TeacherPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
               {/* Active students */}
               <Card>
-                <CardHeader title="🟢 Active right now (9)" link="View all →" href="/teacher/class" />
+                <CardHeader title={`🟢 Active right now (${activeToday.length})`} link="View all →" href="/teacher/class" />
                 {ACTIVE_STUDENTS.map((s) => (
                   <div key={s.name} style={{
                     display: "flex",
@@ -337,12 +449,16 @@ export default function TeacherPage() {
                     <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>⭐ {s.stars}</span>
                   </div>
                 ))}
-                <div style={{ fontSize: 12, color: C.blue, cursor: "pointer", marginTop: 10, fontWeight: 700 }}>+ 5 more active →</div>
+                {loading && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>Loading…</div>}
+                {!loading && ACTIVE_STUDENTS.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>No active students</div>}
+                {!loading && activeToday.length > 4 && (
+                  <div style={{ fontSize: 12, color: C.blue, cursor: "pointer", marginTop: 10, fontWeight: 700 }}>+ {activeToday.length - 4} more active →</div>
+                )}
               </Card>
 
               {/* Support queue preview */}
               <Card>
-                <CardHeader title="⚠️ Needs check-in (4)" link="View queue →" href="/teacher/support" />
+                <CardHeader title={`⚠️ Needs check-in (${SUPPORT_QUEUE.length})`} link="View queue →" href="/teacher/support" />
                 {SUPPORT_QUEUE.map((q) => (
                   <div key={q.name} style={{
                     display: "flex",
@@ -367,6 +483,8 @@ export default function TeacherPage() {
                     <span style={{ fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", flexShrink: 0, marginTop: 2 }}>{q.action}</span>
                   </div>
                 ))}
+                {loading && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>Loading…</div>}
+                {!loading && SUPPORT_QUEUE.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>No students in support queue</div>}
               </Card>
             </div>
 
@@ -427,7 +545,7 @@ export default function TeacherPage() {
                     borderTop: `1px solid ${C.border}`,
                   }}>
                     <div style={{ flex: 1, fontSize: 12, color: C.muted, fontWeight: 600 }}>{w.lbl}</div>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: w.warn ? C.amber : C.text }}>{w.val}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: w.warn ? C.amber : C.text }}>{loading ? "—" : w.val}</span>
                   </div>
                 ))}
               </Card>
@@ -438,61 +556,61 @@ export default function TeacherPage() {
         {/* ── TAB: Students ── */}
         {activeTab === "students" && (
           <Card>
-            <CardHeader title="👥 All Students (24)" link="Class settings →" href="/teacher/class" />
-            {[
-              { initial: "A", name: "Aaliya", band: "G2–3 (P2)", stars: 32, color: C.mint, status: "Active" },
-              { initial: "B", name: "Ben", band: "K–1 (P1)", stars: 28, color: C.violet, status: "Active" },
-              { initial: "C", name: "Chloe", band: "G2–3 (P2)", stars: 41, color: C.mint, status: "Active" },
-              { initial: "D", name: "Daniel", band: "Pre-K (P0)", stars: 17, color: C.gold, status: "Idle" },
-              { initial: "E", name: "Emma", band: "K–1 (P1)", stars: 12, color: C.violet, status: "Support" },
-              { initial: "M", name: "Marcus", band: "G2–3 (P2)", stars: 0, color: C.muted, status: "Support" },
-              { initial: "P", name: "Priya", band: "K–1 (P1)", stars: 8, color: C.violet, status: "Support" },
-              { initial: "T", name: "Tommy", band: "G2–3 (P2)", stars: 55, color: C.mint, status: "Active" },
-            ].map((s) => (
-              <div key={s.name} style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "10px 0",
-                borderBottom: `1px solid ${C.border}`,
-              }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: s.color + "33",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 900, color: s.color, flexShrink: 0,
-                }}>{s.initial}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.name}</div>
-                  <div style={{ fontSize: 11, color: C.muted }}>{s.band}</div>
+            <CardHeader title={`👥 All Students (${loading ? "—" : roster.length})`} link="Class settings →" href="/teacher/class" />
+            {loading && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>Loading…</div>}
+            {!loading && roster.map((s) => {
+              const color = bandColor(s.launchBandCode);
+              const isInQueue = s.inInterventionQueue;
+              const isActive = s.lastSessionAt && now - new Date(s.lastSessionAt).getTime() < oneDayMs;
+              const status = isInQueue ? "Support" : isActive ? "Active" : "Idle";
+              return (
+                <div key={s.studentId} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 0",
+                  borderBottom: `1px solid ${C.border}`,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: color + "33",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 900, color, flexShrink: 0,
+                  }}>{s.displayName.charAt(0).toUpperCase()}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.displayName}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>{bandLabel(s.launchBandCode)}</div>
+                  </div>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 20,
+                    background:
+                      status === "Active" ? C.mint + "22" :
+                      status === "Support" ? C.amber + "22" :
+                      "rgba(255,255,255,0.06)",
+                    color:
+                      status === "Active" ? C.mint :
+                      status === "Support" ? C.amber :
+                      C.muted,
+                  }}>{status}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 60, textAlign: "right" }}>⭐ {s.totalPoints}</span>
                 </div>
-                <span style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  padding: "2px 8px",
-                  borderRadius: 20,
-                  background:
-                    s.status === "Active" ? C.mint + "22" :
-                    s.status === "Support" ? C.amber + "22" :
-                    "rgba(255,255,255,0.06)",
-                  color:
-                    s.status === "Active" ? C.mint :
-                    s.status === "Support" ? C.amber :
-                    C.muted,
-                }}>{s.status}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 60, textAlign: "right" }}>⭐ {s.stars}</span>
-              </div>
-            ))}
+              );
+            })}
           </Card>
         )}
 
         {/* ── TAB: Support Queue ── */}
         {activeTab === "support" && (
           <Card>
-            <CardHeader title="🔧 Support Queue (4)" link="Full view →" href="/teacher/support" />
+            <CardHeader title={`🔧 Support Queue (${loading ? "—" : SUPPORT_QUEUE.length})`} link="Full view →" href="/teacher/support" />
             <p style={{ fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>
               System-flagged students who may need a teacher check-in. Different from your personal watchlist.
             </p>
+            {loading && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>Loading…</div>}
+            {!loading && SUPPORT_QUEUE.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>No students in support queue</div>}
             {SUPPORT_QUEUE.map((q, i) => (
               <div key={q.name} style={{
                 display: "flex",
