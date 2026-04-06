@@ -576,20 +576,49 @@ const DELIVERY_OPTIONS: DeliveryOption[] = [
 
 // ─── Settings panel ───────────────────────────────────────────────────────────
 
+const NOTIF_SETTINGS_KEY = "wonderquest-notif-settings";
+const NOTIF_DELIVERY_KEY = "wonderquest-notif-delivery";
+
 function SettingsPanel() {
   const [settings, setSettings] = useState<NotifSetting[]>(INITIAL_SETTINGS);
   const [delivery, setDelivery] = useState<string[]>(["email", "inapp"]);
+  const [saved, setSaved] = useState(false);
+
+  // Load persisted settings on mount
+  useEffect(() => {
+    try {
+      const rawSettings = localStorage.getItem(NOTIF_SETTINGS_KEY);
+      if (rawSettings) {
+        const saved = JSON.parse(rawSettings) as Record<string, boolean>;
+        setSettings((prev) => prev.map((s) => (s.id in saved ? { ...s, on: saved[s.id] } : s)));
+      }
+      const rawDelivery = localStorage.getItem(NOTIF_DELIVERY_KEY);
+      if (rawDelivery) setDelivery(JSON.parse(rawDelivery) as string[]);
+    } catch { /* ignore */ }
+  }, []);
 
   function toggleSetting(id: string) {
     setSettings((prev) =>
       prev.map((s) => (s.id === id ? { ...s, on: !s.on } : s)),
     );
+    setSaved(false);
   }
 
   function toggleDelivery(id: string) {
     setDelivery((prev) =>
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
     );
+    setSaved(false);
+  }
+
+  function handleSave() {
+    try {
+      const map = Object.fromEntries(settings.map((s) => [s.id, s.on]));
+      localStorage.setItem(NOTIF_SETTINGS_KEY, JSON.stringify(map));
+      localStorage.setItem(NOTIF_DELIVERY_KEY, JSON.stringify(delivery));
+    } catch { /* ignore */ }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   }
 
   return (
@@ -740,6 +769,28 @@ function SettingsPanel() {
       >
         🔒 <strong style={{ color: "rgba(200,190,240,0.8)" }}>Privacy note:</strong> Notification content never reveals specific wrong answers or details that could embarrass your child. We celebrate what they&apos;ve achieved, not what they&apos;re building toward.
       </div>
+
+      {/* Save button */}
+      <button
+        onClick={handleSave}
+        style={{
+          width: "100%",
+          padding: "14px",
+          borderRadius: 14,
+          border: "none",
+          background: saved
+            ? "linear-gradient(135deg, #50e890, #30c870)"
+            : "linear-gradient(135deg, #9b72ff, #7c4ddb)",
+          color: saved ? "#0a2a15" : "#fff",
+          fontSize: 15,
+          fontWeight: 700,
+          cursor: "pointer",
+          fontFamily: "system-ui",
+          transition: "all 0.25s",
+        }}
+      >
+        {saved ? "✓ Saved!" : "Save notification settings"}
+      </button>
     </div>
   );
 }

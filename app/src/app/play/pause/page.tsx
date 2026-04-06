@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
@@ -33,17 +34,16 @@ const FONT: React.CSSProperties = {
   fontFamily: "'Nunito', system-ui, sans-serif",
 };
 
-// ─── Stub session data ─────────────────────────────────────────────────────────
-const SESSION = {
-  starsEarned: 4,
-  totalQuestions: 5,
-  currentQuestion: 3,
-  questName: "Story Builder",
-};
-
 type PauseView = "child" | "parent" | "quit-confirm";
 
-export default function PlayPausePage() {
+// Inner component — uses useSearchParams so must be inside Suspense
+function PlayPauseInner() {
+  const params = useSearchParams();
+  const starsEarned = parseInt(params.get("stars") ?? "0", 10);
+  const questName   = params.get("quest") ?? "Your Quest";
+  const currentQuestion = parseInt(params.get("current") ?? "1", 10);
+  const totalQuestions  = parseInt(params.get("total") ?? "5", 10);
+
   const [view, setView] = useState<PauseView>("child");
 
   return (
@@ -107,7 +107,7 @@ export default function PlayPausePage() {
                 marginLeft: 10,
               }}
             >
-              {"\u2b50"} {SESSION.starsEarned}
+              {"\u2b50"} {starsEarned}
             </div>
           </div>
 
@@ -221,8 +221,8 @@ export default function PlayPausePage() {
                 }}
               >
                 {view === "quit-confirm"
-                  ? `Your ${"\u2b50"} ${SESSION.starsEarned} stars are SAFE \u2014 you\u2019ll keep them even if you leave!`
-                  : `Progress saved! You\u2019ve earned ${"\u2b50"} ${SESSION.starsEarned} stars so far \u2014 they\u2019re safe!`}
+                  ? `Your ${"\u2b50"} ${starsEarned} stars are SAFE \u2014 you\u2019ll keep them even if you leave!`
+                  : `Progress saved! You\u2019ve earned ${"\u2b50"} ${starsEarned} stars so far \u2014 they\u2019re safe!`}
               </span>
             </div>
 
@@ -246,7 +246,7 @@ export default function PlayPausePage() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 8 }}
                 >
-                  <Link href="/play/session" style={{ textDecoration: "none" }}>
+                  <Link href="/play" style={{ textDecoration: "none" }}>
                     <button
                       style={{
                         ...FONT,
@@ -326,7 +326,7 @@ export default function PlayPausePage() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 8 }}
                 >
-                  <Link href="/play/session" style={{ textDecoration: "none" }}>
+                  <Link href="/play" style={{ textDecoration: "none" }}>
                     <button
                       style={{
                         ...FONT,
@@ -482,8 +482,8 @@ export default function PlayPausePage() {
                       lineHeight: 1.4,
                     }}
                   >
-                    You\u2019re only on question {SESSION.currentQuestion} of{" "}
-                    {SESSION.totalQuestions} \u2014 but your stars are always
+                    You\u2019re only on question {currentQuestion} of{" "}
+                    {totalQuestions} \u2014 but your stars are always
                     saved!
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -505,7 +505,7 @@ export default function PlayPausePage() {
                         Leave
                       </button>
                     </Link>
-                    <Link href="/play/session" style={{ flex: 1, textDecoration: "none" }}>
+                    <Link href="/play" style={{ flex: 1, textDecoration: "none" }}>
                       <button
                         style={{
                           ...FONT,
@@ -550,5 +550,17 @@ export default function PlayPausePage() {
         </div>
       </div>
     </AppFrame>
+  );
+}
+
+export default function PlayPausePage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", background: "#0a0820", display: "flex", alignItems: "center", justifyContent: "center", color: "#9b72ff", fontSize: 18, fontFamily: "system-ui" }}>
+        ⏸ Loading…
+      </div>
+    }>
+      <PlayPauseInner />
+    </Suspense>
   );
 }

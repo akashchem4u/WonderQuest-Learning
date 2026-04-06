@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { ShellCard, StatTile } from "@/components/ui";
 import { PlayBetaSupport, type AssistMode } from "./play-beta-support";
@@ -1167,6 +1167,7 @@ function ProgressDot({
 // ── Main component ────────────────────────────────────────────────────────────
 
 function PlayClientInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
   const entryMode = searchParams.get("entry") ?? "new";
@@ -1787,8 +1788,19 @@ function PlayClientInner() {
               🌟 {progression?.totalPoints ?? 0}
             </div>
 
-            {/* Pause (no-op, visual only) */}
-            <button type="button" style={s.pauseBtn} aria-label="Pause" onClick={() => {}}>⏸</button>
+            {/* Pause — navigate to pause screen with live session data */}
+            <button
+              type="button"
+              style={s.pauseBtn}
+              aria-label="Pause"
+              onClick={() => {
+                const stars = progression?.totalPoints ?? 0;
+                const quest = session?.questions[currentIndex]?.skillLabel ?? sessionMode;
+                const total = session?.questions.length ?? 5;
+                const current = currentIndex + 1;
+                router.push(`/play/pause?stars=${stars}&quest=${encodeURIComponent(quest)}&current=${current}&total=${total}`);
+              }}
+            >⏸</button>
           </div>
 
           {/* ── Main area: question zone + right rail ── */}
