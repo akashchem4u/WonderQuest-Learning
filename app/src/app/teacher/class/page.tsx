@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ const C = {
   border: "rgba(255,255,255,0.06)",
 };
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Band = "P0" | "P1" | "P2" | "P3";
 type StudentTier = "strong" | "building" | "support";
@@ -37,27 +37,45 @@ type StudentRow = {
   inQueue: boolean;
 };
 
+// ── API shape ─────────────────────────────────────────────────────────────────
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
+};
+
+// ── Static fallback / UI data ─────────────────────────────────────────────────
+
 const WEEKS = [
-  "This week (Mar 24\u201328)",
+  "This week (Mar 24–28)",
   "Last week",
-  "Mar 10\u201314",
-  "Mar 3\u20137",
+  "Mar 10–14",
+  "Mar 3–7",
   "All time",
 ];
 
 const STAT_TILES = [
-  { val: "22", label: "Active students", delta: "\u21913 vs last week", up: true },
-  { val: "\u2B50 1,847", label: "Stars earned", delta: "\u2191210", up: true },
-  { val: "12", label: "Skills mastered", delta: "\u21932 vs last week", up: false },
-  { val: "16", label: "Active streaks", delta: "\u21914", up: true },
-  { val: "4", label: "Queue open", delta: "\u21911", up: false },
+  { val: "22", label: "Active students", delta: "↑3 vs last week", up: true },
+  { val: "⭐ 1,847", label: "Stars earned", delta: "↑210", up: true },
+  { val: "12", label: "Skills mastered", delta: "↓2 vs last week", up: false },
+  { val: "16", label: "Active streaks", delta: "↑4", up: true },
+  { val: "4", label: "Queue open", delta: "↓1", up: false },
 ];
 
 const BAND_DISTRIBUTION: { band: Band; label: string; color: string; count: number; total: number }[] = [
   { band: "P0", label: "P0 Pre-K", color: C.gold, count: 2, total: 28 },
-  { band: "P1", label: "P1 K\u20131", color: C.violet, count: 7, total: 28 },
-  { band: "P2", label: "P2 G2\u20133", color: C.mint, count: 15, total: 28 },
-  { band: "P3", label: "P3 G4\u20135", color: "#ff7b6b", count: 4, total: 28 },
+  { band: "P1", label: "P1 K–1", color: C.violet, count: 7, total: 28 },
+  { band: "P2", label: "P2 G2–3", color: C.mint, count: 15, total: 28 },
+  { band: "P3", label: "P3 G4–5", color: "#ff7b6b", count: 4, total: 28 },
 ];
 
 const DAILY_SESSIONS = [
@@ -82,7 +100,7 @@ const QUEUE_ITEMS = [
   { label: "Band ceiling (ready)", count: 1, color: C.blue },
 ];
 
-const STUDENTS: StudentRow[] = [
+const FALLBACK_STUDENTS: StudentRow[] = [
   {
     id: "bella",
     name: "Bella",
@@ -152,14 +170,64 @@ const STUDENTS: StudentRow[] = [
 
 const WEEKLY_COMPARISON = [
   { week: "This week", active: 22, sessions: 88, stars: "1,847", mastered: 12, queue: 4, streak: "4.2 days", isCurrent: true },
-  { week: "Last week (Mar 17\u201321)", active: 19, sessions: 76, stars: "1,637", mastered: 14, queue: 3, streak: "3.8 days", isCurrent: false },
-  { week: "Mar 10\u201314", active: 21, sessions: 84, stars: "1,720", mastered: 18, queue: 2, streak: "4.0 days", isCurrent: false },
-  { week: "Mar 3\u20137", active: 17, sessions: 68, stars: "1,402", mastered: 9, queue: 5, streak: "3.1 days", isCurrent: false },
+  { week: "Last week (Mar 17–21)", active: 19, sessions: 76, stars: "1,637", mastered: 14, queue: 3, streak: "3.8 days", isCurrent: false },
+  { week: "Mar 10–14", active: 21, sessions: 84, stars: "1,720", mastered: 18, queue: 2, streak: "4.0 days", isCurrent: false },
+  { week: "Mar 3–7", active: 17, sessions: 68, stars: "1,402", mastered: 9, queue: 5, streak: "3.1 days", isCurrent: false },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const MAX_SESSIONS = Math.max(...DAILY_SESSIONS.map((d) => d.count), 1);
+
+// Avatar colours cycling
+const AVATAR_COLORS = [
+  "#ec4899", "#0ea5e9", "#16a34a", "#f59e0b", "#9b72ff",
+  "#ef4444", "#10b981", "#3b82f6", "#f97316", "#06b6d4",
+];
+
+function tierFromMastery(pct: number): StudentTier {
+  if (pct >= 70) return "strong";
+  if (pct >= 40) return "building";
+  return "support";
+}
+
+function bandFromCode(code: string): Band {
+  if (code === "P0") return "P0";
+  if (code === "P1") return "P1";
+  if (code === "P3") return "P3";
+  return "P2";
+}
+
+function masteryFromAccuracy(correct: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((correct / total) * 100);
+}
+
+function mapRosterToStudentRows(roster: RosterStudent[]): StudentRow[] {
+  return roster.map((s, idx) => {
+    const masteryPct = masteryFromAccuracy(s.correctLast7d, s.totalLast7d);
+    const tier = tierFromMastery(masteryPct);
+    const initials = s.displayName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+    return {
+      id: s.studentId,
+      name: s.displayName,
+      initials,
+      avatarColor: AVATAR_COLORS[idx % AVATAR_COLORS.length],
+      band: bandFromCode(s.launchBandCode),
+      masteryPct,
+      sessions: s.sessionsLast7d,
+      stars: s.totalPoints,
+      streak: s.streak > 0,
+      tier,
+      inQueue: s.inInterventionQueue,
+    };
+  });
+}
 
 function tierColor(t: StudentTier): string {
   if (t === "strong") return C.mint;
@@ -185,6 +253,31 @@ function bandColor(b: Band): string {
 export default function TeacherClassPage() {
   const [activeWeek, setActiveWeek] = useState(0);
   const [activeTab, setActiveTab] = useState<"summary" | "compare">("summary");
+  const [students, setStudents] = useState<StudentRow[]>(FALLBACK_STUDENTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let teacherId = "demo-teacher";
+    try {
+      const stored = localStorage.getItem("wq_teacher_id");
+      if (stored) teacherId = stored;
+    } catch {
+      // localStorage unavailable
+    }
+
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { roster: RosterStudent[] }) => {
+        if (data.roster && data.roster.length > 0) {
+          setStudents(mapRosterToStudentRows(data.roster));
+        }
+        // empty roster → keep fallback
+      })
+      .catch(() => {
+        // fetch error → keep fallback
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const glassCard: React.CSSProperties = {
     background: C.surface,
@@ -233,7 +326,7 @@ export default function TeacherClassPage() {
               textDecoration: "none",
             }}
           >
-            \u2190 Dashboard
+            ← Dashboard
           </Link>
           <span style={{ color: C.border, fontSize: 14 }}>|</span>
           <span style={{ fontSize: 12, color: C.muted }}>Class Summary</span>
@@ -290,7 +383,7 @@ export default function TeacherClassPage() {
                 📊 Class 4B Summary
               </h1>
               <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                Weekly snapshot \u00b7 28 students enrolled
+                Weekly snapshot · {students.length} students{loading ? " (loading…)" : ""}
               </div>
             </div>
 
@@ -318,6 +411,32 @@ export default function TeacherClassPage() {
               ))}
             </div>
           </div>
+
+          {loading && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 13,
+                color: C.muted,
+                padding: "12px 0",
+              }}
+            >
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  border: `2px solid ${C.blue}`,
+                  borderTopColor: "transparent",
+                  animation: "spin 0.7s linear infinite",
+                }}
+              />
+              Loading class roster…
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
 
           {activeTab === "summary" && (
             <>
@@ -458,7 +577,7 @@ export default function TeacherClassPage() {
 
                 {/* Daily sessions bar chart */}
                 <div style={glassCard}>
-                  <div style={cardTitle}>Daily Sessions \u2014 This Week</div>
+                  <div style={cardTitle}>Daily Sessions — This Week</div>
                   <div
                     style={{
                       display: "flex",
@@ -486,7 +605,7 @@ export default function TeacherClassPage() {
                           <span
                             style={{ fontSize: 9, fontWeight: 700, color: C.muted }}
                           >
-                            {d.count > 0 ? d.count : "\u2014"}
+                            {d.count > 0 ? d.count : "—"}
                           </span>
                           <div
                             style={{
@@ -507,7 +626,7 @@ export default function TeacherClassPage() {
                     })}
                   </div>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>
-                    Sessions per day \u00b7 Average: 18.5
+                    Sessions per day · Average: 18.5
                   </div>
                 </div>
               </div>
@@ -563,7 +682,7 @@ export default function TeacherClassPage() {
                         textDecoration: "none",
                       }}
                     >
-                      Review \u2192
+                      Review →
                     </Link>
                   </div>
                   {QUEUE_ITEMS.map((q) => (
@@ -598,7 +717,7 @@ export default function TeacherClassPage() {
                         borderRadius: 8,
                       }}
                     >
-                      Review queue \u2192
+                      Review queue →
                     </Link>
                   </div>
                 </div>
@@ -627,7 +746,7 @@ export default function TeacherClassPage() {
                       borderRadius: 8,
                     }}
                   >
-                    See all students \u2192
+                    See all students →
                   </Link>
                 </div>
 
@@ -659,7 +778,7 @@ export default function TeacherClassPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {STUDENTS.map((s) => (
+                      {students.map((s) => (
                         <tr key={s.id}>
                           <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
                             <div
@@ -703,7 +822,7 @@ export default function TeacherClassPage() {
                                   padding: "1px 5px",
                                 }}
                               >
-                                \u26A0 Queue
+                                ⚠ Queue
                               </span>
                             )}
                           </td>
@@ -740,7 +859,7 @@ export default function TeacherClassPage() {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            \u2B50 {s.stars}
+                            ⭐ {s.stars}
                           </td>
                           <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
                             <div
@@ -782,25 +901,6 @@ export default function TeacherClassPage() {
                           </td>
                         </tr>
                       ))}
-                      <tr>
-                        <td
-                          colSpan={7}
-                          style={{
-                            textAlign: "center",
-                            color: C.muted,
-                            fontSize: 11,
-                            padding: "10px",
-                          }}
-                        >
-                          + 23 more students \u2014{" "}
-                          <Link
-                            href="/teacher/students"
-                            style={{ color: C.blue, fontWeight: 700, textDecoration: "none" }}
-                          >
-                            View all
-                          </Link>
-                        </td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -882,7 +982,7 @@ export default function TeacherClassPage() {
                           {row.active}
                           {row.isCurrent && (
                             <span style={{ color: C.mint, fontSize: 10, marginLeft: 4 }}>
-                              \u21913
+                              ↑3
                             </span>
                           )}
                         </td>
@@ -903,10 +1003,10 @@ export default function TeacherClassPage() {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          \u2B50 {row.stars}
+                          ⭐ {row.stars}
                           {row.isCurrent && (
                             <span style={{ color: C.mint, fontSize: 10, marginLeft: 4 }}>
-                              \u2191
+                              ↑
                             </span>
                           )}
                         </td>
@@ -920,7 +1020,7 @@ export default function TeacherClassPage() {
                           {row.mastered}
                           {row.isCurrent && (
                             <span style={{ color: C.amber, fontSize: 10, marginLeft: 4 }}>
-                              \u21932
+                              ↓2
                             </span>
                           )}
                         </td>
@@ -934,7 +1034,7 @@ export default function TeacherClassPage() {
                           {row.queue}
                           {row.isCurrent && (
                             <span style={{ color: C.amber, fontSize: 10, marginLeft: 4 }}>
-                              \u21911
+                              ↓1
                             </span>
                           )}
                         </td>
@@ -953,7 +1053,7 @@ export default function TeacherClassPage() {
                 </table>
               </div>
               <div style={{ marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
-                Down deltas are informational \u2014 slight week-over-week variation is normal. Down is amber, not red.
+                Down deltas are informational — slight week-over-week variation is normal. Down is amber, not red.
               </div>
             </div>
           )}

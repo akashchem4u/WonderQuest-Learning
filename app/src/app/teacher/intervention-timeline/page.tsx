@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ const C = {
   amber: "#f59e0b",
 };
 
-// ── Types & stub data ─────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 type EventType = "trigger" | "note" | "mastery" | "system" | "resolve";
 
 type MasteryBar = {
@@ -42,76 +42,42 @@ type TimelineEvent = {
   masteryBars?: MasteryBar[];
 };
 
-const ACTIVE_EVENTS: TimelineEvent[] = [
-  {
-    type: "trigger",
-    icon: "⚠️",
-    dotBg: "#fef3c7",
-    dotBorder: C.amber,
-    chipBg: "rgba(245,158,11,0.15)",
-    chipColor: "#92400e",
-    chipLabel: "⚠️ Trigger",
-    date: "Mar 22, 2026 · 9:14am",
-    title: "Support queue triggered",
-    detail: "confidence_floor_hit reached threshold (3 hits on Fractions: Division). System created queue item and notified teacher.",
-  },
-  {
-    type: "note",
-    icon: "🗒️",
-    dotBg: "rgba(56,189,248,0.15)",
-    dotBorder: C.blue,
-    chipBg: "rgba(56,189,248,0.15)",
-    chipColor: C.blue,
-    chipLabel: "🗒️ Teacher note",
-    date: "Mar 22, 2026 · 2:30pm",
-    title: "Teacher check-in & note logged",
-    detail: "Queue item acknowledged. Teacher spoke with Jordan during class.",
-    noteText: "Spoke with Jordan. They mentioned fractions are confusing — specifically the \"equal parts\" idea. Suggested pizza-slice visual. Will monitor 2 sessions.",
-  },
-  {
-    type: "system",
-    icon: "⚙️",
-    dotBg: "rgba(255,255,255,0.06)",
-    dotBorder: "rgba(255,255,255,0.2)",
-    chipBg: "rgba(255,255,255,0.06)",
-    chipColor: C.muted,
-    chipLabel: "⚙️ System",
-    date: "Mar 22, 2026 · 9:14am",
-    title: "System: difficulty slightly reduced",
-    detail: "Adaptive engine lowered difficulty on Fractions: Division while confidence floor flag is active. Will restore on resolution.",
-  },
-  {
-    type: "mastery",
-    icon: "📈",
-    dotBg: "rgba(34,197,94,0.15)",
-    dotBorder: C.mint,
-    chipBg: "rgba(34,197,94,0.15)",
-    chipColor: C.mint,
-    chipLabel: "📈 Mastery transition",
-    date: "Mar 24, 2026 · 4:08pm",
-    title: "Mastery status: Just started → Building",
-    detail: "Completed 2 sessions since check-in. Mastery crossed 40-threshold. Confidence floor hits reduced to 1 (vs 3 before intervention).",
-    masteryBars: [
-      { label: "Before", pct: 32, color: C.muted, score: "32 / 100" },
-      { label: "After", pct: 46, color: C.blue, score: "46 / 100" },
-    ],
-  },
-  {
-    type: "note",
-    icon: "🗒️",
-    dotBg: "rgba(56,189,248,0.15)",
-    dotBorder: C.blue,
-    chipBg: "rgba(56,189,248,0.15)",
-    chipColor: C.blue,
-    chipLabel: "🗒️ Teacher note",
-    date: "Mar 24, 2026 · 5:00pm",
-    title: "Follow-up note",
-    noteText: "Good progress! Jordan seems more confident. Continuing to monitor. Will mark resolved if mastery reaches 65+ without floor hits.",
-  },
-];
+// ── API shape ─────────────────────────────────────────────────────────────────
+type ApiIntervention = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  skillCode: string | null;
+  reason: string;
+  interventionType: string;
+  status: string;
+  teacherNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+};
 
-const RESOLVED_EVENTS: TimelineEvent[] = [
-  {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function mapInterventionToEvents(iv: ApiIntervention): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  // Trigger event
+  events.push({
     type: "trigger",
     icon: "⚠️",
     dotBg: "#fef3c7",
@@ -119,70 +85,90 @@ const RESOLVED_EVENTS: TimelineEvent[] = [
     chipBg: "rgba(245,158,11,0.15)",
     chipColor: "#92400e",
     chipLabel: "⚠️ Trigger",
-    date: "Mar 22 · 9:14am",
-    title: "Queue triggered — Confidence floor 3×",
-  },
-  {
-    type: "note",
-    icon: "🗒️",
-    dotBg: "rgba(56,189,248,0.15)",
-    dotBorder: C.blue,
-    chipBg: "rgba(56,189,248,0.15)",
-    chipColor: C.blue,
-    chipLabel: "🗒️ Note",
-    date: "Mar 22 · 2:30pm",
-    title: "Teacher check-in — visual model suggested",
-  },
-  {
-    type: "mastery",
-    icon: "📈",
-    dotBg: "rgba(34,197,94,0.15)",
-    dotBorder: C.mint,
-    chipBg: "rgba(34,197,94,0.15)",
-    chipColor: C.mint,
-    chipLabel: "📈 Transition",
-    date: "Mar 24 · 4:08pm",
-    title: "Mastery: Just started → Building (46)",
-  },
-  {
-    type: "mastery",
-    icon: "💪",
-    dotBg: "rgba(34,197,94,0.15)",
-    dotBorder: C.mint,
-    chipBg: "rgba(34,197,94,0.15)",
-    chipColor: C.mint,
-    chipLabel: "💪 Mastery: Strong",
-    date: "Mar 27 · 3:22pm",
-    title: "Mastery: Building → Strong (74)",
-    masteryBars: [
-      { label: "Before", pct: 32, color: C.muted, score: "32" },
-      { label: "Now", pct: 74, color: C.mint, score: "74" },
-    ],
-  },
-  {
-    type: "resolve",
-    icon: "✅",
-    dotBg: "rgba(34,197,94,0.15)",
-    dotBorder: C.mint,
-    chipBg: "rgba(34,197,94,0.15)",
-    chipColor: C.mint,
-    chipLabel: "✅ Resolved",
-    date: "Mar 28 · 9:00am",
-    title: "Intervention resolved",
-    detail: "Mastery reached Strong threshold (74/100). 0 confidence floor hits for 5 days. System auto-resolved and archived. Duration: 6 days.",
-  },
-];
+    date: formatDate(iv.createdAt),
+    title: `Support queue triggered — ${iv.reason}`,
+    detail: iv.skillCode
+      ? `Skill: ${iv.skillCode}. Intervention type: ${iv.interventionType}.`
+      : `Intervention type: ${iv.interventionType}.`,
+  });
+
+  // Teacher note (if present)
+  if (iv.teacherNote) {
+    events.push({
+      type: "note",
+      icon: "🗒️",
+      dotBg: "rgba(56,189,248,0.15)",
+      dotBorder: C.blue,
+      chipBg: "rgba(56,189,248,0.15)",
+      chipColor: C.blue,
+      chipLabel: "🗒️ Teacher note",
+      date: formatDate(iv.createdAt),
+      title: "Teacher note logged",
+      noteText: iv.teacherNote,
+    });
+  }
+
+  // Resolution event (if resolved)
+  if (iv.status === "resolved" && iv.resolvedAt) {
+    events.push({
+      type: "resolve",
+      icon: "✅",
+      dotBg: "rgba(34,197,94,0.15)",
+      dotBorder: C.mint,
+      chipBg: "rgba(34,197,94,0.15)",
+      chipColor: C.mint,
+      chipLabel: "✅ Resolved",
+      date: formatDate(iv.resolvedAt),
+      title: "Intervention resolved",
+      detail: iv.resolutionNote ?? "Marked resolved by teacher.",
+    });
+  }
+
+  return events;
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function InterventionTimelinePage() {
   const [activeTab, setActiveTab] = useState<"full" | "resolved">("full");
+  const [activeInterventions, setActiveInterventions] = useState<ApiIntervention[]>([]);
+  const [resolvedInterventions, setResolvedInterventions] = useState<ApiIntervention[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const isActive = activeTab === "full";
-  const events = isActive ? ACTIVE_EVENTS : RESOLVED_EVENTS;
-  const statusLabel = isActive ? "⚠️ Active" : "✅ Resolved";
-  const statusBg = isActive ? "rgba(245,158,11,0.15)" : "rgba(34,197,94,0.15)";
-  const statusColor = isActive ? "#92400e" : C.mint;
-  const subtitle = isActive ? "P2 · G2–3 · Started Mar 22, 2026" : "P2 · G2–3 · Resolved Mar 28, 2026";
+  useEffect(() => {
+    let teacherId = "demo-teacher";
+    try {
+      const stored = localStorage.getItem("wq_teacher_id");
+      if (stored) teacherId = stored;
+    } catch {
+      // localStorage unavailable
+    }
+
+    const url = `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`;
+
+    fetch(url)
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { interventions: ApiIntervention[] }) => {
+        const all = data.interventions ?? [];
+        setActiveInterventions(all.filter((iv) => iv.status === "active"));
+        setResolvedInterventions(all.filter((iv) => iv.status === "resolved"));
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const currentInterventions =
+    activeTab === "full" ? activeInterventions : resolvedInterventions;
+
+  // Build flat event list from all interventions for the current tab
+  const events: (TimelineEvent & { studentName: string; interventionId: string })[] =
+    currentInterventions.flatMap((iv) =>
+      mapInterventionToEvents(iv).map((ev) => ({
+        ...ev,
+        studentName: iv.studentName,
+        interventionId: iv.id,
+      }))
+    );
 
   return (
     <AppFrame audience="teacher">
@@ -192,7 +178,13 @@ export default function InterventionTimelinePage() {
           {/* Page heading */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: C.blue, letterSpacing: "-0.3px", marginBottom: 4 }}>Intervention Timeline</div>
-            <div style={{ fontSize: 13, color: C.muted }}>Full history for Jordan · Fractions: Division</div>
+            <div style={{ fontSize: 13, color: C.muted }}>
+              {loading
+                ? "Loading interventions…"
+                : error
+                ? "Could not load interventions"
+                : `${activeInterventions.length} active · ${resolvedInterventions.length} resolved`}
+            </div>
           </div>
 
           {/* Tabs */}
@@ -213,76 +205,143 @@ export default function InterventionTimelinePage() {
                   marginBottom: -1,
                 }}
               >
-                {tab === "full" ? "Full Timeline" : "Resolved History"}
+                {tab === "full" ? "Active Timeline" : "Resolved History"}
               </button>
             ))}
           </div>
 
-          {/* Timeline card */}
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "22px 24px", maxWidth: 620 }}>
+          {/* Loading spinner */}
+          {loading && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: C.muted, padding: "20px 0" }}>
+              <div style={{
+                width: 16, height: 16, borderRadius: "50%",
+                border: `2px solid ${C.blue}`, borderTopColor: "transparent",
+                animation: "spin 0.7s linear infinite",
+              }} />
+              Loading…
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
 
-            {/* Card header */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>Jordan — Fractions: Division</div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{subtitle}</div>
+          {/* Error state */}
+          {!loading && error && (
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              borderRadius: 12, padding: "20px 24px", color: C.muted, fontSize: 13,
+            }}>
+              ⚠️ Could not load intervention data. Please refresh and try again.
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && events.length === 0 && (
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              borderRadius: 12, padding: "32px 24px", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>
+                {activeTab === "full" ? "✅" : "📂"}
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: statusBg, color: statusColor, flexShrink: 0 }}>
-                {statusLabel}
-              </span>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                {activeTab === "full" ? "No active interventions" : "No resolved interventions"}
+              </div>
+              <div style={{ fontSize: 13, color: C.muted }}>
+                {activeTab === "full"
+                  ? "All students are on track. Nice work!"
+                  : "Resolved interventions will appear here once closed."}
+              </div>
             </div>
+          )}
 
-            {/* Timeline events */}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {events.map((ev, idx) => (
-                <div key={`${ev.date}-${ev.title}`} style={{ display: "flex", gap: 14, paddingBottom: idx < events.length - 1 ? 20 : 0, position: "relative" }}>
-                  {idx < events.length - 1 && (
-                    <div style={{ position: "absolute", left: 17, top: 34, bottom: 0, width: 2, background: C.border }} />
-                  )}
-                  {/* Left column: dot */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 16, zIndex: 1, position: "relative",
-                      background: ev.dotBg, border: `2px solid ${ev.dotBorder}`,
-                    }}>
-                      {ev.icon}
+          {/* Timeline cards — one per intervention */}
+          {!loading && !error && currentInterventions.map((iv) => {
+            const ivEvents = mapInterventionToEvents(iv);
+            const isActive = iv.status === "active";
+            const statusLabel = isActive ? "⚠️ Active" : "✅ Resolved";
+            const statusBg = isActive ? "rgba(245,158,11,0.15)" : "rgba(34,197,94,0.15)";
+            const statusColor = isActive ? "#92400e" : C.mint;
+            const subtitle = isActive
+              ? `Started ${formatDate(iv.createdAt)}`
+              : `Resolved ${iv.resolvedAt ? formatDate(iv.resolvedAt) : "—"}`;
+
+            return (
+              <div
+                key={iv.id}
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 16,
+                  padding: "22px 24px",
+                  maxWidth: 620,
+                  marginBottom: 20,
+                }}
+              >
+                {/* Card header */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>
+                      {iv.studentName}{iv.skillCode ? ` — ${iv.skillCode}` : ""}
                     </div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{subtitle}</div>
                   </div>
-                  {/* Right column: content */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 4 }}>{ev.date}</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: ev.detail || ev.noteText || ev.masteryBars ? 5 : 0 }}>{ev.title}</div>
-                    {ev.detail && (
-                      <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, marginBottom: ev.noteText || ev.masteryBars ? 8 : 0 }}>{ev.detail}</div>
-                    )}
-                    {ev.noteText && (
-                      <div style={{ background: "rgba(56,189,248,0.06)", borderRadius: 8, padding: "9px 11px", fontSize: 11, color: C.muted, lineHeight: 1.5, marginTop: 8, borderLeft: `3px solid ${C.blue}` }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: C.blue, letterSpacing: "0.06em", marginBottom: 4 }}>Teacher note</div>
-                        {ev.noteText}
-                      </div>
-                    )}
-                    {ev.masteryBars && ev.masteryBars.map((bar) => (
-                      <div key={bar.label} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-                        <div style={{ fontSize: 11, color: C.muted, minWidth: 36 }}>{bar.label}</div>
-                        <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
-                          <div style={{ width: `${bar.pct}%`, height: "100%", background: bar.color, borderRadius: 3 }} />
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 800, minWidth: 38, color: bar.color }}>{bar.score}</div>
-                      </div>
-                    ))}
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, marginTop: 5, background: ev.chipBg, color: ev.chipColor }}>
-                      {ev.chipLabel}
-                    </span>
-                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: statusBg, color: statusColor, flexShrink: 0 }}>
+                    {statusLabel}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Timeline events */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {ivEvents.map((ev, idx) => (
+                    <div key={`${iv.id}-${ev.date}-${ev.title}`} style={{ display: "flex", gap: 14, paddingBottom: idx < ivEvents.length - 1 ? 20 : 0, position: "relative" }}>
+                      {idx < ivEvents.length - 1 && (
+                        <div style={{ position: "absolute", left: 17, top: 34, bottom: 0, width: 2, background: C.border }} />
+                      )}
+                      {/* Dot */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: "50%",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 16, zIndex: 1, position: "relative",
+                          background: ev.dotBg, border: `2px solid ${ev.dotBorder}`,
+                        }}>
+                          {ev.icon}
+                        </div>
+                      </div>
+                      {/* Content */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 4 }}>{ev.date}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: ev.detail || ev.noteText || ev.masteryBars ? 5 : 0 }}>{ev.title}</div>
+                        {ev.detail && (
+                          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, marginBottom: ev.noteText || ev.masteryBars ? 8 : 0 }}>{ev.detail}</div>
+                        )}
+                        {ev.noteText && (
+                          <div style={{ background: "rgba(56,189,248,0.06)", borderRadius: 8, padding: "9px 11px", fontSize: 11, color: C.muted, lineHeight: 1.5, marginTop: 8, borderLeft: `3px solid ${C.blue}` }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: C.blue, letterSpacing: "0.06em", marginBottom: 4 }}>Teacher note</div>
+                            {ev.noteText}
+                          </div>
+                        )}
+                        {ev.masteryBars && ev.masteryBars.map((bar) => (
+                          <div key={bar.label} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+                            <div style={{ fontSize: 11, color: C.muted, minWidth: 36 }}>{bar.label}</div>
+                            <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ width: `${bar.pct}%`, height: "100%", background: bar.color, borderRadius: 3 }} />
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 800, minWidth: 38, color: bar.color }}>{bar.score}</div>
+                          </div>
+                        ))}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, marginTop: 5, background: ev.chipBg, color: ev.chipColor }}>
+                          {ev.chipLabel}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
 
           {/* Legend */}
-          <div style={{ marginTop: 28, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 20px" }}>
+          <div style={{ marginTop: 8, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 20px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, marginBottom: 12 }}>Timeline Event Types</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {[
