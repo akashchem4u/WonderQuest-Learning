@@ -309,7 +309,7 @@ export default function OwnerPage() {
             {/* Page title */}
             <div>
               <div style={{ fontSize: "16px", fontWeight: 900, color: C.text }}>
-                Good morning, Avi 👋
+                Good morning 👋
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", marginTop: "2px" }}>
                 {loading ? "Loading overview…" : error ? `Error: ${error}` : `${overview!.counts.students} students · ${overview!.counts.sessions} sessions total`}

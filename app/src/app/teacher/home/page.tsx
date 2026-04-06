@@ -86,13 +86,21 @@ export default function TeacherHomePage() {
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [teacherName, setTeacherName] = useState("");
 
   useEffect(() => {
     const teacherId = getTeacherId();
-    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
-      .then((r) => r.json())
-      .then((data: { roster?: RosterStudent[] }) => {
-        if (data.roster) setRoster(data.roster);
+    if (!teacherId) { setLoading(false); return; }
+
+    // Fetch roster and teacher profile in parallel
+    Promise.all([
+      fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`).then((r) => r.json()),
+      fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`).then((r) => r.ok ? r.json() : null),
+    ])
+      .then(([classData, profileData]: [{ roster?: RosterStudent[] }, { profile?: { displayName?: string } } | null]) => {
+        if (classData.roster) setRoster(classData.roster);
+        const name = profileData?.profile?.displayName;
+        if (name && name !== "Teacher") setTeacherName(name);
       })
       .catch(() => {/* fall through to empty roster */})
       .finally(() => setLoading(false));
@@ -158,7 +166,7 @@ export default function TeacherHomePage() {
       <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
 
         {/* Page header */}
-        <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>Good morning, Ms Johnson 👋</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>{teacherName ? `Good morning, ${teacherName} 👋` : "Good morning 👋"}</h1>
         <p style={{ fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 20 }}>
           {loading ? "Loading class…" : `${totalStudents} students`}
         </p>
