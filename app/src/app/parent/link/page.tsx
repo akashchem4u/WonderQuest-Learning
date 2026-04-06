@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ const BORDER  = "rgba(255,255,255,0.06)";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Step = 1 | 2 | 3 | 4; // 1=child details, 2=grade/age, 3=goals, 4=confirm
+type Step = 1 | 2 | 3 | 4 | 5; // 1=child details, 2=grade/age, 3=goals, 4=pin, 5=confirm
 
 type BandKey = "prek" | "k1" | "g23" | "g45";
 
@@ -74,8 +75,8 @@ const SESSION_LIMITS = ["1 session", "2 sessions", "3 sessions", "4 sessions", "
 
 // ─── Step progress bar ────────────────────────────────────────────────────────
 
-function StepBar({ current }: { current: 1 | 2 | 3 | 4 }) {
-  const segs = [1, 2, 3];
+function StepBar({ current }: { current: 1 | 2 | 3 | 4 | 5 }) {
+  const segs = [1, 2, 3, 4];
   return (
     <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 32 }}>
       {segs.map((seg) => {
@@ -103,7 +104,7 @@ function StepBar({ current }: { current: 1 | 2 | 3 | 4 }) {
           flexShrink: 0,
         }}
       >
-        {current < 4 ? `${current} of 3` : "Done!"}
+        {current < 5 ? `${current} of 4` : "Done!"}
       </span>
     </div>
   );
@@ -308,6 +309,7 @@ function StepSub({ children }: { children: React.ReactNode }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentLinkPage() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>(1);
 
   // Step 1 state
@@ -327,6 +329,15 @@ export default function ParentLinkPage() {
   const [notifSession,  setNotifSession]  = useState(false);
   const [notifInactive, setNotifInactive] = useState(false);
   const [focusAreas,    setFocusAreas]    = useState<string[]>(["reading", "math"]);
+
+  // Step 4 — PIN state
+  const [pin,         setPin]         = useState("");
+  const [pinConfirm,  setPinConfirm]  = useState("");
+  const [pinError,    setPinError]    = useState("");
+
+  // Submit state
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   function handleGradeChange(g: string) {
     setGrade(g);
@@ -713,7 +724,7 @@ export default function ParentLinkPage() {
 
             <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
               <BackBtn onClick={() => setStep(2)} />
-              <PrimaryBtn onClick={() => setStep(4)}>Review &amp; confirm →</PrimaryBtn>
+              <PrimaryBtn onClick={() => setStep(4)}>Set PIN →</PrimaryBtn>
             </div>
             <button
               onClick={() => setStep(4)}
@@ -735,9 +746,96 @@ export default function ParentLinkPage() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            STEP 4: Confirmation
+            STEP 4: PIN setup
         ══════════════════════════════════════════════════════════════════ */}
         {step === 4 && (
+          <FlowCard>
+            <StepBar current={4} />
+            <Eyebrow>Account security</Eyebrow>
+            <StepTitle>Choose a 4-digit PIN</StepTitle>
+            <StepSub>
+              {childName || "Your child"} will use this PIN to sign in on any device. Make it something they can remember!
+            </StepSub>
+
+            <FormLabel>PIN (4 digits)</FormLabel>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="••••"
+              value={pin}
+              onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: 14,
+                border: `1.5px solid ${pinError ? "#ff7b6b" : "rgba(255,255,255,0.12)"}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT,
+                fontSize: 24,
+                letterSpacing: 8,
+                textAlign: "center",
+                fontFamily: "system-ui",
+                outline: "none",
+                boxSizing: "border-box",
+                marginBottom: 18,
+              }}
+            />
+
+            <FormLabel>Confirm PIN</FormLabel>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="••••"
+              value={pinConfirm}
+              onChange={(e) => { setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+              style={{
+                width: "100%",
+                padding: "16px",
+                borderRadius: 14,
+                border: `1.5px solid ${pinError ? "#ff7b6b" : "rgba(255,255,255,0.12)"}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT,
+                fontSize: 24,
+                letterSpacing: 8,
+                textAlign: "center",
+                fontFamily: "system-ui",
+                outline: "none",
+                boxSizing: "border-box",
+                marginBottom: 8,
+              }}
+            />
+
+            {pinError && (
+              <div style={{ color: "#ff7b6b", font: "400 0.78rem system-ui", marginBottom: 14 }}>
+                {pinError}
+              </div>
+            )}
+
+            <div style={{ font: "400 0.75rem/1.5 system-ui", color: MUTED, marginBottom: 24, padding: "10px 14px", background: "rgba(155,114,255,0.06)", borderRadius: 10 }}>
+              💡 Tip: pick a number {childName ? `${childName} ` : ""}will remember but others won&apos;t guess easily — not &ldquo;1234&rdquo; or their age.
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <BackBtn onClick={() => setStep(3)} />
+              <PrimaryBtn
+                onClick={() => {
+                  if (pin.length !== 4) { setPinError("PIN must be exactly 4 digits."); return; }
+                  if (pin !== pinConfirm) { setPinError("PINs don\u2019t match — try again."); return; }
+                  setStep(5);
+                }}
+              >
+                Review &amp; confirm →
+              </PrimaryBtn>
+            </div>
+          </FlowCard>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            STEP 5: Confirmation
+        ══════════════════════════════════════════════════════════════════ */}
+        {step === 5 && (
           <FlowCard>
             {/* Avatar */}
             <div
@@ -810,6 +908,7 @@ export default function ParentLinkPage() {
                 { key: "Name",           val: childName || "—"                  },
                 { key: "Avatar",         val: `${avatar} ${nickname || childName || "—"}` },
                 { key: "Grade",          val: `${grade}${age ? ` (Age ${age})` : ""}` },
+                { key: "PIN",            val: "••••"                            },
                 { key: "Daily sessions", val: `${sessionLimit} (~${sessionLimit === "Unlimited" ? "unlimited" : "30–45"} min)` },
                 { key: "Focus areas",    val: selectedFocusLabels               },
                 { key: "Notifications",  val: notifSummary                      },
@@ -850,14 +949,46 @@ export default function ParentLinkPage() {
               {childName || "Your child"}&apos;s first session will begin from the {selectedBandLabel}. WonderQuest will personalise as they play. You can always edit these settings from your dashboard.
             </div>
 
-            <Link href="/parent" style={{ textDecoration: "none", display: "block", marginBottom: 10 }}>
-              <PrimaryBtn fullWidth>
-                🚀 Start {childName || "their"} adventure!
-              </PrimaryBtn>
-            </Link>
+            {submitError && (
+              <div style={{ color: "#ff7b6b", font: "400 0.8rem system-ui", marginBottom: 14, padding: "10px 14px", background: "rgba(255,123,107,0.08)", borderRadius: 10 }}>
+                {submitError}
+              </div>
+            )}
+
+            <PrimaryBtn
+              fullWidth
+              onClick={async () => {
+                setSubmitting(true);
+                setSubmitError("");
+                try {
+                  const birthYear = 2026 - parseInt(age || "6", 10);
+                  const resp = await fetch("/api/parent/create-child", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      displayName: childName.trim() || "Explorer",
+                      avatarKey: avatar,
+                      birthYear,
+                      pin,
+                    }),
+                  });
+                  if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({})) as { error?: string };
+                    throw new Error(err.error ?? "Something went wrong. Please try again.");
+                  }
+                  router.push("/parent");
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : "Could not create account. Please try again.";
+                  setSubmitError(msg);
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {submitting ? "Creating account…" : `🚀 Start ${childName || "their"} adventure!`}
+            </PrimaryBtn>
 
             <button
-              onClick={() => setStep(3)}
+              onClick={() => setStep(4)}
               style={{
                 width: "100%",
                 padding: "14px",
@@ -868,9 +999,10 @@ export default function ParentLinkPage() {
                 font: "600 0.9rem system-ui",
                 cursor: "pointer",
                 marginBottom: 20,
+                marginTop: 10,
               }}
             >
-              ← Edit settings
+              ← Change PIN
             </button>
 
             <div
