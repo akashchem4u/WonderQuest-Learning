@@ -499,10 +499,10 @@ export default function ChildTrophiesPage() {
             textAlign: "center",
           }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: "#9b72ff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              🎉 Trophies Coming Soon!
+              No trophies yet
             </div>
             <div style={{ fontSize: 13, color: "#9b8ec4", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              Complete worlds and challenges — trophies will appear here as you earn them!
+              Finish your first learning world to earn a trophy!
             </div>
           </div>
         )}

@@ -311,7 +311,7 @@ export default function ClassHealthPage() {
                         <div key={s.studentId} style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
                             <span style={{ color: C.text, fontWeight: 600 }}>{s.name}</span>
-                            <a href={`/teacher/student/${s.studentId}`} style={{ color: C.violet, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>View →</a>
+                            <a href={`/teacher/students/${s.studentId}`} style={{ color: C.violet, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>View →</a>
                           </div>
                           {s.interventionReason ? (
                             <div style={{ fontSize: 12, color: C.coral, marginTop: 2 }}>{s.interventionReason}</div>

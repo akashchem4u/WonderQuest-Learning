@@ -379,10 +379,10 @@ export default function ChildBadgesPage() {
                   textAlign: "center",
                 }}>
                   <div style={{ fontSize: 22, fontWeight: 900, color: VIOLET, marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                    🎉 Badges Coming Soon!
+                    No badges yet
                   </div>
                   <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                    Keep playing quests — badges will appear here as you earn them!
+                    Keep completing quests to earn your first badge!
                   </div>
                 </div>
               )}

@@ -115,7 +115,7 @@ export default function SkillDrilldownPage() {
         <div style={{ fontSize: 12, color: C.muted, fontWeight: 600, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>
           <Link href="/teacher" style={{ color: C.blue, textDecoration: "none" }}>Classroom</Link>
           <span style={{ color: C.border }}>›</span>
-          <Link href="/teacher/skills" style={{ color: C.blue, textDecoration: "none" }}>Skill Trends</Link>
+          <Link href="/teacher/class" style={{ color: C.blue, textDecoration: "none" }}>Skill Trends</Link>
           <span style={{ color: C.border }}>›</span>
           <span>{data?.skillName ?? skillCode}</span>
         </div>

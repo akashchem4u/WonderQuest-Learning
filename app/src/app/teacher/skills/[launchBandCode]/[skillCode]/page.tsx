@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../../../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -102,11 +103,15 @@ export default function TeacherSkillDrilldownPage() {
   const skillDisplayName = skillCode ? formatSkillName(skillCode) : "Skill";
   const bandLabel = launchBandCode ? formatBandLabel(launchBandCode) : "";
 
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [activeTab, setActiveTab] = useState<"drilldown" | "compare">("drilldown");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [rosterLoaded, setRosterLoaded] = useState(false);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -117,7 +122,17 @@ export default function TeacherSkillDrilldownPage() {
       })
       .catch(() => {/* silently ignore */})
       .finally(() => setRosterLoaded(true));
-  }, []);
+  }, [authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/skills">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   const bandStudents = roster.filter(
     (s) => s.launchBandCode?.toLowerCase() === launchBandCode?.toLowerCase(),

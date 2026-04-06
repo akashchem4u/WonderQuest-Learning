@@ -314,6 +314,7 @@ export default function ParentLinkPage() {
 
   // Step 1 state
   const [childName,  setChildName]  = useState("");
+  const [username,   setUsername]   = useState("");
   const [avatar,     setAvatar]     = useState("🦁");
   const [nickname,   setNickname]   = useState("");
 
@@ -419,6 +420,19 @@ export default function ParentLinkPage() {
               />
               <div style={{ font: "400 0.72rem/1.5 system-ui", color: MUTED, marginTop: 6 }}>
                 We&apos;ll use this to cheer them on! We never share names externally.
+              </div>
+            </div>
+
+            {/* Username */}
+            <div style={{ marginBottom: 20 }}>
+              <FormLabel>Username (they&apos;ll use this to log in)</FormLabel>
+              <TextInput
+                placeholder="e.g. stargazer123"
+                value={username}
+                onChange={(val) => setUsername(val.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20))}
+              />
+              <div style={{ font: "400 0.72rem/1.5 system-ui", color: MUTED, marginTop: 6 }}>
+                Lowercase letters, numbers and underscores only. Max 20 characters.
               </div>
             </div>
 
@@ -967,9 +981,11 @@ export default function ParentLinkPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       displayName: childName.trim() || "Explorer",
+                      username: username.trim() || childName.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "explorer",
                       avatarKey: avatar,
                       birthYear,
                       pin,
+                      launchBandCode: band.toUpperCase(),
                     }),
                   });
                   if (!resp.ok) {
