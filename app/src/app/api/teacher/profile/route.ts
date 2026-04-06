@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hasTeacherAccess } from "@/lib/teacher-access";
-import { updateTeacherProfile } from "@/lib/teacher-service";
+import { updateTeacherProfile, ensureTeacherClassCode } from "@/lib/teacher-service";
 
 function readTeacherId(value: string | null) {
   return value?.trim() ?? "";
@@ -64,12 +64,15 @@ export async function GET(request: NextRequest) {
     const gradeLevels = (row.grade_levels as string[] | null) ?? [];
     const email = (row.email as string | null) ?? null;
 
+    const classCode = await ensureTeacherClassCode(teacherId);
+
     return NextResponse.json({
       profile: {
         displayName,
         schoolName,
         gradeLevels,
         email,
+        classCode,
         launchBandCode:
           dominantBand.rows[0]?.launch_band_code === null ||
           dominantBand.rows[0]?.launch_band_code === undefined

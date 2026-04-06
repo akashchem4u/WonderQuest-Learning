@@ -260,11 +260,14 @@ export default function TeacherClassPage() {
   const [activeTab, setActiveTab] = useState<"summary" | "compare">("summary");
   const [students, setStudents] = useState<StudentRow[]>(FALLBACK_STUDENTS);
   const [loading, setLoading] = useState(true);
+  const [classCode, setClassCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     if (!authed) return;
     const teacherId = getTeacherId();
 
+    // Fetch class roster
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((data: { roster: RosterStudent[] }) => {
@@ -277,6 +280,16 @@ export default function TeacherClassPage() {
         // fetch error → keep fallback
       })
       .finally(() => setLoading(false));
+
+    // Fetch class code from teacher profile
+    fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { profile?: { classCode?: string } }) => {
+        if (data.profile?.classCode) setClassCode(data.profile.classCode);
+      })
+      .catch(() => {
+        // ignore — classCode remains null
+      });
   }, [authed]);
 
   const glassCard: React.CSSProperties = {
@@ -445,6 +458,56 @@ export default function TeacherClassPage() {
               />
               Loading class roster…
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+
+          {/* ── Class Code Card ───────────────────────────────────────── */}
+          {classCode && (
+            <div
+              style={{
+                ...glassCard,
+                display: "flex",
+                alignItems: "center",
+                gap: 20,
+                flexWrap: "wrap",
+                background: "rgba(56,189,248,0.06)",
+                border: `1px solid rgba(56,189,248,0.25)`,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.07em", color: C.blue, marginBottom: 6 }}>
+                  Class Code
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "0.18em", color: C.text, fontFamily: "monospace", lineHeight: 1 }}>
+                  {classCode}
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+                  Share this code with parents so students can join your class
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(classCode).then(() => {
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 2000);
+                  });
+                }}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: 10,
+                  border: `1px solid ${codeCopied ? C.mint : C.blue}55`,
+                  background: codeCopied ? "rgba(34,197,94,0.12)" : "rgba(56,189,248,0.1)",
+                  color: codeCopied ? C.mint : C.blue,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "system-ui,-apple-system,sans-serif",
+                  transition: "all 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {codeCopied ? "Copied!" : "Copy code"}
+              </button>
             </div>
           )}
 
