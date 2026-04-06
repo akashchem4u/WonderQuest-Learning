@@ -47,6 +47,7 @@ export {
   updateTeacherAssignment,
   deleteTeacherAssignment,
   getAssignmentProgress,
+  getStudentAssignments,
 } from "@/lib/assignment-service";
 export { resolveTeacherIntervention } from "@/lib/intervention-service";
 

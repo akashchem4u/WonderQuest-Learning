@@ -167,6 +167,17 @@ const sidebarItems = [
   { icon: "🎯", label: "Daily Quest", key: "daily" },
 ];
 
+type AssignmentItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  skillCodes: string[];
+  sessionMode: string;
+  dueDate: string | null;
+  createdAt: string;
+  teacherName: string;
+};
+
 export default function ChildHubPage() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [selectedBand, setSelectedBand] = useState("K1");
@@ -174,6 +185,7 @@ export default function ChildHubPage() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionError, setSessionError] = useState(false);
+  const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
 
   useEffect(() => {
     fetch("/api/child/session")
@@ -184,6 +196,15 @@ export default function ChildHubPage() {
       })
       .catch(() => setSessionError(true))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/child/assignments")
+      .then((res) => (res.ok ? res.json() : { assignments: [] }))
+      .then((data: { assignments?: AssignmentItem[] }) => {
+        setAssignments(data.assignments ?? []);
+      })
+      .catch(() => {/* non-fatal */});
   }, []);
 
   const streak = session?.student?.streakCount ?? 0;
@@ -459,6 +480,37 @@ export default function ChildHubPage() {
                   <span>Node {completedNodes + 1} of {totalNodes}</span>
                   <span>{progressPct}% explored</span>
                 </div>
+                {assignments.length > 0 && (
+                  <Link
+                    href="/play"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      background: "rgba(255,209,102,0.12)",
+                      border: "1.5px solid rgba(255,209,102,0.4)",
+                      color: gold,
+                      fontFamily: font,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      marginTop: 14,
+                      textDecoration: "none",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <span style={{ fontSize: 18 }}>📋</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      {assignments.length === 1
+                        ? `Assignment: ${assignments[0].title}`
+                        : `You have ${assignments.length} assignment${assignments.length > 1 ? "s" : ""}`}
+                    </span>
+                    <span style={{ fontSize: 11, opacity: 0.7 }}>Play →</span>
+                  </Link>
+                )}
                 <Link
                   href="/play"
                   style={{

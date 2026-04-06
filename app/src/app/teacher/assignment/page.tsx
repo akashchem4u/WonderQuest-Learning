@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   base: "#100b2e",
@@ -71,6 +72,8 @@ type AssignmentProgress = {
 };
 
 export default function TeacherAssignmentPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
   const teacherId = getTeacherId();
   const [step, setStep] = useState<Step>(1);
   const [assignmentType, setAssignmentType] = useState<"quest" | "skill" | "free">("skill");
@@ -216,6 +219,16 @@ export default function TeacherAssignmentPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/assignment">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
   }
 
   return (

@@ -724,6 +724,35 @@ export async function deleteTeacherAssignment(
   };
 }
 
+export async function getStudentAssignments(studentId: string) {
+  try {
+    const res = await db.query(
+      `select a.id, a.title, a.description, a.skill_codes, a.session_mode,
+              a.due_date, a.created_at,
+              tp.display_name as teacher_name
+       from public.assignments a
+       join public.assignment_students ast on ast.assignment_id = a.id
+       join public.teacher_profiles tp on tp.id = a.teacher_id
+       where ast.student_id = $1
+       order by a.due_date asc nulls last, a.created_at desc
+       limit 20`,
+      [studentId],
+    );
+    return res.rows.map((r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      description: (r.description as string | null) ?? null,
+      skillCodes: (r.skill_codes as string[]) ?? [],
+      sessionMode: r.session_mode as string,
+      dueDate: (r.due_date as string | null) ?? null,
+      createdAt: r.created_at as string,
+      teacherName: r.teacher_name as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function getAssignmentProgress(assignmentId: string) {
   const assignmentResult = await db.query(
     `
