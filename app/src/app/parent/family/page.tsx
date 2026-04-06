@@ -280,7 +280,7 @@ export default function FamilyHubPage() {
               {/* Add another child card */}
               {!loading && (
                 <Link
-                  href="/parent?addChild=1"
+                  href="/parent/link"
                   style={{
                     display: "flex",
                     flexDirection: "column",
