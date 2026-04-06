@@ -154,7 +154,9 @@ export function AppFrame({ children, currentPath, audience = "home" }: AppFrameP
         {/* ── Mobile bottom nav ── */}
         <nav className="adult-mobile-nav" aria-label="Mobile navigation">
           {mobileNav.map((item) => {
-            const isActive = currentPath === item.href;
+            const isActive = item.href === "/"
+              ? currentPath === "/"
+              : currentPath === item.href || currentPath?.startsWith(item.href + "/") || false;
             return (
               <Link
                 key={item.href}

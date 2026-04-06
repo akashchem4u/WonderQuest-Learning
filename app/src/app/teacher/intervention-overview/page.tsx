@@ -340,7 +340,7 @@ export default function TeacherInterventionOverviewPage() {
   }
 
   return (
-    <AppFrame audience="teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/intervention-overview">
       <div
         style={{
           padding: "28px 20px 72px",

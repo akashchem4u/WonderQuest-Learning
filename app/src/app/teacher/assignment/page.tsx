@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 const C = {
   base: "#100b2e",
@@ -66,6 +67,7 @@ type AssignmentProgress = {
 };
 
 export default function TeacherAssignmentPage() {
+  const teacherId = getTeacherId();
   const [step, setStep] = useState<Step>(1);
   const [assignmentType, setAssignmentType] = useState<"quest" | "skill" | "free">("skill");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
@@ -92,7 +94,8 @@ export default function TeacherAssignmentPage() {
   // Fetch existing assignments on mount
   function fetchAssignments() {
     setLoadingList(true);
-    fetch("/api/teacher/assignments?teacherId=demo-teacher")
+    if (!teacherId) { setLoadingList(false); return; }
+    fetch(`/api/teacher/assignments?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data: { assignments?: Assignment[] }) => {
         setAssignments(data.assignments ?? []);
@@ -110,7 +113,7 @@ export default function TeacherAssignmentPage() {
   function openProgressModal(assignmentId: string) {
     setLoadingProgress(true);
     setProgressModal(null);
-    fetch(`/api/teacher/assignments/${assignmentId}/progress?teacherId=demo-teacher`)
+    fetch(`/api/teacher/assignments/${assignmentId}/progress?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data: { progress?: AssignmentProgress }) => {
         setProgressModal(data.progress ?? null);
@@ -155,7 +158,7 @@ export default function TeacherAssignmentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherId: "demo-teacher",
+          teacherId,
           title: assignmentTitle,
           skillCodes: [...selectedSkills],
           dueDate,
@@ -185,7 +188,7 @@ export default function TeacherAssignmentPage() {
   }
 
   return (
-    <AppFrame audience="teacher" currentPath="/teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/assignment">
       <div style={{ minHeight: "100vh", background: C.base, padding: "24px 24px 60px", maxWidth: 860, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 28 }}>

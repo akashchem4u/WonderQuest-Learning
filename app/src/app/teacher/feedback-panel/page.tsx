@@ -254,7 +254,7 @@ export default function FeedbackPanelPage() {
   });
 
   return (
-    <AppFrame audience="teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/feedback-panel">
       <div
         style={{
           padding: "28px 20px 72px",

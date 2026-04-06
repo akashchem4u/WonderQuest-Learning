@@ -294,7 +294,7 @@ export default function ClassHealthPage() {
       : "amber";
 
   return (
-    <AppFrame audience="teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/class-health">
       <div
         style={{
           background: C.base,

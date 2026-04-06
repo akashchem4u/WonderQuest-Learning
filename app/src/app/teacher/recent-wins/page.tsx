@@ -335,7 +335,7 @@ export default function RecentWinsPage() {
   }, []);
 
   return (
-    <AppFrame audience="teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/recent-wins">
       <div
         style={{
           background: C.base,

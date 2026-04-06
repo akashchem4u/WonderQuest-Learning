@@ -113,7 +113,7 @@ export default function BandCoveragePage() {
   }
 
   return (
-    <AppFrame audience="teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/band-coverage">
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 0 48px" }}>
 
         {/* Page title */}
