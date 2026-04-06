@@ -1189,6 +1189,10 @@ function PlayClientInner() {
   const [playedWelcomeVoice, setPlayedWelcomeVoice] = useState(false);
   const [rewardOverlay, setRewardOverlay] = useState<RewardOverlay | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [totalAnswered, setTotalAnswered] = useState(0);
+  const [sessionPointsEarned, setSessionPointsEarned] = useState(0);
+  const [sessionKey, setSessionKey] = useState(0);
   const voiceSupportRef = useRef(false);
   const assistModeRef = useRef<AssistMode>("voice");
   assistModeRef.current = assistMode;
@@ -1240,6 +1244,9 @@ function PlayClientInner() {
         setPlayedWelcomeVoice(false);
         setRewardOverlay(null);
         setQuestionStartedAt(Date.now());
+        setCorrectCount(0);
+        setTotalAnswered(0);
+        setSessionPointsEarned(0);
       } catch (caughtError) {
         if (!active) return;
         setError(caughtError instanceof Error ? caughtError.message : "Could not start session.");
@@ -1250,7 +1257,8 @@ function PlayClientInner() {
 
     void bootstrapSession();
     return () => { active = false; };
-  }, [sessionMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionMode, sessionKey]);
 
   const currentQuestion = useMemo(() => session?.questions[currentIndex] ?? null, [currentIndex, session]);
   const currentScene = useMemo(() => (currentQuestion ? buildQuestionVisualScene(currentQuestion) : null), [currentQuestion]);
@@ -1342,6 +1350,16 @@ function PlayClientInner() {
 
       setAnswerState(payload);
       setProgression(payload.progression);
+
+      // Track session-level stats for the completion screen.
+      if (payload.correct) {
+        setCorrectCount((prev) => prev + 1);
+        setTotalAnswered((prev) => prev + 1);
+        setSessionPointsEarned((prev) => prev + (payload.pointsEarned ?? 0));
+      } else if (!payload.needsRetry) {
+        // Only increment totalAnswered on final wrong answer (not retry state)
+        setTotalAnswered((prev) => prev + 1);
+      }
 
       // If the server inserted an adaptive follow-up question, append it to
       // the client's question list so moveToNextQuestion can navigate to it.
@@ -1509,6 +1527,18 @@ function PlayClientInner() {
   // ── Session complete screen ───────────────────────────────────────────────
 
   if (finished) {
+    const total = session.questions.length;
+    const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+    const accuracyColor = accuracy >= 80 ? C.mintGreen : accuracy >= 60 ? C.gold : C.violet;
+    const encouragement =
+      accuracy >= 90
+        ? "Incredible! You're on fire! 🔥"
+        : accuracy >= 80
+          ? "Amazing work! Keep it up! ⭐"
+          : accuracy >= 60
+            ? "Good job! You're getting stronger! 💪"
+            : "Nice try! Practice makes perfect! 🌱";
+
     return (
       <AppFrame audience="kid" currentPath="/child">
         <div style={{ padding: "24px 20px", maxWidth: 980, margin: "0 auto", fontFamily: "inherit" }}>
@@ -1537,23 +1567,49 @@ function PlayClientInner() {
                 <div style={{ fontSize: 11, fontWeight: 900, color: C.violet, letterSpacing: "0.1em", textTransform: "uppercase", background: "#221960", border: `1px solid ${C.violet}44`, borderRadius: 20, padding: "4px 12px", alignSelf: "flex-start" }}>
                   {session.student.launchBandCode} · {questSkillLabel}
                 </div>
+
+                {/* Celebration header */}
+                <div style={{ fontSize: 64, lineHeight: 1, textAlign: "center" }} aria-hidden="true">🎉</div>
                 <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 1.15, color: "#fff" }}>
-                  Session<br />Complete! 🎉
+                  Quest Complete!
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#b0a0e0" }}>
-                  {earlyLearnerMode
-                    ? `${session.student.displayName} finished all ${session.questions.length} questions!`
-                    : `You finished all ${session.questions.length} questions — great work!`}
+                <div style={{ fontSize: 18, fontWeight: 700, color: accuracyColor }}>
+                  {encouragement}
                 </div>
 
-                {/* Star count */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 44 }}>⭐</span>
-                  <div>
-                    <div style={{ fontSize: 40, fontWeight: 900, color: C.gold, lineHeight: 1 }}>
-                      {progression?.totalPoints ?? 0}
+                {/* Score summary */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+                  {/* Correct answers */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 32 }}>✅</span>
+                    <div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1 }}>
+                        {correctCount} <span style={{ fontSize: 16, color: C.muted, fontWeight: 700 }}>out of {total}</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>correct answers</div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>Stars total</div>
+                  </div>
+
+                  {/* Accuracy */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 32 }}>🎯</span>
+                    <div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: accuracyColor, lineHeight: 1 }}>
+                        {accuracy}%
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>accuracy</div>
+                    </div>
+                  </div>
+
+                  {/* Points earned */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 32 }}>⭐</span>
+                    <div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: C.gold, lineHeight: 1 }}>
+                        +{sessionPointsEarned}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>stars earned</div>
+                    </div>
                   </div>
                 </div>
 
@@ -1569,17 +1625,26 @@ function PlayClientInner() {
 
                 {/* CTAs */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <Link
-                    href="/child"
-                    style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 15, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", textDecoration: "none" }}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentIndex(0);
+                      setAnswerState(null);
+                      setSelectedAnswer(null);
+                      setRewardOverlay(null);
+                      setAttempt(1);
+                      setCoachMode("listen");
+                      setSessionKey((k) => k + 1);
+                    }}
+                    style={{ height: 50, borderRadius: 25, background: `linear-gradient(135deg, ${C.violet}, #7248e8)`, color: "#fff", fontSize: 15, fontWeight: 900, padding: "0 24px", display: "flex", alignItems: "center", border: "none", cursor: "pointer", fontFamily: "inherit" }}
                   >
-                    Play again →
-                  </Link>
+                    Play Again →
+                  </button>
                   <Link
-                    href="/parent"
+                    href="/child/hub"
                     style={{ height: 50, borderRadius: 25, background: C.surface2, border: `1.5px solid ${C.border}`, color: "#b89eff", fontSize: 14, fontWeight: 900, padding: "0 20px", display: "flex", alignItems: "center", textDecoration: "none" }}
                   >
-                    Parent view
+                    Go to Hub
                   </Link>
                 </div>
               </div>
@@ -1590,11 +1655,15 @@ function PlayClientInner() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={s.statRow}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>📝 Questions</span>
-                    <span style={{ fontSize: 15, fontWeight: 900, color: "#fff" }}>{completedNodeCount} of {session.questions.length}</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: "#fff" }}>{correctCount} of {total} correct</span>
+                  </div>
+                  <div style={{ ...s.statRow, borderColor: `${accuracyColor}55` }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>🎯 Accuracy</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: accuracyColor }}>{accuracy}%</span>
                   </div>
                   <div style={s.statRow}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>⭐ Stars Earned</span>
-                    <span style={{ fontSize: 15, fontWeight: 900, color: C.gold }}>+{answerState?.pointsEarned ?? 0}</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: C.gold }}>+{sessionPointsEarned}</span>
                   </div>
                   <div style={s.statRow}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>⚡ Level</span>
