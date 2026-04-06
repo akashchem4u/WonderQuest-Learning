@@ -72,7 +72,6 @@ export async function GET(request: NextRequest) {
     );
     const legacy = await getLegacyParentReport(guardianId, {
       childId,
-      weekOffset,
     });
 
     const weekStart = startOfWeekUtc(weekOffset);
