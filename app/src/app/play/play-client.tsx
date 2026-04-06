@@ -1343,18 +1343,30 @@ function PlayClientInner() {
     setError("");
     setSelectedAnswer(answer);
 
+    // Kids sometimes take a long time on a question; the DB connection may
+    // have gone stale. Retry the POST up to 2 times before showing an error.
+    async function attemptPost(retriesLeft: number): Promise<Response> {
+      try {
+        return await fetch("/api/play/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: session!.sessionId,
+            questionKey: currentQuestion!.questionKey,
+            answer,
+            attempt,
+            timeSpentMs: Date.now() - questionStartedAt,
+          }),
+        });
+      } catch (fetchErr) {
+        if (retriesLeft <= 0) throw fetchErr;
+        await new Promise((r) => setTimeout(r, 1200));
+        return attemptPost(retriesLeft - 1);
+      }
+    }
+
     try {
-      const response = await fetch("/api/play/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: session.sessionId,
-          questionKey: currentQuestion.questionKey,
-          answer,
-          attempt,
-          timeSpentMs: Date.now() - questionStartedAt,
-        }),
-      });
+      const response = await attemptPost(2);
 
       const payload = (await response.json()) as AnswerPayload & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Could not submit answer.");
