@@ -21,6 +21,7 @@ const sectionNav = {
     { href: "/teacher/recent-wins",   label: "Recent Wins",    icon: "🌟" },
     { href: "/teacher/band-coverage", label: "Band Coverage",  icon: "📐" },
     { href: "/teacher/feedback-panel", label: "Feedback",      icon: "📝" },
+    { href: "/teacher/profile",        label: "Profile",        icon: "⚙️" },
   ],
   owner: [
     { href: "/owner",                 label: "Overview",       icon: "🏠" },

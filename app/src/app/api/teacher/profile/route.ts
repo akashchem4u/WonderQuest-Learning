@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const teacher = await db.query(
       `
-        select id, display_name, school_name, username, grade_levels, email
+        select id, display_name, school_name, username, grade_levels, email, created_at
         from public.teacher_profiles
         where id = $1
         limit 1
@@ -63,16 +63,19 @@ export async function GET(request: NextRequest) {
     const schoolName = (row.school_name as string | null) ?? null;
     const gradeLevels = (row.grade_levels as string[] | null) ?? [];
     const email = (row.email as string | null) ?? null;
+    const createdAt = (row.created_at as string | null) ?? null;
 
     const classCode = await ensureTeacherClassCode(teacherId);
 
     return NextResponse.json({
       profile: {
         displayName,
+        username,
         schoolName,
         gradeLevels,
         email,
         classCode,
+        createdAt,
         launchBandCode:
           dominantBand.rows[0]?.launch_band_code === null ||
           dominantBand.rows[0]?.launch_band_code === undefined
