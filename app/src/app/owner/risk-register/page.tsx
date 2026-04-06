@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import OwnerGate from "@/app/owner/owner-gate";
 
 const BASE     = "#100b2e";
 const SURFACE  = "#161b22";
