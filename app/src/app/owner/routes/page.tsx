@@ -257,9 +257,9 @@ export default async function OwnerRoutesPage() {
     );
   }
 
-  const healthyCt = ROUTES.filter((r) => r.status === "healthy").length;
-  const watchCt = ROUTES.filter((r) => r.status === "watch").length;
-  const downCt = ROUTES.filter((r) => r.status === "down").length;
+  const healthyCt = ROUTES.filter((r) => (r.status as string) === "healthy").length;
+  const watchCt = ROUTES.filter((r) => (r.status as string) === "watch").length;
+  const downCt = ROUTES.filter((r) => (r.status as string) === "down").length;
 
   return (
     <AppFrame audience="owner" currentPath="/owner">

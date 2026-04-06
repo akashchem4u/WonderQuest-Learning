@@ -1,0 +1,939 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { AppFrame } from "@/components/app-frame";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ParentSessionResponse = {
+  guardian: { id: string; username: string; displayName: string };
+  linkedChild: { id: string; displayName: string } | null;
+  linkedChildren: { id: string; displayName: string }[];
+};
+
+// ─── Static data ─────────────────────────────────────────────────────────────
+
+const BANDS = [
+  {
+    code: "P0",
+    name: "Pre-K Band",
+    ages: "Ages 4–5",
+    color: "#ffd166",
+    border: "rgba(255,209,102,0.35)",
+    bg: "rgba(255,209,102,0.08)",
+    skills: [
+      "Letter recognition (A–Z)",
+      "Phonics foundations",
+      "Counting to 20",
+      "Shape identification",
+      "Basic colour words",
+    ],
+    placement:
+      "Your child is building the very first building blocks. Every letter recognised and every counted object is a genuine win.",
+  },
+  {
+    code: "P1",
+    name: "K–1 Band",
+    ages: "Ages 5–7",
+    color: "#9b72ff",
+    border: "rgba(155,114,255,0.35)",
+    bg: "rgba(155,114,255,0.08)",
+    skills: [
+      "Sight words (Dolch list)",
+      "CVC word blending",
+      "Addition & subtraction facts",
+      "Basic spelling patterns",
+      "Sentence structure",
+    ],
+    placement:
+      "Foundational literacy and numeracy are actively forming. Short, consistent sessions make a huge difference at this stage.",
+  },
+  {
+    code: "P2",
+    name: "Grades 2–3",
+    ages: "Ages 7–9",
+    color: "#58e8c1",
+    border: "rgba(88,232,193,0.35)",
+    bg: "rgba(88,232,193,0.08)",
+    skills: [
+      "Reading fluency & comprehension",
+      "Multi-digit addition & subtraction",
+      "Vocabulary expansion",
+      "Spelling rules (digraphs, blends)",
+      "Place value & estimation",
+    ],
+    placement:
+      "Reading and number sense are solidifying. Skills now reinforce each other — a great phase for building real confidence.",
+  },
+  {
+    code: "P3",
+    name: "Grades 4–5",
+    ages: "Ages 9–11",
+    color: "#ff7b6b",
+    border: "rgba(255,123,107,0.35)",
+    bg: "rgba(255,123,107,0.08)",
+    skills: [
+      "Comprehension & inference",
+      "Fractions & decimals",
+      "Complex spelling patterns",
+      "Long multiplication & division",
+      "Paragraph writing",
+    ],
+    placement:
+      "Higher-order thinking begins here. Skills become more interconnected — mastering one often unlocks several others.",
+  },
+  {
+    code: "P4",
+    name: "Advanced Band",
+    ages: "Ages 10–12+",
+    color: "#ff7b6b",
+    border: "rgba(255,123,107,0.25)",
+    bg: "rgba(255,123,107,0.05)",
+    skills: [
+      "Extended reading & analysis",
+      "Ratios, percentages & algebra",
+      "Persuasive & creative writing",
+      "Complex problem solving",
+      "Cross-subject application",
+    ],
+    placement:
+      "Your child is working at an advanced level. WonderQuest keeps stretching the challenge to match their pace.",
+  },
+];
+
+const MASTERY_THRESHOLDS = [
+  {
+    range: "65–100",
+    status: "Strong",
+    icon: "⭐",
+    color: "#58e8c1",
+    bg: "rgba(88,232,193,0.1)",
+    border: "rgba(88,232,193,0.25)",
+    desc: "Consistent success across multiple sessions — a skill your child can rely on.",
+  },
+  {
+    range: "40–64",
+    status: "Building",
+    icon: "🌱",
+    color: "#ffd166",
+    bg: "rgba(255,209,102,0.1)",
+    border: "rgba(255,209,102,0.25)",
+    desc: "Actively developing — normal progress. A few more sessions will solidify it.",
+  },
+  {
+    range: "0–39",
+    status: "Just started",
+    icon: "🚀",
+    color: "#ff7b6b",
+    bg: "rgba(255,123,107,0.1)",
+    border: "rgba(255,123,107,0.25)",
+    desc: "Brand new skill — your child has only seen it a handful of times. Early days!",
+  },
+];
+
+const FORMULA_STEPS = [
+  {
+    num: "1",
+    title: "Questions attempted",
+    body: "We count every question your child genuinely engages with — not skipped or auto-advanced ones.",
+  },
+  {
+    num: "2",
+    title: "Weighted by recency",
+    body: "Recent sessions matter more than older ones. A strong week lifts the score; an off day doesn't erase prior learning.",
+  },
+  {
+    num: "3",
+    title: "Smoothed across sessions",
+    body: "We average across at least 3 sessions before the score stabilises, so one lucky or unlucky session doesn't define it.",
+  },
+  {
+    num: "4",
+    title: "Score never decreases",
+    body: "Mastery only moves up (or holds steady). This reflects real learning — one bad session doesn't undo weeks of practice.",
+  },
+];
+
+const WHAT_COUNTS = [
+  { emoji: "✅", label: "Correct first attempt" },
+  { emoji: "✅", label: "Correct after a single hint" },
+  { emoji: "✅", label: "Questions from completed sessions" },
+];
+
+const WHAT_DOESNT = [
+  { emoji: "❌", label: "Skipped questions" },
+  { emoji: "❌", label: "Auto-advanced items" },
+  { emoji: "❌", label: "Incomplete (abandoned) sessions" },
+];
+
+const EFFECTIVE_TIME_POINTS = [
+  {
+    icon: "🎯",
+    title: "Total time",
+    body: "Every second from session start to end — including loading screens, pauses, and distracted moments.",
+    color: "rgba(255,255,255,0.5)",
+  },
+  {
+    icon: "⚡",
+    title: "Effective time",
+    body: "Time spent actively answering questions — the part that actually drives learning. This is the number we highlight.",
+    color: "#9b72ff",
+    highlight: true,
+  },
+];
+
+const FAQ_ITEMS = [
+  {
+    q: "Why don't I see a percentage score for my child?",
+    a: "Research consistently shows that displaying raw accuracy percentages to young learners increases anxiety and can undermine motivation. WonderQuest shows stars to children to celebrate effort and consistency. You see fuller data here — in context — because understanding supports, rather than judges.",
+  },
+  {
+    q: "What does it mean if my child is in the P1 band but they're 8 years old?",
+    a: "Bands are not grades. They reflect where WonderQuest's adaptive engine is currently challenging your child — not a judgement of where they 'should' be. Every child's learning journey is non-linear. The system will move them forward at exactly the right pace.",
+  },
+  {
+    q: "Can the mastery score go down if my child has a bad session?",
+    a: "No. The mastery score only increases or holds steady. This is intentional — learning is non-linear, and one difficult session doesn't undo weeks of real progress. If a skill drops back to 'Building', it means the system has identified a new, harder sub-skill within that topic.",
+  },
+  {
+    q: "How long does it take to reach 'Strong' on a skill?",
+    a: "It varies widely by skill difficulty and practice frequency. On average, 4–8 focused sessions (10–15 minutes each) move a new skill from 'Just started' to 'Building'. Reaching 'Strong' typically takes 2–4 more weeks of regular play. Short, frequent sessions consistently outperform long, infrequent ones.",
+  },
+  {
+    q: "Why is effective time sometimes much lower than total time?",
+    a: "Children often pause mid-session, get distracted, or leave a session open. The effective time strips all of that out, giving you a true picture of focused learning. A 20-minute total session might have 11 minutes of genuine engagement — and that 11 minutes is what moves the needle.",
+  },
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
+  return (
+    <div style={{ marginBottom: "28px" }}>
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          color: "#9b72ff",
+          marginBottom: "8px",
+        }}
+      >
+        {eyebrow}
+      </div>
+      <h2
+        style={{
+          font: "800 1.5rem/1.2 system-ui",
+          color: "#fff",
+          margin: 0,
+          marginBottom: subtitle ? "10px" : 0,
+        }}
+      >
+        {title}
+      </h2>
+      {subtitle && (
+        <p style={{ font: "400 0.925rem/1.65 system-ui", color: "rgba(255,255,255,0.55)", margin: 0 }}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function BandCard({ band }: { band: typeof BANDS[0] }) {
+  return (
+    <div
+      style={{
+        borderRadius: "16px",
+        padding: "22px",
+        background: band.bg,
+        border: `1.5px solid ${band.border}`,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+        <div
+          style={{
+            width: "12px",
+            height: "12px",
+            borderRadius: "50%",
+            background: band.color,
+            flexShrink: 0,
+          }}
+        />
+        <div>
+          <div style={{ font: "800 1rem/1.1 system-ui", color: "#fff" }}>{band.name}</div>
+          <div style={{ font: "500 0.75rem/1 system-ui", color: "rgba(255,255,255,0.45)", marginTop: "3px" }}>
+            {band.ages}
+          </div>
+        </div>
+        <div
+          style={{
+            marginLeft: "auto",
+            background: "rgba(255,255,255,0.07)",
+            borderRadius: "8px",
+            padding: "3px 10px",
+            fontSize: "11px",
+            fontWeight: 800,
+            color: band.color,
+            letterSpacing: "0.04em",
+            flexShrink: 0,
+          }}
+        >
+          {band.code}
+        </div>
+      </div>
+
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "5px", marginBottom: "14px" }}>
+        {band.skills.map((skill) => (
+          <li
+            key={skill}
+            style={{
+              font: "400 0.8rem/1.4 system-ui",
+              color: "rgba(255,255,255,0.65)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: "7px",
+            }}
+          >
+            <span style={{ color: band.color, fontSize: "8px", flexShrink: 0 }}>●</span>
+            {skill}
+          </li>
+        ))}
+      </ul>
+
+      <div
+        style={{
+          fontSize: "12px",
+          lineHeight: 1.55,
+          color: "rgba(255,255,255,0.45)",
+          borderTop: `1px solid ${band.border}`,
+          paddingTop: "12px",
+          fontStyle: "italic",
+        }}
+      >
+        {band.placement}
+      </div>
+    </div>
+  );
+}
+
+function FormulaStep({ step }: { step: typeof FORMULA_STEPS[0] }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
+      <div
+        style={{
+          width: "30px",
+          height: "30px",
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+          color: "#fff",
+          fontSize: "13px",
+          fontWeight: 800,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          marginTop: "1px",
+        }}
+      >
+        {step.num}
+      </div>
+      <div>
+        <div style={{ font: "700 0.875rem/1.2 system-ui", color: "#fff", marginBottom: "4px" }}>
+          {step.title}
+        </div>
+        <div style={{ font: "400 0.8rem/1.55 system-ui", color: "rgba(255,255,255,0.55)" }}>
+          {step.body}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FaqItem({ item, open, onToggle }: { item: typeof FAQ_ITEMS[0]; open: boolean; onToggle: () => void }) {
+  return (
+    <div
+      style={{
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        padding: "0",
+      }}
+    >
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "12px",
+          padding: "18px 0",
+          textAlign: "left",
+        }}
+      >
+        <span style={{ font: "600 0.9rem/1.4 system-ui", color: "#fff" }}>{item.q}</span>
+        <span
+          style={{
+            flexShrink: 0,
+            width: "22px",
+            height: "22px",
+            borderRadius: "50%",
+            background: open ? "rgba(155,114,255,0.25)" : "rgba(255,255,255,0.07)",
+            color: open ? "#9b72ff" : "rgba(255,255,255,0.4)",
+            fontSize: "14px",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: "1px",
+            transition: "all 0.2s",
+          }}
+        >
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open && (
+        <div
+          style={{
+            font: "400 0.85rem/1.65 system-ui",
+            color: "rgba(255,255,255,0.6)",
+            paddingBottom: "18px",
+          }}
+        >
+          {item.a}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ParentBenchmarksPage() {
+  const [authResult, setAuthResult] = useState<ParentSessionResponse | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
+
+  // Cookie-based session restore — same auth gate as parent/page.tsx
+  useEffect(() => {
+    let cancelled = false;
+
+    async function trySessionRestore() {
+      try {
+        const response = await fetch("/api/parent/session", { method: "GET" });
+        if (!response.ok || cancelled) {
+          setAuthChecked(true);
+          return;
+        }
+        const payload = (await response.json()) as ParentSessionResponse;
+        if (cancelled) return;
+        setAuthResult(payload);
+      } catch {
+        // No valid session — show gate
+      } finally {
+        if (!cancelled) setAuthChecked(true);
+      }
+    }
+
+    void trySessionRestore();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (!authChecked) {
+    return (
+      <AppFrame audience="parent" currentPath="/parent">
+        <div
+          style={{
+            minHeight: "60vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px",
+            color: "rgba(255,255,255,0.4)",
+            fontSize: "14px",
+          }}
+        >
+          <div
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              border: "3px solid rgba(155,114,255,0.2)",
+              borderTopColor: "#9b72ff",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          Loading…
+        </div>
+      </AppFrame>
+    );
+  }
+
+  // ── Auth gate ──────────────────────────────────────────────────────────────
+  if (!authResult) {
+    return (
+      <AppFrame audience="parent" currentPath="/parent">
+        <div
+          style={{
+            minHeight: "70vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "20px",
+            padding: "48px 24px",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "16px",
+              background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.6rem",
+            }}
+          >
+            🔒
+          </div>
+          <h1 style={{ font: "800 1.6rem/1.2 system-ui", color: "#fff", margin: 0 }}>
+            Sign in to view benchmarks
+          </h1>
+          <p style={{ font: "400 0.95rem/1.6 system-ui", color: "rgba(255,255,255,0.5)", maxWidth: "380px", margin: 0 }}>
+            This page is part of the Family Hub. Sign in to access your child&apos;s progress and this full explainer.
+          </p>
+          <Link
+            href="/parent"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+              color: "#fff",
+              font: "700 0.9rem/1 system-ui",
+              padding: "12px 24px",
+              borderRadius: "10px",
+              textDecoration: "none",
+            }}
+          >
+            Go to Family Hub
+          </Link>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  // ── Authenticated content ──────────────────────────────────────────────────
+
+  const childName =
+    authResult.linkedChild?.displayName ??
+    authResult.linkedChildren[0]?.displayName ??
+    "your child";
+
+  const sectionStyle: React.CSSProperties = {
+    maxWidth: "860px",
+    margin: "0 auto",
+    padding: "52px 32px",
+    borderBottom: "1px solid rgba(255,255,255,0.07)",
+  };
+
+  const cardContainerStyle: React.CSSProperties = {
+    background: "rgba(255,255,255,0.04)",
+    borderRadius: "20px",
+    border: "1px solid rgba(255,255,255,0.09)",
+    padding: "28px",
+  };
+
+  return (
+    <AppFrame audience="parent" currentPath="/parent">
+      <div style={{ minHeight: "100vh", background: "#100b2e", paddingBottom: "80px" }}>
+
+        {/* ── Page header ─────────────────────────────────────────────────── */}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            padding: "18px 32px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <Link
+            href="/parent"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#9b72ff",
+              fontSize: "13px",
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              background: "rgba(155,114,255,0.1)",
+              border: "1px solid rgba(155,114,255,0.2)",
+              flexShrink: 0,
+            }}
+          >
+            ← Family Hub
+          </Link>
+
+          <div>
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                color: "rgba(255,255,255,0.35)",
+                marginBottom: "2px",
+              }}
+            >
+              BENCHMARKS
+            </div>
+            <h1
+              style={{
+                font: "800 1.2rem/1 system-ui",
+                color: "#fff",
+                margin: 0,
+              }}
+            >
+              How we measure {childName}&apos;s progress
+            </h1>
+          </div>
+        </div>
+
+        {/* ── Intro strip ─────────────────────────────────────────────────── */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(155,114,255,0.12), rgba(88,232,193,0.06))",
+            borderBottom: "1px solid rgba(155,114,255,0.15)",
+            padding: "28px 32px",
+            maxWidth: "860px",
+            margin: "0 auto",
+          }}
+        >
+          <p
+            style={{
+              font: "400 1rem/1.7 system-ui",
+              color: "rgba(255,255,255,0.7)",
+              margin: 0,
+              maxWidth: "640px",
+            }}
+          >
+            WonderQuest uses <strong style={{ color: "#9b72ff" }}>learning bands</strong>,{" "}
+            <strong style={{ color: "#58e8c1" }}>mastery scores</strong>, and{" "}
+            <strong style={{ color: "#ffd166" }}>effective time</strong> to show how {childName} is
+            developing — not percentages or traditional grades. This page explains what each of those
+            means and why we measure it the way we do.
+          </p>
+        </div>
+
+        {/* ── Section 1: Learning bands ────────────────────────────────────── */}
+        <div style={sectionStyle}>
+          <SectionHeading
+            eyebrow="Section 1"
+            title="What the learning bands mean"
+            subtitle="Bands are not grades. They show where the system is currently challenging your child — and they move forward as your child progresses."
+          />
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: "16px",
+              marginBottom: "24px",
+            }}
+          >
+            {BANDS.map((band) => (
+              <BandCard key={band.code} band={band} />
+            ))}
+          </div>
+
+          <div
+            style={{
+              ...cardContainerStyle,
+              background: "rgba(155,114,255,0.07)",
+              border: "1px solid rgba(155,114,255,0.2)",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "14px",
+            }}
+          >
+            <span style={{ fontSize: "1.3rem", flexShrink: 0, marginTop: "2px" }}>💡</span>
+            <p style={{ font: "400 0.875rem/1.6 system-ui", color: "rgba(255,255,255,0.6)", margin: 0 }}>
+              <strong style={{ color: "#9b72ff" }}>Band placement is a starting point, not a ceiling.</strong>{" "}
+              WonderQuest&apos;s adaptive engine continuously adjusts difficulty within and between bands based on
+              {" "}{childName}&apos;s recent performance. There is no cap on how quickly a child can advance.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Section 2: How accuracy is calculated ────────────────────────── */}
+        <div style={sectionStyle}>
+          <SectionHeading
+            eyebrow="Section 2"
+            title="How the mastery score is calculated"
+            subtitle="The mastery score is a 0–100 measure of how consistently your child gets a skill right — across sessions, not just in one sitting."
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
+            {/* Formula card */}
+            <div style={cardContainerStyle}>
+              <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "20px" }}>
+                How the score builds
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                {FORMULA_STEPS.map((step) => (
+                  <FormulaStep key={step.num} step={step} />
+                ))}
+              </div>
+            </div>
+
+            {/* What counts / doesn't */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ ...cardContainerStyle, flex: 1 }}>
+                <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(88,232,193,0.8)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
+                  What counts
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {WHAT_COUNTS.map(({ emoji, label }) => (
+                    <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px", font: "400 0.85rem/1.3 system-ui", color: "rgba(255,255,255,0.65)" }}>
+                      <span>{emoji}</span>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ ...cardContainerStyle, flex: 1 }}>
+                <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(255,123,107,0.8)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
+                  What doesn&apos;t count
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {WHAT_DOESNT.map(({ emoji, label }) => (
+                    <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px", font: "400 0.85rem/1.3 system-ui", color: "rgba(255,255,255,0.65)" }}>
+                      <span>{emoji}</span>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mastery status thresholds */}
+          <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
+            Score thresholds
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {MASTERY_THRESHOLDS.map((threshold) => (
+              <div
+                key={threshold.status}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px",
+                  borderRadius: "12px",
+                  padding: "14px 18px",
+                  background: threshold.bg,
+                  border: `1px solid ${threshold.border}`,
+                }}
+              >
+                <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>{threshold.icon}</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexShrink: 0, minWidth: "140px" }}>
+                  <span style={{ font: "800 0.9rem/1 system-ui", color: threshold.color }}>{threshold.status}</span>
+                  <span
+                    style={{
+                      font: "600 0.75rem/1 system-ui",
+                      color: threshold.color,
+                      background: "rgba(255,255,255,0.08)",
+                      borderRadius: "20px",
+                      padding: "2px 8px",
+                    }}
+                  >
+                    {threshold.range}
+                  </span>
+                </div>
+                <span style={{ font: "400 0.85rem/1.5 system-ui", color: "rgba(255,255,255,0.55)" }}>
+                  {threshold.desc}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              marginTop: "24px",
+              padding: "16px 20px",
+              borderRadius: "12px",
+              background: "rgba(255,209,102,0.07)",
+              border: "1px solid rgba(255,209,102,0.2)",
+              font: "400 0.85rem/1.6 system-ui",
+              color: "rgba(255,255,255,0.6)",
+            }}
+          >
+            <strong style={{ color: "#ffd166" }}>Why don&apos;t children see percentages?</strong>{" "}
+            Research shows that displaying raw accuracy scores to young learners can increase anxiety and reduce
+            intrinsic motivation. WonderQuest shows stars and streaks to children — which celebrate effort and
+            consistency. You see fuller data here because context helps you support, not judge.
+          </div>
+        </div>
+
+        {/* ── Section 3: Effective time ────────────────────────────────────── */}
+        <div style={sectionStyle}>
+          <SectionHeading
+            eyebrow="Section 3"
+            title={`What "effective time" means`}
+            subtitle="Not all session time is equal. Effective time shows how long your child was genuinely engaged — not counting pauses or distractions."
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "28px" }}>
+            {EFFECTIVE_TIME_POINTS.map((point) => (
+              <div
+                key={point.title}
+                style={{
+                  ...cardContainerStyle,
+                  ...(point.highlight
+                    ? {
+                        background: "rgba(155,114,255,0.1)",
+                        border: "1.5px solid rgba(155,114,255,0.3)",
+                      }
+                    : {}),
+                }}
+              >
+                <div style={{ font: "1.5rem/1 system-ui", marginBottom: "12px" }}>{point.icon}</div>
+                <div style={{ font: "700 1rem/1.2 system-ui", color: point.highlight ? "#9b72ff" : "#fff", marginBottom: "8px" }}>
+                  {point.title}
+                </div>
+                <p style={{ font: "400 0.85rem/1.6 system-ui", color: "rgba(255,255,255,0.55)", margin: 0 }}>
+                  {point.body}
+                </p>
+                {point.highlight && (
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: "rgba(155,114,255,0.15)",
+                      borderRadius: "20px",
+                      padding: "4px 12px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: "#9b72ff",
+                    }}
+                  >
+                    ⚡ This is the number we highlight
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "12px",
+            }}
+          >
+            {[
+              { label: "10–15 min", note: "Ideal effective time per session for ages 4–7", color: "#58e8c1" },
+              { label: "15–20 min", note: "Ideal effective time per session for ages 8–11", color: "#9b72ff" },
+              { label: "3–5x / week", note: "Optimal session frequency for lasting skill gains", color: "#ffd166" },
+            ].map(({ label, note, color }) => (
+              <div
+                key={label}
+                style={{
+                  borderRadius: "14px",
+                  padding: "18px",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ font: "800 1.4rem/1 system-ui", color, marginBottom: "8px" }}>{label}</div>
+                <div style={{ font: "400 0.78rem/1.4 system-ui", color: "rgba(255,255,255,0.45)" }}>{note}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Section 4: FAQ ───────────────────────────────────────────────── */}
+        <div style={{ ...sectionStyle, borderBottom: "none" }}>
+          <SectionHeading
+            eyebrow="Section 4"
+            title="Common questions"
+            subtitle="Answers to questions parents ask most often about how WonderQuest measures and reports progress."
+          />
+
+          <div style={cardContainerStyle}>
+            {FAQ_ITEMS.map((item, idx) => (
+              <FaqItem
+                key={idx}
+                item={item}
+                open={openFaqIdx === idx}
+                onToggle={() => setOpenFaqIdx(openFaqIdx === idx ? null : idx)}
+              />
+            ))}
+          </div>
+
+          {/* Bottom CTA */}
+          <div
+            style={{
+              marginTop: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "14px",
+              padding: "22px 24px",
+              borderRadius: "16px",
+              background: "linear-gradient(135deg, rgba(155,114,255,0.12), rgba(88,232,193,0.06))",
+              border: "1px solid rgba(155,114,255,0.2)",
+            }}
+          >
+            <div>
+              <div style={{ font: "700 0.95rem/1.2 system-ui", color: "#fff", marginBottom: "4px" }}>
+                Ready to see {childName}&apos;s current progress?
+              </div>
+              <div style={{ font: "400 0.83rem/1.4 system-ui", color: "rgba(255,255,255,0.5)" }}>
+                Head back to the Family Hub for live stats and this week&apos;s highlights.
+              </div>
+            </div>
+            <Link
+              href="/parent"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+                color: "#fff",
+                font: "700 0.875rem/1 system-ui",
+                padding: "11px 22px",
+                borderRadius: "10px",
+                textDecoration: "none",
+                flexShrink: 0,
+              }}
+            >
+              Back to Family Hub →
+            </Link>
+          </div>
+        </div>
+
+      </div>
+    </AppFrame>
+  );
+}
