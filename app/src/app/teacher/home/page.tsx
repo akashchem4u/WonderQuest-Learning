@@ -193,21 +193,27 @@ export default function TeacherHomePage() {
       ),
     ])
       .then(([classData, interventionData, assignmentData, profileData]) => {
-        if (classData?.roster) setRoster(classData.roster);
+        const cd = classData as { roster?: RosterStudent[] };
+        if (cd?.roster) setRoster(cd.roster);
 
-        const ivList: Intervention[] =
-          interventionData?.interventions ??
-          interventionData?.items ??
-          (Array.isArray(interventionData) ? interventionData : []);
+        const iv = interventionData as Record<string, unknown>;
+        const ivList: Intervention[] = (
+          (iv?.interventions as Intervention[] | undefined) ??
+          (iv?.items as Intervention[] | undefined) ??
+          (Array.isArray(interventionData) ? (interventionData as Intervention[]) : [])
+        );
         setInterventions(ivList);
 
-        const asList: Assignment[] =
-          assignmentData?.assignments ??
-          assignmentData?.items ??
-          (Array.isArray(assignmentData) ? assignmentData : []);
+        const as_ = assignmentData as Record<string, unknown>;
+        const asList: Assignment[] = (
+          (as_?.assignments as Assignment[] | undefined) ??
+          (as_?.items as Assignment[] | undefined) ??
+          (Array.isArray(assignmentData) ? (assignmentData as Assignment[]) : [])
+        );
         setAssignments(asList);
 
-        const name = profileData?.profile?.displayName;
+        const pd = profileData as { profile?: { displayName?: string } } | null;
+        const name = pd?.profile?.displayName;
         if (name && name !== "Teacher") setTeacherName(name);
       })
       .catch(() => setFetchError(true))

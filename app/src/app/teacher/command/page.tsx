@@ -88,18 +88,23 @@ export default function TeacherCommandPage() {
       ),
     ])
       .then(([classData, interventionData, assignmentData]) => {
-        if (classData?.roster) setRoster(classData.roster);
+        const cd = classData as { roster?: RosterStudent[] };
+        if (cd?.roster) setRoster(cd.roster);
 
-        const ivList: unknown[] =
-          interventionData?.interventions ??
-          interventionData?.items ??
-          (Array.isArray(interventionData) ? interventionData : []);
+        const iv = interventionData as Record<string, unknown>;
+        const ivList: unknown[] = (
+          (iv?.interventions as unknown[] | undefined) ??
+          (iv?.items as unknown[] | undefined) ??
+          (Array.isArray(interventionData) ? (interventionData as unknown[]) : [])
+        );
         setInterventionCount(ivList.length);
 
-        const asList: unknown[] =
-          assignmentData?.assignments ??
-          assignmentData?.items ??
-          (Array.isArray(assignmentData) ? assignmentData : []);
+        const as_ = assignmentData as Record<string, unknown>;
+        const asList: unknown[] = (
+          (as_?.assignments as unknown[] | undefined) ??
+          (as_?.items as unknown[] | undefined) ??
+          (Array.isArray(assignmentData) ? (assignmentData as unknown[]) : [])
+        );
         setAssignmentCount(asList.length);
       })
       .catch(() => {/* silently ignore */})
