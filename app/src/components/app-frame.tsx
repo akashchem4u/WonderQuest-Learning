@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { DisplayModeToggle } from "@/components/display-mode-toggle";
 
+// ─── Nav items ────────────────────────────────────────────────────────────────
+
 const navItems = [
   { href: "/", label: "Launchpad", icon: "🏠" },
   { href: "/child", label: "Child", icon: "👶" },
@@ -10,66 +12,46 @@ const navItems = [
   { href: "/owner", label: "Ops", icon: "🔑" },
 ];
 
+// ─── Audience meta ────────────────────────────────────────────────────────────
+
 const audienceMeta = {
   home: {
     label: "WonderQuest Learning",
     shortLabel: "Home",
     title: "Learning that meets every child where they are.",
-    detail: "A platform built for children, families, and classrooms — with the tools teachers and operators need.",
+    topLinks: [
+      { href: "/parent", label: "For families" },
+      { href: "/teacher", label: "For teachers" },
+      { href: "/owner", label: "Platform ops" },
+    ],
   },
   kid: {
     label: "WonderQuest",
     shortLabel: "Play",
     title: "Your learning adventure starts here.",
-    detail: "Answer questions, earn rewards, and keep your streak alive.",
+    topLinks: [
+      { href: "/parent", label: "For families" },
+      { href: "/teacher", label: "For teachers" },
+    ],
   },
   parent: {
     label: "Family Hub",
     shortLabel: "Family",
-    title: "See how your child is growing.",
-    detail: "Progress, recent sessions, and what to celebrate next.",
+    title: "Family Hub",
   },
   teacher: {
     label: "Classroom",
     shortLabel: "Classroom",
-    title: "Your class at a glance.",
-    detail: "Track momentum, spot support needs early, and act with confidence.",
+    title: "Classroom",
   },
   owner: {
     label: "Ops Console",
     shortLabel: "Ops",
-    title: "Platform health and launch readiness.",
-    detail: "Content coverage, feedback flow, and release signals in one place.",
+    title: "Ops Console",
   },
 } as const;
 
-const audienceRoutes = {
-  home: [
-    { href: "/child", label: "Start learning" },
-    { href: "/parent", label: "Open family hub" },
-    { href: "/teacher", label: "Open classroom view" },
-  ],
-  kid: [
-    { href: "/child", label: "Setup" },
-    { href: "/play", label: "Play" },
-    { href: "/parent", label: "Family hub" },
-  ],
-  parent: [
-    { href: "/parent", label: "Family hub" },
-    { href: "/child", label: "Child" },
-    { href: "/owner", label: "Ops view" },
-  ],
-  teacher: [
-    { href: "/teacher", label: "Classroom board" },
-    { href: "/child", label: "Child" },
-    { href: "/owner", label: "Ops view" },
-  ],
-  owner: [
-    { href: "/owner", label: "Ops console" },
-    { href: "/teacher", label: "Classroom" },
-    { href: "/parent", label: "Family hub" },
-  ],
-} as const;
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 type AppFrameProps = {
   children: ReactNode;
@@ -77,20 +59,24 @@ type AppFrameProps = {
   audience?: keyof typeof audienceMeta;
 };
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function AppFrame({
   children,
   currentPath,
   audience = "home",
 }: AppFrameProps) {
   const meta = audienceMeta[audience];
-  const routeHints = audienceRoutes[audience];
   const isAdultShell =
     audience === "parent" || audience === "teacher" || audience === "owner";
 
+  // ── Adult shell (teacher / parent / owner) ──────────────────────────────────
   if (isAdultShell) {
     return (
       <div className={`adult-shell theme-${audience}`}>
+        {/* Sidebar */}
         <aside className="adult-sidebar">
+          {/* Brand */}
           <div className="adult-sidebar-brand">
             <Link className="adult-brand-mark" href="/">
               Wonder<span>Quest</span>
@@ -98,11 +84,10 @@ export function AppFrame({
             <p>{meta.label}</p>
           </div>
 
-          <div className="adult-sidebar-section-label">Navigate</div>
+          {/* Nav */}
           <nav aria-label="Primary" className="adult-sidebar-nav">
             {navItems.map((item) => {
               const isActive = currentPath === item.href;
-
               return (
                 <Link
                   aria-current={isActive ? "page" : undefined}
@@ -118,45 +103,21 @@ export function AppFrame({
               );
             })}
           </nav>
-
-          <div className="adult-sidebar-section-label">Mode</div>
-          <div className="adult-sidebar-panel">
-            <strong>{meta.shortLabel}</strong>
-            <p>{meta.detail}</p>
-          </div>
         </aside>
 
+        {/* Main */}
         <div className="adult-main">
           <header className="adult-topbar">
-            <div>
-              <span className="adult-topbar-kicker">{meta.label}</span>
-              <strong>{meta.title}</strong>
-            </div>
+            <strong className="adult-topbar-title">{meta.title}</strong>
             <div className="adult-topbar-actions">
               <DisplayModeToggle />
             </div>
           </header>
 
-          <div className="adult-context-row">
-            {routeHints.map((item) => {
-              const isCurrent = currentPath === item.href;
-
-              return (
-                <Link
-                  aria-current={isCurrent ? "page" : undefined}
-                  className={`adult-context-chip ${isCurrent ? "is-current" : ""}`}
-                  href={item.href}
-                  key={`${audience}-${item.href}`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-
           {children}
         </div>
 
+        {/* Mobile bottom nav */}
         <nav className="adult-mobile-nav" aria-label="Mobile navigation">
           {navItems.map((item) => {
             const isActive = currentPath === item.href;
@@ -179,68 +140,40 @@ export function AppFrame({
     );
   }
 
+  // ── Light shell (home / kid) — matches home page topbar style ───────────────
+  const topLinks = "topLinks" in meta ? meta.topLinks : [];
+
   return (
     <div className={`app-frame theme-${audience}`}>
-      <div className="app-backdrop" />
-      <header className="app-chrome">
-          <div className="app-brand">
-            <Link className="app-brand-mark" href="/">
-              WonderQuest Learning
-            </Link>
-            <div className="app-brand-copy">
-              <div className="app-copy-topline">
-                <strong>{meta.title}</strong>
-                <span className="app-audience-pill">{meta.label}</span>
-              </div>
-              <span>{meta.detail}</span>
-            </div>
-            <div className="app-signal-row">
-              <span className="app-signal-pill">{meta.shortLabel}</span>
-              <span className="app-signal-pill">Early Access</span>
-            </div>
-          </div>
+      <div className="app-backdrop" aria-hidden="true" />
 
-          <div className="app-utility">
-            <div className="app-utility-copy">
-              <span>WonderQuest Learning</span>
-              <strong>Early Access</strong>
-            </div>
-            <DisplayModeToggle />
-            <nav aria-label="Primary" className="app-nav">
-            {navItems.map((item) => {
-              const isActive = currentPath === item.href;
+      <header className="home-topbar" style={{ position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", background: "rgba(8,6,28,0.8)", marginBottom: 0, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <Link className="home-logo" href="/">
+          Wonder<span>Quest</span>
+        </Link>
 
-              return (
-                <Link
-                  aria-current={isActive ? "page" : undefined}
-                  className={`app-nav-link ${isActive ? "is-active" : ""}`}
-                  href={item.href}
-                  key={item.href}
-                >
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+        {topLinks.length > 0 && (
+          <nav className="home-topbar-links" aria-label="Primary">
+            {topLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={currentPath === link.href ? "page" : undefined}
+                style={currentPath === link.href ? { color: "#fff" } : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
+        )}
+
+        <div className="home-topbar-actions">
+          <DisplayModeToggle />
+          <Link className="home-start-btn" href="/child">
+            Start learning
+          </Link>
         </div>
       </header>
-
-      <div className="app-context-bar">
-        {routeHints.map((item) => {
-          const isCurrent = currentPath === item.href;
-
-          return (
-            <Link
-              aria-current={isCurrent ? "page" : undefined}
-              className={`app-context-link ${isCurrent ? "is-current" : ""}`}
-              href={item.href}
-              key={`${audience}-${item.href}`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
 
       {children}
     </div>
