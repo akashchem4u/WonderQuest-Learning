@@ -133,7 +133,7 @@ export default function InterventionDetailPage() {
   const triggerIcon = intervention ? getTriggerIcon(intervention.reason) : "⚠️";
 
   return (
-    <AppFrame audience="teacher">
+    <AppFrame audience="teacher" currentPath="/teacher/intervention-overview">
       <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 24px 60px" }}>
 
