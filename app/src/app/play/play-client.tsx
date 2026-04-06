@@ -1437,8 +1437,14 @@ function PlayClientInner() {
         <main className="page-shell page-shell-split">
           <ShellCard eyebrow="Play" title="Something went wrong">
             <p>{error ? "Questions could not be loaded. Go back and try again." : "Your quest could not be prepared."}</p>
+            {error && (
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
+                {error}
+              </p>
+            )}
             <div className="form-actions">
-              <Link className="primary-link" href="/child">Go back to setup</Link>
+              {/* ?manual=1 forces the login form even if a session cookie exists */}
+              <Link className="primary-link" href="/child?manual=1">Go back to setup</Link>
             </div>
           </ShellCard>
         </main>

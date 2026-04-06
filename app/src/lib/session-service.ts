@@ -1095,6 +1095,14 @@ export async function createPlaySession(input: PlaySessionInput) {
     sessionMode,
     (studentRow.preferred_theme_code as string | undefined) ?? null,
   );
+
+  if (!selectedQuestions.length) {
+    throw new Error(
+      `No questions available for band ${studentRow.launch_band_code as string}. ` +
+      "The question bank may need to be seeded. Please try again later.",
+    );
+  }
+
   const questionKeys = selectedQuestions.map((item) => item.question_key);
   const questions = selectedQuestions.map((item) => buildQuestionCardFromQuestion(item));
 
