@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type SessionData = {
+  student: { displayName: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
 
 type TabId = "reading" | "mixed" | "detail";
 type SkillState = "new" | "active" | "done" | "locked";
@@ -26,7 +31,7 @@ type Skill = {
   progress?: number; // 0–100 for done cards
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── Skill data ───────────────────────────────────────────────────────────────
 
 const READING_SKILLS: Skill[] = [
   {
@@ -363,6 +368,18 @@ function SectionLabel({
 export default function ChildSkillPreviewPage() {
   const [activeTab, setActiveTab] = useState<TabId>("reading");
   const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => { setSession(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const displayName = session?.student.displayName ?? "Explorer";
+  const launchBandCode = session?.student.launchBandCode ?? "k1";
 
   function showDetail(skill: Skill) {
     setDetailSkill(skill);
@@ -372,6 +389,16 @@ export default function ChildSkillPreviewPage() {
   function backToGrid() {
     setDetailSkill(null);
     setActiveTab("reading");
+  }
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: "#0a0820", display: "flex", alignItems: "center", justifyContent: "center", color: "#9b8ec4", fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 16, fontWeight: 700 }}>
+          Loading your skills...
+        </div>
+      </AppFrame>
+    );
   }
 
   return (
@@ -466,7 +493,7 @@ export default function ChildSkillPreviewPage() {
                       fontFamily: "'Nunito', system-ui, sans-serif",
                     }}
                   >
-                    Here's what you'll practice in this quest!
+                    {`${displayName}'s ${launchBandCode.toUpperCase()} quest skills`}
                   </div>
                 </div>
                 <div
@@ -613,6 +640,7 @@ export default function ChildSkillPreviewPage() {
               skill={detailSkill ?? READING_SKILLS[0]}
               relatedSkills={READING_SKILLS.slice(1)}
               onBack={backToGrid}
+              bandCode={launchBandCode}
             />
           )}
         </div>
