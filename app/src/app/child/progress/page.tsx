@@ -2,11 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 type SessionData = {
   student: { displayName: string; avatarKey: string; launchBandCode: string };
   progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
+
+type StatsData = {
+  totalPoints: number;
+  currentLevel: number;
+  badgeCount: number;
+  trophyCount: number;
+  streakDays: number;
+  masteredSkillsCount: number;
+  lastSession: { correctAnswers: number; totalQuestions: number; pointsEarned: number } | null;
 };
 
 const font = "'Nunito', system-ui, sans-serif";
@@ -17,7 +28,102 @@ const textMuted = "#9b8ec4";
 const panelBorder = "#2a2060";
 const green = "#50e890";
 
-type Tab = "map" | "stats";
+// ── Band config ────────────────────────────────────────────────────────────────
+type BandId = "PREK" | "K1" | "G23" | "G45" | "G6";
+
+interface BandConfig {
+  id: BandId;
+  code: string;
+  emoji: string;
+  name: string;
+  range: string;
+  color: string;
+  bandBg: string;
+  maxLevel: number;
+  skills: string[];
+}
+
+const BANDS: BandConfig[] = [
+  {
+    id: "PREK",
+    code: "prek",
+    emoji: "🌈",
+    name: "Pre-K Explorers",
+    range: "Ages 3–5 · Pre-K",
+    color: "#ffd166",
+    bandBg: "#2a2010",
+    maxLevel: 5,
+    skills: ["Counting 1–5", "Letter recognition", "Basic shapes", "Colors", "Patterns"],
+  },
+  {
+    id: "K1",
+    code: "k1",
+    emoji: "⭐",
+    name: "K–1 Adventurers",
+    range: "Ages 5–7 · K–Grade 1",
+    color: "#9b72ff",
+    bandBg: "#1e1470",
+    maxLevel: 10,
+    skills: ["Counting to 20", "Sight words", "Adding to 10", "Subtracting", "Phonics"],
+  },
+  {
+    id: "G23",
+    code: "g23",
+    emoji: "🌊",
+    name: "G2–3 Questers",
+    range: "Ages 7–9 · Grades 2–3",
+    color: "#58e8c1",
+    bandBg: "#0a2a28",
+    maxLevel: 15,
+    skills: ["Multiplication intro", "Reading fluency", "Fractions", "Place value", "Writing"],
+  },
+  {
+    id: "G45",
+    code: "g45",
+    emoji: "🔥",
+    name: "G4–5 Champions",
+    range: "Ages 9–11 · Grades 4–5",
+    color: "#ff7b6b",
+    bandBg: "#2a1010",
+    maxLevel: 20,
+    skills: ["Long division", "Decimals", "Geometry", "Reading comprehension", "Algebra intro"],
+  },
+  {
+    id: "G6",
+    code: "g6",
+    emoji: "🚀",
+    name: "Grade 6+ Legends",
+    range: "Ages 11+ · Grade 6+",
+    color: "#c084fc",
+    bandBg: "#1a0a2e",
+    maxLevel: 25,
+    skills: ["Ratios", "Pre-algebra", "Advanced reading", "Statistics intro", "Geometry"],
+  },
+];
+
+function resolveBand(code: string): BandConfig {
+  const lower = (code ?? "").toLowerCase();
+  return (
+    BANDS.find((b) => b.code === lower) ??
+    BANDS.find((b) => lower.includes(b.code)) ??
+    BANDS[1]
+  );
+}
+
+function buildSkillPills(
+  band: BandConfig,
+  masteredCount: number,
+  currentLevel: number,
+): { label: string; mastered: boolean }[] {
+  return band.skills.map((label, i) => ({
+    label,
+    mastered:
+      i < Math.min(masteredCount, band.skills.length) ||
+      currentLevel >= band.maxLevel * ((i + 1) / band.skills.length),
+  }));
+}
+
+type Tab = "band" | "map" | "stats";
 
 // ── Node path data ─────────────────────────────────────────
 type NodeState = "done" | "active" | "locked";
@@ -310,7 +416,7 @@ export default function ChildProgressPage() {
           </Link>
           <div style={{ width: 1, height: 24, background: "#2e2a50" }} />
           {(["map", "stats"] as Tab[]).map((t) => {
-            const labels: Record<Tab, string> = { map: "Progress Map", stats: "Stats Overview" };
+            const labels: Record<string, string> = { band: "Band", map: "Progress Map", stats: "Stats Overview" };
             return (
               <button
                 key={t}

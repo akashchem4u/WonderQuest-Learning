@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
 const FONT: React.CSSProperties = {
@@ -9,63 +10,18 @@ const FONT: React.CSSProperties = {
 };
 
 const C = {
-  bg: "#100b2e",
-  card: "#1e1840",
-  cardAlt: "#17133a",
-  border: "#2a2060",
-  violet: "#9b72ff",
-  gold: "#ffd166",
-  mint: "#22c55e",
-  text: "#e8e0ff",
-  muted: "#9080c0",
+  bg:        "#100b2e",
+  card:      "#1e1840",
+  border:    "#2a2060",
+  violet:    "#9b72ff",
+  gold:      "#ffd166",
+  mint:      "#22c55e",
+  text:      "#e8e0ff",
+  muted:     "#9080c0",
   toggleOff: "#2a2060",
 };
 
-interface Prefs {
-  highContrast: boolean;
-  largeText: boolean;
-  reduceMotion: boolean;
-  readAloud: boolean;
-  soundEffects: boolean;
-}
-
-const DEFAULT_PREFS: Prefs = {
-  highContrast: false,
-  largeText: false,
-  reduceMotion: false,
-  readAloud: false,
-  soundEffects: true,
-};
-
-const STORAGE_KEY = "wq_accessibility_prefs";
-
-function loadPrefs(): Prefs {
-  if (typeof window === "undefined") return DEFAULT_PREFS;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
-}
-
-function savePrefs(prefs: Prefs) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  } catch {
-    // ignore
-  }
-}
-
-// ── Toggle component ──────────────────────────────────────────────────────────
-
-function Toggle({
-  checked,
-  onChange,
-  id,
-  accentColor = C.violet,
-}: {
+function Toggle({ checked, onChange, id, accentColor = C.gold }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   id: string;
@@ -79,9 +35,10 @@ function Toggle({
       onClick={() => onChange(!checked)}
       style={{
         ...FONT,
-        width: 56,
-        height: 30,
-        borderRadius: 15,
+        width: 60,
+        height: 34,
+        minHeight: 48,
+        borderRadius: 17,
         border: `2px solid ${checked ? accentColor : C.toggleOff}`,
         background: checked ? accentColor : "#13102a",
         position: "relative",
@@ -89,14 +46,16 @@ function Toggle({
         flexShrink: 0,
         transition: "background 0.2s, border-color 0.2s",
         padding: 0,
+        alignSelf: "center",
       }}
     >
       <span style={{
         position: "absolute",
-        top: 2,
-        left: checked ? 26 : 2,
-        width: 22,
-        height: 22,
+        top: "50%",
+        transform: "translateY(-50%)",
+        left: checked ? 30 : 4,
+        width: 24,
+        height: 24,
         borderRadius: "50%",
         background: checked ? "#fff" : C.muted,
         transition: "left 0.2s",
@@ -106,17 +65,7 @@ function Toggle({
   );
 }
 
-// ── Setting row ───────────────────────────────────────────────────────────────
-
-function SettingRow({
-  id,
-  emoji,
-  label,
-  hint,
-  checked,
-  onChange,
-  accentColor,
-}: {
+function SettingRow({ id, emoji, label, hint, checked, onChange, accentColor }: {
   id: string;
   emoji: string;
   label: string;
@@ -130,70 +79,66 @@ function SettingRow({
       display: "flex",
       alignItems: "center",
       gap: 14,
-      padding: "16px 18px",
+      padding: "18px 20px",
       background: C.card,
-      borderRadius: 16,
-      border: `1.5px solid ${checked ? (accentColor ?? C.violet) + "55" : C.border}`,
+      borderRadius: 18,
+      border: `1.5px solid ${checked ? (accentColor ?? C.gold) + "55" : C.border}`,
+      minHeight: 72,
     }}>
       <span style={{ fontSize: "1.8rem", flexShrink: 0 }}>{emoji}</span>
       <label htmlFor={id} style={{ flex: 1, cursor: "pointer" }}>
-        <div style={{ fontSize: "1rem", fontWeight: 900, color: C.text, marginBottom: 2 }}>
-          {label}
-        </div>
-        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: C.muted, lineHeight: 1.4 }}>
-          {hint}
-        </div>
+        <div style={{ ...FONT, fontSize: "1rem", fontWeight: 900, color: C.text, marginBottom: 2 }}>{label}</div>
+        <div style={{ ...FONT, fontSize: "0.82rem", fontWeight: 700, color: C.muted, lineHeight: 1.4 }}>{hint}</div>
       </label>
       <Toggle id={id} checked={checked} onChange={onChange} accentColor={accentColor} />
     </div>
   );
 }
 
-// ── Section header ────────────────────────────────────────────────────────────
-
-function SectionHeader({ emoji, title }: { emoji: string; title: string }) {
-  return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 2,
-    }}>
-      <span style={{ fontSize: "1.3rem" }}>{emoji}</span>
-      <span style={{
-        fontSize: "0.78rem",
-        fontWeight: 900,
-        letterSpacing: "0.1em",
-        textTransform: "uppercase",
-        color: C.muted,
-      }}>
-        {title}
-      </span>
-    </div>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function ChildAccessibilityPage() {
   const router = useRouter();
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [saved, setSaved] = useState(false);
 
-  // Load from localStorage on mount
+  const [highContrast, setHighContrast] = useState(false);
+  const [largeText,    setLargeText]    = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [saved,        setSaved]        = useState(false);
+
+  // Auth check
   useEffect(() => {
-    setPrefs(loadPrefs());
+    if (!document.cookie.includes("wonderquest-child-session")) {
+      router.replace("/child");
+    }
+  }, [router]);
+
+  // Load saved prefs
+  useEffect(() => {
+    try {
+      setHighContrast(localStorage.getItem("wq_high_contrast") === "true");
+      setLargeText(localStorage.getItem("wq_large_text") === "true");
+      setReduceMotion(localStorage.getItem("wq_reduce_motion") === "true");
+    } catch {
+      // ignore
+    }
   }, []);
 
-  function update<K extends keyof Prefs>(key: K, value: Prefs[K]) {
-    setPrefs((prev) => ({ ...prev, [key]: value }));
+  function handleHighContrast(v: boolean) {
+    setHighContrast(v);
+    if (typeof document !== "undefined") {
+      document.body.classList.toggle("high-contrast", v);
+    }
     setSaved(false);
   }
 
   function handleSave() {
-    savePrefs(prefs);
+    try {
+      localStorage.setItem("wq_high_contrast", String(highContrast));
+      localStorage.setItem("wq_large_text", String(largeText));
+      localStorage.setItem("wq_reduce_motion", String(reduceMotion));
+    } catch {
+      // ignore
+    }
     setSaved(true);
-    setTimeout(() => router.push("/child"), 600);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   return (
@@ -204,18 +149,13 @@ export default function ChildAccessibilityPage() {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: none; }
         }
-        @keyframes saved-pop {
-          0%   { transform: scale(0.8); opacity: 0; }
-          60%  { transform: scale(1.1); }
-          100% { transform: scale(1); opacity: 1; }
-        }
       `}</style>
 
       <div style={{
         ...FONT,
         background: C.bg,
         minHeight: "100vh",
-        padding: "32px 16px 60px",
+        padding: "28px 16px 60px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -225,14 +165,31 @@ export default function ChildAccessibilityPage() {
           maxWidth: 480,
           display: "flex",
           flexDirection: "column",
-          gap: 28,
+          gap: 24,
           animation: "fade-up 0.4s ease-out both",
         }}>
+
+          {/* Back link */}
+          <div>
+            <Link href="/child/hub" style={{
+              color: C.gold,
+              fontWeight: 900,
+              fontSize: 14,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              minHeight: 48,
+            }}>
+              ← Back to Hub
+            </Link>
+          </div>
 
           {/* Header */}
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: "2.8rem", marginBottom: 8 }}>♿</div>
             <h1 style={{
+              ...FONT,
               fontSize: "1.8rem",
               fontWeight: 900,
               color: "#fff",
@@ -242,6 +199,7 @@ export default function ChildAccessibilityPage() {
               How do you like things to look?
             </h1>
             <p style={{
+              ...FONT,
               fontSize: "0.95rem",
               fontWeight: 700,
               color: C.muted,
@@ -252,110 +210,75 @@ export default function ChildAccessibilityPage() {
             </p>
           </div>
 
-          {/* Section: How things look */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <SectionHeader emoji="👀" title="How things look" />
-            <SettingRow
-              id="high-contrast"
-              emoji="🔲"
-              label="High Contrast"
-              hint="Makes borders bigger and colours easier to see"
-              checked={prefs.highContrast}
-              onChange={(v) => update("highContrast", v)}
-              accentColor={C.gold}
-            />
-            <SettingRow
-              id="large-text"
-              emoji="🔡"
-              label="Large Text"
-              hint="Makes all the words bigger and easier to read"
-              checked={prefs.largeText}
-              onChange={(v) => update("largeText", v)}
-              accentColor={C.violet}
-            />
-            <SettingRow
-              id="reduce-motion"
-              emoji="🧘"
-              label="Reduce Motion"
-              hint="Turns off spinning and bouncing animations"
-              checked={prefs.reduceMotion}
-              onChange={(v) => update("reduceMotion", v)}
-              accentColor={C.mint}
-            />
+          {/* Section label */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: "1.3rem" }}>👀</span>
+            <span style={{
+              ...FONT,
+              fontSize: "0.78rem", fontWeight: 900,
+              letterSpacing: "0.1em", textTransform: "uppercase" as const, color: C.muted,
+            }}>
+              How things look
+            </span>
           </div>
 
-          {/* Section: How things sound */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <SectionHeader emoji="🔊" title="How things sound" />
-            <SettingRow
-              id="read-aloud"
-              emoji="🗣️"
-              label="Read Questions Aloud"
-              hint="The app will speak each question out loud for you"
-              checked={prefs.readAloud}
-              onChange={(v) => update("readAloud", v)}
-              accentColor={C.violet}
-            />
-            <SettingRow
-              id="sound-effects"
-              emoji="🎵"
-              label="Sound Effects"
-              hint="Fun sounds when you get answers right or earn badges"
-              checked={prefs.soundEffects}
-              onChange={(v) => update("soundEffects", v)}
-              accentColor={C.mint}
-            />
-          </div>
+          <SettingRow
+            id="high-contrast"
+            emoji="🔲"
+            label="High Contrast"
+            hint="Makes borders bigger and colours easier to see"
+            checked={highContrast}
+            onChange={handleHighContrast}
+            accentColor={C.gold}
+          />
+          <SettingRow
+            id="large-text"
+            emoji="🔡"
+            label="Larger Text"
+            hint="Makes all the words bigger and easier to read"
+            checked={largeText}
+            onChange={(v) => { setLargeText(v); setSaved(false); }}
+            accentColor={C.violet}
+          />
+          <SettingRow
+            id="reduce-motion"
+            emoji="🧘"
+            label="Reduce Animations"
+            hint="Turns off spinning and bouncing animations"
+            checked={reduceMotion}
+            onChange={(v) => { setReduceMotion(v); setSaved(false); }}
+            accentColor={C.mint}
+          />
 
           {/* Save button */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
-            <button
-              onClick={handleSave}
-              style={{
-                ...FONT,
-                width: "100%",
-                height: 60,
-                borderRadius: 30,
-                border: "none",
-                background: saved
-                  ? `linear-gradient(135deg, ${C.mint}, #16a34a)`
-                  : `linear-gradient(135deg, ${C.violet}, #7248e8)`,
-                color: "#fff",
-                fontSize: "1.2rem",
-                fontWeight: 900,
-                cursor: "pointer",
-                boxShadow: saved
-                  ? `0 4px 20px ${C.mint}55`
-                  : `0 4px 20px ${C.violet}55`,
-                transition: "background 0.3s, box-shadow 0.3s",
-                animation: saved ? "saved-pop 0.4s ease-out" : "none",
-              }}
-            >
-              {saved ? "✅ All saved!" : "All set! ✨"}
-            </button>
-
-            <button
-              onClick={() => router.push("/child")}
-              style={{
-                ...FONT,
-                width: "100%",
-                height: 48,
-                borderRadius: 24,
-                border: `2px solid ${C.border}`,
-                background: "transparent",
-                color: C.muted,
-                fontSize: "0.95rem",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              ← Back without saving
-            </button>
-          </div>
+          <button
+            onClick={handleSave}
+            style={{
+              ...FONT,
+              width: "100%",
+              minHeight: 64,
+              borderRadius: 20,
+              border: "none",
+              background: saved
+                ? `linear-gradient(135deg, ${C.mint}, #16a34a)`
+                : `linear-gradient(135deg, ${C.gold}, #e09000)`,
+              color: saved ? "#fff" : "#1a0800",
+              fontSize: "1.2rem",
+              fontWeight: 900,
+              cursor: "pointer",
+              boxShadow: saved
+                ? `0 4px 20px ${C.mint}55`
+                : `0 4px 20px ${C.gold}55`,
+              transition: "background 0.3s, box-shadow 0.3s",
+            }}
+          >
+            {saved ? "Saved! ✓" : "Save my picks ✨"}
+          </button>
 
           {/* Friendly note */}
           <div style={{
-            background: C.cardAlt,
+            ...FONT,
+            background: "#17133a",
             border: `1.5px solid ${C.border}`,
             borderRadius: 14,
             padding: "14px 18px",

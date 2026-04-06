@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1005,19 +1006,58 @@ function ComebackScreen({ session }: { session: SessionData | null }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChildReturningPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ReturnType>("same-day");
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState(3);
+  const [authed, setAuthed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Auth check + session load
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/child/session")
-      .then((r) => r.json())
-      .then((data: SessionData) => {
-        setSession(data);
-        setLoading(false);
+      .then((r) => {
+        if (!r.ok) throw new Error("no session");
+        return r.json();
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .then((data: SessionData) => {
+        if (!cancelled) {
+          setSession(data);
+          setAuthed(true);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          router.replace("/child");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [router]);
+
+  // Auto-redirect countdown (3 s after auth)
+  useEffect(() => {
+    if (!authed || loading) return;
+    const interval = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(interval);
+          router.push("/play");
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    timerRef.current = interval as unknown as ReturnType<typeof setTimeout>;
+    return () => clearInterval(interval);
+  }, [authed, loading, router]);
+
+  function cancelAutoRedirect() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCountdown(0);
+  }
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -1098,6 +1138,50 @@ export default function ChildReturningPage() {
             ))}
           </div>
         </div>
+
+        {/* Auto-redirect banner */}
+        {!loading && countdown > 0 && (
+          <div
+            style={{
+              maxWidth: 900,
+              margin: "16px auto 0",
+              padding: "0 32px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "rgba(155,114,255,0.10)",
+                border: "1.5px solid rgba(155,114,255,0.28)",
+                borderRadius: 12,
+                padding: "10px 16px",
+                fontSize: 13,
+                fontWeight: 700,
+                color: VIOLET,
+                fontFamily: "'Nunito', system-ui, sans-serif",
+              }}
+            >
+              <span>Continuing to play in {countdown}s…</span>
+              <button
+                type="button"
+                onClick={cancelAutoRedirect}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: MUTED,
+                  fontFamily: "'Nunito', system-ui, sans-serif",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Loading state */}
         {loading && (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Auto-queue types ─────────────────────────────────────────────────────────
 type AutoIntervention = {
@@ -499,3 +500,4 @@ export default function TeacherWatchlistPage() {
     </AppFrame>
   );
 }
+import TeacherGate from "../teacher-gate";

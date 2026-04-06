@@ -2,128 +2,107 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
-// ─── Colors ──────────────────────────────────────────────────────────────────
-// Base: #0d1117  Card: #161b22  Accent: #50e890  Gold: #ffd166
-// Violet: #9b72ff  Mint: #58e8c1  Coral: #ff7b6b  Muted: #8b949e
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+type Difficulty = "easy" | "medium" | "hard";
 
-type Band = "p0" | "p1" | "p2" | "p3";
-type ChallengeStatus = "available" | "started" | "completed" | "skipped" | "quiet";
+// ─── Difficulty config ────────────────────────────────────────────────────────
 
-type ThemeFamily = "space" | "animals" | "sports" | "arts" | "ocean" | "building";
+const DIFFICULTIES: {
+  id: Difficulty;
+  label: string;
+  emoji: string;
+  desc: string;
+  accent: string;
+  accentBg: string;
+  accentBorder: string;
+  accentText: string;
+}[] = [
+  {
+    id: "easy",
+    label: "Easy",
+    emoji: "🌱",
+    desc: "Warm-up questions to build confidence",
+    accent: "#50e890",
+    accentBg: "rgba(80,232,144,0.10)",
+    accentBorder: "rgba(80,232,144,0.35)",
+    accentText: "#50e890",
+  },
+  {
+    id: "medium",
+    label: "Medium",
+    emoji: "⚡",
+    desc: "Push your skills with balanced challenges",
+    accent: "#9b72ff",
+    accentBg: "rgba(155,114,255,0.10)",
+    accentBorder: "rgba(155,114,255,0.35)",
+    accentText: "#c4a0ff",
+  },
+  {
+    id: "hard",
+    label: "Hard",
+    emoji: "🔥",
+    desc: "Maximum challenge — for the brave!",
+    accent: "#ff7b6b",
+    accentBg: "rgba(255,123,107,0.10)",
+    accentBorder: "rgba(255,123,107,0.35)",
+    accentText: "#ff9f93",
+  },
+];
 
-type DailyChallenge = {
-  id: string;
-  name: string;
-  subject: string;
-  subjectEmoji: string;
-  band: Band;
-  xpBonus: number;
-  xpLabel: string;
-  mascot: string;
-  themeFamily: ThemeFamily;
-  status: ChallengeStatus;
-};
+// ─── Challenge Setup ──────────────────────────────────────────────────────────
 
-// ─── Theme config ─────────────────────────────────────────────────────────────
+function ChallengeModeSetup() {
+  const [selected, setSelected] = useState<Difficulty>("medium");
 
-const THEME_GRADIENTS: Record<ThemeFamily, string> = {
-  space:    "linear-gradient(135deg, #0d0d2b 0%, #1a1060 50%, #2d0b6b 100%)",
-  animals:  "linear-gradient(135deg, #0f3d1e 0%, #1a5c2e 50%, #0d3321 100%)",
-  sports:   "linear-gradient(135deg, #2b0d0d 0%, #5c1a1a 50%, #7a2020 100%)",
-  arts:     "linear-gradient(135deg, #2b0d2b 0%, #5c1a5c 50%, #6b1060 100%)",
-  ocean:    "linear-gradient(135deg, #0d1e3d 0%, #1a3060 50%, #0d2244 100%)",
-  building: "linear-gradient(135deg, #2b1a0d 0%, #5c3d1a 50%, #7a4a14 100%)",
-};
-
-const BAND_LABELS: Record<Band, string> = {
-  p0: "P0 · Early Learner",
-  p1: "P1 · Growing",
-  p2: "P2 · Fluent",
-  p3: "P3 · Advanced",
-};
-
-const BAND_COLORS: Record<Band, string> = {
-  p0: "#ffd166",
-  p1: "#9b72ff",
-  p2: "#58e8c1",
-  p3: "#ff7b6b",
-};
-
-// ─── Static prototype data ────────────────────────────────────────────────────
-
-const TODAY_CHALLENGE: DailyChallenge = {
-  id: "dc-2026-04-06",
-  name: "The Star Chart Mystery",
-  subject: "Math",
-  subjectEmoji: "📐",
-  band: "p0",
-  xpBonus: 20,
-  xpLabel: "Star Dust",
-  mascot: "🚀",
-  themeFamily: "space",
-  status: "available",
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getQuietHours(): boolean {
-  const h = new Date().getHours();
-  return h >= 0 && h < 7;
-}
-
-// ─── Challenge Launcher ───────────────────────────────────────────────────────
-
-function DailyChallengeLauncher() {
-  const challenge = TODAY_CHALLENGE;
-  const [status, setStatus] = useState<ChallengeStatus>(
-    getQuietHours() ? "quiet" : challenge.status
-  );
-
-  const today = new Date();
-  const todayLabel = today.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
-  const gradient = THEME_GRADIENTS[challenge.themeFamily];
-  const bandColor = BAND_COLORS[challenge.band];
-  const bandLabel = BAND_LABELS[challenge.band];
+  const chosen = DIFFICULTIES.find((d) => d.id === selected)!;
 
   return (
     <AppFrame audience="kid" currentPath="/child">
+      <style>{`
+        @keyframes bolt-flicker {
+          0%, 90%, 100% { opacity: 1; }
+          95%            { opacity: 0.5; }
+        }
+        @keyframes card-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes edge-glow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0); }
+          50%       { box-shadow: 0 0 24px 4px rgba(155,114,255,0.18); }
+        }
+      `}</style>
       <div
         style={{
           minHeight: "100vh",
-          background: "#0d1117",
-          fontFamily: "'Nunito', 'Inter', sans-serif",
+          background: "radial-gradient(ellipse at 30% 0%, rgba(60,20,140,0.28) 0%, transparent 55%), #0a0812",
+          fontFamily: "'Nunito', system-ui, sans-serif",
           color: "#f0f6ff",
-          paddingBottom: "48px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 16px",
         }}
       >
-        {/* ── Top bar ─────────────────────────────────────────────────── */}
+        {/* Nav */}
         <div
           style={{
-            background: "#161b22",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            padding: "0 24px",
-            height: "60px",
+            width: "100%",
+            maxWidth: 480,
             display: "flex",
             alignItems: "center",
-            gap: "16px",
+            marginBottom: 28,
           }}
         >
           <Link
             href="/child"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "14px",
+              fontSize: 14,
               fontWeight: 900,
               color: "#9b72ff",
               textDecoration: "none",
@@ -131,467 +110,230 @@ function DailyChallengeLauncher() {
           >
             ← Home
           </Link>
-          <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
-          <div style={{ fontSize: "18px", fontWeight: 900, color: "#f0f6ff" }}>
-            Daily Challenge ⚡
-          </div>
         </div>
 
-        {/* ── Page content ────────────────────────────────────────────── */}
+        {/* Card */}
         <div
           style={{
-            maxWidth: "860px",
-            margin: "0 auto",
-            padding: "32px 20px 60px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "28px",
+            width: "100%",
+            maxWidth: 480,
+            background: "linear-gradient(160deg, #16102e, #0e0e1e)",
+            border: "2px solid rgba(155,114,255,0.28)",
+            borderRadius: 28,
+            overflow: "hidden",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.55)",
+            animation: "edge-glow 3s ease-in-out infinite",
           }}
         >
-          {/* Eyebrow */}
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                fontSize: "11px",
-                fontWeight: 900,
-                color: "#9b72ff",
-                textTransform: "uppercase",
-                letterSpacing: "2px",
-                marginBottom: "4px",
-              }}
-            >
-              Today&rsquo;s Challenge
-            </div>
-            <div style={{ fontSize: "13px", color: "#8b949e", fontWeight: 700 }}>
-              {todayLabel}
-            </div>
-          </div>
-
-          {/* ── Main challenge card ──────────────────────────────────── */}
+          {/* Header */}
           <div
             style={{
-              width: "100%",
-              maxWidth: "420px",
-              background: "#161b22",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "20px",
-              overflow: "hidden",
-              boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+              padding: "32px 28px 24px",
+              background: "radial-gradient(ellipse at 50% 0%, rgba(155,114,255,0.18) 0%, transparent 65%)",
+              borderBottom: "1px solid rgba(155,114,255,0.14)",
+              textAlign: "center",
             }}
           >
-            {/* Gradient header */}
-            <div
+            <span
               style={{
-                background: gradient,
-                padding: "28px 24px 22px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "10px",
+                fontSize: 72,
+                lineHeight: 1,
+                display: "block",
+                marginBottom: 12,
+                animation: "bolt-flicker 3s ease-in-out infinite",
+                filter: "drop-shadow(0 0 16px rgba(155,114,255,0.5))",
               }}
             >
-              {/* Today badge */}
-              <div
-                style={{
-                  background: "linear-gradient(90deg, #c9a000, #ffd166)",
-                  borderRadius: "20px",
-                  color: "#1a1000",
-                  fontSize: "10px",
-                  fontWeight: 900,
-                  letterSpacing: "0.1em",
-                  padding: "4px 12px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Today&rsquo;s Challenge ⚡
-              </div>
-
-              {/* Date */}
-              <div
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: "rgba(255,255,255,0.55)",
-                }}
-              >
-                {todayLabel}
-              </div>
-
-              {/* Mascot */}
-              <div
-                style={{
-                  fontSize: "64px",
-                  lineHeight: 1,
-                  filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))",
-                }}
-              >
-                {challenge.mascot}
-              </div>
-
-              {/* Quest name */}
-              <div
-                style={{
-                  fontSize: "20px",
-                  fontWeight: 800,
-                  color: "#fff",
-                  textAlign: "center",
-                  lineHeight: 1.25,
-                }}
-              >
-                {challenge.name}
-              </div>
-            </div>
-
-            {/* Card body */}
-            <div
+              ⚡
+            </span>
+            <h1
               style={{
-                padding: "20px 24px 28px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
+                fontSize: 32,
+                fontWeight: 900,
+                color: "#c4a0ff",
+                margin: 0,
+                marginBottom: 8,
+                letterSpacing: "0.03em",
+                textShadow: "0 0 20px rgba(155,114,255,0.4)",
               }}
             >
-              {/* Chips row */}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                {/* Subject chip */}
-                <span
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "20px",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    padding: "5px 12px",
-                    color: "#f0f6ff",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {challenge.subjectEmoji} {challenge.subject}
-                </span>
-
-                {/* Band chip */}
-                <span
-                  style={{
-                    border: `1.5px solid ${bandColor}`,
-                    borderRadius: "20px",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    padding: "5px 12px",
-                    color: bandColor,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {bandLabel}
-                </span>
-              </div>
-
-              {/* XP chip — shown when available or started */}
-              {(status === "available" || status === "started") && (
-                <div>
-                  <span
-                    style={{
-                      background: "rgba(80,232,144,0.12)",
-                      border: "1.5px solid rgba(80,232,144,0.3)",
-                      borderRadius: "20px",
-                      color: "#50e890",
-                      fontSize: "13px",
-                      fontWeight: 800,
-                      padding: "6px 14px",
-                      whiteSpace: "nowrap",
-                      display: "inline-block",
-                    }}
-                  >
-                    +{challenge.xpBonus} {challenge.xpLabel}! ✨
-                  </span>
-                </div>
-              )}
-
-              {/* XP earned — completed */}
-              {status === "completed" && (
-                <div
-                  style={{
-                    background: "rgba(88,232,193,0.12)",
-                    border: "1.5px solid rgba(88,232,193,0.35)",
-                    borderRadius: "10px",
-                    color: "#58e8c1",
-                    fontSize: "15px",
-                    fontWeight: 800,
-                    padding: "10px 16px",
-                    textAlign: "center",
-                  }}
-                >
-                  +{challenge.xpBonus} {challenge.xpLabel} earned! ✨
-                </div>
-              )}
-
-              {/* ── State-based CTA area ── */}
-
-              {/* AVAILABLE */}
-              {status === "available" && (
-                <>
-                  <Link
-                    href="/play?sessionMode=daily-challenge"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "14px 24px",
-                      borderRadius: "14px",
-                      background: "#50e890",
-                      color: "#051a0a",
-                      fontSize: "17px",
-                      fontWeight: 900,
-                      textDecoration: "none",
-                      minHeight: "52px",
-                      width: "100%",
-                      textAlign: "center",
-                    }}
-                  >
-                    Accept Challenge! 🚀
-                  </Link>
-                  <Link
-                    href="/child"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#8b949e",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      minHeight: "44px",
-                    }}
-                  >
-                    Explore freely instead →
-                  </Link>
-                </>
-              )}
-
-              {/* STARTED */}
-              {status === "started" && (
-                <div
-                  style={{
-                    background: "rgba(255,209,102,0.1)",
-                    border: "2px solid #ffd166",
-                    borderRadius: "12px",
-                    color: "#ffd166",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    padding: "10px 14px",
-                    textAlign: "center",
-                    animation: "pulseRing 2s ease infinite",
-                  }}
-                >
-                  🔥 Quest in progress — tap to continue!
-                </div>
-              )}
-              {status === "started" && (
-                <Link
-                  href="/play?sessionMode=daily-challenge"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "14px 24px",
-                    borderRadius: "14px",
-                    background: "#50e890",
-                    color: "#051a0a",
-                    fontSize: "17px",
-                    fontWeight: 900,
-                    textDecoration: "none",
-                    minHeight: "52px",
-                    width: "100%",
-                    textAlign: "center",
-                  }}
-                >
-                  Continue Quest 🔥
-                </Link>
-              )}
-
-              {/* COMPLETED */}
-              {status === "completed" && (
-                <>
-                  <div
-                    style={{
-                      fontSize: "17px",
-                      fontWeight: 900,
-                      color: "#f0f6ff",
-                      textAlign: "center",
-                    }}
-                  >
-                    CHALLENGE COMPLETE! 🏆
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "#f0f6ff",
-                      textAlign: "center",
-                    }}
-                  >
-                    See you tomorrow! 🌟
-                  </div>
-                </>
-              )}
-
-              {/* SKIPPED */}
-              {status === "skipped" && (
-                <>
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      borderRadius: "12px",
-                      color: "#8b949e",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      minHeight: "48px",
-                      padding: "10px 20px",
-                      textAlign: "center",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    New challenge unlocks at midnight! 🌙
-                  </div>
-                  <div
-                    style={{
-                      color: "#8b949e",
-                      fontSize: "12px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Challenges reset every day — a fresh start is always coming!
-                  </div>
-                </>
-              )}
-
-              {/* QUIET HOURS */}
-              {status === "quiet" && (
-                <>
-                  <div
-                    style={{
-                      fontSize: "17px",
-                      fontWeight: 900,
-                      color: "#f0f6ff",
-                      textAlign: "center",
-                    }}
-                  >
-                    Good morning! 🌅
-                  </div>
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      borderRadius: "12px",
-                      color: "#8b949e",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      minHeight: "48px",
-                      padding: "10px 20px",
-                      textAlign: "center",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    Available after 7 am 🌅
-                  </div>
-                  <div
-                    style={{
-                      color: "#8b949e",
-                      fontSize: "12px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Your challenge is ready and waiting — no rush!
-                  </div>
-                </>
-              )}
-
-              {/* Footer hint (available / quiet) */}
-              {(status === "available" || status === "quiet") && (
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#8b949e",
-                    textAlign: "center",
-                  }}
-                >
-                  New challenge tomorrow ✨
-                </div>
-              )}
-            </div>
+              Challenge Mode
+            </h1>
+            <p
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "#9b8ec4",
+                margin: 0,
+                lineHeight: 1.45,
+              }}
+            >
+              Pick your difficulty and take control
+              <br />
+              of your learning!
+            </p>
           </div>
 
-          {/* ── Dev state switcher (prototype only) ─────────────────── */}
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "420px",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: "14px",
-              padding: "16px 20px",
-            }}
-          >
+          {/* Difficulty selector */}
+          <div style={{ padding: "24px 28px 8px" }}>
             <div
               style={{
-                fontSize: "10px",
+                fontSize: 11,
                 fontWeight: 900,
-                color: "#8b949e",
+                color: "rgba(155,114,255,0.5)",
                 textTransform: "uppercase",
-                letterSpacing: "1.5px",
-                marginBottom: "12px",
+                letterSpacing: "0.12em",
+                marginBottom: 14,
               }}
             >
-              Dev — Status Override
+              Choose Your Level
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {(["available", "started", "completed", "skipped", "quiet"] as ChallengeStatus[]).map(
-                (s) => (
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {DIFFICULTIES.map((d) => {
+                const isSelected = selected === d.id;
+                return (
                   <button
-                    key={s}
+                    key={d.id}
                     type="button"
-                    onClick={() => setStatus(s)}
+                    onClick={() => setSelected(d.id)}
                     style={{
-                      background:
-                        status === s ? "rgba(80,232,144,0.12)" : "rgba(255,255,255,0.05)",
-                      border: `1.5px solid ${status === s ? "#50e890" : "rgba(255,255,255,0.1)"}`,
-                      borderRadius: "20px",
-                      color: status === s ? "#50e890" : "#8b949e",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      width: "100%",
+                      padding: "14px 18px",
+                      background: isSelected ? d.accentBg : "rgba(255,255,255,0.03)",
+                      border: `2px solid ${isSelected ? d.accentBorder : "rgba(255,255,255,0.07)"}`,
+                      borderRadius: 16,
                       cursor: "pointer",
-                      fontFamily: "inherit",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      padding: "5px 12px",
+                      fontFamily: "'Nunito', system-ui, sans-serif",
+                      textAlign: "left",
+                      transition: "border-color 0.15s, background 0.15s",
                     }}
                   >
-                    {s}
+                    <span
+                      style={{
+                        fontSize: 32,
+                        lineHeight: 1,
+                        flexShrink: 0,
+                        filter: isSelected
+                          ? `drop-shadow(0 0 8px ${d.accent})`
+                          : undefined,
+                      }}
+                    >
+                      {d.emoji}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 17,
+                          fontWeight: 900,
+                          color: isSelected ? d.accentText : "#c4b0ff",
+                          marginBottom: 2,
+                        }}
+                      >
+                        {d.label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: isSelected ? d.accentText : "#7a6da0",
+                          opacity: isSelected ? 0.85 : 1,
+                        }}
+                      >
+                        {d.desc}
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: d.accent,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          color: "#0a0812",
+                          fontWeight: 900,
+                          flexShrink: 0,
+                        }}
+                      >
+                        ✓
+                      </div>
+                    )}
                   </button>
-                )
-              )}
+                );
+              })}
             </div>
+
+            {/* Topic hint */}
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#5a4a80",
+                textAlign: "center",
+                marginTop: 16,
+                marginBottom: 0,
+              }}
+            >
+              We&rsquo;ll find questions matching your level
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div style={{ padding: "16px 28px 28px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <Link
+              href={`/play?sessionMode=self-directed-challenge&difficulty=${selected}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                width: "100%",
+                minHeight: 60,
+                background: `linear-gradient(135deg, ${chosen.accent}, ${chosen.accent}cc)`,
+                color: "#0a0812",
+                border: "none",
+                borderRadius: 18,
+                fontFamily: "'Nunito', system-ui, sans-serif",
+                fontSize: 19,
+                fontWeight: 900,
+                cursor: "pointer",
+                textDecoration: "none",
+                textAlign: "center",
+                letterSpacing: "0.02em",
+                boxShadow: `0 8px 28px ${chosen.accent}44`,
+              }}
+            >
+              Accept Challenge →
+            </Link>
+            <Link
+              href="/child"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+                minHeight: 44,
+                background: "none",
+                border: "none",
+                fontFamily: "'Nunito', system-ui, sans-serif",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "rgba(155,114,255,0.4)",
+                cursor: "pointer",
+                textDecoration: "none",
+              }}
+            >
+              Back to home
+            </Link>
           </div>
         </div>
-
-        {/* Animations */}
-        <style>{`
-          @keyframes pulseRing {
-            0%   { box-shadow: 0 0 0 0   rgba(255,209,102,0.5); }
-            70%  { box-shadow: 0 0 0 10px rgba(255,209,102,0); }
-            100% { box-shadow: 0 0 0 0   rgba(255,209,102,0); }
-          }
-        `}</style>
       </div>
     </AppFrame>
   );
@@ -606,6 +348,7 @@ type PinGateState =
   | { status: "authed" };
 
 export default function ChildChallengePage() {
+  const router = useRouter();
   const [pin, setPin] = useState("");
   const [username, setUsername] = useState("");
   const [gateState, setGateState] = useState<PinGateState>({ status: "idle" });
@@ -622,7 +365,7 @@ export default function ChildChallengePage() {
     }
     void checkSession();
     return () => { cancelled = true; };
-  }, []);
+  }, [router]);
 
   function appendDigit(d: string) {
     setPin((cur) => (cur.length >= 4 ? cur : cur + d));
@@ -656,7 +399,7 @@ export default function ChildChallengePage() {
     }
   }
 
-  if (gateState.status === "authed") return <DailyChallengeLauncher />;
+  if (gateState.status === "authed") return <ChallengeModeSetup />;
 
   const ready = !!username && pin.length === 4;
 
@@ -665,7 +408,7 @@ export default function ChildChallengePage() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#0d1117",
+          background: "radial-gradient(ellipse at 30% 0%, rgba(60,20,140,0.28) 0%, transparent 55%), #0a0812",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -688,7 +431,7 @@ export default function ChildChallengePage() {
         >
           <div style={{ fontSize: "52px", marginBottom: "12px" }}>⚡</div>
           <div style={{ fontSize: "22px", fontWeight: 900, color: "#f0f6ff", marginBottom: "6px" }}>
-            Daily Challenge
+            Challenge Mode
           </div>
           <div
             style={{
@@ -698,7 +441,7 @@ export default function ChildChallengePage() {
               marginBottom: "24px",
             }}
           >
-            Enter your username and PIN to accept today&rsquo;s challenge
+            Enter your username and PIN to start
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -838,8 +581,8 @@ export default function ChildChallengePage() {
                 padding: "14px",
                 borderRadius: "14px",
                 border: "none",
-                background: ready ? "#50e890" : "rgba(255,255,255,0.06)",
-                color: ready ? "#051a0a" : "#8b949e",
+                background: ready ? "#9b72ff" : "rgba(255,255,255,0.06)",
+                color: ready ? "#fff" : "#8b949e",
                 fontFamily: "inherit",
                 fontSize: "16px",
                 fontWeight: 900,
@@ -847,7 +590,7 @@ export default function ChildChallengePage() {
                 transition: "background 0.2s",
               }}
             >
-              {gateState.status === "submitting" ? "Checking..." : "See Today's Challenge ⚡"}
+              {gateState.status === "submitting" ? "Checking..." : "Enter Challenge Mode ⚡"}
             </button>
           </form>
 

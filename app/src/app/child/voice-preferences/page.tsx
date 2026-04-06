@@ -2,26 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
-type VoiceId   = "owl" | "fox" | "dragon" | "bear";
-type SpeedId   = "slow" | "normal" | "fast";
-type VolumeId  = "low" | "medium" | "high";
-
-interface VoiceOption {
-  id: VoiceId;
-  name: string;
-  emoji: string;
-  desc: string;
-  avatarBg: string;
-}
-
-const VOICES: VoiceOption[] = [
-  { id: "owl",    name: "Wise Owl",      emoji: "🦉", desc: "Calm and clear · great for learning",  avatarBg: "linear-gradient(135deg,#1a0820,#3b1060)" },
-  { id: "fox",    name: "Friendly Fox",  emoji: "🦊", desc: "Warm and cheerful · feels like a friend", avatarBg: "linear-gradient(135deg,#2a1000,#5a2800)" },
-  { id: "dragon", name: "Magic Dragon",  emoji: "🐉", desc: "Bold and magical · full of adventure",  avatarBg: "linear-gradient(135deg,#002a1a,#005a38)" },
-  { id: "bear",   name: "Cozy Bear",     emoji: "🐻", desc: "Gentle and soft · easy to listen to",   avatarBg: "linear-gradient(135deg,#1e1000,#3c2800)" },
-];
+type SpeedId = "slow" | "normal" | "fast";
 
 const SPEEDS: { id: SpeedId; emoji: string; label: string; hint: string }[] = [
   { id: "slow",   emoji: "🐢", label: "Slow",   hint: "Great for new readers!" },
@@ -29,123 +13,159 @@ const SPEEDS: { id: SpeedId; emoji: string; label: string; hint: string }[] = [
   { id: "fast",   emoji: "⚡", label: "Fast",   hint: "Speedy learner!" },
 ];
 
-const VOLUMES: { id: VolumeId; emoji: string; label: string }[] = [
-  { id: "low",    emoji: "🔈", label: "Low" },
-  { id: "medium", emoji: "🔉", label: "Medium" },
-  { id: "high",   emoji: "🔊", label: "High" },
-];
+const C = {
+  bg:      "#100b2e",
+  surface: "#161b22",
+  gold:    "#ffd166",
+  violet:  "#9b72ff",
+  mint:    "#22c55e",
+  border:  "rgba(155,114,255,0.22)",
+  text:    "#f0eaff",
+  muted:   "#9b8ec4",
+};
 
-const STORAGE_KEY = "wq_voice_prefs";
+const FONT: React.CSSProperties = { fontFamily: "'Nunito', system-ui, sans-serif" };
 
-interface VoicePrefs {
-  voice: VoiceId;
-  speed: SpeedId;
-  volume: VolumeId;
-  readAloud: boolean;
+function Toggle({ checked, onChange, id, accentColor = C.gold }: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  id: string;
+  accentColor?: string;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      id={id}
+      onClick={() => onChange(!checked)}
+      style={{
+        ...FONT,
+        width: 60,
+        height: 34,
+        minHeight: 48,
+        borderRadius: 17,
+        border: `2px solid ${checked ? accentColor : "rgba(155,114,255,0.25)"}`,
+        background: checked ? accentColor : "#13102a",
+        position: "relative",
+        cursor: "pointer",
+        flexShrink: 0,
+        transition: "background 0.2s, border-color 0.2s",
+        padding: 0,
+        alignSelf: "center",
+      }}
+    >
+      <span style={{
+        position: "absolute",
+        top: "50%",
+        transform: "translateY(-50%)",
+        left: checked ? 30 : 4,
+        width: 24,
+        height: 24,
+        borderRadius: "50%",
+        background: checked ? "#fff" : C.muted,
+        transition: "left 0.2s",
+        display: "block",
+      }} />
+    </button>
+  );
 }
 
-function loadPrefs(): VoicePrefs {
-  if (typeof window === "undefined") {
-    return { voice: "owl", speed: "normal", volume: "medium", readAloud: true };
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as VoicePrefs;
-  } catch {
-    // ignore
-  }
-  return { voice: "owl", speed: "normal", volume: "medium", readAloud: true };
+function SettingRow({ id, emoji, label, hint, checked, onChange }: {
+  id: string;
+  emoji: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      padding: "18px 20px",
+      background: C.surface,
+      borderRadius: 18,
+      border: `1.5px solid ${checked ? C.gold + "55" : C.border}`,
+      minHeight: 72,
+    }}>
+      <span style={{ fontSize: "1.8rem", flexShrink: 0 }}>{emoji}</span>
+      <label htmlFor={id} style={{ flex: 1, cursor: "pointer" }}>
+        <div style={{ ...FONT, fontSize: "1rem", fontWeight: 900, color: C.text, marginBottom: 2 }}>{label}</div>
+        <div style={{ ...FONT, fontSize: "0.82rem", fontWeight: 700, color: C.muted, lineHeight: 1.4 }}>{hint}</div>
+      </label>
+      <Toggle id={id} checked={checked} onChange={onChange} accentColor={C.gold} />
+    </div>
+  );
 }
 
 export default function VoicePreferencesPage() {
   const router = useRouter();
 
-  const [voice,     setVoice]     = useState<VoiceId>("owl");
-  const [speed,     setSpeed]     = useState<SpeedId>("normal");
-  const [volume,    setVolume]    = useState<VolumeId>("medium");
-  const [readAloud, setReadAloud] = useState(true);
-  const [saved,     setSaved]     = useState(false);
+  const [speed,  setSpeed]  = useState<SpeedId>("normal");
+  const [sounds, setSounds] = useState(true);
+  const [tts,    setTts]    = useState(true);
+  const [saved,  setSaved]  = useState(false);
 
-  // Load from localStorage on mount
+  // Auth check
   useEffect(() => {
-    const prefs = loadPrefs();
-    setVoice(prefs.voice);
-    setSpeed(prefs.speed);
-    setVolume(prefs.volume);
-    setReadAloud(prefs.readAloud);
+    if (!document.cookie.includes("wonderquest-child-session")) {
+      router.replace("/child");
+    }
+  }, [router]);
+
+  // Load saved preferences
+  useEffect(() => {
+    try {
+      const savedSpeed = localStorage.getItem("wq_voice_speed") as SpeedId | null;
+      const savedSounds = localStorage.getItem("wq_sounds");
+      const savedTts = localStorage.getItem("wq_tts");
+      if (savedSpeed && (["slow", "normal", "fast"] as string[]).includes(savedSpeed)) {
+        setSpeed(savedSpeed);
+      }
+      if (savedSounds !== null) setSounds(savedSounds === "true");
+      if (savedTts !== null) setTts(savedTts === "true");
+    } catch {
+      // ignore
+    }
   }, []);
 
   function handleSave() {
-    const prefs: VoicePrefs = { voice, speed, volume, readAloud };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    try {
+      localStorage.setItem("wq_voice_speed", speed);
+      localStorage.setItem("wq_sounds", String(sounds));
+      localStorage.setItem("wq_tts", String(tts));
+    } catch {
+      // ignore
+    }
     setSaved(true);
-    setTimeout(() => router.push("/child"), 900);
+    setTimeout(() => setSaved(false), 2000);
   }
-
-  // ── Theme tokens ────────────────────────────────────────────────────────────
-  const BASE    = "#100b2e";
-  const SURFACE = "#161b22";
-  const VIOLET  = "#9b72ff";
-  const MINT    = "#22c55e";
-  const BORDER  = "rgba(155,114,255,0.22)";
-  const TEXT     = "#f0eaff";
-  const MUTED    = "#9b8ec4";
-
-  // ── Sub-components ──────────────────────────────────────────────────────────
-
-  const SectionHead = ({ children }: { children: React.ReactNode }) => (
-    <div style={{
-      fontSize: 11,
-      fontWeight: 900,
-      color: MUTED,
-      textTransform: "uppercase",
-      letterSpacing: "0.1em",
-      marginBottom: 10,
-    }}>{children}</div>
-  );
 
   const pillBtn = (active: boolean): React.CSSProperties => ({
     flex: 1,
-    padding: "12px 8px",
-    borderRadius: 14,
-    border: `2px solid ${active ? VIOLET : "rgba(155,114,255,0.18)"}`,
-    background: active ? "rgba(155,114,255,0.18)" : SURFACE,
+    padding: "16px 8px",
+    minHeight: 80,
+    borderRadius: 16,
+    border: `2px solid ${active ? C.gold : "rgba(155,114,255,0.18)"}`,
+    background: active ? "rgba(255,209,102,0.14)" : C.surface,
     cursor: "pointer",
     textAlign: "center",
     transition: "border-color 0.15s, background 0.15s",
   });
 
-  const toggleTrack = (on: boolean): React.CSSProperties => ({
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    background: on ? VIOLET : "rgba(155,114,255,0.2)",
-    position: "relative",
-    cursor: "pointer",
-    flexShrink: 0,
-    transition: "background 0.2s",
-  });
-
-  const toggleKnob = (on: boolean): React.CSSProperties => ({
-    position: "absolute",
-    top: 4,
-    left: on ? 24 : 4,
-    width: 20,
-    height: 20,
-    borderRadius: "50%",
-    background: "#fff",
-    transition: "left 0.18s",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-  });
-
   return (
     <AppFrame audience="kid">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+      `}</style>
+
       <div style={{
-        background: BASE,
+        ...FONT,
+        background: C.bg,
         minHeight: "100vh",
-        fontFamily: "'Nunito', system-ui, sans-serif",
-        color: TEXT,
-        padding: "28px 20px 40px",
+        color: C.text,
+        padding: "28px 20px 60px",
         maxWidth: 480,
         margin: "0 auto",
         display: "flex",
@@ -153,196 +173,108 @@ export default function VoicePreferencesPage() {
         gap: 28,
       }}>
 
+        {/* Back link */}
+        <div>
+          <Link href="/child/hub" style={{
+            color: C.gold,
+            fontWeight: 900,
+            fontSize: 14,
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            minHeight: 48,
+          }}>
+            ← Back to Hub
+          </Link>
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 8 }}>🎙️</div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: TEXT, margin: 0, lineHeight: 1.2 }}>
-            Voice Settings
+          <div style={{ fontSize: 50, lineHeight: 1, marginBottom: 8 }}>🎙️</div>
+          <h1 style={{ ...FONT, fontSize: 26, fontWeight: 900, color: C.text, margin: 0, lineHeight: 1.2 }}>
+            How do you like to hear things?
           </h1>
-          <p style={{ fontSize: 14, color: MUTED, marginTop: 6 }}>
-            Pick how your guide sounds when helping you learn!
+          <p style={{ ...FONT, fontSize: 14, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+            Set how WonderQuest talks to you!
           </p>
         </div>
 
-        {/* Voice Coach Selection */}
+        {/* Voice Speed */}
         <div>
-          <SectionHead>Choose your voice guide</SectionHead>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {VOICES.map((v) => {
-              const isSelected = voice === v.id;
-              return (
-                <div
-                  key={v.id}
-                  onClick={() => setVoice(v.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    padding: "14px 16px",
-                    borderRadius: 16,
-                    border: `2px solid ${isSelected ? VIOLET : "rgba(155,114,255,0.18)"}`,
-                    background: isSelected ? "rgba(155,114,255,0.14)" : SURFACE,
-                    cursor: "pointer",
-                    transition: "border-color 0.15s, background 0.15s",
-                  }}
-                >
-                  <div style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: v.avatarBg,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 26,
-                    flexShrink: 0,
-                    border: isSelected ? `2px solid ${VIOLET}` : "2px solid transparent",
-                  }}>
-                    {v.emoji}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? "#d4bcff" : TEXT }}>
-                      {v.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{v.desc}</div>
-                  </div>
-                  <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    border: `2px solid ${isSelected ? VIOLET : "rgba(155,114,255,0.3)"}`,
-                    background: isSelected ? VIOLET : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    color: "#fff",
-                    flexShrink: 0,
-                  }}>
-                    {isSelected ? "✓" : ""}
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{
+            ...FONT,
+            fontSize: 11, fontWeight: 900, color: C.muted,
+            textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12,
+          }}>
+            How fast should I talk?
           </div>
-        </div>
-
-        {/* Speed Control */}
-        <div>
-          <SectionHead>How fast should I talk?</SectionHead>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 10 }}>
             {SPEEDS.map((s) => {
               const isActive = speed === s.id;
               return (
-                <div key={s.id} onClick={() => setSpeed(s.id)} style={pillBtn(isActive)}>
-                  <div style={{ fontSize: 26, marginBottom: 4 }}>{s.emoji}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: isActive ? "#d4bcff" : TEXT }}>{s.label}</div>
+                <div key={s.id} onClick={() => setSpeed(s.id)} role="button" tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setSpeed(s.id)}
+                  style={pillBtn(isActive)}>
+                  <div style={{ fontSize: 30, marginBottom: 4 }}>{s.emoji}</div>
+                  <div style={{ ...FONT, fontSize: 14, fontWeight: 900, color: isActive ? C.gold : C.text }}>{s.label}</div>
                 </div>
               );
             })}
           </div>
-          <div style={{ fontSize: 12, color: VIOLET, fontWeight: 700, textAlign: "center", marginTop: 8 }}>
+          <div style={{ ...FONT, fontSize: 12, color: C.gold, fontWeight: 700, textAlign: "center", marginTop: 8 }}>
             {SPEEDS.find((s) => s.id === speed)?.hint}
           </div>
         </div>
 
-        {/* Volume */}
-        <div>
-          <SectionHead>How loud?</SectionHead>
-          <div style={{ display: "flex", gap: 8 }}>
-            {VOLUMES.map((v) => {
-              const isActive = volume === v.id;
-              return (
-                <div key={v.id} onClick={() => setVolume(v.id)} style={pillBtn(isActive)}>
-                  <div style={{ fontSize: 26, marginBottom: 4 }}>{v.emoji}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: isActive ? "#d4bcff" : TEXT }}>{v.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Sound effects toggle */}
+        <SettingRow
+          id="sounds"
+          emoji="🎵"
+          label="Sound Effects"
+          hint="Fun sounds when you get answers right or earn badges"
+          checked={sounds}
+          onChange={setSounds}
+        />
 
         {/* Read aloud toggle */}
-        <div style={{
-          background: SURFACE,
-          borderRadius: 16,
-          padding: "16px 18px",
-          border: `1px solid ${BORDER}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-        }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: TEXT }}>
-              📖 Read questions aloud
-            </div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>
-              Your guide will read each question to you
-            </div>
-          </div>
-          <div onClick={() => setReadAloud(!readAloud)} style={toggleTrack(readAloud)}>
-            <div style={toggleKnob(readAloud)} />
-          </div>
-        </div>
+        <SettingRow
+          id="tts"
+          emoji="📖"
+          label="Read questions out loud for me"
+          hint="WonderQuest will speak each question so you can hear it"
+          checked={tts}
+          onChange={setTts}
+        />
 
-        {/* Current selection summary */}
-        <div style={{
-          background: "rgba(155,114,255,0.1)",
-          borderRadius: 14,
-          padding: "14px 18px",
-          border: `1px solid rgba(155,114,255,0.25)`,
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, marginBottom: 6 }}>
-            Your picks right now:
-          </div>
-          <div style={{ fontSize: 14, color: TEXT, lineHeight: 1.7 }}>
-            <span style={{ fontWeight: 800 }}>{VOICES.find((v) => v.id === voice)?.emoji} {VOICES.find((v) => v.id === voice)?.name}</span>
-            {" · "}
-            <span>{SPEEDS.find((s) => s.id === speed)?.emoji} {SPEEDS.find((s) => s.id === speed)?.label} speed</span>
-            {" · "}
-            <span>{VOLUMES.find((v) => v.id === volume)?.emoji} {volume} volume</span>
-            {readAloud ? (
-              <span style={{ display: "block", color: MINT, fontWeight: 700, marginTop: 2 }}>
-                ✓ Questions will be read aloud
-              </span>
-            ) : (
-              <span style={{ display: "block", color: MUTED, marginTop: 2 }}>
-                Reading aloud is off
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Save / All Set button */}
+        {/* Save button */}
         <button
           onClick={handleSave}
-          disabled={saved}
           style={{
+            ...FONT,
             width: "100%",
-            padding: "18px 0",
-            borderRadius: 18,
+            minHeight: 64,
+            borderRadius: 20,
             border: "none",
             background: saved
-              ? `linear-gradient(135deg,${MINT},#16a34a)`
-              : `linear-gradient(135deg,${VIOLET},#7c4dff)`,
-            color: "#fff",
+              ? `linear-gradient(135deg,${C.mint},#16a34a)`
+              : `linear-gradient(135deg,${C.gold},#e09000)`,
+            color: saved ? "#fff" : "#1a0800",
             fontSize: 18,
             fontWeight: 900,
-            fontFamily: "'Nunito', system-ui, sans-serif",
-            cursor: saved ? "default" : "pointer",
-            letterSpacing: "0.01em",
+            cursor: "pointer",
             boxShadow: saved
-              ? "0 4px 20px rgba(34,197,94,0.35)"
-              : "0 4px 20px rgba(155,114,255,0.4)",
+              ? `0 4px 20px rgba(34,197,94,0.35)`
+              : `0 4px 20px rgba(255,209,102,0.35)`,
             transition: "background 0.2s, box-shadow 0.2s",
+            letterSpacing: "0.01em",
           }}
         >
-          {saved ? "✓ All set! Taking you back..." : "All set! Save my picks 🎉"}
+          {saved ? "Saved! ✓" : "Save my picks 🎉"}
         </button>
 
-        <p style={{ textAlign: "center", fontSize: 12, color: MUTED, margin: 0 }}>
-          You can always come back and change these later!
+        <p style={{ ...FONT, textAlign: "center", fontSize: 12, color: C.muted, margin: 0 }}>
+          You can always come back and change these!
         </p>
       </div>
     </AppFrame>

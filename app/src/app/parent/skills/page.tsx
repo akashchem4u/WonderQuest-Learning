@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,26 +17,35 @@ type SkillProgress = {
   lastPracticed: string | null;
 };
 
+type Tab = "all" | "mastered" | "inprogress";
+type SortKey = "mastery-desc" | "mastery-asc" | "name" | "last-practiced";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function skillStatus(pct: number, total: number): "Strong" | "Building" | "Just started" {
-  if (total <= 2 && pct < 50) return "Just started";
-  if (pct >= 70) return "Strong";
-  return "Building";
+function skillStatus(pct: number, total: number): "Mastered" | "Building" | "Just starting" {
+  if (pct >= 70) return "Mastered";
+  if (total === 0) return "Just starting";
+  if (pct >= 40) return "Building";
+  return "Just starting";
 }
 
-function statusStyle(status: "Strong" | "Building" | "Just started"): React.CSSProperties {
-  if (status === "Strong")
-    return { background: "rgba(80,232,144,0.14)", color: "#50e890", border: "1px solid rgba(80,232,144,0.25)" };
+function statusStyle(status: "Mastered" | "Building" | "Just starting"): React.CSSProperties {
+  if (status === "Mastered")
+    return { background: "rgba(80,232,144,0.14)", color: "#50e890", border: "1px solid rgba(80,232,144,0.30)" };
   if (status === "Building")
-    return { background: "rgba(255,209,102,0.14)", color: "#ffd166", border: "1px solid rgba(255,209,102,0.25)" };
-  return { background: "rgba(155,114,255,0.14)", color: "#c4a8ff", border: "1px solid rgba(155,114,255,0.25)" };
+    return { background: "rgba(255,209,102,0.14)", color: "#ffd166", border: "1px solid rgba(255,209,102,0.30)" };
+  return { background: "rgba(155,114,255,0.12)", color: "#c4a8ff", border: "1px solid rgba(155,114,255,0.25)" };
 }
 
 function barColor(pct: number): string {
-  if (pct >= 70) return "#9b72ff";
+  if (pct >= 70) return "#50e890";
   if (pct >= 40) return "#ffd166";
-  return "rgba(155,114,255,0.35)";
+  return "rgba(155,114,255,0.50)";
+}
+
+function lastPracticedMs(iso: string | null): number {
+  if (!iso) return 0;
+  return new Date(iso).getTime();
 }
 
 function subjectIcon(code: string): string {
@@ -75,6 +84,7 @@ function formatLastPracticed(iso: string | null): string {
 function SkillCard({ skill }: { skill: SkillProgress }) {
   const status = skillStatus(skill.masteryPct, skill.totalCount);
   const color = barColor(skill.masteryPct);
+  const mastered = status === "Mastered";
 
   return (
     <Link
@@ -84,7 +94,9 @@ function SkillCard({ skill }: { skill: SkillProgress }) {
       <div
         style={{
           background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(155,114,255,0.18)",
+          border: mastered
+            ? "1px solid rgba(80,232,144,0.22)"
+            : "1px solid rgba(155,114,255,0.18)",
           borderRadius: "16px",
           padding: "18px 18px 16px",
           cursor: "pointer",
@@ -93,17 +105,23 @@ function SkillCard({ skill }: { skill: SkillProgress }) {
           overflow: "hidden",
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(155,114,255,0.45)";
-          (e.currentTarget as HTMLDivElement).style.background = "rgba(155,114,255,0.07)";
+          (e.currentTarget as HTMLDivElement).style.borderColor = mastered
+            ? "rgba(80,232,144,0.45)"
+            : "rgba(155,114,255,0.45)";
+          (e.currentTarget as HTMLDivElement).style.background = mastered
+            ? "rgba(80,232,144,0.05)"
+            : "rgba(155,114,255,0.07)";
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(155,114,255,0.18)";
+          (e.currentTarget as HTMLDivElement).style.borderColor = mastered
+            ? "rgba(80,232,144,0.22)"
+            : "rgba(155,114,255,0.18)";
           (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)";
         }}
       >
-        {/* Subject icon + name */}
+        {/* Subject icon + name + mastery badge */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: "12px" }}>
-          <span style={{ fontSize: "1.4rem", lineHeight: 1, flexShrink: 0 }}>
+          <span style={{ fontSize: "1.3rem", lineHeight: 1, flexShrink: 0 }}>
             {subjectIcon(skill.subjectCode)}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -113,15 +131,23 @@ function SkillCard({ skill }: { skill: SkillProgress }) {
               color: "#f0f6ff",
               lineHeight: 1.3,
               marginBottom: "3px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
             }}>
-              {skill.skillName}
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {skill.skillName}
+              </span>
+              {mastered && (
+                <span title="Mastered" style={{ fontSize: "0.75rem", color: "#50e890", flexShrink: 0, fontWeight: 900 }}>✓</span>
+              )}
             </div>
             <div style={{ fontSize: "0.70rem", color: "rgba(255,255,255,0.38)", fontWeight: 500 }}>
               {subjectLabel(skill.subjectCode)}
             </div>
           </div>
           <span style={{
-            fontSize: "0.65rem",
+            fontSize: "0.63rem",
             fontWeight: 700,
             padding: "3px 8px",
             borderRadius: "20px",
@@ -135,7 +161,7 @@ function SkillCard({ skill }: { skill: SkillProgress }) {
         {/* Mastery bar */}
         <div style={{ marginBottom: "10px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-            <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.38)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <span style={{ fontSize: "0.67rem", color: "rgba(255,255,255,0.38)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Mastery
             </span>
             <span style={{ fontSize: "0.80rem", fontWeight: 800, color }}>
@@ -158,17 +184,13 @@ function SkillCard({ skill }: { skill: SkillProgress }) {
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.30)" }}>
-            {formatLastPracticed(skill.lastPracticed)}
+        {/* Stats row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: "0.67rem", color: "rgba(255,255,255,0.30)" }}>
+            {skill.correctCount} correct / {skill.totalCount} attempts
           </span>
-          <span style={{ fontSize: "0.68rem", color: "rgba(155,114,255,0.7)", fontWeight: 600 }}>
-            {skill.totalCount} questions →
+          <span style={{ fontSize: "0.67rem", color: "rgba(255,255,255,0.28)" }}>
+            {formatLastPracticed(skill.lastPracticed)}
           </span>
         </div>
       </div>
@@ -178,7 +200,19 @@ function SkillCard({ skill }: { skill: SkillProgress }) {
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function EmptyState() {
+function EmptyState({ filtered }: { filtered: boolean }) {
+  if (filtered) {
+    return (
+      <div style={{
+        textAlign: "center",
+        padding: "60px 0",
+        color: "rgba(255,255,255,0.38)",
+        fontSize: "0.88rem",
+      }}>
+        No skills match your search.
+      </div>
+    );
+  }
   return (
     <div style={{
       display: "flex",
@@ -194,8 +228,8 @@ function EmptyState() {
       <div style={{ fontSize: "1rem", fontWeight: 700, color: "rgba(255,255,255,0.55)" }}>
         No skills practiced yet
       </div>
-      <div style={{ fontSize: "0.82rem", maxWidth: 280 }}>
-        Once your child completes sessions, their skill progress will appear here.
+      <div style={{ fontSize: "0.82rem", maxWidth: 300 }}>
+        Play a few sessions and skill progress will appear here!
       </div>
       <Link href="/child" style={{
         marginTop: "8px",

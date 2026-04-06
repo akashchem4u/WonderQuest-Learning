@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
   base: "#100b2e",
   violet: "#9b72ff",
-  mint: "#58e8c1",
+  mint: "#22c55e",
+  mintSoft: "#58e8c1",
   gold: "#ffd166",
   coral: "#ff7b6b",
   text: "#f0f6ff",
@@ -485,8 +487,83 @@ function FaqItem({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// ─── How it works steps ───────────────────────────────────────────────────────
+
+const HOW_IT_WORKS_STEPS = [
+  {
+    num: "1",
+    icon: "🎮",
+    title: "Child plays quests",
+    body: "Your child answers curriculum-aligned questions through adventures and mini-games. Each session is capped for focus — quality over quantity.",
+  },
+  {
+    num: "2",
+    icon: "🧠",
+    title: "AI adapts to their level",
+    body: "After each answer, WonderQuest's adaptive engine adjusts difficulty in real time — harder when they're cruising, gentler when they're struggling.",
+  },
+  {
+    num: "3",
+    icon: "📊",
+    title: "You see real progress",
+    body: "Your parent dashboard tracks mastery per skill across sessions, so you see genuine trends — not just one lucky or unlucky day.",
+  },
+  {
+    num: "4",
+    icon: "🏫",
+    title: "Teachers get insights",
+    body: "Linked teachers receive anonymised class-level signals — which skills need reinforcement — without seeing individual child scores.",
+  },
+];
+
+function normaliseBandCode(raw: string | null): string | null {
+  if (!raw) return null;
+  const upper = raw.toUpperCase();
+  if (upper === "P0") return "PREK";
+  if (upper === "P1") return "K1";
+  if (upper === "P2") return "G23";
+  if (upper === "P3") return "G45";
+  return upper;
+}
+
 export default function ParentBenchmarksPage() {
+  const router = useRouter();
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
+  const [childBand, setChildBand] = useState<string | null>(null);
+  const [childName, setChildName] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/parent/session")
+      .then((res) => {
+        if (res.status === 401) {
+          router.replace("/parent/login");
+          return null;
+        }
+        return res.json();
+      })
+      .then((data: Record<string, unknown> | null) => {
+        if (!data) return;
+        const childObj = data?.child as Record<string, unknown> | undefined;
+        const dashObj = data?.childDashboard as Record<string, unknown> | undefined;
+        setChildBand(
+          (childObj?.launchBandCode as string | undefined) ??
+            (dashObj?.launchBandCode as string | undefined) ??
+            null,
+        );
+        setChildName(
+          (childObj?.displayName as string | undefined) ??
+            (dashObj?.displayName as string | undefined) ??
+            null,
+        );
+      })
+      .catch(() => {
+        // Non-fatal — page still renders without personalised band
+      })
+      .finally(() => setSessionLoading(false));
+  }, [router]);
+
+  const activeBandCode = normaliseBandCode(childBand);
 
   const sectionStyle: React.CSSProperties = {
     maxWidth: "860px",
@@ -592,20 +669,74 @@ export default function ParentBenchmarksPage() {
           >
             WonderQuest uses{" "}
             <strong style={{ color: C.violet }}>learning bands</strong>,{" "}
-            <strong style={{ color: C.mint }}>mastery scores</strong>, and{" "}
-            <strong style={{ color: C.gold }}>effective time</strong> to show
-            how your child is developing — not percentages or traditional
-            grades. This page explains what each of those means and why we
-            measure it the way we do.
+            <strong style={{ color: C.mint }}>mastery scores</strong>, and an{" "}
+            <strong style={{ color: C.gold }}>adaptive AI</strong> to help
+            every child build skills at their own pace. This page explains how
+            it all fits together.
           </p>
         </div>
 
-        {/* ── Section 1: Learning bands ────────────────────────────────────── */}
+        {/* ── Section 1: How WonderQuest works ──────────────────────────────── */}
         <div style={sectionStyle}>
           <SectionHeading
             eyebrow="Section 1"
-            title="What the learning bands mean"
-            subtitle="Bands are not grades. They show where the system is currently challenging your child — and they move forward as your child progresses."
+            title="How WonderQuest works"
+            subtitle="Four steps from your child playing to you seeing real progress."
+          />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {HOW_IT_WORKS_STEPS.map((step) => (
+              <div
+                key={step.num}
+                style={{
+                  ...cardContainerStyle,
+                  padding: "22px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    fontFamily: "system-ui",
+                  }}
+                >
+                  {step.num}
+                </div>
+                <div style={{ fontSize: "1.4rem" }}>{step.icon}</div>
+                <div style={{ font: "700 0.9rem/1.2 system-ui", color: C.text }}>
+                  {step.title}
+                </div>
+                <div style={{ font: "400 0.8rem/1.55 system-ui", color: C.muted }}>
+                  {step.body}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Section 2: Learning bands ────────────────────────────────────── */}
+        <div style={sectionStyle}>
+          <SectionHeading
+            eyebrow="Section 2"
+            title="Learning Bands explained"
+            subtitle="Bands are not grades — they show where the system is currently challenging your child. They move forward as your child progresses."
           />
 
           <div

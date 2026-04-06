@@ -1,200 +1,247 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TabId = "cabinet" | "milestones";
+type TabId = "badges" | "trophies" | "streak" | "stars";
 
-type RewardType = "badge" | "trophy" | "world" | "locked";
+type StatsData = {
+  totalPoints: number;
+  currentLevel: number;
+  badgeCount: number;
+  trophyCount: number;
+  streakDays: number;
+  masteredSkillsCount: number;
+};
 
-type RewardItem = {
+type ApiBadge = {
   id: string;
-  emoji: string;
-  name: string;
-  type: RewardType;
-  isNew?: boolean;
-  progress?: number; // 0–100, for in-progress worlds
+  badgeKey: string;
+  displayName: string;
+  description: string;
+  iconKey: string | null;
+  earned: boolean;
+  earnedAt: string | null;
 };
 
-type MilestoneItem = {
-  stars: number;
-  label: string;
-  reward: string;
-  status: "done" | "current" | "locked";
+type ApiTrophy = {
+  id: string;
+  trophyKey: string;
+  displayName: string;
+  description: string;
+  iconKey: string | null;
+  tier: string;
+  earned: boolean;
+  earnedAt: string | null;
 };
 
-type SessionData = {
-  student: {
-    displayName: string;
-    launchBandCode: string;
-  };
-  progression: {
-    totalPoints: number;
-    currentLevel: number;
-    badgeCount: number;
-    trophyCount: number;
-  };
+type HistorySession = {
+  startedAt: string;
+  correctAnswers: number;
+  totalQuestions: number;
+  pointsEarned: number;
 };
 
-// ─── Static reward shelves ────────────────────────────────────────────────────
+// ─── Palette ──────────────────────────────────────────────────────────────────
 
-const BADGES: RewardItem[] = [
-  { id: "first-quest", emoji: "🌟", name: "First Quest!", type: "badge", isNew: true },
-  { id: "forest-exp", emoji: "🌲", name: "Forest Explorer", type: "world" },
-  { id: "on-fire", emoji: "🔥", name: "On Fire!", type: "trophy", isNew: true },
-  { id: "crystal-master", emoji: "💎", name: "Crystal Master", type: "locked" },
-  { id: "world-champ", emoji: "🏆", name: "World Champ", type: "locked" },
-  { id: "100-stars", emoji: "💯", name: "100 Stars", type: "locked" },
-];
+const C = {
+  base: "#100b2e",
+  surface: "#1a1060",
+  border: "#2a2060",
+  violet: "#9b72ff",
+  gold: "#ffd166",
+  amber: "#ff9d3b",
+  mint: "#50e890",
+  muted: "#9b8ec4",
+  text: "#e8e0ff",
+  font: "'Nunito', system-ui, sans-serif",
+} as const;
 
-const TROPHIES: RewardItem[] = [
-  { id: "forest-trophy", emoji: "🏆", name: "Enchanted Forest Trophy", type: "trophy" },
-  { id: "ocean-trophy", emoji: "🌊", name: "Ocean Kingdom Trophy", type: "trophy" },
-  { id: "crystal-trophy", emoji: "💎", name: "Crystal Caverns Trophy", type: "locked" },
-  { id: "volcano-trophy", emoji: "🌋", name: "Volcano Island Trophy", type: "locked" },
-];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const WORLDS: RewardItem[] = [
-  { id: "forest-world", emoji: "🌲", name: "Enchanted Forest", type: "world" },
-  { id: "ocean-world", emoji: "🌊", name: "Ocean Kingdom", type: "world" },
-  { id: "crystal-world", emoji: "💎", name: "Crystal Caverns", type: "badge", progress: 58 },
-  { id: "volcano-world", emoji: "🌋", name: "Volcano Island", type: "locked" },
-];
-
-// ─── Milestones builder ───────────────────────────────────────────────────────
-
-function buildMilestones(totalPoints: number): MilestoneItem[] {
-  const thresholds = [
-    { stars: 10, reward: "Beginner Explorer badge" },
-    { stars: 25, reward: "Silver Star frame for your avatar" },
-    { stars: 50, reward: "Gold Star Collector badge" },
-    { stars: 100, reward: "Diamond Star Champion badge" },
-    { stars: 200, reward: "Legendary Quester title!" },
-  ];
-
-  let foundCurrent = false;
-  return thresholds.map(({ stars, reward }) => {
-    if (totalPoints >= stars) {
-      return { stars, label: `${stars}⭐`, reward, status: "done" as const };
-    }
-    if (!foundCurrent) {
-      foundCurrent = true;
-      return { stars, label: `${stars}⭐`, reward, status: "current" as const };
-    }
-    return { stars, label: `${stars}⭐`, reward, status: "locked" as const };
-  });
+function getBadgeEmoji(key: string): string {
+  if (key.includes("streak")) return "🔥";
+  if (key.includes("perfect")) return "💯";
+  if (key.includes("first")) return "🌟";
+  if (key.includes("speed")) return "⚡";
+  if (key.includes("mastery") || key.includes("master")) return "🏆";
+  if (key.includes("count") || key.includes("session")) return "📚";
+  if (key.includes("math")) return "🔢";
+  if (key.includes("read") || key.includes("letter")) return "📖";
+  return "🏅";
 }
 
-// ─── Reward item card ─────────────────────────────────────────────────────────
+function getTrophyEmoji(tier: string, key: string): string {
+  if (key.includes("mastery") || key.includes("champion") || tier === "gold") return "🏆";
+  if (key.includes("ocean")) return "🌊";
+  if (key.includes("crystal")) return "💎";
+  if (key.includes("volcano")) return "🌋";
+  if (tier === "silver") return "🥈";
+  if (tier === "bronze") return "🥉";
+  return "🏆";
+}
 
-function RewardCard({ item, delay }: { item: RewardItem; delay: number }) {
+function formatEarnedAt(earnedAt: string | null): string | undefined {
+  if (!earnedAt) return undefined;
+  const d = new Date(earnedAt);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString();
+}
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfWeek(year: number, month: number): number {
+  return new Date(year, month, 1).getDay();
+}
+
+function buildCalendar(year: number, month: number, activeDays: Set<number>) {
+  const totalDays = getDaysInMonth(year, month);
+  const firstDow = getFirstDayOfWeek(year, month);
+  const todayDate = new Date();
+  const isThisMonth = todayDate.getFullYear() === year && todayDate.getMonth() === month;
+  const todayDay = isThisMonth ? todayDate.getDate() : -1;
+
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: totalDays }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const weeks: { day: number | null; active: boolean; isToday: boolean }[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(
+      cells.slice(i, i + 7).map((day) => ({
+        day,
+        active: day !== null && activeDays.has(day),
+        isToday: day === todayDay,
+      })),
+    );
+  }
+  return weeks;
+}
+
+function nextStarMilestone(total: number): number {
+  const milestones = [10, 25, 50, 100, 200, 500, 1000, 2500, 5000];
+  return milestones.find((m) => m > total) ?? total + 1000;
+}
+
+function starsThisWeek(sessions: HistorySession[]): number {
+  const weekAgo = Date.now() - 7 * 86400000;
+  return sessions
+    .filter((s) => new Date(s.startedAt).getTime() > weekAgo)
+    .reduce((sum, s) => sum + (s.pointsEarned ?? 0), 0);
+}
+
+function starsThisMonth(sessions: HistorySession[]): number {
+  const now = new Date();
+  return sessions
+    .filter((s) => {
+      const d = new Date(s.startedAt);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    })
+    .reduce((sum, s) => sum + (s.pointsEarned ?? 0), 0);
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function TabButton({ id, activeTab, onClick, children }: { id: TabId; activeTab: TabId; onClick: () => void; children: React.ReactNode }) {
+  const active = id === activeTab;
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "9px 16px",
+        background: active ? C.violet : C.surface,
+        border: `2px solid ${active ? C.violet : C.border}`,
+        borderRadius: 10,
+        color: active ? "#fff" : "#aaa",
+        fontFamily: C.font,
+        fontSize: 13,
+        fontWeight: 900,
+        cursor: "pointer",
+        transition: "all 0.2s",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SmallBadgeCard({ badge }: { badge: { emoji: string; name: string; earned: boolean; earnedDate?: string } }) {
   const [hovered, setHovered] = useState(false);
-  const isLocked = item.type === "locked";
-
-  function cardBg() {
-    if (isLocked) return "#1a1060";
-    if (item.type === "badge") return "linear-gradient(135deg, #1a1060, #2a1880)";
-    if (item.type === "trophy") return "linear-gradient(135deg, #2a1808, #1a1060)";
-    if (item.type === "world") return "linear-gradient(135deg, #0a2a15, #1a1060)";
-    return "#1a1060";
-  }
-
-  function cardBorder() {
-    if (isLocked) return "2px dashed #2a2060";
-    if (item.type === "badge") return "2px solid #9b72ff";
-    if (item.type === "trophy") return "2px solid #ff9d3b";
-    if (item.type === "world") return "2px solid #50e890";
-    return "2px solid #2a2060";
-  }
-
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: 100,
-        height: 110,
-        borderRadius: 18,
-        background: cardBg(),
-        border: cardBorder(),
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: isLocked ? "default" : "pointer",
-        opacity: isLocked ? 0.35 : 1,
-        transform: hovered && !isLocked ? "translateY(-4px) scale(1.04)" : "none",
+        background: badge.earned ? "linear-gradient(135deg,#1a1060,#2a1880)" : C.surface,
+        border: `2px solid ${badge.earned ? C.violet : C.border}`,
+        borderRadius: 16,
+        padding: "14px 10px",
+        textAlign: "center",
+        opacity: badge.earned ? 1 : 0.4,
+        transform: hovered && badge.earned ? "translateY(-3px)" : "none",
         transition: "transform 0.2s",
-        position: "relative",
-        overflow: "hidden",
-        flexShrink: 0,
+        fontFamily: C.font,
       }}
     >
-      {/* shine overlay */}
-      {!isLocked && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.06) 55%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-      )}
-
-      {/* new dot */}
-      {item.isNew && !isLocked && (
-        <div
-          style={{
-            position: "absolute",
-            top: 6,
-            right: 6,
-            width: 8,
-            height: 8,
-            background: "#ff7b6b",
-            borderRadius: "50%",
-            animation: "blink 1.5s ease-in-out infinite",
-          }}
-        />
-      )}
-
-      {/* emoji */}
-      <span
-        style={{
-          fontSize: 38,
-          marginBottom: 8,
-          display: "block",
-          animation: isLocked
-            ? "none"
-            : `ri-float 3s ${delay}s ease-in-out infinite`,
-        }}
-      >
-        {item.emoji}
-      </span>
-
-      {/* name */}
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 900,
-          color: isLocked ? "#5a4080" : "#fff",
-          textAlign: "center",
-          lineHeight: 1.2,
-          padding: "0 6px",
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {item.name}
-        {item.progress !== undefined && (
-          <span style={{ color: "#9b72ff", fontSize: 10 }}>
-            <br />{item.progress}% done
-          </span>
-        )}
+      <div style={{ fontSize: 36, marginBottom: 6, filter: badge.earned ? "none" : "grayscale(1)" }}>
+        {badge.earned ? badge.emoji : "🔒"}
       </div>
+      <div style={{ fontSize: 11, fontWeight: 900, color: badge.earned ? "#fff" : "#5a4080" }}>
+        {badge.name}
+      </div>
+      {badge.earned && badge.earnedDate && (
+        <div style={{ fontSize: 9, color: C.mint, fontWeight: 700, marginTop: 3 }}>
+          {badge.earnedDate}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SmallTrophyCard({ trophy }: { trophy: { emoji: string; name: string; tier: string; earned: boolean; earnedDate?: string } }) {
+  const [hovered, setHovered] = useState(false);
+  const tierColor = trophy.tier === "gold" ? "#ffd166" : trophy.tier === "silver" ? "#aaa" : trophy.tier === "bronze" ? "#c07040" : C.border;
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: trophy.earned ? "linear-gradient(135deg,#2a2010,#1a1060)" : C.surface,
+        border: `2px solid ${trophy.earned ? tierColor : C.border}`,
+        borderRadius: 16,
+        padding: "14px 10px",
+        textAlign: "center",
+        opacity: trophy.earned ? 1 : 0.4,
+        transform: hovered && trophy.earned ? "translateY(-3px)" : "none",
+        boxShadow: trophy.earned ? `0 0 14px rgba(255,209,102,0.2)` : "none",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        fontFamily: C.font,
+      }}
+    >
+      <div style={{ fontSize: 36, marginBottom: 6, filter: trophy.earned ? "none" : "grayscale(1)" }}>
+        {trophy.earned ? trophy.emoji : "🔒"}
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 900, color: trophy.earned ? tierColor : "#5a4080" }}>
+        {trophy.name}
+      </div>
+      {trophy.earned && trophy.earnedDate && (
+        <div style={{ fontSize: 9, color: C.mint, fontWeight: 700, marginTop: 3 }}>
+          {trophy.earnedDate}
+        </div>
+      )}
     </div>
   );
 }
@@ -202,647 +249,406 @@ function RewardCard({ item, delay }: { item: RewardItem; delay: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChildRewardCabinetPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("cabinet");
-  const [session, setSession] = useState<SessionData | null>(null);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabId>("badges");
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [badges, setBadges] = useState<ApiBadge[]>([]);
+  const [trophies, setTrophies] = useState<ApiTrophy[]>([]);
+  const [history, setHistory] = useState<HistorySession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/child/session")
-      .then((r) => r.json())
-      .then((data: SessionData) => {
-        setSession(data);
-        setLoading(false);
+      .then((r) => {
+        if (!r.ok) { router.replace("/child"); return null; }
+        return true;
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => { router.replace("/child"); return null; })
+      .then((authed) => {
+        if (!authed) return;
+        return Promise.all([
+          fetch("/api/child/stats").then((r) => r.ok ? r.json() : null),
+          fetch("/api/child/badges").then((r) => r.ok ? r.json() : null),
+          fetch("/api/child/trophies").then((r) => r.ok ? r.json() : null),
+          fetch("/api/child/history").then((r) => r.ok ? r.json() : null),
+        ]).then(([s, b, t, h]: [StatsData | null, { badges?: ApiBadge[] } | null, { trophies?: ApiTrophy[] } | null, { sessions?: HistorySession[] } | null]) => {
+          if (s) setStats(s);
+          if (b?.badges) setBadges(b.badges);
+          if (t?.trophies) setTrophies(t.trophies);
+          if (h?.sessions) setHistory(h.sessions);
+          else if (Array.isArray(h)) setHistory(h as HistorySession[]);
+        }).catch(() => {});
+      })
+      .finally(() => setLoading(false));
+  }, [router]);
 
-  const totalPoints = session?.progression.totalPoints ?? 0;
-  const badgeCount = session?.progression.badgeCount ?? 0;
-  const trophyCount = session?.progression.trophyCount ?? 0;
+  const totalPoints = stats?.totalPoints ?? 0;
+  const streak = stats?.streakDays ?? 0;
 
-  const MILESTONES = buildMilestones(totalPoints);
-  const nextMilestone = MILESTONES.find((m) => m.status === "current");
-  const starsNextMilestone = nextMilestone?.stars ?? 50;
-  const starsProgress = Math.round((totalPoints / starsNextMilestone) * 100);
+  const earnedBadges = badges.filter((b) => b.earned);
+  const earnedTrophies = trophies.filter((t) => t.earned);
+
+  // Calendar data
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DOW_LABELS = ["S","M","T","W","T","F","S"];
+
+  const activeDays = new Set<number>(
+    history
+      .map((s) => {
+        const d = new Date(s.startedAt);
+        if (d.getFullYear() === year && d.getMonth() === month) return d.getDate();
+        return null;
+      })
+      .filter((d): d is number => d !== null),
+  );
+  const calendar = buildCalendar(year, month, activeDays);
+
+  // Stars data
+  const weekStars = starsThisWeek(history);
+  const monthStars = starsThisMonth(history);
+  const nextMilestone = nextStarMilestone(totalPoints);
+  const toNextMilestone = nextMilestone - totalPoints;
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: C.font, color: C.muted, fontSize: 18, fontWeight: 700 }}>
+          Loading your rewards...
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="kid" currentPath="/child">
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#100b2e",
-          fontFamily: "'Nunito', system-ui, sans-serif",
-          color: "#fff",
-          paddingBottom: 60,
-        }}
-      >
+      <style>{`
+        @keyframes rc-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+        @keyframes rc-glow  { 0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,0.4)} 50%{box-shadow:0 0 0 10px rgba(255,209,102,0)} }
+        @keyframes rc-flame { 0%,100%{transform:scale(1) rotate(-3deg)} 50%{transform:scale(1.1) rotate(3deg)} }
+      `}</style>
+
+      <div style={{ minHeight: "100vh", background: C.base, fontFamily: C.font, color: C.text, paddingBottom: 60 }}>
         {/* Back nav */}
         <div style={{ padding: "16px 24px 0" }}>
-          <Link
-            href="/child"
-            style={{
-              color: "#9b72ff",
-              fontWeight: 900,
-              fontSize: 14,
-              textDecoration: "none",
-            }}
-          >
+          <Link href="/child" style={{ color: C.violet, fontWeight: 900, fontSize: 14, textDecoration: "none" }}>
             ← Home
           </Link>
         </div>
 
         {/* Page header */}
         <div style={{ padding: "20px 28px 0" }}>
-          <div
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: "#fff",
-              marginBottom: 4,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", marginBottom: 4 }}>
             Your Reward Cabinet ✨
           </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "#b8a0e8",
-              fontWeight: 700,
-              marginBottom: 20,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            Everything you've collected on your adventure — every single item stays here forever!
+          <div style={{ fontSize: 14, color: "#b8a0e8", fontWeight: 700, marginBottom: 16 }}>
+            Everything you&apos;ve collected on your adventure — every item stays here forever!
+          </div>
+
+          {/* Quick stats bar */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+            {[
+              { icon: "⭐", val: totalPoints, label: "Stars" },
+              { icon: "🏅", val: earnedBadges.length, label: "Badges" },
+              { icon: "🏆", val: earnedTrophies.length, label: "Trophies" },
+              { icon: "🔥", val: streak, label: "Day streak" },
+            ].map((pill) => (
+              <div key={pill.label} style={{ display: "flex", alignItems: "center", gap: 8, background: C.surface, border: `2px solid ${C.border}`, borderRadius: 12, padding: "8px 14px" }}>
+                <span style={{ fontSize: 22 }}>{pill.icon}</span>
+                <div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{pill.val}</div>
+                  <div style={{ fontSize: 10, color: "#7a6090", fontWeight: 700 }}>{pill.label}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Loading state */}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "#9b8ec4", fontSize: 16, fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-            Loading your rewards...
-          </div>
-        )}
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "0 16px", marginBottom: 20, overflowX: "auto" }}>
+          <TabButton id="badges" activeTab={activeTab} onClick={() => setActiveTab("badges")}>🏅 Badges</TabButton>
+          <TabButton id="trophies" activeTab={activeTab} onClick={() => setActiveTab("trophies")}>🏆 Trophies</TabButton>
+          <TabButton id="streak" activeTab={activeTab} onClick={() => setActiveTab("streak")}>🔥 Streak</TabButton>
+          <TabButton id="stars" activeTab={activeTab} onClick={() => setActiveTab("stars")}>⭐ Stars</TabButton>
+        </div>
 
-        {!loading && (
-          <>
-            {/* Tab bar */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                padding: "0 16px",
-                marginBottom: 20,
-              }}
-            >
-              {(["cabinet", "milestones"] as TabId[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: "8px 14px",
-                    background: activeTab === tab ? "#9b72ff" : "#1e1a40",
-                    border: `2px solid ${activeTab === tab ? "#9b72ff" : "#2e2a50"}`,
-                    borderRadius: 8,
-                    color: activeTab === tab ? "#fff" : "#aaa",
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {tab === "cabinet" ? "Cabinet" : "Star Milestones"}
-                </button>
-              ))}
+        {/* ── Badges Tab ── */}
+        {activeTab === "badges" && (
+          <div style={{ padding: "0 16px" }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: C.violet, marginBottom: 4 }}>
+              🏅 Badge Collection
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 16 }}>
+              {earnedBadges.length} earned · {badges.length - earnedBadges.length} to unlock
             </div>
 
-            {/* Cabinet Tab */}
-            {activeTab === "cabinet" && (
-              <div style={{ padding: "0 28px", maxWidth: 1000 }}>
-                {/* Totals bar */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    marginBottom: 28,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {[
-                    { icon: "⭐", val: totalPoints, label: "Stars total" },
-                    { icon: "🏅", val: badgeCount, label: "Badges earned" },
-                    { icon: "🏆", val: trophyCount, label: "Trophies" },
-                    { icon: "🌍", val: 2, label: "Worlds complete" },
-                  ].map((pill) => (
-                    <div
-                      key={pill.label}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        background: "#1a1060",
-                        border: "2px solid #2a2060",
-                        borderRadius: 14,
-                        padding: "12px 18px",
-                      }}
-                    >
-                      <span style={{ fontSize: 28 }}>{pill.icon}</span>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 24,
-                            fontWeight: 900,
-                            color: "#fff",
-                            lineHeight: 1,
-                            fontFamily: "'Nunito', system-ui, sans-serif",
-                          }}
-                        >
-                          {pill.val}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: "#7a6090",
-                            fontWeight: 700,
-                            marginTop: 2,
-                            fontFamily: "'Nunito', system-ui, sans-serif",
-                          }}
-                        >
-                          {pill.label}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Stars shelf */}
-                <div style={{ marginBottom: 28 }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#9b72ff",
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                      marginBottom: 12,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontFamily: "'Nunito', system-ui, sans-serif",
+            {badges.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 14, fontWeight: 700 }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🏅</div>
+                No badges yet — start playing quests to earn your first badge!
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 12 }}>
+                {[...badges].sort((a, b) => {
+                  if (a.earned !== b.earned) return a.earned ? -1 : 1;
+                  return 0;
+                }).map((b) => (
+                  <SmallBadgeCard
+                    key={b.id}
+                    badge={{
+                      emoji: getBadgeEmoji(b.iconKey ?? b.badgeKey),
+                      name: b.displayName,
+                      earned: b.earned,
+                      earnedDate: formatEarnedAt(b.earnedAt),
                     }}
-                  >
-                    ⭐ Stars{" "}
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "#5a4080",
-                        fontFamily: "'Nunito', system-ui, sans-serif",
-                      }}
-                    >
-                      {totalPoints} collected
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      background: "#1a1060",
-                      border: "2px solid #ffd166",
-                      borderRadius: 16,
-                      padding: 16,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                    }}
-                  >
-                    <div style={{ fontSize: 48 }}>⭐</div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: 22,
-                          fontWeight: 900,
-                          color: "#ffd166",
-                          fontFamily: "'Nunito', system-ui, sans-serif",
-                        }}
-                      >
-                        {totalPoints} Stars
-                      </div>
-                      <div
-                        style={{
-                          height: 10,
-                          background: "#2a2060",
-                          borderRadius: 6,
-                          overflow: "hidden",
-                          margin: "8px 0",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${Math.min(starsProgress, 100)}%`,
-                            background: "linear-gradient(90deg, #ffd166, #ffb020)",
-                            borderRadius: 6,
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: "#b8a060",
-                          fontFamily: "'Nunito', system-ui, sans-serif",
-                        }}
-                      >
-                        {starsNextMilestone - totalPoints > 0
-                          ? `${starsNextMilestone - totalPoints} more to reach the ${starsNextMilestone}-star milestone!`
-                          : "All milestones complete! 🏆"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Badges shelf */}
-                <ShelfSection title="🏅 Badges" count={`${badgeCount} earned`}>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    {BADGES.map((item, i) => (
-                      <RewardCard key={item.id} item={item} delay={i * 0.4} />
-                    ))}
-                  </div>
-                </ShelfSection>
-
-                {/* Trophies shelf */}
-                <ShelfSection title="🏆 Trophies" count={`${trophyCount} earned`}>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    {TROPHIES.map((item, i) => (
-                      <RewardCard key={item.id} item={item} delay={i * 0.4} />
-                    ))}
-                  </div>
-                </ShelfSection>
-
-                {/* Worlds shelf */}
-                <ShelfSection title="🌍 Worlds Explored" count="2 of 4">
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    {WORLDS.map((item, i) => (
-                      <RewardCard key={item.id} item={item} delay={i * 0.4} />
-                    ))}
-                  </div>
-                </ShelfSection>
+                  />
+                ))}
               </div>
             )}
 
-            {/* Milestones Tab */}
-            {activeTab === "milestones" && (
-              <div style={{ padding: "0 28px", maxWidth: 1000 }}>
-                <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 900,
-                    color: "#fff",
-                    marginBottom: 6,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  Star Milestones ⭐
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: "#b8a0e8",
-                    fontWeight: 700,
-                    marginBottom: 24,
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  Collect stars to unlock milestone rewards!
-                </div>
-
-                {/* Progress bar */}
-                <div
-                  style={{
-                    background: "#1a1060",
-                    border: "1px solid #2a2060",
-                    borderRadius: 16,
-                    padding: 18,
-                    marginBottom: 24,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "#ffd166",
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                      marginBottom: 12,
-                      fontFamily: "'Nunito', system-ui, sans-serif",
-                    }}
-                  >
-                    ⭐ Your Star Journey · {totalPoints} collected
-                  </div>
-
-                  {/* Milestone track */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "10px 0 28px",
-                      position: "relative",
-                    }}
-                  >
-                    {MILESTONES.map((ms, idx) => (
-                      <>
-                        <MilestoneDot key={ms.stars} ms={ms} />
-                        {idx < MILESTONES.length - 1 && (
-                          <div
-                            key={`line-${ms.stars}`}
-                            style={{
-                              flex: 1,
-                              height: 4,
-                              background:
-                                ms.status === "done" ? "#ffd166" : "#2a2060",
-                            }}
-                          />
-                        )}
-                      </>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Milestone cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {MILESTONES.map((ms) => (
-                    <MilestoneCard key={ms.stars} ms={ms} totalPoints={totalPoints} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+            <div style={{ marginTop: 20, textAlign: "center" }}>
+              <Link href="/child/badges" style={{ color: C.violet, fontWeight: 900, fontSize: 13, textDecoration: "none" }}>
+                View full badges page →
+              </Link>
+            </div>
+          </div>
         )}
 
-        {/* Keyframes */}
-        <style>{`
-          @keyframes ri-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-          }
-          @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
-          }
-          @keyframes ms-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255,209,102,0.4); }
-            50% { box-shadow: 0 0 0 6px rgba(255,209,102,0); }
-          }
-          @keyframes ms-glow {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255,209,102,0); }
-            50% { box-shadow: 0 0 12px rgba(255,209,102,0.2); }
-          }
-        `}</style>
+        {/* ── Trophies Tab ── */}
+        {activeTab === "trophies" && (
+          <div style={{ padding: "0 16px" }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#ffd166", marginBottom: 4 }}>
+              🏆 Trophy Collection
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, fontWeight: 700, marginBottom: 16 }}>
+              {earnedTrophies.length} earned · {trophies.length - earnedTrophies.length} to unlock
+            </div>
+
+            {trophies.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 14, fontWeight: 700 }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🏆</div>
+                No trophies yet — reach big milestones to earn your first trophy!
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 12 }}>
+                {[...trophies].sort((a, b) => {
+                  if (a.earned !== b.earned) return a.earned ? -1 : 1;
+                  const order: Record<string, number> = { gold: 0, silver: 1, bronze: 2 };
+                  return (order[a.tier] ?? 3) - (order[b.tier] ?? 3);
+                }).map((t) => (
+                  <SmallTrophyCard
+                    key={t.id}
+                    trophy={{
+                      emoji: getTrophyEmoji(t.tier, t.trophyKey),
+                      name: t.displayName,
+                      tier: t.tier,
+                      earned: t.earned,
+                      earnedDate: formatEarnedAt(t.earnedAt),
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop: 20, textAlign: "center" }}>
+              <Link href="/child/trophies" style={{ color: "#ffd166", fontWeight: 900, fontSize: 13, textDecoration: "none" }}>
+                View full trophies page →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── Streak Tab ── */}
+        {activeTab === "streak" && (
+          <div style={{ padding: "0 16px", maxWidth: 520 }}>
+            {/* Current streak hero */}
+            <div style={{
+              background: streak > 0
+                ? "linear-gradient(135deg,#2a1808,#1a1060)"
+                : "linear-gradient(135deg,#1a1060,#0d0924)",
+              border: `2px solid ${streak > 0 ? C.amber : C.border}`,
+              borderRadius: 24,
+              padding: "24px 20px",
+              textAlign: "center",
+              marginBottom: 16,
+              animation: streak >= 7 ? "rc-glow 2.5s ease infinite" : undefined,
+            }}>
+              <span style={{ fontSize: 48, display: "inline-block", animation: streak > 0 ? "rc-flame 1.5s ease-in-out infinite" : undefined }}>🔥</span>
+              <div style={{ fontSize: 64, fontWeight: 900, color: streak > 0 ? C.gold : C.muted, lineHeight: 1, marginTop: 8, textShadow: streak > 0 ? "0 4px 20px rgba(255,209,102,0.4)" : undefined }}>
+                {streak}
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: streak > 0 ? C.amber : C.muted }}>
+                {streak === 1 ? "day in a row!" : "days in a row!"}
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(232,224,255,0.65)", fontWeight: 700, marginTop: 6, lineHeight: 1.4 }}>
+                {streak > 0
+                  ? "Come back tomorrow to keep your streak alive!"
+                  : "Complete a quest today to start your streak!"}
+              </div>
+            </div>
+
+            {/* Monthly calendar */}
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: "18px 20px", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{MONTH_NAMES[month]} {year}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>Active days highlighted</div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
+                {DOW_LABELS.map((d, i) => (
+                  <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase" }}>
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {calendar.map((week, wi) => (
+                <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
+                  {week.map((cell, di) => (
+                    <div
+                      key={di}
+                      style={{
+                        aspectRatio: "1",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: cell.day === null ? "transparent" : cell.active ? "rgba(155,114,255,0.6)" : cell.isToday ? "rgba(255,209,102,0.15)" : "rgba(255,255,255,0.05)",
+                        border: cell.isToday ? `2px solid ${C.gold}` : cell.active ? `2px solid ${C.violet}` : "2px solid transparent",
+                        color: cell.active ? "#fff" : cell.isToday ? C.gold : cell.day !== null ? "rgba(232,224,255,0.5)" : "transparent",
+                        boxShadow: cell.active ? `0 0 6px rgba(155,114,255,0.5)` : undefined,
+                      }}
+                    >
+                      {cell.day ?? ""}
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <div style={{ marginTop: 12, display: "flex", gap: 16, alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(155,114,255,0.6)", border: `2px solid ${C.violet}` }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>Active day</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${C.gold}` }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>Today</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center" }}>
+              <Link href="/child/streak" style={{ color: C.amber, fontWeight: 900, fontSize: 13, textDecoration: "none" }}>
+                View full streak page →
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── Stars Tab ── */}
+        {activeTab === "stars" && (
+          <div style={{ padding: "0 16px", maxWidth: 520 }}>
+            {/* Big star total */}
+            <div style={{
+              background: "linear-gradient(135deg,#2a2010,#1a1060)",
+              border: `2px solid ${C.gold}`,
+              borderRadius: 24,
+              padding: "28px 24px",
+              textAlign: "center",
+              marginBottom: 16,
+              animation: "rc-glow 2.5s ease infinite",
+            }}>
+              <span style={{ fontSize: 60, display: "inline-block", animation: "rc-float 2.5s ease-in-out infinite" }}>⭐</span>
+              <div style={{ fontSize: 72, fontWeight: 900, color: C.gold, lineHeight: 1, marginTop: 8, textShadow: "0 4px 24px rgba(255,209,102,0.4)" }}>
+                {totalPoints.toLocaleString()}
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.amber, marginTop: 4 }}>
+                Total Stars Earned
+              </div>
+            </div>
+
+            {/* This week + this month */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              <div style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 16, padding: "16px 14px", textAlign: "center" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: C.gold }}>⭐ {weekStars}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginTop: 4 }}>Stars this week</div>
+              </div>
+              <div style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 16, padding: "16px 14px", textAlign: "center" }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: C.gold }}>⭐ {monthStars}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginTop: 4 }}>Stars this month</div>
+              </div>
+            </div>
+
+            {/* Star milestone progress */}
+            <div style={{
+              background: C.surface,
+              border: `2px solid ${C.border}`,
+              borderRadius: 20,
+              padding: "20px 18px",
+              marginBottom: 16,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: C.gold, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                ⭐ Star Milestone
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+                <span style={{ fontSize: 36 }}>⭐</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "#fff", marginBottom: 4 }}>
+                    {totalPoints.toLocaleString()} / {nextMilestone.toLocaleString()}
+                  </div>
+                  <div style={{ height: 10, background: C.border, borderRadius: 6, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${Math.min(Math.round((totalPoints / nextMilestone) * 100), 100)}%`,
+                      background: "linear-gradient(90deg, #ffd166, #ffb020)",
+                      borderRadius: 6,
+                      transition: "width 0.5s ease",
+                    }} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.amber }}>
+                {toNextMilestone > 0
+                  ? `${toNextMilestone.toLocaleString()} more to reach ${nextMilestone.toLocaleString()}!`
+                  : "All star milestones reached! 🎉"}
+              </div>
+              {toNextMilestone > 0 && (
+                <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, marginTop: 4 }}>
+                  Keep playing quests to earn more stars!
+                </div>
+              )}
+            </div>
+
+            {/* Star history (last 5 sessions) */}
+            {history.length > 0 && (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "14px 16px" }}>
+                <div style={{ fontSize: 12, fontWeight: 900, color: C.violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                  Recent Sessions
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {history.slice(0, 5).map((s, i) => {
+                    const d = new Date(s.startedAt);
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>
+                          {d.toLocaleDateString()}
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: C.gold }}>
+                          +{s.pointsEarned} ⭐
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </AppFrame>
-  );
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function ShelfSection({
-  title,
-  count,
-  children,
-}: {
-  title: string;
-  count: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 900,
-          color: "#9b72ff",
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          marginBottom: 12,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {title}{" "}
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#5a4080",
-            fontFamily: "'Nunito', system-ui, sans-serif",
-          }}
-        >
-          {count}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function MilestoneDot({ ms }: { ms: MilestoneItem }) {
-  const isDone = ms.status === "done";
-  const isCurrent = ms.status === "current";
-
-  return (
-    <div
-      style={{
-        width: 28,
-        height: 28,
-        borderRadius: "50%",
-        background: isDone ? "#ffd166" : isCurrent ? "#2a2010" : "#2a2060",
-        border: `2px solid ${isDone ? "#ffd166" : isCurrent ? "#ffd166" : "#4a3010"}`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: isDone ? 9 : 12,
-        fontWeight: 900,
-        color: isDone ? "#1a1000" : isCurrent ? "#ffd166" : "#6a5030",
-        flexShrink: 0,
-        position: "relative",
-        animation: isCurrent ? "ms-pulse 1.5s ease-in-out infinite" : "none",
-        fontFamily: "'Nunito', system-ui, sans-serif",
-      }}
-    >
-      {isDone ? "✓" : "★"}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -18,
-          left: "50%",
-          transform: "translateX(-50%)",
-          fontSize: 9,
-          fontWeight: 700,
-          color: isDone ? "#ffd166" : "#6a5030",
-          whiteSpace: "nowrap",
-          fontFamily: "'Nunito', system-ui, sans-serif",
-        }}
-      >
-        {ms.label}
-      </div>
-    </div>
-  );
-}
-
-function MilestoneCard({ ms, totalPoints }: { ms: MilestoneItem; totalPoints: number }) {
-  const isDone = ms.status === "done";
-  const isCurrent = ms.status === "current";
-
-  if (isDone) {
-    return (
-      <div
-        style={{
-          background: "#1a2a15",
-          border: "2px solid #50e890",
-          borderRadius: 16,
-          padding: 16,
-          display: "flex",
-          gap: 14,
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 32 }}>✓</span>
-        <div>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 900,
-              color: "#50e890",
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            {ms.stars} Stars — EARNED!
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: "#80c8a0",
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            Unlocked: {ms.reward}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isCurrent) {
-    return (
-      <div
-        style={{
-          background: "#2a2010",
-          border: "2px solid #ffd166",
-          borderRadius: 16,
-          padding: 16,
-          display: "flex",
-          gap: 14,
-          alignItems: "center",
-          animation: "ms-glow 2s ease-in-out infinite",
-        }}
-      >
-        <span style={{ fontSize: 32 }}>🎯</span>
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 900,
-              color: "#ffd166",
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            {ms.stars} Stars — SO CLOSE!
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: "#c8a050",
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            Unlocks: {ms.reward}
-          </div>
-          <div
-            style={{
-              height: 6,
-              background: "#2a2060",
-              borderRadius: 4,
-              overflow: "hidden",
-              marginTop: 8,
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${Math.min(Math.round((totalPoints / ms.stars) * 100), 100)}%`,
-                background: "#ffd166",
-                borderRadius: 4,
-              }}
-            />
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#ffd166",
-              marginTop: 4,
-              fontFamily: "'Nunito', system-ui, sans-serif",
-            }}
-          >
-            {totalPoints}/{ms.stars} · {ms.stars - totalPoints} more!
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // locked
-  return (
-    <div
-      style={{
-        background: "#1a1060",
-        border: "2px solid #2a2060",
-        borderRadius: 16,
-        padding: 16,
-        display: "flex",
-        gap: 14,
-        alignItems: "center",
-        opacity: 0.5,
-      }}
-    >
-      <span style={{ fontSize: 32 }}>⭐</span>
-      <div>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 900,
-            color: "#c4a0ff",
-            fontFamily: "'Nunito', system-ui, sans-serif",
-          }}
-        >
-          {ms.stars} Stars
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "#7a6090",
-            fontFamily: "'Nunito', system-ui, sans-serif",
-          }}
-        >
-          Unlocks: {ms.reward}
-        </div>
-      </div>
-    </div>
   );
 }
