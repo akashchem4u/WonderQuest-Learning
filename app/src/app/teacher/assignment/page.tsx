@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 const C = {
@@ -11,6 +11,7 @@ const C = {
   mint: "#50e890",
   gold: "#ffd166",
   amber: "#f59e0b",
+  red: "#ef4444",
   text: "#f0f6ff",
   muted: "#8b949e",
   surface: "#161b22",
@@ -30,12 +31,32 @@ const SKILLS = [
 
 const STUDENTS = ["Bella", "Marcus", "Luna", "Aarav", "Jordan", "Priya", "Sam", "Tyler", "Zoe", "Alex"];
 
+type Assignment = {
+  id: string;
+  title: string;
+  description: string | null;
+  skillCodes: string[];
+  launchBandCode: string | null;
+  sessionMode: string;
+  dueDate: string | null;
+  createdAt: string;
+  assignedCount: number;
+  completedCount: number;
+};
+
 export default function TeacherAssignmentPage() {
   const [step, setStep] = useState<Step>(1);
   const [assignmentType, setAssignmentType] = useState<"quest" | "skill" | "free">("skill");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set(STUDENTS));
   const [dueDate, setDueDate] = useState("2026-04-13");
+  const [title, setTitle] = useState("");
+
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const STEPS = [
     { n: 1, label: "Type" },
@@ -44,11 +65,85 @@ export default function TeacherAssignmentPage() {
     { n: 4, label: "Review" },
   ];
 
-  function toggleSkill(id: string) {
-    setSelectedSkills((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  // Fetch existing assignments on mount
+  function fetchAssignments() {
+    setLoadingList(true);
+    fetch("/api/teacher/assignments?teacherId=demo-teacher")
+      .then((r) => r.json())
+      .then((data: { assignments?: Assignment[] }) => {
+        setAssignments(data.assignments ?? []);
+      })
+      .catch(() => {
+        // Non-fatal — keep empty list
+      })
+      .finally(() => setLoadingList(false));
   }
+
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  function toggleSkill(id: string) {
+    setSelectedSkills((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
   function toggleStudent(name: string) {
-    setSelectedStudents((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
+    setSelectedStudents((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }
+
+  async function handlePublish() {
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+
+    const assignmentTitle =
+      title.trim() ||
+      (assignmentType === "skill"
+        ? `Skill Practice — ${[...selectedSkills].map((id) => SKILLS.find((s) => s.id === id)?.name).join(", ") || "Mixed"}`
+        : assignmentType === "quest"
+        ? "Quest Assignment"
+        : "Free Practice");
+
+    try {
+      const res = await fetch("/api/teacher/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherId: "demo-teacher",
+          title: assignmentTitle,
+          skillCodes: [...selectedSkills],
+          dueDate,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? "Failed to create assignment");
+      }
+
+      setSubmitSuccess(true);
+      // Reset wizard
+      setStep(1);
+      setAssignmentType("skill");
+      setSelectedSkills(new Set());
+      setSelectedStudents(new Set(STUDENTS));
+      setDueDate("2026-04-13");
+      setTitle("");
+      // Refresh list
+      fetchAssignments();
+    } catch (e: unknown) {
+      setSubmitError(e instanceof Error ? e.message : "Failed to publish");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -61,6 +156,20 @@ export default function TeacherAssignmentPage() {
           <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, marginTop: 8, marginBottom: 2 }}>New Assignment</h1>
           <p style={{ color: C.muted, fontSize: 13 }}>Assign skills or quests to students in Class 4B</p>
         </div>
+
+        {/* Success banner */}
+        {submitSuccess && (
+          <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(80,232,144,0.12)", border: "1px solid rgba(80,232,144,0.35)", borderRadius: 10, fontSize: 13, fontWeight: 700, color: C.mint }}>
+            ✓ Assignment published successfully!
+          </div>
+        )}
+
+        {/* Error banner */}
+        {submitError && (
+          <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, fontSize: 13, fontWeight: 700, color: C.red }}>
+            {submitError}
+          </div>
+        )}
 
         {/* Step indicator */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 32, overflowX: "auto" }}>
@@ -108,6 +217,18 @@ export default function TeacherAssignmentPage() {
         {/* Step 2: Content */}
         {step === 2 && (
           <div>
+            {/* Optional title field */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>Assignment title (optional)</div>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Week 3 Fractions Practice"
+                style={{ width: "100%", padding: "10px 12px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 }}>Select skills to assign</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Students will practice these skills in their next sessions</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
@@ -183,8 +304,12 @@ export default function TeacherAssignmentPage() {
                 </div>
               ))}
             </div>
-            <button style={{ width: "100%", padding: 14, background: C.mint, color: "#0a1a0a", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 900, cursor: "pointer", fontFamily: "system-ui" }}>
-              ✓ Publish Assignment
+            <button
+              onClick={handlePublish}
+              disabled={submitting}
+              style={{ width: "100%", padding: 14, background: submitting ? "rgba(80,232,144,0.4)" : C.mint, color: "#0a1a0a", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 900, cursor: submitting ? "not-allowed" : "pointer", fontFamily: "system-ui" }}
+            >
+              {submitting ? "Publishing…" : "✓ Publish Assignment"}
             </button>
           </div>
         )}
@@ -196,6 +321,36 @@ export default function TeacherAssignmentPage() {
           )}
           {step < 4 && (
             <button onClick={() => setStep((s) => (s + 1) as Step)} style={{ flex: 1, padding: 12, background: C.blue, color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>Continue →</button>
+          )}
+        </div>
+
+        {/* Existing assignments list */}
+        <div style={{ marginTop: 40 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
+            Existing Assignments
+          </div>
+          {loadingList ? (
+            <div style={{ fontSize: 12, color: C.muted }}>Loading assignments…</div>
+          ) : assignments.length === 0 ? (
+            <div style={{ fontSize: 12, color: C.muted }}>No assignments yet.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {assignments.map((a) => (
+                <div key={a.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 3 }}>{a.title}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>
+                      {a.skillCodes.length > 0 ? a.skillCodes.join(", ") : "No skills"} ·
+                      {a.dueDate ? ` Due ${new Date(a.dueDate).toLocaleDateString("en", { month: "short", day: "numeric" })}` : " No due date"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" as const, flexShrink: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{a.completedCount}/{a.assignedCount}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>done</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
@@ -23,84 +23,20 @@ const C = {
 };
 
 // ---------------------------------------------------------------------------
-// Stub data
+// Types
 // ---------------------------------------------------------------------------
-type ActionItem = {
-  done: boolean;
-  title: string;
-  desc: string;
-  due: string;
-};
-
-type TimelineEvent = {
-  icon: string;
-  dotBg: string;
-  date: string;
-  title: string;
-  detail: string;
-};
-
-const INTERVENTION = {
-  studentName: "Maya",
-  skill: "Fractions: Division",
-  band: "P2 · G2–3",
-  trigger: "Confidence floor",
-  openedDate: "Mar 22, 2026",
-  daysActive: 3,
-  status: "active" as const,
-  masteryBefore: 32,
-  masteryNow: 46,
-  masteryBeforeLabel: "Just started",
-  masteryNowLabel: "Building",
-  sessionsSinceFlag: 4,
-  floorHitsSinceFlag: 1,
-  trend: "↑ improving",
-  actions: [
-    {
-      done: true,
-      title: "Check-in with Maya",
-      desc: "Asked how fractions were going. Maya mentioned confusion with the equal parts idea.",
-      due: "Mar 22",
-    },
-    {
-      done: true,
-      title: "Suggest visual model",
-      desc: "Recommended pizza-slice diagram. Logged note for reference.",
-      due: "Mar 22",
-    },
-    {
-      done: false,
-      title: "Follow-up in 2 sessions",
-      desc: "Review mastery progress — if still below 65 after 2 more sessions, escalate.",
-      due: "Due: Mar 26",
-    },
-  ] as ActionItem[],
-  timeline: [
-    {
-      icon: "⚠️",
-      dotBg: "rgba(245,158,11,0.2)",
-      date: "Mar 22, 2026 — 9:14am",
-      title: "Support queue triggered — Confidence floor",
-      detail:
-        "confidence_floor_hit reached 3× threshold on Fractions: Division. System flagged for teacher review.",
-    },
-    {
-      icon: "🗒️",
-      dotBg: "rgba(56,189,248,0.15)",
-      date: "Mar 22, 2026 — 2:30pm",
-      title: "Teacher check-in logged",
-      detail:
-        "Teacher acknowledged queue item and logged note: Spoke with Maya — visual model suggested.",
-    },
-    {
-      icon: "📈",
-      dotBg: "rgba(34,197,94,0.15)",
-      date: "Mar 24, 2026 — 4:08pm",
-      title: "Mastery increased to 46/100",
-      detail:
-        "Maya completed 2 sessions on Fractions: Division. Mastery moved from Just started → Building. 1 floor hit (vs 3 before).",
-    },
-  ] as TimelineEvent[],
+type Intervention = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  skillCode: string | null;
+  reason: string;
+  interventionType: string;
+  status: string;
+  teacherNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -138,16 +74,108 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 // ---------------------------------------------------------------------------
 export default function TeacherInterventionDetailPage() {
   const params = useParams();
-  const studentId = (params?.studentId as string | undefined) ?? "s-maya";
+  const studentId = (params?.studentId as string | undefined) ?? "";
 
-  const data = INTERVENTION;
-  const [actions, setActions] = useState<ActionItem[]>(data.actions);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  function toggleAction(idx: number) {
-    setActions((prev) =>
-      prev.map((a, i) => (i === idx ? { ...a, done: !a.done } : a))
-    );
+  // Create form state
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newReason, setNewReason] = useState("");
+  const [newSkillCode, setNewSkillCode] = useState("");
+  const [newNote, setNewNote] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Resolve state
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  function fetchInterventions() {
+    setLoading(true);
+    setFetchError(null);
+    fetch("/api/teacher/interventions?teacherId=demo-teacher&status=all")
+      .then((r) => r.json())
+      .then((data: { interventions?: Intervention[]; error?: string }) => {
+        if (data.error) throw new Error(data.error);
+        const all = data.interventions ?? [];
+        setInterventions(all.filter((iv) => iv.studentId === studentId));
+      })
+      .catch((e: unknown) => {
+        setFetchError(e instanceof Error ? e.message : "Failed to load interventions");
+      })
+      .finally(() => setLoading(false));
   }
+
+  useEffect(() => {
+    if (studentId) fetchInterventions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId]);
+
+  async function handleCreate() {
+    if (!newReason.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch("/api/teacher/interventions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherId: "demo-teacher",
+          studentId,
+          reason: newReason.trim(),
+          skillCode: newSkillCode.trim() || undefined,
+          teacherNote: newNote.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? "Failed to create intervention");
+      }
+      setNewReason("");
+      setNewSkillCode("");
+      setNewNote("");
+      setShowCreateForm(false);
+      fetchInterventions();
+    } catch (e: unknown) {
+      setCreateError(e instanceof Error ? e.message : "Failed to create");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleResolve(interventionId: string) {
+    setResolvingId(interventionId);
+    setResolveError(null);
+    try {
+      const res = await fetch("/api/teacher/interventions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherId: "demo-teacher",
+          interventionId,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? "Failed to resolve");
+      }
+      fetchInterventions();
+    } catch (e: unknown) {
+      setResolveError(e instanceof Error ? e.message : "Failed to resolve");
+    } finally {
+      setResolvingId(null);
+    }
+  }
+
+  function fmtDate(iso: string) {
+    return new Date(iso).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  const activeInterventions = interventions.filter((iv) => iv.status === "active");
+  const resolvedInterventions = interventions.filter((iv) => iv.status === "resolved");
+  const studentName = interventions[0]?.studentName ?? "Student";
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
@@ -160,7 +188,7 @@ export default function TeacherInterventionDetailPage() {
           paddingBottom: 60,
         }}
       >
-        {/* ── Topbar ── */}
+        {/* Topbar */}
         <div
           style={{
             borderBottom: `1px solid ${C.border}`,
@@ -186,7 +214,7 @@ export default function TeacherInterventionDetailPage() {
           </Link>
           <span style={{ color: C.border, fontSize: 16 }}>/</span>
           <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>
-            Intervention: {data.studentName} · {data.skill}
+            Interventions{loading ? "" : `: ${studentName}`}
           </span>
           <div style={{ marginLeft: "auto" }}>
             <Link
@@ -206,367 +234,268 @@ export default function TeacherInterventionDetailPage() {
           </div>
         </div>
 
-        {/* ── Intervention header card ── */}
-        <div
-          style={{
-            margin: "22px 28px 0",
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderTop: `3px solid ${C.amber}`,
-            borderRadius: 14,
-            padding: "20px 22px",
-          }}
-        >
-          {/* Top row */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 18 }}>
-            <span style={{ fontSize: 36, flexShrink: 0 }}>⚠️</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 6 }}>
-                {data.studentName} — {data.skill}
+        {/* Loading / error */}
+        {loading && (
+          <div style={{ padding: "40px 28px", color: C.muted, fontSize: 14 }}>
+            Loading interventions…
+          </div>
+        )}
+
+        {!loading && fetchError && (
+          <div style={{ margin: "22px 28px 0", padding: "12px 16px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, fontSize: 13, color: C.red }}>
+            {fetchError}
+          </div>
+        )}
+
+        {!loading && !fetchError && (
+          <>
+            {/* Header card */}
+            <div
+              style={{
+                margin: "22px 28px 0",
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderTop: `3px solid ${C.amber}`,
+                borderRadius: 14,
+                padding: "20px 22px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
+                <span style={{ fontSize: 36, flexShrink: 0 }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 6 }}>
+                    {studentName} — Interventions
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted }}>
+                    {activeInterventions.length} active · {resolvedInterventions.length} resolved
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm((v) => !v)}
+                  style={{
+                    padding: "8px 16px",
+                    background: C.blue,
+                    border: "none",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#0d1117",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    flexShrink: 0,
+                  }}
+                >
+                  + Create intervention
+                </button>
               </div>
-              <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
-                Triggered: Confidence floor hit 3× on {data.skill} ({data.band})
-                <br />
-                Opened: {data.openedDate} · Status: Active
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginTop: 10 }}>
+
+              {/* Stats */}
+              <div style={{ display: "flex", gap: 12 }}>
                 {[
-                  { label: "Confidence floor", bg: "rgba(245,158,11,0.15)", color: C.amber },
-                  { label: data.band, bg: "rgba(255,255,255,0.07)", color: C.muted },
-                  { label: `Day ${data.daysActive} of intervention`, bg: "rgba(255,255,255,0.07)", color: C.muted },
-                ].map(({ label, bg, color }) => (
-                  <span
-                    key={label}
+                  { val: String(activeInterventions.length), lbl: "Active" },
+                  { val: String(resolvedInterventions.length), lbl: "Resolved" },
+                  { val: String(interventions.length), lbl: "Total" },
+                ].map(({ val, lbl }) => (
+                  <div
+                    key={lbl}
                     style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: "4px 12px",
-                      borderRadius: 20,
-                      background: bg,
-                      color,
+                      textAlign: "center" as const,
+                      background: "rgba(255,255,255,0.04)",
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 10,
+                      padding: "10px 18px",
+                      flex: 1,
                     }}
                   >
-                    {label}
-                  </span>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>{val}</div>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{lbl}</div>
+                  </div>
                 ))}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <button
-                type="button"
-                style={{
-                  padding: "8px 16px",
-                  background: "transparent",
-                  border: `1.5px solid rgba(56,189,248,0.35)`,
-                  borderRadius: 10,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: C.blue,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Log note
-              </button>
-              <button
-                type="button"
-                style={{
-                  padding: "8px 16px",
-                  background: C.mint,
-                  border: "none",
-                  borderRadius: 10,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "#100b2e",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Mark resolved
-              </button>
-            </div>
-          </div>
 
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: 12 }}>
-            {[
-              { val: `${data.masteryBefore}→${data.masteryNow}`, lbl: "Mastery (before → now)" },
-              { val: String(data.sessionsSinceFlag), lbl: "Sessions since flag" },
-              { val: String(data.floorHitsSinceFlag), lbl: "Floor hits since flag" },
-              { val: data.trend, lbl: "Trend", valColor: C.mint },
-            ].map(({ val, lbl, valColor }) => (
+            {/* Create form */}
+            {showCreateForm && (
               <div
-                key={lbl}
                 style={{
-                  textAlign: "center" as const,
-                  background: "rgba(255,255,255,0.04)",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 10,
-                  padding: "10px 18px",
-                  flex: 1,
+                  margin: "16px 28px 0",
+                  background: C.surface,
+                  border: `1px solid rgba(56,189,248,0.3)`,
+                  borderRadius: 14,
+                  padding: "18px 20px",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 900,
-                    color: valColor ?? C.text,
-                  }}
-                >
-                  {val}
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 14 }}>
+                  New Intervention
                 </div>
-                <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{lbl}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Two-column: mastery progress + action plan ── */}
-        <div
-          style={{
-            margin: "16px 28px 0",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-          }}
-        >
-          {/* Mastery progress */}
-          <Card title={`Mastery Progress — ${data.skill}`}>
-            <div style={{ display: "flex", flexDirection: "column" as const, gap: 0 }}>
-              {/* Before */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                Before intervention ({data.openedDate})
-              </div>
-              <div
-                style={{
-                  height: 12,
-                  background: "rgba(255,255,255,0.07)",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                  marginBottom: 4,
-                }}
-              >
-                <div
-                  style={{
-                    width: `${data.masteryBefore}%`,
-                    height: "100%",
-                    background: "rgba(255,255,255,0.25)",
-                    borderRadius: 6,
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 11,
-                  marginBottom: 10,
-                }}
-              >
-                <span style={{ color: C.muted }}>{data.masteryBefore} / 100</span>
-                <span style={{ color: C.muted }}>🌱 {data.masteryBeforeLabel}</span>
-              </div>
-
-              {/* Arrow */}
-              <div style={{ textAlign: "center" as const, fontSize: 22, color: C.mint, marginBottom: 10 }}>
-                ↓
-              </div>
-
-              {/* Now */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                Current (Mar 24)
-              </div>
-              <div
-                style={{
-                  height: 12,
-                  background: "rgba(255,255,255,0.07)",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                  marginBottom: 4,
-                }}
-              >
-                <div
-                  style={{
-                    width: `${data.masteryNow}%`,
-                    height: "100%",
-                    background: C.blue,
-                    borderRadius: 6,
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 11,
-                  marginBottom: 12,
-                }}
-              >
-                <span style={{ fontWeight: 800, color: C.mint }}>{data.masteryNow} / 100</span>
-                <span style={{ fontWeight: 700, color: C.blue }}>
-                  📈 {data.masteryNowLabel}
-                </span>
-              </div>
-
-              {/* Progress note */}
-              <div
-                style={{
-                  padding: "8px 12px",
-                  background: "rgba(34,197,94,0.12)",
-                  border: "1px solid rgba(34,197,94,0.3)",
-                  borderRadius: 8,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: C.mint,
-                }}
-              >
-                ↑ +{data.masteryNow - data.masteryBefore} mastery points in {data.daysActive} days — Maya is responding well.
-              </div>
-            </div>
-          </Card>
-
-          {/* Action plan */}
-          <Card title="Action Plan">
-            <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
-              {actions.map((action, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: `1px solid ${C.border}`,
-                    background: "rgba(255,255,255,0.02)",
-                  }}
-                >
-                  {/* Checkbox */}
-                  <button
-                    type="button"
-                    onClick={() => toggleAction(i)}
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 5,
-                      border: action.done ? "none" : "2px solid rgba(56,189,248,0.35)",
-                      background: action.done ? C.mint : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 10,
-                      fontWeight: 900,
-                      color: action.done ? "#100b2e" : "transparent",
-                      flexShrink: 0,
-                      marginTop: 1,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {action.done ? "✓" : ""}
-                  </button>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: action.done ? C.muted : C.text,
-                        textDecoration: action.done ? "line-through" : "none",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {action.title}
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.4, marginBottom: 3 }}>
-                      {action.desc}
-                    </div>
-                    <div style={{ fontSize: 10, color: "rgba(139,148,158,0.7)" }}>{action.due}</div>
+                {createError && (
+                  <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, fontSize: 12, color: C.red }}>
+                    {createError}
                   </div>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              style={{
-                marginTop: 10,
-                width: "100%",
-                padding: "9px",
-                background: "transparent",
-                border: `1.5px solid rgba(56,189,248,0.3)`,
-                borderRadius: 10,
-                fontSize: 12,
-                fontWeight: 700,
-                color: C.blue,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              + Add action
-            </button>
-          </Card>
-        </div>
-
-        {/* ── Timeline ── */}
-        <div style={{ margin: "16px 28px 0" }}>
-          <Card title="Intervention Timeline">
-            <div style={{ display: "flex", flexDirection: "column" as const }}>
-              {data.timeline.map((event, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 14,
-                    paddingBottom: i < data.timeline.length - 1 ? 20 : 0,
-                    position: "relative" as const,
-                  }}
-                >
-                  {/* Connector line */}
-                  {i < data.timeline.length - 1 && (
-                    <div
-                      style={{
-                        position: "absolute" as const,
-                        left: 15,
-                        top: 32,
-                        bottom: 0,
-                        width: 2,
-                        background: C.border,
-                      }}
+                )}
+                <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 5 }}>Reason *</div>
+                    <input
+                      type="text"
+                      value={newReason}
+                      onChange={(e) => setNewReason(e.target.value)}
+                      placeholder="e.g. Confidence floor hit 3×"
+                      style={{ width: "100%", padding: "9px 12px", background: "#0d1117", border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" as const }}
                     />
-                  )}
-                  {/* Dot */}
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "50%",
-                      background: event.dotBg,
-                      border: `1px solid ${C.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                      flexShrink: 0,
-                      position: "relative" as const,
-                      zIndex: 1,
-                    }}
-                  >
-                    {event.icon}
                   </div>
-                  {/* Body */}
-                  <div style={{ flex: 1, paddingTop: 4 }}>
-                    <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 4 }}>
-                      {event.date}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 4 }}>
-                      {event.title}
-                    </div>
-                    <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
-                      {event.detail}
-                    </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 5 }}>Skill code (optional)</div>
+                    <input
+                      type="text"
+                      value={newSkillCode}
+                      onChange={(e) => setNewSkillCode(e.target.value)}
+                      placeholder="e.g. fractions-division"
+                      style={{ width: "100%", padding: "9px 12px", background: "#0d1117", border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 5 }}>Teacher note (optional)</div>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Observations, suggested strategies…"
+                      rows={3}
+                      style={{ width: "100%", padding: "9px 12px", background: "#0d1117", border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontFamily: "system-ui", outline: "none", resize: "vertical" as const, boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={handleCreate}
+                      disabled={creating || !newReason.trim()}
+                      style={{ flex: 1, padding: "10px", background: creating || !newReason.trim() ? "rgba(56,189,248,0.4)" : C.blue, border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: "#0d1117", cursor: creating || !newReason.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                    >
+                      {creating ? "Creating…" : "Create intervention"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateForm(false)}
+                      style={{ padding: "10px 16px", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontWeight: 700, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
-              ))}
+              </div>
+            )}
+
+            {resolveError && (
+              <div style={{ margin: "12px 28px 0", padding: "10px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, fontSize: 13, color: C.red }}>
+                {resolveError}
+              </div>
+            )}
+
+            {/* Active interventions */}
+            <div style={{ margin: "16px 28px 0" }}>
+              <Card title={`Active Interventions (${activeInterventions.length})`}>
+                {activeInterventions.length === 0 ? (
+                  <div style={{ fontSize: 12, color: C.muted }}>No active interventions.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column" as const, gap: 12 }}>
+                    {activeInterventions.map((iv) => (
+                      <div
+                        key={iv.id}
+                        style={{
+                          padding: "14px 16px",
+                          background: "rgba(245,158,11,0.06)",
+                          border: "1px solid rgba(245,158,11,0.25)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                          <span style={{ fontSize: 20 }}>⚠️</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 3 }}>
+                              {iv.reason}
+                            </div>
+                            {iv.skillCode && (
+                              <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>
+                                Skill: {iv.skillCode}
+                              </div>
+                            )}
+                            <div style={{ fontSize: 11, color: C.muted }}>
+                              Opened: {fmtDate(iv.createdAt)} · {iv.interventionType}
+                            </div>
+                            {iv.teacherNote && (
+                              <div style={{ marginTop: 8, padding: "7px 10px", background: "rgba(56,189,248,0.07)", border: "1px solid rgba(56,189,248,0.15)", borderRadius: 8, fontSize: 11, color: "rgba(240,246,255,0.75)", lineHeight: 1.5 }}>
+                                {iv.teacherNote}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleResolve(iv.id)}
+                            disabled={resolvingId === iv.id}
+                            style={{
+                              padding: "7px 14px",
+                              background: resolvingId === iv.id ? "rgba(34,197,94,0.4)" : C.mint,
+                              border: "none",
+                              borderRadius: 8,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "#100b2e",
+                              cursor: resolvingId === iv.id ? "not-allowed" : "pointer",
+                              fontFamily: "inherit",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {resolvingId === iv.id ? "Resolving…" : "Mark resolved"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
-          </Card>
-        </div>
+
+            {/* Resolved interventions */}
+            {resolvedInterventions.length > 0 && (
+              <div style={{ margin: "16px 28px 0" }}>
+                <Card title={`Resolved (${resolvedInterventions.length})`}>
+                  <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
+                    {resolvedInterventions.map((iv) => (
+                      <div
+                        key={iv.id}
+                        style={{
+                          padding: "12px 14px",
+                          background: "rgba(255,255,255,0.02)",
+                          border: `1px solid ${C.border}`,
+                          borderRadius: 10,
+                          opacity: 0.75,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 14 }}>✅</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{iv.reason}</span>
+                          {iv.skillCode && (
+                            <span style={{ fontSize: 11, color: C.muted }}>· {iv.skillCode}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted }}>
+                          Opened {fmtDate(iv.createdAt)}
+                          {iv.resolvedAt ? ` · Resolved ${fmtDate(iv.resolvedAt)}` : ""}
+                        </div>
+                        {iv.resolutionNote && (
+                          <div style={{ marginTop: 6, fontSize: 11, color: C.muted, fontStyle: "italic" }}>
+                            {iv.resolutionNote}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </AppFrame>
   );
