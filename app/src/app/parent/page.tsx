@@ -147,6 +147,16 @@ function buildParentSkillAction(skillCode: string, displayName: string) {
   return `Keep practice short around ${displayName.toLowerCase()}.`;
 }
 
+function formatLastActive(lastSessionAt: string | null): string {
+  if (!lastSessionAt) return "Not started";
+  const diff = Date.now() - new Date(lastSessionAt).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
 function deriveStreakDays(recentSessions: ChildDashboard["recentSessions"]) {
   if (!recentSessions.length) return 0;
   const days = new Set(recentSessions.map((s) => new Date(s.startedAt).toDateString()));
@@ -1048,49 +1058,66 @@ export default function ParentAccessPage() {
             padding: "32px 36px 0",
           }}
         >
-          {/* ── Child selector (multi-child) ───────────────────────────────── */}
+          {/* ── Family Overview Strip (multi-child) ───────────────────────── */}
           {result.linkedChildren.length > 1 && (
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginBottom: "24px",
-                flexWrap: "wrap",
-              }}
-            >
-              {result.linkedChildren.map((child) => (
-                <button
-                  key={child.id}
-                  onClick={() => {
-                    setSelectedChildId(child.id);
-                    localStorage.setItem("wq_active_student_id", child.id);
-                  }}
-                  type="button"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "7px 16px",
-                    borderRadius: "20px",
-                    cursor: "pointer",
-                    border:
-                      activeChildId === child.id
-                        ? "2px solid #9b72ff"
-                        : `1.5px solid ${C.border}`,
-                    background:
-                      activeChildId === child.id
-                        ? "rgba(155,114,255,0.15)"
-                        : C.surface,
-                    font: "600 0.8rem system-ui",
-                    color:
-                      activeChildId === child.id ? C.violet : C.muted,
-                    fontFamily: "system-ui",
-                  }}
-                >
-                  <span>{getAvatarSymbol(child.avatarKey)}</span>
-                  {child.displayName}
-                </button>
-              ))}
+            <div style={{ marginBottom: "28px" }}>
+              <div style={{ font: "700 0.75rem system-ui", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>
+                Your children
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  overflowX: "auto",
+                  paddingBottom: "4px",
+                  scrollbarWidth: "none",
+                }}
+              >
+                {result.linkedChildren.map((child) => {
+                  const isActive = activeChildId === child.id;
+                  const childDash = result.childDashboards.find((d) => d.studentId === child.id) ?? null;
+                  const lastActive = formatLastActive(childDash?.lastSessionAt ?? null);
+                  const bandLabel = getBandLabel(child.launchBandCode);
+                  const avatar = getAvatarSymbol(child.avatarKey);
+                  return (
+                    <button
+                      key={child.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedChildId(child.id);
+                        localStorage.setItem("wq_active_student_id", child.id);
+                      }}
+                      style={{
+                        padding: "16px 14px",
+                        borderRadius: "18px",
+                        border: `2px solid ${isActive ? "#9b72ff" : "rgba(255,255,255,0.08)"}`,
+                        background: isActive ? "rgba(155,114,255,0.12)" : "rgba(255,255,255,0.03)",
+                        cursor: "pointer",
+                        minWidth: "130px",
+                        textAlign: "center",
+                        fontFamily: "system-ui",
+                        boxShadow: isActive ? "0 0 18px rgba(155,114,255,0.25)" : "none",
+                        transition: "border-color 0.15s, box-shadow 0.15s",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div style={{ fontSize: "1.8rem", marginBottom: "6px" }}>{avatar}</div>
+                      <div style={{ font: "700 0.85rem system-ui", color: isActive ? C.text : "rgba(240,246,255,0.8)", marginBottom: "3px", whiteSpace: "nowrap" }}>
+                        {child.displayName}
+                      </div>
+                      <div style={{ font: "600 0.68rem system-ui", color: getBandColor(child.launchBandCode), marginBottom: "6px" }}>
+                        {bandLabel}
+                      </div>
+                      <div style={{ font: "400 0.68rem system-ui", color: C.muted, marginBottom: "4px" }}>
+                        {lastActive}
+                      </div>
+                      <div style={{ font: "700 0.72rem system-ui", color: C.gold }}>
+                        ⭐ {child.totalPoints}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

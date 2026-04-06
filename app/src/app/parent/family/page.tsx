@@ -14,449 +14,324 @@ const C = {
   text: "#f0f6ff",
   muted: "rgba(255,255,255,0.5)",
   surface: "rgba(255,255,255,0.04)",
-  border: "rgba(155,114,255,0.15)",
+  border: "rgba(255,255,255,0.06)",
 } as const;
 
-type Tab = "overview" | "multi" | "settings";
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-type PinResetState = {
-  studentId: string | null;
-  pin: string;
-  confirm: string;
-  loading: boolean;
-  error: string;
-  success: boolean;
-};
-
-// ── Band helpers ──────────────────────────────────────────────────────────────
-function bandFriendly(code: string): string {
-  if (code === "PREK" || code === "P0") return "Pre-K (P0)";
-  if (code === "K1" || code === "P1") return "K–1 (P1)";
-  if (code === "G23" || code === "P2") return "G2–3 (P2)";
-  if (code === "G45" || code === "P3") return "G4–5 (P3)";
-  return code;
+interface ChildDashboard {
+  studentId: string;
+  completedSessions: number;
+  totalTimeSpentMs: number;
+  lastSessionAt: string | null;
+  recentSessions: {
+    id: string;
+    startedAt: string;
+  }[];
 }
 
-function bandColorFor(code: string): string {
-  if (code === "PREK" || code === "P0") return "#ffd166";
-  if (code === "K1" || code === "P1") return "#9b72ff";
-  if (code === "G23" || code === "P2") return "#58e8c1";
-  if (code === "G45" || code === "P3") return "#ff7b6b";
-  return "#9b72ff";
-}
-
-function bandEmoji(code: string): string {
-  if (code === "PREK" || code === "P0") return "🦁";
-  if (code === "K1" || code === "P1") return "🦊";
-  if (code === "G23" || code === "P2") return "🐸";
-  if (code === "G45" || code === "P3") return "🦅";
-  return "🌟";
-}
-
-// ── API types ─────────────────────────────────────────────────────────────────
 interface LinkedChild {
   id: string;
   displayName: string;
   username: string;
+  avatarKey: string;
   launchBandCode: string;
-  currentLevel: number;
   totalPoints: number;
+  currentLevel: number;
   badgeCount: number;
+  trophyCount: number;
 }
 
 interface ParentSession {
   guardian: { id: string; username: string; displayName: string };
   linkedChildren: LinkedChild[];
+  childDashboards: ChildDashboard[];
 }
 
-export default function ParentFamilyPage() {
-  const [tab, setTab] = useState<Tab>("overview");
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function formatLastActive(lastSessionAt: string | null): string {
+  if (!lastSessionAt) return "Not started";
+  const diff = Date.now() - new Date(lastSessionAt).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
+function getAvatarSymbol(avatarKey: string): string {
+  if (avatarKey.includes("bunny")) return "🐰";
+  if (avatarKey.includes("bear")) return "🐻";
+  if (avatarKey.includes("lion")) return "🦁";
+  if (avatarKey.includes("fox")) return "🦊";
+  if (avatarKey.includes("panda")) return "🐼";
+  if (avatarKey.includes("owl")) return "🦉";
+  return "✨";
+}
+
+function getBandColor(bandCode: string): string {
+  if (bandCode === "PREK" || bandCode === "P0") return "#ffd166";
+  if (bandCode === "K1" || bandCode === "P1") return "#9b72ff";
+  if (bandCode === "G23" || bandCode === "P2") return "#58e8c1";
+  if (bandCode === "G45" || bandCode === "P3") return "#ff7b6b";
+  return "#9b72ff";
+}
+
+function getBandLabel(bandCode: string): string {
+  if (bandCode === "PREK" || bandCode === "P0") return "Pre-K";
+  if (bandCode === "K1" || bandCode === "P1") return "K–1";
+  if (bandCode === "G23" || bandCode === "P2") return "G2–3";
+  if (bandCode === "G45" || bandCode === "P3") return "G4–5";
+  if (bandCode.startsWith("pre")) return "Pre-K";
+  if (bandCode.startsWith("k1")) return "K–1";
+  if (bandCode.startsWith("g2") || bandCode.startsWith("g3")) return "G2–3";
+  if (bandCode.startsWith("g4") || bandCode.startsWith("g5")) return "G4–5";
+  return bandCode;
+}
+
+function deriveFamilyStreak(dashboards: ChildDashboard[]): number {
+  // Collect all unique session dates across all children
+  const allDays = new Set<string>();
+  for (const dash of dashboards) {
+    for (const session of dash.recentSessions) {
+      allDays.add(new Date(session.startedAt).toDateString());
+    }
+  }
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (allDays.has(d.toDateString())) {
+      streak++;
+    } else if (i > 0) {
+      break;
+    }
+  }
+  return streak;
+}
+
+function sessionsThisWeek(dashboards: ChildDashboard[]): number {
+  const now = Date.now();
+  const weekMs = 7 * 86400000;
+  let count = 0;
+  for (const dash of dashboards) {
+    for (const session of dash.recentSessions) {
+      if (now - new Date(session.startedAt).getTime() < weekMs) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
+export default function FamilyHubPage() {
   const [session, setSession] = useState<ParentSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [topSkills, setTopSkills] = useState<{ name: string; pct: number }[]>([]);
-  const [pinReset, setPinReset] = useState<PinResetState>({
-    studentId: null,
-    pin: "",
-    confirm: "",
-    loading: false,
-    error: "",
-    success: false,
-  });
 
   useEffect(() => {
     fetch("/api/parent/session")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data: ParentSession | null) => {
-        setSession(data);
-        // Fetch skills for the first linked child
-        const childId = data?.linkedChildren?.[0]?.id;
-        if (childId) {
-          fetch(`/api/parent/skills?studentId=${encodeURIComponent(childId)}`)
-            .then((r) => r.ok ? r.json() : null)
-            .then((skillData: { skills?: { skillName: string; masteryPct: number }[] } | null) => {
-              const top = (skillData?.skills ?? [])
-                .filter((s) => s.masteryPct > 0)
-                .sort((a, b) => b.masteryPct - a.masteryPct)
-                .slice(0, 4)
-                .map((s) => ({ name: s.skillName, pct: s.masteryPct }));
-              setTopSkills(top);
-            })
-            .catch(() => {/* ignore */});
-        }
-      })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: ParentSession | null) => setSession(data))
       .catch(() => {/* ignore */})
       .finally(() => setLoading(false));
   }, []);
 
   const children = session?.linkedChildren ?? [];
-  const firstChild = children[0] ?? null;
-  const guardianName = session?.guardian?.displayName ?? "there";
-
-  function openPinReset(studentId: string) {
-    setPinReset({ studentId, pin: "", confirm: "", loading: false, error: "", success: false });
-  }
-
-  function closePinReset() {
-    setPinReset((s) => ({ ...s, studentId: null, error: "", success: false }));
-  }
-
-  async function submitPinReset() {
-    const { studentId, pin, confirm } = pinReset;
-    if (!/^\d{4}$/.test(pin)) {
-      setPinReset((s) => ({ ...s, error: "PIN must be exactly 4 digits." }));
-      return;
-    }
-    if (pin !== confirm) {
-      setPinReset((s) => ({ ...s, error: "PINs do not match." }));
-      return;
-    }
-    setPinReset((s) => ({ ...s, loading: true, error: "" }));
-    try {
-      const res = await fetch("/api/parent/reset-child-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, newPin: pin }),
-      });
-      const data = await res.json() as { success?: boolean; error?: string };
-      if (!res.ok) {
-        setPinReset((s) => ({ ...s, loading: false, error: data.error ?? "Reset failed." }));
-      } else {
-        setPinReset((s) => ({ ...s, loading: false, success: true }));
-      }
-    } catch {
-      setPinReset((s) => ({ ...s, loading: false, error: "Network error." }));
-    }
-  }
-
-  const activePinChild = session?.linkedChildren.find((c) => c.id === pinReset.studentId);
+  const dashboards = session?.childDashboards ?? [];
+  const totalStars = children.reduce((sum, c) => sum + c.totalPoints, 0);
+  const totalBadges = children.reduce((sum, c) => sum + c.badgeCount, 0);
+  const familyStreak = deriveFamilyStreak(dashboards);
+  const weekSessions = sessionsThisWeek(dashboards);
 
   return (
     <AppFrame audience="parent" currentPath="/parent/family">
-      {/* PIN Reset Modal */}
-      {pinReset.studentId && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(16,11,46,0.88)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={closePinReset}>
-          <div style={{ background: "#1a1240", borderRadius: 20, padding: 32, width: "100%", maxWidth: 380, border: "1px solid rgba(155,114,255,0.3)" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>🔐 Reset PIN</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>
-              {activePinChild ? `Set a new 4-digit PIN for ${activePinChild.displayName}` : "Set a new 4-digit PIN"}
-            </div>
-            {pinReset.success ? (
-              <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.mint, marginBottom: 8 }}>PIN updated!</div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>
-                  {activePinChild?.displayName ?? "Your child"} can now sign in with their new PIN.
-                </div>
-                <button onClick={closePinReset} style={{ padding: "12px 32px", background: C.violet, color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>Done</button>
-              </div>
-            ) : (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>New PIN</label>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={pinReset.pin}
-                    onChange={(e) => setPinReset((s) => ({ ...s, pin: e.target.value.replace(/\D/g, "").slice(0, 4), error: "" }))}
-                    style={{ width: "100%", padding: "12px 14px", background: "rgba(255,255,255,0.06)", border: `1px solid ${pinReset.error ? C.coral : "rgba(255,255,255,0.1)"}`, borderRadius: 10, color: C.text, fontSize: 20, letterSpacing: 8, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" }}
-                  />
-                </div>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>Confirm PIN</label>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="••••"
-                    value={pinReset.confirm}
-                    onChange={(e) => setPinReset((s) => ({ ...s, confirm: e.target.value.replace(/\D/g, "").slice(0, 4), error: "" }))}
-                    style={{ width: "100%", padding: "12px 14px", background: "rgba(255,255,255,0.06)", border: `1px solid ${pinReset.error ? C.coral : "rgba(255,255,255,0.1)"}`, borderRadius: 10, color: C.text, fontSize: 20, letterSpacing: 8, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" }}
-                  />
-                </div>
-                {pinReset.error && (
-                  <div style={{ background: "rgba(255,123,107,0.12)", border: "1px solid rgba(255,123,107,0.3)", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.coral, marginBottom: 16 }}>
-                    {pinReset.error}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={closePinReset} style={{ flex: 1, padding: 12, background: "rgba(255,255,255,0.06)", color: C.muted, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>Cancel</button>
-                  <button onClick={submitPinReset} disabled={pinReset.loading || pinReset.pin.length !== 4 || pinReset.confirm.length !== 4} style={{ flex: 2, padding: 12, background: pinReset.loading ? "rgba(155,114,255,0.4)" : C.violet, color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: pinReset.loading ? "not-allowed" : "pointer", fontFamily: "system-ui" }}>
-                    {pinReset.loading ? "Saving…" : "Save new PIN"}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px 60px" }}>
+      <div style={{ minHeight: "100vh", background: C.base, fontFamily: "system-ui", paddingBottom: "80px" }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 4 }}>Parent</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>
-            👋 Good morning, {loading ? "…" : (firstChild ? firstChild.displayName + "'s family" : guardianName)}
-          </h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>{(() => { const now = new Date(); const day = now.getDay(); const mon = new Date(now); mon.setDate(now.getDate() - ((day + 6) % 7)); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); const fmt = (d: Date) => d.toLocaleDateString("en", { month: "long", day: "numeric" }); return `Week of ${fmt(mon)} – ${fmt(sun)}, ${now.getFullYear()}`; })()}</p>
+        <div style={{ background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${C.border}`, padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg, #9b72ff, #5a30d0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
+              🌟
+            </div>
+            <span style={{ font: "800 1.1rem system-ui", background: "linear-gradient(135deg, #c3aaff, #9b72ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+              WonderQuest
+            </span>
+          </div>
+          <Link href="/parent" style={{ font: "600 0.8rem system-ui", color: C.muted, textDecoration: "none" }}>← Back to Dashboard</Link>
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-          {(["overview", "multi", "settings"] as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 16px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "system-ui", background: tab === t ? C.violet : "rgba(255,255,255,0.06)", color: tab === t ? "#fff" : C.muted }}>
-              {t === "overview" ? "Overview" : t === "multi" ? "All Children" : "Settings"}
-            </button>
-          ))}
-        </div>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 36px 0" }}>
 
-        {tab === "overview" && (
-          <div style={{ maxWidth: 760 }}>
-            {/* Child hero card */}
-            {loading && (
-              <div style={{ background: "rgba(255,255,255,0.04)", border: C.border, borderWidth: 1, borderStyle: "solid", borderRadius: 20, padding: 28, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120 }}>
-                <span style={{ color: C.muted, fontSize: 13 }}>Loading…</span>
-              </div>
-            )}
-            {!loading && firstChild && (() => {
-              const emoji = bandEmoji(firstChild.launchBandCode);
-              const friendly = bandFriendly(firstChild.launchBandCode);
-              const bColor = bandColorFor(firstChild.launchBandCode);
-              return (
-                <div style={{ background: "rgba(255,255,255,0.04)", border: C.border, borderWidth: 1, borderStyle: "solid", borderRadius: 20, padding: 28, marginBottom: 20, display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 24, alignItems: "center" }}>
-                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, rgba(155,114,255,0.2), rgba(90,48,208,0.3))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, flexShrink: 0 }}>{emoji}</div>
-                  <div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: C.text, marginBottom: 4 }}>{firstChild.displayName}</div>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 12px", borderRadius: 16, background: `${bColor}1a`, border: `1.5px solid ${bColor}4d`, fontSize: 11, fontWeight: 700, color: bColor, marginBottom: 12 }}>
-                      {friendly} · Level {firstChild.currentLevel}
-                    </div>
-                    <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                      {[[`⭐ ${firstChild.totalPoints}`, "Total stars", C.gold], [`🏅 ${firstChild.badgeCount}`, "Badges earned", C.violet]].map(([val, label, color]) => (
-                        <div key={label as string}>
-                          <div style={{ fontSize: 22, fontWeight: 900, color: color as string }}>{val}</div>
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <Link href="/parent/report" style={{ padding: "10px 18px", background: C.violet, color: "#fff", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", textDecoration: "none", textAlign: "center" }}>📊 See full report →</Link>
-                    <button onClick={() => openPinReset(firstChild.id)} style={{ padding: "9px 18px", background: "rgba(255,255,255,0.04)", color: C.muted, border: `1.5px solid rgba(255,255,255,0.1)`, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui", whiteSpace: "nowrap" }}>🔐 Reset PIN</button>
-                  </div>
-                </div>
-              );
-            })()}
-            {!loading && !firstChild && (
-              <div style={{ background: "rgba(255,255,255,0.04)", border: C.border, borderWidth: 1, borderStyle: "solid", borderRadius: 20, padding: 28, marginBottom: 20, color: C.muted, fontSize: 13 }}>
-                No children linked yet. Add a child to get started.
-              </div>
-            )}
-
-            {/* Quick stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-              {[
-                { icon: "⭐", val: loading ? "—" : String(firstChild?.totalPoints ?? 0), label: "Total stars", delta: "all time", up: true },
-                { icon: "🏅", val: loading ? "—" : String(firstChild?.badgeCount ?? 0), label: "Badges earned", delta: "all time", up: true },
-                { icon: "📚", val: loading ? "—" : String(firstChild?.currentLevel ?? 0), label: "Current level", delta: "keep going!", up: true },
-                { icon: "🌟", val: loading ? "—" : String(children.length), label: "Children linked", delta: "on family plan", up: false },
-              ].map((s) => (
-                <div key={s.label} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{ fontSize: 20, marginBottom: 10 }}>{s.icon}</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: C.text, display: "block", marginBottom: 2 }}>{s.val}</div>
-                  <div style={{ fontSize: 11, color: C.muted }}>{s.label}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, color: s.up ? C.mint : C.muted }}>{s.delta}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* 2-col: skills + streak + activity */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 20 }}>
-              {/* Skills */}
-              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 22, border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Skills practiced this week</span>
-                  <Link href="/parent/skills/phonics-blending" style={{ fontSize: 11, fontWeight: 700, color: C.violet, textDecoration: "none" }}>See all →</Link>
-                </div>
-                {topSkills.length > 0
-                  ? topSkills.map(({ name, pct }, idx) => (
-                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-                      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, background: idx < 2 ? C.violet : C.gold, borderRadius: 3 }} />
-                      </div>
-                      <span style={{ fontSize: 11, color: C.muted, width: 32, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
-                    </div>
-                  ))
-                  : (loading
-                    ? <div style={{ fontSize: 12, color: C.muted, padding: "8px 0" }}>Loading skills…</div>
-                    : <div style={{ fontSize: 12, color: C.muted, padding: "8px 0" }}>No skills practiced yet.</div>
-                  )
-                }
-                <div style={{ marginTop: 14, padding: "10px 12px", background: "rgba(88,232,193,0.08)", borderRadius: 8, border: "1px solid rgba(88,232,193,0.2)", fontSize: 12, color: C.mint, lineHeight: 1.4 }}>
-                  💡 <strong>Support tip:</strong> {firstChild ? `${firstChild.displayName} is building great skills` : "Keep practicing"}{topSkills[0] ? ` — keep practicing ${topSkills[0].name.toLowerCase()} together!` : " — ask your child to show you what they learned today!"}
-                </div>
-              </div>
-
-              {/* Streak + Activity */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ background: "linear-gradient(135deg, #1a1240, #2a1860)", borderRadius: 16, padding: 22, color: C.text }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(192,176,240,0.8)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Current streak</div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 8 }}>
-                    <span style={{ fontSize: 36, fontWeight: 900, color: C.gold }}>🔥 {loading ? "—" : (firstChild ? "…" : "0")}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>day streak</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 5 }}>
-                    {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                      <div key={i} style={{ width: 28, height: 28, borderRadius: 6, background: i < 4 ? "rgba(255,209,102,0.15)" : i === 4 ? C.gold : "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: i < 5 ? (i === 4 ? "#1a1240" : C.gold) : "rgba(255,255,255,0.3)" }}>{d}</div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 22, border: "1px solid rgba(255,255,255,0.06)", flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent activity</div>
-                  {[
-                    { dot: C.gold, text: <>{firstChild?.displayName ?? "Your child"} is on a learning streak!</>, time: "Today" },
-                    { dot: C.violet, text: <>{firstChild?.displayName ?? "Your child"} has earned {firstChild?.totalPoints ?? 0} total stars</>, time: "This week" },
-                    { dot: C.mint, text: <>{firstChild?.displayName ?? "Your child"} reached Level {firstChild?.currentLevel ?? "—"}</>, time: "Recently" },
-                  ].map((a, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingBottom: i < 2 ? 12 : 0, borderBottom: i < 2 ? "1px solid rgba(155,114,255,0.08)" : "none", marginBottom: i < 2 ? 12 : 0 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: a.dot, flexShrink: 0, marginTop: 4 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.4 }}>{a.text}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{a.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          {/* Page title */}
+          <div style={{ marginBottom: "28px" }}>
+            <div style={{ font: "700 0.72rem system-ui", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>Family Hub</div>
+            <h1 style={{ font: "800 1.8rem system-ui", color: C.text, margin: 0, marginBottom: "4px" }}>
+              👨‍👩‍👧 {loading ? "Your Family" : (session?.guardian.displayName ? `${session.guardian.displayName}'s Family` : "Your Family")}
+            </h1>
+            <p style={{ font: "400 0.88rem system-ui", color: C.muted, margin: 0 }}>All children at a glance — stats, activity, and quick actions.</p>
           </div>
-        )}
 
-        {tab === "multi" && (
-          <div style={{ maxWidth: 760 }}>
-            {/* Family stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
-              {[
-                ["⭐", loading ? "—" : String(children.reduce((sum, c) => sum + c.totalPoints, 0)), "Total stars (family)"],
-                ["🏅", loading ? "—" : String(children.reduce((sum, c) => sum + c.badgeCount, 0)), "Badges combined"],
-                ["👶", loading ? "—" : String(children.length), "Children linked"],
-              ].map(([icon, val, label]) => (
-                <div key={label as string} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{ fontSize: 20, marginBottom: 10 }}>{icon}</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: C.text, marginBottom: 2 }}>{val}</div>
-                  <div style={{ fontSize: 11, color: C.muted }}>{label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Child cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginBottom: 24 }}>
-              {loading && (
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", color: C.muted, fontSize: 13 }}>
-                  Loading…
-                </div>
-              )}
-              {children.map((child) => {
-                const emoji = bandEmoji(child.launchBandCode);
-                const bColor = bandColorFor(child.launchBandCode);
-                const friendly = bandFriendly(child.launchBandCode);
-                const maxPoints = Math.max(...children.map((c) => c.totalPoints), 1);
-                const barWidth = `${Math.round((child.totalPoints / maxPoints) * 100)}%`;
-                return (
-                  <div key={child.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(155,114,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{emoji}</div>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{child.displayName}</div>
-                        <div style={{ fontSize: 11, color: bColor }}>{friendly} · Level {child.currentLevel}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
-                      {[[`⭐ ${child.totalPoints}`, "Stars", C.gold], [`🏅 ${child.badgeCount}`, "Badges", bColor], [`Lv ${child.currentLevel}`, "Level", C.coral]].map(([val, label, color]) => (
-                        <div key={label as string}>
-                          <div style={{ fontSize: 18, fontWeight: 900, color: color as string }}>{val}</div>
-                          <div style={{ fontSize: 11, color: C.muted }}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, marginBottom: 12 }}>
-                      <div style={{ height: "100%", width: barWidth, background: bColor, borderRadius: 2 }} />
-                    </div>
-                    <Link href="/parent/report" style={{ display: "block", padding: "10px 0", background: bColor, color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
-                      See {child.displayName}&apos;s report →
-                    </Link>
-                    <button
-                      onClick={() => openPinReset(child.id)}
-                      style={{ display: "block", width: "100%", marginTop: 8, padding: "9px 0", background: "rgba(255,255,255,0.04)", color: C.muted, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}
-                    >
-                      🔐 Reset PIN
-                    </button>
-                  </div>
-                );
-              })}
-              {!loading && children.length < 3 && (
-                <div style={{ background: "rgba(155,114,255,0.04)", borderRadius: 16, padding: 20, border: "2px dashed rgba(155,114,255,0.2)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", minHeight: 130 }}>
-                  <div style={{ fontSize: 32, opacity: 0.5 }}>👶</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.violet }}>Add another child</div>
-                  <div style={{ fontSize: 11, color: C.muted }}>Family plan: unlimited children</div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {tab === "settings" && (
-          <div style={{ maxWidth: 520 }}>
-            {["Notifications", "Practice", "Privacy"].map((section) => (
-              <div key={section} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.06)", marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{section}</div>
-                {[["Weekly report email", "Every Sunday morning"], ["Badge alerts", `When ${firstChild?.displayName ?? "your child"} earns a new badge`], ["Streak reminder", `If ${firstChild?.displayName ?? "your child"} misses a day`]].map(([label, sub]) => (
-                  <div key={label as string} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{label}</div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{sub}</div>
-                    </div>
-                    <div style={{ width: 40, height: 22, borderRadius: 11, background: C.violet, cursor: "pointer", position: "relative", flexShrink: 0 }}>
-                      <div style={{ position: "absolute", left: 20, top: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
-                    </div>
-                  </div>
-                ))}
+          {/* Combined family stats */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
+            {[
+              { icon: "⭐", val: loading ? "—" : String(totalStars), label: "Total stars", color: C.gold },
+              { icon: "🏅", val: loading ? "—" : String(totalBadges), label: "Badges combined", color: C.violet },
+              { icon: "🔥", val: loading ? "—" : `${familyStreak}d`, label: "Family streak", color: C.coral },
+              { icon: "📚", val: loading ? "—" : String(weekSessions), label: "Sessions this week", color: C.mint },
+            ].map((s) => (
+              <div key={s.label} style={{ background: C.surface, borderRadius: "14px", padding: "20px", border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: "1.2rem", marginBottom: "10px" }}>{s.icon}</div>
+                <div style={{ font: "900 1.6rem system-ui", color: C.text, marginBottom: "2px" }}>{s.val}</div>
+                <div style={{ font: "400 0.72rem system-ui", color: C.muted }}>{s.label}</div>
+                <div style={{ width: "24px", height: "3px", borderRadius: "2px", background: s.color, marginTop: "10px" }} />
               </div>
             ))}
           </div>
-        )}
 
-        {/* Footer nav */}
-        <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[
-            { href: "/parent", label: "← Dashboard" },
-            { href: "/parent/report", label: "Weekly Report" },
-            { href: "/parent/practice", label: "Practice Plan" },
-            { href: "/parent/notifications", label: "Notifications" },
-          ].map((l) => (
-            <Link key={l.href} href={l.href} style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>{l.label}</Link>
-          ))}
+          {/* Children grid */}
+          <div style={{ marginBottom: "32px" }}>
+            <div style={{ font: "700 0.75rem system-ui", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "14px" }}>
+              {loading ? "Children" : `${children.length} ${children.length === 1 ? "Child" : "Children"}`}
+            </div>
+
+            {loading && (
+              <div style={{ background: C.surface, borderRadius: "16px", padding: "28px", border: `1px solid ${C.border}`, color: C.muted, fontSize: "0.88rem" }}>Loading…</div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
+              {children.map((child) => {
+                const dash = dashboards.find((d) => d.studentId === child.id) ?? null;
+                const lastActive = formatLastActive(dash?.lastSessionAt ?? null);
+                const avatar = getAvatarSymbol(child.avatarKey);
+                const bandColor = getBandColor(child.launchBandCode);
+                const bandLabel = getBandLabel(child.launchBandCode);
+                const maxPoints = Math.max(...children.map((c) => c.totalPoints), 1);
+                const barPct = Math.round((child.totalPoints / maxPoints) * 100);
+                return (
+                  <div
+                    key={child.id}
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      borderRadius: "18px",
+                      padding: "24px",
+                      border: `1px solid rgba(255,255,255,0.07)`,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0",
+                    }}
+                  >
+                    {/* Avatar + name */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+                      <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: `${bandColor}1a`, border: `2px solid ${bandColor}4d`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.7rem", flexShrink: 0 }}>
+                        {avatar}
+                      </div>
+                      <div>
+                        <div style={{ font: "700 1rem system-ui", color: C.text, marginBottom: "3px" }}>{child.displayName}</div>
+                        <div style={{ display: "inline-block", padding: "2px 10px", borderRadius: "12px", background: `${bandColor}1a`, border: `1.5px solid ${bandColor}4d`, font: "700 0.68rem system-ui", color: bandColor }}>
+                          {bandLabel} · Lv {child.currentLevel}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats row */}
+                    <div style={{ display: "flex", gap: "16px", marginBottom: "14px" }}>
+                      {[
+                        [`⭐ ${child.totalPoints}`, "Stars", C.gold],
+                        [`🏅 ${child.badgeCount}`, "Badges", C.violet],
+                        [lastActive, "Last active", C.muted],
+                      ].map(([val, label, color]) => (
+                        <div key={label as string}>
+                          <div style={{ font: "700 0.82rem system-ui", color: color as string }}>{val}</div>
+                          <div style={{ font: "400 0.65rem system-ui", color: C.muted, marginTop: "1px" }}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Stars bar */}
+                    <div style={{ height: "4px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", marginBottom: "16px" }}>
+                      <div style={{ height: "100%", width: `${barPct}%`, background: bandColor, borderRadius: "2px" }} />
+                    </div>
+
+                    {/* CTA */}
+                    <Link
+                      href="/parent/report"
+                      style={{
+                        display: "block",
+                        padding: "10px 0",
+                        background: `${bandColor}22`,
+                        border: `1.5px solid ${bandColor}55`,
+                        color: bandColor,
+                        borderRadius: "10px",
+                        font: "600 0.8rem system-ui",
+                        textAlign: "center",
+                        textDecoration: "none",
+                      }}
+                    >
+                      📊 See {child.displayName}&apos;s report →
+                    </Link>
+                  </div>
+                );
+              })}
+
+              {/* Add another child card */}
+              {!loading && (
+                <Link
+                  href="/parent?addChild=1"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "10px",
+                    padding: "28px 20px",
+                    background: "rgba(155,114,255,0.04)",
+                    borderRadius: "18px",
+                    border: "2px dashed rgba(155,114,255,0.25)",
+                    textDecoration: "none",
+                    minHeight: "180px",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s",
+                  }}
+                >
+                  <div style={{ fontSize: "2rem", opacity: 0.5 }}>👶</div>
+                  <div style={{ font: "700 0.88rem system-ui", color: C.violet }}>Add another child</div>
+                  <div style={{ font: "400 0.72rem system-ui", color: C.muted, textAlign: "center" }}>Family plan: unlimited children</div>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Family streak detail */}
+          {!loading && dashboards.length > 0 && (
+            <div style={{ background: "linear-gradient(135deg, #1a1240, #2a1860)", borderRadius: "18px", padding: "24px", marginBottom: "28px", border: "1px solid rgba(155,114,255,0.15)" }}>
+              <div style={{ font: "700 0.75rem system-ui", color: "rgba(192,176,240,0.7)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>
+                Family activity streak
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "12px" }}>
+                <span style={{ font: "900 2.2rem system-ui", color: C.gold }}>🔥 {familyStreak}</span>
+                <span style={{ font: "700 1rem system-ui", color: C.gold }}>day{familyStreak !== 1 ? "s" : ""}</span>
+              </div>
+              <p style={{ font: "400 0.82rem system-ui", color: C.muted, margin: 0 }}>
+                A family streak counts any day where at least one child has an active learning session. Keep it going!
+              </p>
+            </div>
+          )}
+
+          {/* Footer nav */}
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            {[
+              { href: "/parent", label: "← Dashboard" },
+              { href: "/parent/report", label: "Weekly Report" },
+              { href: "/parent/practice", label: "Practice Plan" },
+              { href: "/parent/notifications", label: "Notifications" },
+            ].map((l) => (
+              <Link key={l.href} href={l.href} style={{ font: "600 0.8rem system-ui", color: C.violet, textDecoration: "none" }}>{l.label}</Link>
+            ))}
+          </div>
         </div>
       </div>
     </AppFrame>
