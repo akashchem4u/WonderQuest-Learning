@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../../teacher-gate";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -149,6 +152,19 @@ export default function SkillDrilldownPage() {
   const params = useParams();
   const skillCode = typeof params.skillCode === "string" ? params.skillCode : "default";
   const skill = getSkillData(skillCode);
+
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/skills">

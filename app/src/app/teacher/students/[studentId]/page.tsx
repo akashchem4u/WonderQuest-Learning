@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../../teacher-gate";
 
 // ---------------------------------------------------------------------------
 // Colour palette
@@ -168,12 +169,16 @@ export default function TeacherStudentDetailPage() {
   const studentId = params?.studentId as string | undefined;
   const teacherId = getTeacherId();
 
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [student, setStudent] = useState<StudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [noteExpanded, setNoteExpanded] = useState(false);
 
   useEffect(() => {
+    if (!authed) return;
     if (!studentId) return;
     setLoading(true);
     setError(null);
@@ -187,7 +192,17 @@ export default function TeacherStudentDetailPage() {
         setError(e instanceof Error ? e.message : "Failed to load student");
       })
       .finally(() => setLoading(false));
-  }, [studentId]);
+  }, [studentId, authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   if (loading) {
     return (

@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -74,6 +75,9 @@ export default function InterventionDetailPage() {
   const params = useParams();
   const id = typeof params?.id === "string" ? params.id : "";
 
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intervention, setIntervention] = useState<ApiIntervention | null>(null);
@@ -82,6 +86,7 @@ export default function InterventionDetailPage() {
   const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
 
     async function load() {
@@ -119,7 +124,7 @@ export default function InterventionDetailPage() {
     }
 
     void load();
-  }, [id]);
+  }, [id, authed]);
 
   const toggleAction = (idx: number) => {
     setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, done: !a.done } : a)));
@@ -143,6 +148,16 @@ export default function InterventionDetailPage() {
     } finally {
       setResolving(false);
     }
+  }
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
   }
 
   const isActive = intervention?.status === "active";

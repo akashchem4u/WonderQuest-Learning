@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../../teacher-gate";
 
 // ---------------------------------------------------------------------------
 // Colour palette
@@ -78,6 +79,9 @@ export default function TeacherInterventionDetailPage() {
   const studentId = (params?.studentId as string | undefined) ?? "";
   const teacherId = getTeacherId();
 
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -95,6 +99,7 @@ export default function TeacherInterventionDetailPage() {
   const [resolveError, setResolveError] = useState<string | null>(null);
 
   function fetchInterventions() {
+    if (!authed) return;
     setLoading(true);
     setFetchError(null);
     fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`)
@@ -113,7 +118,7 @@ export default function TeacherInterventionDetailPage() {
   useEffect(() => {
     if (studentId) fetchInterventions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [studentId]);
+  }, [studentId, authed]);
 
   async function handleCreate() {
     if (!newReason.trim()) return;
@@ -173,6 +178,16 @@ export default function TeacherInterventionDetailPage() {
 
   function fmtDate(iso: string) {
     return new Date(iso).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
   }
 
   const activeInterventions = interventions.filter((iv) => iv.status === "active");
