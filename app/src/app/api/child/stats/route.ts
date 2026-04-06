@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const { studentId } = await requireChildAccessSession(request);
     const { db } = await import("@/lib/db");
 
-    const [prog, sessions, masteryRes] = await Promise.all([
+    const [prog, sessions, masteryRes, profileRes, lastSkillRes] = await Promise.all([
       db.query(
         `select total_points, current_level, badge_count, trophy_count
          from public.progression_states where student_id = $1`,
@@ -23,6 +23,20 @@ export async function GET(request: NextRequest) {
         `select count(*) as mastered_count
          from public.student_skill_mastery
          where student_id = $1 and mastery_score >= 80`,
+        [studentId],
+      ),
+      db.query(
+        `select display_name, coalesce(interests, '{}') as interests
+         from public.student_profiles where id = $1`,
+        [studentId],
+      ),
+      db.query(
+        `select sk.display_name as skill_name
+         from public.student_skill_mastery ssm
+         join public.skills sk on sk.id = ssm.skill_id
+         where ssm.student_id = $1
+         order by ssm.last_seen_at desc nulls last
+         limit 1`,
         [studentId],
       ),
     ]);
@@ -48,6 +62,9 @@ export async function GET(request: NextRequest) {
     const p = prog.rows[0] ?? {};
     const last = sessions.rows[0];
     const masteredCount = Number(masteryRes.rows[0]?.mastered_count ?? 0);
+    const displayName = (profileRes.rows[0]?.display_name as string | undefined) ?? null;
+    const interests: string[] = (profileRes.rows[0]?.interests as string[] | undefined) ?? [];
+    const lastSkillName = (lastSkillRes.rows[0]?.skill_name as string | undefined) ?? null;
 
     return NextResponse.json({
       totalPoints: Number(p.total_points ?? 0),
@@ -56,6 +73,9 @@ export async function GET(request: NextRequest) {
       trophyCount: Number(p.trophy_count ?? 0),
       streakDays: streak,
       masteredSkillsCount: masteredCount,
+      displayName,
+      interests,
+      lastSkillName,
       lastSession: last
         ? {
             correctAnswers: Number(last.correct_answers ?? 0),
@@ -72,6 +92,9 @@ export async function GET(request: NextRequest) {
       trophyCount: 0,
       streakDays: 0,
       masteredSkillsCount: 0,
+      displayName: null,
+      interests: [],
+      lastSkillName: null,
       lastSession: null,
     });
   }
