@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
@@ -31,7 +31,8 @@ const LOCK_DURATION_MS = 30_000;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ChildPinPage() {
+// Inner component — must be inside <Suspense> because it calls useSearchParams
+function ChildPinInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pin, setPin] = useState<string[]>([]);
@@ -157,11 +158,10 @@ export default function ChildPinPage() {
   const padDisabled = pinState === "checking" || pinState === "complete" || pinState === "locked";
 
   return (
-    <AppFrame audience="kid" currentPath="/child">
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#0a0820",
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0a0820",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -420,7 +420,29 @@ export default function ChildPinPage() {
             50% { opacity: 0.4; }
           }
         `}</style>
-      </div>
+    </div>
+  );
+}
+
+export default function ChildPinPage() {
+  return (
+    <AppFrame audience="kid" currentPath="/child">
+      <Suspense fallback={
+        <div style={{
+          minHeight: "100vh",
+          background: "#0a0820",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#9b72ff",
+          fontSize: 18,
+          fontFamily: "system-ui",
+        }}>
+          🔑 Loading…
+        </div>
+      }>
+        <ChildPinInner />
+      </Suspense>
     </AppFrame>
   );
 }
