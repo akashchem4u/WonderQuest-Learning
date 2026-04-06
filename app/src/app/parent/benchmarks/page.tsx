@@ -1,25 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Palette ──────────────────────────────────────────────────────────────────
+const C = {
+  base: "#100b2e",
+  violet: "#9b72ff",
+  mint: "#58e8c1",
+  gold: "#ffd166",
+  coral: "#ff7b6b",
+  text: "#f0f6ff",
+  muted: "rgba(255,255,255,0.5)",
+  surface: "rgba(255,255,255,0.04)",
+  border: "rgba(255,255,255,0.06)",
+} as const;
 
-type ParentSessionResponse = {
-  guardian: { id: string; username: string; displayName: string };
-  linkedChild: { id: string; displayName: string } | null;
-  linkedChildren: { id: string; displayName: string }[];
-};
-
-// ─── Static data ─────────────────────────────────────────────────────────────
+// ─── Static data ──────────────────────────────────────────────────────────────
 
 const BANDS = [
   {
     code: "P0",
     name: "Pre-K Band",
     ages: "Ages 4–5",
-    color: "#ffd166",
+    color: C.gold,
     border: "rgba(255,209,102,0.35)",
     bg: "rgba(255,209,102,0.08)",
     skills: [
@@ -36,7 +41,7 @@ const BANDS = [
     code: "P1",
     name: "K–1 Band",
     ages: "Ages 5–7",
-    color: "#9b72ff",
+    color: C.violet,
     border: "rgba(155,114,255,0.35)",
     bg: "rgba(155,114,255,0.08)",
     skills: [
@@ -53,7 +58,7 @@ const BANDS = [
     code: "P2",
     name: "Grades 2–3",
     ages: "Ages 7–9",
-    color: "#58e8c1",
+    color: C.mint,
     border: "rgba(88,232,193,0.35)",
     bg: "rgba(88,232,193,0.08)",
     skills: [
@@ -70,7 +75,7 @@ const BANDS = [
     code: "P3",
     name: "Grades 4–5",
     ages: "Ages 9–11",
-    color: "#ff7b6b",
+    color: C.coral,
     border: "rgba(255,123,107,0.35)",
     bg: "rgba(255,123,107,0.08)",
     skills: [
@@ -87,7 +92,7 @@ const BANDS = [
     code: "P4",
     name: "Advanced Band",
     ages: "Ages 10–12+",
-    color: "#ff7b6b",
+    color: C.coral,
     border: "rgba(255,123,107,0.25)",
     bg: "rgba(255,123,107,0.05)",
     skills: [
@@ -107,7 +112,7 @@ const MASTERY_THRESHOLDS = [
     range: "65–100",
     status: "Strong",
     icon: "⭐",
-    color: "#58e8c1",
+    color: C.mint,
     bg: "rgba(88,232,193,0.1)",
     border: "rgba(88,232,193,0.25)",
     desc: "Consistent success across multiple sessions — a skill your child can rely on.",
@@ -116,7 +121,7 @@ const MASTERY_THRESHOLDS = [
     range: "40–64",
     status: "Building",
     icon: "🌱",
-    color: "#ffd166",
+    color: C.gold,
     bg: "rgba(255,209,102,0.1)",
     border: "rgba(255,209,102,0.25)",
     desc: "Actively developing — normal progress. A few more sessions will solidify it.",
@@ -125,7 +130,7 @@ const MASTERY_THRESHOLDS = [
     range: "0–39",
     status: "Just started",
     icon: "🚀",
-    color: "#ff7b6b",
+    color: C.coral,
     bg: "rgba(255,123,107,0.1)",
     border: "rgba(255,123,107,0.25)",
     desc: "Brand new skill — your child has only seen it a handful of times. Early days!",
@@ -172,13 +177,12 @@ const EFFECTIVE_TIME_POINTS = [
     icon: "🎯",
     title: "Total time",
     body: "Every second from session start to end — including loading screens, pauses, and distracted moments.",
-    color: "rgba(255,255,255,0.5)",
+    highlight: false,
   },
   {
     icon: "⚡",
     title: "Effective time",
     body: "Time spent actively answering questions — the part that actually drives learning. This is the number we highlight.",
-    color: "#9b72ff",
     highlight: true,
   },
 ];
@@ -208,7 +212,15 @@ const FAQ_ITEMS = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
+function SectionHeading({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div style={{ marginBottom: "28px" }}>
       <div
@@ -217,8 +229,9 @@ function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: 
           fontWeight: 800,
           textTransform: "uppercase",
           letterSpacing: "0.1em",
-          color: "#9b72ff",
+          color: C.violet,
           marginBottom: "8px",
+          fontFamily: "system-ui",
         }}
       >
         {eyebrow}
@@ -226,7 +239,7 @@ function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: 
       <h2
         style={{
           font: "800 1.5rem/1.2 system-ui",
-          color: "#fff",
+          color: C.text,
           margin: 0,
           marginBottom: subtitle ? "10px" : 0,
         }}
@@ -234,7 +247,13 @@ function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: 
         {title}
       </h2>
       {subtitle && (
-        <p style={{ font: "400 0.925rem/1.65 system-ui", color: "rgba(255,255,255,0.55)", margin: 0 }}>
+        <p
+          style={{
+            font: "400 0.925rem/1.65 system-ui",
+            color: C.muted,
+            margin: 0,
+          }}
+        >
           {subtitle}
         </p>
       )}
@@ -242,7 +261,7 @@ function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: 
   );
 }
 
-function BandCard({ band }: { band: typeof BANDS[0] }) {
+function BandCard({ band }: { band: (typeof BANDS)[0] }) {
   return (
     <div
       style={{
@@ -250,9 +269,17 @@ function BandCard({ band }: { band: typeof BANDS[0] }) {
         padding: "22px",
         background: band.bg,
         border: `1.5px solid ${band.border}`,
+        fontFamily: "system-ui",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "12px",
+        }}
+      >
         <div
           style={{
             width: "12px",
@@ -263,8 +290,16 @@ function BandCard({ band }: { band: typeof BANDS[0] }) {
           }}
         />
         <div>
-          <div style={{ font: "800 1rem/1.1 system-ui", color: "#fff" }}>{band.name}</div>
-          <div style={{ font: "500 0.75rem/1 system-ui", color: "rgba(255,255,255,0.45)", marginTop: "3px" }}>
+          <div style={{ font: "800 1rem/1.1 system-ui", color: C.text }}>
+            {band.name}
+          </div>
+          <div
+            style={{
+              font: "500 0.75rem/1 system-ui",
+              color: "rgba(255,255,255,0.45)",
+              marginTop: "3px",
+            }}
+          >
             {band.ages}
           </div>
         </div>
@@ -285,7 +320,17 @@ function BandCard({ band }: { band: typeof BANDS[0] }) {
         </div>
       </div>
 
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "5px", marginBottom: "14px" }}>
+      <ul
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: "5px",
+          marginBottom: "14px",
+        }}
+      >
         {band.skills.map((skill) => (
           <li
             key={skill}
@@ -297,7 +342,11 @@ function BandCard({ band }: { band: typeof BANDS[0] }) {
               gap: "7px",
             }}
           >
-            <span style={{ color: band.color, fontSize: "8px", flexShrink: 0 }}>●</span>
+            <span
+              style={{ color: band.color, fontSize: "8px", flexShrink: 0 }}
+            >
+              ●
+            </span>
             {skill}
           </li>
         ))}
@@ -311,6 +360,7 @@ function BandCard({ band }: { band: typeof BANDS[0] }) {
           borderTop: `1px solid ${band.border}`,
           paddingTop: "12px",
           fontStyle: "italic",
+          fontFamily: "system-ui",
         }}
       >
         {band.placement}
@@ -319,7 +369,7 @@ function BandCard({ band }: { band: typeof BANDS[0] }) {
   );
 }
 
-function FormulaStep({ step }: { step: typeof FORMULA_STEPS[0] }) {
+function FormulaStep({ step }: { step: (typeof FORMULA_STEPS)[0] }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
       <div
@@ -336,15 +386,24 @@ function FormulaStep({ step }: { step: typeof FORMULA_STEPS[0] }) {
           justifyContent: "center",
           flexShrink: 0,
           marginTop: "1px",
+          fontFamily: "system-ui",
         }}
       >
         {step.num}
       </div>
       <div>
-        <div style={{ font: "700 0.875rem/1.2 system-ui", color: "#fff", marginBottom: "4px" }}>
+        <div
+          style={{
+            font: "700 0.875rem/1.2 system-ui",
+            color: C.text,
+            marginBottom: "4px",
+          }}
+        >
           {step.title}
         </div>
-        <div style={{ font: "400 0.8rem/1.55 system-ui", color: "rgba(255,255,255,0.55)" }}>
+        <div
+          style={{ font: "400 0.8rem/1.55 system-ui", color: C.muted }}
+        >
           {step.body}
         </div>
       </div>
@@ -352,11 +411,19 @@ function FormulaStep({ step }: { step: typeof FORMULA_STEPS[0] }) {
   );
 }
 
-function FaqItem({ item, open, onToggle }: { item: typeof FAQ_ITEMS[0]; open: boolean; onToggle: () => void }) {
+function FaqItem({
+  item,
+  open,
+  onToggle,
+}: {
+  item: (typeof FAQ_ITEMS)[0];
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
     <div
       style={{
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        borderBottom: `1px solid ${C.border}`,
         padding: "0",
       }}
     >
@@ -373,24 +440,29 @@ function FaqItem({ item, open, onToggle }: { item: typeof FAQ_ITEMS[0]; open: bo
           gap: "12px",
           padding: "18px 0",
           textAlign: "left",
+          fontFamily: "system-ui",
         }}
       >
-        <span style={{ font: "600 0.9rem/1.4 system-ui", color: "#fff" }}>{item.q}</span>
+        <span style={{ font: "600 0.9rem/1.4 system-ui", color: C.text }}>
+          {item.q}
+        </span>
         <span
           style={{
             flexShrink: 0,
             width: "22px",
             height: "22px",
             borderRadius: "50%",
-            background: open ? "rgba(155,114,255,0.25)" : "rgba(255,255,255,0.07)",
-            color: open ? "#9b72ff" : "rgba(255,255,255,0.4)",
+            background: open
+              ? "rgba(155,114,255,0.25)"
+              : "rgba(255,255,255,0.07)",
+            color: open ? C.violet : "rgba(255,255,255,0.4)",
             fontSize: "14px",
             fontWeight: 700,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             marginTop: "1px",
-            transition: "all 0.2s",
+            fontFamily: "system-ui",
           }}
         >
           {open ? "−" : "+"}
@@ -414,154 +486,37 @@ function FaqItem({ item, open, onToggle }: { item: typeof FAQ_ITEMS[0]; open: bo
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentBenchmarksPage() {
-  const [authResult, setAuthResult] = useState<ParentSessionResponse | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
-
-  // Cookie-based session restore — same auth gate as parent/page.tsx
-  useEffect(() => {
-    let cancelled = false;
-
-    async function trySessionRestore() {
-      try {
-        const response = await fetch("/api/parent/session", { method: "GET" });
-        if (!response.ok || cancelled) {
-          setAuthChecked(true);
-          return;
-        }
-        const payload = (await response.json()) as ParentSessionResponse;
-        if (cancelled) return;
-        setAuthResult(payload);
-      } catch {
-        // No valid session — show gate
-      } finally {
-        if (!cancelled) setAuthChecked(true);
-      }
-    }
-
-    void trySessionRestore();
-    return () => { cancelled = true; };
-  }, []);
-
-  // ── Loading ────────────────────────────────────────────────────────────────
-  if (!authChecked) {
-    return (
-      <AppFrame audience="parent" currentPath="/parent">
-        <div
-          style={{
-            minHeight: "60vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "12px",
-            color: "rgba(255,255,255,0.4)",
-            fontSize: "14px",
-          }}
-        >
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              border: "3px solid rgba(155,114,255,0.2)",
-              borderTopColor: "#9b72ff",
-              animation: "spin 0.8s linear infinite",
-            }}
-          />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          Loading…
-        </div>
-      </AppFrame>
-    );
-  }
-
-  // ── Auth gate ──────────────────────────────────────────────────────────────
-  if (!authResult) {
-    return (
-      <AppFrame audience="parent" currentPath="/parent">
-        <div
-          style={{
-            minHeight: "70vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "20px",
-            padding: "48px 24px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "16px",
-              background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.6rem",
-            }}
-          >
-            🔒
-          </div>
-          <h1 style={{ font: "800 1.6rem/1.2 system-ui", color: "#fff", margin: 0 }}>
-            Sign in to view benchmarks
-          </h1>
-          <p style={{ font: "400 0.95rem/1.6 system-ui", color: "rgba(255,255,255,0.5)", maxWidth: "380px", margin: 0 }}>
-            This page is part of the Family Hub. Sign in to access your child&apos;s progress and this full explainer.
-          </p>
-          <Link
-            href="/parent"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
-              color: "#fff",
-              font: "700 0.9rem/1 system-ui",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              textDecoration: "none",
-            }}
-          >
-            Go to Family Hub
-          </Link>
-        </div>
-      </AppFrame>
-    );
-  }
-
-  // ── Authenticated content ──────────────────────────────────────────────────
-
-  const childName =
-    authResult.linkedChild?.displayName ??
-    authResult.linkedChildren[0]?.displayName ??
-    "your child";
 
   const sectionStyle: React.CSSProperties = {
     maxWidth: "860px",
     margin: "0 auto",
     padding: "52px 32px",
-    borderBottom: "1px solid rgba(255,255,255,0.07)",
+    borderBottom: `1px solid ${C.border}`,
   };
 
   const cardContainerStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.04)",
+    background: C.surface,
     borderRadius: "20px",
-    border: "1px solid rgba(255,255,255,0.09)",
+    border: `1px solid rgba(255,255,255,0.09)`,
     padding: "28px",
   };
 
   return (
     <AppFrame audience="parent" currentPath="/parent">
-      <div style={{ minHeight: "100vh", background: "#100b2e", paddingBottom: "80px" }}>
-
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.base,
+          paddingBottom: "80px",
+          fontFamily: "system-ui",
+        }}
+      >
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <div
           style={{
             background: "rgba(255,255,255,0.03)",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            borderBottom: `1px solid rgba(255,255,255,0.08)`,
             padding: "18px 32px 16px",
             display: "flex",
             alignItems: "center",
@@ -575,7 +530,7 @@ export default function ParentBenchmarksPage() {
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              color: "#9b72ff",
+              color: C.violet,
               fontSize: "13px",
               fontWeight: 700,
               textDecoration: "none",
@@ -584,9 +539,10 @@ export default function ParentBenchmarksPage() {
               background: "rgba(155,114,255,0.1)",
               border: "1px solid rgba(155,114,255,0.2)",
               flexShrink: 0,
+              fontFamily: "system-ui",
             }}
           >
-            ← Family Hub
+            ← Home
           </Link>
 
           <div>
@@ -598,6 +554,7 @@ export default function ParentBenchmarksPage() {
                 letterSpacing: "0.12em",
                 color: "rgba(255,255,255,0.35)",
                 marginBottom: "2px",
+                fontFamily: "system-ui",
               }}
             >
               BENCHMARKS
@@ -605,11 +562,11 @@ export default function ParentBenchmarksPage() {
             <h1
               style={{
                 font: "800 1.2rem/1 system-ui",
-                color: "#fff",
+                color: C.text,
                 margin: 0,
               }}
             >
-              How we measure {childName}&apos;s progress
+              How WonderQuest measures progress
             </h1>
           </div>
         </div>
@@ -617,7 +574,8 @@ export default function ParentBenchmarksPage() {
         {/* ── Intro strip ─────────────────────────────────────────────────── */}
         <div
           style={{
-            background: "linear-gradient(135deg, rgba(155,114,255,0.12), rgba(88,232,193,0.06))",
+            background:
+              "linear-gradient(135deg, rgba(155,114,255,0.12), rgba(88,232,193,0.06))",
             borderBottom: "1px solid rgba(155,114,255,0.15)",
             padding: "28px 32px",
             maxWidth: "860px",
@@ -632,11 +590,13 @@ export default function ParentBenchmarksPage() {
               maxWidth: "640px",
             }}
           >
-            WonderQuest uses <strong style={{ color: "#9b72ff" }}>learning bands</strong>,{" "}
-            <strong style={{ color: "#58e8c1" }}>mastery scores</strong>, and{" "}
-            <strong style={{ color: "#ffd166" }}>effective time</strong> to show how {childName} is
-            developing — not percentages or traditional grades. This page explains what each of those
-            means and why we measure it the way we do.
+            WonderQuest uses{" "}
+            <strong style={{ color: C.violet }}>learning bands</strong>,{" "}
+            <strong style={{ color: C.mint }}>mastery scores</strong>, and{" "}
+            <strong style={{ color: C.gold }}>effective time</strong> to show
+            how your child is developing — not percentages or traditional
+            grades. This page explains what each of those means and why we
+            measure it the way we do.
           </p>
         </div>
 
@@ -671,16 +631,29 @@ export default function ParentBenchmarksPage() {
               gap: "14px",
             }}
           >
-            <span style={{ fontSize: "1.3rem", flexShrink: 0, marginTop: "2px" }}>💡</span>
-            <p style={{ font: "400 0.875rem/1.6 system-ui", color: "rgba(255,255,255,0.6)", margin: 0 }}>
-              <strong style={{ color: "#9b72ff" }}>Band placement is a starting point, not a ceiling.</strong>{" "}
-              WonderQuest&apos;s adaptive engine continuously adjusts difficulty within and between bands based on
-              {" "}{childName}&apos;s recent performance. There is no cap on how quickly a child can advance.
+            <span
+              style={{ fontSize: "1.3rem", flexShrink: 0, marginTop: "2px" }}
+            >
+              💡
+            </span>
+            <p
+              style={{
+                font: "400 0.875rem/1.6 system-ui",
+                color: "rgba(255,255,255,0.6)",
+                margin: 0,
+              }}
+            >
+              <strong style={{ color: C.violet }}>
+                Band placement is a starting point, not a ceiling.
+              </strong>{" "}
+              WonderQuest&apos;s adaptive engine continuously adjusts difficulty
+              within and between bands based on your child&apos;s recent
+              performance. There is no cap on how quickly a child can advance.
             </p>
           </div>
         </div>
 
-        {/* ── Section 2: How accuracy is calculated ────────────────────────── */}
+        {/* ── Section 2: Mastery score ─────────────────────────────────────── */}
         <div style={sectionStyle}>
           <SectionHeading
             eyebrow="Section 2"
@@ -688,13 +661,34 @@ export default function ParentBenchmarksPage() {
             subtitle="The mastery score is a 0–100 measure of how consistently your child gets a skill right — across sessions, not just in one sitting."
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "28px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "20px",
+              marginBottom: "28px",
+            }}
+          >
             {/* Formula card */}
             <div style={cardContainerStyle}>
-              <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "20px" }}>
+              <div
+                style={{
+                  font: "700 0.8rem/1 system-ui",
+                  color: "rgba(255,255,255,0.35)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: "20px",
+                }}
+              >
                 How the score builds
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "18px",
+                }}
+              >
                 {FORMULA_STEPS.map((step) => (
                   <FormulaStep key={step.num} step={step} />
                 ))}
@@ -702,14 +696,39 @@ export default function ParentBenchmarksPage() {
             </div>
 
             {/* What counts / doesn't */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
               <div style={{ ...cardContainerStyle, flex: 1 }}>
-                <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(88,232,193,0.8)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
+                <div
+                  style={{
+                    font: "700 0.8rem/1 system-ui",
+                    color: "rgba(88,232,193,0.8)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    marginBottom: "14px",
+                  }}
+                >
                   What counts
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
                   {WHAT_COUNTS.map(({ emoji, label }) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px", font: "400 0.85rem/1.3 system-ui", color: "rgba(255,255,255,0.65)" }}>
+                    <div
+                      key={label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        font: "400 0.85rem/1.3 system-ui",
+                        color: "rgba(255,255,255,0.65)",
+                      }}
+                    >
                       <span>{emoji}</span>
                       {label}
                     </div>
@@ -718,12 +737,35 @@ export default function ParentBenchmarksPage() {
               </div>
 
               <div style={{ ...cardContainerStyle, flex: 1 }}>
-                <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(255,123,107,0.8)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
+                <div
+                  style={{
+                    font: "700 0.8rem/1 system-ui",
+                    color: "rgba(255,123,107,0.8)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    marginBottom: "14px",
+                  }}
+                >
                   What doesn&apos;t count
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
                   {WHAT_DOESNT.map(({ emoji, label }) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: "10px", font: "400 0.85rem/1.3 system-ui", color: "rgba(255,255,255,0.65)" }}>
+                    <div
+                      key={label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        font: "400 0.85rem/1.3 system-ui",
+                        color: "rgba(255,255,255,0.65)",
+                      }}
+                    >
                       <span>{emoji}</span>
                       {label}
                     </div>
@@ -734,7 +776,15 @@ export default function ParentBenchmarksPage() {
           </div>
 
           {/* Mastery status thresholds */}
-          <div style={{ font: "700 0.8rem/1 system-ui", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
+          <div
+            style={{
+              font: "700 0.8rem/1 system-ui",
+              color: "rgba(255,255,255,0.35)",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              marginBottom: "14px",
+            }}
+          >
             Score thresholds
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -751,9 +801,26 @@ export default function ParentBenchmarksPage() {
                   border: `1px solid ${threshold.border}`,
                 }}
               >
-                <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>{threshold.icon}</span>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexShrink: 0, minWidth: "140px" }}>
-                  <span style={{ font: "800 0.9rem/1 system-ui", color: threshold.color }}>{threshold.status}</span>
+                <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>
+                  {threshold.icon}
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "8px",
+                    flexShrink: 0,
+                    minWidth: "140px",
+                  }}
+                >
+                  <span
+                    style={{
+                      font: "800 0.9rem/1 system-ui",
+                      color: threshold.color,
+                    }}
+                  >
+                    {threshold.status}
+                  </span>
                   <span
                     style={{
                       font: "600 0.75rem/1 system-ui",
@@ -766,7 +833,12 @@ export default function ParentBenchmarksPage() {
                     {threshold.range}
                   </span>
                 </div>
-                <span style={{ font: "400 0.85rem/1.5 system-ui", color: "rgba(255,255,255,0.55)" }}>
+                <span
+                  style={{
+                    font: "400 0.85rem/1.5 system-ui",
+                    color: C.muted,
+                  }}
+                >
                   {threshold.desc}
                 </span>
               </div>
@@ -784,10 +856,14 @@ export default function ParentBenchmarksPage() {
               color: "rgba(255,255,255,0.6)",
             }}
           >
-            <strong style={{ color: "#ffd166" }}>Why don&apos;t children see percentages?</strong>{" "}
-            Research shows that displaying raw accuracy scores to young learners can increase anxiety and reduce
-            intrinsic motivation. WonderQuest shows stars and streaks to children — which celebrate effort and
-            consistency. You see fuller data here because context helps you support, not judge.
+            <strong style={{ color: C.gold }}>
+              Why don&apos;t children see percentages?
+            </strong>{" "}
+            Research shows that displaying raw accuracy scores to young learners
+            can increase anxiety and reduce intrinsic motivation. WonderQuest
+            shows stars and streaks to children — which celebrate effort and
+            consistency. You see fuller data here because context helps you
+            support, not judge.
           </div>
         </div>
 
@@ -799,7 +875,14 @@ export default function ParentBenchmarksPage() {
             subtitle="Not all session time is equal. Effective time shows how long your child was genuinely engaged — not counting pauses or distractions."
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "28px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "16px",
+              marginBottom: "28px",
+            }}
+          >
             {EFFECTIVE_TIME_POINTS.map((point) => (
               <div
                 key={point.title}
@@ -813,11 +896,30 @@ export default function ParentBenchmarksPage() {
                     : {}),
                 }}
               >
-                <div style={{ font: "1.5rem/1 system-ui", marginBottom: "12px" }}>{point.icon}</div>
-                <div style={{ font: "700 1rem/1.2 system-ui", color: point.highlight ? "#9b72ff" : "#fff", marginBottom: "8px" }}>
+                <div
+                  style={{
+                    font: "1.5rem/1 system-ui",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {point.icon}
+                </div>
+                <div
+                  style={{
+                    font: "700 1rem/1.2 system-ui",
+                    color: point.highlight ? C.violet : C.text,
+                    marginBottom: "8px",
+                  }}
+                >
                   {point.title}
                 </div>
-                <p style={{ font: "400 0.85rem/1.6 system-ui", color: "rgba(255,255,255,0.55)", margin: 0 }}>
+                <p
+                  style={{
+                    font: "400 0.85rem/1.6 system-ui",
+                    color: C.muted,
+                    margin: 0,
+                  }}
+                >
                   {point.body}
                 </p>
                 {point.highlight && (
@@ -832,7 +934,8 @@ export default function ParentBenchmarksPage() {
                       padding: "4px 12px",
                       fontSize: "11px",
                       fontWeight: 700,
-                      color: "#9b72ff",
+                      color: C.violet,
+                      fontFamily: "system-ui",
                     }}
                   >
                     ⚡ This is the number we highlight
@@ -850,22 +953,49 @@ export default function ParentBenchmarksPage() {
             }}
           >
             {[
-              { label: "10–15 min", note: "Ideal effective time per session for ages 4–7", color: "#58e8c1" },
-              { label: "15–20 min", note: "Ideal effective time per session for ages 8–11", color: "#9b72ff" },
-              { label: "3–5x / week", note: "Optimal session frequency for lasting skill gains", color: "#ffd166" },
+              {
+                label: "10–15 min",
+                note: "Ideal effective time per session for ages 4–7",
+                color: C.mint,
+              },
+              {
+                label: "15–20 min",
+                note: "Ideal effective time per session for ages 8–11",
+                color: C.violet,
+              },
+              {
+                label: "3–5x / week",
+                note: "Optimal session frequency for lasting skill gains",
+                color: C.gold,
+              },
             ].map(({ label, note, color }) => (
               <div
                 key={label}
                 style={{
                   borderRadius: "14px",
                   padding: "18px",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
                   textAlign: "center",
                 }}
               >
-                <div style={{ font: "800 1.4rem/1 system-ui", color, marginBottom: "8px" }}>{label}</div>
-                <div style={{ font: "400 0.78rem/1.4 system-ui", color: "rgba(255,255,255,0.45)" }}>{note}</div>
+                <div
+                  style={{
+                    font: "800 1.4rem/1 system-ui",
+                    color,
+                    marginBottom: "8px",
+                  }}
+                >
+                  {label}
+                </div>
+                <div
+                  style={{
+                    font: "400 0.78rem/1.4 system-ui",
+                    color: "rgba(255,255,255,0.45)",
+                  }}
+                >
+                  {note}
+                </div>
               </div>
             ))}
           </div>
@@ -885,7 +1015,9 @@ export default function ParentBenchmarksPage() {
                 key={idx}
                 item={item}
                 open={openFaqIdx === idx}
-                onToggle={() => setOpenFaqIdx(openFaqIdx === idx ? null : idx)}
+                onToggle={() =>
+                  setOpenFaqIdx(openFaqIdx === idx ? null : idx)
+                }
               />
             ))}
           </div>
@@ -901,16 +1033,28 @@ export default function ParentBenchmarksPage() {
               gap: "14px",
               padding: "22px 24px",
               borderRadius: "16px",
-              background: "linear-gradient(135deg, rgba(155,114,255,0.12), rgba(88,232,193,0.06))",
+              background:
+                "linear-gradient(135deg, rgba(155,114,255,0.12), rgba(88,232,193,0.06))",
               border: "1px solid rgba(155,114,255,0.2)",
             }}
           >
             <div>
-              <div style={{ font: "700 0.95rem/1.2 system-ui", color: "#fff", marginBottom: "4px" }}>
-                Ready to see {childName}&apos;s current progress?
+              <div
+                style={{
+                  font: "700 0.95rem/1.2 system-ui",
+                  color: C.text,
+                  marginBottom: "4px",
+                }}
+              >
+                Ready to see your child&apos;s current progress?
               </div>
-              <div style={{ font: "400 0.83rem/1.4 system-ui", color: "rgba(255,255,255,0.5)" }}>
-                Head back to the Family Hub for live stats and this week&apos;s highlights.
+              <div
+                style={{
+                  font: "400 0.83rem/1.4 system-ui",
+                  color: C.muted,
+                }}
+              >
+                Head back home for live stats and this week&apos;s highlights.
               </div>
             </div>
             <Link
@@ -928,11 +1072,10 @@ export default function ParentBenchmarksPage() {
                 flexShrink: 0,
               }}
             >
-              Back to Family Hub →
+              ← Home
             </Link>
           </div>
         </div>
-
       </div>
     </AppFrame>
   );
