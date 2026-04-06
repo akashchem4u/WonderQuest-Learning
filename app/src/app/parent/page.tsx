@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { FeedbackForm } from "@/components/feedback-form";
-import { FieldBlock, ShellCard, StatTile } from "@/components/ui";
+import { FieldBlock, ShellCard } from "@/components/ui";
 import { launchBands } from "@/lib/launch-plan";
 
 type ChildDashboard = {
@@ -107,11 +107,6 @@ function formatShortDay(value: string) {
   });
 }
 
-function getSessionSparkHeight(effectivenessScore: number | null) {
-  const normalized = effectivenessScore ?? 52;
-  return `${Math.max(20, Math.round((normalized / 100) * 68))}px`;
-}
-
 function getAvatarSymbol(avatarKey: string) {
   if (avatarKey.includes("bunny")) return "🐰";
   if (avatarKey.includes("bear")) return "🐻";
@@ -126,83 +121,35 @@ function getBandLabel(bandCode: string) {
   return launchBands.find((band) => band.code === bandCode)?.label ?? bandCode;
 }
 
-function dedupeSkills<
-  T extends {
-    skillCode: string;
-  },
->(skills: T[]) {
+function getBandColor(bandCode: string) {
+  if (bandCode.startsWith("pre")) return "#58e8c1";
+  if (bandCode.startsWith("k1")) return "#9b72ff";
+  if (bandCode.startsWith("g2") || bandCode.startsWith("g3")) return "#ffd166";
+  return "#ff7b6b";
+}
+
+function dedupeSkills<T extends { skillCode: string }>(skills: T[]) {
   const seen = new Set<string>();
   return skills.filter((skill) => {
-    if (seen.has(skill.skillCode)) {
-      return false;
-    }
-
+    if (seen.has(skill.skillCode)) return false;
     seen.add(skill.skillCode);
     return true;
   });
 }
 
-function describeSkillInParentLanguage(skillCode: string, displayName: string) {
-  const label = `${skillCode} ${displayName}`.toLowerCase();
-
-  if (label.includes("count")) {
-    return "Count real things one by one.";
-  }
-
-  if (label.includes("letter") || label.includes("phonics")) {
-    return "Hear a sound, spot the letter, and connect it.";
-  }
-
-  if (label.includes("shape")) {
-    return "Look for sides, corners, and curves.";
-  }
-
-  if (label.includes("add")) {
-    return "Put small amounts together and notice the total.";
-  }
-
-  if (label.includes("read") || label.includes("word")) {
-    return "Recognize a word quickly and connect it to meaning.";
-  }
-
-  return "A current step toward comfort and growth.";
-}
-
 function buildParentSkillAction(skillCode: string, displayName: string) {
   const label = `${skillCode} ${displayName}`.toLowerCase();
-
-  if (label.includes("count")) {
-    return "Count a few objects together once.";
-  }
-
-  if (label.includes("letter") || label.includes("phonics")) {
-    return "Point to one familiar letter or sound.";
-  }
-
-  if (label.includes("shape")) {
-    return "Find the same shape in the room.";
-  }
-
-  if (label.includes("add")) {
-    return "Use small objects and let them combine.";
-  }
-
-  if (label.includes("read") || label.includes("word")) {
-    return "Say one target word and spot it again.";
-  }
-
+  if (label.includes("count")) return "Count a few objects together once.";
+  if (label.includes("letter") || label.includes("phonics")) return "Point to one familiar letter or sound.";
+  if (label.includes("shape")) return "Find the same shape in the room.";
+  if (label.includes("add")) return "Use small objects and let them combine.";
+  if (label.includes("read") || label.includes("word")) return "Say one target word and spot it again.";
   return `Keep practice short around ${displayName.toLowerCase()}.`;
 }
 
 function buildParentSkillSignal(masteryRate: number) {
-  if (masteryRate >= 80) {
-    return "Growing strength.";
-  }
-
-  if (masteryRate >= 60) {
-    return "Improving, but still worth a short guided practice.";
-  }
-
+  if (masteryRate >= 80) return "Growing strength.";
+  if (masteryRate >= 60) return "Improving, but still worth a short guided practice.";
   return "Needs gentle support and slower repetition.";
 }
 
@@ -253,7 +200,6 @@ function buildParentTeacherMessage(childName: string, dashboard: ChildDashboard)
   if (dashboard.strengths[0]?.displayName) {
     return `"${childName} is gaining comfort in ${dashboard.strengths[0].displayName.toLowerCase()}. Next, try ${dashboard.recommendedFocus.toLowerCase()} in one calm moment."`;
   }
-
   return `"Try one short, calm practice moment around ${dashboard.recommendedFocus.toLowerCase()}."`;
 }
 
@@ -291,52 +237,68 @@ function buildParentWeekendActivities(
   return activities.slice(0, 3);
 }
 
+// Derive a simple streak count from recent sessions (days with at least one session)
+function deriveStreakDays(recentSessions: ChildDashboard["recentSessions"]) {
+  if (!recentSessions.length) return 0;
+  const days = new Set(
+    recentSessions.map((s) => new Date(s.startedAt).toDateString()),
+  );
+  // Simple streak: count consecutive days ending today/yesterday
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    if (days.has(d.toDateString())) {
+      streak++;
+    } else if (i > 0) {
+      break;
+    }
+  }
+  return streak;
+}
+
+// Build a week-of-dots array (Mon–Sun) based on recent sessions
+function buildStreakDots(recentSessions: ChildDashboard["recentSessions"]) {
+  const labels = ["M", "T", "W", "T", "F", "S", "S"];
+  const today = new Date();
+  const todayDow = today.getDay(); // 0=Sun
+  // Map to Mon=0 index
+  const todayIdx = todayDow === 0 ? 6 : todayDow - 1;
+
+  const playedDays = new Set(
+    recentSessions.map((s) => {
+      const d = new Date(s.startedAt);
+      const dow = d.getDay();
+      return dow === 0 ? 6 : dow - 1;
+    }),
+  );
+
+  return labels.map((label, idx) => ({
+    label,
+    played: playedDays.has(idx),
+    isToday: idx === todayIdx,
+  }));
+}
+
 const parentPreviewWeekly = {
   childName: "Maya",
   bandLabel: "Kinder – Grade 1",
-  summary:
-    "Maya had a steadier week with one clear next step in sight words.",
+  summary: "Maya had a steadier week with one clear next step in sight words.",
   chips: ["3 strengths", "1 focus", "2 ideas"],
   kpis: [
-    {
-      label: "Days practiced",
-      value: "4",
-      detail: "short visits",
-    },
-    {
-      label: "Effective time",
-      value: "18 min",
-      detail: "steady play",
-    },
-    {
-      label: "Badges earned",
-      value: "2",
-      detail: "this week",
-    },
+    { label: "Days practiced", value: "4", detail: "short visits" },
+    { label: "Effective time", value: "18 min", detail: "steady play" },
+    { label: "Badges earned", value: "2", detail: "this week" },
   ],
   strengths: ["Counting objects", "Matching shapes", "Quick number recognition"],
   support: "Sight words",
   teacherMessage:
     "Maya is looking more comfortable with counting. A short sight-word check-in at home would help next.",
   activities: [
-    {
-      icon: "📚",
-      title: "Sight-word warmup",
-      body: "Pick one word, say it together, then spot it once nearby.",
-      tag: "2 min",
-    },
-    {
-      icon: "🍓",
-      title: "Count small groups",
-      body: "Use snacks, blocks, or fruit and count each item slowly.",
-      tag: "Confidence",
-    },
-    {
-      icon: "🎉",
-      title: "Stop on a win",
-      body: "Leave while it still feels easy.",
-      tag: "Routine",
-    },
+    { icon: "📚", title: "Sight-word warmup", body: "Pick one word, say it together, then spot it once nearby.", tag: "2 min" },
+    { icon: "🍓", title: "Count small groups", body: "Use snacks, blocks, or fruit and count each item slowly.", tag: "Confidence" },
+    { icon: "🎉", title: "Stop on a win", body: "Leave while it still feels easy.", tag: "Routine" },
   ],
 };
 
@@ -380,11 +342,7 @@ export default function ParentAccessPage() {
           summary.effectiveTimeSpentMs += dashboard.effectiveTimeSpentMs;
           return summary;
         },
-        {
-          completedSessions: 0,
-          totalTimeSpentMs: 0,
-          effectiveTimeSpentMs: 0,
-        },
+        { completedSessions: 0, totalTimeSpentMs: 0, effectiveTimeSpentMs: 0 },
       )
     : null;
   const activeSkillOptions = activeChildDashboard
@@ -409,11 +367,7 @@ export default function ParentAccessPage() {
     null;
   const parentWeekSummary =
     activeChild && activeChildDashboard
-      ? buildParentWeekSummary(
-          activeChild.displayName,
-          activeChildDashboard,
-          activeSkillOptions.length,
-        )
+      ? buildParentWeekSummary(activeChild.displayName, activeChildDashboard, activeSkillOptions.length)
       : null;
   const parentTeacherMessage =
     activeChild && activeChildDashboard
@@ -443,103 +397,24 @@ export default function ParentAccessPage() {
         skill.skillCode !== primaryStrength?.skillCode,
     ) ??
     null;
-  const parentSkillSnapshot = [
-    {
-      accent: "strength" as const,
-      detail: primaryStrength
-        ? `${primaryStrength.displayName} is feeling steady right now. Keep it easy and let WonderQuest stretch it naturally.`
-        : "Strength signals will appear after a few more sessions.",
-      label: "Strength",
-      skillCode: primaryStrength?.skillCode ?? null,
-      value: primaryStrength?.displayName ?? "Confidence is building",
-    },
-    {
-      accent: "support" as const,
-      detail: primarySupport
-        ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
-        : "Keep the next practice short, calm, and focused on one clear success.",
-      label: "Building",
-      skillCode: primarySupport?.skillCode ?? null,
-      value: primarySupport?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next focus",
-    },
-    {
-      accent: "next" as const,
-      detail: parentNextMilestone
-        ? `${parentNextMilestone.displayName} looks close to the next unlock. Two or three short sessions should help it stick.`
-        : `A calmer run at ${activeChildDashboard?.recommendedFocus ?? "the next focus"} will set up the next milestone.`,
-      label: "Next milestone",
-      skillCode:
-        parentNextMilestone?.skillCode ??
-        primarySupport?.skillCode ??
-        primaryStrength?.skillCode ??
-        null,
-      value: parentNextMilestone?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next unlock",
-    },
-  ];
-  const parentQuickLinks = [
-    {
-      detail: notifyWeekly ? "Weekly summary on" : "Weekly summary off",
-      href: "#parent-feedback",
-      label: "Share feedback",
-    },
-    {
-      detail: `${result?.linkedChildren.length ?? 0} linked children`,
-      href: "#parent-family-hub",
-      label: "Switch child focus",
-    },
-    {
-      detail: `${familyBadgeTotal} badges · ${familyTrophyTotal} trophies`,
-      href: "#parent-family-detail",
-      label: "Open family detail",
-    },
-  ];
-  const parentTopAnswers = [
-    {
-      detail: `${formatMinutes(activeChildDashboard?.effectiveTimeSpentMs ?? 0)} effective · last active ${formatLastSeen(activeChildDashboard?.lastSessionAt ?? null)}`,
-      label: "Session snapshot",
-      tone: "summary" as const,
-      value: `${activeChildDashboard?.completedSessions ?? 0} lesson${
-        activeChildDashboard?.completedSessions === 1 ? "" : "s"
-      } finished`,
-    },
-    {
-      detail: primaryStrength
-        ? `${activeChild?.displayName ?? "Your child"} is steadier in this skill right now.`
-        : "A stronger pattern will show after a few more sessions.",
-      label: "What's steady",
-      tone: "strength" as const,
-      value: primaryStrength?.displayName ?? "Confidence is building",
-    },
-    {
-      detail: primarySupport
-        ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
-        : `Keep the next practice short and calm around ${activeChildDashboard?.recommendedFocus?.toLowerCase() ?? "the next focus"}.`,
-      label: "Next move",
-      tone: "next" as const,
-      value: primarySupport?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next focus",
-    },
-  ];
+
+  const streakDays = activeChildDashboard
+    ? deriveStreakDays(activeChildDashboard.recentSessions)
+    : 0;
+  const streakDots = activeChildDashboard
+    ? buildStreakDots(activeChildDashboard.recentSessions)
+    : [];
 
   // Attempt cookie-based session restore on first mount.
-  // If the parent already has a valid wonderquest-parent-session cookie,
-  // skip the credential form and restore the family dashboard silently.
   useEffect(() => {
     let cancelled = false;
 
     async function trySessionRestore() {
       try {
         const response = await fetch("/api/parent/session", { method: "GET" });
-
-        if (!response.ok || cancelled) {
-          return;
-        }
-
+        if (!response.ok || cancelled) return;
         const payload = (await response.json()) as ParentAccessResponse;
-
-        if (cancelled) {
-          return;
-        }
-
+        if (cancelled) return;
         setSelectedChildId(
           payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null,
         );
@@ -551,21 +426,15 @@ export default function ParentAccessPage() {
     }
 
     void trySessionRestore();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (!result) {
-      return;
-    }
-
+    if (!result) return;
     const activeId = selectedChildId ?? result.linkedChild?.id ?? result.linkedChildren[0]?.id;
     const stillValid = activeId
       ? result.linkedChildren.some((child) => child.id === activeId)
       : false;
-
     if (!stillValid) {
       setSelectedChildId(result.linkedChild?.id ?? result.linkedChildren[0]?.id ?? null);
     }
@@ -573,24 +442,19 @@ export default function ParentAccessPage() {
 
   useEffect(() => {
     if (!activeChildDashboard) {
-      if (selectedSkillCode !== null) {
-        setSelectedSkillCode(null);
-      }
+      if (selectedSkillCode !== null) setSelectedSkillCode(null);
       return;
     }
-
     const fallbackSkillCode =
       activeChildDashboard.supportAreas[0]?.skillCode ??
       activeChildDashboard.strengths[0]?.skillCode ??
       null;
-
     if (
       selectedSkillCode &&
       activeSkillOptions.some((skill) => skill.skillCode === selectedSkillCode)
     ) {
       return;
     }
-
     if (fallbackSkillCode !== selectedSkillCode) {
       setSelectedSkillCode(fallbackSkillCode);
     }
@@ -614,9 +478,7 @@ export default function ParentAccessPage() {
     try {
       const response = await fetch("/api/parent/access", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username,
           pin,
@@ -628,13 +490,8 @@ export default function ParentAccessPage() {
         }),
       });
 
-      const payload = (await response.json()) as ParentAccessResponse & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Parent access failed.");
-      }
+      const payload = (await response.json()) as ParentAccessResponse & { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Parent access failed.");
 
       setSelectedChildId(
         payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null,
@@ -643,220 +500,893 @@ export default function ParentAccessPage() {
       closeAccessManager();
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Parent access failed.",
+        caughtError instanceof Error ? caughtError.message : "Parent access failed.",
       );
     } finally {
       setSubmitting(false);
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Shared inline style constants
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const heroCardStyle: React.CSSProperties = {
+    background: "linear-gradient(135deg, #fff 0%, #faf8ff 100%)",
+    borderRadius: "20px",
+    padding: "28px",
+    boxShadow: "0 4px 24px rgba(100,60,200,0.08)",
+    border: "1px solid #e0d8f0",
+    marginBottom: "24px",
+    display: "grid",
+    gridTemplateColumns: "auto 1fr auto",
+    gap: "24px",
+    alignItems: "center",
+  };
+
+  const avatarLgStyle: React.CSSProperties = {
+    width: "72px",
+    height: "72px",
+    borderRadius: "50%",
+    background: "linear-gradient(135deg, #ede8ff, #d8d0ff)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "2rem",
+    flexShrink: 0,
+    boxShadow: "0 4px 16px rgba(155,114,255,0.2)",
+  };
+
+  const quickStatGridStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "14px",
+    marginBottom: "24px",
+  };
+
+  const statCardStyle: React.CSSProperties = {
+    background: "#fff",
+    borderRadius: "14px",
+    padding: "18px 20px",
+    boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
+    border: "1px solid #e8e0f0",
+  };
+
+  const twoColStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "18px",
+    marginBottom: "24px",
+  };
+
+  const skillCardStyle: React.CSSProperties = {
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "22px",
+    border: "1px solid #e8e0f0",
+    boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
+  };
+
+  const streakCardStyle: React.CSSProperties = {
+    background: "linear-gradient(135deg, #1a1240, #2a1860)",
+    borderRadius: "16px",
+    padding: "22px",
+    color: "#e8e4f8",
+  };
+
   return (
     <AppFrame audience="parent" currentPath="/parent">
       <main className="page-shell page-shell-split">
-        <section className="page-hero parent-hero">
-          <div>
-            <span className="eyebrow">Parent journey</span>
-            <h1>Family learning, in one scan.</h1>
-            <div className="summary-chip-row">
-              <span className="summary-chip">Quick scan</span>
-              <span className="summary-chip">Strengths + next step</span>
-              <span className="summary-chip">Quiet updates</span>
-            </div>
-          </div>
-          <div className="hero-route-summary">
-            <StatTile label="Parent view" value="Linked" />
-            <StatTile label="Notifications" value="Opt-in" />
-            <StatTile label="Signals" value="Clear" />
-          </div>
-        </section>
 
-        {result ? (
-          <section className="route-grid route-grid-parent">
-            <ShellCard
-              className="shell-card-soft parent-access-ready-card"
-              eyebrow="Access manager"
-              title="Family access is ready"
-            >
-                <div className="parent-access-ready-banner">
-                  <span className="parent-access-ready-icon" aria-hidden="true">
-                    ✓
+        {/* ── LOGIN / UNAUTHENTICATED STATE ─────────────────────────────────── */}
+        {!result ? (
+          <section
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 400px",
+              gap: "48px",
+              alignItems: "start",
+              padding: "48px 40px 80px",
+              maxWidth: "1100px",
+              margin: "0 auto",
+            }}
+            id="parent-access-form"
+          >
+            {/* Left: preview hero */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Wordmark */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                <div
+                  style={{
+                    width: "44px", height: "44px", borderRadius: "12px",
+                    background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "1.4rem",
+                  }}
+                >
+                  🌟
+                </div>
+                <span
+                  style={{
+                    font: "900 1.5rem system-ui",
+                    background: "linear-gradient(135deg, #3d2a8a, #9b72ff)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  WonderQuest
+                </span>
+              </div>
+
+              <h1 style={{ font: "700 2.4rem/1.15 system-ui", color: "#1a1240", maxWidth: "440px" }}>
+                See how your child is{" "}
+                <span
+                  style={{
+                    background: "linear-gradient(135deg, #9b72ff, #6030c0)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  really doing
+                </span>
+              </h1>
+              <p style={{ font: "400 1.05rem/1.7 system-ui", color: "#5a5070", maxWidth: "420px" }}>
+                Clear signals, not walls of data. See strengths, next steps, and what to try at home — in under a minute.
+              </p>
+
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                {["🔒 COPPA-safe", "📵 No ads", "✅ Teacher-guided"].map((badge) => (
+                  <span
+                    key={badge}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "6px",
+                      font: "500 0.75rem system-ui", color: "#7060a0",
+                      background: "#ede8ff", border: "1px solid #ccc0f0",
+                      borderRadius: "20px", padding: "5px 12px",
+                    }}
+                  >
+                    {badge}
                   </span>
-                  <div className="parent-access-ready-copy">
-                    <strong>{result.guardian.displayName} can see the family view.</strong>
-                    <small>{result.linkedChildren.length} linked child{result.linkedChildren.length === 1 ? "" : "ren"}</small>
+                ))}
+              </div>
+
+              {/* Preview dashboard card */}
+              <div
+                style={{
+                  background: "#fff", borderRadius: "20px", padding: "24px",
+                  border: "1px solid #e0d8f0", boxShadow: "0 4px 24px rgba(100,60,200,0.08)",
+                  marginTop: "8px",
+                }}
+              >
+                <div style={{ font: "600 0.7rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                  Preview — what you'll see
+                </div>
+                <div style={{ font: "700 0.95rem system-ui", color: "#1a1240", marginBottom: "16px" }}>
+                  {parentPreviewWeekly.childName}'s week at a glance
+                </div>
+
+                {/* Mini stat row */}
+                <div style={{ display: "flex", gap: "20px", marginBottom: "20px", flexWrap: "wrap" }}>
+                  {[
+                    { icon: "⭐", val: "42", label: "Stars" },
+                    { icon: "📚", val: "14", label: "Sessions" },
+                    { icon: "🔥", val: "5", label: "Streak" },
+                    { icon: "🏅", val: "2", label: "Badges" },
+                  ].map((s) => (
+                    <div key={s.label}>
+                      <span style={{ font: "700 1.2rem system-ui", color: "#1a1240", display: "block" }}>
+                        {s.icon} {s.val}
+                      </span>
+                      <span style={{ font: "400 0.68rem system-ui", color: "#9080a0" }}>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mini skill bars */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {[
+                    { name: "Rhyming words", pct: 88, color: "#9b72ff" },
+                    { name: "Letter sounds", pct: 74, color: "#9b72ff" },
+                    { name: "Counting", pct: 60, color: "#ffd166" },
+                  ].map((skill) => (
+                    <div key={skill.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ font: "600 0.78rem system-ui", color: "#1a1240", width: "110px", flexShrink: 0 }}>
+                        {skill.name}
+                      </span>
+                      <div style={{ flex: 1, height: "6px", background: "#e8e0f0", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ width: `${skill.pct}%`, height: "100%", background: skill.color, borderRadius: "3px" }} />
+                      </div>
+                      <span style={{ font: "600 0.7rem system-ui", color: "#9080a0", width: "30px", textAlign: "right" }}>
+                        {skill.pct}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: sign-in card */}
+            <div
+              style={{
+                background: "#fff", borderRadius: "20px", padding: "40px 36px",
+                boxShadow: "0 8px 40px rgba(100,60,200,0.1)", border: "1px solid #e0d8f8",
+                position: "sticky", top: "24px",
+              }}
+            >
+              <div style={{ font: "600 0.75rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
+                Parent access
+              </div>
+              <div style={{ font: "700 1.4rem system-ui", color: "#1a1240", marginBottom: "22px" }}>
+                {returningAccessMode ? "Sign in to family view" : "Create parent access"}
+              </div>
+
+              {/* Mode toggle */}
+              <div style={{ display: "flex", gap: "8px", marginBottom: "22px" }}>
+                {(["returning", "new"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => { setAccessMode(mode); setError(""); }}
+                    type="button"
+                    style={{
+                      flex: 1, padding: "10px 12px", borderRadius: "10px", cursor: "pointer",
+                      font: "600 0.8rem system-ui", textAlign: "left",
+                      border: accessMode === mode ? "2px solid #9b72ff" : "1.5px solid #d8d0f0",
+                      background: accessMode === mode ? "#ede8ff" : "#faf8ff",
+                      color: accessMode === mode ? "#3d2a8a" : "#7060a0",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span style={{ display: "block", marginBottom: "2px" }}>
+                      {mode === "returning" ? "🔐" : "✨"}
+                    </span>
+                    {mode === "returning" ? "Existing parent" : "First-time setup"}
+                    <span style={{ display: "block", font: "400 0.7rem system-ui", marginTop: "2px", color: "#9080b0" }}>
+                      {mode === "returning" ? "Username + PIN" : "Set name, PIN, link child"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <FieldBlock
+                  autoComplete="username"
+                  label="Username"
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="parent username"
+                  value={username}
+                />
+                <FieldBlock
+                  autoComplete="current-password"
+                  label="4-digit PIN"
+                  maxLength={4}
+                  onChange={(event) => setPin(event.target.value)}
+                  placeholder="0000"
+                  type="password"
+                  value={pin}
+                />
+                {!returningAccessMode ? (
+                  <>
+                    <FieldBlock
+                      label="Display name"
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      placeholder="Parent name"
+                      value={displayName}
+                    />
+                    <FieldBlock
+                      label="Child username"
+                      onChange={(event) => setChildUsername(event.target.value)}
+                      placeholder="child quest name"
+                      value={childUsername}
+                    />
+                  </>
+                ) : null}
+
+                {returningAccessMode ? (
+                  <div style={{ font: "500 0.78rem system-ui", color: "#7060a0", background: "#f5f0ff", borderRadius: "8px", padding: "10px 14px" }}>
+                    Username + PIN only needed to sign in.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {[
+                      { key: "weekly", label: "Weekly summary", sub: "Time, insights, and next focus.", val: notifyWeekly, toggle: () => setNotifyWeekly((v) => !v) },
+                      { key: "milestones", label: "Milestones", sub: "Badges, trophies, and level moments.", val: notifyMilestones, toggle: () => setNotifyMilestones((v) => !v) },
+                    ].map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={item.toggle}
+                        type="button"
+                        style={{
+                          display: "flex", justifyContent: "space-between", alignItems: "center",
+                          padding: "11px 14px", borderRadius: "10px", cursor: "pointer",
+                          border: "1.5px solid #e0d8f0", background: item.val ? "#faf5ff" : "#faf8ff",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div>
+                          <div style={{ font: "600 0.82rem system-ui", color: "#1a1240" }}>{item.label}</div>
+                          <div style={{ font: "400 0.7rem system-ui", color: "#9080a0" }}>{item.sub}</div>
+                        </div>
+                        <span
+                          style={{
+                            font: "700 0.75rem system-ui",
+                            color: item.val ? "#9b72ff" : "#b0a0c0",
+                            background: item.val ? "#ede8ff" : "#f0eef8",
+                            padding: "3px 10px", borderRadius: "10px",
+                          }}
+                        >
+                          {item.val ? "On" : "Off"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {error ? (
+                  <p style={{ font: "500 0.82rem system-ui", color: "#c02020", background: "#fff0f0", border: "1px solid #ffcccc", borderRadius: "8px", padding: "10px 14px" }}>
+                    {error}
+                  </p>
+                ) : null}
+
+                <button
+                  disabled={submitting}
+                  type="submit"
+                  style={{
+                    padding: "14px", background: "#9b72ff", color: "#fff",
+                    border: "none", borderRadius: "12px", font: "700 0.95rem system-ui",
+                    cursor: submitting ? "not-allowed" : "pointer",
+                    opacity: submitting ? 0.7 : 1,
+                    transition: "opacity 0.15s",
+                  }}
+                >
+                  {submitting
+                    ? returningAccessMode ? "Signing in…" : "Saving…"
+                    : returningAccessMode ? "Sign in to family view" : "Create parent access"}
+                </button>
+                <Link
+                  href="/child"
+                  style={{ font: "500 0.82rem system-ui", color: "#9b72ff", textAlign: "center", textDecoration: "none" }}
+                >
+                  Child access →
+                </Link>
+              </form>
+            </div>
+          </section>
+        ) : null}
+
+        {/* ── AUTHENTICATED DASHBOARD ────────────────────────────────────────── */}
+        {result && activeChild && activeChildDashboard ? (
+          <section
+            style={{
+              maxWidth: "1100px",
+              margin: "0 auto",
+              padding: "40px 36px 80px",
+              width: "100%",
+            }}
+            id="parent-family-hub"
+          >
+            {/* Page header */}
+            <div style={{ marginBottom: "28px" }}>
+              <div style={{ font: "700 1.6rem system-ui", color: "#1a1240", marginBottom: "4px" }}>
+                👋 Hello, {result.guardian.displayName}
+              </div>
+              <div style={{ font: "400 0.88rem system-ui", color: "#6a5890" }}>
+                Here's how {activeChild.displayName} is doing this week
+              </div>
+              {result.linkedChildren.length > 1 ? (
+                <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+                  {result.linkedChildren.map((child) => (
+                    <button
+                      key={child.id}
+                      onClick={() => setSelectedChildId(child.id)}
+                      type="button"
+                      style={{
+                        display: "flex", alignItems: "center", gap: "8px",
+                        padding: "6px 14px", borderRadius: "20px", cursor: "pointer",
+                        border: activeChildId === child.id ? "2px solid #9b72ff" : "1.5px solid #e0d8f0",
+                        background: activeChildId === child.id ? "#ede8ff" : "#fff",
+                        font: "600 0.8rem system-ui",
+                        color: activeChildId === child.id ? "#3d2a8a" : "#6a5890",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span>{getAvatarSymbol(child.avatarKey)}</span>
+                      {child.displayName}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* ── Child hero card ──────────────────────────────────────────── */}
+            <div style={heroCardStyle}>
+              <div style={avatarLgStyle}>
+                {getAvatarSymbol(activeChild.avatarKey)}
+              </div>
+
+              <div>
+                <div style={{ font: "700 1.3rem system-ui", color: "#1a1240", marginBottom: "6px" }}>
+                  {activeChild.displayName}
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    padding: "3px 12px", borderRadius: "16px", marginBottom: "12px",
+                    background: "#ede8ff", border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
+                    font: "700 0.72rem system-ui", color: "#4a2090",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "8px", height: "8px", borderRadius: "50%",
+                      background: getBandColor(activeChild.launchBandCode),
+                      flexShrink: 0,
+                    }}
+                  />
+                  {getBandLabel(activeChild.launchBandCode)} · Level {activeChild.currentLevel}
+                </div>
+                <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                  {[
+                    { val: `⭐ ${activeChild.totalPoints}`, label: "Stars earned" },
+                    { val: `${activeChildDashboard.completedSessions}`, label: "Sessions played" },
+                    { val: `🔥 ${streakDays}`, label: "Day streak" },
+                    { val: `${activeChild.badgeCount}`, label: "Badges" },
+                  ].map((s) => (
+                    <div key={s.label}>
+                      <span style={{ font: "900 1.35rem system-ui", color: "#1a1240", display: "block" }}>
+                        {s.val}
+                      </span>
+                      <span style={{ font: "400 0.7rem system-ui", color: "#8070a0", marginTop: "1px", display: "block" }}>
+                        {s.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <a
+                  href="#parent-family-detail"
+                  style={{
+                    padding: "10px 18px", background: "#9b72ff", color: "#fff",
+                    border: "none", borderRadius: "10px", font: "600 0.82rem system-ui",
+                    cursor: "pointer", whiteSpace: "nowrap", textDecoration: "none",
+                    display: "block", textAlign: "center",
+                  }}
+                >
+                  📊 See full progress →
+                </a>
+                <button
+                  onClick={() => openAccessManager("profile")}
+                  type="button"
+                  style={{
+                    padding: "9px 18px", background: "#fff", color: "#4a3880",
+                    border: "1.5px solid #d0c8e8", borderRadius: "10px",
+                    font: "600 0.78rem system-ui", cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  ⚙️ Manage access
+                </button>
+              </div>
+            </div>
+
+            {/* ── 4 quick-stat tiles ──────────────────────────────────────── */}
+            <div style={quickStatGridStyle}>
+              {[
+                {
+                  icon: "⭐",
+                  val: activeChild.totalPoints,
+                  label: "Stars earned",
+                  delta: `Level ${activeChild.currentLevel}`,
+                  up: true,
+                },
+                {
+                  icon: "📚",
+                  val: activeChildDashboard.completedSessions,
+                  label: "Sessions completed",
+                  delta: formatMinutes(activeChildDashboard.totalTimeSpentMs) + " total",
+                  up: true,
+                },
+                {
+                  icon: "⏱️",
+                  val: formatMinutes(activeChildDashboard.effectiveTimeSpentMs),
+                  label: "Effective time",
+                  delta: formatPercent(activeChildDashboard.averageEffectiveness) + " engagement",
+                  up: false,
+                },
+                {
+                  icon: "🏅",
+                  val: activeChild.badgeCount,
+                  label: "Badges earned",
+                  delta: `${activeChild.trophyCount} trophies`,
+                  up: true,
+                },
+              ].map((tile) => (
+                <div key={tile.label} style={statCardStyle}>
+                  <div style={{ fontSize: "1.2rem", marginBottom: "10px" }}>{tile.icon}</div>
+                  <span style={{ font: "900 1.5rem system-ui", color: "#1a1240", display: "block", marginBottom: "2px" }}>
+                    {tile.val}
+                  </span>
+                  <div style={{ font: "400 0.72rem system-ui", color: "#9080a0" }}>{tile.label}</div>
+                  <div
+                    style={{
+                      font: "600 0.72rem system-ui", marginTop: "6px",
+                      color: tile.up ? "#30a060" : "#9080a0",
+                    }}
+                  >
+                    {tile.up ? "↑ " : "→ "}{tile.delta}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── 2-column: Skills + (Streak calendar + Activity) ─────────── */}
+            <div style={twoColStyle}>
+              {/* Left: Skills practiced */}
+              <div style={skillCardStyle}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                  <span style={{ font: "700 0.95rem system-ui", color: "#1a1240" }}>Skills practiced this week</span>
+                  <a href="#parent-family-detail" style={{ font: "500 0.75rem system-ui", color: "#9b72ff", textDecoration: "none" }}>
+                    See all →
+                  </a>
+                </div>
+
+                {activeSkillOptions.length > 0 ? (
+                  <>
+                    {activeSkillOptions.slice(0, 5).map((skill) => {
+                      const barColor = skill.masteryRate >= 75 ? "#9b72ff" : "#ffd166";
+                      return (
+                        <div
+                          key={skill.skillCode}
+                          style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}
+                        >
+                          <span
+                            style={{
+                              font: "600 0.8rem system-ui", color: "#1a1240",
+                              width: "120px", flexShrink: 0,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}
+                          >
+                            {skill.displayName}
+                          </span>
+                          <div
+                            style={{
+                              flex: 1, height: "6px", background: "#e8e0f0",
+                              borderRadius: "3px", overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${skill.masteryRate}%`, height: "100%",
+                                background: barColor, borderRadius: "3px",
+                                transition: "width 0.4s ease",
+                              }}
+                            />
+                          </div>
+                          <span style={{ font: "600 0.72rem system-ui", color: "#9080a0", width: "32px", textAlign: "right", flexShrink: 0 }}>
+                            {skill.masteryRate}%
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                    {/* Support tip */}
+                    {primarySupport ? (
+                      <div
+                        style={{
+                          marginTop: "14px", padding: "10px 12px",
+                          background: "#f0fdf8", borderRadius: "8px",
+                          border: "1px solid #b0f0d0",
+                          font: "400 0.76rem/1.4 system-ui", color: "#1a5030",
+                        }}
+                      >
+                        💡 <strong>Support tip:</strong>{" "}
+                        {buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <p style={{ font: "400 0.82rem system-ui", color: "#9080a0" }}>
+                    Skills appear after a few sessions.
+                  </p>
+                )}
+              </div>
+
+              {/* Right: Streak card + Recent activity */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {/* Streak calendar */}
+                <div style={streakCardStyle}>
+                  <div
+                    style={{
+                      font: "600 0.72rem system-ui", color: "#c0b0f0",
+                      textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "6px",
+                    }}
+                  >
+                    Current streak
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "10px" }}>
+                    <span style={{ font: "900 2.4rem system-ui", color: "#ffd166" }}>🔥 {streakDays}</span>
+                    <span style={{ font: "600 0.85rem system-ui", color: "#ffd166" }}>
+                      {streakDays === 1 ? "day in a row!" : "days in a row!"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "5px" }}>
+                    {streakDots.map((dot, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          width: "28px", height: "28px", borderRadius: "6px",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          font: "600 0.65rem system-ui",
+                          background: dot.isToday ? "#ffd166" : dot.played ? "rgba(255,209,102,0.15)" : "#2a2060",
+                          color: dot.isToday ? "#1a1240" : dot.played ? "#ffd166" : "#8070b0",
+                          fontWeight: dot.isToday ? 700 : undefined,
+                        }}
+                      >
+                        {dot.label}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-              <div className="parent-access-ready-grid">
-                <article className="parent-access-identity-card">
-                  {activeChild ? (
-                    <div className="parent-access-person-row">
-                      <span className="parent-access-avatar" aria-hidden="true">
-                        {getAvatarSymbol(activeChild.avatarKey)}
-                      </span>
-                      <div>
-                        <strong>{activeChild.displayName}</strong>
-                        <span>{getBandLabel(activeChild.launchBandCode)}</span>
-                      </div>
-                      <em>Linked child</em>
-                    </div>
-                  ) : null}
-
-                  <div className="parent-access-person-row">
-                    <span className="parent-access-avatar parent-access-avatar-parent" aria-hidden="true">
-                      👤
-                    </span>
-                    <div>
-                      <strong>{result.guardian.displayName}</strong>
-                      <span>@{result.guardian.username}</span>
-                    </div>
-                    <em>{relationship}</em>
+                {/* Recent activity */}
+                <div style={{ ...skillCardStyle, flex: 1 }}>
+                  <div style={{ font: "700 0.95rem system-ui", color: "#1a1240", marginBottom: "14px" }}>
+                    Recent activity
                   </div>
-                </article>
+                  {activeChildDashboard.recentSessions.length > 0 ? (
+                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      {activeChildDashboard.recentSessions.slice(0, 5).map((session) => {
+                        const dotColor =
+                          session.effectivenessScore && session.effectivenessScore >= 75
+                            ? "#9b72ff"
+                            : session.effectivenessScore && session.effectivenessScore >= 50
+                              ? "#ffd166"
+                              : "#58e8c1";
+                        return (
+                          <li
+                            key={session.id}
+                            style={{
+                              display: "flex", alignItems: "flex-start", gap: "12px",
+                              padding: "10px 0",
+                              borderBottom: "1px solid #f0e8f8",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "10px", height: "10px", borderRadius: "50%",
+                                background: dotColor, flexShrink: 0, marginTop: "4px",
+                              }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ font: "400 0.82rem/1.4 system-ui", color: "#3a3060" }}>
+                                <strong style={{ fontWeight: 700, color: "#1a1240" }}>
+                                  {activeChild.displayName}
+                                </strong>{" "}
+                                completed a {formatSessionMode(session.sessionMode).toLowerCase()} session
+                                {session.effectivenessScore !== null
+                                  ? ` · ${session.effectivenessScore}% engagement`
+                                  : ""}
+                              </div>
+                              <div style={{ font: "400 0.7rem system-ui", color: "#b0a0c0", marginTop: "2px" }}>
+                                {formatLastSeen(session.startedAt)}
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p style={{ font: "400 0.82rem system-ui", color: "#9080a0" }}>
+                      Activity appears here after the first lesson.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
 
-                <article className="parent-access-status-card">
-                  <div className="parent-access-status-row">
-                    <div className="parent-access-status-cell">
-                      <strong>{notifyWeekly ? "On" : "Off"}</strong>
-                      <span>Weekly summary</span>
-                    </div>
-                    <div className="parent-access-status-cell">
-                      <strong>{notifyMilestones ? "On" : "Off"}</strong>
-                      <span>Milestones</span>
-                    </div>
-                    <div className="parent-access-status-cell">
-                      <strong>{result.linkedChildren.length}</strong>
-                      <span>Children</span>
-                    </div>
+            {/* ── Weekly snapshot section ──────────────────────────────────── */}
+            <div
+              style={{
+                background: "#fff", borderRadius: "16px", padding: "24px",
+                border: "1px solid #e8e0f0", boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
+                marginBottom: "24px",
+              }}
+            >
+              <div style={{ font: "600 0.7rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                Family learning snapshot
+              </div>
+              <div style={{ font: "700 1rem system-ui", color: "#1a1240", marginBottom: "18px" }}>
+                {parentWeekSummary?.headline ?? `${activeChild.displayName} is making progress.`}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+                {[
+                  {
+                    label: "Days practiced",
+                    val: activeChildDashboard.recentSessions.length > 0
+                      ? new Set(activeChildDashboard.recentSessions.map((s) => new Date(s.startedAt).toDateString())).size
+                      : 0,
+                    detail: "this week",
+                  },
+                  {
+                    label: "Effective time",
+                    val: formatMinutes(activeChildDashboard.effectiveTimeSpentMs),
+                    detail: "quality play",
+                  },
+                  {
+                    label: "Badges earned",
+                    val: activeChild.badgeCount,
+                    detail: "total",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      background: "#faf8ff", borderRadius: "12px", padding: "16px",
+                      border: "1px solid #ede8ff",
+                    }}
+                  >
+                    <div style={{ font: "400 0.72rem system-ui", color: "#8070a0", marginBottom: "4px" }}>{item.label}</div>
+                    <div style={{ font: "900 1.4rem system-ui", color: "#1a1240", marginBottom: "2px" }}>{item.val}</div>
+                    <div style={{ font: "400 0.68rem system-ui", color: "#b0a0c0" }}>{item.detail}</div>
                   </div>
-
-                  <div className="parent-access-cta-row">
-                    <button
-                      className="secondary-link button-link"
-                      onClick={() =>
-                        showAccessManager
-                          ? closeAccessManager()
-                          : openAccessManager("profile")
-                      }
-                      type="button"
-                    >
-                      {showAccessManager ? "Hide family access" : "Manage family access"}
-                    </button>
-                    <a className="primary-link" href="#parent-family-hub">
-                      View family hub
-                    </a>
-                  </div>
-                </article>
+                ))}
               </div>
 
-              {showAccessManager ? (
-                <form className="parent-access-inline-card" onSubmit={handleSubmit}>
-                  <div className="parent-access-inline-tabs" role="tablist" aria-label="Family access sections">
-                    <button
-                      aria-pressed={openAccessSection === "profile"}
-                      className={`parent-access-inline-tab ${openAccessSection === "profile" ? "is-current" : ""}`}
-                      onClick={() =>
-                        setOpenAccessSection((current) =>
-                          current === "profile" ? null : "profile",
-                        )
-                      }
-                      type="button"
-                    >
-                      Edit info
-                    </button>
-                    <button
-                      aria-pressed={openAccessSection === "notifications"}
-                      className={`parent-access-inline-tab ${openAccessSection === "notifications" ? "is-current" : ""}`}
-                      onClick={() =>
-                        setOpenAccessSection((current) =>
-                          current === "notifications" ? null : "notifications",
-                        )
-                      }
-                      type="button"
-                    >
-                      Notifications
-                    </button>
-                    <button
-                      aria-pressed={openAccessSection === "relink"}
-                      className={`parent-access-inline-tab ${openAccessSection === "relink" ? "is-current" : ""}`}
-                      onClick={() =>
-                        setOpenAccessSection((current) =>
-                          current === "relink" ? null : "relink",
-                        )
-                      }
-                      type="button"
-                    >
-                      Relink child
-                    </button>
-                  </div>
-
-                  {openAccessSection === "profile" ? (
-                    <div className="parent-access-inline-panel">
-                      <div className="field-grid">
-                        <FieldBlock
-                          helper="Shown in family summaries and notifications."
-                          label="Display name"
-                          onChange={(event) => setDisplayName(event.target.value)}
-                          placeholder="Parent name"
-                          value={displayName}
-                        />
-                        <label className="field-block">
-                          <span>Relationship</span>
-                          <div className="summary-chip-row">
-                            {["parent", "guardian", "grandparent", "other"].map((option) => (
-                              <button
-                                className={`summary-chip parent-access-chip ${relationship === option ? "is-current" : ""}`}
-                                key={option}
-                                onClick={() => setRelationship(option)}
-                                type="button"
-                              >
-                                {option}
-                              </button>
-                            ))}
-                          </div>
-                          <small>
-                            Shown in family summaries — e.g. Mom, Dad, Grandma.
-                          </small>
-                        </label>
+              {parentWeekendActivities.length > 0 ? (
+                <div style={{ marginTop: "18px" }}>
+                  <div style={{ font: "600 0.75rem system-ui", color: "#6a5890", marginBottom: "10px" }}>Try at home</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {parentWeekendActivities.map((activity) => (
+                      <div
+                        key={activity.title}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "12px",
+                          padding: "10px 14px", background: "#f5f0ff",
+                          borderRadius: "10px", border: "1px solid #e0d8f8",
+                        }}
+                      >
+                        <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>{activity.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ font: "600 0.82rem system-ui", color: "#1a1240" }}>{activity.title}</div>
+                          <div style={{ font: "400 0.72rem system-ui", color: "#7060a0" }}>{activity.body}</div>
+                        </div>
+                        <span
+                          style={{
+                            font: "600 0.68rem system-ui", color: "#9b72ff",
+                            background: "#ede8ff", padding: "3px 8px",
+                            borderRadius: "8px", whiteSpace: "nowrap",
+                          }}
+                        >
+                          {activity.tag}
+                        </span>
                       </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* ── Access manager (inline, collapsible) ────────────────────── */}
+            {showAccessManager ? (
+              <div
+                style={{
+                  background: "#fff", borderRadius: "16px", padding: "24px",
+                  border: "1px solid #e0d8f0", marginBottom: "24px",
+                  boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                  <div>
+                    <div style={{ font: "600 0.7rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                      Access manager
+                    </div>
+                    <div style={{ font: "700 0.95rem system-ui", color: "#1a1240" }}>
+                      Family access — {result.guardian.displayName}
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeAccessManager}
+                    type="button"
+                    style={{
+                      padding: "6px 14px", borderRadius: "8px", cursor: "pointer",
+                      border: "1.5px solid #e0d8f0", background: "#faf8ff",
+                      font: "500 0.78rem system-ui", color: "#6a5890",
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", gap: "6px", marginBottom: "18px" }}>
+                  {(["profile", "notifications", "relink"] as const).map((section) => (
+                    <button
+                      key={section}
+                      onClick={() => setOpenAccessSection((c) => (c === section ? null : section))}
+                      type="button"
+                      style={{
+                        padding: "7px 14px", borderRadius: "8px", cursor: "pointer",
+                        font: "600 0.78rem system-ui",
+                        border: openAccessSection === section ? "2px solid #9b72ff" : "1.5px solid #e0d8f0",
+                        background: openAccessSection === section ? "#ede8ff" : "#faf8ff",
+                        color: openAccessSection === section ? "#3d2a8a" : "#6a5890",
+                      }}
+                    >
+                      {section === "profile" ? "Edit info" : section === "notifications" ? "Notifications" : "Relink child"}
+                    </button>
+                  ))}
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                  {openAccessSection === "profile" ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+                      <FieldBlock
+                        helper="Shown in family summaries and notifications."
+                        label="Display name"
+                        onChange={(event) => setDisplayName(event.target.value)}
+                        placeholder="Parent name"
+                        value={displayName}
+                      />
+                      <label className="field-block">
+                        <span>Relationship</span>
+                        <div className="summary-chip-row">
+                          {["parent", "guardian", "grandparent", "other"].map((option) => (
+                            <button
+                              className={`summary-chip parent-access-chip ${relationship === option ? "is-current" : ""}`}
+                              key={option}
+                              onClick={() => setRelationship(option)}
+                              type="button"
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      </label>
                     </div>
                   ) : null}
 
                   {openAccessSection === "notifications" ? (
-                    <div className="parent-access-inline-panel">
-                      <div className="parent-toggle-list">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                      {[
+                        { key: "weekly", label: "Weekly summary", sub: "Time spent, productive time, and next support areas.", val: notifyWeekly, toggle: () => setNotifyWeekly((v) => !v) },
+                        { key: "milestones", label: "Milestones and badges", sub: "Celebrate progress without a noisy stream of alerts.", val: notifyMilestones, toggle: () => setNotifyMilestones((v) => !v) },
+                      ].map((item) => (
                         <button
-                          className={`parent-toggle-row ${notifyWeekly ? "is-on" : ""}`}
-                          onClick={() => setNotifyWeekly((value) => !value)}
+                          key={item.key}
+                          onClick={item.toggle}
                           type="button"
+                          style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            padding: "11px 14px", borderRadius: "10px", cursor: "pointer",
+                            border: "1.5px solid #e0d8f0",
+                            background: item.val ? "#faf5ff" : "#faf8ff",
+                            textAlign: "left",
+                          }}
                         >
                           <div>
-                            <strong>Weekly summary</strong>
-                            <span>Time spent, productive time, and next support areas.</span>
+                            <div style={{ font: "600 0.82rem system-ui", color: "#1a1240" }}>{item.label}</div>
+                            <div style={{ font: "400 0.7rem system-ui", color: "#9080a0" }}>{item.sub}</div>
                           </div>
-                          <b>{notifyWeekly ? "On" : "Off"}</b>
+                          <span
+                            style={{
+                              font: "700 0.75rem system-ui",
+                              color: item.val ? "#9b72ff" : "#b0a0c0",
+                              background: item.val ? "#ede8ff" : "#f0eef8",
+                              padding: "3px 10px", borderRadius: "10px",
+                            }}
+                          >
+                            {item.val ? "On" : "Off"}
+                          </span>
                         </button>
-                        <button
-                          className={`parent-toggle-row ${notifyMilestones ? "is-on" : ""}`}
-                          onClick={() => setNotifyMilestones((value) => !value)}
-                          type="button"
-                        >
-                          <div>
-                            <strong>Milestones and badges</strong>
-                            <span>Celebrate progress without a noisy stream of alerts.</span>
-                          </div>
-                          <b>{notifyMilestones ? "On" : "Off"}</b>
-                        </button>
-                      </div>
+                      ))}
                     </div>
                   ) : null}
 
                   {openAccessSection === "relink" ? (
-                    <div className="parent-access-inline-panel">
-                      <div className="parent-inline-warning">
-                        <strong>Relinking is uncommon.</strong>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+                      <div style={{ font: "500 0.8rem system-ui", color: "#805020", background: "#fff8ee", border: "1px solid #ffe0b0", borderRadius: "8px", padding: "10px 14px" }}>
+                        <strong>Relinking is uncommon.</strong> Only use this if your child has a new account.
                       </div>
                       <FieldBlock
                         label="Child username"
@@ -865,630 +1395,62 @@ export default function ParentAccessPage() {
                         value={childUsername}
                       />
                       {activeChild ? (
-                        <div className="parent-current-link-row">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f5f0ff", borderRadius: "10px", border: "1px solid #e0d8f8" }}>
                           <div>
-                            <strong>Currently linked</strong>
-                            <span>{activeChild.displayName}</span>
+                            <div style={{ font: "600 0.8rem system-ui", color: "#1a1240" }}>Currently linked</div>
+                            <div style={{ font: "400 0.72rem system-ui", color: "#7060a0" }}>{activeChild.displayName}</div>
                           </div>
-                          <em>{getBandLabel(activeChild.launchBandCode)}</em>
+                          <span style={{ font: "500 0.72rem system-ui", color: "#9b72ff" }}>{getBandLabel(activeChild.launchBandCode)}</span>
                         </div>
                       ) : null}
                     </div>
                   ) : null}
 
-                  {error ? <p className="status-banner status-error">{error}</p> : null}
+                  {error ? (
+                    <p style={{ font: "500 0.82rem system-ui", color: "#c02020", background: "#fff0f0", border: "1px solid #ffcccc", borderRadius: "8px", padding: "10px 14px", marginBottom: "12px" }}>
+                      {error}
+                    </p>
+                  ) : null}
 
-                  <div className="form-actions">
-                    <button className="primary-link button-link" disabled={submitting} type="submit">
-                      {submitting ? "Saving..." : "Save family changes"}
-                    </button>
-                    <button
-                      className="secondary-link button-link"
-                      onClick={closeAccessManager}
-                      type="button"
-                    >
-                      Done
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-            </ShellCard>
-          </section>
-        ) : null}
-
-        {!result ? (
-          <section className="parent-preview-layout" id="parent-access-form">
-            <div className="parent-preview-main">
-              <article className="parent-summary-hero is-single parent-preview-hero">
-                <div className="parent-hub-greeting">
-                  <span className="eyebrow">This week</span>
-                  <h2>Family learning snapshot with calmer signals.</h2>
-                  <p>{parentPreviewWeekly.summary}</p>
-                  <div className="parent-week-chip-row">
-                    {parentPreviewWeekly.chips.map((chip) => (
-                      <span className="parent-week-chip" key={chip}>
-                        {chip}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="parent-preview-kpi-stack">
-                  {parentPreviewWeekly.kpis.map((item) => (
-                    <div className="parent-preview-kpi" key={item.label}>
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                      <small>{item.detail}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              <div className="parent-preview-grid">
-                <article className="parent-weekly-card parent-preview-card">
-                  <span className="parent-weekly-label">Weekly summary</span>
-                  <strong>{parentPreviewWeekly.childName}</strong>
-                  <small>{parentPreviewWeekly.bandLabel}</small>
-                  <div className="parent-weekly-stats">
-                    <div>
-                      <span>Strengths</span>
-                      <strong>3</strong>
-                    </div>
-                    <div>
-                      <span>Building</span>
-                      <strong>1</strong>
-                    </div>
-                    <div>
-                      <span>Next ideas</span>
-                      <strong>2</strong>
-                    </div>
-                  </div>
-                </article>
-
-                <article className="parent-next-step-card">
-                  <span className="parent-insight-label">Strongest next step</span>
-                  <strong>{parentPreviewWeekly.support}</strong>
-                  <div className="parent-action-list">
-                    <div>
-                      <span>Best practice window</span>
-                      <strong>2–5 minutes</strong>
-                    </div>
-                    <div>
-                      <span>Family mode</span>
-                      <strong>Quiet + positive</strong>
-                    </div>
-                    <div>
-                      <span>Next step</span>
-                      <strong>Home practice</strong>
-                    </div>
-                  </div>
-                </article>
-              </div>
-
-              <ShellCard
-                className="shell-card-soft parent-preview-highlights"
-                eyebrow="Family view"
-                title="What parents need now"
-              >
-                <div className="parent-answer-list">
-                  <div className="parent-answer-row">
-                    <span className="parent-answer-icon" aria-hidden="true">
-                      ✅
-                    </span>
-                    <div className="parent-answer-copy">
-                      <strong>Going well</strong>
-                      <small>{parentPreviewWeekly.strengths.join(", ")}</small>
-                    </div>
-                  </div>
-                  <div className="parent-answer-row">
-                    <span className="parent-answer-icon" aria-hidden="true">
-                      🌱
-                    </span>
-                    <div className="parent-answer-copy">
-                      <strong>Needs support</strong>
-                      <small>{parentPreviewWeekly.support}</small>
-                    </div>
-                  </div>
-                  <div className="parent-answer-row">
-                    <span className="parent-answer-icon" aria-hidden="true">
-                      🧭
-                    </span>
-                    <div className="parent-answer-copy">
-                      <strong>Next move</strong>
-                      <small>Start small, stop while it's easy.</small>
-                    </div>
-                  </div>
-                </div>
-              </ShellCard>
-
-              <div className="parent-preview-grid">
-                <article className="parent-teacher-strip-card">
-                  <span className="parent-insight-label">From school</span>
-                  <div className="parent-teacher-strip-header">
-                    <span className="parent-teacher-avatar" aria-hidden="true">
-                      JL
-                    </span>
-                    <div>
-                      <strong>Teacher guidance</strong>
-                    </div>
-                  </div>
-                  <blockquote>{parentPreviewWeekly.teacherMessage}</blockquote>
-                </article>
-
-                <article className="parent-activity-card">
-                  <span className="parent-insight-label">Try this week</span>
-                  <div className="parent-activity-stack">
-                    {parentPreviewWeekly.activities.map((activity) => (
-                      <div className="parent-activity-row" key={activity.title}>
-                        <span className="parent-activity-icon" aria-hidden="true">
-                          {activity.icon}
-                        </span>
-                        <div>
-                          <strong>{activity.title}</strong>
-                        </div>
-                        <small>{activity.tag}</small>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              </div>
-            </div>
-
-            <aside className="parent-preview-side">
-              <ShellCard
-                className="shell-card-emphasis parent-access-manager-card"
-                eyebrow="Parent access"
-                title={
-                  returningAccessMode
-                    ? "Sign in to an existing parent account"
-                    : "Create parent access"
-                }
-              >
-                <div className="parent-access-mode-row">
-                  <button
-                    className={`parent-access-mode-card ${returningAccessMode ? "is-current" : ""}`}
-                    onClick={() => {
-                      setAccessMode("returning");
-                      setError("");
-                    }}
-                    type="button"
-                  >
-                    <span className="parent-access-mode-icon" aria-hidden="true">
-                      🔐
-                    </span>
-                    <div>
-                      <strong>Existing parent sign-in</strong>
-                      <small>Username + PIN</small>
-                    </div>
-                  </button>
-                  <button
-                    className={`parent-access-mode-card ${!returningAccessMode ? "is-current" : ""}`}
-                    onClick={() => {
-                      setAccessMode("new");
-                      setError("");
-                    }}
-                    type="button"
-                  >
-                    <span className="parent-access-mode-icon" aria-hidden="true">
-                      ✨
-                    </span>
-                    <div>
-                      <strong>First-time parent setup</strong>
-                      <small>First time — set name, PIN, link child</small>
-                    </div>
-                  </button>
-                </div>
-                <form className="parent-access-compact-form" onSubmit={handleSubmit}>
-                  <div className="field-grid">
-                    <FieldBlock
-                      autoComplete="username"
-                      label="Username"
-                      onChange={(event) => setUsername(event.target.value)}
-                      placeholder="parent username"
-                      value={username}
-                    />
-                    <FieldBlock
-                      autoComplete="current-password"
-                      label="4-digit PIN"
-                      maxLength={4}
-                      onChange={(event) => setPin(event.target.value)}
-                      placeholder="0000"
-                      type="password"
-                      value={pin}
-                    />
-                    {!returningAccessMode ? (
-                      <FieldBlock
-                        label="Display name"
-                        onChange={(event) => setDisplayName(event.target.value)}
-                        placeholder="Parent name"
-                        value={displayName}
-                      />
-                    ) : null}
-                    {!returningAccessMode ? (
-                      <FieldBlock
-                        label="Child username"
-                        onChange={(event) => setChildUsername(event.target.value)}
-                        placeholder="child quest name"
-                        value={childUsername}
-                      />
-                    ) : null}
-                  </div>
-
-                  {returningAccessMode ? (
-                    <div className="parent-access-inline-note">
-                      <strong>Username + PIN only needed to sign in.</strong>
-                    </div>
-                  ) : (
-                    <div className="parent-preview-toggle-list">
+                  {openAccessSection ? (
+                    <div style={{ display: "flex", gap: "10px" }}>
                       <button
-                        className={`parent-toggle-row ${notifyWeekly ? "is-on" : ""}`}
-                        onClick={() => setNotifyWeekly((value) => !value)}
-                        type="button"
-                      >
-                        <div>
-                          <strong>Weekly summary</strong>
-                          <span>Time spent, calm insights, and next focus.</span>
-                        </div>
-                        <b>{notifyWeekly ? "On" : "Off"}</b>
-                      </button>
-                      <button
-                        className={`parent-toggle-row ${notifyMilestones ? "is-on" : ""}`}
-                        onClick={() => setNotifyMilestones((value) => !value)}
-                        type="button"
-                      >
-                        <div>
-                          <strong>Milestones</strong>
-                          <span>Badges, trophies, and level moments.</span>
-                        </div>
-                        <b>{notifyMilestones ? "On" : "Off"}</b>
-                      </button>
-                    </div>
-                  )}
-
-                  {error ? <p className="status-banner status-error">{error}</p> : null}
-
-                  <div className="form-actions">
-                    <button className="primary-link button-link" disabled={submitting} type="submit">
-                      {submitting
-                        ? returningAccessMode
-                          ? "Signing in..."
-                          : "Saving..."
-                        : returningAccessMode
-                          ? "Sign in to family view"
-                          : "Create parent access"}
-                    </button>
-                    <Link className="secondary-link" href="/child">
-                      Child access
-                    </Link>
-                  </div>
-                </form>
-              </ShellCard>
-
-              <article className="parent-settings-card parent-preview-settings-card">
-                <span className="parent-insight-label">What opens next</span>
-                <strong>Linked children, weekly reports, and next steps</strong>
-                <div className="parent-settings-list">
-                  <div className="parent-settings-row">
-                    <div>
-                      <strong>Child-aware reporting</strong>
-                      <span>Every linked child stays visible.</span>
-                    </div>
-                    <b>Ready</b>
-                  </div>
-                  <div className="parent-settings-row">
-                    <div>
-                      <strong>Teacher-style guidance</strong>
-                      <span>One plain-language message, not a wall of data.</span>
-                    </div>
-                    <b>Included</b>
-                  </div>
-                </div>
-              </article>
-            </aside>
-          </section>
-        ) : null}
-
-        {result && activeChild && activeChildDashboard ? (
-          <>
-            <section className="parent-family-desk" id="parent-family-hub">
-              <aside className="parent-family-left-rail">
-                <article className="parent-family-panel parent-family-profile-card">
-                  <div className="parent-family-panel-label">Family account</div>
-                  <div className="parent-family-account-row">
-                    <span className="parent-family-account-avatar" aria-hidden="true">
-                      👨‍👩‍👧
-                    </span>
-                    <div>
-                      <strong>{result.guardian.displayName}</strong>
-                      <span>@{result.guardian.username}</span>
-                    </div>
-                  </div>
-                  <div className="parent-family-mini-stats">
-                    <div>
-                      <span>Linked children</span>
-                      <strong>{result.linkedChildren.length}</strong>
-                    </div>
-                    <div>
-                      <span>Family sessions</span>
-                      <strong>{familyTotals?.completedSessions ?? 0}</strong>
-                    </div>
-                    <div>
-                      <span>Badges</span>
-                      <strong>{familyBadgeTotal}</strong>
-                    </div>
-                  </div>
-                  <div className="parent-family-profile-actions">
-                    <button
-                      className="secondary-link button-link"
-                      onClick={() => openAccessManager("profile")}
-                      type="button"
-                    >
-                      Manage access
-                    </button>
-                    <a className="secondary-link" href="#parent-feedback">
-                      Send feedback
-                    </a>
-                  </div>
-                </article>
-
-                <article className="parent-family-panel">
-                  <div className="parent-family-panel-label">Your learners</div>
-                  <div className="parent-family-switcher-stack" role="tablist" aria-label="Linked children">
-                    {result.linkedChildren.map((child) => {
-                      const dashboard = result.childDashboards.find(
-                        (item) => item.studentId === child.id,
-                      );
-
-                      return (
-                        <button
-                          aria-selected={activeChildId === child.id}
-                          className={`parent-family-switch-card ${activeChildId === child.id ? "is-active" : ""}`}
-                          key={child.id}
-                          onClick={() => setSelectedChildId(child.id)}
-                          role="tab"
-                          type="button"
-                        >
-                          <span className="parent-family-switch-avatar" aria-hidden="true">
-                            {getAvatarSymbol(child.avatarKey)}
-                          </span>
-                          <div className="parent-family-switch-copy">
-                            <strong>{child.displayName}</strong>
-                            <span>{getBandLabel(child.launchBandCode)}</span>
-                            <small>
-                              {dashboard
-                                ? `${dashboard.readinessLabel} · ${dashboard.recommendedFocus}`
-                                : "No activity yet — help your child complete their first lesson"}
-                            </small>
-                          </div>
-                          {activeChildId === child.id ? (
-                            <em>Active</em>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </article>
-
-                <article className="parent-family-panel parent-family-quick-links">
-                  <div className="parent-family-panel-label">Quick links</div>
-                  <div className="parent-family-quick-link-stack">
-                    {parentQuickLinks.map((link) => (
-                      <a className="parent-family-quick-link" href={link.href} key={link.label}>
-                        <div>
-                          <strong>{link.label}</strong>
-                          <span>{link.detail}</span>
-                        </div>
-                        <b>Open</b>
-                      </a>
-                    ))}
-                  </div>
-                </article>
-              </aside>
-
-              <div className="parent-family-center-rail">
-                {result.linkedChildren.length > 1 ? (
-                  <div className="parent-active-child-bar">
-                    <span className="parent-active-child-avatar" aria-hidden="true">
-                      {getAvatarSymbol(activeChild.avatarKey)}
-                    </span>
-                    <div className="parent-active-child-copy">
-                      <span>Now viewing</span>
-                      <strong>{activeChild.displayName}</strong>
-                      <em>{getBandLabel(activeChild.launchBandCode)}</em>
-                    </div>
-                    <span className="parent-active-child-hint">Switch in the left panel</span>
-                  </div>
-                ) : null}
-                <article
-                  className={`parent-family-week-hero ${
-                    result.linkedChildren.length > 1 ? "is-family" : "is-single"
-                  }`}
-                >
-                  <div className="parent-family-week-copy">
-                    <span className="eyebrow">This week</span>
-                    <h2>{parentWeekSummary?.headline}</h2>
-                      <div className="parent-week-chip-row">
-                      {parentWeekSummary?.chips.map((chip) => (
-                        <span className="parent-week-chip" key={chip}>
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="parent-family-week-metrics">
-                    <div className="parent-family-week-metric">
-                      <span>Effective time</span>
-                      <strong>{formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}</strong>
-                      <small>{formatPercent(activeChildDashboard.averageEffectiveness)} productive play</small>
-                    </div>
-                    <div className="parent-family-week-metric">
-                      <span>Sessions</span>
-                      <strong>{activeChildDashboard.completedSessions}</strong>
-                      <small>{formatMinutes(activeChildDashboard.totalTimeSpentMs)} total</small>
-                    </div>
-                    <div className="parent-family-week-metric">
-                      <span>Points</span>
-                      <strong>{activeChild.totalPoints}</strong>
-                      <small>Level {activeChild.currentLevel}</small>
-                    </div>
-                    <div className="parent-family-week-metric">
-                      <span>Next focus</span>
-                      <strong>{activeChildDashboard.recommendedFocus}</strong>
-                      <small>{activeChildDashboard.readinessLabel}</small>
-                    </div>
-                  </div>
-                </article>
-
-                <article className="parent-family-answer-strip" aria-label="Parent quick answers">
-                  <div className="parent-family-answer-grid">
-                    {parentTopAnswers.map((item) => (
-                      <div className={`parent-family-answer-card is-${item.tone}`} key={item.label}>
-                        <span>{item.label}</span>
-                        <strong>{item.value}</strong>
-                        <small>{item.detail}</small>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-
-                <article className="parent-family-summary-card">
-                  <div className="parent-family-summary-header">
-                    <div>
-                      <div className="parent-family-panel-label">Skills snapshot</div>
-                      <h3>{activeChild.displayName}'s week at a glance</h3>
-                    </div>
-                    <a className="parent-family-summary-link" href="#parent-family-detail">
-                      See full progress map
-                    </a>
-                  </div>
-
-                  <div className="parent-family-sns-grid" aria-label="Selected child skills snapshot">
-                    <div className="parent-family-sns-cell is-strength">
-                      <span>Strengths</span>
-                      <strong>{activeChildDashboard.strengths.length}</strong>
-                      <small>Steady</small>
-                    </div>
-                    <div className="parent-family-sns-cell is-support">
-                      <span>Building</span>
-                      <strong>{activeChildDashboard.supportAreas.length}</strong>
-                      <small>Needs follow-up</small>
-                    </div>
-                    <div className="parent-family-sns-cell is-next">
-                      <span>Next unlock</span>
-                      <strong>{parentNextMilestone ? "1" : "0"}</strong>
-                      <small>Almost there</small>
-                    </div>
-                  </div>
-
-                  <div className="parent-family-skill-highlight-list">
-                    {parentSkillSnapshot.map((item) => (
-                      <button
-                        className={`parent-family-skill-highlight is-${item.accent}`}
-                        key={item.label}
-                        onClick={() => {
-                          setSelectedSkillCode(item.skillCode);
-                          document
-                            .getElementById("parent-family-detail")
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        disabled={submitting}
+                        type="submit"
+                        style={{
+                          padding: "10px 20px", background: "#9b72ff", color: "#fff",
+                          border: "none", borderRadius: "10px", font: "600 0.85rem system-ui",
+                          cursor: submitting ? "not-allowed" : "pointer",
+                          opacity: submitting ? 0.7 : 1,
                         }}
-                        type="button"
                       >
-                        <span className="parent-family-skill-dot" aria-hidden="true" />
-                        <div className="parent-family-skill-copy">
-                          <small>{item.label}</small>
-                          <strong>{item.value}</strong>
-                        </div>
-                        <b>View</b>
+                        {submitting ? "Saving…" : "Save changes"}
                       </button>
-                    ))}
-                  </div>
-                </article>
-
-                <article className="parent-family-practice-card">
-                  <div className="parent-family-panel-label">Try this next</div>
-                  <div className="parent-family-practice-grid">
-                    {parentWeekendActivities.map((activity) => (
-                      <div className="parent-family-practice-row" key={activity.title}>
-                        <span className="parent-family-practice-icon" aria-hidden="true">
-                          {activity.icon}
-                        </span>
-                        <div>
-                          <strong>{activity.title}</strong>
-                        </div>
-                        <small>{activity.tag}</small>
-                      </div>
-                    ))}
-                  </div>
-                </article>
+                    </div>
+                  ) : null}
+                </form>
               </div>
+            ) : (
+              <div style={{ marginBottom: "16px" }}>
+                <button
+                  onClick={() => openAccessManager("profile")}
+                  type="button"
+                  style={{
+                    font: "500 0.82rem system-ui", color: "#9b72ff", background: "none",
+                    border: "none", cursor: "pointer", padding: 0,
+                  }}
+                >
+                  Manage family access →
+                </button>
+              </div>
+            )}
 
-              <aside className="parent-family-right-rail">
-                <article className="parent-family-panel parent-family-message-card">
-                  <div className="parent-family-panel-label">From school</div>
-                  <div className="parent-teacher-strip-header">
-                    <span className="parent-teacher-avatar" aria-hidden="true">
-                      JL
-                    </span>
-                    <div>
-                      <strong>Teacher guidance</strong>
-                    </div>
-                  </div>
-                  <blockquote>{parentTeacherMessage}</blockquote>
-                </article>
-
-                <article className="parent-family-panel parent-family-settings-panel">
-                  <div className="parent-family-panel-label">Signals and notifications</div>
-                  <div className="parent-family-settings-row">
-                    <div>
-                      <strong>Weekly summary</strong>
-                      <span>Time, effectiveness, and next focus</span>
-                    </div>
-                    <b>{notifyWeekly ? "On" : "Off"}</b>
-                  </div>
-                  <div className="parent-family-settings-row">
-                    <div>
-                      <strong>Milestones</strong>
-                      <span>Badges, trophies, and level moments</span>
-                    </div>
-                    <b>{notifyMilestones ? "On" : "Off"}</b>
-                  </div>
-                  <div className="parent-family-settings-row">
-                    <div>
-                      <strong>Family view</strong>
-                      <span>{result.linkedChildren.length} child profiles visible</span>
-                    </div>
-                    <b>Live</b>
-                  </div>
-                </article>
-
-                <article className="parent-family-panel parent-family-snapshot-card">
-                  <div className="parent-family-panel-label">Snapshot</div>
-                  <strong>{activeChild.displayName}</strong>
-                  <div className="parent-family-snapshot-grid">
-                    <div>
-                      <span>Comfort</span>
-                      <strong>{formatPercent(activeChildDashboard.averageEffectiveness)}</strong>
-                    </div>
-                    <div>
-                      <span>Completion</span>
-                      <strong>{formatPercent(activeChildDashboard.completionRate)}</strong>
-                    </div>
-                    <div>
-                      <span>Family time</span>
-                      <strong>
-                        {familyTotals ? formatMinutes(familyTotals.totalTimeSpentMs) : "0 min"}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Trophies</span>
-                      <strong>{familyTrophyTotal}</strong>
-                    </div>
-                  </div>
-                </article>
-              </aside>
-            </section>
-
-            <section className="route-grid route-grid-parent parent-family-detail-grid" id="parent-family-detail">
+            {/* ── Full skill detail + progress + activity ──────────────────── */}
+            <div
+              id="parent-family-detail"
+              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px", marginBottom: "24px" }}
+            >
+              {/* Skill detail */}
               <ShellCard
                 className="shell-card-soft parent-skill-detail-shell"
                 eyebrow="Skill detail"
@@ -1508,12 +1470,7 @@ export default function ParentAccessPage() {
                         </button>
                       ))}
                     </div>
-
                     <div className="parent-skill-summary-row">
-                      <article className="parent-skill-summary-card">
-                        <span>Current skill</span>
-                        <strong>{activeSkill.displayName}</strong>
-                      </article>
                       <article className="parent-skill-summary-card">
                         <span>Accuracy</span>
                         <strong>{activeSkill.masteryRate}%</strong>
@@ -1523,28 +1480,15 @@ export default function ParentAccessPage() {
                         <strong>{activeSkill.attempts}</strong>
                       </article>
                     </div>
-
                     <div className="parent-skill-detail-grid">
-                      <article className="parent-skill-detail-card">
-                        <span>Meaning</span>
-                        <strong>{describeSkillInParentLanguage(activeSkill.skillCode, activeSkill.displayName)}</strong>
-                      </article>
                       <article className="parent-skill-detail-card">
                         <span>Progress</span>
                         <strong>{buildParentSkillSignal(activeSkill.masteryRate)}</strong>
-                        <small>{activeSkill.masteryRate}% · {activeSkill.attempts} questions</small>
                       </article>
                       <article className="parent-skill-detail-card">
                         <span>Try next</span>
                         <strong>{buildParentSkillAction(activeSkill.skillCode, activeSkill.displayName)}</strong>
                       </article>
-                    </div>
-
-                    <div className="parent-skill-detail-banner">
-                      <span aria-hidden="true">🏠</span>
-                      <div>
-                        <strong>Keep it short</strong>
-                        </div>
                     </div>
                   </div>
                 ) : (
@@ -1554,6 +1498,7 @@ export default function ParentAccessPage() {
                 )}
               </ShellCard>
 
+              {/* Progress over time */}
               <ShellCard
                 className="shell-card-soft"
                 eyebrow="Progress over time"
@@ -1566,7 +1511,9 @@ export default function ParentAccessPage() {
                         <span
                           className="parent-progress-bar"
                           key={session.id}
-                          style={{ height: getSessionSparkHeight(session.effectivenessScore) }}
+                          style={{
+                            height: `${Math.max(20, Math.round(((session.effectivenessScore ?? 52) / 100) * 68))}px`,
+                          }}
                         />
                       ))}
                     </div>
@@ -1579,49 +1526,42 @@ export default function ParentAccessPage() {
                   </div>
                 ) : (
                   <p className="soft-copy">
-                    Progress-over-time will appear once there are enough recent
-                    sessions to compare.
+                    Progress-over-time will appear once there are enough recent sessions to compare.
                   </p>
                 )}
               </ShellCard>
+            </div>
 
-              <ShellCard
-                className="shell-card-soft"
-                eyebrow="Recent activity"
-                title="Recent sessions"
-              >
-                {activeChildDashboard.recentSessions.length ? (
-                  <div className="activity-list">
-                    {activeChildDashboard.recentSessions.map((session) => (
-                      <article className="activity-card" key={session.id}>
-                        <div className="activity-card-row">
-                          <strong>{formatSessionMode(session.sessionMode)}</strong>
-                          <span>{formatLastSeen(session.startedAt)}</span>
-                        </div>
-                        <div className="summary-chip-row">
-                          <span className="summary-chip">
-                            {session.totalQuestions} questions
-                          </span>
-                          <span className="summary-chip">
-                            Score {formatPercent(session.effectivenessScore)}
-                          </span>
-                          <span className="summary-chip">
-                            {session.endedAt ? "Finished" : "In progress"}
-                          </span>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="soft-copy">
-                    Activity appears here after the first lesson.
-                  </p>
-                )}
-              </ShellCard>
-            </section>
-          </>
+            {/* Recent sessions list */}
+            <ShellCard
+              className="shell-card-soft"
+              eyebrow="Recent activity"
+              title="Recent sessions"
+            >
+              {activeChildDashboard.recentSessions.length ? (
+                <div className="activity-list">
+                  {activeChildDashboard.recentSessions.map((session) => (
+                    <article className="activity-card" key={session.id}>
+                      <div className="activity-card-row">
+                        <strong>{formatSessionMode(session.sessionMode)}</strong>
+                        <span>{formatLastSeen(session.startedAt)}</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">{session.totalQuestions} questions</span>
+                        <span className="summary-chip">Score {formatPercent(session.effectivenessScore)}</span>
+                        <span className="summary-chip">{session.endedAt ? "Finished" : "In progress"}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="soft-copy">Activity appears here after the first lesson.</p>
+              )}
+            </ShellCard>
+          </section>
         ) : null}
 
+        {/* ── Feedback ─────────────────────────────────────────────────────── */}
         <section className="route-grid route-grid-parent">
           <ShellCard
             className="shell-card-soft"

@@ -370,6 +370,67 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
         })
     : [];
 
+  // Band coverage bar: % of total students in each band
+  const totalStudents = overview?.counts.students ?? 1;
+
+  // Sessions-this-week: bucket recent sessions by day-of-week label
+  const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const sessionsByDay: Record<string, number> = {};
+  for (const label of DAY_LABELS) {
+    sessionsByDay[label] = 0;
+  }
+  for (const session of recentSessions) {
+    const d = new Date(session.startedAt);
+    if (!Number.isNaN(d.getTime())) {
+      const label = DAY_LABELS[d.getDay()];
+      sessionsByDay[label] = (sessionsByDay[label] ?? 0) + 1;
+    }
+  }
+  // Order Mon–Sun for display; use counts, fallback to illustrative spread if all zero
+  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const maxDayCount = Math.max(...weekDays.map((d) => sessionsByDay[d] ?? 0), 1);
+
+  // Skill alerts from support queue top items
+  const skillAlerts = queueItems
+    .filter((skill) => skill.tier === "support")
+    .slice(0, 4)
+    .map((skill) => ({
+      icon: "📌",
+      text: `${skill.displayName} — ${skill.learnerCount} learner${skill.learnerCount !== 1 ? "s" : ""}, ${skill.remediationCount} support trigger${skill.remediationCount !== 1 ? "s" : ""}. ${skill.queueAction}`,
+      skillCode: skill.skillCode,
+    }));
+
+  // Add strong skills as celebratory alerts
+  const winAlerts = queueItems
+    .filter((skill) => skill.tier === "strong")
+    .slice(0, 2)
+    .map((skill) => ({
+      icon: "🎉",
+      text: `${skill.displayName} — ${skill.learnerCount} learner${skill.learnerCount !== 1 ? "s" : ""} showing strong mastery (${skill.masteryRate}%).`,
+      skillCode: skill.skillCode,
+    }));
+
+  const allAlerts = [...skillAlerts, ...winAlerts].slice(0, 4);
+
+  // First-try rate across all skills
+  const totalAttempts = overview
+    ? overview.skillSummary.reduce((sum, s) => sum + s.attempts, 0)
+    : 0;
+  const totalFirstTry = overview
+    ? overview.skillSummary.reduce((sum, s) => sum + s.firstTryCount, 0)
+    : 0;
+  const classFirstTryRate = totalAttempts > 0
+    ? Math.round((totalFirstTry / totalAttempts) * 100)
+    : null;
+
+  // Mastery rate across all skills (average)
+  const classMasteryRate = overview && overview.skillSummary.length > 0
+    ? Math.round(
+        overview.skillSummary.reduce((sum, s) => sum + s.masteryRate, 0) /
+          overview.skillSummary.length,
+      )
+    : null;
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
       <main className="page-shell teacher-command-shell">
@@ -381,6 +442,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
 
         {overview ? (
           <>
+            {/* ── Hero + KPI strip ──────────────────────────── */}
             <section className="teacher-command-hero">
               <div className="teacher-command-copy shell-card shell-card-spotlight">
                 <span className="shell-eyebrow">Teacher command</span>
@@ -423,6 +485,409 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
               </div>
             </section>
 
+            {/* ── 5-stat row ────────────────────────────────── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                gap: "14px",
+              }}
+            >
+              <article className="teacher-rail-card" style={{ gap: "6px" }}>
+                <span className="teacher-rail-label">Sessions</span>
+                <strong style={{ fontSize: "1.9rem", letterSpacing: "-0.04em" }}>
+                  {overview.counts.sessions}
+                </strong>
+                <small style={{ color: "rgba(207,224,250,0.55)", fontSize: "0.75rem" }}>
+                  total sessions
+                </small>
+              </article>
+
+              <article className="teacher-rail-card" style={{ gap: "6px" }}>
+                <span className="teacher-rail-label">Per student</span>
+                <strong style={{ fontSize: "1.9rem", letterSpacing: "-0.04em" }}>
+                  {averageSessionsPerLearner}
+                </strong>
+                <small style={{ color: "rgba(207,224,250,0.55)", fontSize: "0.75rem" }}>
+                  avg sessions
+                </small>
+              </article>
+
+              <article className="teacher-rail-card" style={{ gap: "6px" }}>
+                <span className="teacher-rail-label">First-try</span>
+                <strong style={{ fontSize: "1.9rem", letterSpacing: "-0.04em" }}>
+                  {classFirstTryRate !== null ? `${classFirstTryRate}%` : "—"}
+                </strong>
+                <small style={{ color: "rgba(207,224,250,0.55)", fontSize: "0.75rem" }}>
+                  first-try rate
+                </small>
+              </article>
+
+              <article className="teacher-rail-card" style={{ gap: "6px" }}>
+                <span className="teacher-rail-label">Mastery</span>
+                <strong style={{ fontSize: "1.9rem", letterSpacing: "-0.04em" }}>
+                  {classMasteryRate !== null ? `${classMasteryRate}%` : "—"}
+                </strong>
+                <small style={{ color: "rgba(207,224,250,0.55)", fontSize: "0.75rem" }}>
+                  avg mastery rate
+                </small>
+              </article>
+
+              <article className="teacher-rail-card" style={{ gap: "6px" }}>
+                <span className="teacher-rail-label">Support queue</span>
+                <strong style={{ fontSize: "1.9rem", letterSpacing: "-0.04em", color: supportSignalCount > 0 ? "#ff7b6b" : "inherit" }}>
+                  {supportSignalCount}
+                </strong>
+                <small style={{ color: "rgba(207,224,250,0.55)", fontSize: "0.75rem" }}>
+                  skills need attention
+                </small>
+              </article>
+            </div>
+
+            {/* ── Wide 2-column grid: skills mastery + band/queue ── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "2fr 1fr",
+                gap: "14px",
+                alignItems: "start",
+              }}
+            >
+              {/* Left: skills by mastery */}
+              <div className="teacher-rail-card" style={{ gridColumn: "span 1" }}>
+                <span className="teacher-rail-label">Skills by mastery</span>
+                <div style={{ display: "grid", gap: "10px" }}>
+                  {overview.skillSummary.slice(0, 6).map((skill) => {
+                    const barColor =
+                      skill.masteryRate >= 80
+                        ? "#58e8c1"
+                        : skill.masteryRate >= 60
+                          ? "#ffd166"
+                          : "#ff7b6b";
+                    return (
+                      <div
+                        key={skill.skillCode}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 140px auto",
+                          gap: "12px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.82rem",
+                            fontWeight: 700,
+                            letterSpacing: "-0.01em",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {skill.displayName}
+                        </span>
+                        <div
+                          style={{
+                            height: "6px",
+                            borderRadius: "999px",
+                            background: "rgba(255,255,255,0.1)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              height: "100%",
+                              borderRadius: "inherit",
+                              background: barColor,
+                              width: `${skill.masteryRate}%`,
+                              transition: "width 0.4s ease",
+                            }}
+                          />
+                        </div>
+                        <span
+                          style={{
+                            color: "rgba(207,224,250,0.6)",
+                            fontSize: "0.78rem",
+                            fontWeight: 800,
+                            minWidth: "36px",
+                            textAlign: "right",
+                          }}
+                        >
+                          {skill.masteryRate}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {overview.skillSummary.length === 0 && (
+                    <small style={{ color: "rgba(207,224,250,0.45)" }}>
+                      No skill data yet — start a session to see mastery.
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              {/* Right column: band coverage + support queue mini */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+
+                {/* Band coverage bars */}
+                <div className="teacher-rail-card">
+                  <span className="teacher-rail-label">Band coverage</span>
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {bandSnapshots.map((band) => {
+                      const pct = Math.round((band.studentCount / totalStudents) * 100);
+                      return (
+                        <div
+                          key={band.code}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "0.74rem",
+                              fontWeight: 800,
+                              minWidth: "68px",
+                              letterSpacing: "0.02em",
+                              color: "rgba(207,224,250,0.7)",
+                            }}
+                          >
+                            {band.displayName}
+                          </span>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: "6px",
+                              borderRadius: "3px",
+                              background: "rgba(255,255,255,0.08)",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: "100%",
+                                borderRadius: "3px",
+                                background: "#4a8ce6",
+                                width: `${pct}%`,
+                                transition: "width 0.4s ease",
+                              }}
+                            />
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "0.74rem",
+                              color: "rgba(207,224,250,0.5)",
+                              minWidth: "22px",
+                              textAlign: "right",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {band.studentCount}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {bandSnapshots.length === 0 && (
+                      <small style={{ color: "rgba(207,224,250,0.45)" }}>
+                        No band data yet.
+                      </small>
+                    )}
+                  </div>
+                </div>
+
+                {/* Support queue mini */}
+                <div className="teacher-rail-card">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span className="teacher-rail-label">Support queue</span>
+                    <Link
+                      href="#teacher-support-queue"
+                      style={{
+                        fontSize: "0.74rem",
+                        fontWeight: 700,
+                        color: "#4a8ce6",
+                        textDecoration: "none",
+                      }}
+                    >
+                      View all ({queueTierCounts.support})
+                    </Link>
+                  </div>
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {queueItems
+                      .filter((s) => s.tier === "support")
+                      .slice(0, 3)
+                      .map((skill) => (
+                        <div
+                          key={skill.skillCode}
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            padding: "10px 12px",
+                            borderRadius: "14px",
+                            background: "rgba(255,123,107,0.08)",
+                            borderLeft: "3px solid rgba(255,123,107,0.4)",
+                          }}
+                        >
+                          <div style={{ fontSize: "13px" }}>⚠️</div>
+                          <div style={{ display: "grid", gap: "3px" }}>
+                            <strong
+                              style={{
+                                fontSize: "0.8rem",
+                                fontWeight: 800,
+                                color: "#fff",
+                                letterSpacing: "-0.01em",
+                              }}
+                            >
+                              {skill.displayName}
+                            </strong>
+                            <small
+                              style={{
+                                fontSize: "0.72rem",
+                                color: "rgba(207,224,250,0.55)",
+                              }}
+                            >
+                              {skill.learnerCount} learners · {skill.remediationCount} triggers
+                            </small>
+                            <Link
+                              href={`${buildTeacherRouteHref(skill.skillCode)}#teacher-drilldown`}
+                              style={{
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                color: "#4a8ce6",
+                                textDecoration: "none",
+                              }}
+                            >
+                              Inspect
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    {queueTierCounts.support === 0 && (
+                      <small style={{ color: "rgba(207,224,250,0.45)" }}>
+                        No skills in the support queue.
+                      </small>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Sessions-this-week + skill alerts ─────────── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "14px",
+                alignItems: "start",
+              }}
+            >
+              {/* Sessions this week bar chart */}
+              <div className="teacher-rail-card">
+                <span className="teacher-rail-label">Sessions — this week</span>
+                <div style={{ display: "grid", gap: "6px" }}>
+                  {weekDays.map((day) => {
+                    const count = sessionsByDay[day] ?? 0;
+                    const pct = Math.round((count / maxDayCount) * 100);
+                    return (
+                      <div
+                        key={day}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            fontWeight: 800,
+                            color: "rgba(207,224,250,0.5)",
+                            minWidth: "28px",
+                          }}
+                        >
+                          {day}
+                        </span>
+                        <div
+                          style={{
+                            flex: 1,
+                            height: "8px",
+                            borderRadius: "4px",
+                            background: "rgba(255,255,255,0.07)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: "100%",
+                              borderRadius: "4px",
+                              background: "#4a8ce6",
+                              width: `${pct}%`,
+                              transition: "width 0.4s ease",
+                            }}
+                          />
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            color: "rgba(207,224,250,0.5)",
+                            minWidth: "20px",
+                            textAlign: "right",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {count}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Skill alerts */}
+              <div className="teacher-rail-card">
+                <span className="teacher-rail-label">Skill alerts</span>
+                <div style={{ display: "grid", gap: "8px" }}>
+                  {allAlerts.map((alert) => (
+                    <div
+                      key={alert.skillCode}
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        padding: "10px 12px",
+                        background:
+                          alert.icon === "🎉"
+                            ? "rgba(88,232,193,0.08)"
+                            : "rgba(245,166,35,0.08)",
+                        borderRadius: "10px",
+                        fontSize: "0.78rem",
+                        color:
+                          alert.icon === "🎉"
+                            ? "rgba(88,232,193,0.85)"
+                            : "rgba(245,166,35,0.85)",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <span>{alert.icon}</span>
+                      <span>{alert.text}</span>
+                    </div>
+                  ))}
+                  {allAlerts.length === 0 && (
+                    <small style={{ color: "rgba(207,224,250,0.45)" }}>
+                      No skill alerts — all signals look healthy.
+                    </small>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Full layout: left rail + main + right rail ─── */}
             <section className="teacher-command-layout">
               <aside className="teacher-command-rail teacher-command-left">
                 <div className="teacher-rail-card">

@@ -4,7 +4,6 @@ import { ShellCard } from "@/components/ui";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import { getOwnerOverview } from "@/lib/prototype-service";
 import OwnerGate from "./owner-gate";
-import { OwnerBetaOps } from "./owner-beta-ops";
 
 export const dynamic = "force-dynamic";
 
@@ -22,20 +21,7 @@ function formatShare(value: number, total: number) {
   if (total <= 0) {
     return "0%";
   }
-
   return `${Math.round((value / total) * 100)}%`;
-}
-
-function getToneLabel(status: "alert" | "good" | "watch") {
-  if (status === "good") {
-    return "Healthy";
-  }
-
-  if (status === "watch") {
-    return "Watch";
-  }
-
-  return "Attention";
 }
 
 export default async function OwnerPage() {
@@ -112,7 +98,7 @@ export default async function OwnerPage() {
       badge: overview.counts.students > 0 ? "Live" : "Watch",
       detail:
         overview.counts.students > 0
-          ? `${overview.counts.students} live child profiles created`
+          ? `${overview.counts.students} live child profiles`
           : "No live child profiles yet",
       route: "/child",
       status: overview.counts.students > 0 ? "good" : "watch",
@@ -122,7 +108,7 @@ export default async function OwnerPage() {
       detail:
         overview.counts.guardians > 0
           ? `${overview.counts.guardians} linked parent accounts`
-          : "Parent linkage still needs live households",
+          : "Needs live households",
       route: "/parent",
       status: overview.counts.guardians > 0 ? "good" : "watch",
     },
@@ -130,16 +116,16 @@ export default async function OwnerPage() {
       badge: overview.counts.sessions >= 3 ? "Ready" : "Watch",
       detail:
         overview.counts.sessions >= 3
-          ? "Enough practice data exists to support class-level signals"
-          : "Classroom view needs more session data",
+          ? "Enough data for class-level signals"
+          : "Needs more session data",
       route: "/teacher",
       status: overview.counts.sessions >= 3 ? "good" : "watch",
     },
     {
       badge: primaryFeedback ? "Active" : "Quiet",
       detail: primaryFeedback
-        ? `Latest item assigned to ${primaryFeedback.routingTarget}`
-        : "No recent feedback to review yet",
+        ? `Latest item → ${primaryFeedback.routingTarget}`
+        : "No recent feedback yet",
       route: "/owner",
       status: primaryFeedback ? "good" : "watch",
     },
@@ -171,7 +157,7 @@ export default async function OwnerPage() {
       detail:
         pendingReviewCount === 0
           ? "Queue is fully reviewed."
-          : `${pendingReviewCount} items still need owner review.`,
+          : `${pendingReviewCount} items still need review.`,
       label: "Feedback queue under control",
       status:
         pendingReviewCount === 0 ? "ok" : pendingReviewCount <= 3 ? "warn" : "fail",
@@ -179,8 +165,8 @@ export default async function OwnerPage() {
     {
       detail:
         degradedRoutes.length === 0
-          ? "All major product paths are currently healthy."
-          : `${degradedRoutes.length} areas still need attention.`,
+          ? "All major product paths healthy."
+          : `${degradedRoutes.length} areas need attention.`,
       label: "Core areas healthy enough to trust",
       status:
         degradedRoutes.length === 0
@@ -192,24 +178,24 @@ export default async function OwnerPage() {
     {
       detail:
         overview.counts.exampleItems >= 100
-          ? `${overview.counts.exampleItems} questions are live.`
-          : `${overview.counts.exampleItems} questions live against the 100-question baseline.`,
-      label: "Question bank has beta-ready density",
+          ? `${overview.counts.exampleItems} questions live.`
+          : `${overview.counts.exampleItems} of 100 baseline questions live.`,
+      label: "Question bank beta-ready",
       status: overview.counts.exampleItems >= 100 ? "ok" : "warn",
     },
     {
       detail:
         overview.counts.guardians > 0
-          ? `${overview.counts.guardians} parent accounts are linked.`
+          ? `${overview.counts.guardians} parent accounts linked.`
           : "No family accounts linked yet.",
-      label: "Parent-side signal is present",
+      label: "Parent-side signal present",
       status: overview.counts.guardians > 0 ? "ok" : "warn",
     },
     {
       detail:
         overview.counts.sessions >= 10
-          ? `${overview.counts.sessions} sessions recorded so far.`
-          : `${overview.counts.sessions} sessions recorded so far.`,
+          ? `${overview.counts.sessions} sessions recorded.`
+          : `${overview.counts.sessions} sessions so far — need 10+.`,
       label: "Enough session activity",
       status: overview.counts.sessions >= 10 ? "ok" : "warn",
     },
@@ -222,7 +208,7 @@ export default async function OwnerPage() {
           actionLabel: "Open triage queue",
           detail: `${pendingReviewCount} items still need routing or a decision.`,
           severity: pendingReviewCount > 3 ? "p0" : "p1",
-          title: "Feedback queue still needs owner review",
+          title: "Feedback queue needs owner review",
         }
       : null,
     degradedRoutes[0]
@@ -238,16 +224,16 @@ export default async function OwnerPage() {
       ? {
           actionHref: "/owner#owner-content-health",
           actionLabel: "Check content gaps",
-          detail: `${contentGaps.length} content signals are still below target.`,
+          detail: `${contentGaps.length} content signals below target.`,
           severity: "p1",
-          title: "Content density still has gaps",
+          title: "Content density has gaps",
         }
       : null,
     overview.counts.guardians === 0
       ? {
           actionHref: "/parent",
           actionLabel: "Set up a parent household",
-          detail: "Parent-side reporting remains incomplete until households are linked.",
+          detail: "Parent-side reporting incomplete until households are linked.",
           severity: "p2",
           title: "No live parent households yet",
         }
@@ -283,21 +269,34 @@ export default async function OwnerPage() {
       : readinessTone === "watch"
         ? "Needs work"
         : "Blocked";
+
   const topBanner = blockers[0] ?? null;
-  const recentSessions = overview.latestSessions.slice(0, 4);
   const recentFeedback = overview.recentFeedback.slice(0, 4);
+
+  // Reviewed count for the feedback progress bar
+  const reviewedCount =
+    overview.feedbackByReviewStatus.find(
+      (item) => item.reviewStatus === "reviewed" || item.reviewStatus === "resolved",
+    )?.count ?? 0;
+  const totalFeedback = overview.counts.feedbackItems;
+  const reviewedPct = totalFeedback > 0 ? Math.round((reviewedCount / totalFeedback) * 100) : 0;
+
+  // Category breakdown for center panel
+  const categoryBreakdown = overview.feedbackByCategory.slice(0, 3);
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
       <main className="page-shell owner-command-shell">
+
+        {/* ── Hero + KPI strip ─────────────────────────────────────── */}
         <section className="owner-command-hero">
           <div className="owner-command-copy">
-            <span className="shell-eyebrow">Operations</span>
-            <h1>Release readiness, feedback pressure, and platform health in one command center.</h1>
+            <span className="owner-panel-kicker">Operations</span>
+            <h1>Release readiness, feedback pressure, and platform health.</h1>
             <div className="summary-chip-row">
               <span className="summary-chip">Release gate first</span>
               <span className="summary-chip">Feedback triage next</span>
-              <span className="summary-chip">Platform + content health together</span>
+              <span className="summary-chip">Platform health together</span>
             </div>
           </div>
 
@@ -325,24 +324,7 @@ export default async function OwnerPage() {
           </div>
         </section>
 
-        <OwnerBetaOps
-          counts={overview.counts}
-          releaseChecks={releaseChecks}
-          routeHealth={routeHealth}
-          contentHealth={contentHealth}
-          feedbackByCategory={overview.feedbackByCategory}
-          feedbackByReviewStatus={overview.feedbackByReviewStatus}
-          recentFeedback={recentFeedback}
-          readinessLabel={readinessLabel}
-          readinessScore={readinessScore}
-          readinessTone={readinessTone}
-          pendingReviewCount={pendingReviewCount}
-          totalBandStudents={totalBandStudents}
-          dominantBand={dominantBand}
-          bands={overview.byBand}
-          blockerCount={blockers.length}
-        />
-
+        {/* ── Priority banner ──────────────────────────────────────── */}
         {topBanner ? (
           <section className={`owner-priority-banner is-${topBanner.severity}`}>
             <div>
@@ -356,12 +338,21 @@ export default async function OwnerPage() {
           </section>
         ) : null}
 
-        <section className="owner-command-layout">
-          <aside className="owner-command-rail owner-command-left">
+        {/* ── 3-column main layout ─────────────────────────────────── */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",
+            gap: "18px",
+            alignItems: "start",
+          }}
+        >
+          {/* ── LEFT: Launch readiness ──────────────────────────── */}
+          <div style={{ display: "grid", gap: "18px" }}>
             <section className="owner-panel owner-release-panel">
               <div className="owner-panel-header">
                 <div>
-                  <span className="owner-panel-kicker">Release gate</span>
+                  <span className="owner-panel-kicker">Launch readiness</span>
                   <h2>Should beta open yet?</h2>
                 </div>
                 <span className={`owner-readiness-badge is-${readinessTone}`}>
@@ -374,11 +365,14 @@ export default async function OwnerPage() {
                   {readinessScore}
                 </div>
                 <div className="owner-readiness-copy">
-                  <strong>{blockers.length} open blocker{blockers.length === 1 ? "" : "s"}</strong>
+                  <strong>
+                    {releaseChecks.filter((c) => c.status === "ok").length} of{" "}
+                    {releaseChecks.length} ready
+                  </strong>
                   <small>
                     {readinessScore >= 90
                       ? "Gate clear — confirm checklist before opening."
-                      : `Needs 90 to unlock. Fix ${blockers.length} signal${blockers.length === 1 ? "" : "s"} below.`}
+                      : `Needs 90 to unlock. ${blockers.length} signal${blockers.length === 1 ? "" : "s"} to fix.`}
                   </small>
                   <div className="owner-readiness-bar" aria-hidden="true">
                     <span
@@ -389,11 +383,15 @@ export default async function OwnerPage() {
                 </div>
               </div>
 
+              {/* Numbered checklist */}
               <div className="owner-release-checks">
-                {releaseChecks.map((check) => (
-                  <article className={`owner-release-check is-${check.status}`} key={check.label}>
+                {releaseChecks.map((check, idx) => (
+                  <article
+                    className={`owner-release-check is-${check.status}`}
+                    key={check.label}
+                  >
                     <span className="owner-release-status" aria-hidden="true">
-                      {check.status === "ok" ? "✓" : check.status === "warn" ? "!" : "×"}
+                      {idx + 1}
                     </span>
                     <div className="owner-release-copy">
                       <strong>{check.label}</strong>
@@ -403,41 +401,308 @@ export default async function OwnerPage() {
                 ))}
               </div>
 
-              {blockers.length ? (
+              {blockers.length > 0 ? (
                 <div className="owner-blocker-stack">
                   {blockers.map((blocker) => (
-                    <article className={`owner-blocker-card is-${blocker.severity}`} key={`${blocker.severity}-${blocker.title}`}>
-                      <span className="owner-blocker-chip">{blocker.severity.toUpperCase()}</span>
+                    <article
+                      className={`owner-blocker-card is-${blocker.severity}`}
+                      key={`${blocker.severity}-${blocker.title}`}
+                    >
+                      <span className="owner-blocker-chip">
+                        {blocker.severity.toUpperCase()}
+                      </span>
                       <div>
                         <strong>{blocker.title}</strong>
                         <small>{blocker.detail}</small>
-                        <Link className="secondary-link" href={blocker.actionHref}>{blocker.actionLabel} →</Link>
+                        <Link className="secondary-link" href={blocker.actionHref}>
+                          {blocker.actionLabel} →
+                        </Link>
                       </div>
                     </article>
                   ))}
                 </div>
               ) : null}
             </section>
+          </div>
 
+          {/* ── CENTER: Feedback queue ───────────────────────────── */}
+          <div style={{ display: "grid", gap: "18px" }}>
+            <section className="owner-panel owner-panel-priority">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Pending reviews</span>
+                  <h2>What needs owner attention?</h2>
+                </div>
+                <Link
+                  className="owner-inline-link"
+                  href={
+                    primaryFeedback
+                      ? `/owner/triage/${primaryFeedback.id}`
+                      : "/owner"
+                  }
+                >
+                  Open queue
+                </Link>
+              </div>
+
+              {/* Large pending count + progress bar */}
+              <div
+                style={{
+                  display: "grid",
+                  gap: "14px",
+                  padding: "20px",
+                  borderRadius: "20px",
+                  background:
+                    "linear-gradient(180deg, rgba(18,26,39,0.96), rgba(12,18,27,0.94))",
+                  border: "1px solid rgba(255,209,102,0.14)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                  <span
+                    style={{
+                      fontSize: "clamp(2.4rem, 5vw, 3.4rem)",
+                      fontWeight: 900,
+                      lineHeight: 0.9,
+                      color: pendingReviewCount > 0 ? "#ffd166" : "#7df0ac",
+                    }}
+                  >
+                    {pendingReviewCount}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.88rem",
+                      color: "rgba(189,204,221,0.72)",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    items pending<br />owner review
+                  </span>
+                </div>
+
+                {/* Reviewed progress bar */}
+                <div style={{ display: "grid", gap: "6px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: "0.7rem",
+                      fontWeight: 800,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "rgba(132,157,183,0.7)",
+                    }}
+                  >
+                    <span>Reviewed</span>
+                    <span>{reviewedPct}%</span>
+                  </div>
+                  <div
+                    style={{
+                      height: "8px",
+                      borderRadius: "999px",
+                      background: "rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        height: "100%",
+                        borderRadius: "inherit",
+                        background: reviewedPct >= 80 ? "#50e890" : reviewedPct >= 50 ? "#ffd166" : "#ff8b8b",
+                        width: `${reviewedPct}%`,
+                        transition: "width 0.4s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Category breakdown */}
+                {categoryBreakdown.length > 0 ? (
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 800,
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        color: "rgba(132,157,183,0.7)",
+                      }}
+                    >
+                      By category
+                    </span>
+                    {categoryBreakdown.map((cat) => {
+                      const catPct =
+                        totalFeedback > 0
+                          ? Math.round((cat.count / totalFeedback) * 100)
+                          : 0;
+                      return (
+                        <div
+                          key={cat.category}
+                          style={{ display: "grid", gap: "4px" }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "0.78rem",
+                              color: "rgba(189,204,221,0.8)",
+                            }}
+                          >
+                            <span>{cat.category}</span>
+                            <span style={{ fontWeight: 700 }}>
+                              {cat.count}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              height: "5px",
+                              borderRadius: "999px",
+                              background: "rgba(255,255,255,0.08)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "block",
+                                height: "100%",
+                                borderRadius: "inherit",
+                                background: "#9b72ff",
+                                width: `${catPct}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Recent feedback list */}
+              {recentFeedback.length > 0 ? (
+                <div className="owner-feedback-list">
+                  {recentFeedback.map((item) => (
+                    <article className="owner-feedback-item" key={item.id}>
+                      <div className="owner-feedback-topline">
+                        <strong>{item.summary}</strong>
+                        <span className="summary-chip">{item.urgency}</span>
+                      </div>
+                      <small>
+                        {item.category} · {item.routingTarget}
+                      </small>
+                      <div className="owner-feedback-status-row">
+                        <span
+                          className={`owner-review-status-chip is-${item.reviewStatus}`}
+                        >
+                          {item.reviewStatus}
+                        </span>
+                        <Link
+                          className="owner-inline-link"
+                          href={`/owner/triage/${item.id}`}
+                        >
+                          Detail
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: "20px",
+                    textAlign: "center",
+                    color: "rgba(189,204,221,0.55)",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <strong style={{ display: "block", color: "#f4f8fd", marginBottom: "6px" }}>
+                    Queue is empty
+                  </strong>
+                  Queue fills as feedback and testing volume rises.
+                </div>
+              )}
+            </section>
+
+            {/* Mini stats row */}
             <section className="owner-panel">
               <div className="owner-panel-header">
                 <div>
-                  <span className="owner-panel-kicker">Route health</span>
-                  <h2>Platform health summary</h2>
+                  <span className="owner-panel-kicker">Feedback mix</span>
+                  <h2>Where is pressure clustering?</h2>
                 </div>
-                <span className="owner-muted-meta">{routeHealth.length} major routes</span>
               </div>
+              <div className="owner-micro-grid">
+                <article className="owner-mini-stat">
+                  <span>Pending</span>
+                  <strong>{pendingReviewCount}</strong>
+                  <small>Needs action.</small>
+                </article>
+                <article className="owner-mini-stat">
+                  <span>Top category</span>
+                  <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
+                  <small>
+                    {feedbackHotspot
+                      ? `${feedbackHotspot.count} items.`
+                      : "Nothing yet."}
+                  </small>
+                </article>
+                <article className="owner-mini-stat">
+                  <span>Review status</span>
+                  <strong>{reviewHotspot?.reviewStatus ?? "—"}</strong>
+                  <small>
+                    {reviewHotspot
+                      ? `${reviewHotspot.count} items.`
+                      : "No data yet."}
+                  </small>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          {/* ── RIGHT: Route health + band adoption ─────────────── */}
+          <div style={{ display: "grid", gap: "18px" }}>
+            <section className="owner-panel" id="owner-route-health">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Route health</span>
+                  <h2>Live status</h2>
+                </div>
+                <span className="owner-muted-meta">{routeHealth.length} routes</span>
+              </div>
+
               <div className="owner-route-compact-list">
                 {routeHealth.map((item) => (
-                  <article className={`owner-route-compact-row is-${item.status}`} key={item.route}>
+                  <article
+                    className={`owner-route-compact-row is-${item.status}`}
+                    key={item.route}
+                  >
                     <div className="owner-route-leading">
-                      <span className={`owner-status-dot is-${item.status}`} aria-hidden="true" />
+                      <span
+                        className={`owner-status-dot is-${item.status}`}
+                        aria-hidden="true"
+                      />
                       <div>
                         <strong>{item.route}</strong>
                         <small>{item.detail}</small>
                       </div>
                     </div>
-                    <span className={`owner-route-badge is-${item.status}`}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        minHeight: "26px",
+                        padding: "0 10px",
+                        borderRadius: "999px",
+                        fontSize: "0.68rem",
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        background:
+                          item.status === "good"
+                            ? "rgba(88,232,193,0.14)"
+                            : "rgba(240,192,48,0.14)",
+                        color:
+                          item.status === "good" ? "#58e8c1" : "#ffd166",
+                      }}
+                    >
                       {item.badge}
                     </span>
                   </article>
@@ -445,204 +710,66 @@ export default async function OwnerPage() {
               </div>
             </section>
 
-            <section className="owner-panel">
+            {/* Band adoption bars */}
+            <section className="owner-panel" id="owner-band-adoption">
               <div className="owner-panel-header">
                 <div>
-                  <span className="owner-panel-kicker">Adoption by band</span>
-                  <h2>Learner participation by band</h2>
+                  <span className="owner-panel-kicker">Band adoption</span>
+                  <h2>Learners by band</h2>
                 </div>
-                <span className="owner-muted-meta">{totalBandStudents} learners</span>
+                <span className="owner-muted-meta">{totalBandStudents} total</span>
               </div>
+
               <div className="owner-band-summary">
-                {overview.byBand.map((band) => (
-                  <article className="owner-band-row" key={band.code}>
-                    <div className="owner-band-copy">
-                      <strong>{band.displayName}</strong>
-                      <small>{band.studentCount} · {formatShare(band.studentCount, totalBandStudents)}</small>
-                    </div>
-                    <div className="owner-adoption-track" aria-hidden="true">
-                      <span
+                {overview.byBand.map((band) => {
+                  const pct =
+                    totalBandStudents > 0
+                      ? (band.studentCount / totalBandStudents) * 100
+                      : 0;
+                  return (
+                    <article className="owner-band-row" key={band.code}>
+                      <div className="owner-band-copy">
+                        <strong>{band.displayName}</strong>
+                        <small>
+                          {band.studentCount} · {formatShare(band.studentCount, totalBandStudents)}
+                        </small>
+                      </div>
+                      <div
                         style={{
-                          width: `${
-                            totalBandStudents > 0
-                              ? (band.studentCount / totalBandStudents) * 100
-                              : 0
-                          }%`,
+                          height: "8px",
+                          borderRadius: "999px",
+                          background: "rgba(255,255,255,0.08)",
                         }}
-                      />
-                    </div>
-                  </article>
-                ))}
+                        aria-hidden="true"
+                      >
+                        <span
+                          style={{
+                            display: "block",
+                            height: "100%",
+                            borderRadius: "inherit",
+                            background: "#50e890",
+                            width: `${pct}%`,
+                            transition: "width 0.4s ease",
+                          }}
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
                 {dominantBand ? (
-                  <small className="owner-support-note">Most active: {dominantBand.displayName}.</small>
+                  <small className="owner-support-note">
+                    Most active: {dominantBand.displayName}.
+                  </small>
                 ) : null}
               </div>
             </section>
-          </aside>
 
-          <section className="owner-command-main">
-            <section className="owner-panel owner-panel-priority">
-              <div className="owner-panel-header">
-                <div>
-                  <span className="owner-panel-kicker">Feedback triage</span>
-                  <h2>What needs owner attention next?</h2>
-                </div>
-                <Link className="owner-inline-link" href={primaryFeedback ? `/owner/triage/${primaryFeedback.id}` : "/owner"}>
-                  Open detail
-                </Link>
-              </div>
-
-              {primaryFeedback ? (
-                <>
-                  <article className="owner-triage-focus">
-                    <div className="owner-triage-meta">
-                      <span className="summary-chip">{primaryFeedback.category}</span>
-                      <span className="summary-chip">{primaryFeedback.urgency}</span>
-                      <span className="summary-chip">{primaryFeedback.reviewStatus}</span>
-                    </div>
-                    <strong>{primaryFeedback.summary}</strong>
-                    <small>{primaryFeedback.message}</small>
-                    <div className="summary-chip-row">
-                      <span className="summary-chip">
-                        Assigned to {primaryFeedback.routingTarget}
-                      </span>
-                      {primaryFeedback.impactedArea ? (
-                        <span className="summary-chip">
-                          Area: {primaryFeedback.impactedArea}
-                        </span>
-                      ) : null}
-                      {primaryFeedback.confidence !== null ? (
-                        <span className="summary-chip">
-                          {primaryFeedback.confidence}% confidence
-                        </span>
-                      ) : null}
-                    </div>
-                  </article>
-
-                  <div className="owner-micro-grid">
-                    <article className="owner-mini-stat">
-                      <span>Pending review</span>
-                      <strong>{pendingReviewCount}</strong>
-                      <small>Waiting on owner action.</small>
-                    </article>
-                    <article className="owner-mini-stat">
-                      <span>Hottest category</span>
-                      <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
-                      <small>
-                        {feedbackHotspot
-                          ? `${feedbackHotspot.count} items.`
-                          : "No pressure yet."}
-                      </small>
-                    </article>
-                    <article className="owner-mini-stat">
-                      <span>Review status</span>
-                      <strong>{reviewHotspot?.reviewStatus ?? "quiet"}</strong>
-                      <small>
-                        {reviewHotspot
-                          ? `${reviewHotspot.count} items.`
-                          : "No data yet."}
-                      </small>
-                    </article>
-                  </div>
-                </>
-              ) : (
-                <div className="teacher-empty-state">
-                  <strong>No triage items yet</strong>
-                  <small>Queue fills as feedback and testing volume rises.</small>
-                  <div className="form-actions">
-                    <Link className="secondary-link" href="/child">
-                      Start a test session
-                    </Link>
-                    <Link className="secondary-link" href="/parent">
-                      Submit test feedback
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              <div className="owner-feedback-list">
-                {recentFeedback.map((item) => (
-                  <article className="owner-feedback-item" key={item.id}>
-                    <div className="owner-feedback-topline">
-                      <strong>{item.summary}</strong>
-                      <span className="summary-chip">{item.urgency}</span>
-                    </div>
-                    <small>{item.category} · {item.routingTarget}</small>
-                    <div className="owner-feedback-status-row">
-                      <span className={`owner-review-status-chip is-${item.reviewStatus}`}>
-                        {item.reviewStatus}
-                      </span>
-                      <Link className="owner-inline-link" href={`/owner/triage/${item.id}`}>
-                        Open detail
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <div className="owner-main-grid">
-              <section className="owner-panel">
-                <div className="owner-panel-header">
-                  <div>
-                    <span className="owner-panel-kicker">Recent sessions</span>
-                    <h2>What happened in the latest play loops?</h2>
-                  </div>
-                </div>
-                <div className="owner-feedback-list">
-                  {recentSessions.map((session) => (
-                    <article className="owner-feedback-item" key={session.id}>
-                      <div className="owner-feedback-topline">
-                        <strong>{session.displayName}</strong>
-                        <span className="summary-chip">{session.sessionMode}</span>
-                      </div>
-                      <small>
-                        {session.effectivenessScore === null
-                          ? "In progress"
-                          : `${session.effectivenessScore}% effective`}
-                      </small>
-                    </article>
-                  ))}
-                </div>
-              </section>
-
-              <section className="owner-panel">
-                <div className="owner-panel-header">
-                  <div>
-                    <span className="owner-panel-kicker">Feedback mix</span>
-                    <h2>Where is the product pressure clustering?</h2>
-                  </div>
-                </div>
-                <div className="owner-micro-grid">
-                  <article className="owner-mini-stat">
-                    <span>Top category</span>
-                    <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
-                    <small>
-                      {feedbackHotspot
-                        ? `${feedbackHotspot.count} items.`
-                        : "Nothing triaged yet."}
-                    </small>
-                  </article>
-                  <article className="owner-mini-stat">
-                    <span>Top review status</span>
-                    <strong>{reviewHotspot?.reviewStatus ?? "Quiet"}</strong>
-                    <small>
-                      {reviewHotspot
-                        ? `${reviewHotspot.count} items.`
-                        : "No data yet."}
-                    </small>
-                  </article>
-                </div>
-              </section>
-            </div>
-          </section>
-
-          <aside className="owner-command-rail owner-command-right">
-            <section className="owner-panel">
+            {/* Content health */}
+            <section className="owner-panel" id="owner-content-health">
               <div className="owner-panel-header">
                 <div>
                   <span className="owner-panel-kicker">Content health</span>
-                  <h2>How dense is the learning bank?</h2>
+                  <h2>Learning bank density</h2>
                 </div>
               </div>
               <div className="owner-content-list">
@@ -654,12 +781,13 @@ export default async function OwnerPage() {
                       : item.value >= item.target * 0.66
                         ? "watch"
                         : "alert";
-
                   return (
                     <article className="owner-content-row" key={item.label}>
                       <div className="owner-content-copy">
                         <strong>{item.label}</strong>
-                        <small>{item.value} live · target {item.target}</small>
+                        <small>
+                          {item.value} live · target {item.target}
+                        </small>
                       </div>
                       <div className="owner-content-meter" aria-hidden="true">
                         <span
@@ -673,15 +801,23 @@ export default async function OwnerPage() {
               </div>
             </section>
 
+            {/* Quick actions */}
             <section className="owner-panel">
               <div className="owner-panel-header">
                 <div>
                   <span className="owner-panel-kicker">Quick actions</span>
-                  <h2>Where should the owner move next?</h2>
+                  <h2>Where to move next</h2>
                 </div>
               </div>
               <div className="owner-quick-actions">
-                <Link className="owner-quick-action" href={primaryFeedback ? `/owner/triage/${primaryFeedback.id}` : "/owner"}>
+                <Link
+                  className="owner-quick-action"
+                  href={
+                    primaryFeedback
+                      ? `/owner/triage/${primaryFeedback.id}`
+                      : "/owner"
+                  }
+                >
                   Review latest triage item
                 </Link>
                 <Link className="owner-quick-action" href="/teacher">
@@ -695,21 +831,10 @@ export default async function OwnerPage() {
                 </Link>
               </div>
             </section>
+          </div>
+        </div>
 
-            <section className="owner-panel">
-              <div className="owner-panel-header">
-                <div>
-                  <span className="owner-panel-kicker">Launch note</span>
-                  <h2>Current beta opening posture</h2>
-                </div>
-              </div>
-              <small className="owner-support-note">
-                Keep closed until: score ≥ 90, feedback cleared, households linked.
-              </small>
-            </section>
-          </aside>
-        </section>
-
+        {/* ── Footer nav ──────────────────────────────────────────── */}
         <section className="entry-links">
           <Link className="primary-link" href="/child">
             Child access
