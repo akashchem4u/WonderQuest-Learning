@@ -8,7 +8,11 @@ import { getParentReport } from "@/lib/prototype-service";
 export async function GET(request: NextRequest) {
   try {
     const { guardianId } = await requireParentAccessSession(request);
-    const childId = request.nextUrl.searchParams.get("childId")?.trim() || null;
+    // Accept both ?childId= and ?studentId= (legacy alias used by some pages)
+    const childId =
+      request.nextUrl.searchParams.get("childId")?.trim() ||
+      request.nextUrl.searchParams.get("studentId")?.trim() ||
+      null;
     const result = await getParentReport(guardianId, { childId });
     return NextResponse.json(result);
   } catch (error) {
