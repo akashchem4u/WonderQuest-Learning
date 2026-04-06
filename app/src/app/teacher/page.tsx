@@ -124,6 +124,7 @@ export default function TeacherPage() {
 
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showProfileBanner, setShowProfileBanner] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileSchool, setProfileSchool] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
@@ -135,12 +136,16 @@ export default function TeacherPage() {
   useEffect(() => {
     const teacherId = getTeacherId();
     if (!teacherId) return;
-    fetch("/api/teacher/profile")
+    fetch(`/api/teacher/profile?teacherId=${teacherId}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { profile?: { displayName: string; schoolName: string | null } } | null) => {
+      .then((data: { profile?: { displayName: string; schoolName: string | null; isIncomplete?: boolean } } | null) => {
         if (data?.profile) {
           setTeacherName(data.profile.displayName === "Teacher" ? "" : data.profile.displayName);
-          if (data.profile.displayName === "Teacher") setShowProfileSetup(true);
+          if (data.profile.displayName === "Teacher") {
+            setShowProfileSetup(true);
+          } else if (data.profile.isIncomplete) {
+            setShowProfileBanner(true);
+          }
         }
       })
       .catch(() => {/* ignore */});
@@ -244,11 +249,15 @@ export default function TeacherPage() {
     if (!profileName.trim()) return;
     setProfileSaving(true);
     fetch("/api/teacher/profile", {
-      method: "PUT",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ displayName: profileName.trim(), schoolName: profileSchool.trim() || null }),
     })
-      .then(() => setShowProfileSetup(false))
+      .then(() => {
+        setTeacherName(profileName.trim());
+        setShowProfileSetup(false);
+        setShowProfileBanner(false);
+      })
       .catch(() => {/* ignore */})
       .finally(() => setProfileSaving(false));
   }
@@ -373,6 +382,57 @@ export default function TeacherPage() {
         </div>
       )}
       <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
+
+        {/* Profile completion banner */}
+        {showProfileBanner && (
+          <div style={{
+            background: "rgba(155,114,255,0.12)",
+            border: "1px solid rgba(155,114,255,0.35)",
+            borderRadius: 12,
+            padding: "12px 18px",
+            marginBottom: 18,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: 13, color: C.text, flex: 1 }}>
+              Complete your profile — add your display name and school to personalise your dashboard.
+            </span>
+            <button
+              onClick={() => setShowProfileSetup(true)}
+              style={{
+                background: C.violet,
+                border: "none",
+                borderRadius: 8,
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "6px 14px",
+                cursor: "pointer",
+                fontFamily: "system-ui,-apple-system,sans-serif",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Complete profile
+            </button>
+            <button
+              onClick={() => setShowProfileBanner(false)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: C.muted,
+                fontSize: 16,
+                cursor: "pointer",
+                padding: "0 4px",
+                lineHeight: 1,
+              }}
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {/* Page header */}
         <div style={{ marginBottom: 6 }}>

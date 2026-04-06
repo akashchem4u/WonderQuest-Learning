@@ -27,6 +27,7 @@ export type TeacherProfileUpdate = {
   displayName?: string;
   schoolName?: string;
   gradeLevels?: string[];
+  email?: string | null;
 };
 
 // ─── Teacher Profile Functions ────────────────────────────────────────────────
@@ -122,6 +123,10 @@ export async function updateTeacherProfile(
   if (updates.gradeLevels !== undefined) {
     setClauses.push(`grade_levels = $${paramIdx++}`);
     values.push(updates.gradeLevels);
+  }
+  if (updates.email !== undefined) {
+    setClauses.push(`email = $${paramIdx++}`);
+    values.push(updates.email ?? null);
   }
 
   if (setClauses.length === 0) return;
