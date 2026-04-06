@@ -17,6 +17,7 @@ const C = {
   gold: "#ffd166",
   amber: "#f59e0b",
   red: "#ef4444",
+  coral: "#f87171",
   faint: "rgba(255,255,255,0.05)",
 };
 
@@ -32,16 +33,14 @@ type Intervention = {
   resolvedAt: string | null;
 };
 
-type FilterTab = "active" | "resolved" | "all";
+type FilterTab = "all" | "active" | "resolved";
 
-function daysAgo(dateStr: string): number {
+function daysAgo(dateStr: string): string {
   const then = new Date(dateStr).getTime();
-  const now = Date.now();
-  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const days = Math.floor((Date.now() - then) / (1000 * 60 * 60 * 24));
+  if (days === 0) return "Today";
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
 }
 
 function resolvedThisWeek(interventions: Intervention[]): number {
@@ -51,31 +50,35 @@ function resolvedThisWeek(interventions: Intervention[]): number {
   ).length;
 }
 
-function autoTriggeredCount(interventions: Intervention[]): number {
-  const autoTypes = ["confidence_floor", "absence", "hint_pattern", "band_ceiling"];
-  return interventions.filter((i) => autoTypes.includes(i.triggerType)).length;
-}
-
-function triggerDescription(i: Intervention): string {
-  switch (i.triggerType) {
-    case "confidence_floor":
-      return `Confidence floor${i.skillLabel ? ` on ${i.skillLabel}` : ""}. Student hit the skill floor multiple times.`;
-    case "absence":
-      return "Absence — missed sessions. Monitor re-engagement and mastery recovery.";
-    case "hint_pattern":
-      return `Hint pattern${i.skillLabel ? ` on ${i.skillLabel}` : ""}. Student requested excessive hints on the same question type.`;
-    case "band_ceiling":
-      return `Band ceiling${i.skillLabel ? ` on ${i.skillLabel}` : ""}. Student consistently reaching band limit — ready for advancement review.`;
-    default:
-      return i.triggerType.replace(/_/g, " ");
-  }
-}
-
 function avatarColor(name: string): string {
   const colors = ["#475569", "#ec4899", "#0ea5e9", "#16a34a", "#f59e0b", "#8b5cf6", "#ef4444"];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
+}
+
+function triggerBadge(triggerType: string): { label: string; bg: string; color: string } {
+  switch (triggerType) {
+    case "check_in":
+      return { label: "Check-in needed", bg: "rgba(245,158,11,0.15)", color: C.amber };
+    case "skill_gap":
+      return { label: "Skill gap", bg: "rgba(248,113,113,0.15)", color: C.coral };
+    case "low_accuracy":
+      return { label: "Low accuracy", bg: "rgba(239,68,68,0.15)", color: C.red };
+    case "inactive":
+      return { label: "Inactive", bg: "rgba(139,148,158,0.15)", color: C.muted };
+    // legacy trigger types from existing data
+    case "confidence_floor":
+      return { label: "Confidence floor", bg: "rgba(245,158,11,0.15)", color: C.amber };
+    case "absence":
+      return { label: "Absence", bg: "rgba(139,148,158,0.15)", color: C.muted };
+    case "hint_pattern":
+      return { label: "Hint pattern", bg: "rgba(56,189,248,0.12)", color: C.blue };
+    case "band_ceiling":
+      return { label: "Band ceiling", bg: "rgba(155,114,255,0.12)", color: C.violet };
+    default:
+      return { label: triggerType.replace(/_/g, " "), bg: "rgba(255,255,255,0.07)", color: C.muted };
+  }
 }
 
 function SkeletonCard() {
@@ -133,11 +136,39 @@ function SkeletonCard() {
   );
 }
 
-function InterventionCard({ intervention }: { intervention: Intervention }) {
+function InterventionCard({
+  intervention,
+  onResolve,
+}: {
+  intervention: Intervention;
+  onResolve: (id: string) => void;
+}) {
+  const [resolving, setResolving] = useState(false);
+  const [fading, setFading] = useState(false);
+
   const initial = intervention.studentName.charAt(0).toUpperCase();
   const bgColor = avatarColor(intervention.studentName);
   const isActive = intervention.status === "active";
-  const days = daysAgo(intervention.createdAt);
+  const badge = triggerBadge(intervention.triggerType);
+
+  async function handleResolve() {
+    if (resolving) return;
+    setResolving(true);
+    try {
+      const teacherId = getTeacherId();
+      const res = await fetch(`/api/teacher/interventions/${intervention.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId, outcome: "resolved" }),
+      });
+      if (!res.ok) throw new Error("Failed to resolve");
+      // Fade out then remove
+      setFading(true);
+      setTimeout(() => onResolve(intervention.id), 400);
+    } catch {
+      setResolving(false);
+    }
+  }
 
   return (
     <div
@@ -147,19 +178,21 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
         gap: 12,
         padding: "16px 0",
         borderBottom: `1px solid ${C.border}`,
+        opacity: fading ? 0 : 1,
+        transition: "opacity 0.35s ease",
       }}
     >
       {/* Avatar */}
       <div
         style={{
-          width: 34,
-          height: 34,
+          width: 36,
+          height: 36,
           borderRadius: "50%",
           background: bgColor,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 900,
           color: "#fff",
           flexShrink: 0,
@@ -171,76 +204,68 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
 
       {/* Body */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 2 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 3 }}>
           {intervention.studentName}
         </div>
-        <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5, marginBottom: 6 }}>
-          {triggerDescription(intervention)}
-        </div>
 
-        {/* Chips */}
-        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
-          {/* Status badge */}
+        {/* Badges row */}
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const, marginBottom: 4 }}>
+          {/* Trigger type badge — color-coded */}
           <span
             style={{
               fontSize: 10,
               fontWeight: 700,
-              padding: "2px 8px",
+              padding: "2px 9px",
               borderRadius: 8,
-              background: isActive ? "rgba(245,158,11,0.15)" : "rgba(34,197,94,0.12)",
-              color: isActive ? C.amber : C.mint,
-              border: `1px solid ${isActive ? "rgba(245,158,11,0.35)" : "rgba(34,197,94,0.3)"}`,
+              background: badge.bg,
+              color: badge.color,
+              border: `1px solid ${badge.color}33`,
             }}
           >
-            {isActive ? "Active" : "Resolved"}
+            {badge.label}
           </span>
 
-          {/* Trigger type chip */}
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "2px 8px",
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.06)",
-              color: C.muted,
-            }}
-          >
-            {intervention.triggerType.replace(/_/g, " ")}
-          </span>
-
-          {/* Band/skill label */}
+          {/* Skill label if present */}
           {intervention.skillLabel && (
             <span
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                padding: "2px 8px",
+                padding: "2px 9px",
                 borderRadius: 8,
                 background: "rgba(88,232,193,0.10)",
-                color: "#0d9065",
+                color: "#10b981",
+                border: "1px solid rgba(16,185,129,0.25)",
               }}
             >
               {intervention.skillLabel}
             </span>
           )}
+
+          {/* Status badge */}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "2px 9px",
+              borderRadius: 8,
+              background: isActive ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.10)",
+              color: isActive ? C.amber : C.mint,
+              border: `1px solid ${isActive ? "rgba(245,158,11,0.3)" : "rgba(34,197,94,0.25)"}`,
+            }}
+          >
+            {isActive ? "Active" : "Resolved"}
+          </span>
+        </div>
+
+        {/* Created date */}
+        <div style={{ fontSize: 11, color: C.muted }}>
+          {daysAgo(intervention.createdAt)}
         </div>
       </div>
 
       {/* Right column */}
-      <div style={{ flexShrink: 0, textAlign: "right" as const, minWidth: 88 }}>
-        <div style={{ fontSize: 10, color: "#aaa", marginBottom: 3 }}>
-          Started {formatDate(intervention.createdAt)}
-        </div>
-        {isActive ? (
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 4 }}>
-            {days === 0 ? "Today" : `${days}d open`}
-          </div>
-        ) : (
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.mint, marginBottom: 4 }}>
-            {intervention.resolvedAt ? `Resolved ${formatDate(intervention.resolvedAt)}` : "Resolved"}
-          </div>
-        )}
+      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 6, minWidth: 110 }}>
         <a
           href={`/teacher/intervention-detail/${intervention.id}`}
           style={{
@@ -258,6 +283,29 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
         >
           View →
         </a>
+
+        {isActive && (
+          <button
+            onClick={handleResolve}
+            disabled={resolving}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "5px 10px",
+              borderRadius: 7,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: resolving ? "not-allowed" : "pointer",
+              background: resolving ? "rgba(34,197,94,0.08)" : "rgba(34,197,94,0.13)",
+              color: resolving ? C.muted : C.mint,
+              border: `1.5px solid ${resolving ? "transparent" : "rgba(34,197,94,0.3)"}`,
+              transition: "all 0.2s",
+            }}
+          >
+            {resolving ? "Resolving…" : "✓ Resolve"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -274,19 +322,23 @@ export default function TeacherInterventionOverviewPage() {
   const [autoQueueBusy, setAutoQueueBusy] = useState(false);
   const [autoQueueMsg, setAutoQueueMsg] = useState<string | null>(null);
 
+  // Track all-time totals for summary bar (fetched once with status=all)
+  const [allInterventions, setAllInterventions] = useState<Intervention[]>([]);
+
   useEffect(() => {
     const teacherId = getTeacherId();
     setLoading(true);
     setError(null);
 
-    fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`)
+    // Fetch the selected filter tab's data
+    const statusParam = filter === "all" ? "all" : filter;
+    fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=${statusParam}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return r.json() as Promise<{ interventions: any[] }>;
       })
       .then((data) => {
-        // Normalise API field names → page type
         const normalised: Intervention[] = (data.interventions ?? []).map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (i: any) => ({
@@ -309,22 +361,36 @@ export default function TeacherInterventionOverviewPage() {
         setError("Could not load interventions. Please try again.");
         setLoading(false);
       });
+  }, [filter]);
+
+  // Fetch all-status data once for the summary bar counts
+  useEffect(() => {
+    const teacherId = getTeacherId();
+    fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`)
+      .then((r) => r.ok ? r.json() as Promise<{ interventions: Intervention[] }> : Promise.reject())
+      .then((data) => {
+        setAllInterventions(data.interventions ?? []);
+      })
+      .catch(() => {/* silent */});
   }, []);
 
-  const filtered = interventions.filter((i) => {
-    if (filter === "active") return i.status === "active";
-    if (filter === "resolved") return i.status === "resolved";
-    return true;
-  });
+  function handleRemove(id: string) {
+    setInterventions((prev) => prev.filter((i) => i.id !== id));
+    // Also update allInterventions to reflect the resolution
+    setAllInterventions((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, status: "resolved" as const, resolvedAt: new Date().toISOString() } : i,
+      ),
+    );
+  }
 
-  const activeCount = interventions.filter((i) => i.status === "active").length;
-  const resolvedWeek = resolvedThisWeek(interventions);
-  const autoCount = autoTriggeredCount(interventions);
+  const activeCount = allInterventions.filter((i) => i.status === "active").length;
+  const resolvedWeek = resolvedThisWeek(allInterventions);
 
-  const filterTabs: { id: FilterTab; label: string; count: number }[] = [
-    { id: "active", label: "Active", count: interventions.filter((i) => i.status === "active").length },
-    { id: "resolved", label: "Resolved", count: interventions.filter((i) => i.status === "resolved").length },
-    { id: "all", label: "All", count: interventions.length },
+  const filterTabs: { id: FilterTab; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "active", label: "Active" },
+    { id: "resolved", label: "Resolved" },
   ];
 
   async function handleAutoQueue() {
@@ -343,14 +409,23 @@ export default function TeacherInterventionOverviewPage() {
           ? `Auto-queue ran — ${data.queued} new intervention${data.queued === 1 ? "" : "s"} created.`
           : "Auto-queue ran successfully.",
       );
-      // Refresh list
+      // Refresh current list
       const teacherId2 = getTeacherId();
+      const statusParam = filter === "all" ? "all" : filter;
       const refresh = await fetch(
-        `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId2)}&status=all`,
+        `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId2)}&status=${statusParam}`,
       );
       if (refresh.ok) {
         const d = (await refresh.json()) as { interventions: Intervention[] };
         setInterventions(d.interventions ?? []);
+      }
+      // Refresh all counts
+      const refreshAll = await fetch(
+        `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId2)}&status=all`,
+      );
+      if (refreshAll.ok) {
+        const d2 = (await refreshAll.json()) as { interventions: Intervention[] };
+        setAllInterventions(d2.interventions ?? []);
       }
     } catch {
       setAutoQueueMsg("Auto-queue failed. Please try again.");
@@ -382,47 +457,39 @@ export default function TeacherInterventionOverviewPage() {
         }}
       >
         {/* ── Header ── */}
-        <div style={{ marginBottom: 22 }}>
+        <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: C.text, marginBottom: 4 }}>
-            ⚡ Intervention Overview
+            Intervention Overview
           </div>
           <div style={{ fontSize: 13, color: C.muted }}>
             Track and manage student interventions for your class.
           </div>
         </div>
 
-        {/* ── Stats strip ── */}
+        {/* ── Summary bar ── */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 10,
-            marginBottom: 24,
+            background: C.surface,
+            borderRadius: 12,
+            padding: "12px 18px",
+            border: `1px solid ${C.border}`,
+            marginBottom: 20,
+            fontSize: 13,
+            color: C.muted,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}
         >
-          {[
-            { value: loading ? "—" : String(activeCount), label: "Active now", color: C.amber },
-            { value: loading ? "—" : String(resolvedWeek), label: "Resolved this week", color: C.mint },
-            { value: loading ? "—" : String(autoCount), label: "Auto-triggered", color: C.blue },
-          ].map((s) => (
-            <div
-              key={s.label}
-              style={{
-                background: C.surface,
-                borderRadius: 12,
-                padding: "14px 16px",
-                border: `1px solid ${C.border}`,
-                textAlign: "center" as const,
-              }}
-            >
-              <div style={{ fontSize: 22, fontWeight: 900, color: s.color, marginBottom: 2 }}>
-                {s.value}
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
+          <span style={{ fontWeight: 700, color: C.amber }}>
+            {loading ? "—" : activeCount}
+          </span>
+          <span>active intervention{activeCount !== 1 ? "s" : ""}</span>
+          <span style={{ color: C.border }}>·</span>
+          <span style={{ fontWeight: 700, color: C.mint }}>
+            {loading ? "—" : resolvedWeek}
+          </span>
+          <span>resolved this week</span>
         </div>
 
         {/* ── Filter tabs ── */}
@@ -432,32 +499,18 @@ export default function TeacherInterventionOverviewPage() {
               key={t.id}
               onClick={() => setFilter(t.id)}
               style={{
-                padding: "7px 18px",
+                padding: "7px 20px",
                 borderRadius: 20,
-                border: "none",
+                border: filter === t.id ? `1.5px solid ${C.blue}` : "1.5px solid transparent",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 700,
-                background: filter === t.id ? C.blue : "rgba(255,255,255,0.08)",
-                color: filter === t.id ? "#0d1117" : C.muted,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
+                background: filter === t.id ? "rgba(56,189,248,0.12)" : "rgba(255,255,255,0.07)",
+                color: filter === t.id ? C.blue : C.muted,
+                transition: "all 0.15s",
               }}
             >
               {t.label}
-              <span
-                style={{
-                  display: "inline-block",
-                  background: filter === t.id ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)",
-                  fontSize: 10,
-                  fontWeight: 900,
-                  padding: "0 5px",
-                  borderRadius: 5,
-                }}
-              >
-                {loading ? "…" : t.count}
-              </span>
             </button>
           ))}
         </div>
@@ -502,11 +555,11 @@ export default function TeacherInterventionOverviewPage() {
               border: `1px solid ${C.border}`,
             }}
           >
-            {filtered.length === 0 ? (
+            {interventions.length === 0 ? (
               <div
                 style={{
                   textAlign: "center" as const,
-                  padding: "36px 20px",
+                  padding: "40px 20px",
                 }}
               >
                 <div style={{ fontSize: 36, marginBottom: 12 }}>
@@ -514,22 +567,26 @@ export default function TeacherInterventionOverviewPage() {
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 6 }}>
                   {filter === "active"
-                    ? "No active interventions"
+                    ? "No active interventions — your class is doing great!"
                     : filter === "resolved"
                     ? "No resolved interventions yet"
                     : "No interventions found"}
                 </div>
-                <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
                   {filter === "active"
-                    ? "Great work — your class is on track. Run the auto-queue to check for new signals."
+                    ? "Run the auto-queue below to check for new signals."
                     : filter === "resolved"
                     ? "Resolved interventions will appear here once students make progress."
-                    : "Use auto-queue to detect and flag students that may need support."}
+                    : "Use auto-queue to detect and flag students who may need support."}
                 </div>
               </div>
             ) : (
-              filtered.map((intervention) => (
-                <InterventionCard key={intervention.id} intervention={intervention} />
+              interventions.map((intervention) => (
+                <InterventionCard
+                  key={intervention.id}
+                  intervention={intervention}
+                  onResolve={handleRemove}
+                />
               ))
             )}
           </div>
