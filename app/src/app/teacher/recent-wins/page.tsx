@@ -35,10 +35,6 @@ interface Student {
   streak: number;
 }
 
-interface ClassData {
-  roster: Student[];
-}
-
 // ── Win card shape ─────────────────────────────────────────────────────────
 interface WinCard {
   id: string;
@@ -49,64 +45,117 @@ interface WinCard {
   chipLabel: string;
   chipBg: string;
   chipColor: string;
+  encouragement: string;
+}
+
+// ── Time helpers ──────────────────────────────────────────────────────────
+function hoursAgo(iso: string | null): number {
+  if (!iso) return Infinity;
+  return (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60);
+}
+
+function friendlyTime(iso: string | null): string {
+  if (!iso) return "Unknown";
+  const h = hoursAgo(iso);
+  if (h < 1) return "Just now";
+  if (h < 24) return `${Math.floor(h)}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+// ── Avatar emoji from key ─────────────────────────────────────────────────
+function avatarEmoji(key: string): string {
+  const map: Record<string, string> = {
+    fox: "🦊", owl: "🦉", bear: "🐻", cat: "🐱", dog: "🐶",
+    rabbit: "🐰", penguin: "🐧", lion: "🦁", tiger: "🐯", panda: "🐼",
+    dragon: "🐲", unicorn: "🦄", star: "⭐", rocket: "🚀",
+  };
+  return map[key?.toLowerCase()] ?? "🙂";
 }
 
 // ── Derive wins from roster ───────────────────────────────────────────────
 function deriveWins(roster: Student[]): WinCard[] {
   const wins: WinCard[] = [];
-
   if (roster.length === 0) return wins;
 
-  // Sort by totalPoints desc → top mastery performers
-  const byPoints = [...roster].sort((a, b) => b.totalPoints - a.totalPoints);
-  const topMastery = byPoints.slice(0, 3);
-  topMastery.forEach((s, i) => {
-    if (s.totalPoints > 0) {
-      wins.push({
-        id: `mastery-${s.studentId}`,
-        icon: "💪",
-        headline: `${s.displayName} is a top performer this week!`,
-        detail: `${s.totalPoints.toLocaleString()} total points · Level ${s.currentLevel} · ${s.sessionsLast7d} sessions this week.`,
-        time: i === 0 ? "This week · Top of class" : "This week",
-        chipLabel: "Mastery win",
-        chipBg: "rgba(34,197,94,0.12)",
-        chipColor: "#4ade80",
-      });
-    }
-  });
-
-  // Streak milestones — streak > 5
-  const streakHeroes = roster
-    .filter((s) => s.streak > 5)
-    .sort((a, b) => b.streak - a.streak);
-  streakHeroes.forEach((s) => {
+  // 1. Active today — lastSessionAt within 24 hours
+  const activeToday = roster.filter((s) => hoursAgo(s.lastSessionAt) <= 24);
+  activeToday.forEach((s) => {
     wins.push({
-      id: `streak-${s.studentId}`,
+      id: `active-${s.studentId}`,
       icon: "🔥",
-      headline: `${s.displayName} hit a ${s.streak}-day streak!`,
-      detail: `Playing every day this week. Streak started ${s.streak} days ago.`,
-      time: "Active now",
-      chipLabel: "Streak milestone",
-      chipBg: "rgba(245,158,11,0.12)",
+      headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} played today!`,
+      detail: `Logged in and played a session today. Keep the momentum going!`,
+      time: `Last active ${friendlyTime(s.lastSessionAt)}`,
+      chipLabel: "Active today",
+      chipBg: "rgba(245,158,11,0.14)",
       chipColor: "#fbbf24",
+      encouragement: "Keep it up!",
     });
   });
 
-  // Near band ceiling — high accuracy (>= 80%) with meaningful volume
-  const nearCeiling = roster.filter(
-    (s) => s.totalLast7d >= 5 && s.correctLast7d / s.totalLast7d >= 0.8
+  // 2. Most sessions — top 20% by sessionsLast7d (min 2 sessions to qualify)
+  const withSessions = roster.filter((s) => s.sessionsLast7d >= 2);
+  if (withSessions.length > 0) {
+    const sorted = [...withSessions].sort((a, b) => b.sessionsLast7d - a.sessionsLast7d);
+    const topCount = Math.max(1, Math.ceil(sorted.length * 0.2));
+    sorted.slice(0, topCount).forEach((s) => {
+      wins.push({
+        id: `sessions-${s.studentId}`,
+        icon: "📚",
+        headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} is a dedicated learner!`,
+        detail: `${s.sessionsLast7d} sessions this week · Level ${s.currentLevel} · ${s.totalPoints.toLocaleString()} total points.`,
+        time: "This week · Most sessions",
+        chipLabel: "Most sessions",
+        chipBg: "rgba(34,197,94,0.12)",
+        chipColor: "#4ade80",
+        encouragement: "Keep it up!",
+      });
+    });
+  }
+
+  // 3. On a roll — lastSessionAt within 3 days (but not already Active today)
+  const activeTodayIds = new Set(activeToday.map((s) => s.studentId));
+  const onARoll = roster.filter(
+    (s) => !activeTodayIds.has(s.studentId) && hoursAgo(s.lastSessionAt) <= 72
   );
-  nearCeiling.forEach((s) => {
+  onARoll.forEach((s) => {
+    wins.push({
+      id: `roll-${s.studentId}`,
+      icon: "⭐",
+      headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} is on a roll!`,
+      detail: `Active in the last 3 days with ${s.sessionsLast7d} session${s.sessionsLast7d !== 1 ? "s" : ""} this week.`,
+      time: `Last active ${friendlyTime(s.lastSessionAt)}`,
+      chipLabel: "On a roll",
+      chipBg: "rgba(155,114,255,0.14)",
+      chipColor: C.violet,
+      encouragement: "Keep it up!",
+    });
+  });
+
+  // 4. High accuracy performers — >= 80% accuracy with meaningful volume
+  const sessionIds = new Set([
+    ...activeToday.map((s) => s.studentId),
+    ...onARoll.map((s) => s.studentId),
+  ]);
+  const highAccuracy = roster.filter(
+    (s) =>
+      !sessionIds.has(s.studentId) &&
+      s.totalLast7d >= 5 &&
+      s.correctLast7d / s.totalLast7d >= 0.8
+  );
+  highAccuracy.forEach((s) => {
     const pct = Math.round((s.correctLast7d / s.totalLast7d) * 100);
     wins.push({
-      id: `ceiling-${s.studentId}`,
+      id: `accuracy-${s.studentId}`,
       icon: "🚀",
-      headline: `${s.displayName} is crushing it — ${pct}% accuracy!`,
-      detail: `${s.correctLast7d} correct of ${s.totalLast7d} answers this week. May be ready for band advancement.`,
+      headline: `${avatarEmoji(s.avatarKey)} ${s.displayName} — ${pct}% accuracy this week!`,
+      detail: `${s.correctLast7d} correct of ${s.totalLast7d} answers. May be ready for band advancement.`,
       time: "This week · High accuracy",
-      chipLabel: "Band ceiling",
-      chipBg: "rgba(155,114,255,0.12)",
-      chipColor: C.violet,
+      chipLabel: "Top performer",
+      chipBg: "rgba(255,209,102,0.14)",
+      chipColor: C.gold,
+      encouragement: "Keep it up!",
     });
   });
 
@@ -116,17 +165,19 @@ function deriveWins(roster: Student[]): WinCard[] {
 // ── Stats bar values ───────────────────────────────────────────────────────
 interface SummaryStats {
   totalWins: number;
-  streaksAchieved: number;
-  skillsMastered: number;
+  activeToday: number;
+  onARoll: number;
 }
 
 function computeSummary(roster: Student[], wins: WinCard[]): SummaryStats {
-  const streaksAchieved = roster.filter((s) => s.streak > 5).length;
-  const skillsMastered = wins.filter((w) => w.chipLabel === "Mastery win").length;
+  const activeToday = roster.filter((s) => hoursAgo(s.lastSessionAt) <= 24).length;
+  const onARoll = roster.filter(
+    (s) => hoursAgo(s.lastSessionAt) > 24 && hoursAgo(s.lastSessionAt) <= 72
+  ).length;
   return {
     totalWins: wins.length,
-    streaksAchieved,
-    skillsMastered,
+    activeToday,
+    onARoll,
   };
 }
 
@@ -182,7 +233,7 @@ function WinCardView({ win }: { win: WinCard }) {
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <span
           style={{
-            fontSize: 24,
+            fontSize: 28,
             flexShrink: 0,
             lineHeight: 1,
             marginTop: 1,
@@ -234,6 +285,16 @@ function WinCardView({ win }: { win: WinCard }) {
               {win.chipLabel}
             </span>
             <span style={{ fontSize: 11, color: C.muted }}>{win.time}</span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: C.mint,
+                marginLeft: "auto",
+              }}
+            >
+              {win.encouragement}
+            </span>
           </div>
         </div>
       </div>
@@ -274,8 +335,7 @@ function EmptyState() {
           margin: "0 auto",
         }}
       >
-        When students master skills, hit streaks, or reach milestones, they'll
-        appear here. Usually a few days after the week starts.
+        Once your students start playing, their wins will appear here! 🎉
       </div>
     </div>
   );
@@ -307,13 +367,15 @@ function NavBtn({ href, children }: { href: string; children: string }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function RecentWinsPage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => {
+    setAuthed(!!getTeacherId());
+  }, []);
 
   const [wins, setWins] = useState<WinCard[]>([]);
   const [summary, setSummary] = useState<SummaryStats>({
     totalWins: 0,
-    streaksAchieved: 0,
-    skillsMastered: 0,
+    activeToday: 0,
+    onARoll: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -324,10 +386,16 @@ export default function RecentWinsPage() {
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<ClassData>;
+        return r.json();
       })
       .then((data) => {
-        const roster = data.roster ?? [];
+        const roster: Student[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.roster)
+          ? data.roster
+          : Array.isArray(data?.students)
+          ? data.students
+          : [];
         const derived = deriveWins(roster);
         setWins(derived);
         setSummary(computeSummary(roster, derived));
@@ -342,7 +410,15 @@ export default function RecentWinsPage() {
   if (!authed) {
     return (
       <AppFrame audience="teacher" currentPath="/teacher/recent-wins">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: "24px",
+          }}
+        >
           <TeacherGate configured={true} />
         </div>
       </AppFrame>
@@ -370,10 +446,10 @@ export default function RecentWinsPage() {
               marginBottom: 4,
             }}
           >
-            🎉 Recent Wins — this week
+            🎉 Recent Wins
           </div>
           <div style={{ fontSize: 14, color: C.muted }}>
-            Skill mastery, streak milestones, and high-accuracy performers
+            Active students, top performers, and milestones worth celebrating
             {loading && (
               <span
                 style={{
@@ -415,20 +491,20 @@ export default function RecentWinsPage() {
             <StatPill
               icon="🎉"
               value={summary.totalWins}
-              label="Wins this week"
+              label="Wins to celebrate"
               color={C.gold}
             />
             <StatPill
-              icon="💪"
-              value={summary.skillsMastered}
-              label="Skills mastered"
-              color={C.mint}
+              icon="🔥"
+              value={summary.activeToday}
+              label="Active today"
+              color={C.amber}
             />
             <StatPill
-              icon="🔥"
-              value={summary.streaksAchieved}
-              label="Streaks achieved"
-              color={C.amber}
+              icon="⭐"
+              value={summary.onARoll}
+              label="On a roll (3 days)"
+              color={C.mint}
             />
           </div>
         )}
@@ -490,10 +566,28 @@ export default function RecentWinsPage() {
             gap: 12,
             flexWrap: "wrap",
             maxWidth: 900,
+            marginBottom: 32,
           }}
         >
           <NavBtn href="/teacher/class">Full Class Roster</NavBtn>
           <NavBtn href="/teacher/skill-mastery">Skill Mastery</NavBtn>
+        </div>
+
+        {/* ── Teacher encouragement note ────────────────────────────── */}
+        <div
+          style={{
+            maxWidth: 900,
+            background: "rgba(255,209,102,0.07)",
+            border: "1px solid rgba(255,209,102,0.18)",
+            borderRadius: 12,
+            padding: "14px 18px",
+            fontSize: 13,
+            color: C.gold,
+            fontWeight: 600,
+            lineHeight: 1.6,
+          }}
+        >
+          💡 Recognizing progress keeps students motivated — share these wins in class!
         </div>
       </div>
     </AppFrame>
