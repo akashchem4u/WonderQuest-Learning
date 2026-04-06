@@ -228,14 +228,16 @@ export default function ParentSkillDetailPage() {
       return;
     }
 
-    // Fetch skills list + latest report in parallel
+    // Fetch skills list, latest report, and per-skill sessions in parallel
     Promise.all([
       fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
         .then((r) => (r.ok ? r.json() : null)),
       fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=0`)
         .then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/parent/activity?studentId=${encodeURIComponent(studentId)}&skillCode=${encodeURIComponent(skillCode)}&limit=10`)
+        .then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([skillsData, reportData]) => {
+      .then(([skillsData, reportData, activityData]) => {
         // Match skill
         const skills: LiveSkill[] = skillsData?.skills ?? [];
         const matched = skills.find((s) => s.skillCode === skillCode);
@@ -249,8 +251,24 @@ export default function ParentSkillDetailPage() {
         );
         setReportSkill(rMatch ?? null);
 
-        // Recent sessions (all from this week — we don't have per-skill session filtering yet)
-        setRecentSessions(reportData?.report?.sessionLog?.slice(0, 8) ?? []);
+        // Per-skill sessions from activity API, fall back to report session log
+        const liveSessions: ReportSession[] = (activityData?.sessions ?? []).map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (s: any) => ({
+            sessionId: s.sessionId,
+            startedAt: s.startedAt,
+            sessionMode: s.sessionMode,
+            starsEarned: s.starsEarned ?? 0,
+            correctCount: s.correctCount ?? 0,
+            totalQuestions: s.totalQuestions ?? 0,
+            durationMinutes: s.durationMinutes ?? null,
+          })
+        );
+        setRecentSessions(
+          liveSessions.length > 0
+            ? liveSessions
+            : (reportData?.report?.sessionLog?.slice(0, 8) ?? []),
+        );
       })
       .catch(() => setError("Failed to load skill data."))
       .finally(() => setLoading(false));
@@ -465,7 +483,7 @@ export default function ParentSkillDetailPage() {
                 Recent Sessions
               </h2>
               <p style={{ margin: "0 0 14px", fontSize: "0.72rem", color: "rgba(255,255,255,0.25)" }}>
-                All sessions this week · skill breakdown coming soon
+                Sessions that included this skill · most recent first
               </p>
               {recentSessions.map((s, i) => (
                 <SessionRow key={s.sessionId} session={s} isLast={i === recentSessions.length - 1} />

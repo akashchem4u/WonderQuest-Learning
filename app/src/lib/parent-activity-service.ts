@@ -60,26 +60,47 @@ export async function getChildRecentSessions(
   guardianId: string,
   studentId: string,
   limit = 20,
+  skillCode?: string,
 ): Promise<RecentSession[]> {
   const linked = await verifyGuardianLink(guardianId, studentId);
   if (!linked) return [];
 
   const sessionsRes = await db.query(
-    `select
-       cs.id,
-       cs.started_at,
-       cs.session_mode,
-       cs.total_questions,
-       extract(epoch from (cs.ended_at - cs.started_at)) / 60 as duration_minutes,
-       count(sr.id) filter (where sr.correct) as correct_count,
-       coalesce(sum(sr.points_earned), 0) as stars_earned
-     from public.challenge_sessions cs
-     left join public.session_results sr on sr.session_id = cs.id
-     where cs.student_id = $1
-     group by cs.id
-     order by cs.started_at desc
-     limit $2`,
-    [studentId, limit],
+    skillCode
+      ? `select
+           cs.id,
+           cs.started_at,
+           cs.session_mode,
+           cs.total_questions,
+           extract(epoch from (cs.ended_at - cs.started_at)) / 60 as duration_minutes,
+           count(sr.id) filter (where sr.correct) as correct_count,
+           coalesce(sum(sr.points_earned), 0) as stars_earned
+         from public.challenge_sessions cs
+         left join public.session_results sr on sr.session_id = cs.id
+         where cs.student_id = $1
+           and exists (
+             select 1 from public.session_results sr2
+             join public.skills sk2 on sk2.id = sr2.skill_id
+             where sr2.session_id = cs.id and sk2.code = $3
+           )
+         group by cs.id
+         order by cs.started_at desc
+         limit $2`
+      : `select
+           cs.id,
+           cs.started_at,
+           cs.session_mode,
+           cs.total_questions,
+           extract(epoch from (cs.ended_at - cs.started_at)) / 60 as duration_minutes,
+           count(sr.id) filter (where sr.correct) as correct_count,
+           coalesce(sum(sr.points_earned), 0) as stars_earned
+         from public.challenge_sessions cs
+         left join public.session_results sr on sr.session_id = cs.id
+         where cs.student_id = $1
+         group by cs.id
+         order by cs.started_at desc
+         limit $2`,
+    skillCode ? [studentId, limit, skillCode] : [studentId, limit],
   );
 
   const sessionIds: string[] = sessionsRes.rows.map((r) => r.id as string);

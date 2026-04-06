@@ -1483,22 +1483,37 @@ export type PlaySessionSummary = {
 export async function getPlaySessionHistory(
   studentId: string,
   limit = 30,
+  skillCode?: string,
 ): Promise<{ sessions: PlaySessionSummary[] }> {
   const { db } = await import("@/lib/db");
   const result = await db.query<PlaySessionSummary>(
-    `select
-       id              as "sessionId",
-       started_at      as "startedAt",
-       session_mode    as "sessionMode",
-       stars_earned    as "starsEarned",
-       correct_count   as "correctCount",
-       total_questions as "totalQuestions",
-       duration_minutes as "durationMinutes"
-     from public.challenge_sessions
-     where student_id = $1
-     order by started_at desc
-     limit $2`,
-    [studentId, limit],
+    skillCode
+      ? `select
+           id              as "sessionId",
+           started_at      as "startedAt",
+           session_mode    as "sessionMode",
+           stars_earned    as "starsEarned",
+           correct_count   as "correctCount",
+           total_questions as "totalQuestions",
+           duration_minutes as "durationMinutes"
+         from public.challenge_sessions
+         where student_id = $1
+           and skill_codes @> ARRAY[$3]::text[]
+         order by started_at desc
+         limit $2`
+      : `select
+           id              as "sessionId",
+           started_at      as "startedAt",
+           session_mode    as "sessionMode",
+           stars_earned    as "starsEarned",
+           correct_count   as "correctCount",
+           total_questions as "totalQuestions",
+           duration_minutes as "durationMinutes"
+         from public.challenge_sessions
+         where student_id = $1
+         order by started_at desc
+         limit $2`,
+    skillCode ? [studentId, limit, skillCode] : [studentId, limit],
   );
   return { sessions: result.rows };
 }

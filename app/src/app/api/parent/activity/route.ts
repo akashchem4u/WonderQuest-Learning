@@ -11,13 +11,14 @@ export async function GET(request: NextRequest) {
 
     const studentId = request.nextUrl.searchParams.get("studentId");
     const limitParam = request.nextUrl.searchParams.get("limit");
+    const skillCode = request.nextUrl.searchParams.get("skillCode")?.trim() || undefined;
     const limit = limitParam ? Math.min(100, Math.max(1, Number(limitParam))) : 20;
 
     if (!studentId) {
       return NextResponse.json({ error: "studentId is required" }, { status: 400 });
     }
 
-    const sessions = await getChildRecentSessions(guardianId, studentId, limit);
+    const sessions = await getChildRecentSessions(guardianId, studentId, limit, skillCode);
     return NextResponse.json({ sessions });
   } catch (error) {
     const status = error instanceof ParentAccessSessionError ? 401 : 500;
