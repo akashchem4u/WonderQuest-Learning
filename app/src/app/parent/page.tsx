@@ -241,7 +241,9 @@ export default function ParentAccessPage() {
         if (!response.ok || cancelled) return;
         const payload = (await response.json()) as ParentAccessResponse;
         if (cancelled) return;
-        setSelectedChildId(payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null);
+        const defaultId = payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null;
+        setSelectedChildId(defaultId);
+        if (defaultId) localStorage.setItem("wq_active_student_id", defaultId);
         setResult(payload);
       } catch {
         // No valid session — stay on the credential form.
@@ -282,7 +284,9 @@ export default function ParentAccessPage() {
       });
       const payload = (await response.json()) as ParentAccessResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Parent access failed.");
-      setSelectedChildId(payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null);
+      const defaultId = payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null;
+      setSelectedChildId(defaultId);
+      if (defaultId) localStorage.setItem("wq_active_student_id", defaultId);
       setResult(payload);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Parent access failed.");
@@ -936,7 +940,10 @@ export default function ParentAccessPage() {
               {result.linkedChildren.map((child) => (
                 <button
                   key={child.id}
-                  onClick={() => setSelectedChildId(child.id)}
+                  onClick={() => {
+                    setSelectedChildId(child.id);
+                    localStorage.setItem("wq_active_student_id", child.id);
+                  }}
                   type="button"
                   style={{
                     display: "flex",

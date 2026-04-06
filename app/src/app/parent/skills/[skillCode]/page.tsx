@@ -378,13 +378,27 @@ function Card({
   );
 }
 
+// ─── API types ────────────────────────────────────────────────────────────────
+
+type ApiSkillProgress = {
+  skillCode: string;
+  skillName: string;
+  subjectCode: string;
+  launchBandCode: string;
+  correctCount: number;
+  totalCount: number;
+  masteryPct: number;
+  lastPracticed: string | null;
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentSkillDetailPage() {
   const params = useParams();
   const skillCode = typeof params?.skillCode === "string" ? params.skillCode : "";
 
-  const stub = skillCode ? (SKILL_STUBS[skillCode] ?? getDefaultStub(skillCode)) : null;
+  const baseStub = skillCode ? (SKILL_STUBS[skillCode] ?? getDefaultStub(skillCode)) : null;
+  const [stub, setStub] = useState<SkillStub | null>(baseStub);
   const skillDisplayName = skillCode ? formatSkillName(skillCode) : "Skill";
   const statusColor = stub ? getStatusColor(stub.status) : "#9b72ff";
   const isStrong = stub?.status === "strong";
@@ -392,6 +406,43 @@ export default function ParentSkillDetailPage() {
   // Suppress hydration mismatch — stub is always available client-side
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
+
+  // Fetch real skill progress and overlay onto stub data
+  useEffect(() => {
+    if (!skillCode) return;
+    const studentId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("wq_active_student_id")
+        : null;
+    if (!studentId) return;
+
+    fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.skills || !Array.isArray(data.skills)) return;
+        const match = (data.skills as ApiSkillProgress[]).find(
+          (s) => s.skillCode === skillCode,
+        );
+        if (!match) return;
+
+        const masteryPct = match.masteryPct;
+        const liveStatus: SkillStub["status"] =
+          masteryPct >= 80 ? "strong" : masteryPct >= 40 ? "building" : "started";
+
+        setStub((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            masteryScore: masteryPct,
+            status: liveStatus,
+            subjectTag: `✨ ${match.subjectCode}`,
+          };
+        });
+      })
+      .catch(() => {
+        // silently keep stub on error
+      });
+  }, [skillCode]);
 
   if (!ready || !stub) {
     return (

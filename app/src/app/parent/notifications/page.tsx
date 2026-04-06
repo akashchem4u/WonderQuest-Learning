@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -33,6 +33,64 @@ type Notification = {
   actionLabel?: string;
   actionHref?: string;
 };
+
+// ─── API helpers ──────────────────────────────────────────────────────────────
+
+type ApiSession = {
+  sessionId: string;
+  startedAt: string;
+  sessionMode: string;
+  starsEarned: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationMinutes: number | null;
+  skillNames: string[];
+};
+
+function sessionToNotification(s: ApiSession, idx: number): Notification {
+  const date = new Date(s.startedAt);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400_000);
+
+  let group: Notification["group"] = "older";
+  if (diffDays === 0) group = "today";
+  else if (diffDays <= 6) group = "this-week";
+
+  const timeLabel = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const dateLabel =
+    diffDays === 0
+      ? timeLabel
+      : diffDays <= 6
+        ? date.toLocaleDateString("en-US", { weekday: "short" }) + " " + timeLabel
+        : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const skillList =
+    s.skillNames.length > 0
+      ? s.skillNames.slice(0, 3).join(", ")
+      : s.sessionMode;
+
+  const accuracy =
+    s.totalQuestions > 0 ? Math.round((s.correctCount / s.totalQuestions) * 100) : 0;
+
+  const durationStr =
+    s.durationMinutes != null ? ` · ${s.durationMinutes}m` : "";
+
+  return {
+    id: `session-${s.sessionId}-${idx}`,
+    type: "session",
+    icon: "🎯",
+    title: `Session completed${s.starsEarned > 0 ? ` — ⭐ ${s.starsEarned} stars` : ""}`,
+    body: `${skillList} · ${accuracy}% accuracy · ${s.correctCount}/${s.totalQuestions} correct${durationStr}`,
+    timestamp: dateLabel,
+    group,
+    unread: idx === 0,
+    actionLabel: "View skills",
+    actionHref: "/parent/skills",
+  };
+}
 
 // ─── Stub data ────────────────────────────────────────────────────────────────
 
@@ -649,6 +707,31 @@ export default function ParentNotificationsPage() {
   const [mainTab, setMainTab]       = useState<MainTab>("all");
   const [filterChip, setFilterChip] = useState<"all" | "badges" | "levelups" | "reports" | "sessions" | "system">("all");
   const [notifications, setNotifs]  = useState<Notification[]>(STUB);
+
+  // Fetch real activity from API and prepend as session-type notifications
+  useEffect(() => {
+    const studentId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("wq_active_student_id")
+        : null;
+    if (!studentId) return;
+
+    fetch(`/api/parent/activity?studentId=${encodeURIComponent(studentId)}&limit=20`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.sessions || !Array.isArray(data.sessions) || data.sessions.length === 0) {
+          return;
+        }
+        const sessionNotifs: Notification[] = (data.sessions as ApiSession[]).map(
+          (s, i) => sessionToNotification(s, i),
+        );
+        // Prepend real session notifications before the static STUB entries
+        setNotifs([...sessionNotifs, ...STUB]);
+      })
+      .catch(() => {
+        // silently fall back to STUB on error
+      });
+  }, []);
 
   function dismiss(id: string) {
     setNotifs((prev) => prev.filter((n) => n.id !== id));
