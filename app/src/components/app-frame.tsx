@@ -8,6 +8,7 @@ const sectionNav = {
   parent: [
     { href: "/parent",                label: "Family Hub",     icon: "🏠" },
     { href: "/parent/family",         label: "Children",       icon: "👧" },
+    { href: "/parent/skills",         label: "Skills",         icon: "🧠" },
     { href: "/parent/report",         label: "Reports",        icon: "📊" },
     { href: "/parent/practice-planner", label: "Planner",      icon: "📅" },
     { href: "/parent/notifications",  label: "Notifications",  icon: "🔔" },

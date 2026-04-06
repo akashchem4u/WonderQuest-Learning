@@ -86,6 +86,23 @@ type ApiReport = {
   }[];
 };
 
+// ─── Avatar helper ────────────────────────────────────────────────────────────
+
+function avatarEmoji(key: string): string {
+  if (!key) return "⭐";
+  const k = key.toLowerCase();
+  if (k.includes("bunny")) return "🐰";
+  if (k.includes("bear")) return "🐻";
+  if (k.includes("lion")) return "🦁";
+  if (k.includes("fox")) return "🦊";
+  if (k.includes("panda")) return "🐼";
+  if (k.includes("owl")) return "🦉";
+  if (k.includes("cat")) return "🐱";
+  if (k.includes("dog")) return "🐶";
+  if (k.includes("dragon")) return "🐉";
+  return "⭐";
+}
+
 // ─── Data mapping helpers ─────────────────────────────────────────────────────
 
 function minutesToHoursStr(minutes: number): string {
@@ -696,7 +713,7 @@ function ParentWeeklyReportPageInner() {
                       border: "2px solid #9b72ff",
                     }}
                   >
-                    {report?.avatarKey ?? "🦁"}
+                    {avatarEmoji(report?.avatarKey ?? "")}
                   </div>
 
                   {/* Child info */}
