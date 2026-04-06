@@ -1400,7 +1400,10 @@ function PlayClientInner() {
         setTimeout(() => setSelectedAnswer(null), 600);
       }
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Could not submit answer.");
+      // Never expose raw DB/network errors to kids — use a friendly message
+      const msg = caughtError instanceof Error ? caughtError.message : "";
+      const isNetworkError = msg.toLowerCase().includes("timeout") || msg.toLowerCase().includes("connect") || msg.toLowerCase().includes("network");
+      setError(isNetworkError ? "Connection hiccup — tap an answer to try again! 🌟" : "Couldn't save your answer. Try again!");
       setSelectedAnswer(null);
     } finally {
       setSubmitting(false);
