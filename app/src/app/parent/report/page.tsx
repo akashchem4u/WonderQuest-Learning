@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -42,56 +43,155 @@ type HeatmapDay = {
   active: boolean;
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── API types ────────────────────────────────────────────────────────────────
 
-const WEEK_LABEL = "March 18 – March 24, 2026";
+type ApiReport = {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string;
+  avatarKey: string;
+  weekLabel: string;
+  weekStart: string;
+  weekEnd: string;
+  stats: {
+    starsEarned: number;
+    sessions: number;
+    learningMinutes: number;
+    newBadges: number;
+    streakDays: number;
+  };
+  skills: {
+    skillId: string;
+    skillName: string;
+    subject: string;
+    correctCount: number;
+    totalCount: number;
+    masteryPct: number;
+    sessionCount: number;
+  }[];
+  sessionLog: {
+    sessionId: string;
+    startedAt: string;
+    sessionMode: string;
+    starsEarned: number;
+    correctCount: number;
+    totalQuestions: number;
+    durationMinutes: number | null;
+    effectivenessScore: number | null;
+  }[];
+  heatmap: {
+    dayLabel: string;
+    date: string;
+    sessionCount: number;
+  }[];
+};
 
-const HEADLINE_STATS: StatTileData[] = [
-  { label: "Stars earned", value: "⭐ 42", color: "#ffd166", delta: "↑ 8 vs last week", deltaDir: "up" },
-  { label: "Sessions", value: "14", color: "#9b72ff", delta: "↑ 3 sessions", deltaDir: "up" },
-  { label: "Learning time", value: "3.2h", color: "#58e8c1", delta: "→ Same as last week", deltaDir: "same" },
-  { label: "New badges", value: "2", color: "#ff7b6b", delta: "↑ 2 new", deltaDir: "up" },
-  { label: "Day streak", value: "🔥 5", color: "#9b72ff", delta: "↑ 2 days", deltaDir: "up" },
-];
+// ─── Data mapping helpers ─────────────────────────────────────────────────────
 
-const SKILLS: SkillRow[] = [
-  { name: "Rhyming words", subject: "Reading", pct: 88, barColor: "#9b72ff", pctColor: "#9b72ff", sessions: 6, delta: "↑ 12%", deltaDir: "up", status: "Strong" },
-  { name: "Letter sounds", subject: "Phonics", pct: 74, barColor: "#9b72ff", pctColor: "#9b72ff", sessions: 4, delta: "↑ 6%", deltaDir: "up", status: "Strong" },
-  { name: "Counting objects", subject: "Math", pct: 60, barColor: "#ffd166", pctColor: "#a07000", sessions: 2, delta: "→ 0%", deltaDir: "same", status: "Building" },
-  { name: "First words", subject: "Reading", pct: 45, barColor: "#ffd166", pctColor: "#a07000", sessions: 2, delta: "↑ 8%", deltaDir: "up", status: "Building" },
-  { name: "Simple addition", subject: "Math", pct: 30, barColor: "rgba(155,114,255,0.3)", pctColor: "rgba(255,255,255,0.38)", sessions: 1, delta: "New", deltaDir: "new", status: "Just started" },
-];
+function minutesToHoursStr(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  return `${(minutes / 60).toFixed(1)}h`;
+}
 
-const SESSION_LOG: SessionLogRow[] = [
-  { date: "Today (Fri)", stars: 9, skills: "Rhyming words, Letter sounds", duration: "14 min", perfect: true },
-  { date: "Thursday", stars: 9, skills: "Rhyming words, Counting objects", duration: "12 min", perfect: false },
-  { date: "Wednesday", stars: 9, skills: "Letter sounds, First words", duration: "15 min", perfect: false },
-  { date: "Tuesday", stars: 8, skills: "Rhyming words, Simple addition", duration: "13 min", perfect: false },
-  { date: "Monday", stars: 7, skills: "Letter sounds, First words", duration: "11 min", perfect: true },
-];
+function formatSessionDate(startedAt: string): string {
+  const d = new Date(startedAt);
+  return d.toLocaleDateString("en-US", { weekday: "long" });
+}
 
-const HEATMAP: HeatmapDay[] = [
-  { label: "Mon", sessions: 2, active: true },
-  { label: "Tue", sessions: 3, active: true },
-  { label: "Wed", sessions: 3, active: true },
-  { label: "Thu", sessions: 3, active: true },
-  { label: "Fri", sessions: 2, active: true },
-  { label: "Sat", sessions: 0, active: false },
-  { label: "Sun", sessions: 0, active: false },
-];
+function skillStatus(pct: number, sessions: number): "Strong" | "Building" | "Just started" {
+  if (sessions <= 1 && pct < 50) return "Just started";
+  if (pct >= 70) return "Strong";
+  return "Building";
+}
 
-const ENGAGEMENT_SUMMARY = [
-  { label: "Total learning time", value: "3.2h", color: "#9b72ff" },
-  { label: "Avg session length", value: "14 min", color: "#ffd166" },
-  { label: "Perfect sessions", value: "2 / 14", color: "#58e8c1" },
-  { label: "Days active", value: "5 / 7", color: "#ff7b6b" },
-];
+function skillBarColor(pct: number): string {
+  if (pct >= 70) return "#9b72ff";
+  if (pct >= 40) return "#ffd166";
+  return "rgba(155,114,255,0.3)";
+}
+
+function skillPctColor(pct: number): string {
+  if (pct >= 70) return "#9b72ff";
+  if (pct >= 40) return "#a07000";
+  return "rgba(255,255,255,0.38)";
+}
+
+function mapReportToUI(report: ApiReport): {
+  weekLabel: string;
+  displayName: string;
+  launchBandCode: string;
+  headlineStats: StatTileData[];
+  skills: SkillRow[];
+  sessionLog: SessionLogRow[];
+  heatmap: HeatmapDay[];
+  engagementSummary: { label: string; value: string; color: string }[];
+} {
+  const { stats, skills, sessionLog, heatmap } = report;
+
+  const headlineStats: StatTileData[] = [
+    { label: "Stars earned", value: `⭐ ${stats.starsEarned}`, color: "#ffd166", delta: "", deltaDir: "same" },
+    { label: "Sessions", value: String(stats.sessions), color: "#9b72ff", delta: "", deltaDir: "same" },
+    { label: "Learning time", value: minutesToHoursStr(stats.learningMinutes), color: "#58e8c1", delta: "", deltaDir: "same" },
+    { label: "New badges", value: String(stats.newBadges), color: "#ff7b6b", delta: "", deltaDir: "same" },
+    { label: "Day streak", value: `🔥 ${stats.streakDays}`, color: "#9b72ff", delta: "", deltaDir: "same" },
+  ];
+
+  const skillRows: SkillRow[] = skills.map((s) => ({
+    name: s.skillName,
+    subject: s.subject ?? "General",
+    pct: s.masteryPct,
+    barColor: skillBarColor(s.masteryPct),
+    pctColor: skillPctColor(s.masteryPct),
+    sessions: s.sessionCount,
+    delta: "",
+    deltaDir: "same",
+    status: skillStatus(s.masteryPct, s.sessionCount),
+  }));
+
+  const sessionLogRows: SessionLogRow[] = sessionLog.map((s) => ({
+    date: formatSessionDate(s.startedAt),
+    stars: s.starsEarned,
+    skills: "",
+    duration: s.durationMinutes != null ? `${s.durationMinutes} min` : "—",
+    perfect: s.totalQuestions > 0 && s.correctCount === s.totalQuestions,
+  }));
+
+  const heatmapDays: HeatmapDay[] = heatmap.map((h) => ({
+    label: h.dayLabel,
+    sessions: h.sessionCount,
+    active: h.sessionCount > 0,
+  }));
+
+  const activeDays = heatmap.filter((h) => h.sessionCount > 0).length;
+  const avgSessionMin = stats.sessions > 0
+    ? Math.round(stats.learningMinutes / stats.sessions)
+    : 0;
+
+  const engagementSummary = [
+    { label: "Total learning time", value: minutesToHoursStr(stats.learningMinutes), color: "#9b72ff" },
+    { label: "Avg session length", value: `${avgSessionMin} min`, color: "#ffd166" },
+    { label: "Days active", value: `${activeDays} / 7`, color: "#ff7b6b" },
+  ];
+
+  return {
+    weekLabel: report.weekLabel,
+    displayName: report.displayName,
+    launchBandCode: report.launchBandCode,
+    headlineStats,
+    skills: skillRows,
+    sessionLog: sessionLogRows,
+    heatmap: heatmapDays,
+    engagementSummary,
+  };
+}
+
+// ─── Static suggestions (kept as-is) ─────────────────────────────────────────
 
 const SUGGESTIONS = [
   {
     icon: "🎵",
     title: "Keep the rhyming momentum going!",
-    body: "Rhyming is at 88% — a huge jump this week! Try playing rhyme games during car rides: \"I say cat, you say a word that rhymes!\" Nursery rhymes at bedtime also reinforce these patterns naturally.",
+    body: "Try playing rhyme games during car rides: \"I say cat, you say a word that rhymes!\" Nursery rhymes at bedtime also reinforce these patterns naturally.",
     tag: "📖 Reading · High impact",
     tagBg: "rgba(155,114,255,0.18)",
     tagColor: "#c4a8ff",
@@ -100,7 +200,7 @@ const SUGGESTIONS = [
   {
     icon: "🔢",
     title: "Help counting click for your child",
-    body: "Counting objects is at 60% and stable. Real-world counting helps enormously — try counting stairs, apples at the store, or steps to the bedroom. Touching objects while counting is especially effective for K-age kids.",
+    body: "Real-world counting helps enormously — try counting stairs, apples at the store, or steps to the bedroom. Touching objects while counting is especially effective for K-age kids.",
     tag: "➕ Math · Building",
     tagBg: "rgba(255,209,102,0.15)",
     tagColor: "#ffd166",
@@ -159,9 +259,11 @@ function HeadlineStat({ stat }: { stat: StatTileData }) {
       >
         {stat.label}
       </div>
-      <div style={{ fontSize: "0.68rem", fontWeight: 600, color: deltaColor }}>
-        {stat.delta}
-      </div>
+      {stat.delta && (
+        <div style={{ fontSize: "0.68rem", fontWeight: 600, color: deltaColor }}>
+          {stat.delta}
+        </div>
+      )}
     </div>
   );
 }
@@ -301,16 +403,8 @@ function SectionCard({
   );
 }
 
-function BarChart() {
-  const data = [
-    { label: "Mon", pct: 60 },
-    { label: "Tue", pct: 80 },
-    { label: "Wed", pct: 100 },
-    { label: "Thu", pct: 100 },
-    { label: "Fri", pct: 60 },
-    { label: "Sat", pct: 0 },
-    { label: "Sun", pct: 0 },
-  ];
+function BarChart({ heatmap }: { heatmap: HeatmapDay[] }) {
+  const maxSessions = Math.max(...heatmap.map((d) => d.sessions), 1);
   return (
     <div
       style={{
@@ -320,34 +414,37 @@ function BarChart() {
         height: "80px",
       }}
     >
-      {data.map((d) => (
-        <div
-          key={d.label}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "4px",
-            flex: 1,
-          }}
-        >
+      {heatmap.map((d) => {
+        const pct = Math.round((d.sessions / maxSessions) * 100);
+        return (
           <div
+            key={d.label}
             style={{
-              width: "100%",
-              height: `${Math.max(d.pct * 0.64, d.pct === 0 ? 4 : 4)}px`,
-              borderRadius: "3px 3px 0 0",
-              background:
-                d.pct === 0
-                  ? "rgba(255,255,255,0.06)"
-                  : d.pct === 100
-                  ? "#9b72ff"
-                  : "rgba(155,114,255,0.55)",
-              alignSelf: "flex-end",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              flex: 1,
             }}
-          />
-          <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.38)" }}>{d.label}</span>
-        </div>
-      ))}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: `${Math.max(pct * 0.64, d.sessions === 0 ? 4 : 4)}px`,
+                borderRadius: "3px 3px 0 0",
+                background:
+                  d.sessions === 0
+                    ? "rgba(255,255,255,0.06)"
+                    : pct === 100
+                    ? "#9b72ff"
+                    : "rgba(155,114,255,0.55)",
+                alignSelf: "flex-end",
+              }}
+            />
+            <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.38)" }}>{d.label}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -356,6 +453,44 @@ function BarChart() {
 
 export default function ParentWeeklyReportPage() {
   const [tab, setTab] = useState<Tab>("full");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [report, setReport] = useState<ApiReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const studentId =
+      searchParams.get("studentId") ??
+      (typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null);
+
+    if (!studentId) {
+      setError("No student selected. Please go back and select a child.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=${weekOffset}`)
+      .then(async (res) => {
+        if (res.status === 401) throw new Error("Session expired. Please sign in again.");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error((body as { error?: string }).error ?? "Failed to load report.");
+        }
+        return res.json() as Promise<{ report: ApiReport }>;
+      })
+      .then(({ report: r }) => {
+        setReport(r);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to load report.");
+        setLoading(false);
+      });
+  }, [weekOffset, searchParams]);
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "full", label: "📊 Full Report" },
@@ -363,6 +498,8 @@ export default function ParentWeeklyReportPage() {
     { id: "habits", label: "⏱ Habits" },
     { id: "suggestions", label: "💡 Suggestions" },
   ];
+
+  const mapped = report ? mapReportToUI(report) : null;
 
   return (
     <AppFrame audience="parent" currentPath="/parent">
@@ -422,792 +559,728 @@ export default function ParentWeeklyReportPage() {
             </Link>
           </div>
 
-          {/* Report header */}
-          <div
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(155,114,255,0.22)",
-              borderRadius: "20px",
-              padding: "28px 30px",
-              marginBottom: "20px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                color: "#9b72ff",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                marginBottom: "6px",
-              }}
-            >
-              Weekly Learning Report
-            </div>
-            <div
-              style={{
-                fontSize: "clamp(1.3rem, 3vw, 1.8rem)",
-                fontWeight: 700,
-                color: "#fff",
-                marginBottom: "4px",
-              }}
-            >
-              {"Maya's week — amazing progress! 🌟"}
-            </div>
-            <div
-              style={{
-                fontSize: "0.85rem",
-                color: "rgba(255,255,255,0.45)",
-                marginBottom: "20px",
-              }}
-            >
-              {WEEK_LABEL} · Generated Sunday, March 24
-            </div>
-
+          {/* Loading state */}
+          {loading && (
             <div
               style={{
                 display: "flex",
-                alignItems: "flex-start",
-                gap: "20px",
-                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "300px",
+                fontSize: "1rem",
+                color: "rgba(255,255,255,0.5)",
               }}
             >
-              {/* Avatar */}
-              <div
-                style={{
-                  width: "60px",
-                  height: "60px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #2a1e5e, #3d2a8a)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.6rem",
-                  flexShrink: 0,
-                  border: "2px solid #9b72ff",
-                }}
-              >
-                🦁
-              </div>
-
-              {/* Child info */}
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "3px 12px",
-                    borderRadius: "16px",
-                    background: "rgba(155,114,255,0.18)",
-                    border: "1.5px solid rgba(155,114,255,0.35)",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#c4a8ff",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      background: "#9b72ff",
-                      display: "inline-block",
-                    }}
-                  />
-                  K–1 Band · Kindergarten · Level 2 Star Explorer
-                </div>
-                <p
-                  style={{
-                    fontSize: "0.82rem",
-                    color: "rgba(255,255,255,0.52)",
-                    lineHeight: 1.5,
-                    margin: 0,
-                  }}
-                >
-                  Maya had a great week! She completed all her sessions and earned 2 new badges.
-                  Her rhyming skills jumped from building to strong — a significant milestone for Kindergarten.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Tab bar ────────────────────────────────────────────────────────── */}
-          <div
-            style={{
-              display: "flex",
-              gap: "4px",
-              marginBottom: "24px",
-              overflowX: "auto",
-              paddingBottom: "2px",
-            }}
-          >
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  fontSize: "0.82rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                  background:
-                    tab === t.id
-                      ? "rgba(155,114,255,0.22)"
-                      : "rgba(255,255,255,0.04)",
-                  color: tab === t.id ? "#e0d4ff" : "rgba(255,255,255,0.45)",
-                  border: tab === t.id
-                    ? "1px solid rgba(155,114,255,0.4)"
-                    : "1px solid rgba(255,255,255,0.07)",
-                  transition: "all 0.18s",
-                } as React.CSSProperties}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ═══════════════ FULL REPORT ═══════════════ */}
-          {tab === "full" && (
-            <div>
-              {/* Headline stats */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                  marginBottom: "24px",
-                }}
-              >
-                {HEADLINE_STATS.map((s) => (
-                  <HeadlineStat key={s.label} stat={s} />
-                ))}
-              </div>
-
-              {/* Skills table */}
-              <SectionCard title="Skills practiced this week" icon="📚">
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                    }}
-                  >
-                    <thead>
-                      <tr>
-                        {["Skill", "Subject", "Mastery", "", "Sessions", "vs last week", "Status"].map(
-                          (h) => (
-                            <th
-                              key={h}
-                              style={{
-                                textAlign: "left",
-                                padding: "8px 12px",
-                                fontSize: "0.7rem",
-                                fontWeight: 700,
-                                color: "rgba(255,255,255,0.38)",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                                borderBottom: "1px solid rgba(255,255,255,0.07)",
-                              }}
-                            >
-                              {h}
-                            </th>
-                          )
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {SKILLS.map((skill, i) => (
-                        <SkillTableRow
-                          key={skill.name}
-                          skill={skill}
-                          isLast={i === SKILLS.length - 1}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div
-                  style={{
-                    marginTop: "12px",
-                    padding: "8px 12px",
-                    background: "rgba(155,114,255,0.08)",
-                    borderRadius: "8px",
-                    fontSize: "0.72rem",
-                    color: "rgba(255,255,255,0.38)",
-                  }}
-                >
-                  Accuracy % shown for parent context only — children see stars.
-                </div>
-              </SectionCard>
-
-              {/* Session log */}
-              <SectionCard
-                title="Session log"
-                icon="📅"
-                right={
-                  <span
-                    style={{
-                      fontSize: "0.72rem",
-                      color: "rgba(255,255,255,0.38)",
-                    }}
-                  >
-                    {SESSION_LOG.length} sessions this week
-                  </span>
-                }
-              >
-                {/* Header row */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "90px 60px 1fr 60px 28px",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    background: "rgba(155,114,255,0.08)",
-                    borderRadius: "8px",
-                    marginBottom: "6px",
-                    fontSize: "0.67rem",
-                    fontWeight: 700,
-                    color: "rgba(255,255,255,0.38)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  <span>Date</span>
-                  <span>Stars</span>
-                  <span>Skills practiced</span>
-                  <span style={{ textAlign: "right" }}>Time</span>
-                  <span style={{ textAlign: "center" }}></span>
-                </div>
-
-                {/* Rows */}
-                {SESSION_LOG.map((row, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "90px 60px 1fr 60px 28px",
-                      gap: "8px",
-                      padding: "11px 12px",
-                      borderRadius: "8px",
-                      background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
-                      borderBottom:
-                        i < SESSION_LOG.length - 1
-                          ? "1px solid rgba(155,114,255,0.07)"
-                          : "none",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#c8b8f0" }}>
-                      {row.date}
-                    </span>
-                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffd166" }}>
-                      ⭐ {row.stars}
-                    </span>
-                    <span style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.48)" }}>
-                      {row.skills}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "0.72rem",
-                        color: "rgba(255,255,255,0.38)",
-                        textAlign: "right",
-                      }}
-                    >
-                      {row.duration}
-                    </span>
-                    <span style={{ textAlign: "center", fontSize: "0.88rem" }}>
-                      {row.perfect ? "⭐" : ""}
-                    </span>
-                  </div>
-                ))}
-
-                <div
-                  style={{
-                    marginTop: "12px",
-                    padding: "8px 12px",
-                    background: "rgba(155,114,255,0.08)",
-                    borderRadius: "8px",
-                    fontSize: "0.72rem",
-                    color: "rgba(255,255,255,0.38)",
-                  }}
-                >
-                  ⭐ in last column = perfect session (every question correct)
-                </div>
-              </SectionCard>
+              Loading report…
             </div>
           )}
 
-          {/* ═══════════════ SKILLS BREAKDOWN ═══════════════ */}
-          {tab === "skills" && (
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
-                📚 Skills Breakdown
-              </div>
-              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
-                Detailed mastery levels and trends · March 18–24
-              </div>
+          {/* Error state */}
+          {!loading && error && (
+            <div
+              style={{
+                padding: "32px",
+                background: "rgba(255,123,107,0.1)",
+                border: "1px solid rgba(255,123,107,0.3)",
+                borderRadius: "16px",
+                textAlign: "center",
+                color: "#ff7b6b",
+                fontSize: "0.92rem",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                  gap: "20px",
-                  marginBottom: "20px",
-                }}
-              >
-                {/* Reading & Phonics */}
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(155,114,255,0.18)",
-                    borderRadius: "16px",
-                    padding: "22px 24px",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
-                    📖 Reading &amp; Phonics
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                    {[
-                      { name: "Rhyming words", pct: 88, color: "#9b72ff", note: "↑ 12% from last week — strong momentum!", noteColor: "#50e890" },
-                      { name: "Letter sounds", pct: 74, color: "#9b72ff", note: "↑ 6% steady improvement", noteColor: "#50e890" },
-                      { name: "First words", pct: 45, color: "#ffd166", note: "Building toward mastery — normal for K stage", noteColor: "rgba(255,255,255,0.38)" },
-                    ].map((item) => (
-                      <div key={item.name}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "5px",
-                          }}
-                        >
-                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "#f0f6ff" }}>
-                            {item.name}
-                          </span>
-                          <span style={{ fontWeight: 700, fontSize: "0.82rem", color: item.color }}>
-                            {item.pct}%
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            height: "7px",
-                            background: "rgba(255,255,255,0.08)",
-                            borderRadius: "4px",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${item.pct}%`,
-                              background: item.color,
-                              borderRadius: "4px",
-                            }}
-                          />
-                        </div>
-                        <div style={{ fontSize: "0.7rem", color: item.noteColor, marginTop: "4px" }}>
-                          {item.note}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Math */}
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(155,114,255,0.18)",
-                    borderRadius: "16px",
-                    padding: "22px 24px",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
-                    ➕ Math
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                    {[
-                      { name: "Counting objects", pct: 60, color: "#ffd166", note: "Stable — needs a few more practice sessions", noteColor: "rgba(255,255,255,0.38)" },
-                      { name: "Simple addition", pct: 30, color: "rgba(155,114,255,0.55)", note: "Just started this week — great first step!", noteColor: "#9b72ff" },
-                    ].map((item) => (
-                      <div key={item.name}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "5px",
-                          }}
-                        >
-                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "#f0f6ff" }}>
-                            {item.name}
-                          </span>
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              fontSize: "0.82rem",
-                              color: item.pct < 40 ? "rgba(255,255,255,0.38)" : "#a07000",
-                            }}
-                          >
-                            {item.pct}%
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            height: "7px",
-                            background: "rgba(255,255,255,0.08)",
-                            borderRadius: "4px",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${item.pct}%`,
-                              background: item.color,
-                              borderRadius: "4px",
-                            }}
-                          />
-                        </div>
-                        <div style={{ fontSize: "0.7rem", color: item.noteColor, marginTop: "4px" }}>
-                          {item.note}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Curriculum coverage */}
+          {/* Report content */}
+          {!loading && !error && mapped && (
+            <>
+              {/* Report header */}
               <div
                 style={{
                   background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(155,114,255,0.18)",
-                  borderRadius: "16px",
-                  padding: "22px 24px",
-                }}
-              >
-                <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
-                  🎯 K–1 Curriculum coverage this week
-                </div>
-                <div style={{ display: "flex", gap: "32px", flexWrap: "wrap" }}>
-                  <div style={{ flex: "1 1 180px" }}>
-                    <div
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        color: "rgba(255,255,255,0.38)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      Phonics
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {[
-                        { label: "Beginning sounds", done: true },
-                        { label: "Rhyming pairs", done: true },
-                        { label: "Ending sounds (next)", done: false },
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            fontSize: "0.82rem",
-                            color: item.done ? "#f0f6ff" : "rgba(255,255,255,0.32)",
-                          }}
-                        >
-                          <span style={{ color: item.done ? "#50e890" : "rgba(255,255,255,0.18)" }}>
-                            {item.done ? "✓" : "○"}
-                          </span>
-                          {item.label}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ flex: "1 1 180px" }}>
-                    <div
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        color: "rgba(255,255,255,0.38)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      Math
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {[
-                        { label: "Counting to 10", symbol: "✓", color: "#50e890", dimmed: false },
-                        { label: "Addition (started)", symbol: "◐", color: "#ffd166", dimmed: false },
-                        { label: "Subtraction (later)", symbol: "○", color: "rgba(255,255,255,0.18)", dimmed: true },
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            fontSize: "0.82rem",
-                            color: item.dimmed ? "rgba(255,255,255,0.32)" : "#f0f6ff",
-                          }}
-                        >
-                          <span style={{ color: item.color }}>{item.symbol}</span>
-                          {item.label}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════ HABITS ═══════════════ */}
-          {tab === "habits" && (
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
-                ⏱ Time &amp; Habits
-              </div>
-              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
-                Session patterns and consistency this week
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                  gap: "20px",
+                  border: "1px solid rgba(155,114,255,0.22)",
+                  borderRadius: "20px",
+                  padding: "28px 30px",
                   marginBottom: "20px",
                 }}
               >
-                {/* Sessions per day */}
                 <div
                   style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(155,114,255,0.18)",
-                    borderRadius: "16px",
-                    padding: "22px 24px",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
-                    📅 Sessions per day
-                  </div>
-                  <BarChart />
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      fontSize: "0.74rem",
-                      color: "rgba(255,255,255,0.38)",
-                    }}
-                  >
-                    Daily limit: 3 sessions. Maya used her full limit on Wed &amp; Thu.
-                  </div>
-                </div>
-
-                {/* Typical play times */}
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(155,114,255,0.18)",
-                    borderRadius: "16px",
-                    padding: "22px 24px",
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
-                    ⏰ Typical play times
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {[
-                      { icon: "🌅", label: "Morning (7–9 AM)", detail: "Most active — 6 sessions", pct: "43%" },
-                      { icon: "🌤️", label: "Afternoon (3–5 PM)", detail: "5 sessions", pct: "36%" },
-                      { icon: "🌙", label: "Evening (6–8 PM)", detail: "3 sessions", pct: "21%" },
-                    ].map((t) => (
-                      <div
-                        key={t.label}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          padding: "10px 14px",
-                          background: "rgba(155,114,255,0.08)",
-                          borderRadius: "10px",
-                          border: "1px solid rgba(155,114,255,0.15)",
-                        }}
-                      >
-                        <span style={{ fontSize: "1.3rem" }}>{t.icon}</span>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#e8e4f8" }}>
-                            {t.label}
-                          </div>
-                          <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.42)" }}>
-                            {t.detail}
-                          </div>
-                        </div>
-                        <span
-                          style={{
-                            marginLeft: "auto",
-                            fontWeight: 700,
-                            fontSize: "0.82rem",
-                            color: "#9b72ff",
-                          }}
-                        >
-                          {t.pct}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Engagement summary */}
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(155,114,255,0.18)",
-                  borderRadius: "16px",
-                  padding: "22px 24px",
-                }}
-              >
-                <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
-                  🎯 Engagement summary
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                    gap: "14px",
-                  }}
-                >
-                  {ENGAGEMENT_SUMMARY.map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        textAlign: "center",
-                        padding: "14px",
-                        background: "rgba(155,114,255,0.07)",
-                        borderRadius: "12px",
-                        border: "1px solid rgba(155,114,255,0.14)",
-                      }}
-                    >
-                      <div style={{ fontSize: "1.3rem", fontWeight: 900, color: item.color, marginBottom: "4px" }}>
-                        {item.value}
-                      </div>
-                      <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.38)" }}>
-                        {item.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════ SUGGESTIONS ═══════════════ */}
-          {tab === "suggestions" && (
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
-                💡 Suggestions for this week
-              </div>
-              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
-                Ways to support {"Maya's"} learning beyond the app
-              </div>
-
-              {SUGGESTIONS.map((item) => (
-                <div
-                  key={item.title}
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(155,114,255,0.16)",
-                    borderRadius: "16px",
-                    padding: "22px",
-                    marginBottom: "16px",
-                    display: "grid",
-                    gridTemplateColumns: "44px 1fr",
-                    gap: "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "44px",
-                      height: "44px",
-                      borderRadius: "11px",
-                      background: item.iconBg,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "1.2rem",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: "0.94rem", color: "#f0f6ff", marginBottom: "6px" }}>
-                      {item.title}
-                    </div>
-                    <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.52)", lineHeight: 1.6 }}>
-                      {item.body}
-                    </div>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        marginTop: "10px",
-                        padding: "3px 10px",
-                        borderRadius: "12px",
-                        fontSize: "0.65rem",
-                        fontWeight: 700,
-                        background: item.tagBg,
-                        color: item.tagColor,
-                      }}
-                    >
-                      {item.tag}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {/* Overall note */}
-              <div
-                style={{
-                  padding: "18px 22px",
-                  background: "rgba(155,114,255,0.1)",
-                  borderRadius: "14px",
-                  border: "1.5px solid rgba(155,114,255,0.24)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "0.72rem",
+                    fontSize: "0.7rem",
                     fontWeight: 700,
                     color: "#9b72ff",
                     textTransform: "uppercase",
-                    letterSpacing: "0.07em",
-                    marginBottom: "8px",
+                    letterSpacing: "0.1em",
+                    marginBottom: "6px",
                   }}
                 >
-                  🌟 Overall this week
+                  Weekly Learning Report
                 </div>
-                <p style={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.6, margin: 0 }}>
-                  Maya showed impressive consistency this week — 5 days in a row is a new personal record!
-                  Her engagement is highest in the mornings. Keeping that morning routine stable will compound
-                  her progress significantly.
-                </p>
-              </div>
-            </div>
-          )}
+                <div
+                  style={{
+                    fontSize: "clamp(1.3rem, 3vw, 1.8rem)",
+                    fontWeight: 700,
+                    color: "#fff",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {mapped.displayName}&apos;s week 🌟
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "rgba(255,255,255,0.45)",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>{mapped.weekLabel}</span>
+                  <button
+                    onClick={() => setWeekOffset((o) => o + 1)}
+                    style={{
+                      padding: "3px 10px",
+                      borderRadius: "7px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      background: "rgba(155,114,255,0.12)",
+                      color: "#c4a8ff",
+                      border: "1px solid rgba(155,114,255,0.25)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ← Previous week
+                  </button>
+                  {weekOffset > 0 && (
+                    <button
+                      onClick={() => setWeekOffset((o) => o - 1)}
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: "7px",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        background: "rgba(155,114,255,0.12)",
+                        color: "#c4a8ff",
+                        border: "1px solid rgba(155,114,255,0.25)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Next week →
+                    </button>
+                  )}
+                </div>
 
-          {/* Bottom spacer */}
-          <div style={{ height: "56px" }} />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "20px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {/* Avatar */}
+                  <div
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #2a1e5e, #3d2a8a)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.6rem",
+                      flexShrink: 0,
+                      border: "2px solid #9b72ff",
+                    }}
+                  >
+                    {report?.avatarKey ?? "🦁"}
+                  </div>
+
+                  {/* Child info */}
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "3px 12px",
+                        borderRadius: "16px",
+                        background: "rgba(155,114,255,0.18)",
+                        border: "1.5px solid rgba(155,114,255,0.35)",
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        color: "#c4a8ff",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          background: "#9b72ff",
+                          display: "inline-block",
+                        }}
+                      />
+                      {mapped.launchBandCode} Band
+                    </div>
+                    <p
+                      style={{
+                        fontSize: "0.82rem",
+                        color: "rgba(255,255,255,0.52)",
+                        lineHeight: 1.5,
+                        margin: 0,
+                      }}
+                    >
+                      {mapped.displayName} completed {report?.stats.sessions ?? 0} sessions this week and earned {report?.stats.starsEarned ?? 0} stars.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Tab bar ────────────────────────────────────────────────────────── */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "4px",
+                  marginBottom: "24px",
+                  overflowX: "auto",
+                  paddingBottom: "2px",
+                }}
+              >
+                {TABS.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      fontSize: "0.82rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      background:
+                        tab === t.id
+                          ? "rgba(155,114,255,0.22)"
+                          : "rgba(255,255,255,0.04)",
+                      color: tab === t.id ? "#e0d4ff" : "rgba(255,255,255,0.45)",
+                      border: tab === t.id
+                        ? "1px solid rgba(155,114,255,0.4)"
+                        : "1px solid rgba(255,255,255,0.07)",
+                      transition: "all 0.18s",
+                    } as React.CSSProperties}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ═══════════════ FULL REPORT ═══════════════ */}
+              {tab === "full" && (
+                <div>
+                  {/* Headline stats */}
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    {mapped.headlineStats.map((s) => (
+                      <HeadlineStat key={s.label} stat={s} />
+                    ))}
+                  </div>
+
+                  {/* Skills table */}
+                  <SectionCard title="Skills practiced this week" icon="📚">
+                    <div style={{ overflowX: "auto" }}>
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                        }}
+                      >
+                        <thead>
+                          <tr>
+                            {["Skill", "Subject", "Mastery", "", "Sessions", "vs last week", "Status"].map(
+                              (h) => (
+                                <th
+                                  key={h}
+                                  style={{
+                                    textAlign: "left",
+                                    padding: "8px 12px",
+                                    fontSize: "0.7rem",
+                                    fontWeight: 700,
+                                    color: "rgba(255,255,255,0.38)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                    borderBottom: "1px solid rgba(255,255,255,0.07)",
+                                  }}
+                                >
+                                  {h}
+                                </th>
+                              )
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {mapped.skills.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                style={{
+                                  padding: "20px 12px",
+                                  fontSize: "0.82rem",
+                                  color: "rgba(255,255,255,0.38)",
+                                  textAlign: "center",
+                                }}
+                              >
+                                No skills practiced this week yet.
+                              </td>
+                            </tr>
+                          ) : (
+                            mapped.skills.map((skill, i) => (
+                              <SkillTableRow
+                                key={skill.name}
+                                skill={skill}
+                                isLast={i === mapped.skills.length - 1}
+                              />
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        padding: "8px 12px",
+                        background: "rgba(155,114,255,0.08)",
+                        borderRadius: "8px",
+                        fontSize: "0.72rem",
+                        color: "rgba(255,255,255,0.38)",
+                      }}
+                    >
+                      Accuracy % shown for parent context only — children see stars.
+                    </div>
+                  </SectionCard>
+
+                  {/* Session log */}
+                  <SectionCard
+                    title="Session log"
+                    icon="📅"
+                    right={
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "rgba(255,255,255,0.38)",
+                        }}
+                      >
+                        {mapped.sessionLog.length} sessions this week
+                      </span>
+                    }
+                  >
+                    {/* Header row */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "90px 60px 1fr 60px 28px",
+                        gap: "8px",
+                        padding: "8px 12px",
+                        background: "rgba(155,114,255,0.08)",
+                        borderRadius: "8px",
+                        marginBottom: "6px",
+                        fontSize: "0.67rem",
+                        fontWeight: 700,
+                        color: "rgba(255,255,255,0.38)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      <span>Date</span>
+                      <span>Stars</span>
+                      <span>Skills practiced</span>
+                      <span style={{ textAlign: "right" }}>Time</span>
+                      <span style={{ textAlign: "center" }}></span>
+                    </div>
+
+                    {/* Rows */}
+                    {mapped.sessionLog.length === 0 ? (
+                      <div
+                        style={{
+                          padding: "20px 12px",
+                          fontSize: "0.82rem",
+                          color: "rgba(255,255,255,0.38)",
+                          textAlign: "center",
+                        }}
+                      >
+                        No sessions this week yet.
+                      </div>
+                    ) : (
+                      mapped.sessionLog.map((row, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "90px 60px 1fr 60px 28px",
+                            gap: "8px",
+                            padding: "11px 12px",
+                            borderRadius: "8px",
+                            background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+                            borderBottom:
+                              i < mapped.sessionLog.length - 1
+                                ? "1px solid rgba(155,114,255,0.07)"
+                                : "none",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#c8b8f0" }}>
+                            {row.date}
+                          </span>
+                          <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffd166" }}>
+                            ⭐ {row.stars}
+                          </span>
+                          <span style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.48)" }}>
+                            {row.skills}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              color: "rgba(255,255,255,0.38)",
+                              textAlign: "right",
+                            }}
+                          >
+                            {row.duration}
+                          </span>
+                          <span style={{ textAlign: "center", fontSize: "0.88rem" }}>
+                            {row.perfect ? "⭐" : ""}
+                          </span>
+                        </div>
+                      ))
+                    )}
+
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        padding: "8px 12px",
+                        background: "rgba(155,114,255,0.08)",
+                        borderRadius: "8px",
+                        fontSize: "0.72rem",
+                        color: "rgba(255,255,255,0.38)",
+                      }}
+                    >
+                      ⭐ in last column = perfect session (every question correct)
+                    </div>
+                  </SectionCard>
+                </div>
+              )}
+
+              {/* ═══════════════ SKILLS BREAKDOWN ═══════════════ */}
+              {tab === "skills" && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
+                    📚 Skills Breakdown
+                  </div>
+                  <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
+                    Detailed mastery levels · {mapped.weekLabel}
+                  </div>
+
+                  {mapped.skills.length === 0 ? (
+                    <div
+                      style={{
+                        padding: "32px",
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(155,114,255,0.18)",
+                        borderRadius: "16px",
+                        textAlign: "center",
+                        color: "rgba(255,255,255,0.38)",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      No skills practiced this week.
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                        gap: "20px",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      {mapped.skills.map((skill) => (
+                        <div
+                          key={skill.name}
+                          style={{
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(155,114,255,0.18)",
+                            borderRadius: "16px",
+                            padding: "22px 24px",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                            {skill.subject}
+                          </div>
+                          <div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginBottom: "5px",
+                              }}
+                            >
+                              <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "#f0f6ff" }}>
+                                {skill.name}
+                              </span>
+                              <span style={{ fontWeight: 700, fontSize: "0.82rem", color: skill.barColor }}>
+                                {skill.pct}%
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                height: "7px",
+                                background: "rgba(255,255,255,0.08)",
+                                borderRadius: "4px",
+                                overflow: "hidden",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: "100%",
+                                  width: `${skill.pct}%`,
+                                  background: skill.barColor,
+                                  borderRadius: "4px",
+                                }}
+                              />
+                            </div>
+                            <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.38)", marginTop: "4px" }}>
+                              {skill.sessions} session{skill.sessions !== 1 ? "s" : ""} · {skill.status}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ═══════════════ HABITS ═══════════════ */}
+              {tab === "habits" && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
+                    ⏱ Time &amp; Habits
+                  </div>
+                  <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
+                    Session patterns and consistency this week
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                      gap: "20px",
+                      marginBottom: "20px",
+                    }}
+                  >
+                    {/* Sessions per day */}
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(155,114,255,0.18)",
+                        borderRadius: "16px",
+                        padding: "22px 24px",
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                        📅 Sessions per day
+                      </div>
+                      <BarChart heatmap={mapped.heatmap} />
+                    </div>
+
+                    {/* Heatmap activity */}
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(155,114,255,0.18)",
+                        borderRadius: "16px",
+                        padding: "22px 24px",
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                        📆 Activity heatmap
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {mapped.heatmap.map((day) => (
+                          <div
+                            key={day.label}
+                            style={{
+                              flex: "1 1 60px",
+                              padding: "12px 8px",
+                              borderRadius: "10px",
+                              background: day.active ? "rgba(155,114,255,0.22)" : "rgba(255,255,255,0.04)",
+                              border: day.active ? "1px solid rgba(155,114,255,0.4)" : "1px solid rgba(255,255,255,0.07)",
+                              textAlign: "center",
+                            }}
+                          >
+                            <div style={{ fontSize: "0.7rem", fontWeight: 700, color: day.active ? "#c4a8ff" : "rgba(255,255,255,0.28)", marginBottom: "4px" }}>
+                              {day.label}
+                            </div>
+                            <div style={{ fontSize: "1rem" }}>{day.active ? "✓" : "—"}</div>
+                            <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.38)", marginTop: "2px" }}>
+                              {day.sessions} {day.sessions === 1 ? "session" : "sessions"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Engagement summary */}
+                  <div
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(155,114,255,0.18)",
+                      borderRadius: "16px",
+                      padding: "22px 24px",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                      🎯 Engagement summary
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                        gap: "14px",
+                      }}
+                    >
+                      {mapped.engagementSummary.map((item) => (
+                        <div
+                          key={item.label}
+                          style={{
+                            textAlign: "center",
+                            padding: "14px",
+                            background: "rgba(155,114,255,0.07)",
+                            borderRadius: "12px",
+                            border: "1px solid rgba(155,114,255,0.14)",
+                          }}
+                        >
+                          <div style={{ fontSize: "1.3rem", fontWeight: 900, color: item.color, marginBottom: "4px" }}>
+                            {item.value}
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.38)" }}>
+                            {item.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════════ SUGGESTIONS ═══════════════ */}
+              {tab === "suggestions" && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
+                    💡 Suggestions for this week
+                  </div>
+                  <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
+                    Ways to support {mapped.displayName}&apos;s learning beyond the app
+                  </div>
+
+                  {SUGGESTIONS.map((item) => (
+                    <div
+                      key={item.title}
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(155,114,255,0.16)",
+                        borderRadius: "16px",
+                        padding: "22px",
+                        marginBottom: "16px",
+                        display: "grid",
+                        gridTemplateColumns: "44px 1fr",
+                        gap: "16px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "44px",
+                          height: "44px",
+                          borderRadius: "11px",
+                          background: item.iconBg,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "1.2rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {item.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: "0.94rem", color: "#f0f6ff", marginBottom: "6px" }}>
+                          {item.title}
+                        </div>
+                        <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.52)", lineHeight: 1.6 }}>
+                          {item.body}
+                        </div>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            marginTop: "10px",
+                            padding: "3px 10px",
+                            borderRadius: "12px",
+                            fontSize: "0.65rem",
+                            fontWeight: 700,
+                            background: item.tagBg,
+                            color: item.tagColor,
+                          }}
+                        >
+                          {item.tag}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Overall note */}
+                  <div
+                    style={{
+                      padding: "18px 22px",
+                      background: "rgba(155,114,255,0.1)",
+                      borderRadius: "14px",
+                      border: "1.5px solid rgba(155,114,255,0.24)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        color: "#9b72ff",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.07em",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      🌟 Overall this week
+                    </div>
+                    <p style={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.6, margin: 0 }}>
+                      {mapped.displayName} completed {report?.stats.sessions ?? 0} sessions and earned {report?.stats.starsEarned ?? 0} stars this week.
+                      {report?.stats.streakDays != null && report.stats.streakDays > 0 && (
+                        <> Current streak: {report.stats.streakDays} day{report.stats.streakDays !== 1 ? "s" : ""}. Keep it going!</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom spacer */}
+              <div style={{ height: "56px" }} />
+            </>
+          )}
         </div>
       </div>
     </AppFrame>
