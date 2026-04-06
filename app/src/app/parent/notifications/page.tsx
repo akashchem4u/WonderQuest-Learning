@@ -47,6 +47,16 @@ type ApiSession = {
   skillNames: string[];
 };
 
+type ApiNotification = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  value: string | null;
+  read: boolean;
+  createdAt: string;
+};
+
 function sessionToNotification(s: ApiSession, idx: number): Notification {
   const date = new Date(s.startedAt);
   const now = new Date();
@@ -89,6 +99,57 @@ function sessionToNotification(s: ApiSession, idx: number): Notification {
     unread: idx === 0,
     actionLabel: "View skills",
     actionHref: "/parent/skills",
+  };
+}
+
+function milestoneTypeToNotifType(type: string): NotifType {
+  if (type === "level-up") return "levelup";
+  if (type === "badge-earned") return "badge";
+  if (type === "streak-7" || type === "streak-30") return "streak";
+  return "system";
+}
+
+function milestoneTypeToIcon(type: string): string {
+  if (type === "level-up") return "⭐";
+  if (type === "badge-earned") return "🏅";
+  if (type === "streak-7" || type === "streak-30") return "🔥";
+  if (type === "first-session") return "🎉";
+  if (type === "sessions-10" || type === "sessions-50") return "🎯";
+  if (type === "skill-mastered") return "🧠";
+  return "🔔";
+}
+
+function apiNotifToNotification(n: ApiNotification): Notification {
+  const date = new Date(n.createdAt);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400_000);
+
+  let group: Notification["group"] = "older";
+  if (diffDays === 0) group = "today";
+  else if (diffDays <= 6) group = "this-week";
+
+  const timeLabel = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const dateLabel =
+    diffDays === 0
+      ? timeLabel
+      : diffDays <= 6
+        ? date.toLocaleDateString("en-US", { weekday: "short" }) + " " + timeLabel
+        : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  return {
+    id: `milestone-${n.id}`,
+    type: milestoneTypeToNotifType(n.type),
+    icon: milestoneTypeToIcon(n.type),
+    title: n.title,
+    body: n.description,
+    timestamp: dateLabel,
+    group,
+    unread: !n.read,
+    actionLabel: n.type === "level-up" || n.type === "badge-earned" ? "View dashboard" : undefined,
+    actionHref: n.type === "level-up" || n.type === "badge-earned" ? "/parent" : undefined,
   };
 }
 
@@ -708,7 +769,7 @@ export default function ParentNotificationsPage() {
   const [filterChip, setFilterChip] = useState<"all" | "badges" | "levelups" | "reports" | "sessions" | "system">("all");
   const [notifications, setNotifs]  = useState<Notification[]>(STUB);
 
-  // Fetch real activity from API and prepend as session-type notifications
+  // Fetch real activity + milestone notifications from API
   useEffect(() => {
     const studentId =
       typeof window !== "undefined"
@@ -716,21 +777,47 @@ export default function ParentNotificationsPage() {
         : null;
     if (!studentId) return;
 
-    fetch(`/api/parent/activity?studentId=${encodeURIComponent(studentId)}&limit=20`)
+    const activityFetch = fetch(
+      `/api/parent/activity?studentId=${encodeURIComponent(studentId)}&limit=20`,
+    )
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!data?.sessions || !Array.isArray(data.sessions) || data.sessions.length === 0) {
-          return;
-        }
-        const sessionNotifs: Notification[] = (data.sessions as ApiSession[]).map(
-          (s, i) => sessionToNotification(s, i),
-        );
-        // Prepend real session notifications before the static STUB entries
-        setNotifs([...sessionNotifs, ...STUB]);
-      })
-      .catch(() => {
-        // silently fall back to STUB on error
-      });
+      .catch(() => null);
+
+    const notifsFetch = fetch(
+      `/api/parent/notifications?studentId=${encodeURIComponent(studentId)}`,
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null);
+
+    Promise.all([activityFetch, notifsFetch]).then(([activityData, notifsData]) => {
+      const sessionNotifs: Notification[] =
+        activityData?.sessions && Array.isArray(activityData.sessions)
+          ? (activityData.sessions as ApiSession[]).map((s, i) => sessionToNotification(s, i))
+          : [];
+
+      const milestoneNotifs: Notification[] =
+        notifsData?.notifications && Array.isArray(notifsData.notifications)
+          ? (notifsData.notifications as ApiNotification[]).map(apiNotifToNotification)
+          : [];
+
+      // Milestones first (most important), then sessions, then static STUB
+      setNotifs([...milestoneNotifs, ...sessionNotifs, ...STUB]);
+
+      // Mark unread milestone notifications as read
+      const unreadIds = (notifsData?.notifications as ApiNotification[] | undefined)
+        ?.filter((n) => !n.read)
+        .map((n) => n.id) ?? [];
+
+      if (unreadIds.length > 0) {
+        fetch("/api/parent/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: unreadIds }),
+        }).catch(() => {
+          // silently ignore mark-as-read errors
+        });
+      }
+    });
   }, []);
 
   function dismiss(id: string) {
