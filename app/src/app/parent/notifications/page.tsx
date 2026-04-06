@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
@@ -27,6 +28,7 @@ type Notification = {
   title: string;
   body: string;
   timestamp: string;
+  createdAt?: string;
   group: "today" | "this-week" | "older";
   unread: boolean;
   childName?: string;
@@ -95,6 +97,7 @@ function sessionToNotification(s: ApiSession, idx: number): Notification {
     title: `Session completed${s.starsEarned > 0 ? ` — ⭐ ${s.starsEarned} stars` : ""}`,
     body: `${skillList} · ${accuracy}% accuracy · ${s.correctCount}/${s.totalQuestions} correct${durationStr}`,
     timestamp: dateLabel,
+    createdAt: s.startedAt,
     group,
     unread: idx === 0,
     actionLabel: "View skills",
@@ -146,6 +149,7 @@ function apiNotifToNotification(n: ApiNotification): Notification {
     title: n.title,
     body: n.description,
     timestamp: dateLabel,
+    createdAt: n.createdAt,
     group,
     unread: !n.read,
     actionLabel: n.type === "level-up" || n.type === "badge-earned" ? "View dashboard" : undefined,
@@ -231,6 +235,40 @@ const STUB: Notification[] = [
   },
 ];
 
+// ─── Deep-link routing per notification type ─────────────────────────────────
+
+function getNotificationLink(notif: Notification): string | null {
+  const type = notif.type ?? "";
+  switch (type) {
+    case "session":
+      return "/parent/activity";
+    case "badge":
+    case "levelup":
+      return "/parent/activity";
+    case "weekly":
+      return "/parent/report";
+    case "streak":
+      return "/parent/report";
+    case "system":
+      return null;
+    default:
+      return null;
+  }
+}
+
+// ─── Time-ago helper ──────────────────────────────────────────────────────────
+
+function formatTimeAgo(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 // ─── Icon background by type ──────────────────────────────────────────────────
 
 const TYPE_BG: Record<NotifType, string> = {
@@ -299,21 +337,27 @@ function NotifItem({
   onDismiss: (id: string) => void;
   onMarkRead: (id: string) => void;
 }) {
-  return (
-    <div
-      onClick={() => onMarkRead(notif.id)}
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 14,
-        padding: "16px 20px",
-        borderBottom: `1px solid ${BORDER}`,
-        position: "relative",
-        cursor: "pointer",
-        background: notif.unread ? "rgba(155,114,255,0.05)" : "transparent",
-        transition: "background 0.15s",
-      }}
-    >
+  const deepLink = getNotificationLink(notif);
+  const timeAgo = notif.createdAt ? formatTimeAgo(notif.createdAt) : notif.timestamp;
+
+  const cardStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 14,
+    padding: "16px 20px",
+    borderBottom: `1px solid ${BORDER}`,
+    position: "relative",
+    cursor: "pointer",
+    background: notif.unread ? "rgba(155,114,255,0.09)" : "rgba(255,255,255,0.03)",
+    border: notif.unread ? "1px solid rgba(155,114,255,0.22)" : "1px solid rgba(255,255,255,0.06)",
+    opacity: notif.unread ? 1 : 0.85,
+    transition: "background 0.15s, opacity 0.15s",
+    textDecoration: "none",
+    color: "inherit",
+  };
+
+  const cardInner = (
+    <>
       {notif.unread && (
         <span
           style={{
@@ -324,7 +368,7 @@ function NotifItem({
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: TYPE_DOT[notif.type],
+            background: VIOLET,
             flexShrink: 0,
           }}
         />
@@ -366,7 +410,7 @@ function NotifItem({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span style={{ font: "400 0.7rem system-ui", color: "rgba(155,140,200,0.55)" }}>
-            {notif.timestamp}
+            {timeAgo}
           </span>
           {notif.childName && (
             <span
@@ -422,6 +466,27 @@ function NotifItem({
           ×
         </button>
       </div>
+    </>
+  );
+
+  if (deepLink) {
+    return (
+      <Link
+        href={deepLink}
+        onClick={() => onMarkRead(notif.id)}
+        style={cardStyle}
+      >
+        {cardInner}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => onMarkRead(notif.id)}
+      style={cardStyle}
+    >
+      {cardInner}
     </div>
   );
 }
@@ -829,6 +894,15 @@ export default function ParentNotificationsPage() {
 
   function markRead(id: string) {
     setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    // For real API notifications (milestone-<uuid>), call individual PATCH endpoint
+    if (id.startsWith("milestone-")) {
+      const apiId = id.replace(/^milestone-/, "");
+      fetch(`/api/parent/notifications/${encodeURIComponent(apiId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ read: true }),
+      }).catch(() => {/* silently ignore */});
+    }
   }
 
   function markAllRead() {
