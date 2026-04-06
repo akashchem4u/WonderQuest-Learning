@@ -1795,7 +1795,7 @@ function PlayClientInner() {
               aria-label="Pause"
               onClick={() => {
                 const stars = progression?.totalPoints ?? 0;
-                const quest = session?.questions[currentIndex]?.skillLabel ?? sessionMode;
+                const quest = session?.questions[currentIndex]?.skill ?? sessionMode;
                 const total = session?.questions.length ?? 5;
                 const current = currentIndex + 1;
                 router.push(`/play/pause?stars=${stars}&quest=${encodeURIComponent(quest)}&current=${current}&total=${total}`);

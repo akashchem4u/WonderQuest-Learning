@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 const font = "'Nunito', system-ui, sans-serif";
@@ -159,12 +160,12 @@ const worlds = [
 ];
 
 const sidebarItems = [
-  { icon: "🏠", label: "Home", key: "home" },
-  { icon: "🗺️", label: "World Map", key: "worlds" },
-  { icon: "⭐", label: "My Stars", key: "stars" },
-  { icon: "🏅", label: "Badges", key: "badges" },
-  { icon: "🏆", label: "Trophies", key: "trophies" },
-  { icon: "🎯", label: "Daily Quest", key: "daily" },
+  { icon: "🏠", label: "Home",        key: "home",    href: "/child" },
+  { icon: "🗺️", label: "World Map",  key: "worlds",  href: "/child/map" },
+  { icon: "⭐", label: "My Stars",    key: "stars",   href: "/child/progress" },
+  { icon: "🏅", label: "Badges",      key: "badges",  href: "/child/badges" },
+  { icon: "🏆", label: "Trophies",    key: "trophies",href: "/child/trophies" },
+  { icon: "🎯", label: "Daily Quest", key: "daily",   href: "/child/daily-challenge" },
 ];
 
 type AssignmentItem = {
@@ -193,6 +194,7 @@ type StatsData = {
 };
 
 export default function ChildHubPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [selectedBand, setSelectedBand] = useState("K1");
   const [sidebarActive, setSidebarActive] = useState("home");
@@ -431,7 +433,7 @@ export default function ChildHubPage() {
               {sidebarItemsWithBadge.map((item) => (
                 <div
                   key={item.key}
-                  onClick={() => setSidebarActive(item.key)}
+                  onClick={() => { setSidebarActive(item.key); if (item.href) router.push(item.href); }}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -695,6 +697,7 @@ export default function ChildHubPage() {
                 {world.quests.map((q) => (
                   <div
                     key={q.name}
+                    onClick={() => router.push("/play?sessionMode=guided-quest&entry=returning")}
                     style={{
                       background: "#1a1060",
                       border: "2px solid #2a2060",
@@ -789,6 +792,7 @@ export default function ChildHubPage() {
                   <div style={{ fontSize: 14, fontWeight: 900, color: gold, marginBottom: 4, fontFamily: font }}>Mystery Quest</div>
                   <div style={{ fontSize: 12, color: "#7a6090", fontWeight: 700, marginBottom: 12, fontFamily: font }}>New challenge available!</div>
                   <button
+                    onClick={() => router.push("/child/daily-challenge")}
                     style={{
                       width: "100%",
                       padding: 10,

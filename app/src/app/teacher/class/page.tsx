@@ -808,7 +808,7 @@ export default function TeacherClassPage() {
                 >
                   <div style={cardTitle}>Student Progress This Week</div>
                   <Link
-                    href="/teacher/students"
+                    href="/teacher/class"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,

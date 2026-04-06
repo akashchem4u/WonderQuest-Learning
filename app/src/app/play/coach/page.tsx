@@ -103,7 +103,7 @@ export default function PlayCoachPage() {
           }}
         >
           <Link
-            href="/play/session"
+            href="/play"
             style={{
               fontSize: "0.88rem",
               fontWeight: 900,
