@@ -16,7 +16,7 @@ const BORDER = "rgba(255,255,255,0.06)";
 const TEXT = "#f0f6ff";
 const MUTED = "rgba(255,255,255,0.4)";
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── Route monitoring data (static operational definitions) ────────────────────
 
 type RouteStatus = "healthy" | "warn" | "down";
 

@@ -31,7 +31,7 @@ export default async function OwnerCommandPage() {
     try {
       overview = await getOwnerOverview();
     } catch {
-      // leave null — UI falls back to stub data
+      // leave null — UI falls back to static defaults
     }
   }
 

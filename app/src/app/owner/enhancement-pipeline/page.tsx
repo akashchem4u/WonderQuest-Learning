@@ -73,7 +73,23 @@ function relChip(rel: string, shipped = false) {
     : { color: C.muted,   bg: "rgba(139,148,158,.15)" };
 }
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── Overview API shape ────────────────────────────────────────────────────────
+interface OverviewCounts {
+  students: number;
+  guardians: number;
+  sessions: number;
+  feedbackItems: number;
+  totalPoints: number;
+  exampleItems: number;
+  explainers: number;
+}
+interface FeedbackByCat { category: string; count: number }
+interface Overview {
+  counts: OverviewCounts;
+  feedbackByCategory: FeedbackByCat[];
+}
+
+// ── Pipeline columns (static board data) ─────────────────────────────────────
 const COLUMNS: PipelineCol[] = [
   {
     label: "Backlog",
@@ -246,7 +262,8 @@ const CAT_FILTERS: { key: Category | "all"; label: string }[] = [
   { key: "compliance", label: "Compliance" },
 ];
 
-const BAR_ROWS = [
+// BAR_ROWS is derived from live data when available; fallback provided below
+const BAR_ROWS_FALLBACK = [
   { label: "UX",            pct: 29, count: 7,  color: C.amber  },
   { label: "Feature",       pct: 21, count: 5,  color: C.blue   },
   { label: "Content",       pct: 17, count: 4,  color: C.coral  },
@@ -300,9 +317,6 @@ const BIZ_RULES = [
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EnhancementPipelinePage() {
-  const allowed = true;
-  if (!allowed) return <OwnerGate configured={true} />;
-
   return (
     <AppFrame audience="owner">
       <EnhancementPipelineContent />
@@ -313,6 +327,32 @@ export default function EnhancementPipelinePage() {
 function EnhancementPipelineContent() {
   const [tab, setTab] = useState<Tab>("board");
   const [catFilter, setCatFilter] = useState<Category | "all">("all");
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/owner/overview")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setOverview(data as Overview); })
+      .catch(() => {})
+      .finally(() => setLoadingOverview(false));
+  }, []);
+
+  // Build live bar rows from feedbackByCategory if available
+  const barRows = (() => {
+    if (!overview || overview.feedbackByCategory.length === 0) return BAR_ROWS_FALLBACK;
+    const catColorMap: Record<string, string> = {
+      ux: C.amber, feature: C.blue, content: C.coral,
+      accessibility: C.teal, performance: C.violet, compliance: C.gold,
+    };
+    const total = overview.feedbackByCategory.reduce((s, c) => s + c.count, 0);
+    return overview.feedbackByCategory.slice(0, 6).map((c) => ({
+      label: c.category.charAt(0).toUpperCase() + c.category.slice(1),
+      pct: total > 0 ? Math.round((c.count / total) * 100) : 0,
+      count: c.count,
+      color: catColorMap[c.category.toLowerCase()] ?? C.muted,
+    }));
+  })();
 
   return (
     <main style={{ background: C.base, minHeight: "100vh", padding: "24px", fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -427,10 +467,26 @@ function EnhancementPipelineContent() {
           {/* Stat cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px", marginBottom: "20px" }}>
             {[
-              { n: "24", label: "Total Enhancements", color: C.mintAlt },
-              { n: "8",  label: "Shipped This Release", color: C.gold },
-              { n: "6",  label: "In Flight (Dev+QA)", color: C.violet },
-              { n: "2",  label: "Deferred", color: C.muted },
+              {
+                n: loadingOverview ? "…" : (overview?.counts.feedbackItems.toLocaleString() ?? "—"),
+                label: "Feedback Items",
+                color: C.mintAlt,
+              },
+              {
+                n: loadingOverview ? "…" : (overview?.counts.exampleItems.toLocaleString() ?? "—"),
+                label: "Example Items",
+                color: C.gold,
+              },
+              {
+                n: loadingOverview ? "…" : (overview?.counts.explainers.toLocaleString() ?? "—"),
+                label: "Explainer Assets",
+                color: C.violet,
+              },
+              {
+                n: loadingOverview ? "…" : (overview?.feedbackByCategory.length.toString() ?? "—"),
+                label: "Feedback Categories",
+                color: C.muted,
+              },
             ].map((s) => (
               <div key={s.label} style={{
                 background: C.surface, border: `1px solid ${C.border}`,
@@ -445,7 +501,7 @@ function EnhancementPipelineContent() {
           {/* By category */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "20px", marginBottom: "16px" }}>
             <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "12px", color: C.text }}>By Category</div>
-            {BAR_ROWS.map((row) => (
+            {barRows.map((row) => (
               <div key={row.label} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
                 <span style={{ width: "120px", fontSize: "12px", color: C.muted, textAlign: "right", flexShrink: 0 }}>
                   {row.label}

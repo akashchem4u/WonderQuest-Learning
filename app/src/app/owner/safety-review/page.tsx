@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import OwnerGate from "@/app/owner/owner-gate";
 
@@ -22,6 +22,18 @@ const C = {
   teal:    "#58e8c1",
   sky:     "#58b4ff",
 } as const;
+
+// ── Overview API shape ────────────────────────────────────────────────────────
+interface OverviewCounts {
+  students: number;
+  guardians: number;
+  sessions: number;
+  feedbackItems: number;
+  totalPoints: number;
+  exampleItems: number;
+  explainers: number;
+}
+interface Overview { counts: OverviewCounts }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Tab = 0 | 1 | 2;
@@ -186,6 +198,16 @@ export default function SafetyReviewPage() {
 function SafetyReviewContent() {
   const [tab, setTab] = useState<Tab>(0);
   const [resolvedAlerts, setResolvedAlerts] = useState<Set<number>>(new Set());
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/owner/overview")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setOverview(data as Overview); })
+      .catch(() => {})
+      .finally(() => setLoadingOverview(false));
+  }, []);
 
   const tabLabels = ["Safety Review Console", "Privacy Alerts", "Spec"];
 
@@ -270,11 +292,11 @@ function SafetyReviewContent() {
               </div>
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 {[
-                  { label: "🔴 P0 Safety Flags",  value: "0", valueColor: C.red,    tagLabel: "All clear",    tagBg: "rgba(80,232,144,.15)", tagColor: C.green,  topBorder: C.red    },
-                  { label: "🟡 P1 Content Flags",  value: "2", valueColor: C.violet, tagLabel: "Needs review", tagBg: "rgba(240,160,32,.15)", tagColor: C.amber,  topBorder: C.violet },
-                  { label: "🔵 Privacy Alerts",    value: "1", valueColor: C.sky,    tagLabel: "Active",       tagBg: "rgba(88,180,255,.15)", tagColor: C.sky,    topBorder: C.sky    },
-                  { label: "🟢 WCAG Violations",   value: "3", valueColor: C.amber,  tagLabel: "Needs fix",    tagBg: "rgba(240,160,32,.15)", tagColor: C.amber,  topBorder: C.amber  },
-                  { label: "📋 Pending Reviews",   value: "5", valueColor: C.text,   tagLabel: "In queue",     tagBg: "rgba(155,114,255,.15)", tagColor: C.violet, topBorder: C.muted  },
+                  { label: "🔴 P0 Safety Flags",   value: "0",                                                                                        valueColor: C.red,    tagLabel: "All clear",    tagBg: "rgba(80,232,144,.15)",  tagColor: C.green,  topBorder: C.red    },
+                  { label: "🟡 P1 Content Flags",   value: "2",                                                                                        valueColor: C.violet, tagLabel: "Needs review", tagBg: "rgba(240,160,32,.15)",  tagColor: C.amber,  topBorder: C.violet },
+                  { label: "🔵 Privacy Alerts",     value: "1",                                                                                        valueColor: C.sky,    tagLabel: "Active",       tagBg: "rgba(88,180,255,.15)",  tagColor: C.sky,    topBorder: C.sky    },
+                  { label: "👤 Students",           value: loadingOverview ? "…" : (overview?.counts.students.toLocaleString() ?? "—"),                valueColor: C.green,  tagLabel: `${loadingOverview ? "…" : (overview?.counts.guardians.toLocaleString() ?? "—")} guardians`, tagBg: "rgba(80,232,144,.15)", tagColor: C.green, topBorder: C.green },
+                  { label: "📋 Feedback Items",     value: loadingOverview ? "…" : (overview?.counts.feedbackItems.toLocaleString() ?? "—"),           valueColor: C.text,   tagLabel: `${loadingOverview ? "…" : (overview?.counts.sessions.toLocaleString() ?? "—")} sessions`,  tagBg: "rgba(155,114,255,.15)", tagColor: C.violet, topBorder: C.muted  },
                 ].map((s) => (
                   <div key={s.label} style={{
                     flex: 1, minWidth: "160px",

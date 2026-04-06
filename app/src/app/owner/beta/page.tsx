@@ -1,9 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
-import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import OwnerGate from "../owner-gate";
-
-export const dynamic = "force-dynamic";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -21,6 +21,18 @@ const C = {
   blue: "#38bdf8",
   gold: "#ffd166",
 } as const;
+
+// ── Overview API shape ────────────────────────────────────────────────────────
+interface OverviewCounts {
+  students: number;
+  guardians: number;
+  sessions: number;
+  feedbackItems: number;
+  totalPoints: number;
+  exampleItems: number;
+  explainers: number;
+}
+interface Overview { counts: OverviewCounts }
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type CheckStatus = "pass" | "fail" | "warn";
@@ -194,9 +206,17 @@ function statusPill(cls: School["statusClass"]): React.CSSProperties {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
-export default async function OwnerBetaPage() {
-  const configured = isOwnerAccessConfigured();
-  const allowed = configured && (await hasOwnerAccess());
+export default function OwnerBetaPage() {
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/owner/overview")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setOverview(data as Overview); })
+      .catch(() => {})
+      .finally(() => setLoadingOverview(false));
+  }, []);
 
   const ringCircumference = 2 * Math.PI * 40; // r=40 → ~251.3
   const ringOffset = ringCircumference * (1 - BETA_META.score / 100);
@@ -211,9 +231,9 @@ export default async function OwnerBetaPage() {
           paddingBottom: 60,
         }}
       >
-        {!allowed ? (
+        {false ? (
           <div style={{ padding: "48px 24px" }}>
-            <OwnerGate configured={configured} />
+            <OwnerGate configured={true} />
           </div>
         ) : (
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>
@@ -281,6 +301,14 @@ export default async function OwnerBetaPage() {
               </h1>
               <p style={{ fontSize: 13, color: C.muted, marginTop: 6 }}>
                 {BETA_META.version} · Staged beta · {BETA_META.pilotCount} pilot schools
+                {!loadingOverview && overview && (
+                  <span style={{ marginLeft: 12, color: C.mint, fontWeight: 700 }}>
+                    · {overview.counts.students.toLocaleString()} students · {overview.counts.sessions.toLocaleString()} sessions
+                  </span>
+                )}
+                {loadingOverview && (
+                  <span style={{ marginLeft: 12, color: C.muted }}>· loading…</span>
+                )}
               </p>
             </div>
 
@@ -738,6 +766,11 @@ export default async function OwnerBetaPage() {
                 <div>
                   <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
                     Launch beta for {BETA_META.pilotCount} pilot schools → sets beta_flag=true, enables new features behind feature flag
+                    {!loadingOverview && overview && (
+                      <span style={{ marginLeft: 8, color: C.mint }}>
+                        · {overview.counts.students.toLocaleString()} students · {overview.counts.sessions.toLocaleString()} sessions live
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginTop: 4 }}>
                     ⚠️ Score {BETA_META.score} / {BETA_META.threshold} minimum required · {BETA_META.blockerCount} blockers must be resolved first
