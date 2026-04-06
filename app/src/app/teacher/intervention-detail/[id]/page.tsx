@@ -16,7 +16,7 @@ const C = {
   muted: "#8b949e",
   violet: "#9b72ff",
   blue: "#38bdf8",
-  mint: "#22c55e",
+  mint: "#50e890",
   gold: "#ffd166",
   amber: "#f59e0b",
   red: "#ef4444",
@@ -37,6 +37,15 @@ type ApiIntervention = {
   resolutionNote: string | null;
 };
 
+type RecentSession = {
+  sessionId: string;
+  startedAt: string;
+  sessionMode: string;
+  correctCount: number;
+  totalQuestions: number;
+  effectivenessScore: number | null;
+};
+
 // ── UI types ──────────────────────────────────────────────────────────────────
 type ActionItem = {
   title: string;
@@ -49,6 +58,14 @@ type ActionItem = {
 function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   } catch {
     return iso;
   }
@@ -81,9 +98,13 @@ export default function InterventionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intervention, setIntervention] = useState<ApiIntervention | null>(null);
+  const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
   const [showLogNote, setShowLogNote] = useState(false);
+  const [noteText, setNoteText] = useState("");
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [resolving, setResolving] = useState(false);
+  const [resolveNote, setResolveNote] = useState("");
+  const [showResolveForm, setShowResolveForm] = useState(false);
 
   useEffect(() => {
     if (!authed) return;
@@ -101,7 +122,6 @@ export default function InterventionDetailPage() {
           return;
         }
         setIntervention(match);
-        // Seed default action items based on API data
         setActions([
           {
             title: `Check-in with ${match.studentName}`,
@@ -116,6 +136,15 @@ export default function InterventionDetailPage() {
             done: false,
           },
         ]);
+
+        // Load session history for this student
+        const studentRes = await fetch(
+          `/api/teacher/students/${encodeURIComponent(match.studentId)}?teacherId=${encodeURIComponent(teacherId)}`,
+        );
+        if (studentRes.ok) {
+          const studentData = await studentRes.json() as { student: { recentSessions: RecentSession[] } };
+          setRecentSessions(studentData.student?.recentSessions ?? []);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load intervention.");
       } finally {
@@ -138,11 +167,15 @@ export default function InterventionDetailPage() {
       const res = await fetch(`/api/teacher/interventions/${intervention.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherId, outcome: "resolved" }),
+        body: JSON.stringify({ teacherId, resolutionNote: resolveNote || undefined, outcome: "resolved" }),
       });
       if (!res.ok) throw new Error("Failed to resolve");
       const now = new Date().toISOString();
-      setIntervention((prev) => prev ? { ...prev, status: "resolved", resolvedAt: now } : prev);
+      setIntervention((prev) => prev
+        ? { ...prev, status: "resolved", resolvedAt: now, resolutionNote: resolveNote || null }
+        : prev);
+      setShowResolveForm(false);
+      setResolveNote("");
     } catch {
       // silent — button re-enables
     } finally {
@@ -206,7 +239,7 @@ export default function InterventionDetailPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>{intervention.studentName} — {skillLabel}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
-                      {`Triggered: ${triggerLabel}\nOpened: ${openedStr} · Status: ${statusLabel}`}
+                      {`Triggered: ${triggerLabel} · Opened: ${openedStr} · Status: ${statusLabel}`}
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: "#fef3c7", color: "#92400e" }}>{triggerLabel}</span>
@@ -216,7 +249,7 @@ export default function InterventionDetailPage() {
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: "rgba(255,255,255,0.06)", color: C.muted }}>{intervention.interventionType}</span>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
                     <button
                       onClick={() => setShowLogNote(true)}
                       style={{ padding: "8px 16px", background: "transparent", border: `1.5px solid ${C.blue}`, borderRadius: 10, fontSize: 12, fontWeight: 700, color: C.blue, cursor: "pointer" }}
@@ -225,11 +258,11 @@ export default function InterventionDetailPage() {
                     </button>
                     {isActive && (
                       <button
-                        onClick={handleResolve}
+                        onClick={() => setShowResolveForm(true)}
                         disabled={resolving}
-                        style={{ padding: "8px 16px", background: resolving ? "rgba(34,197,94,0.4)" : C.mint, border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#fff", cursor: resolving ? "not-allowed" : "pointer" }}
+                        style={{ padding: "8px 16px", background: resolving ? "rgba(80,232,144,0.4)" : C.mint, border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#0f172a", cursor: resolving ? "not-allowed" : "pointer" }}
                       >
-                        {resolving ? "Resolving…" : "Mark resolved"}
+                        {resolving ? "Resolving…" : "Resolve"}
                       </button>
                     )}
                   </div>
@@ -251,11 +284,36 @@ export default function InterventionDetailPage() {
                 </div>
               </div>
 
+              {/* Resolve form (inline) */}
+              {showResolveForm && isActive && (
+                <div style={{ background: C.surface, border: `1px solid ${C.mint}`, borderRadius: 12, padding: 20, marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.mint, marginBottom: 10 }}>Resolve this intervention</div>
+                  <textarea
+                    value={resolveNote}
+                    onChange={(e) => setResolveNote(e.target.value)}
+                    placeholder="Optional resolution note…"
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, fontSize: 13, color: C.text, resize: "vertical", minHeight: 72, boxSizing: "border-box" }}
+                  />
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button
+                      onClick={handleResolve}
+                      disabled={resolving}
+                      style={{ padding: "8px 18px", background: C.mint, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#0f172a", cursor: resolving ? "not-allowed" : "pointer", opacity: resolving ? 0.6 : 1 }}
+                    >
+                      {resolving ? "Resolving…" : "Mark resolved"}
+                    </button>
+                    <button onClick={() => setShowResolveForm(false)} style={{ padding: "8px 18px", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12, fontWeight: 600, color: C.muted, cursor: "pointer" }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
               {/* Log note modal (inline) */}
               {showLogNote && (
                 <div style={{ background: C.surface, border: `1px solid ${C.blue}`, borderRadius: 12, padding: 20, marginBottom: 14 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 10 }}>Log a note for this intervention</div>
                   <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
                     placeholder="Write your note here..."
                     style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, fontSize: 13, color: C.text, resize: "vertical", minHeight: 80, boxSizing: "border-box" }}
                   />
@@ -318,6 +376,54 @@ export default function InterventionDetailPage() {
 
               </div>
 
+              {/* Session History panel */}
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: C.text, marginBottom: 14 }}>
+                  Session History — {intervention.studentName}
+                </div>
+                {recentSessions.length === 0 ? (
+                  <div style={{ fontSize: 13, color: C.muted, padding: "8px 0" }}>
+                    No recent sessions found for this student.
+                  </div>
+                ) : (
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                        {["Date", "Mode", "Score", "Effectiveness"].map((h) => (
+                          <th key={h} style={{
+                            textAlign: "left", padding: "6px 12px",
+                            fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                            letterSpacing: ".06em", color: C.muted,
+                          }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentSessions.slice(0, 8).map((s) => {
+                        const pct = s.totalQuestions > 0
+                          ? Math.round((s.correctCount / s.totalQuestions) * 100)
+                          : null;
+                        const scoreColor = pct === null ? C.muted : pct >= 75 ? C.mint : pct >= 50 ? C.gold : C.red;
+                        return (
+                          <tr key={s.sessionId} style={{ borderBottom: `1px solid ${C.border}` }}>
+                            <td style={{ padding: "8px 12px", color: C.muted }}>{formatDateTime(s.startedAt)}</td>
+                            <td style={{ padding: "8px 12px", color: C.text, textTransform: "capitalize" }}>
+                              {s.sessionMode.replace(/_/g, " ")}
+                            </td>
+                            <td style={{ padding: "8px 12px", color: scoreColor, fontWeight: 700 }}>
+                              {pct !== null ? `${s.correctCount}/${s.totalQuestions} (${pct}%)` : "—"}
+                            </td>
+                            <td style={{ padding: "8px 12px", color: C.muted }}>
+                              {s.effectivenessScore !== null ? s.effectivenessScore.toFixed(1) : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
               {/* Timeline card — built from API data */}
               <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: C.text, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -340,7 +446,7 @@ export default function InterventionDetailPage() {
                   {/* Resolved event (if applicable) */}
                   {intervention.resolvedAt && (
                     <div style={{ display: "flex", gap: 12 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, background: "rgba(34,197,94,0.15)", border: `2px solid ${C.mint}` }}>
+                      <div style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, background: "rgba(80,232,144,0.15)", border: `2px solid ${C.mint}` }}>
                         ✅
                       </div>
                       <div style={{ flex: 1 }}>
