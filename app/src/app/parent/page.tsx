@@ -217,6 +217,14 @@ export default function ParentAccessPage() {
   const [addChildError, setAddChildError] = useState("");
   const [addChildSuccess, setAddChildSuccess] = useState("");
 
+  // Reset PIN state
+  const [resetPinFor, setResetPinFor] = useState<string | null>(null);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
+
   const returningMode = accessMode === "returning";
 
   const activeChildId =
@@ -363,6 +371,41 @@ export default function ParentAccessPage() {
       setAddChildError(caughtError instanceof Error ? caughtError.message : "Could not create child account.");
     } finally {
       setAddChildSubmitting(false);
+    }
+  }
+
+  async function handleResetPin(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!resetPinFor) return;
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      setResetError("PIN must be exactly 4 digits.");
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setResetError("PINs do not match.");
+      return;
+    }
+    setResetSubmitting(true);
+    setResetError("");
+    try {
+      const response = await fetch("/api/parent/reset-child-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: resetPinFor, newPin }),
+      });
+      const payload = (await response.json()) as { success?: boolean; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "PIN reset failed.");
+      setResetSuccess(true);
+      setTimeout(() => {
+        setResetPinFor(null);
+        setNewPin("");
+        setConfirmPin("");
+        setResetSuccess(false);
+      }, 2000);
+    } catch (caughtError) {
+      setResetError(caughtError instanceof Error ? caughtError.message : "PIN reset failed.");
+    } finally {
+      setResetSubmitting(false);
     }
   }
 
@@ -1181,7 +1224,153 @@ export default function ParentAccessPage() {
                 >
                   💡 Practice Ideas
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (resetPinFor === activeChild?.id) {
+                      setResetPinFor(null);
+                      setNewPin("");
+                      setConfirmPin("");
+                      setResetError("");
+                      setResetSuccess(false);
+                    } else {
+                      setResetPinFor(activeChild?.id ?? null);
+                      setNewPin("");
+                      setConfirmPin("");
+                      setResetError("");
+                      setResetSuccess(false);
+                    }
+                  }}
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    padding: "9px 20px",
+                    background: C.surface,
+                    color: C.muted,
+                    border: `1.5px solid ${C.border}`,
+                    borderRadius: "10px",
+                    font: "600 0.78rem system-ui",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  🔑 Reset PIN
+                </button>
               </div>
+            </div>
+          )}
+
+          {/* ── Reset PIN inline form ──────────────────────────────────────── */}
+          {resetPinFor && activeChild && resetPinFor === activeChild.id && (
+            <div
+              style={{
+                background: "rgba(155,114,255,0.06)",
+                borderRadius: "16px",
+                padding: "20px 24px",
+                border: "1px solid rgba(155,114,255,0.2)",
+                marginBottom: "24px",
+              }}
+            >
+              <div
+                style={{
+                  font: "600 0.9rem system-ui",
+                  color: C.text,
+                  marginBottom: "14px",
+                }}
+              >
+                Reset PIN for {activeChild.displayName}
+              </div>
+              {resetSuccess ? (
+                <div
+                  style={{
+                    font: "600 0.9rem system-ui",
+                    color: C.mint,
+                    padding: "12px 0",
+                  }}
+                >
+                  PIN updated ✓
+                </div>
+              ) : (
+                <form onSubmit={handleResetPin} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 140px" }}>
+                      <label style={labelStyle}>New PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="4 digits"
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        required
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div style={{ flex: "1 1 140px" }}>
+                      <label style={labelStyle}>Confirm PIN</label>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="4 digits"
+                        value={confirmPin}
+                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        required
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                  {resetError && (
+                    <p
+                      style={{
+                        font: "400 0.82rem system-ui",
+                        color: C.coral,
+                        margin: 0,
+                      }}
+                    >
+                      {resetError}
+                    </p>
+                  )}
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      type="submit"
+                      disabled={resetSubmitting}
+                      style={{
+                        padding: "10px 22px",
+                        background: "linear-gradient(135deg, #9b72ff, #5a30d0)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "10px",
+                        font: "600 0.85rem system-ui",
+                        cursor: resetSubmitting ? "not-allowed" : "pointer",
+                        opacity: resetSubmitting ? 0.7 : 1,
+                      }}
+                    >
+                      {resetSubmitting ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetPinFor(null);
+                        setNewPin("");
+                        setConfirmPin("");
+                        setResetError("");
+                      }}
+                      style={{
+                        padding: "10px 18px",
+                        background: C.surface,
+                        color: C.muted,
+                        border: `1.5px solid ${C.border}`,
+                        borderRadius: "10px",
+                        font: "600 0.85rem system-ui",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
 
