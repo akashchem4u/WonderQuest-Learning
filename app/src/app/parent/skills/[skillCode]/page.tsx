@@ -7,380 +7,7 @@ import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SessionEntry = {
-  date: string;
-  stars: number;
-  durationMin: number;
-  perfect: boolean;
-};
-
-type SkillStub = {
-  icon: string;
-  subject: string;
-  subjectTag: string;
-  status: "strong" | "building" | "started";
-  masteryScore: number;
-  starsThisWeek: number;
-  starsDelta: string;
-  sessions: number;
-  sessionsDelta: string;
-  timeMin: number;
-  timeDelta: string;
-  perfectSessions: number;
-  perfectDelta: string;
-  weeklyStars: number[];
-  weeklyLabels: string[];
-  weeklyTrend: string;
-  sessionLog: SessionEntry[];
-  supportTip: string;
-  celebrationNote: string;
-  relatedSkills: { icon: string; name: string; code: string }[];
-  explainer: string;
-};
-
-// ─── Stub data ────────────────────────────────────────────────────────────────
-
-const SKILL_STUBS: Record<string, SkillStub> = {
-  "sight-words": {
-    icon: "📖",
-    subject: "Reading",
-    subjectTag: "🌿 Reading",
-    status: "strong",
-    masteryScore: 88,
-    starsThisWeek: 18,
-    starsDelta: "↑ +6 vs last week",
-    sessions: 5,
-    sessionsDelta: "↑ +2 vs last week",
-    timeMin: 38,
-    timeDelta: "→ Similar",
-    perfectSessions: 4,
-    perfectDelta: "↑ Most ever",
-    weeklyStars: [7, 9, 11, 10, 18],
-    weeklyLabels: ["Mar 3", "Mar 10", "Mar 17", "Mar 24", "This wk"],
-    weeklyTrend: "↑ Best week so far!",
-    sessionLog: [
-      { date: "Today, 3:22pm", stars: 4, durationMin: 8, perfect: true },
-      { date: "Mon, 4:10pm", stars: 3, durationMin: 7, perfect: false },
-      { date: "Mon, 4:20pm", stars: 4, durationMin: 8, perfect: true },
-      { date: "Sun, 5:15pm", stars: 4, durationMin: 9, perfect: true },
-      { date: "Sat, 5:05pm", stars: 3, durationMin: 6, perfect: false },
-    ],
-    supportTip: "",
-    celebrationNote: "Keep encouraging reading aloud — it reinforces all sight words naturally.",
-    relatedSkills: [
-      { icon: "🔤", name: "Blending sounds", code: "blending-sounds" },
-      { icon: "📝", name: "CVC spelling", code: "cvc-spelling" },
-    ],
-    explainer: "Sight words are common words children recognise by memory rather than sounding out. Strong sight-word recognition speeds up reading fluency and frees attention for harder words.",
-  },
-  "blending-sounds": {
-    icon: "🔤",
-    subject: "Reading",
-    subjectTag: "🌿 Reading",
-    status: "building",
-    masteryScore: 48,
-    starsThisWeek: 6,
-    starsDelta: "↑ +2 vs last week",
-    sessions: 2,
-    sessionsDelta: "→ Same",
-    timeMin: 16,
-    timeDelta: "↑ +6 min",
-    perfectSessions: 0,
-    perfectDelta: "Building up",
-    weeklyStars: [0, 2, 3, 4, 6],
-    weeklyLabels: ["Mar 3", "Mar 10", "Mar 17", "Mar 24", "This wk"],
-    weeklyTrend: "↑ Improving week over week",
-    sessionLog: [
-      { date: "Today, 3:40pm", stars: 3, durationMin: 9, perfect: false },
-      { date: "Mon, 4:55pm", stars: 3, durationMin: 7, perfect: false },
-    ],
-    supportTip: "Read picture books aloud together and pause at new words. Ask what sounds do you hear? before reading the word — this mirrors exactly what WonderQuest is teaching.",
-    celebrationNote: "",
-    relatedSkills: [
-      { icon: "📖", name: "Sight words", code: "sight-words" },
-      { icon: "📝", name: "CVC spelling", code: "cvc-spelling" },
-    ],
-    explainer: "Blending is the ability to push individual sounds together to form a word. It is a core phonics skill — once it clicks, new words become decodable without memorisation.",
-  },
-  "counting-objects": {
-    icon: "🔢",
-    subject: "Maths",
-    subjectTag: "🔢 Maths",
-    status: "strong",
-    masteryScore: 92,
-    starsThisWeek: 21,
-    starsDelta: "↑ +8 vs last week",
-    sessions: 6,
-    sessionsDelta: "↑ +3 vs last week",
-    timeMin: 42,
-    timeDelta: "↑ +10 min",
-    perfectSessions: 5,
-    perfectDelta: "↑ Personal best",
-    weeklyStars: [5, 8, 11, 13, 21],
-    weeklyLabels: ["Mar 3", "Mar 10", "Mar 17", "Mar 24", "This wk"],
-    weeklyTrend: "↑ Best week ever!",
-    sessionLog: [
-      { date: "Today, 4:00pm", stars: 4, durationMin: 8, perfect: true },
-      { date: "Tue, 3:50pm", stars: 4, durationMin: 7, perfect: true },
-      { date: "Mon, 4:30pm", stars: 3, durationMin: 6, perfect: false },
-      { date: "Sun, 5:00pm", stars: 4, durationMin: 8, perfect: true },
-      { date: "Sat, 4:45pm", stars: 3, durationMin: 7, perfect: false },
-      { date: "Fri, 4:10pm", stars: 3, durationMin: 6, perfect: false },
-    ],
-    supportTip: "",
-    celebrationNote: "Counting is a real strength right now. Use snacks or small objects to keep this feeling easy and fun at home.",
-    relatedSkills: [
-      { icon: "➕", name: "Simple addition", code: "simple-addition" },
-      { icon: "🔢", name: "Number recognition", code: "number-recognition" },
-    ],
-    explainer: "Counting objects builds one-to-one correspondence — the understanding that each number word matches exactly one object. This foundation underpins all early arithmetic.",
-  },
-  "cvc-spelling": {
-    icon: "📝",
-    subject: "Spelling",
-    subjectTag: "✏️ Spelling",
-    status: "started",
-    masteryScore: 28,
-    starsThisWeek: 3,
-    starsDelta: "→ New skill",
-    sessions: 1,
-    sessionsDelta: "→ First week",
-    timeMin: 7,
-    timeDelta: "→ Just started",
-    perfectSessions: 0,
-    perfectDelta: "Just starting",
-    weeklyStars: [0, 0, 0, 0, 3],
-    weeklyLabels: ["Mar 3", "Mar 10", "Mar 17", "Mar 24", "This wk"],
-    weeklyTrend: "New skill — great first session!",
-    sessionLog: [
-      { date: "Today, 4:15pm", stars: 3, durationMin: 7, perfect: false },
-    ],
-    supportTip: "Write three-letter words (cat, dog, sun) on paper and let your child trace them. Short, calm, and playful is the goal — no pressure to memorise yet.",
-    celebrationNote: "",
-    relatedSkills: [
-      { icon: "🔤", name: "Blending sounds", code: "blending-sounds" },
-      { icon: "📖", name: "Sight words", code: "sight-words" },
-    ],
-    explainer: "CVC (consonant-vowel-consonant) words like cat, dog, and sun are the simplest spelled words. Mastering them builds confidence and transfers directly to reading fluency.",
-  },
-};
-
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
-function formatSkillName(code: string): string {
-  return code
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-function getDefaultStub(code: string): SkillStub {
-  return {
-    icon: "✨",
-    subject: "Learning",
-    subjectTag: "✨ Learning",
-    status: "building",
-    masteryScore: 55,
-    starsThisWeek: 9,
-    starsDelta: "↑ +3 vs last week",
-    sessions: 3,
-    sessionsDelta: "↑ +1 vs last week",
-    timeMin: 22,
-    timeDelta: "→ Similar",
-    perfectSessions: 1,
-    perfectDelta: "↑ First one!",
-    weeklyStars: [2, 4, 5, 6, 9],
-    weeklyLabels: ["Mar 3", "Mar 10", "Mar 17", "Mar 24", "This wk"],
-    weeklyTrend: "↑ Steady progress",
-    sessionLog: [
-      { date: "Today, 3:30pm", stars: 3, durationMin: 8, perfect: false },
-      { date: "Wed, 4:00pm", stars: 3, durationMin: 7, perfect: false },
-      { date: "Mon, 4:20pm", stars: 3, durationMin: 7, perfect: true },
-    ],
-    supportTip: "Keep practice short — 5 to 10 minutes of calm, focused play is more effective than longer sessions.",
-    celebrationNote: "",
-    relatedSkills: [
-      { icon: "📖", name: "Sight words", code: "sight-words" },
-      { icon: "🔢", name: "Counting objects", code: "counting-objects" },
-    ],
-    explainer: `${formatSkillName(code)} is an important skill in your child's learning journey. Consistent short practice sessions help build lasting confidence and fluency.`,
-  };
-}
-
-function getStatusColor(status: "strong" | "building" | "started"): string {
-  if (status === "strong") return "#58e8c1";
-  if (status === "building") return "#ffd166";
-  return "#ff7b6b";
-}
-
-function getStatusLabel(status: "strong" | "building" | "started"): string {
-  if (status === "strong") return "⭐ Strong";
-  if (status === "building") return "🌱 Building";
-  return "🚀 Just started";
-}
-
-function getMasteryFill(status: "strong" | "building" | "started"): string {
-  if (status === "strong") return "linear-gradient(90deg, #9b72ff, #58e8c1)";
-  if (status === "building") return "linear-gradient(90deg, #ffd166, #ffb347)";
-  return "linear-gradient(90deg, #ff7b6b, #ffd166)";
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SparkChart({ values, labels, trend }: { values: number[]; labels: string[]; trend: string }) {
-  const maxVal = Math.max(...values, 1);
-  const maxH = 52;
-
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "6px",
-          height: `${maxH + 4}px`,
-          marginBottom: "8px",
-        }}
-      >
-        {values.map((v, i) => {
-          const h = v === 0 ? 0 : Math.max(Math.round((v / maxVal) * maxH), 4);
-          const isLast = i === values.length - 1;
-          return (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                height: `${h}px`,
-                borderRadius: "4px 4px 0 0",
-                background: isLast ? "#9b72ff" : "rgba(155,114,255,0.22)",
-                alignSelf: "flex-end",
-              }}
-            />
-          );
-        })}
-      </div>
-      <div style={{ display: "flex", gap: "6px" }}>
-        {labels.map((lbl, i) => (
-          <span
-            key={i}
-            style={{
-              flex: 1,
-              fontSize: "9px",
-              color: "rgba(255,255,255,0.38)",
-              textAlign: "center",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {lbl}
-          </span>
-        ))}
-      </div>
-      <div style={{ fontSize: "11px", color: "#58e8c1", fontWeight: 700, marginTop: "8px" }}>
-        {trend}
-      </div>
-    </div>
-  );
-}
-
-function SessionRow({ entry, isLast }: { entry: SessionEntry; isLast: boolean }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        padding: "11px 0",
-        borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.06)",
-      }}
-    >
-      <span
-        style={{
-          fontSize: "12px",
-          color: "rgba(255,255,255,0.45)",
-          fontWeight: 600,
-          minWidth: "110px",
-          flexShrink: 0,
-        }}
-      >
-        {entry.date}
-      </span>
-      <span style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>
-        ⭐ {entry.stars} stars
-      </span>
-      {entry.perfect && (
-        <span
-          style={{
-            background: "rgba(255,209,102,0.14)",
-            border: "1px solid rgba(255,209,102,0.28)",
-            borderRadius: "20px",
-            padding: "2px 9px",
-            fontSize: "10px",
-            fontWeight: 700,
-            color: "#ffd166",
-            flexShrink: 0,
-          }}
-        >
-          ⭐ Perfect session
-        </span>
-      )}
-      <span
-        style={{
-          marginLeft: "auto",
-          fontSize: "11px",
-          color: "rgba(255,255,255,0.38)",
-          flexShrink: 0,
-        }}
-      >
-        {entry.durationMin}m
-      </span>
-    </div>
-  );
-}
-
-// ─── Card shell ───────────────────────────────────────────────────────────────
-
-function Card({
-  title,
-  children,
-  accent,
-}: {
-  title?: string;
-  children: React.ReactNode;
-  accent?: string;
-}) {
-  const border = accent ? `1px solid ${accent}30` : "1px solid rgba(255,255,255,0.08)";
-  const borderLeft = accent ? `4px solid ${accent}` : undefined;
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border,
-        borderLeft,
-        borderRadius: "14px",
-        padding: "20px",
-      }}
-    >
-      {title && (
-        <div
-          style={{
-            fontSize: "13px",
-            fontWeight: 800,
-            color: "#e8e4f8",
-            marginBottom: "14px",
-          }}
-        >
-          {title}
-        </div>
-      )}
-      {children}
-    </div>
-  );
-}
-
-// ─── API types ────────────────────────────────────────────────────────────────
-
-type ApiSkillProgress = {
+type LiveSkill = {
   skillCode: string;
   skillName: string;
   subjectCode: string;
@@ -391,631 +18,493 @@ type ApiSkillProgress = {
   lastPracticed: string | null;
 };
 
+type ReportSession = {
+  sessionId: string;
+  startedAt: string;
+  sessionMode: string;
+  starsEarned: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationMinutes: number | null;
+};
+
+type ReportSkill = {
+  skillId: string;
+  skillName: string;
+  subject: string;
+  correctCount: number;
+  totalCount: number;
+  masteryPct: number;
+  sessionCount: number;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatSkillName(code: string): string {
+  return code
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function subjectIcon(code: string): string {
+  const c = (code ?? "").toLowerCase();
+  if (c.includes("read") || c.includes("ela") || c.includes("literacy")) return "📖";
+  if (c.includes("math")) return "➕";
+  if (c.includes("science")) return "🔬";
+  if (c.includes("social")) return "🌍";
+  return "📚";
+}
+
+function subjectLabel(code: string): string {
+  const c = (code ?? "").toLowerCase();
+  if (c.includes("read") || c.includes("ela")) return "Reading";
+  if (c.includes("literacy")) return "Literacy";
+  if (c.includes("math")) return "Math";
+  if (c.includes("science")) return "Science";
+  return code ?? "General";
+}
+
+function skillStatus(pct: number, total: number): "strong" | "building" | "started" {
+  if (total <= 2 && pct < 50) return "started";
+  if (pct >= 70) return "strong";
+  return "building";
+}
+
+function statusLabel(s: "strong" | "building" | "started"): string {
+  if (s === "strong") return "Strong";
+  if (s === "building") return "Building";
+  return "Just started";
+}
+
+function statusColor(s: "strong" | "building" | "started"): string {
+  if (s === "strong") return "#50e890";
+  if (s === "building") return "#ffd166";
+  return "#c4a8ff";
+}
+
+function statusBg(s: "strong" | "building" | "started"): string {
+  if (s === "strong") return "rgba(80,232,144,0.14)";
+  if (s === "building") return "rgba(255,209,102,0.14)";
+  return "rgba(155,114,255,0.14)";
+}
+
+function statusBorder(s: "strong" | "building" | "started"): string {
+  if (s === "strong") return "rgba(80,232,144,0.28)";
+  if (s === "building") return "rgba(255,209,102,0.28)";
+  return "rgba(155,114,255,0.28)";
+}
+
+function barColor(pct: number): string {
+  if (pct >= 70) return "#9b72ff";
+  if (pct >= 40) return "#ffd166";
+  return "rgba(155,114,255,0.35)";
+}
+
+function formatLastPracticed(iso: string | null): string {
+  if (!iso) return "Not yet practiced";
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 14) return "Last week";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatSessionDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return `Today, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  if (diffDays === 1) return `Yesterday, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function accuracyPct(correct: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((correct / total) * 100);
+}
+
+// ─── Stat tile ────────────────────────────────────────────────────────────────
+
+function StatTile({
+  label, value, sub, color,
+}: { label: string; value: string; sub?: string; color: string }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(155,114,255,0.16)",
+      borderRadius: "14px",
+      padding: "16px 14px",
+      textAlign: "center",
+      flex: "1 1 110px",
+    }}>
+      <div style={{ fontSize: "1.5rem", fontWeight: 900, color, lineHeight: 1, marginBottom: 4 }}>
+        {value}
+      </div>
+      <div style={{ fontSize: "0.66rem", color: "rgba(255,255,255,0.38)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: sub ? 3 : 0 }}>
+        {label}
+      </div>
+      {sub && (
+        <div style={{ fontSize: "0.66rem", color: "rgba(255,255,255,0.26)" }}>{sub}</div>
+      )}
+    </div>
+  );
+}
+
+// ─── Session row ──────────────────────────────────────────────────────────────
+
+function SessionRow({ session, isLast }: { session: ReportSession; isLast: boolean }) {
+  const perfect = session.totalQuestions > 0 && session.correctCount === session.totalQuestions;
+  const acc = accuracyPct(session.correctCount, session.totalQuestions);
+
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      padding: "12px 0",
+      borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.05)",
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: "50%",
+        background: perfect ? "rgba(80,232,144,0.14)" : "rgba(155,114,255,0.12)",
+        border: `1px solid ${perfect ? "rgba(80,232,144,0.3)" : "rgba(155,114,255,0.2)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "1rem", flexShrink: 0,
+      }}>
+        {perfect ? "🔥" : "⭐"}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "#f0f6ff", marginBottom: 2 }}>
+          {formatSessionDate(session.startedAt)}
+        </div>
+        <div style={{ fontSize: "0.70rem", color: "rgba(255,255,255,0.38)" }}>
+          {session.totalQuestions > 0
+            ? `${acc}% accuracy · ${session.correctCount}/${session.totalQuestions} correct`
+            : "Session completed"}
+          {session.durationMinutes != null ? ` · ${session.durationMinutes} min` : ""}
+        </div>
+      </div>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffd166" }}>
+          ⭐ {session.starsEarned}
+        </div>
+        {perfect && (
+          <div style={{ fontSize: "0.62rem", color: "#50e890", fontWeight: 600 }}>Perfect</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentSkillDetailPage() {
   const params = useParams();
-  const skillCode = typeof params?.skillCode === "string" ? params.skillCode : "";
+  const skillCode = typeof params?.skillCode === "string"
+    ? decodeURIComponent(params.skillCode)
+    : "";
 
-  const baseStub = skillCode ? (SKILL_STUBS[skillCode] ?? getDefaultStub(skillCode)) : null;
-  const [stub, setStub] = useState<SkillStub | null>(baseStub);
-  const skillDisplayName = skillCode ? formatSkillName(skillCode) : "Skill";
-  const statusColor = stub ? getStatusColor(stub.status) : "#9b72ff";
-  const isStrong = stub?.status === "strong";
+  const [skill, setSkill] = useState<LiveSkill | null>(null);
+  const [reportSkill, setReportSkill] = useState<ReportSkill | null>(null);
+  const [recentSessions, setRecentSessions] = useState<ReportSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Suppress hydration mismatch — stub is always available client-side
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-
-  // Fetch real skill progress and overlay onto stub data
   useEffect(() => {
     if (!skillCode) return;
+
     const studentId =
       typeof window !== "undefined"
-        ? localStorage.getItem("wq_active_student_id")
+        ? (new URLSearchParams(window.location.search).get("studentId") ??
+            localStorage.getItem("wq_active_student_id"))
         : null;
-    if (!studentId) return;
 
-    fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!data?.skills || !Array.isArray(data.skills)) return;
-        const match = (data.skills as ApiSkillProgress[]).find(
-          (s) => s.skillCode === skillCode,
+    if (!studentId) {
+      setError("No child selected. Please go back and select a child.");
+      setLoading(false);
+      return;
+    }
+
+    // Fetch skills list + latest report in parallel
+    Promise.all([
+      fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
+        .then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=0`)
+        .then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([skillsData, reportData]) => {
+        // Match skill
+        const skills: LiveSkill[] = skillsData?.skills ?? [];
+        const matched = skills.find((s) => s.skillCode === skillCode);
+        setSkill(matched ?? null);
+
+        // Match skill in report
+        const rSkills: ReportSkill[] = reportData?.report?.skills ?? [];
+        const rMatch = rSkills.find(
+          (s) => s.skillName?.toLowerCase().replace(/\s+/g, "-") === skillCode ||
+                 s.skillName === formatSkillName(skillCode)
         );
-        if (!match) return;
+        setReportSkill(rMatch ?? null);
 
-        const masteryPct = match.masteryPct;
-        const liveStatus: SkillStub["status"] =
-          masteryPct >= 80 ? "strong" : masteryPct >= 40 ? "building" : "started";
-
-        setStub((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            masteryScore: masteryPct,
-            status: liveStatus,
-            subjectTag: `✨ ${match.subjectCode}`,
-          };
-        });
+        // Recent sessions (all from this week — we don't have per-skill session filtering yet)
+        setRecentSessions(reportData?.report?.sessionLog?.slice(0, 8) ?? []);
       })
-      .catch(() => {
-        // silently keep stub on error
-      });
+      .catch(() => setError("Failed to load skill data."))
+      .finally(() => setLoading(false));
   }, [skillCode]);
 
-  if (!ready || !stub) {
+  const skillName = skill?.skillName ?? formatSkillName(skillCode);
+  const status = skill ? skillStatus(skill.masteryPct, skill.totalCount) : null;
+  const icon = subjectIcon(skill?.subjectCode ?? "");
+  const subject = subjectLabel(skill?.subjectCode ?? "");
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading) {
     return (
       <AppFrame audience="parent" currentPath="/parent/skills">
-        <div
-          style={{
-            minHeight: "60vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              border: "3px solid rgba(155,114,255,0.18)",
-              borderTopColor: "#9b72ff",
-              animation: "spin 0.8s linear infinite",
-            }}
-          />
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{
+          minHeight: "100vh",
+          background: "linear-gradient(160deg, #100b2e 0%, #1a1248 55%, #0e1a38 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexDirection: "column", gap: 12,
+        }}>
+          <div style={{
+            width: 36, height: 36,
+            border: "3px solid rgba(155,114,255,0.2)",
+            borderTop: "3px solid #9b72ff",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <span style={{ color: "rgba(255,255,255,0.38)", fontSize: "0.82rem" }}>Loading…</span>
         </div>
       </AppFrame>
     );
   }
 
+  // ── Error / not found ──────────────────────────────────────────────────────
+  if (error || !skill) {
+    return (
+      <AppFrame audience="parent" currentPath="/parent/skills">
+        <div style={{
+          minHeight: "100vh",
+          background: "linear-gradient(160deg, #100b2e 0%, #1a1248 55%, #0e1a38 100%)",
+          fontFamily: "system-ui, sans-serif", color: "#f0f6ff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexDirection: "column", gap: 16, padding: "40px 24px", textAlign: "center",
+        }}>
+          <span style={{ fontSize: "2.5rem" }}>📚</span>
+          <div style={{ fontSize: "1rem", fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
+            {error ?? `"${formatSkillName(skillCode)}" hasn't been practiced yet`}
+          </div>
+          <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.35)", maxWidth: 280 }}>
+            Once your child practices this skill, progress will appear here.
+          </div>
+          <Link href="/parent/skills" style={{
+            padding: "10px 22px",
+            background: "rgba(155,114,255,0.18)",
+            border: "1px solid rgba(155,114,255,0.35)",
+            borderRadius: "10px",
+            color: "#c4a8ff", fontWeight: 700, fontSize: "0.82rem",
+            textDecoration: "none",
+          }}>
+            ← All Skills
+          </Link>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  const st = status!;
+
   return (
     <AppFrame audience="parent" currentPath="/parent/skills">
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#100b2e",
-          padding: "0 0 56px",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          color: "#f0f6ff",
-        }}
-      >
-        {/* ── Top nav bar ────────────────────────────────────────────────────── */}
-        <div
-          style={{
-            background: "rgba(255,255,255,0.03)",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-            padding: "16px 32px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
-          <Link
-            href="/parent"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "5px",
-              color: "#9b72ff",
-              fontSize: "13px",
-              fontWeight: 700,
+      <div style={{
+        minHeight: "100vh",
+        background: "linear-gradient(160deg, #100b2e 0%, #1a1248 55%, #0e1a38 100%)",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        color: "#f0f6ff",
+      }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 24px 60px" }}>
+
+          {/* ── Breadcrumb ── */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }}>
+            <Link href="/parent" style={{
+              fontSize: "13px", fontWeight: 700, color: "#9b72ff",
+              padding: "6px 12px", background: "rgba(155,114,255,0.1)",
+              borderRadius: "8px", border: "1px solid rgba(155,114,255,0.22)",
               textDecoration: "none",
-              padding: "6px 12px",
-              borderRadius: "8px",
-              background: "rgba(155,114,255,0.1)",
-              border: "1px solid rgba(155,114,255,0.22)",
-            }}
-          >
-            ← Skills
-          </Link>
-
-          {/* Breadcrumb */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              color: "rgba(255,255,255,0.35)",
-            }}
-          >
-            <Link
-              href="/parent"
-              style={{
-                color: "#9b72ff",
-                fontWeight: 600,
-                textDecoration: "none",
-                fontSize: "12px",
-              }}
-            >
-              Home
-            </Link>
-            <span>›</span>
-            <span>Skills</span>
-            <span>›</span>
-            <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-              {skillDisplayName}
-            </span>
-          </div>
-        </div>
-
-        {/* ── Page header ────────────────────────────────────────────────────── */}
-        <div
-          style={{
-            padding: "28px 32px 0",
-            maxWidth: 1000,
-            margin: "0 auto",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "16px",
-              marginBottom: "24px",
-            }}
-          >
-            <div
-              style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "16px",
-                background: "rgba(255,255,255,0.07)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "28px",
-                flexShrink: 0,
-              }}
-            >
-              {stub.icon}
-            </div>
-            <div>
-              <h1
-                style={{
-                  fontSize: "24px",
-                  fontWeight: 900,
-                  color: "#fff",
-                  margin: "0 0 6px",
-                  lineHeight: 1.2,
-                }}
-              >
-                {skillDisplayName}
-              </h1>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <span
-                  style={{
-                    background: "rgba(88,232,193,0.12)",
-                    color: "#58e8c1",
-                    border: "1px solid rgba(88,232,193,0.24)",
-                    borderRadius: "20px",
-                    padding: "3px 10px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                  }}
-                >
-                  {stub.subjectTag}
-                </span>
-                <span
-                  style={{
-                    background: `${statusColor}1a`,
-                    color: statusColor,
-                    border: `1px solid ${statusColor}40`,
-                    borderRadius: "20px",
-                    padding: "3px 10px",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                  }}
-                >
-                  {getStatusLabel(stub.status)}
-                </span>
-              </div>
-            </div>
+            }}>← Home</Link>
+            <Link href="/parent/skills" style={{
+              fontSize: "13px", fontWeight: 600, color: "rgba(255,255,255,0.45)",
+              padding: "6px 12px", background: "rgba(255,255,255,0.04)",
+              borderRadius: "8px", border: "1px solid rgba(255,255,255,0.08)",
+              textDecoration: "none",
+            }}>All Skills</Link>
           </div>
 
-          {/* ── Stat row ─────────────────────────────────────────────────────── */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: "12px",
-              marginBottom: "24px",
-            }}
-          >
-            {[
-              {
-                label: "Stars this week",
-                value: `⭐ ${stub.starsThisWeek}`,
-                delta: stub.starsDelta,
-                up: stub.starsDelta.startsWith("↑"),
-              },
-              {
-                label: "Sessions",
-                value: String(stub.sessions),
-                delta: stub.sessionsDelta,
-                up: stub.sessionsDelta.startsWith("↑"),
-              },
-              {
-                label: "Time on skill",
-                value: `${stub.timeMin}m`,
-                delta: stub.timeDelta,
-                up: stub.timeDelta.startsWith("↑"),
-              },
-              {
-                label: "Perfect sessions",
-                value: stub.perfectSessions === 0 ? "0×" : `🔥 ${stub.perfectSessions}×`,
-                delta: stub.perfectDelta,
-                up: stub.perfectDelta.startsWith("↑"),
-              },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                  borderRadius: "12px",
-                  padding: "16px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: 900,
-                    color: "#fff",
-                    marginBottom: "3px",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {stat.value}
-                </div>
-                <div
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    color: "rgba(255,255,255,0.4)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    marginBottom: "5px",
-                  }}
-                >
-                  {stat.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: stat.up ? "#22c55e" : "rgba(255,255,255,0.38)",
-                  }}
-                >
-                  {stat.delta}
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* ── Hero card ── */}
+          <div style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(155,114,255,0.2)",
+            borderRadius: "20px",
+            padding: "28px 24px 24px",
+            marginBottom: "20px",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            {/* Glow */}
+            <div style={{
+              position: "absolute", top: -60, right: -60, width: 200, height: 200,
+              borderRadius: "50%",
+              background: `radial-gradient(circle, ${statusBg(st)} 0%, transparent 70%)`,
+              pointerEvents: "none",
+            }} />
 
-          {/* ── Two column layout ────────────────────────────────────────────── */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "16px",
-            }}
-          >
-            {/* LEFT column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-              {/* Mastery progress */}
-              <Card title="Mastery progress">
-                <div
-                  style={{
-                    height: "14px",
-                    borderRadius: "7px",
-                    background: "rgba(255,255,255,0.08)",
-                    overflow: "hidden",
-                    marginBottom: "6px",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${stub.masteryScore}%`,
-                      borderRadius: "7px",
-                      background: getMasteryFill(stub.status),
-                      transition: "width 0.5s ease",
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "11px",
-                    color: "rgba(255,255,255,0.38)",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <span>0</span>
-                  <span style={{ color: statusColor, fontWeight: 800 }}>
-                    {stub.masteryScore} / 100
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "20px" }}>
+              <span style={{ fontSize: "2.2rem", lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h1 style={{ margin: "0 0 4px", fontSize: "clamp(1.2rem, 3vw, 1.6rem)", fontWeight: 900, color: "#f0f6ff" }}>
+                  {skillName}
+                </h1>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.42)", fontWeight: 500 }}>
+                    {subject}
                   </span>
-                  <span>100</span>
+                  <span style={{ fontSize: "0.66rem", fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>·</span>
+                  <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.42)" }}>
+                    Band {skill.launchBandCode}
+                  </span>
                 </div>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "rgba(255,255,255,0.5)",
-                    lineHeight: 1.6,
-                    margin: 0,
-                  }}
-                >
-                  {stub.status === "strong"
-                    ? `Approaching the top of this skill — really strong work here!`
-                    : stub.status === "building"
-                    ? "Building confidence. Consistent practice over 2–3 more weeks will help it click."
-                    : "Just started this skill. Early sessions look great — keep the momentum going!"}
-                </p>
-              </Card>
+              </div>
+              <span style={{
+                flexShrink: 0, fontSize: "0.72rem", fontWeight: 700,
+                padding: "5px 12px", borderRadius: "20px",
+                color: statusColor(st), background: statusBg(st),
+                border: `1px solid ${statusBorder(st)}`,
+              }}>
+                {statusLabel(st)}
+              </span>
+            </div>
 
-              {/* Week-by-week sparkline */}
-              <Card title="Week-by-week stars">
-                <SparkChart
-                  values={stub.weeklyStars}
-                  labels={stub.weeklyLabels}
-                  trend={stub.weeklyTrend}
-                />
-              </Card>
-
-              {/* Support tip or celebration */}
-              {isStrong ? (
-                <div
-                  style={{
-                    background: "rgba(88,232,193,0.07)",
-                    border: "1px solid rgba(88,232,193,0.2)",
-                    borderLeft: "4px solid #58e8c1",
-                    borderRadius: "12px",
-                    padding: "18px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 800,
-                      color: "#58e8c1",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    🎉 Great work on this skill!
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "rgba(255,255,255,0.55)",
-                      lineHeight: 1.6,
-                      margin: 0,
-                    }}
-                  >
-                    {stub.celebrationNote}
-                  </p>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    background: "rgba(255,209,102,0.07)",
-                    border: "1px solid rgba(255,209,102,0.2)",
-                    borderLeft: "4px solid #ffd166",
-                    borderRadius: "12px",
-                    padding: "18px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 800,
-                      color: "#ffd166",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    💡 Support tip for {skillDisplayName}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "rgba(255,255,255,0.55)",
-                      lineHeight: 1.6,
-                      margin: 0,
-                    }}
-                  >
-                    {stub.supportTip}
-                  </p>
-                </div>
-              )}
-
-              {/* What this means */}
-              <div
-                style={{
-                  background: "rgba(155,114,255,0.06)",
-                  border: "1px solid rgba(155,114,255,0.15)",
-                  borderRadius: "14px",
-                  padding: "20px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    color: "#9b72ff",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    marginBottom: "6px",
-                  }}
-                >
-                  For parents
-                </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 800,
-                    color: "#e8e4f8",
-                    marginBottom: "8px",
-                  }}
-                >
-                  What this means
-                </div>
-                <p
-                  style={{
-                    fontSize: "13px",
-                    color: "rgba(255,255,255,0.6)",
-                    lineHeight: 1.7,
-                    margin: 0,
-                  }}
-                >
-                  {stub.explainer}
-                </p>
+            {/* Mastery bar */}
+            <div style={{ marginBottom: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.42)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Mastery
+                </span>
+                <span style={{ fontSize: "1rem", fontWeight: 900, color: barColor(skill.masteryPct) }}>
+                  {skill.masteryPct}%
+                </span>
+              </div>
+              <div style={{ height: "10px", background: "rgba(255,255,255,0.07)", borderRadius: "999px", overflow: "hidden" }}>
+                <div style={{
+                  width: `${skill.masteryPct}%`, height: "100%",
+                  background: barColor(skill.masteryPct), borderRadius: "999px",
+                  transition: "width 0.5s ease",
+                }} />
               </div>
             </div>
 
-            {/* RIGHT column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-              {/* Session log */}
-              <Card title="Sessions this week">
-                {stub.sessionLog.length === 0 ? (
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color: "rgba(255,255,255,0.32)",
-                      padding: "12px 0",
-                      textAlign: "center",
-                    }}
-                  >
-                    No sessions yet this week.
-                  </p>
-                ) : (
-                  stub.sessionLog.map((entry, i) => (
-                    <SessionRow
-                      key={i}
-                      entry={entry}
-                      isLast={i === stub.sessionLog.length - 1}
-                    />
-                  ))
-                )}
-                <div
-                  style={{
-                    marginTop: "10px",
-                    fontSize: "10px",
-                    color: "rgba(255,255,255,0.28)",
-                    borderTop: "1px solid rgba(255,255,255,0.06)",
-                    paddingTop: "10px",
-                  }}
-                >
-                  ⭐ Perfect session = every question correct that session
-                </div>
-              </Card>
-
-              {/* Related skills */}
-              <Card title="Related skills">
-                {stub.relatedSkills.map((related, i) => (
-                  <Link
-                    key={related.code}
-                    href={`/parent/skills/${related.code}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      padding: "10px 0",
-                      borderBottom:
-                        i < stub.relatedSkills.length - 1
-                          ? "1px solid rgba(255,255,255,0.06)"
-                          : "none",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "9px",
-                        background: "rgba(255,255,255,0.07)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "15px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {related.icon}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "#f0f6ff",
-                        flex: 1,
-                      }}
-                    >
-                      {related.name}
-                    </span>
-                    <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "14px" }}>›</span>
-                  </Link>
-                ))}
-              </Card>
-
-              {/* Encourage action */}
-              <div
-                style={{
-                  background: "rgba(155,114,255,0.08)",
-                  border: "1px solid rgba(155,114,255,0.18)",
-                  borderRadius: "14px",
-                  padding: "18px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 800,
-                    color: "#9b72ff",
-                    marginBottom: "8px",
-                  }}
-                >
-                  💬 Say something encouraging
-                </div>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "rgba(255,255,255,0.55)",
-                    lineHeight: 1.6,
-                    margin: "0 0 12px",
-                  }}
-                >
-                  {isStrong
-                    ? `Let them know you noticed how well they are doing with ${skillDisplayName.toLowerCase()} — even a brief mention means a lot.`
-                    : `Your child is putting real effort into ${skillDisplayName.toLowerCase()}. A calm "I noticed you are working hard on this" goes a long way.`}
-                </p>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {["Great effort!", "I noticed!", "Keep it up!"].map((msg) => (
-                    <span
-                      key={msg}
-                      style={{
-                        background: "rgba(155,114,255,0.14)",
-                        border: "1px solid rgba(155,114,255,0.28)",
-                        borderRadius: "20px",
-                        padding: "4px 12px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "#c4a8ff",
-                      }}
-                    >
-                      {msg}
-                    </span>
-                  ))}
-                </div>
-              </div>
+            <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.30)", textAlign: "right" }}>
+              Last practiced: {formatLastPracticed(skill.lastPracticed)}
             </div>
           </div>
+
+          {/* ── Stats row ── */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "20px" }}>
+            <StatTile label="Questions" value={String(skill.totalCount)} color="#9b72ff" sub="total answered" />
+            <StatTile
+              label="Accuracy"
+              value={`${accuracyPct(skill.correctCount, skill.totalCount)}%`}
+              color="#50e890"
+              sub={`${skill.correctCount} correct`}
+            />
+            {reportSkill && (
+              <StatTile label="Sessions" value={String(reportSkill.sessionCount)} color="#ffd166" sub="this week" />
+            )}
+          </div>
+
+          {/* ── Insight card ── */}
+          <div style={{
+            background: st === "strong"
+              ? "rgba(80,232,144,0.07)"
+              : st === "building"
+              ? "rgba(255,209,102,0.07)"
+              : "rgba(155,114,255,0.07)",
+            border: `1px solid ${statusBorder(st)}`,
+            borderRadius: "14px",
+            padding: "16px 18px",
+            marginBottom: "20px",
+          }}>
+            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: statusColor(st), marginBottom: "4px" }}>
+              {st === "strong" ? "🌟 Keep it up!" : st === "building" ? "📈 Making progress" : "🌱 Just getting started"}
+            </div>
+            <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>
+              {st === "strong"
+                ? `Mastery is at ${skill.masteryPct}% — your child has a solid grasp of ${skillName}. Keep practicing to lock it in.`
+                : st === "building"
+                ? `At ${skill.masteryPct}% mastery, your child is getting comfortable with ${skillName}. A few more sessions should push them over the line.`
+                : `This skill is new for your child. Early sessions are the most important — try to practice ${skillName} a few times this week.`}
+            </div>
+          </div>
+
+          {/* ── Recent sessions ── */}
+          {recentSessions.length > 0 && (
+            <div style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: "16px",
+              padding: "20px 20px 8px",
+              marginBottom: "20px",
+            }}>
+              <h2 style={{ margin: "0 0 4px", fontSize: "0.78rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Recent Sessions
+              </h2>
+              <p style={{ margin: "0 0 14px", fontSize: "0.72rem", color: "rgba(255,255,255,0.25)" }}>
+                All sessions this week · skill breakdown coming soon
+              </p>
+              {recentSessions.map((s, i) => (
+                <SessionRow key={s.sessionId} session={s} isLast={i === recentSessions.length - 1} />
+              ))}
+            </div>
+          )}
+
+          {/* ── No sessions yet ── */}
+          {recentSessions.length === 0 && (
+            <div style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: "16px",
+              padding: "28px 20px",
+              textAlign: "center",
+              color: "rgba(255,255,255,0.35)",
+              fontSize: "0.84rem",
+              marginBottom: "20px",
+            }}>
+              No sessions this week yet. <br />
+              <span style={{ fontSize: "0.75rem" }}>Check back after your child plays!</span>
+            </div>
+          )}
+
+          {/* ── Tips ── */}
+          <div style={{
+            background: "rgba(155,114,255,0.06)",
+            border: "1px solid rgba(155,114,255,0.15)",
+            borderRadius: "14px",
+            padding: "16px 18px",
+          }}>
+            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#c4a8ff", marginBottom: "6px" }}>
+              💡 How to support at home
+            </div>
+            <div style={{ fontSize: "0.80rem", color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+              Practice in short bursts of 5–10 minutes. Point out real-world examples of {skillName.toLowerCase()} during everyday moments — meals, walks, or bedtime reading all count!
+            </div>
+          </div>
+
         </div>
       </div>
     </AppFrame>

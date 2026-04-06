@@ -767,7 +767,8 @@ function TabBtn({
 export default function ParentNotificationsPage() {
   const [mainTab, setMainTab]       = useState<MainTab>("all");
   const [filterChip, setFilterChip] = useState<"all" | "badges" | "levelups" | "reports" | "sessions" | "system">("all");
-  const [notifications, setNotifs]  = useState<Notification[]>(STUB);
+  const [notifications, setNotifs]  = useState<Notification[]>([]);
+  const [notifsLoading, setNotifsLoading] = useState(true);
 
   // Fetch real activity + milestone notifications from API
   useEffect(() => {
@@ -775,7 +776,7 @@ export default function ParentNotificationsPage() {
       typeof window !== "undefined"
         ? localStorage.getItem("wq_active_student_id")
         : null;
-    if (!studentId) return;
+    if (!studentId) { setNotifsLoading(false); return; }
 
     const activityFetch = fetch(
       `/api/parent/activity?studentId=${encodeURIComponent(studentId)}&limit=20`,
@@ -800,8 +801,10 @@ export default function ParentNotificationsPage() {
           ? (notifsData.notifications as ApiNotification[]).map(apiNotifToNotification)
           : [];
 
-      // Milestones first (most important), then sessions, then static STUB
-      setNotifs([...milestoneNotifs, ...sessionNotifs, ...STUB]);
+      // Milestones first, then sessions; fall back to STUB only if both are empty
+      const live = [...milestoneNotifs, ...sessionNotifs];
+      setNotifs(live.length > 0 ? live : STUB);
+      setNotifsLoading(false);
 
       // Mark unread milestone notifications as read
       const unreadIds = (notifsData?.notifications as ApiNotification[] | undefined)
