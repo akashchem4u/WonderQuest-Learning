@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -130,13 +131,17 @@ function mapInterventionToEvents(iv: ApiIntervention): TimelineEvent[] {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function InterventionTimelinePage() {
+  const [authed, setAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState<"full" | "resolved">("full");
   const [activeInterventions, setActiveInterventions] = useState<ApiIntervention[]>([]);
   const [resolvedInterventions, setResolvedInterventions] = useState<ApiIntervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
 
     const url = `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`;
@@ -150,7 +155,17 @@ export default function InterventionTimelinePage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   const currentInterventions =
     activeTab === "full" ? activeInterventions : resolvedInterventions;
@@ -361,7 +376,7 @@ export default function InterventionTimelinePage() {
 
           {/* Back link */}
           <div style={{ marginTop: 20 }}>
-            <a href="/teacher/support" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: "none" }}>← Back to Support Queue</a>
+            <a href="/teacher/support" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: "none" }}>← Back to Support</a>
           </div>
 
         </div>

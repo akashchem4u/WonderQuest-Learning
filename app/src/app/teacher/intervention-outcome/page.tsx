@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   bg: "#0d1117",
@@ -90,12 +91,16 @@ const DEMO_INTERVENTIONS: Intervention[] = [
 ];
 
 export default function TeacherInterventionOutcomePage() {
+  const [authed, setAuthed] = useState(false);
   const [filter, setFilter] = useState<TimeFilter>("month");
   const [allInterventions, setAllInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
 
     async function loadAll() {
@@ -123,7 +128,17 @@ export default function TeacherInterventionOutcomePage() {
     }
 
     loadAll();
-  }, []);
+  }, [authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   // Filter by time window
   const cutoffDays = filter === "week" ? 7 : 30;

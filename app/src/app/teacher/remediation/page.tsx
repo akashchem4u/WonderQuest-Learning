@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   base: "#100b2e",
@@ -39,6 +41,75 @@ interface BandGroup {
   severity: Severity;
   students: RosterStudent[];
 }
+
+interface ApiIntervention {
+  id: string;
+  studentId: string;
+  studentName: string;
+  skillCode: string | null;
+  reason: string;
+  interventionType: string;
+  triggerType?: string;
+  status: string;
+  teacherNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+}
+
+function getRemediationSuggestions(triggerType: string, skillLabel?: string): string[] {
+  switch (triggerType) {
+    case "skill_gap":
+      return [
+        `Focus on ${skillLabel ?? "the flagged skill"} during the next session`,
+        "Assign a guided-quest session targeting this skill specifically",
+        "Check for prerequisite skills they may be missing",
+      ];
+    case "low_accuracy":
+      return [
+        "Review recent session responses to identify error patterns",
+        "Assign easier questions first to rebuild confidence",
+        "Consider a one-on-one check-in to understand blockers",
+      ];
+    case "inactive":
+      return [
+        "Reach out to the parent to check for barriers to access",
+        "Set a shorter session target (3-5 questions) to reduce friction",
+        "Add an encouraging note to motivate re-engagement",
+      ];
+    default:
+      return [
+        "Schedule a brief check-in with the student",
+        "Review their recent activity in the student report",
+        "Consider adjusting their learning band if needed",
+      ];
+  }
+}
+
+function deriveTriggerType(iv: ApiIntervention): string {
+  if (iv.triggerType) return iv.triggerType;
+  const r = (iv.reason ?? "").toLowerCase();
+  if (r.includes("skill") || r.includes("gap") || r.includes("mastery")) return "skill_gap";
+  if (r.includes("accuracy") || r.includes("confidence") || r.includes("floor")) return "low_accuracy";
+  if (r.includes("inactive") || r.includes("absence") || r.includes("absent")) return "inactive";
+  return "other";
+}
+
+function getTriggerLabel(triggerType: string): string {
+  if (triggerType === "skill_gap") return "Skill gap";
+  if (triggerType === "low_accuracy") return "Low accuracy";
+  if (triggerType === "inactive") return "Inactive";
+  return "Support needed";
+}
+
+function getTriggerIcon(triggerType: string): string {
+  if (triggerType === "skill_gap") return "📚";
+  if (triggerType === "low_accuracy") return "⚠️";
+  if (triggerType === "inactive") return "😴";
+  return "🔔";
+}
+
+const STUDENT_AVATARS = ["🦊", "🐧", "🦁", "🐸", "🦋", "🐙", "🦄", "🐻", "🐺", "🐳"];
 
 function classifySeverity(student: RosterStudent): Severity {
   if (!student.lastActiveAt) return "urgent";
@@ -90,7 +161,8 @@ function formatRelativeDate(dateStr: string | null): string {
 }
 
 export default function RemediationPage() {
-  const [activeTab, setActiveTab] = useState<"ladder" | "resolved">("ladder");
+  const [authed, setAuthed] = useState(false);
+  const [activeTab, setActiveTab] = useState<"interventions" | "ladder" | "resolved">("interventions");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["action-urgent", "urgent-urgent"]));
   const [openPanels, setOpenPanels] = useState<Set<string>>(new Set());
   const [resolveModal, setResolveModal] = useState<{ name: string; sev: Severity } | null>(null);
@@ -99,8 +171,14 @@ export default function RemediationPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bandGroups, setBandGroups] = useState<BandGroup[]>([]);
+  const [interventions, setInterventions] = useState<ApiIntervention[]>([]);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolvedInterventionIds, setResolvedInterventionIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
 
   useEffect(() => {
+    if (!authed) return;
     async function loadRoster() {
       try {
         setLoading(true);
@@ -150,7 +228,45 @@ export default function RemediationPage() {
       }
     }
     loadRoster();
-  }, []);
+  }, [authed]);
+
+  // Fetch active interventions
+  useEffect(() => {
+    if (!authed) return;
+    async function loadInterventions() {
+      try {
+        const teacherId = getTeacherId();
+        const res = await fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=active`);
+        if (!res.ok) return;
+        const data = await res.json() as { interventions: ApiIntervention[] };
+        setInterventions(data.interventions ?? []);
+      } catch {
+        // silently ignore — roster data still shown
+      }
+    }
+    loadInterventions();
+  }, [authed]);
+
+  async function resolveIntervention(id: string) {
+    setResolvingId(id);
+    try {
+      const teacherId = getTeacherId();
+      const res = await fetch(`/api/teacher/interventions/${id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId, resolutionNote: "Resolved by teacher" }),
+      });
+      if (res.ok) {
+        setResolvedInterventionIds((prev) => new Set([...prev, id]));
+        setToast(true);
+        setTimeout(() => setToast(false), 2800);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setResolvingId(null);
+    }
+  }
 
   function toggleGroup(key: string) {
     setOpenGroups((prev) => {
@@ -180,6 +296,17 @@ export default function RemediationPage() {
   }
 
   const totalInterventionCount = bandGroups.reduce((sum, g) => sum + g.students.length, 0);
+  const activeInterventions = interventions.filter((iv) => !resolvedInterventionIds.has(iv.id));
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher">
@@ -194,8 +321,8 @@ export default function RemediationPage() {
             fontSize: 22, flexShrink: 0,
           }}>🪜</div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>Support Ladder</h1>
-            <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Students who may benefit from a little extra attention — based on engagement signals</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>Remediation &amp; Support</h1>
+            <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Students who may benefit from targeted support — with suggested actions per intervention type</p>
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               background: "rgba(56,189,248,0.12)", color: C.blue,
@@ -210,7 +337,7 @@ export default function RemediationPage() {
 
         {/* Tab nav */}
         <nav style={{ display: "flex", gap: 4, borderBottom: `1px solid ${C.border}`, marginBottom: 28, overflowX: "auto" }}>
-          {(["ladder", "resolved"] as const).map((tab) => (
+          {(["interventions", "ladder", "resolved"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -221,10 +348,119 @@ export default function RemediationPage() {
                 transition: "color 0.2s, border-color 0.2s", whiteSpace: "nowrap", minHeight: 44,
               }}
             >
-              {tab === "ladder" ? "Support Ladder" : "Resolution Log"}
+              {tab === "interventions"
+                ? `Remediation Plans${activeInterventions.length > 0 ? ` (${activeInterventions.length})` : ""}`
+                : tab === "ladder"
+                ? "Support Ladder"
+                : "Resolution Log"}
             </button>
           ))}
         </nav>
+
+        {/* TAB: Remediation Plans */}
+        {activeTab === "interventions" && (
+          <div>
+            {activeInterventions.length === 0 ? (
+              <div style={{
+                background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.18)",
+                borderRadius: 10, padding: "32px 24px", textAlign: "center",
+              }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>No students currently need remediation support.</div>
+                <div style={{ fontSize: 13, color: C.muted }}>Active interventions will appear here when triggered.</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {activeInterventions.map((iv, idx) => {
+                  const triggerType = deriveTriggerType(iv);
+                  const suggestions = getRemediationSuggestions(triggerType, iv.skillCode ?? undefined);
+                  const avatar = STUDENT_AVATARS[idx % STUDENT_AVATARS.length];
+                  const isResolving = resolvingId === iv.id;
+                  return (
+                    <div
+                      key={iv.id}
+                      style={{
+                        background: C.surface,
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 12,
+                        padding: "20px 22px",
+                      }}
+                    >
+                      {/* Card header */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                        <span style={{ fontSize: 26, flexShrink: 0 }}>{avatar}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{iv.studentName}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 13 }}>{getTriggerIcon(triggerType)}</span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: triggerType === "inactive" ? "rgba(245,197,66,0.12)" : triggerType === "low_accuracy" ? "rgba(248,113,113,0.10)" : "rgba(56,189,248,0.10)",
+                              color: triggerType === "inactive" ? C.gold : triggerType === "low_accuracy" ? C.urgent : C.blue,
+                              border: `1px solid ${triggerType === "inactive" ? "rgba(245,197,66,0.25)" : triggerType === "low_accuracy" ? "rgba(248,113,113,0.25)" : "rgba(56,189,248,0.25)"}`,
+                            }}>
+                              {getTriggerLabel(triggerType)}
+                            </span>
+                            {iv.skillCode && (
+                              <span style={{
+                                fontSize: 11, padding: "2px 8px", borderRadius: 20,
+                                background: "rgba(155,114,255,0.10)", color: C.violet,
+                                border: "1px solid rgba(155,114,255,0.25)", fontWeight: 600,
+                              }}>{iv.skillCode}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Suggested actions */}
+                      <div style={{
+                        background: "rgba(255,255,255,0.02)", border: `1px solid ${C.border}`,
+                        borderRadius: 8, padding: "12px 14px", marginBottom: 14,
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: C.muted, marginBottom: 8 }}>Suggested Actions</div>
+                        <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+                          {suggestions.map((s, i) => (
+                            <li key={i} style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Link
+                          href={`/teacher/students/${iv.studentId}`}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: "rgba(56,189,248,0.10)", color: C.blue,
+                            border: "1px solid rgba(56,189,248,0.25)",
+                            borderRadius: 6, fontSize: 12, fontWeight: 600,
+                            padding: "8px 14px", textDecoration: "none",
+                          }}
+                        >
+                          View student report →
+                        </Link>
+                        <button
+                          onClick={() => void resolveIntervention(iv.id)}
+                          disabled={isResolving}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: "rgba(34,197,94,0.08)", color: C.mint,
+                            border: "1px solid rgba(34,197,94,0.22)",
+                            borderRadius: 6, fontSize: 12, fontWeight: 600,
+                            padding: "8px 14px", cursor: isResolving ? "wait" : "pointer",
+                            opacity: isResolving ? 0.6 : 1,
+                          }}
+                        >
+                          {isResolving ? "Resolving…" : "Resolve intervention"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* TAB: Support Ladder */}
         {activeTab === "ladder" && (
@@ -497,7 +733,7 @@ export default function RemediationPage() {
         padding: "12px 20px", borderRadius: 8, zIndex: 200,
         transition: "transform 0.3s ease", whiteSpace: "nowrap",
       }}>
-        ✓ Flag marked as resolved
+        ✓ Intervention resolved
       </div>
     </AppFrame>
   );
