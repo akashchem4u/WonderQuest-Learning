@@ -1,190 +1,169 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
-// ─── Session type ─────────────────────────────────────────────────────────────
-
-type SessionData = {
-  student: { displayName: string; avatarKey: string; launchBandCode: string };
-  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
-};
-
-// ── Palette ────────────────────────────────────────────────────────────────
+// ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
-  base: "#100b2e",
-  amber: "#ff9d3b",
-  gold: "#ffd166",
-  violet: "#9b72ff",
-  mint: "#50e890",
-  text: "#f0f6ff",
-  surface: "#1a1060",
+  base:     "#100b2e",
+  bgDark:   "#0d0924",
+  amber:    "#ff9d3b",
+  gold:     "#ffd166",
+  violet:   "#9b72ff",
+  mint:     "#50e890",
+  text:     "#e8e0ff",
+  surface:  "#1a1060",
   surface2: "rgba(255,255,255,0.04)",
-  border: "#2a2060",
-  muted: "#7a6090",
+  border:   "#2a2060",
+  muted:    "#7a6090",
+  font:     "'Nunito', system-ui, sans-serif",
 } as const;
 
-type StreakState = "active" | "long" | "broken" | "restored";
-
-type DayDot = { label: string; state: "done" | "today" | "empty" };
-type Milestone = { emoji: string; label: string; reward: string; state: "done" | "current" | "locked" };
-
-const STATES: { id: StreakState; label: string }[] = [
-  { id: "active", label: "Active (5-day)" },
-  { id: "long", label: "Long (21-day)" },
-  { id: "broken", label: "Broken" },
-  { id: "restored", label: "Restored" },
-];
-
-const DATA: Record<StreakState, {
-  streakCount: number | null;
-  heroLabel: string;
-  heroUnit: string;
-  heroSub: string;
-  heroBorder: string;
-  heroBg: string;
-  heroCountColor: string;
-  heroLabelColor: string;
-  heroUnitColor: string;
-  dots: DayDot[];
-  milestones: Milestone[];
-}> = {
-  active: {
-    streakCount: 5,
-    heroLabel: "🔥 Quest Streak",
-    heroUnit: "days in a row!",
-    heroSub: "Keep going — you're on a roll! Quest today to keep the streak alive.",
-    heroBorder: C.amber,
-    heroBg: "linear-gradient(135deg, #2a1808, #1a1060)",
-    heroCountColor: C.gold,
-    heroLabelColor: C.amber,
-    heroUnitColor: C.amber,
-    dots: [
-      { label: "Mon", state: "done" }, { label: "Tue", state: "done" }, { label: "Wed", state: "done" },
-      { label: "Thu", state: "done" }, { label: "Fri ✓", state: "today" }, { label: "Sat", state: "empty" }, { label: "Sun", state: "empty" },
-    ],
-    milestones: [
-      { emoji: "🔥", label: "3-Day Streak", reward: "✓ Earned +5 XP", state: "done" },
-      { emoji: "⚡", label: "7-Day Streak", reward: "Unlocks: Hot badge", state: "current" },
-      { emoji: "🌟", label: "14-Day Streak", reward: "Unlocks: Super streak trophy", state: "locked" },
-      { emoji: "💎", label: "30-Day Streak", reward: "Unlocks: Legendary status", state: "locked" },
-    ],
-  },
-  long: {
-    streakCount: 21,
-    heroLabel: "🔥 LEGENDARY STREAK!",
-    heroUnit: "DAYS IN A ROW!",
-    heroSub: "You are absolutely on fire — 21 days without missing a quest!",
-    heroBorder: C.gold,
-    heroBg: "linear-gradient(135deg, #2a2010, #1a1060)",
-    heroCountColor: C.gold,
-    heroLabelColor: C.gold,
-    heroUnitColor: C.gold,
-    dots: [
-      { label: "Mon", state: "done" }, { label: "Tue", state: "done" }, { label: "Wed", state: "done" },
-      { label: "Thu", state: "done" }, { label: "Fri", state: "done" }, { label: "Sat", state: "done" }, { label: "Sun ✓", state: "today" },
-    ],
-    milestones: [
-      { emoji: "🔥", label: "3-Day ✓", reward: "+5 XP earned", state: "done" },
-      { emoji: "⚡", label: "7-Day ✓", reward: "Hot badge earned", state: "done" },
-      { emoji: "🌟", label: "14-Day ✓", reward: "Super streak trophy", state: "done" },
-      { emoji: "💎", label: "30-Day Streak", reward: "Legendary status · 9 days to go!", state: "current" },
-    ],
-  },
-  broken: {
-    streakCount: null,
-    heroLabel: "",
-    heroUnit: "",
-    heroSub: "",
-    heroBorder: C.border,
-    heroBg: "linear-gradient(135deg, #1a1060, #0d0924)",
-    heroCountColor: C.text,
-    heroLabelColor: C.muted,
-    heroUnitColor: C.muted,
-    dots: [
-      { label: "Mon", state: "done" }, { label: "Tue", state: "done" }, { label: "Wed", state: "empty" },
-      { label: "Thu", state: "empty" }, { label: "Fri ← today!", state: "today" }, { label: "Sat", state: "empty" }, { label: "Sun", state: "empty" },
-    ],
-    milestones: [
-      { emoji: "🔥", label: "3-Day Streak", reward: "Unlocks: +5 XP bonus", state: "current" },
-      { emoji: "⚡", label: "7-Day Streak", reward: "Unlocks: Hot badge", state: "locked" },
-      { emoji: "🌟", label: "14-Day Streak", reward: "Unlocks: Super streak trophy", state: "locked" },
-      { emoji: "💎", label: "30-Day Streak", reward: "Unlocks: Legendary status", state: "locked" },
-    ],
-  },
-  restored: {
-    streakCount: 1,
-    heroLabel: "🔥 Streak Restored!",
-    heroUnit: "fresh start!",
-    heroSub: "You're back — and you earned a bonus for returning! Your stars were safe the whole time.",
-    heroBorder: C.mint,
-    heroBg: "linear-gradient(135deg, #0a2a15, #1a1060)",
-    heroCountColor: C.mint,
-    heroLabelColor: C.mint,
-    heroUnitColor: C.mint,
-    dots: [
-      { label: "Mon", state: "empty" }, { label: "Tue", state: "empty" }, { label: "Wed", state: "empty" },
-      { label: "Thu", state: "empty" }, { label: "Fri Day 1!", state: "today" }, { label: "Sat", state: "empty" }, { label: "Sun", state: "empty" },
-    ],
-    milestones: [
-      { emoji: "🔥", label: "3-Day Streak", reward: "Unlocks: +5 XP bonus", state: "current" },
-      { emoji: "⚡", label: "7-Day Streak", reward: "Unlocks: Hot badge", state: "locked" },
-      { emoji: "🌟", label: "14-Day Streak", reward: "Unlocks: Super streak trophy", state: "locked" },
-      { emoji: "💎", label: "30-Day Streak", reward: "Unlocks: Legendary status", state: "locked" },
-    ],
-  },
+// ─── Types ────────────────────────────────────────────────────────────────────
+type StatsData = {
+  streakDays: number;
+  totalPoints: number;
+  currentLevel: number;
+  badgeCount: number;
+  trophyCount: number;
 };
 
-function DotStyle(state: "done" | "today" | "empty", variant: StreakState): React.CSSProperties {
-  const base: React.CSSProperties = {
-    width: 36, height: 36, borderRadius: "50%",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 18,
-    transition: "all 0.2s",
-    border: `2px solid ${C.border}`,
-    background: C.surface,
-  };
-  if (state === "done") return { ...base, background: "#2a1808", borderColor: C.amber };
-  if (state === "today") {
-    const colors: Record<StreakState, string> = { active: C.amber, long: C.gold, broken: C.violet, restored: C.mint };
-    return { ...base, background: colors[variant], borderColor: colors[variant], boxShadow: `0 0 12px ${colors[variant]}80`, animation: "today-glow 1.5s ease-in-out infinite" };
+type HistorySession = {
+  startedAt: string;
+  correctAnswers: number;
+  totalQuestions: number;
+  pointsEarned: number;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfWeek(year: number, month: number): number {
+  return new Date(year, month, 1).getDay(); // 0=Sun
+}
+
+function buildCalendar(
+  year: number,
+  month: number,
+  activeDays: Set<number>,
+): { day: number | null; active: boolean; isToday: boolean }[][] {
+  const totalDays  = getDaysInMonth(year, month);
+  const firstDow   = getFirstDayOfWeek(year, month);
+  const todayDate  = new Date();
+  const isThisMonth = todayDate.getFullYear() === year && todayDate.getMonth() === month;
+  const todayDay   = isThisMonth ? todayDate.getDate() : -1;
+
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: totalDays }, (_, i) => i + 1),
+  ];
+  // pad to full weeks
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const weeks: { day: number | null; active: boolean; isToday: boolean }[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(
+      cells.slice(i, i + 7).map((day) => ({
+        day,
+        active: day !== null && activeDays.has(day),
+        isToday: day === todayDay,
+      })),
+    );
   }
-  return { ...base, opacity: 0.3 };
+  return weeks;
 }
 
-function MilestoneStyle(state: "done" | "current" | "locked"): React.CSSProperties {
-  if (state === "done") return { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 14, flex: 1, minWidth: 140, background: "#2a1808", border: `2px solid ${C.amber}`, color: C.gold, fontSize: 14, fontWeight: 900 };
-  if (state === "current") return { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 14, flex: 1, minWidth: 140, background: C.surface, border: `2px solid ${C.violet}`, color: "#c4a0ff", fontSize: 14, fontWeight: 900 };
-  return { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 14, flex: 1, minWidth: 140, background: C.surface, border: `2px solid ${C.border}`, color: C.muted, fontSize: 14, fontWeight: 900, opacity: 0.5 };
+function nextMilestone(streak: number): { need: number; target: number; badge: string } {
+  const milestones = [3, 7, 10, 14, 21, 30, 50, 100];
+  for (const m of milestones) {
+    if (streak < m) {
+      const badge = m >= 30 ? "💎" : m >= 14 ? "🌟" : m >= 7 ? "⚡" : "🔥";
+      return { need: m - streak, target: m, badge };
+    }
+  }
+  return { need: 0, target: 100, badge: "💎" };
 }
 
+function longestStreakFromActiveDays(activeDays: Set<number>, year: number, month: number): number {
+  // Simple estimate from continuous days in month
+  const sorted = Array.from(activeDays).sort((a, b) => a - b);
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i === 0 || sorted[i] === sorted[i - 1] + 1) {
+      run++;
+    } else {
+      run = 1;
+    }
+    if (run > longest) longest = run;
+  }
+  return longest;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ChildStreakPage() {
-  const [view, setView] = useState<StreakState>("active");
-  const [session, setSession] = useState<SessionData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [stats, setStats]       = useState<StatsData | null>(null);
+  const [history, setHistory]   = useState<HistorySession[]>([]);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
+    // Auth check
     fetch("/api/child/session")
-      .then((r) => r.json())
-      .then((data: SessionData) => setSession(data))
-      .catch(() => {})
+      .then((r) => {
+        if (!r.ok) { router.replace("/child"); return null; }
+        return r.json();
+      })
+      .catch(() => { router.replace("/child"); return null; })
+      .then((session) => {
+        if (!session) return;
+        return Promise.all([
+          fetch("/api/child/stats").then((r) => r.ok ? r.json() : null),
+          fetch("/api/child/history").then((r) => r.ok ? r.json() : null),
+        ]).then(([s, h]: [StatsData | null, { sessions?: HistorySession[] } | null]) => {
+          if (s) setStats(s);
+          if (h?.sessions) setHistory(h.sessions);
+          else if (Array.isArray(h)) setHistory(h as HistorySession[]);
+        }).catch(() => {});
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
-  // streakCount not yet in API; derive best view from totalPoints as proxy
-  // totalPoints > 0 = active learner; show "active" state
-  // We override DATA[view].streakCount with the level for display context
-  const liveStreakCount = session ? (session.progression.currentLevel > 1 ? session.progression.currentLevel : 1) : null;
-  const d = {
-    ...DATA[view],
-    streakCount: view === "active" && session ? liveStreakCount : DATA[view].streakCount,
-  };
+  const streak  = stats?.streakDays ?? 0;
+  const now     = new Date();
+  const year    = now.getFullYear();
+  const month   = now.getMonth();
+
+  const MONTH_NAMES = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December",
+  ];
+  const DOW_LABELS = ["S","M","T","W","T","F","S"];
+
+  // Build active-days set from history (days in current month that had sessions)
+  const activeDays = new Set<number>(
+    history
+      .map((s) => {
+        const d = new Date(s.startedAt ?? (s as unknown as Record<string, string>).started_at ?? "");
+        if (d.getFullYear() === year && d.getMonth() === month) return d.getDate();
+        return null;
+      })
+      .filter((d): d is number => d !== null),
+  );
+
+  // Ensure today is not prematurely marked active (we don't know from limited data)
+  const calendar = buildCalendar(year, month, activeDays);
+  const ms = nextMilestone(streak);
+  const bestInMonth = longestStreakFromActiveDays(activeDays, year, month);
+  const longestStreak = Math.max(streak, bestInMonth);
 
   if (loading) {
     return (
       <AppFrame audience="kid" currentPath="/child">
-        <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito', system-ui, sans-serif", color: C.muted, fontSize: 18, fontWeight: 700 }}>
+        <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: C.font, color: C.muted, fontSize: 18, fontWeight: 700 }}>
           Loading your streak...
         </div>
       </AppFrame>
@@ -194,151 +173,212 @@ export default function ChildStreakPage() {
   return (
     <AppFrame audience="kid" currentPath="/child">
       <style>{`
-        @keyframes today-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,157,59,0.5); } 50% { box-shadow: 0 0 0 8px rgba(255,157,59,0); } }
-        @keyframes chip-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes flame-pulse { 0%,100%{transform:scale(1) rotate(-3deg)} 50%{transform:scale(1.15) rotate(3deg)} }
+        @keyframes badge-pop   { from{transform:scale(0.7);opacity:0} to{transform:scale(1);opacity:1} }
+        @keyframes glow-gold   { 0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,0.4)} 50%{box-shadow:0 0 0 12px rgba(255,209,102,0)} }
       `}</style>
 
-      <div style={{ minHeight: "100vh", background: C.base, fontFamily: "'Nunito', system-ui, sans-serif", padding: "28px 32px 60px", maxWidth: 800, margin: "0 auto" }}>
-        {/* Dev tab bar */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-          {STATES.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setView(s.id)}
-              style={{
-                padding: "8px 14px", background: view === s.id ? C.violet : C.surface, border: `2px solid ${view === s.id ? C.violet : C.border}`,
-                borderRadius: 8, color: view === s.id ? "#fff" : "rgba(255,255,255,0.5)", fontFamily: "'Nunito', system-ui", fontSize: 12, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      <div style={{ minHeight: "100vh", background: C.base, fontFamily: C.font, paddingBottom: 56 }}>
+        <div style={{ maxWidth: 520, margin: "0 auto", padding: "28px 20px" }}>
 
-        {/* ── Broken state ── */}
-        {view === "broken" ? (
-          <>
-            <div style={{ background: "linear-gradient(135deg, #1a1060, #0d0924)", border: `2px solid ${C.border}`, borderRadius: 24, padding: 28, textAlign: "center", marginBottom: 20 }}>
-              <span style={{ fontSize: 56, display: "block", marginBottom: 12 }}>😮</span>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 8 }}>Your streak paused for a bit!</div>
-              <div style={{ fontSize: 14, color: "#b8a0e8", fontWeight: 700, marginBottom: 20, lineHeight: 1.4 }}>That&apos;s totally okay — everyone takes a break sometimes! You can start a brand new streak today and all your stars are safe!</div>
-              <button
-                onClick={() => setView("restored")}
-                style={{ width: "100%", padding: 14, borderRadius: 14, border: "none", background: "linear-gradient(135deg, #9b72ff, #7c4ddb)", color: "#fff", fontFamily: "'Nunito', system-ui", fontSize: 17, fontWeight: 900, cursor: "pointer", boxShadow: "0 6px 20px rgba(155,114,255,0.4)" }}
-              >
-                Start a New Streak Today! 🔥
-              </button>
-            </div>
-            <div style={{ background: "rgba(80,232,144,0.08)", border: "2px solid rgba(80,232,144,0.25)", borderRadius: 14, padding: "14px 16px", display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-              <span style={{ fontSize: 22 }}>⭐</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.mint }}>All 42 stars are safe — nothing was lost!</span>
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: C.violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Previous Best</div>
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-              <span style={{ fontSize: 36 }}>🏆</span>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>5-day best streak</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>Beat it by starting today!</div>
-              </div>
-            </div>
-          </>
-        ) : (
-          /* ── Normal hero ── */
-          <div style={{ background: d.heroBg, border: `2px solid ${d.heroBorder}`, borderRadius: 24, padding: 28, textAlign: "center", marginBottom: 20, position: "relative", overflow: "hidden" }}>
+          {/* ── Page title ── */}
+          <div style={{ marginBottom: 24, textAlign: "center" }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.violet, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>WonderQuest</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: C.text }}>Streak Stats</div>
+          </div>
+
+          {/* ── Current streak hero ── */}
+          <div style={{
+            background: streak > 0
+              ? "linear-gradient(135deg,#2a1808 0%,#1a1060 100%)"
+              : "linear-gradient(135deg,#1a1060 0%,#0d0924 100%)",
+            border: `2px solid ${streak > 0 ? C.amber : C.border}`,
+            borderRadius: 24,
+            padding: "28px 24px",
+            textAlign: "center",
+            marginBottom: 20,
+            position: "relative",
+            overflow: "hidden",
+            animation: streak >= 7 ? "glow-gold 2.5s ease infinite" : undefined,
+          }}>
+            {/* BG watermark */}
             <div style={{ position: "absolute", top: -10, right: -10, fontSize: 120, opacity: 0.06, pointerEvents: "none" }}>🔥</div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: d.heroLabelColor, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{d.heroLabel}</div>
-            {view === "restored" ? (
-              <>
-                <div style={{ fontSize: 60, fontWeight: 900, color: d.heroCountColor, lineHeight: 1, marginBottom: 4 }}>Day 1</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: d.heroUnitColor, marginBottom: 16 }}>{d.heroUnit}</div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 72, fontWeight: 900, color: d.heroCountColor, lineHeight: 1, marginBottom: 8, textShadow: "0 4px 20px rgba(255,209,102,0.4)" }}>{d.streakCount}</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: d.heroUnitColor, marginBottom: 16 }}>{d.heroUnit}</div>
-              </>
-            )}
-            <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(184,160,160,0.8)" }}>{d.heroSub}</div>
 
-            {/* Restored bonus chips */}
-            {view === "restored" && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginTop: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 18, background: "#2a2010", border: `2px solid ${C.gold}`, color: C.gold, fontSize: 14, fontWeight: 900, animation: "chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }}>⭐ +1 return bonus</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 18, background: "rgba(80,232,144,0.1)", border: `2px solid ${C.mint}`, color: C.mint, fontSize: 14, fontWeight: 900, animation: "chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both" }}>✨ +30 XP</div>
-              </div>
-            )}
+            <span style={{ fontSize: 52, display: "inline-block", animation: streak > 0 ? "flame-pulse 1.5s ease-in-out infinite" : undefined }}>🔥</span>
+
+            <div style={{ fontSize: 72, fontWeight: 900, color: streak > 0 ? C.gold : C.muted, lineHeight: 1, marginTop: 8, textShadow: streak > 0 ? "0 4px 20px rgba(255,209,102,0.4)" : undefined }}>
+              {streak}
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: streak > 0 ? C.amber : C.muted, marginBottom: 8 }}>
+              {streak === 1 ? "day in a row!" : "days in a row!"}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(232,224,255,0.65)", lineHeight: 1.45 }}>
+              {streak > 0
+                ? "Come back tomorrow to keep your streak alive!"
+                : "Complete a quest today to start your streak!"}
+            </div>
           </div>
-        )}
 
-        {/* Weekly dots */}
-        <div style={{ textAlign: "center", fontSize: 12, fontWeight: 900, color: d.heroBorder === C.border ? C.violet : d.heroBorder, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-          {view === "long" ? "This Week (Week 3!)" : "This Week"}
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-          {d.dots.map((dot, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-              <div style={DotStyle(dot.state, view)}>
-                {dot.state === "done" ? "🔥" : dot.state === "today" ? (view === "restored" ? "🔥" : view === "broken" ? "✦" : "🔥") : "○"}
+          {/* ── Longest streak ── */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+            <span style={{ fontSize: 36 }}>🏅</span>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.violet, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>Personal Best</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>
+                {longestStreak > 0 ? `${longestStreak} days` : "No streak yet"}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: dot.state === "done" ? C.amber : dot.state === "today" ? C.gold : C.muted }}>
-                {dot.label}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Milestones */}
-        <div style={{ fontSize: 12, fontWeight: 900, color: d.heroBorder === C.border ? C.violet : d.heroBorder, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-          {view === "broken" ? "Streak Goals (Start Here!)" : view === "restored" ? "Streak Goals (Start Here!)" : "Streak Goals"}
-        </div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          {d.milestones.slice(0, 2).map((m, i) => (
-            <div key={i} style={MilestoneStyle(m.state)}>
-              <span>{m.emoji}</span>
-              <div>
-                <div>{m.label}</div>
-                <div style={{ fontSize: 11, opacity: 0.75 }}>{m.reward}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-          {d.milestones.slice(2).map((m, i) => (
-            <div key={i} style={MilestoneStyle(m.state)}>
-              <span>{m.emoji}</span>
-              <div>
-                <div>{m.label}</div>
-                <div style={{ fontSize: 11, opacity: 0.75 }}>{m.reward}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Streak shield (active/long only) */}
-        {(view === "active" || view === "long") && (
-          <div style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 16, padding: 18, marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 900, color: C.violet, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Streak Shield 🛡️</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ fontSize: 36 }}>🛡️</span>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#c4a0ff", lineHeight: 1.4 }}>Miss a day? Your streak is protected for 1 day per shield.</div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 4, fontWeight: 700 }}>0 shields active · Ask a parent to enable shields</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>
+                {longestStreak > 0 ? "Your longest streak so far" : "Start your first streak today!"}
               </div>
             </div>
           </div>
-        )}
 
-        {/* Footer nav */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[
-            { href: "/child", label: "← Home" },
-            { href: "/child/badges", label: "Badges" },
-            { href: "/child/map", label: "Map" },
-          ].map((l) => (
-            <Link key={l.href} href={l.href} style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>
-              {l.label}
-            </Link>
-          ))}
+          {/* ── Milestone bar ── */}
+          <div style={{
+            background: "rgba(155,114,255,0.1)",
+            border: `2px solid rgba(155,114,255,0.35)`,
+            borderRadius: 16,
+            padding: "14px 18px",
+            marginBottom: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            animation: "badge-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both",
+          }}>
+            <span style={{ fontSize: 28 }}>{ms.badge}</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.violet }}>Next milestone</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(196,160,255,0.85)" }}>
+                {ms.need > 0
+                  ? `${ms.need} more day${ms.need !== 1 ? "s" : ""} → ${ms.badge} ${ms.target}-day badge!`
+                  : "You've hit all milestones — legendary! 💎"}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Monthly calendar ── */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: "18px 20px", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{MONTH_NAMES[month]} {year}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>Active days highlighted</div>
+            </div>
+
+            {/* Day-of-week header */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
+              {DOW_LABELS.map((d, i) => (
+                <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 800, color: C.muted, textTransform: "uppercase" }}>
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar grid */}
+            {calendar.map((week, wi) => (
+              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
+                {week.map((cell, di) => (
+                  <div
+                    key={di}
+                    style={{
+                      aspectRatio: "1",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: cell.day === null
+                        ? "transparent"
+                        : cell.active
+                          ? "rgba(155,114,255,0.6)"
+                          : cell.isToday
+                            ? "rgba(255,209,102,0.15)"
+                            : "rgba(255,255,255,0.05)",
+                      border: cell.isToday
+                        ? `2px solid ${C.gold}`
+                        : cell.active
+                          ? `2px solid ${C.violet}`
+                          : "2px solid transparent",
+                      color: cell.active
+                        ? "#fff"
+                        : cell.isToday
+                          ? C.gold
+                          : cell.day !== null ? "rgba(232,224,255,0.5)" : "transparent",
+                      boxShadow: cell.active ? `0 0 6px rgba(155,114,255,0.5)` : undefined,
+                    }}
+                  >
+                    {cell.day ?? ""}
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            <div style={{ marginTop: 12, display: "flex", gap: 16, alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: "rgba(155,114,255,0.6)", border: `2px solid ${C.violet}` }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>Active day</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${C.gold}` }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>Today</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Weekly dots ── */}
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: "16px 20px", marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.violet, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>This Week</div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((label, i) => {
+                const dow = new Date().getDay();
+                const isToday  = i === dow;
+                const isPast   = i < dow;
+                return (
+                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: "50%",
+                      background: isToday ? C.violet : isPast ? "rgba(155,114,255,0.35)" : "rgba(255,255,255,0.04)",
+                      border: `2px solid ${isToday ? C.violet : isPast ? "rgba(155,114,255,0.5)" : C.border}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 14,
+                      boxShadow: isToday ? `0 0 10px ${C.violet}80` : undefined,
+                    }}>
+                      {isToday ? "⚡" : isPast ? "🔥" : ""}
+                    </div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: isToday ? C.violet : isPast ? "rgba(155,114,255,0.7)" : C.muted }}>
+                      {label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Streak shield ── */}
+          {streak > 0 && (
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "16px 18px", marginBottom: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.violet, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Streak Shield 🛡️</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <span style={{ fontSize: 32 }}>🛡️</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#c4a0ff", lineHeight: 1.4 }}>Miss a day? Your streak is protected for 1 day per shield.</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 4, fontWeight: 700 }}>0 shields active · Ask a parent to enable shields</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Footer nav ── */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 20 }}>
+            {[
+              { href: "/child/hub", label: "← Hub" },
+              { href: "/child/daily-challenge", label: "Daily Challenge →" },
+            ].map((l) => (
+              <a key={l.href} href={l.href} style={{ fontSize: 13, fontWeight: 700, color: C.violet, textDecoration: "none" }}>
+                {l.label}
+              </a>
+            ))}
+          </div>
+
         </div>
       </div>
     </AppFrame>
