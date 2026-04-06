@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -136,13 +137,7 @@ export default function InterventionTimelinePage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    let teacherId = "demo-teacher";
-    try {
-      const stored = localStorage.getItem("wq_teacher_id");
-      if (stored) teacherId = stored;
-    } catch {
-      // localStorage unavailable
-    }
+    const teacherId = getTeacherId();
 
     const url = `/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`;
 

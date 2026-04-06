@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ---------------------------------------------------------------------------
 // Colour palette
@@ -165,6 +166,7 @@ function Card({
 export default function TeacherStudentDetailPage() {
   const params = useParams();
   const studentId = params?.studentId as string | undefined;
+  const teacherId = getTeacherId();
 
   const [student, setStudent] = useState<StudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,7 +177,7 @@ export default function TeacherStudentDetailPage() {
     if (!studentId) return;
     setLoading(true);
     setError(null);
-    fetch(`/api/teacher/students/${studentId}?teacherId=demo-teacher`)
+    fetch(`/api/teacher/students/${studentId}?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data: { student?: StudentDetail; error?: string }) => {
         if (data.error) throw new Error(data.error);

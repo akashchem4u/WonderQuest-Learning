@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -139,7 +140,7 @@ export default function TeacherSupportQueuePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   useEffect(() => {
-    const teacherId = (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ?? "demo-teacher";
+    const teacherId = getTeacherId();
 
     async function load() {
       try {

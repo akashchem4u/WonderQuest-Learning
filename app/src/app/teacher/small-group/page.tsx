@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -126,7 +127,7 @@ export default function SmallGroupPage() {
   const [roster, setRoster] = useState<RosterStudent[]>([]);
 
   useEffect(() => {
-    const teacherId = (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ?? "demo-teacher";
+    const teacherId = getTeacherId();
 
     async function load() {
       try {

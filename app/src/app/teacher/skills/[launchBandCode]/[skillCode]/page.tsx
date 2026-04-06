@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -106,9 +107,7 @@ export default function TeacherSkillDrilldownPage() {
   const [rosterLoaded, setRosterLoaded] = useState(false);
 
   useEffect(() => {
-    const teacherId =
-      (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ??
-      "demo-teacher";
+    const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ---------------------------------------------------------------------------
 // Colour palette
@@ -75,6 +76,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 export default function TeacherInterventionDetailPage() {
   const params = useParams();
   const studentId = (params?.studentId as string | undefined) ?? "";
+  const teacherId = getTeacherId();
 
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export default function TeacherInterventionDetailPage() {
   function fetchInterventions() {
     setLoading(true);
     setFetchError(null);
-    fetch("/api/teacher/interventions?teacherId=demo-teacher&status=all")
+    fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=all`)
       .then((r) => r.json())
       .then((data: { interventions?: Intervention[]; error?: string }) => {
         if (data.error) throw new Error(data.error);
@@ -122,7 +124,7 @@ export default function TeacherInterventionDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherId: "demo-teacher",
+          teacherId,
           studentId,
           reason: newReason.trim(),
           skillCode: newSkillCode.trim() || undefined,
@@ -153,7 +155,7 @@ export default function TeacherInterventionDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherId: "demo-teacher",
+          teacherId,
           interventionId,
         }),
       });
