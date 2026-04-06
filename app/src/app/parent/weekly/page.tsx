@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
 const BASE   = "#100b2e";
 const VIOLET = "#9b72ff";
-const BLUE   = "#38bdf8";
 const MINT   = "#22c55e";
 const GOLD   = "#ffd166";
 const AMBER  = "#f59e0b";
@@ -16,7 +15,50 @@ const MUTED  = "#8b949e";
 const SURFACE = "#161b22";
 const BORDER  = "rgba(255,255,255,0.06)";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── API types ────────────────────────────────────────────────────────────────
+
+type WeeklyReport = {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string;
+  avatarKey: string;
+  weekLabel: string;
+  weekStart: string;
+  weekEnd: string;
+  stats: {
+    starsEarned: number;
+    sessions: number;
+    learningMinutes: number;
+    newBadges: number;
+    streakDays: number;
+  };
+  skills: {
+    skillId: string;
+    skillName: string;
+    subject: string;
+    correctCount: number;
+    totalCount: number;
+    masteryPct: number;
+    sessionCount: number;
+  }[];
+  sessionLog: {
+    sessionId: string;
+    startedAt: string;
+    sessionMode: string;
+    starsEarned: number;
+    correctCount: number;
+    totalQuestions: number;
+    durationMinutes: number | null;
+    effectivenessScore: number | null;
+  }[];
+  heatmap: {
+    dayLabel: string;
+    date: string;
+    sessionCount: number;
+  }[];
+};
+
+// ─── Derived UI types ─────────────────────────────────────────────────────────
 
 type WeekTab = "full" | "skills" | "habits" | "suggestions";
 
@@ -50,103 +92,55 @@ type SessionRow = {
 
 type HeatmapDay = { label: string; sessions: number; active: boolean };
 
-type TimeBlock = {
-  icon: string;
-  label: string;
-  sub: string;
-  pct: string;
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type Suggestion = {
-  icon: string;
-  title: string;
-  body: string;
-  tag: string;
-  tagBg: string;
-  tagColor: string;
-  iconBg: string;
-};
+function masteryStatus(pct: number): "Strong" | "Building" | "Just started" {
+  if (pct >= 65) return "Strong";
+  if (pct >= 40) return "Building";
+  return "Just started";
+}
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+function skillRowFromApi(sk: WeeklyReport["skills"][number]): SkillRow {
+  const status = masteryStatus(sk.masteryPct);
+  const barColor = status === "Strong" ? VIOLET : status === "Building" ? GOLD : "rgba(155,114,255,0.3)";
+  const pctColor = status === "Strong" ? VIOLET : status === "Building" ? AMBER : MUTED;
+  return {
+    name: sk.skillName,
+    subject: sk.subject,
+    pct: sk.masteryPct,
+    barColor,
+    pctColor,
+    sessions: sk.sessionCount,
+    delta: "—",
+    deltaDir: "same",
+    status,
+  };
+}
 
-const WEEK_LABEL = "March 18 – March 24, 2026";
+function formatSessionDate(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (sameDay(d, today)) return "Today";
+  if (sameDay(d, yesterday)) return "Yesterday";
+  return d.toLocaleDateString("en-US", { weekday: "long" });
+}
 
-const HEADLINE: StatTile[] = [
-  { label: "Stars earned",   value: "⭐ 42",  color: GOLD,   delta: "↑ 8 vs last week",  deltaDir: "up"   },
-  { label: "Sessions",       value: "14",     color: VIOLET, delta: "↑ 3 sessions",       deltaDir: "up"   },
-  { label: "Learning time",  value: "3.2h",   color: MINT,   delta: "→ Same",             deltaDir: "same" },
-  { label: "New badges",     value: "2",      color: AMBER,  delta: "↑ 2 new",            deltaDir: "up"   },
-  { label: "Day streak",     value: "🔥 5",   color: VIOLET, delta: "↑ 2 days",           deltaDir: "up"   },
-];
-
-const SKILLS: SkillRow[] = [
-  { name: "Rhyming words",   subject: "Reading", pct: 88, barColor: VIOLET, pctColor: VIOLET, sessions: 6, delta: "↑ 12%", deltaDir: "up",   status: "Strong"      },
-  { name: "Letter sounds",   subject: "Phonics",  pct: 74, barColor: VIOLET, pctColor: VIOLET, sessions: 4, delta: "↑ 6%",  deltaDir: "up",   status: "Strong"      },
-  { name: "Counting objects",subject: "Math",     pct: 60, barColor: GOLD,   pctColor: AMBER,  sessions: 2, delta: "→ 0%",  deltaDir: "same", status: "Building"    },
-  { name: "First words",     subject: "Reading",  pct: 45, barColor: GOLD,   pctColor: AMBER,  sessions: 2, delta: "↑ 8%",  deltaDir: "up",   status: "Building"    },
-  { name: "Simple addition", subject: "Math",     pct: 30, barColor: "rgba(155,114,255,0.3)", pctColor: MUTED, sessions: 1, delta: "New", deltaDir: "new", status: "Just started" },
-];
-
-const SESSIONS: SessionRow[] = [
-  { date: "Today (Fri)", stars: 9, skills: "Rhyming words, Letter sounds",     duration: "14 min", perfect: true  },
-  { date: "Thursday",    stars: 9, skills: "Rhyming words, Counting objects",  duration: "12 min", perfect: false },
-  { date: "Wednesday",   stars: 9, skills: "Letter sounds, First words",        duration: "15 min", perfect: false },
-  { date: "Tuesday",     stars: 8, skills: "Rhyming words, Simple addition",   duration: "13 min", perfect: false },
-  { date: "Monday",      stars: 7, skills: "Letter sounds, First words",        duration: "11 min", perfect: true  },
-];
-
-const HEATMAP: HeatmapDay[] = [
-  { label: "Mon", sessions: 2, active: true  },
-  { label: "Tue", sessions: 3, active: true  },
-  { label: "Wed", sessions: 3, active: true  },
-  { label: "Thu", sessions: 3, active: true  },
-  { label: "Fri", sessions: 2, active: true  },
-  { label: "Sat", sessions: 0, active: false },
-  { label: "Sun", sessions: 0, active: false },
-];
-
-const TIME_BLOCKS: TimeBlock[] = [
-  { icon: "🌅", label: "Morning (7–9 AM)",    sub: "Most active — 6 sessions", pct: "43%" },
-  { icon: "🌤️",  label: "Afternoon (3–5 PM)", sub: "5 sessions",                pct: "36%" },
-  { icon: "🌙", label: "Evening (6–8 PM)",    sub: "3 sessions",                pct: "21%" },
-];
-
-const ENGAGEMENT = [
-  { label: "Total learning time", value: "3.2h",    color: VIOLET },
-  { label: "Avg session length",  value: "14 min",  color: GOLD   },
-  { label: "Perfect sessions",    value: "2 / 14",  color: MINT   },
-  { label: "Days active",         value: "5 / 7",   color: AMBER  },
-];
-
-const SUGGESTIONS: Suggestion[] = [
-  {
-    icon: "🎵",
-    title: "Keep the rhyming momentum going!",
-    body: 'Maya\'s rhyming is at 88% — a huge jump this week! Try playing "rhyme games" during car rides: "I say cat, you say a word that rhymes!" Nursery rhymes at bedtime also reinforce these patterns naturally.',
-    tag: "📖 Reading · High impact",
-    tagBg: "rgba(155,114,255,0.18)",
-    tagColor: "#c4a8ff",
-    iconBg: "rgba(155,114,255,0.18)",
-  },
-  {
-    icon: "🔢",
-    title: "Help counting click for Maya",
-    body: "Counting objects is at 60% and hasn't moved this week. Real-world counting helps enormously — try counting stairs, apples at the store, or steps to her bedroom. Touching objects while counting is especially effective for K-age kids.",
-    tag: "➕ Math · Building",
-    tagBg: "rgba(255,209,102,0.15)",
-    tagColor: GOLD,
-    iconBg: "rgba(255,209,102,0.15)",
-  },
-  {
-    icon: "📚",
-    title: "First words — try pointing to words in books",
-    body: "When reading together, point to simple words like \"the\", \"is\", \"on\" as you read aloud. Ask Maya to spot them on the page. This bridges the WonderQuest practice to real reading — exactly the connection that accelerates progress.",
-    tag: "📖 Reading · Building",
-    tagBg: "rgba(34,197,94,0.12)",
-    tagColor: MINT,
-    iconBg: "rgba(34,197,94,0.12)",
-  },
-];
+function buildStatTiles(report: WeeklyReport): StatTile[] {
+  const hrs = (report.stats.learningMinutes / 60).toFixed(1);
+  return [
+    { label: "Stars earned",  value: `⭐ ${report.stats.starsEarned}`, color: GOLD,   delta: "This week",      deltaDir: "up"   },
+    { label: "Sessions",      value: `${report.stats.sessions}`,       color: VIOLET, delta: "This week",      deltaDir: "up"   },
+    { label: "Learning time", value: `${hrs}h`,                        color: MINT,   delta: `${report.stats.learningMinutes} min total`, deltaDir: "same" },
+    { label: "New badges",    value: `${report.stats.newBadges}`,      color: AMBER,  delta: "This week",      deltaDir: "up"   },
+    { label: "Day streak",    value: `🔥 ${report.stats.streakDays}`,  color: VIOLET, delta: "Current streak", deltaDir: "up"   },
+  ];
+}
 
 // ─── Helper components ────────────────────────────────────────────────────────
 
@@ -187,9 +181,9 @@ function SectionTitle({ icon, children }: { icon: string; children: string }) {
 
 function StatusPill({ status }: { status: SkillRow["status"] }) {
   const map = {
-    Strong:        { bg: "rgba(34,197,94,0.15)",    color: "#4ade80" },
-    Building:      { bg: "rgba(255,209,102,0.15)",  color: GOLD      },
-    "Just started":{ bg: "rgba(155,114,255,0.15)",  color: "#c4a8ff" },
+    Strong:         { bg: "rgba(34,197,94,0.15)",    color: "#4ade80" },
+    Building:       { bg: "rgba(255,209,102,0.15)",  color: GOLD      },
+    "Just started": { bg: "rgba(155,114,255,0.15)",  color: "#c4a8ff" },
   };
   const s = map[status];
   return (
@@ -233,9 +227,44 @@ function SkillBar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+function LoadingState() {
+  return (
+    <div style={{ textAlign: "center", padding: "80px 0", color: MUTED }}>
+      <div style={{ fontSize: "2rem", marginBottom: "16px" }}>📊</div>
+      <div style={{ fontSize: "0.9rem" }}>Loading weekly report…</div>
+    </div>
+  );
+}
+
 // ─── Tab content ──────────────────────────────────────────────────────────────
 
-function FullReportTab() {
+function FullReportTab({
+  report,
+  weekOffset,
+  setWeekOffset,
+}: {
+  report: WeeklyReport;
+  weekOffset: number;
+  setWeekOffset: (n: number) => void;
+}) {
+  const headline = buildStatTiles(report);
+
+  const skillRows: SkillRow[] = report.skills.map(skillRowFromApi);
+
+  const sessionRows: SessionRow[] = report.sessionLog.map((s) => ({
+    date: formatSessionDate(s.startedAt),
+    stars: s.starsEarned,
+    skills: report.skills
+      .filter(() => true) // session-level skill names not in this shape; use mode
+      .slice(0, 2)
+      .map((sk) => sk.skillName)
+      .join(", ") || s.sessionMode,
+    duration: s.durationMinutes != null ? `${s.durationMinutes} min` : "—",
+    perfect: s.correctCount === s.totalQuestions && s.totalQuestions > 0,
+  }));
+
   return (
     <>
       {/* Header */}
@@ -268,11 +297,48 @@ function FullReportTab() {
             marginBottom: "4px",
           }}
         >
-          Maya's week — amazing progress! 🌟
+          {report.displayName}&apos;s week 🌟
         </div>
-        <div style={{ fontSize: "0.88rem", color: MUTED, marginBottom: "24px" }}>
-          {WEEK_LABEL} · Generated Sunday, March 24
+        <div style={{ fontSize: "0.88rem", color: MUTED, marginBottom: "16px" }}>
+          {report.weekLabel}
         </div>
+
+        {/* Week nav */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
+          <button
+            onClick={() => setWeekOffset(weekOffset + 1)}
+            style={{
+              padding: "7px 14px",
+              background: "rgba(255,255,255,0.06)",
+              border: `1px solid ${BORDER}`,
+              borderRadius: "8px",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              color: TEXT,
+              cursor: "pointer",
+            }}
+          >
+            ← Prev week
+          </button>
+          {weekOffset > 0 && (
+            <button
+              onClick={() => setWeekOffset(weekOffset - 1)}
+              style={{
+                padding: "7px 14px",
+                background: "rgba(255,255,255,0.06)",
+                border: `1px solid ${BORDER}`,
+                borderRadius: "8px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: TEXT,
+                cursor: "pointer",
+              }}
+            >
+              Next week →
+            </button>
+          )}
+        </div>
+
         <div
           style={{
             display: "grid",
@@ -321,10 +387,12 @@ function FullReportTab() {
                   flexShrink: 0,
                 }}
               />
-              K–1 Band · Kindergarten · Level 2 Star Explorer
+              {report.launchBandCode} Band
             </div>
             <div style={{ fontSize: "0.85rem", lineHeight: 1.5, color: MUTED }}>
-              Maya had a great week! She completed all her sessions and earned 2 new badges. Her rhyming skills jumped from building to strong — a significant milestone for Kindergarten.
+              {report.stats.sessions > 0
+                ? `${report.displayName} completed ${report.stats.sessions} session${report.stats.sessions !== 1 ? "s" : ""} and earned ${report.stats.starsEarned} stars this week.`
+                : `No sessions yet this week. Check back after ${report.displayName} plays!`}
             </div>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
@@ -375,7 +443,7 @@ function FullReportTab() {
           marginBottom: "24px",
         }}
       >
-        {HEADLINE.map((s) => {
+        {headline.map((s) => {
           const dc =
             s.deltaDir === "up" ? "#50e890"
             : s.deltaDir === "down" ? "#ff7b6b"
@@ -414,39 +482,34 @@ function FullReportTab() {
       </div>
 
       {/* Skills table */}
-      <SectionCard>
-        <SectionTitle icon="📚">Skills practiced this week</SectionTitle>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {["Skill", "Subject", "Mastery", "", "Sessions", "vs last week", "Status"].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: "left",
-                      padding: "8px 12px",
-                      fontSize: "0.7rem",
-                      fontWeight: 600,
-                      color: MUTED,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      borderBottom: `1px solid ${BORDER}`,
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {SKILLS.map((sk) => {
-                const dc =
-                  sk.deltaDir === "up"   ? "#50e890"
-                  : sk.deltaDir === "down" ? "#ff7b6b"
-                  : sk.deltaDir === "new"  ? VIOLET
-                  : MUTED;
-                return (
+      {skillRows.length > 0 && (
+        <SectionCard>
+          <SectionTitle icon="📚">Skills practiced this week</SectionTitle>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  {["Skill", "Subject", "Mastery", "", "Sessions", "Status"].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: "left",
+                        padding: "8px 12px",
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        color: MUTED,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        borderBottom: `1px solid ${BORDER}`,
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {skillRows.map((sk) => (
                   <tr key={sk.name}>
                     <td style={{ padding: "12px", borderBottom: `1px solid ${BORDER}` }}>
                       <div style={{ fontSize: "0.84rem", fontWeight: 600, color: TEXT }}>{sk.name}</div>
@@ -483,193 +546,226 @@ function FullReportTab() {
                     >
                       {sk.sessions}
                     </td>
-                    <td
-                      style={{
-                        padding: "12px",
-                        borderBottom: `1px solid ${BORDER}`,
-                        fontSize: "0.72rem",
-                        fontWeight: 600,
-                        color: dc,
-                        textAlign: "center",
-                      }}
-                    >
-                      {sk.delta}
-                    </td>
                     <td style={{ padding: "12px", borderBottom: `1px solid ${BORDER}` }}>
                       <StatusPill status={sk.status} />
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </SectionCard>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      )}
 
       {/* Session log */}
-      <SectionCard>
-        <SectionTitle icon="📅">Session log</SectionTitle>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            padding: "8px 14px",
-            background: "rgba(255,255,255,0.03)",
-            borderRadius: "8px",
-            fontSize: "0.7rem",
-            fontWeight: 600,
-            color: MUTED,
-            marginBottom: "8px",
-          }}
-        >
-          <span style={{ width: "90px" }}>Date</span>
-          <span style={{ width: "55px" }}>Stars</span>
-          <span style={{ flex: 1 }}>Skills practiced</span>
-          <span style={{ width: "55px", textAlign: "right" }}>Time</span>
-          <span style={{ width: "20px" }} />
+      {sessionRows.length > 0 && (
+        <SectionCard>
+          <SectionTitle icon="📅">Session log</SectionTitle>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "8px 14px",
+              background: "rgba(255,255,255,0.03)",
+              borderRadius: "8px",
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              color: MUTED,
+              marginBottom: "8px",
+            }}
+          >
+            <span style={{ width: "90px" }}>Date</span>
+            <span style={{ width: "55px" }}>Stars</span>
+            <span style={{ flex: 1 }}>Mode</span>
+            <span style={{ width: "55px", textAlign: "right" }}>Time</span>
+            <span style={{ width: "20px" }} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {sessionRows.map((row, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 14px",
+                  background: "rgba(155,114,255,0.06)",
+                  borderRadius: "10px",
+                  border: `1px solid rgba(155,114,255,0.12)`,
+                }}
+              >
+                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: VIOLET, width: "90px", flexShrink: 0 }}>
+                  {row.date}
+                </span>
+                <span style={{ fontSize: "0.82rem", fontWeight: 700, color: GOLD, width: "55px", flexShrink: 0 }}>
+                  ⭐ {row.stars}
+                </span>
+                <span style={{ flex: 1, fontSize: "0.78rem", color: MUTED }}>{row.skills}</span>
+                <span style={{ fontSize: "0.72rem", color: MUTED, width: "55px", textAlign: "right", flexShrink: 0 }}>
+                  {row.duration}
+                </span>
+                <span style={{ width: "20px", textAlign: "center", fontSize: "0.9rem" }}>
+                  {row.perfect ? "⭐" : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div
+            style={{
+              marginTop: "12px",
+              padding: "8px 14px",
+              background: "rgba(255,255,255,0.03)",
+              borderRadius: "8px",
+              fontSize: "0.75rem",
+              color: MUTED,
+            }}
+          >
+            ⭐ = Perfect session (every question correct)
+          </div>
+        </SectionCard>
+      )}
+
+      {report.stats.sessions === 0 && (
+        <div style={{ textAlign: "center", padding: "40px 0", color: MUTED, fontSize: "0.9rem" }}>
+          No sessions this week yet. Check back after {report.displayName} plays!
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {SESSIONS.map((row) => (
-            <div
-              key={row.date}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "12px 14px",
-                background: "rgba(155,114,255,0.06)",
-                borderRadius: "10px",
-                border: `1px solid rgba(155,114,255,0.12)`,
-              }}
-            >
-              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: VIOLET, width: "90px", flexShrink: 0 }}>
-                {row.date}
-              </span>
-              <span style={{ fontSize: "0.82rem", fontWeight: 700, color: GOLD, width: "55px", flexShrink: 0 }}>
-                ⭐ {row.stars}
-              </span>
-              <span style={{ flex: 1, fontSize: "0.78rem", color: MUTED }}>{row.skills}</span>
-              <span style={{ fontSize: "0.72rem", color: MUTED, width: "55px", textAlign: "right", flexShrink: 0 }}>
-                {row.duration}
-              </span>
-              <span style={{ width: "20px", textAlign: "center", fontSize: "0.9rem" }}>
-                {row.perfect ? "⭐" : ""}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div
-          style={{
-            marginTop: "12px",
-            padding: "8px 14px",
-            background: "rgba(255,255,255,0.03)",
-            borderRadius: "8px",
-            fontSize: "0.75rem",
-            color: MUTED,
-          }}
-        >
-          ⭐ = Perfect session (every question correct)
-        </div>
-      </SectionCard>
+      )}
     </>
   );
 }
 
-function SkillsTab() {
+function SkillsTab({ report }: { report: WeeklyReport }) {
+  const readingSkills = report.skills.filter((sk) =>
+    sk.subject?.toLowerCase().includes("read") ||
+    sk.subject?.toLowerCase().includes("phonics") ||
+    sk.subject?.toLowerCase().includes("spell") ||
+    sk.subject?.toLowerCase().includes("vocab"),
+  );
+  const mathSkills = report.skills.filter((sk) =>
+    sk.subject?.toLowerCase().includes("math") ||
+    sk.subject?.toLowerCase().includes("number"),
+  );
+  const otherSkills = report.skills.filter(
+    (sk) => !readingSkills.includes(sk) && !mathSkills.includes(sk),
+  );
+
+  const skillColorFor = (pct: number) => (pct >= 65 ? VIOLET : pct >= 40 ? GOLD : "rgba(155,114,255,0.4)");
+
   return (
     <>
       <div style={{ fontSize: "1.4rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
         📚 Skills Breakdown
       </div>
       <div style={{ fontSize: "0.85rem", color: MUTED, marginBottom: "24px" }}>
-        Detailed mastery levels and learning trends for Maya · March 18–24
+        Detailed mastery levels for {report.displayName} · {report.weekLabel}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
         {/* Reading */}
-        <SectionCard>
-          <SectionTitle icon="📖">Reading &amp; Phonics</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {[
-              { name: "Rhyming words", pct: 88, color: VIOLET, delta: "↑ 12% from last week — strong momentum!", dc: "#50e890" },
-              { name: "Letter sounds",  pct: 74, color: VIOLET, delta: "↑ 6% steady improvement",               dc: "#50e890" },
-              { name: "First words",   pct: 45, color: GOLD,   delta: "Building toward mastery — normal for K stage", dc: MUTED   },
-            ].map((s) => (
-              <div key={s.name}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-                  <span style={{ fontSize: "0.82rem", fontWeight: 600, color: TEXT }}>{s.name}</span>
-                  <span style={{ fontSize: "0.82rem", fontWeight: 700, color: s.color }}>{s.pct}%</span>
-                </div>
-                <SkillBar pct={s.pct} color={s.color} />
-                <div style={{ fontSize: "0.72rem", color: s.dc, marginTop: "3px" }}>{s.delta}</div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+        {readingSkills.length > 0 && (
+          <SectionCard>
+            <SectionTitle icon="📖">Reading &amp; Phonics</SectionTitle>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {readingSkills.map((sk) => {
+                const color = skillColorFor(sk.masteryPct);
+                const status = masteryStatus(sk.masteryPct);
+                const statusColor = status === "Strong" ? "#50e890" : status === "Building" ? MUTED : VIOLET;
+                const statusText = status === "Strong" ? "Strong mastery" : status === "Building" ? "Building toward mastery" : "Just started — early days";
+                return (
+                  <div key={sk.skillId}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 600, color: TEXT }}>{sk.skillName}</span>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 700, color }}>{sk.masteryPct}%</span>
+                    </div>
+                    <SkillBar pct={sk.masteryPct} color={color} />
+                    <div style={{ fontSize: "0.72rem", color: statusColor, marginTop: "3px" }}>{statusText}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        )}
 
         {/* Math */}
-        <SectionCard>
-          <SectionTitle icon="➕">Math</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {[
-              { name: "Counting objects", pct: 60, color: GOLD,   delta: "Stable — needs a few more practice sessions", dc: MUTED   },
-              { name: "Simple addition",  pct: 30, color: "rgba(155,114,255,0.5)", delta: "Just started this week — great first step!", dc: VIOLET },
-            ].map((s) => (
-              <div key={s.name}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-                  <span style={{ fontSize: "0.82rem", fontWeight: 600, color: TEXT }}>{s.name}</span>
-                  <span style={{ fontSize: "0.82rem", fontWeight: 700, color: s.color }}>{s.pct}%</span>
-                </div>
-                <SkillBar pct={s.pct} color={s.color} />
-                <div style={{ fontSize: "0.72rem", color: s.dc, marginTop: "3px" }}>{s.delta}</div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+        {mathSkills.length > 0 && (
+          <SectionCard>
+            <SectionTitle icon="➕">Math</SectionTitle>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {mathSkills.map((sk) => {
+                const color = skillColorFor(sk.masteryPct);
+                const status = masteryStatus(sk.masteryPct);
+                const statusColor = status === "Strong" ? "#50e890" : status === "Building" ? MUTED : VIOLET;
+                const statusText = status === "Strong" ? "Strong mastery" : status === "Building" ? "Stable — needs more practice sessions" : "Just started — great first step!";
+                return (
+                  <div key={sk.skillId}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 600, color: TEXT }}>{sk.skillName}</span>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 700, color }}>{sk.masteryPct}%</span>
+                    </div>
+                    <SkillBar pct={sk.masteryPct} color={color} />
+                    <div style={{ fontSize: "0.72rem", color: statusColor, marginTop: "3px" }}>{statusText}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* Other */}
+        {otherSkills.length > 0 && (
+          <SectionCard>
+            <SectionTitle icon="🌟">Other skills</SectionTitle>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {otherSkills.map((sk) => {
+                const color = skillColorFor(sk.masteryPct);
+                return (
+                  <div key={sk.skillId}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 600, color: TEXT }}>{sk.skillName}</span>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 700, color }}>{sk.masteryPct}%</span>
+                    </div>
+                    <SkillBar pct={sk.masteryPct} color={color} />
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        )}
       </div>
 
-      <SectionCard>
-        <SectionTitle icon="🎯">K–1 Curriculum coverage this week</SectionTitle>
-        <div style={{ display: "flex", gap: "32px", flexWrap: "wrap" }}>
-          <div style={{ flex: "1", minWidth: "180px" }}>
-            <div style={{ fontSize: "0.78rem", fontWeight: 600, color: MUTED, marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Phonics</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-              {[
-                { check: "✓", label: "Beginning sounds",     active: true  },
-                { check: "✓", label: "Rhyming pairs",         active: true  },
-                { check: "○", label: "Ending sounds (next)",  active: false },
-              ].map((item) => (
-                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem" }}>
-                  <span style={{ color: item.active ? MINT : "rgba(255,255,255,0.2)", fontSize: "0.9rem" }}>{item.check}</span>
-                  <span style={{ color: item.active ? TEXT : MUTED }}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ flex: "1", minWidth: "180px" }}>
-            <div style={{ fontSize: "0.78rem", fontWeight: 600, color: MUTED, marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Math</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-              {[
-                { check: "✓", label: "Counting to 10",    active: true,  partial: false },
-                { check: "◐", label: "Addition (started)",active: false, partial: true  },
-                { check: "○", label: "Subtraction (later)",active: false, partial: false },
-              ].map((item) => (
-                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem" }}>
-                  <span style={{ color: item.active ? MINT : item.partial ? GOLD : "rgba(255,255,255,0.2)", fontSize: "0.9rem" }}>{item.check}</span>
-                  <span style={{ color: item.active || item.partial ? TEXT : MUTED }}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {report.skills.length === 0 && (
+        <div style={{ textAlign: "center", padding: "40px 0", color: MUTED, fontSize: "0.9rem" }}>
+          No skills practiced this week yet.
         </div>
-      </SectionCard>
+      )}
     </>
   );
 }
 
-function HabitsTab() {
-  const maxSessions = Math.max(...HEATMAP.map((d) => d.sessions), 1);
+function HabitsTab({ report }: { report: WeeklyReport }) {
+  const maxSessions = Math.max(...report.heatmap.map((d) => d.sessionCount), 1);
+  const heatmap: HeatmapDay[] = report.heatmap.map((d) => ({
+    label: d.dayLabel,
+    sessions: d.sessionCount,
+    active: d.sessionCount > 0,
+  }));
+
+  const totalMins = report.stats.learningMinutes;
+  const avgSession = report.stats.sessions > 0
+    ? Math.round(totalMins / report.stats.sessions)
+    : 0;
+  const perfectSessions = report.sessionLog.filter(
+    (s) => s.correctCount === s.totalQuestions && s.totalQuestions > 0,
+  ).length;
+  const daysActive = report.heatmap.filter((d) => d.sessionCount > 0).length;
+
+  const engagement = [
+    { label: "Total learning time", value: `${(totalMins / 60).toFixed(1)}h`,         color: VIOLET },
+    { label: "Avg session length",  value: `${avgSession} min`,                        color: GOLD   },
+    { label: "Perfect sessions",    value: `${perfectSessions} / ${report.stats.sessions}`, color: MINT   },
+    { label: "Days active",         value: `${daysActive} / 7`,                        color: AMBER  },
+  ];
 
   return (
     <>
@@ -677,14 +773,14 @@ function HabitsTab() {
         ⏱️ Time &amp; Habits
       </div>
       <div style={{ fontSize: "0.85rem", color: MUTED, marginBottom: "24px" }}>
-        Session patterns and consistency for Maya this week
+        Session patterns and consistency for {report.displayName} this week
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
         <SectionCard>
           <SectionTitle icon="📅">Sessions per day</SectionTitle>
           <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "80px" }}>
-            {HEATMAP.map((day) => (
+            {heatmap.map((day) => (
               <div key={day.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flex: 1 }}>
                 <div
                   style={{
@@ -701,14 +797,18 @@ function HabitsTab() {
             ))}
           </div>
           <div style={{ marginTop: "12px", fontSize: "0.76rem", color: MUTED }}>
-            Daily limit: 3 sessions. Maya used her full limit on Wed &amp; Thu.
+            {daysActive} active day{daysActive !== 1 ? "s" : ""} this week.
           </div>
         </SectionCard>
 
         <SectionCard>
           <SectionTitle icon="⏰">Typical play times</SectionTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {TIME_BLOCKS.map((t) => (
+            {[
+              { icon: "🌅", label: "Morning (7–9 AM)",   sub: "Check app for details", pct: "—" },
+              { icon: "🌤️", label: "Afternoon (3–5 PM)", sub: "Check app for details", pct: "—" },
+              { icon: "🌙", label: "Evening (6–8 PM)",   sub: "Check app for details", pct: "—" },
+            ].map((t) => (
               <div
                 key={t.label}
                 style={{
@@ -736,7 +836,7 @@ function HabitsTab() {
       <SectionCard>
         <SectionTitle icon="🎯">Engagement summary</SectionTitle>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px" }}>
-          {ENGAGEMENT.map((e) => (
+          {engagement.map((e) => (
             <div
               key={e.label}
               style={{
@@ -757,68 +857,89 @@ function HabitsTab() {
   );
 }
 
-function SuggestionsTab() {
+function SuggestionsTab({ report }: { report: WeeklyReport }) {
+  const lowSkills = report.skills.filter((sk) => sk.masteryPct < 65);
+
   return (
     <>
       <div style={{ fontSize: "1.4rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
         💡 Suggestions for this week
       </div>
       <div style={{ fontSize: "0.85rem", color: MUTED, marginBottom: "24px" }}>
-        Ways to support Maya's learning beyond the app
+        Ways to support {report.displayName}&apos;s learning beyond the app
       </div>
 
-      {SUGGESTIONS.map((s) => (
+      {lowSkills.length === 0 ? (
         <div
-          key={s.title}
           style={{
-            background: SURFACE,
-            border: `1px solid ${BORDER}`,
-            borderRadius: "16px",
-            padding: "22px",
+            padding: "18px 22px",
+            background: "rgba(34,197,94,0.08)",
+            border: `1px solid rgba(34,197,94,0.2)`,
+            borderRadius: "14px",
             marginBottom: "16px",
-            display: "grid",
-            gridTemplateColumns: "44px 1fr",
-            gap: "16px",
+            fontSize: "0.88rem",
+            color: "#4ade80",
+            lineHeight: 1.6,
           }}
         >
+          <strong style={{ color: TEXT }}>All skills at Strong status!</strong>
+          <br />
+          {report.displayName} is doing great — no specific support areas this week. Keep up the regular sessions!
+        </div>
+      ) : (
+        lowSkills.map((sk) => (
           <div
+            key={sk.skillId}
             style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.2rem",
-              background: s.iconBg,
-              flexShrink: 0,
+              background: SURFACE,
+              border: `1px solid ${BORDER}`,
+              borderRadius: "16px",
+              padding: "22px",
+              marginBottom: "16px",
+              display: "grid",
+              gridTemplateColumns: "44px 1fr",
+              gap: "16px",
             }}
           >
-            {s.icon}
-          </div>
-          <div>
-            <div style={{ fontSize: "0.92rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
-              {s.title}
-            </div>
-            <div style={{ fontSize: "0.82rem", lineHeight: 1.6, color: MUTED, marginBottom: "10px" }}>
-              {s.body}
-            </div>
-            <span
+            <div
               style={{
-                display: "inline-block",
-                padding: "3px 10px",
+                width: "44px",
+                height: "44px",
                 borderRadius: "12px",
-                fontSize: "0.68rem",
-                fontWeight: 700,
-                background: s.tagBg,
-                color: s.tagColor,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.2rem",
+                background: sk.masteryPct < 40 ? "rgba(155,114,255,0.18)" : "rgba(255,209,102,0.15)",
+                flexShrink: 0,
               }}
             >
-              {s.tag}
-            </span>
+              {sk.masteryPct < 40 ? "🌱" : "🔢"}
+            </div>
+            <div>
+              <div style={{ fontSize: "0.92rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
+                Help {report.displayName} with: {sk.skillName}
+              </div>
+              <div style={{ fontSize: "0.82rem", lineHeight: 1.6, color: MUTED, marginBottom: "10px" }}>
+                Currently at {sk.masteryPct}% mastery — {sk.masteryPct < 40 ? "just getting started" : "building up"}. Try incorporating {sk.skillName.toLowerCase()} into everyday moments: during meals, walks, or bedtime routines.
+              </div>
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "3px 10px",
+                  borderRadius: "12px",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  background: sk.masteryPct < 40 ? "rgba(155,114,255,0.18)" : "rgba(255,209,102,0.15)",
+                  color: sk.masteryPct < 40 ? "#c4a8ff" : GOLD,
+                }}
+              >
+                {sk.subject} · {masteryStatus(sk.masteryPct)}
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        ))
+      )}
 
       <div
         style={{
@@ -842,7 +963,9 @@ function SuggestionsTab() {
           🌟 Overall this week
         </div>
         <div style={{ fontSize: "0.85rem", lineHeight: 1.6, color: MUTED }}>
-          Maya showed impressive consistency this week — 5 days in a row is a new personal record! Her engagement is highest in the mornings. If possible, keeping that morning routine stable will compound her progress significantly.
+          {report.stats.sessions > 0
+            ? `${report.displayName} completed ${report.stats.sessions} session${report.stats.sessions !== 1 ? "s" : ""} and earned ${report.stats.starsEarned} stars. ${report.stats.streakDays > 0 ? `Current streak: ${report.stats.streakDays} day${report.stats.streakDays !== 1 ? "s" : ""}!` : ""} Keep the routine going — consistency is the biggest driver of progress.`
+            : `No sessions yet this week. Encourage ${report.displayName} to play — even one session builds the habit.`}
         </div>
       </div>
     </>
@@ -860,6 +983,28 @@ const TABS: { id: WeekTab; label: string }[] = [
 
 export default function ParentWeeklyPage() {
   const [activeTab, setActiveTab] = useState<WeekTab>("full");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [report, setReport] = useState<WeeklyReport | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const studentId =
+      typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+    if (!studentId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    fetch(
+      `/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=${weekOffset}`,
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        setReport(data.report ?? null);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [weekOffset]);
 
   return (
     <AppFrame audience="parent">
@@ -913,10 +1058,26 @@ export default function ParentWeeklyPage() {
             padding: "36px 32px",
           }}
         >
-          {activeTab === "full"        && <FullReportTab />}
-          {activeTab === "skills"      && <SkillsTab />}
-          {activeTab === "habits"      && <HabitsTab />}
-          {activeTab === "suggestions" && <SuggestionsTab />}
+          {loading && <LoadingState />}
+          {!loading && !report && (
+            <div style={{ textAlign: "center", padding: "60px 0", color: MUTED, fontSize: "0.9rem" }}>
+              No data available. Make sure a student is selected.
+            </div>
+          )}
+          {!loading && report && (
+            <>
+              {activeTab === "full" && (
+                <FullReportTab
+                  report={report}
+                  weekOffset={weekOffset}
+                  setWeekOffset={setWeekOffset}
+                />
+              )}
+              {activeTab === "skills"      && <SkillsTab report={report} />}
+              {activeTab === "habits"      && <HabitsTab report={report} />}
+              {activeTab === "suggestions" && <SuggestionsTab report={report} />}
+            </>
+          )}
         </div>
       </div>
     </AppFrame>

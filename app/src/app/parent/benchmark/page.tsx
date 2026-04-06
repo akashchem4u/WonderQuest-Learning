@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -15,6 +15,19 @@ const TEXT    = "#f0f6ff";
 const MUTED   = "#8b949e";
 const SURFACE = "#161b22";
 const BORDER  = "rgba(255,255,255,0.06)";
+
+// ─── API type ─────────────────────────────────────────────────────────────────
+
+type SkillProgress = {
+  skillCode: string;
+  skillName: string;
+  subjectCode: string;
+  launchBandCode: string;
+  correctCount: number;
+  totalCount: number;
+  masteryPct: number;
+  lastPracticed: string | null;
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,7 +62,7 @@ type FaqItem = {
   a: string;
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── Static data ─────────────────────────────────────────────────────────────
 
 const BANDS: Band[] = [
   {
@@ -96,7 +109,7 @@ const STATUS_DEFS: StatusDef[] = [
     icon: "⭐",
     bg: "rgba(34,197,94,0.15)",
     color: "#4ade80",
-    desc: "Maya has a solid grasp of this skill. Keep going — higher levels await!",
+    desc: "A solid grasp of this skill. Keep going — higher levels await!",
   },
   {
     label: "Building",
@@ -110,46 +123,65 @@ const STATUS_DEFS: StatusDef[] = [
     icon: "🌱",
     bg: "rgba(155,114,255,0.15)",
     color: "#c4a8ff",
-    desc: "Brand new skill — Maya has only seen it a few times. Early days!",
+    desc: "Brand new skill — only seen it a few times. Early days!",
   },
 ];
 
 const MASTERY_STEPS: MasteryStep[] = [
   {
     num: "1",
-    title: "Maya answers questions on a skill",
-    body: "WonderQuest tracks how consistently she gets them right over multiple sessions — not just one.",
+    title: "Your child answers questions on a skill",
+    body: "WonderQuest tracks how consistently they get them right over multiple sessions — not just one.",
   },
   {
     num: "2",
     title: "The mastery bar fills up",
-    body: "It rises when she consistently succeeds, and holds steady (doesn't drop) when she gets a few wrong — because one bad day doesn't undo learning.",
+    body: "It rises when they consistently succeed, and holds steady (doesn't drop) when they get a few wrong — because one bad day doesn't undo learning.",
   },
   {
     num: "3",
-    title: "She earns stars along the way",
+    title: "They earn stars along the way",
     body: "Stars reward effort and consistency — not perfection. This keeps learning fun.",
   },
 ];
 
 const FAQ_ITEMS: FaqItem[] = [
   {
-    q: "Can Maya's mastery score go down?",
+    q: "Can the mastery score go down?",
     a: "No — the mastery score only increases or holds steady. One difficult session doesn't undo earlier learning. Progress is always net-positive here.",
   },
   {
-    q: "Why doesn't Maya see accuracy percentages?",
-    a: "Research shows accuracy percentages can reduce motivation and create test anxiety in young learners. Maya sees stars and progress signals. You see fuller data in the weekly report because context helps you understand and support — not judge.",
+    q: "Why doesn't your child see accuracy percentages?",
+    a: "Research shows accuracy percentages can reduce motivation and create test anxiety in young learners. They see stars and progress signals. You see fuller data in the weekly report because context helps you understand and support — not judge.",
   },
   {
     q: "Is the K–1 band a grade level placement?",
-    a: "No. Band placement is a starting point based on a short placement activity, and it adjusts automatically as Maya progresses. A child in the K–1 band who's crushing it will unlock Grades 2–3 content organically.",
+    a: "No. Band placement is a starting point based on a short placement activity, and it adjusts automatically as your child progresses. A child in the K–1 band who's crushing it will unlock Grades 2–3 content organically.",
   },
   {
     q: "How long does it take to reach Strong status?",
     a: "Typically 4–8 sessions with consistent success will move a skill from Just started to Building. Building to Strong usually takes 3–5 more sessions. Every child's pace is different — all normal.",
   },
 ];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const MASTERY_TARGET = 65;
+
+function masteryStatus(pct: number): "Strong" | "Building" | "Just started" {
+  if (pct >= MASTERY_TARGET) return "Strong";
+  if (pct >= 40) return "Building";
+  return "Just started";
+}
+
+function statusStyle(status: "Strong" | "Building" | "Just started") {
+  const map = {
+    Strong:         { bg: "rgba(34,197,94,0.15)",    color: "#4ade80", bar: MINT   },
+    Building:       { bg: "rgba(255,209,102,0.15)",  color: GOLD,      bar: GOLD   },
+    "Just started": { bg: "rgba(155,114,255,0.15)",  color: "#c4a8ff", bar: VIOLET },
+  };
+  return map[status];
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -207,7 +239,90 @@ function MasteryBar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-function FullExplainer() {
+function SkillMasteryList({ skills, loading }: { skills: SkillProgress[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "32px 0", color: MUTED, fontSize: "0.88rem" }}>
+        Loading skill data…
+      </div>
+    );
+  }
+  if (skills.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "32px 0" }}>
+        <div style={{ fontSize: "2rem", marginBottom: "10px" }}>🌱</div>
+        <div style={{ fontSize: "0.88rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
+          No skills practiced yet
+        </div>
+        <div style={{ fontSize: "0.78rem", color: MUTED }}>
+          Skill mastery data will appear here after the first sessions.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      {skills.map((sk) => {
+        const status = masteryStatus(sk.masteryPct);
+        const ss = statusStyle(status);
+        const targetDiff = MASTERY_TARGET - sk.masteryPct;
+        return (
+          <div
+            key={sk.skillCode}
+            style={{
+              padding: "16px",
+              background: "rgba(255,255,255,0.03)",
+              borderRadius: "12px",
+              border: `1px solid ${BORDER}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+              <div>
+                <div style={{ fontSize: "0.88rem", fontWeight: 700, color: TEXT }}>{sk.skillName}</div>
+                <div style={{ fontSize: "0.72rem", color: MUTED, marginTop: "2px" }}>{sk.subjectCode}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    background: ss.bg,
+                    color: ss.color,
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {status}
+                </span>
+                <span style={{ fontSize: "0.88rem", fontWeight: 800, color: ss.color }}>
+                  {sk.masteryPct}%
+                </span>
+              </div>
+            </div>
+            <MasteryBar pct={sk.masteryPct} color={ss.bar} />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "6px",
+                fontSize: "0.65rem",
+                color: MUTED,
+              }}
+            >
+              <span>0</span>
+              <span style={{ color: AMBER }}>Target: {MASTERY_TARGET}%{targetDiff > 0 ? ` (${targetDiff}% to go)` : ""}</span>
+              <span style={{ color: "#4ade80" }}>Strong (65+)</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FullExplainer({ skills, loading }: { skills: SkillProgress[]; loading: boolean }) {
   return (
     <>
       {/* Eyebrow + intro */}
@@ -233,7 +348,7 @@ function FullExplainer() {
             lineHeight: 1.2,
           }}
         >
-          Understanding Maya's progress
+          Skill mastery benchmark
         </h2>
         <p
           style={{
@@ -242,8 +357,14 @@ function FullExplainer() {
             lineHeight: 1.7,
           }}
         >
-          WonderQuest uses learning bands, mastery scores, and stars to show how Maya is developing — not percentages or grades. Here's what everything means.
+          WonderQuest uses learning bands, mastery scores, and stars to show how your child is developing — not percentages or grades. Each skill below shows their current mastery vs the target of 65%.
         </p>
+      </SectionCard>
+
+      {/* Live skill mastery */}
+      <SectionCard>
+        <SectionHeading>Skill mastery vs target</SectionHeading>
+        <SkillMasteryList skills={skills} loading={loading} />
       </SectionCard>
 
       {/* 4 learning bands */}
@@ -321,7 +442,6 @@ function FullExplainer() {
       {/* How the mastery bar works */}
       <SectionCard>
         <SectionHeading>How the mastery bar works</SectionHeading>
-        {/* Example bar */}
         <div
           style={{
             padding: "14px 16px",
@@ -338,7 +458,7 @@ function FullExplainer() {
               marginBottom: "8px",
             }}
           >
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: TEXT }}>Rhyming words</span>
+            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: TEXT }}>Example skill</span>
             <span style={{ fontSize: "0.78rem", fontWeight: 700, color: VIOLET }}>74 / 100</span>
           </div>
           <MasteryBar pct={74} color={VIOLET} />
@@ -400,7 +520,7 @@ function FullExplainer() {
           lineHeight: 1.6,
         }}
       >
-        <strong style={{ color: TEXT }}>Why doesn't Maya see percentages?</strong>
+        <strong style={{ color: TEXT }}>Why doesn't your child see percentages?</strong>
         <br />
         Research shows that showing accuracy percentages to young learners can reduce motivation and create anxiety. Stars celebrate effort. You see fuller data in the weekly report because context helps you understand and support — not judge.
       </div>
@@ -521,7 +641,7 @@ function ModalDemo() {
             </div>
 
             <div style={{ fontSize: "0.84rem", color: MUTED, lineHeight: 1.6, marginBottom: "18px" }}>
-              The <strong style={{ color: TEXT }}>mastery bar</strong> shows how well Maya has learned this skill over time — not just her score in one session.
+              The <strong style={{ color: TEXT }}>mastery bar</strong> shows how well your child has learned this skill over time — not just their score in one session.
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "18px" }}>
@@ -561,7 +681,7 @@ function ModalDemo() {
                 marginBottom: "18px",
               }}
             >
-              The bar doesn't decrease when Maya gets something wrong — learning is non-linear, and one bad session doesn't undo progress.
+              The bar doesn't decrease when your child gets something wrong — learning is non-linear, and one bad session doesn't undo progress.
             </div>
 
             <button
@@ -667,13 +787,31 @@ function FaqSection() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const TABS: { id: ExplainerTab; label: string }[] = [
-  { id: "full",  label: "📖 Full Explainer" },
-  { id: "modal", label: "🪟 As Modal"        },
-  { id: "faq",   label: "❓ FAQ"              },
+  { id: "full",  label: "📖 Skill Benchmark" },
+  { id: "modal", label: "🪟 As Modal"         },
+  { id: "faq",   label: "❓ FAQ"               },
 ];
 
 export default function ParentBenchmarkPage() {
   const [activeTab, setActiveTab] = useState<ExplainerTab>("full");
+  const [skills, setSkills] = useState<SkillProgress[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const studentId =
+      typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+    if (!studentId) {
+      setLoading(false);
+      return;
+    }
+    fetch(`/api/parent/skills?studentId=${encodeURIComponent(studentId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setSkills(data.skills ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <AppFrame audience="parent">
@@ -727,7 +865,7 @@ export default function ParentBenchmarkPage() {
             padding: "36px 32px",
           }}
         >
-          {activeTab === "full"  && <FullExplainer />}
+          {activeTab === "full"  && <FullExplainer skills={skills} loading={loading} />}
           {activeTab === "modal" && <ModalDemo />}
           {activeTab === "faq"   && <FaqSection />}
         </div>

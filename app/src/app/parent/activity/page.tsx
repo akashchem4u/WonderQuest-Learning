@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -8,7 +8,6 @@ import { AppFrame } from "@/components/app-frame";
 const BASE    = "#100b2e";
 const VIOLET  = "#9b72ff";
 const GOLD    = "#ffd166";
-const MINT    = "#22c55e";
 const TEXT    = "#f0f6ff";
 const MUTED   = "#8b949e";
 const SURFACE = "#161b22";
@@ -33,107 +32,18 @@ type DayGroup = {
   items: FeedItem[];
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── API shape ────────────────────────────────────────────────────────────────
 
-const FEED_DATA: DayGroup[] = [
-  {
-    label: "Today",
-    items: [
-      {
-        id: "f1",
-        type: "badge",
-        icon: "🏅",
-        title: 'Earned "Word Wizard" badge',
-        meta: "Mastered 20 sight words in a row",
-        stars: 3,
-        time: "3:42 PM",
-      },
-      {
-        id: "f2",
-        type: "session",
-        icon: "🎯",
-        title: "Session complete — Reading & Spelling",
-        meta: "18 minutes · Sight words + CVC spelling",
-        stars: 9,
-        time: "3:22 PM",
-      },
-    ],
-  },
-  {
-    label: "Yesterday · Mon Mar 23",
-    items: [
-      {
-        id: "f3",
-        type: "level",
-        icon: "⬆️",
-        title: "Reached Level 5!",
-        meta: "Mint Band · Unlocked harder spelling challenges",
-        time: "4:55 PM",
-      },
-      {
-        id: "f4",
-        type: "session",
-        icon: "🎯",
-        title: "Session complete — Math",
-        meta: "14 minutes · Addition facts + Skip counting",
-        stars: 7,
-        time: "4:40 PM",
-      },
-      {
-        id: "f5",
-        type: "skill_started",
-        icon: "🌱",
-        title: "Started learning: Skip counting",
-        meta: "New Math skill unlocked",
-        time: "4:41 PM",
-      },
-    ],
-  },
-  {
-    label: "Sun Mar 22",
-    items: [
-      {
-        id: "f6",
-        type: "streak",
-        icon: "🔥",
-        title: "5-day streak milestone!",
-        meta: "Maya has played 5 days in a row",
-        time: "5:10 PM",
-      },
-      {
-        id: "f7",
-        type: "session",
-        icon: "🎯",
-        title: "Session complete — Vocabulary",
-        meta: "12 minutes · Rhyming words",
-        stars: 5,
-        time: "5:00 PM",
-      },
-    ],
-  },
-  {
-    label: "Sat Mar 21",
-    items: [
-      {
-        id: "f8",
-        type: "skill_mastered",
-        icon: "⭐",
-        title: "Mastered: Rhyming words",
-        meta: "Reading skill — Strong status reached",
-        time: "11:14 AM",
-      },
-      {
-        id: "f9",
-        type: "session",
-        icon: "🎯",
-        title: "Session complete — Reading",
-        meta: "16 minutes · Rhyming words + Letter sounds",
-        stars: 8,
-        time: "11:00 AM",
-      },
-    ],
-  },
-];
+type RecentSession = {
+  sessionId: string;
+  startedAt: string;
+  sessionMode: string;
+  starsEarned: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationMinutes: number | null;
+  skillNames: string[];
+};
 
 // ─── Icon background map ──────────────────────────────────────────────────────
 
@@ -145,6 +55,57 @@ const ICON_BG: Record<EventType, string> = {
   skill_mastered: "rgba(34,197,94,0.18)",
   skill_started:  "rgba(56,189,248,0.18)",
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(d, today)) return "Today";
+  if (sameDay(d, yesterday))
+    return `Yesterday · ${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`;
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function sessionToFeedItem(s: RecentSession): FeedItem {
+  const skills = s.skillNames.length > 0 ? s.skillNames.join(", ") : "General practice";
+  const dur = s.durationMinutes != null ? `${s.durationMinutes} minutes` : null;
+  const meta = [dur, skills].filter(Boolean).join(" · ");
+  return {
+    id: s.sessionId,
+    type: "session",
+    icon: "🎯",
+    title: `Session complete — ${skills}`,
+    meta,
+    stars: s.starsEarned,
+    time: formatTime(s.startedAt),
+  };
+}
+
+function groupByDay(sessions: RecentSession[]): DayGroup[] {
+  const map = new Map<string, FeedItem[]>();
+  for (const s of sessions) {
+    const label = formatDayLabel(s.startedAt);
+    if (!map.has(label)) map.set(label, []);
+    map.get(label)!.push(sessionToFeedItem(s));
+  }
+  const groups: DayGroup[] = [];
+  map.forEach((items, label) => groups.push({ label, items }));
+  return groups;
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -252,9 +213,28 @@ function DaySection({ group }: { group: DayGroup }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ParentActivityPage() {
+  const [groups, setGroups] = useState<DayGroup[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
-  const visibleGroups = showAll ? FEED_DATA : FEED_DATA.slice(0, 2);
+  useEffect(() => {
+    const studentId =
+      typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+    if (!studentId) {
+      setLoading(false);
+      return;
+    }
+    fetch(`/api/parent/activity?studentId=${encodeURIComponent(studentId)}&limit=30`)
+      .then((r) => r.json())
+      .then((data) => {
+        const sessions: RecentSession[] = data.sessions ?? [];
+        setGroups(groupByDay(sessions));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const visibleGroups = showAll ? groups : groups.slice(0, 2);
 
   return (
     <AppFrame audience="parent">
@@ -298,7 +278,7 @@ export default function ParentActivityPage() {
                   margin: 0,
                 }}
               >
-                📋 Maya's recent activity
+                📋 Recent activity
               </h1>
             </div>
             <button
@@ -342,36 +322,56 @@ export default function ParentActivityPage() {
               padding: "24px",
             }}
           >
-            {visibleGroups.map((group) => (
+            {loading && (
+              <div style={{ textAlign: "center", padding: "40px 0", color: MUTED, fontSize: "0.88rem" }}>
+                Loading activity…
+              </div>
+            )}
+
+            {!loading && groups.length === 0 && (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🌱</div>
+                <div style={{ fontSize: "0.9rem", fontWeight: 700, color: TEXT, marginBottom: "6px" }}>
+                  No sessions yet
+                </div>
+                <div style={{ fontSize: "0.8rem", color: MUTED }}>
+                  Activity will appear here after your child completes their first session.
+                </div>
+              </div>
+            )}
+
+            {!loading && visibleGroups.map((group) => (
               <DaySection key={group.label} group={group} />
             ))}
 
             {/* Load more / collapse */}
-            <div
-              style={{
-                textAlign: "center",
-                paddingTop: "14px",
-                borderTop: `1px solid ${BORDER}`,
-                marginTop: "4px",
-              }}
-            >
-              <button
-                onClick={() => setShowAll((v) => !v)}
+            {!loading && groups.length > 2 && (
+              <div
                 style={{
-                  background: "transparent",
-                  border: `1.5px solid rgba(155,114,255,0.25)`,
-                  borderRadius: "10px",
-                  padding: "9px 24px",
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                  color: VIOLET,
-                  cursor: "pointer",
-                  fontFamily: "system-ui",
+                  textAlign: "center",
+                  paddingTop: "14px",
+                  borderTop: `1px solid ${BORDER}`,
+                  marginTop: "4px",
                 }}
               >
-                {showAll ? "Show less" : "Load more"}
-              </button>
-            </div>
+                <button
+                  onClick={() => setShowAll((v) => !v)}
+                  style={{
+                    background: "transparent",
+                    border: `1.5px solid rgba(155,114,255,0.25)`,
+                    borderRadius: "10px",
+                    padding: "9px 24px",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: VIOLET,
+                    cursor: "pointer",
+                    fontFamily: "system-ui",
+                  }}
+                >
+                  {showAll ? "Show less" : "Load more"}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Event legend */}
