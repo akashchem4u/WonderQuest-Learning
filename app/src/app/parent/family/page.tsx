@@ -19,6 +19,15 @@ const C = {
 
 type Tab = "overview" | "multi" | "settings";
 
+type PinResetState = {
+  studentId: string | null;
+  pin: string;
+  confirm: string;
+  loading: boolean;
+  error: string;
+  success: boolean;
+};
+
 // ── Band helpers ──────────────────────────────────────────────────────────────
 function bandFriendly(code: string): string {
   if (code === "PREK" || code === "P0") return "Pre-K (P0)";
@@ -64,6 +73,14 @@ export default function ParentFamilyPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [session, setSession] = useState<ParentSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pinReset, setPinReset] = useState<PinResetState>({
+    studentId: null,
+    pin: "",
+    confirm: "",
+    loading: false,
+    error: "",
+    success: false,
+  });
 
   useEffect(() => {
     fetch("/api/parent/session")
@@ -79,8 +96,105 @@ export default function ParentFamilyPage() {
   const firstChild = children[0] ?? null;
   const guardianName = session?.guardian?.displayName ?? "there";
 
+  function openPinReset(studentId: string) {
+    setPinReset({ studentId, pin: "", confirm: "", loading: false, error: "", success: false });
+  }
+
+  function closePinReset() {
+    setPinReset((s) => ({ ...s, studentId: null, error: "", success: false }));
+  }
+
+  async function submitPinReset() {
+    const { studentId, pin, confirm } = pinReset;
+    if (!/^\d{4}$/.test(pin)) {
+      setPinReset((s) => ({ ...s, error: "PIN must be exactly 4 digits." }));
+      return;
+    }
+    if (pin !== confirm) {
+      setPinReset((s) => ({ ...s, error: "PINs do not match." }));
+      return;
+    }
+    setPinReset((s) => ({ ...s, loading: true, error: "" }));
+    try {
+      const res = await fetch("/api/parent/reset-child-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, newPin: pin }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok) {
+        setPinReset((s) => ({ ...s, loading: false, error: data.error ?? "Reset failed." }));
+      } else {
+        setPinReset((s) => ({ ...s, loading: false, success: true }));
+      }
+    } catch {
+      setPinReset((s) => ({ ...s, loading: false, error: "Network error." }));
+    }
+  }
+
+  const activePinChild = session?.linkedChildren.find((c) => c.id === pinReset.studentId);
+
   return (
     <AppFrame audience="parent" currentPath="/parent/family">
+      {/* PIN Reset Modal */}
+      {pinReset.studentId && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(16,11,46,0.88)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={closePinReset}>
+          <div style={{ background: "#1a1240", borderRadius: 20, padding: 32, width: "100%", maxWidth: 380, border: "1px solid rgba(155,114,255,0.3)" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>🔐 Reset PIN</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>
+              {activePinChild ? `Set a new 4-digit PIN for ${activePinChild.displayName}` : "Set a new 4-digit PIN"}
+            </div>
+            {pinReset.success ? (
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.mint, marginBottom: 8 }}>PIN updated!</div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>
+                  {activePinChild?.displayName ?? "Your child"} can now sign in with their new PIN.
+                </div>
+                <button onClick={closePinReset} style={{ padding: "12px 32px", background: C.violet, color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>New PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    value={pinReset.pin}
+                    onChange={(e) => setPinReset((s) => ({ ...s, pin: e.target.value.replace(/\D/g, "").slice(0, 4), error: "" }))}
+                    style={{ width: "100%", padding: "12px 14px", background: "rgba(255,255,255,0.06)", border: `1px solid ${pinReset.error ? C.coral : "rgba(255,255,255,0.1)"}`, borderRadius: 10, color: C.text, fontSize: 20, letterSpacing: 8, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, display: "block", marginBottom: 6 }}>Confirm PIN</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    value={pinReset.confirm}
+                    onChange={(e) => setPinReset((s) => ({ ...s, confirm: e.target.value.replace(/\D/g, "").slice(0, 4), error: "" }))}
+                    style={{ width: "100%", padding: "12px 14px", background: "rgba(255,255,255,0.06)", border: `1px solid ${pinReset.error ? C.coral : "rgba(255,255,255,0.1)"}`, borderRadius: 10, color: C.text, fontSize: 20, letterSpacing: 8, fontFamily: "system-ui", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+                {pinReset.error && (
+                  <div style={{ background: "rgba(255,123,107,0.12)", border: "1px solid rgba(255,123,107,0.3)", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.coral, marginBottom: 16 }}>
+                    {pinReset.error}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={closePinReset} style={{ flex: 1, padding: 12, background: "rgba(255,255,255,0.06)", color: C.muted, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>Cancel</button>
+                  <button onClick={submitPinReset} disabled={pinReset.loading || pinReset.pin.length !== 4 || pinReset.confirm.length !== 4} style={{ flex: 2, padding: 12, background: pinReset.loading ? "rgba(155,114,255,0.4)" : C.violet, color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: pinReset.loading ? "not-allowed" : "pointer", fontFamily: "system-ui" }}>
+                    {pinReset.loading ? "Saving…" : "Save new PIN"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <div style={{ minHeight: "100vh", background: C.base, padding: "28px 24px 60px" }}>
 
         {/* Header */}
@@ -132,7 +246,7 @@ export default function ParentFamilyPage() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <Link href="/parent/report" style={{ padding: "10px 18px", background: C.violet, color: "#fff", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", textDecoration: "none", textAlign: "center" }}>📊 See full report →</Link>
-                    <button style={{ padding: "9px 18px", background: "rgba(255,255,255,0.04)", color: C.muted, border: `1.5px solid rgba(255,255,255,0.1)`, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui", whiteSpace: "nowrap" }}>⚙️ Child settings</button>
+                    <button onClick={() => openPinReset(firstChild.id)} style={{ padding: "9px 18px", background: "rgba(255,255,255,0.04)", color: C.muted, border: `1.5px solid rgba(255,255,255,0.1)`, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui", whiteSpace: "nowrap" }}>🔐 Reset PIN</button>
                   </div>
                 </div>
               );
@@ -270,6 +384,12 @@ export default function ParentFamilyPage() {
                     <Link href="/parent/report" style={{ display: "block", padding: "10px 0", background: bColor, color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
                       See {child.displayName}&apos;s report →
                     </Link>
+                    <button
+                      onClick={() => openPinReset(child.id)}
+                      style={{ display: "block", width: "100%", marginTop: 8, padding: "9px 0", background: "rgba(255,255,255,0.04)", color: C.muted, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}
+                    >
+                      🔐 Reset PIN
+                    </button>
                   </div>
                 );
               })}
