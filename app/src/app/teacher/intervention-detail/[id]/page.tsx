@@ -79,6 +79,7 @@ export default function InterventionDetailPage() {
   const [intervention, setIntervention] = useState<ApiIntervention | null>(null);
   const [showLogNote, setShowLogNote] = useState(false);
   const [actions, setActions] = useState<ActionItem[]>([]);
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     const teacherId = getTeacherId();
@@ -123,6 +124,26 @@ export default function InterventionDetailPage() {
   const toggleAction = (idx: number) => {
     setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, done: !a.done } : a)));
   };
+
+  async function handleResolve() {
+    if (!intervention || resolving) return;
+    setResolving(true);
+    try {
+      const teacherId = getTeacherId();
+      const res = await fetch(`/api/teacher/interventions/${intervention.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId, outcome: "resolved" }),
+      });
+      if (!res.ok) throw new Error("Failed to resolve");
+      const now = new Date().toISOString();
+      setIntervention((prev) => prev ? { ...prev, status: "resolved", resolvedAt: now } : prev);
+    } catch {
+      // silent — button re-enables
+    } finally {
+      setResolving(false);
+    }
+  }
 
   const isActive = intervention?.status === "active";
   const statusLabel = isActive ? "Active" : "Resolved";
@@ -187,9 +208,15 @@ export default function InterventionDetailPage() {
                     >
                       Log note
                     </button>
-                    <button style={{ padding: "8px 16px", background: C.mint, border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
-                      Mark resolved
-                    </button>
+                    {isActive && (
+                      <button
+                        onClick={handleResolve}
+                        disabled={resolving}
+                        style={{ padding: "8px 16px", background: resolving ? "rgba(34,197,94,0.4)" : C.mint, border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#fff", cursor: resolving ? "not-allowed" : "pointer" }}
+                      >
+                        {resolving ? "Resolving…" : "Mark resolved"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
