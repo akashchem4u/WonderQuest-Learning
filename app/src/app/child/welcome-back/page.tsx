@@ -55,10 +55,13 @@ function StarBar({ points }: { points: number }) {
   );
 }
 
+const PLAY_URL = "/play?sessionMode=guided-quest&entry=returning";
+
 export default function ChildWelcomeBackPage() {
   const router = useRouter();
-  const [stats,   setStats]   = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats,     setStats]     = useState<Stats | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [countdown, setCountdown] = useState(2);
 
   useEffect(() => {
     fetch("/api/child/stats")
@@ -67,6 +70,17 @@ export default function ChildWelcomeBackPage() {
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // Auto-redirect after 2s (starts once loading is done)
+  useEffect(() => {
+    if (loading) return;
+    if (countdown <= 0) {
+      router.replace(PLAY_URL);
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [loading, countdown, router]);
 
   const name   = stats?.displayName ?? "Explorer";
   const avatar = pickAvatar(name);
@@ -305,6 +319,18 @@ export default function ChildWelcomeBackPage() {
           <StarBar points={points} />
         </div>
 
+        {/* Auto-redirect hint */}
+        <div style={{
+          ...FONT,
+          fontSize: 13,
+          color: C.muted,
+          fontWeight: 700,
+          marginBottom: 16,
+          animation: "wq-fade-up 0.45s 0.28s ease-out both",
+        }}>
+          {countdown > 0 ? `Starting in ${countdown}…` : "Off we go!"}
+        </div>
+
         {/* CTA buttons */}
         <div style={{
           display: "flex",
@@ -314,8 +340,9 @@ export default function ChildWelcomeBackPage() {
           maxWidth: 400,
           animation: "wq-fade-up 0.45s 0.3s ease-out both",
         }}>
-          <Link href="/play" style={{ textDecoration: "none" }}>
-            <button style={{
+          <button
+            onClick={() => router.replace(PLAY_URL)}
+            style={{
               ...FONT,
               width: "100%",
               minHeight: 60,
@@ -328,10 +355,10 @@ export default function ChildWelcomeBackPage() {
               cursor: "pointer",
               boxShadow: "0 6px 28px rgba(255,209,102,0.4)",
               letterSpacing: "0.01em",
-            }}>
-              Continue Playing 🚀
-            </button>
-          </Link>
+            }}
+          >
+            Skip — Go now! 🚀
+          </button>
 
           <Link href="/child/progress" style={{ textDecoration: "none" }}>
             <button style={{

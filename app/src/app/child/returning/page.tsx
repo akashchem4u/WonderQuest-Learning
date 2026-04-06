@@ -7,7 +7,7 @@ import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ReturnType = "same-day" | "two-day" | "seven-day" | "comeback";
+type ReturnScreenType = "same-day" | "two-day" | "seven-day" | "comeback";
 
 type SessionData = {
   student: {
@@ -24,14 +24,14 @@ type SessionData = {
 
 // ─── Stub data ────────────────────────────────────────────────────────────────
 
-const RETURN_LABELS: Record<ReturnType, string> = {
+const RETURN_LABELS: Record<ReturnScreenType, string> = {
   "same-day": "Same Day",
   "two-day": "2-Day Gap",
   "seven-day": "7-Day Gap",
   comeback: "30-Day Return",
 };
 
-const TABS: ReturnType[] = ["same-day", "two-day", "seven-day", "comeback"];
+const TABS: ReturnScreenType[] = ["same-day", "two-day", "seven-day", "comeback"];
 
 // ─── Shared style tokens ──────────────────────────────────────────────────────
 
@@ -1007,12 +1007,12 @@ function ComebackScreen({ session }: { session: SessionData | null }) {
 
 export default function ChildReturningPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ReturnType>("same-day");
+  const [activeTab, setActiveTab] = useState<ReturnScreenType>("same-day");
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(3);
   const [authed, setAuthed] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   // Auth check + session load
   useEffect(() => {
@@ -1050,7 +1050,7 @@ export default function ChildReturningPage() {
         return c - 1;
       });
     }, 1000);
-    timerRef.current = interval as unknown as ReturnType<typeof setTimeout>;
+    timerRef.current = interval as unknown as number;
     return () => clearInterval(interval);
   }, [authed, loading, router]);
 
