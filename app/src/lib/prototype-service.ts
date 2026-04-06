@@ -88,6 +88,16 @@ function toProgression(row?: Record<string, unknown>) {
   };
 }
 
+function toIsoDateUtc(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function subtractUtcDay(isoDate: string) {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return toIsoDateUtc(date);
+}
+
 async function ensureProgressionState(studentId: string) {
   await db.query(
     `
@@ -97,6 +107,39 @@ async function ensureProgressionState(studentId: string) {
     `,
     [studentId],
   );
+}
+
+async function getStudentStreakCount(studentId: string) {
+  const result = await db.query(
+    `
+      select distinct timezone('UTC', cs.started_at)::date as session_day
+      from public.challenge_sessions cs
+      where cs.student_id = $1
+      order by session_day desc
+      limit 90
+    `,
+    [studentId],
+  );
+
+  if (!result.rowCount) {
+    return 0;
+  }
+
+  const sessionDays = new Set(
+    result.rows
+      .map((row) => String(row.session_day ?? "").slice(0, 10))
+      .filter(Boolean),
+  );
+
+  let streakCount = 0;
+  let expectedDay = toIsoDateUtc(new Date());
+
+  while (sessionDays.has(expectedDay)) {
+    streakCount += 1;
+    expectedDay = subtractUtcDay(expectedDay);
+  }
+
+  return streakCount;
 }
 
 // ─── Exported service functions ───────────────────────────────────────────────
@@ -129,6 +172,7 @@ export async function restoreChildSession(studentId: string) {
   }
 
   const row = result.rows[0];
+  const streakCount = await getStudentStreakCount(studentId);
 
   return {
     student: {
@@ -138,6 +182,7 @@ export async function restoreChildSession(studentId: string) {
       avatarKey: row.avatar_key as string,
       launchBandCode: row.launch_band_code as string,
       preferredThemeCode: (row.preferred_theme_code as string | undefined) ?? null,
+      streakCount,
     },
     progression: toProgression(row),
   };
@@ -226,6 +271,7 @@ export async function accessChild(
       succeeded: true,
       failureReason: null,
     });
+    const streakCount = await getStudentStreakCount(row.id as string);
 
     return {
       created: false,
@@ -236,6 +282,7 @@ export async function accessChild(
         avatarKey: row.avatar_key as string,
         launchBandCode: activeLaunchBandCode,
         preferredThemeCode: (row.preferred_theme_code as string | undefined) ?? null,
+        streakCount,
       },
       progression: toProgression(row),
     };
@@ -287,6 +334,7 @@ export async function accessChild(
     succeeded: true,
     failureReason: null,
   });
+  const streakCount = await getStudentStreakCount(inserted.rows[0].id as string);
 
   return {
     created: true,
@@ -298,6 +346,7 @@ export async function accessChild(
       launchBandCode: inserted.rows[0].launch_band_code as string,
       preferredThemeCode:
         (inserted.rows[0].preferred_theme_code as string | undefined) ?? null,
+      streakCount,
     },
     progression: {
       totalPoints: 0,
