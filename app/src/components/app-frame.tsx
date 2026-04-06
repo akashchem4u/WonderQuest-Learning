@@ -156,6 +156,25 @@ export function AppFrame({
 
           {children}
         </div>
+
+        <nav className="adult-mobile-nav" aria-label="Mobile navigation">
+          {navItems.map((item) => {
+            const isActive = currentPath === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`adult-mobile-nav-item${isActive ? " is-active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <span className="adult-mobile-nav-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     );
   }
