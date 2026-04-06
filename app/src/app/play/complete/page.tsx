@@ -175,7 +175,7 @@ export default function PlayCompletePage() {
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 900, color: C.violet, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Coach Leo</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#c8bef0", lineHeight: 1.4 }}>
-                      {isPerfect ? "WOW — you got them ALL right! You&apos;re a beginning sounds superstar! 🌟" : "You&apos;re getting really good at beginning sounds! Keep it up tomorrow!"}
+                      {isPerfect ? "WOW — you got them ALL right! You're a beginning sounds superstar! 🌟" : "You're getting really good at beginning sounds! Keep it up tomorrow!"}
                     </div>
                   </div>
                 </div>

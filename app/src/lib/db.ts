@@ -45,12 +45,21 @@ function createPool() {
   });
 }
 
-export const db =
-  global.__wonderquestPool ?? (global.__wonderquestPool = createPool());
-
-if (!global.__wonderquestPoolErrorHook) {
-  db.on("error", (error) => {
-    console.error("WonderQuest database pool error", error);
-  });
-  global.__wonderquestPoolErrorHook = true;
+function getPool(): pg.Pool {
+  if (!global.__wonderquestPool) {
+    global.__wonderquestPool = createPool();
+  }
+  if (!global.__wonderquestPoolErrorHook) {
+    global.__wonderquestPool.on("error", (error) => {
+      console.error("WonderQuest database pool error", error);
+    });
+    global.__wonderquestPoolErrorHook = true;
+  }
+  return global.__wonderquestPool;
 }
+
+export const db = new Proxy({} as pg.Pool, {
+  get(_target, prop) {
+    return (getPool() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
