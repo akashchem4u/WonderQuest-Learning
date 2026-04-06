@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -26,135 +26,76 @@ const C = {
   blueBorder: "rgba(59,130,246,0.30)",
 };
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-type TriggerType = "confidence-floor" | "absence" | "hint-pattern" | "band-ceiling";
-type StatusType = "new" | "acknowledged" | "resolved";
-
-type SkillPattern = {
-  skill: string;
-  hits: string;
-  barPct: number;
-};
-
-type QueueItem = {
+// ── API types ─────────────────────────────────────────────────────────────────
+type ApiIntervention = {
   id: string;
-  name: string;
-  band: string;
-  bandLabel: string;
-  trigger: TriggerType;
-  triggerDetail: string;
-  triggeredAt: string;
-  status: StatusType;
-  topSkill: string;
-  suggestedSupport: string;
-  skillPatterns: SkillPattern[];
+  studentId: string;
+  studentName: string;
+  skillCode: string | null;
+  reason: string;
+  interventionType: string;
+  status: string;
+  teacherNote: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
 };
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
-const QUEUE_ITEMS: QueueItem[] = [
-  {
-    id: "jordan",
-    name: "Jordan",
-    band: "P2",
-    bandLabel: "G2-3",
-    trigger: "confidence-floor",
-    triggerDetail: "Confidence floor hit 3x on Fractions: Division this week",
-    triggeredAt: "2 days ago",
-    status: "new",
-    topSkill: "Fractions: Division",
-    suggestedSupport:
-      "Jordan may benefit from revisiting the concept of equal parts before continuing with division of fractions. Consider pairing with a concrete model activity or one-on-one check-in. The system has slightly reduced difficulty while this flag is active.",
-    skillPatterns: [
-      { skill: "Fractions: Division (equal parts)", hits: "3x floor", barPct: 100 },
-      { skill: "Fractions: Basic (what is a fraction)", hits: "1x floor", barPct: 33 },
-    ],
-  },
-  {
-    id: "priya",
-    name: "Priya",
-    band: "P1",
-    bandLabel: "K-1",
-    trigger: "absence",
-    triggerDetail: "No sessions in 5 days — last active Thursday",
-    triggeredAt: "5 days ago",
-    status: "new",
-    topSkill: "Counting: Skip Count",
-    suggestedSupport:
-      "Priya has been away for 5 days. Consider a brief welfare check or re-engagement message through the school system. The system will hold her position until she returns.",
-    skillPatterns: [
-      { skill: "Counting: Skip Count", hits: "Active skill", barPct: 60 },
-    ],
-  },
-  {
-    id: "sam",
-    name: "Sam",
-    band: "P2",
-    bandLabel: "G2-3",
-    trigger: "hint-pattern",
-    triggerDetail: "5+ hint requests on Place Value: Hundreds this week",
-    triggeredAt: "Today",
-    status: "new",
-    topSkill: "Place Value: Hundreds",
-    suggestedSupport:
-      "Sam is frequently requesting hints on place value. A short group activity focused on hundreds, tens, ones using manipulatives may help consolidate this concept before the system reintroduces it.",
-    skillPatterns: [
-      { skill: "Place Value: Hundreds", hits: "5x hints", barPct: 100 },
-      { skill: "Place Value: Tens", hits: "2x hints", barPct: 40 },
-    ],
-  },
-  {
-    id: "marcus",
-    name: "Marcus",
-    band: "P2",
-    bandLabel: "G2-3",
-    trigger: "band-ceiling",
-    triggerDetail: "Consistently reaching P2 ceiling — ready to advance to P3",
-    triggeredAt: "3 weeks ago",
-    status: "acknowledged",
-    topSkill: "Multiplication: Arrays",
-    suggestedSupport:
-      "Marcus has been at the P2 ceiling for 3 weeks. Review band advancement with parent before approving the move to G4-5 content. The system will not auto-advance without teacher confirmation.",
-    skillPatterns: [
-      { skill: "Multiplication: Arrays", hits: "Ceiling", barPct: 100 },
-      { skill: "Addition: Regrouping", hits: "Ceiling", barPct: 95 },
-    ],
-  },
-];
+// ── Types ─────────────────────────────────────────────────────────────────────
+type TriggerType = "confidence-floor" | "absence" | "hint-pattern" | "band-ceiling" | "other";
 
-// ── Filter helpers ────────────────────────────────────────────────────────────
-type TriggerFilter = "all" | TriggerType;
-type BandFilter = "all" | "P1" | "P2" | "P3";
-type StatusFilter = "all" | StatusType;
+function detectTrigger(reason: string): TriggerType {
+  const r = reason.toLowerCase();
+  if (r.includes("confidence") || r.includes("floor")) return "confidence-floor";
+  if (r.includes("absence") || r.includes("absent")) return "absence";
+  if (r.includes("hint")) return "hint-pattern";
+  if (r.includes("ceiling") || r.includes("band")) return "band-ceiling";
+  return "other";
+}
 
 function getTriggerIcon(t: TriggerType) {
   if (t === "confidence-floor") return "⚠️";
   if (t === "absence") return "📅";
   if (t === "hint-pattern") return "💡";
-  return "💙";
+  if (t === "band-ceiling") return "💙";
+  return "⚠️";
 }
 
 function getTriggerLabel(t: TriggerType) {
   if (t === "confidence-floor") return "Confidence floor";
   if (t === "absence") return "Absence";
   if (t === "hint-pattern") return "Hint pattern";
-  return "Band ceiling";
+  if (t === "band-ceiling") return "Band ceiling";
+  return "Support needed";
 }
 
-function isCeiling(item: QueueItem) {
-  return item.trigger === "band-ceiling";
+function isCeiling(t: TriggerType) {
+  return t === "band-ceiling";
 }
 
-function getAccentColor(item: QueueItem) {
-  return isCeiling(item) ? C.blue : C.amber;
+function formatRelativeDate(iso: string): string {
+  try {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
 }
 
-function getAccentBg(item: QueueItem) {
-  return isCeiling(item) ? C.blueBg : C.amberBg;
+function getBand(interventionType: string): string {
+  if (interventionType.includes("P1")) return "P1";
+  if (interventionType.includes("P2")) return "P2";
+  if (interventionType.includes("P3")) return "P3";
+  return "—";
 }
 
-function getAccentBorder(item: QueueItem) {
-  return isCeiling(item) ? C.blueBorder : C.amberBorder;
-}
+// ── Filter types ──────────────────────────────────────────────────────────────
+type TriggerFilter = "all" | TriggerType;
+type StatusFilter = "all" | "new" | "acknowledged";
 
 // ── Reusable styles ───────────────────────────────────────────────────────────
 const card: React.CSSProperties = {
@@ -187,29 +128,52 @@ const chip: React.CSSProperties = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function TeacherSupportQueuePage() {
+  const [loading, setLoading] = useState(true);
+  const [interventions, setInterventions] = useState<ApiIntervention[]>([]);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
 
-  // Filters
   const [triggerFilter, setTriggerFilter] = useState<TriggerFilter>("all");
-  const [bandFilter, setBandFilter] = useState<BandFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("new");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  // Derived
-  const activeItems = QUEUE_ITEMS.filter(
+  useEffect(() => {
+    const teacherId = (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ?? "demo-teacher";
+
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}&status=active`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json() as { interventions: ApiIntervention[] };
+        setInterventions(data.interventions);
+      } catch {
+        // silently fail, show empty state
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void load();
+  }, []);
+
+  const activeItems = interventions.filter(
     (item) => !dismissedIds.has(item.id) && !resolvedIds.has(item.id)
   );
 
   const filteredItems = activeItems.filter((item) => {
-    if (triggerFilter !== "all" && item.trigger !== triggerFilter) return false;
-    if (bandFilter !== "all" && item.band !== bandFilter) return false;
-    if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    const t = detectTrigger(item.reason);
+    if (triggerFilter !== "all" && t !== triggerFilter) return false;
+    if (statusFilter !== "all") {
+      // treat all API items as "new" since they're active
+      if (statusFilter !== "new") return false;
+    }
     return true;
   });
 
-  const amberCount = activeItems.filter((i) => !isCeiling(i)).length;
-  const blueCount = activeItems.filter((i) => isCeiling(i)).length;
+  const amberCount = activeItems.filter((i) => !isCeiling(detectTrigger(i.reason))).length;
+  const blueCount = activeItems.filter((i) => isCeiling(detectTrigger(i.reason))).length;
   const totalCount = activeItems.length;
 
   function dismiss(id: string) {
@@ -223,19 +187,12 @@ export default function TeacherSupportQueuePage() {
   }
 
   function dismissAllAmber() {
-    const amberIds = activeItems.filter((i) => !isCeiling(i)).map((i) => i.id);
+    const amberIds = activeItems.filter((i) => !isCeiling(detectTrigger(i.reason))).map((i) => i.id);
     setDismissedIds((prev) => new Set([...prev, ...amberIds]));
   }
 
-  // Filter count helpers
   function countByTrigger(t: TriggerType) {
-    return activeItems.filter((i) => i.trigger === t).length;
-  }
-  function countByBand(b: string) {
-    return activeItems.filter((i) => i.band === b).length;
-  }
-  function countByStatus(s: StatusType) {
-    return QUEUE_ITEMS.filter((i) => i.status === s && !dismissedIds.has(i.id) && !resolvedIds.has(i.id)).length;
+    return activeItems.filter((i) => detectTrigger(i.reason) === t).length;
   }
 
   return (
@@ -304,7 +261,7 @@ export default function TeacherSupportQueuePage() {
                 }}
               >
                 ⚠️ Support Queue
-                {totalCount > 0 && (
+                {!loading && totalCount > 0 && (
                   <span
                     style={{
                       background: "#ef4444",
@@ -320,7 +277,9 @@ export default function TeacherSupportQueuePage() {
                 )}
               </h1>
               <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
-                {totalCount} students — {amberCount} amber · {blueCount} blue (positive)
+                {loading
+                  ? "Loading…"
+                  : `${totalCount} students — ${amberCount} amber · ${blueCount} blue (positive)`}
               </p>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -360,502 +319,394 @@ export default function TeacherSupportQueuePage() {
             </div>
           </div>
 
-          {/* ── Main layout ───────────────────────────────────────────────── */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "200px 1fr",
-              gap: 16,
-              alignItems: "start",
-            }}
-          >
-            {/* ── Filter sidebar ─────────────────────────────────────────── */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-
-              {/* Trigger type */}
-              <div style={{ ...card, padding: 14 }}>
-                <span style={{ ...eyebrow, marginBottom: 10 }}>Trigger type</span>
-                {(
-                  [
-                    { id: "all", label: "All triggers", count: activeItems.length },
-                    { id: "confidence-floor", label: "⚠️ Confidence floor", count: countByTrigger("confidence-floor") },
-                    { id: "absence", label: "📅 Absence", count: countByTrigger("absence") },
-                    { id: "hint-pattern", label: "💡 Hint pattern", count: countByTrigger("hint-pattern") },
-                    { id: "band-ceiling", label: "💙 Band ceiling", count: countByTrigger("band-ceiling") },
-                  ] as { id: TriggerFilter; label: string; count: number }[]
-                ).map((opt) => {
-                  const active = triggerFilter === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setTriggerFilter(opt.id)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "6px 0",
-                        cursor: "pointer",
-                        width: "100%",
-                        background: "transparent",
-                        border: "none",
-                        borderBottom: `1px solid ${C.border}`,
-                        textAlign: "left",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: 4,
-                          border: active ? "none" : `2px solid ${C.borderStrong}`,
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: active ? C.blue : "transparent",
-                          color: "#fff",
-                          fontSize: 9,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {active ? "✓" : ""}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
-                        {opt.label}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
-                        {opt.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Band */}
-              <div style={{ ...card, padding: 14 }}>
-                <span style={{ ...eyebrow, marginBottom: 10 }}>Band</span>
-                {(
-                  [
-                    { id: "all", label: "All bands", count: activeItems.length },
-                    { id: "P1", label: "P1 K-1", count: countByBand("P1") },
-                    { id: "P2", label: "P2 G2-3", count: countByBand("P2") },
-                    { id: "P3", label: "P3 G4-5", count: countByBand("P3") },
-                  ] as { id: BandFilter; label: string; count: number }[]
-                ).map((opt) => {
-                  const active = bandFilter === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setBandFilter(opt.id)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "6px 0",
-                        cursor: "pointer",
-                        width: "100%",
-                        background: "transparent",
-                        border: "none",
-                        borderBottom: `1px solid ${C.border}`,
-                        textAlign: "left",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: 4,
-                          border: active ? "none" : `2px solid ${C.borderStrong}`,
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: active ? C.blue : "transparent",
-                          color: "#fff",
-                          fontSize: 9,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {active ? "✓" : ""}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
-                        {opt.label}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
-                        {opt.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Status */}
-              <div style={{ ...card, padding: 14 }}>
-                <span style={{ ...eyebrow, marginBottom: 10 }}>Status</span>
-                {(
-                  [
-                    { id: "all", label: "All", count: activeItems.length },
-                    { id: "new", label: "New", count: countByStatus("new") },
-                    { id: "acknowledged", label: "Acknowledged", count: countByStatus("acknowledged") },
-                    { id: "resolved", label: "Resolved", count: 0 },
-                  ] as { id: StatusFilter; label: string; count: number }[]
-                ).map((opt) => {
-                  const active = statusFilter === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setStatusFilter(opt.id)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "6px 0",
-                        cursor: "pointer",
-                        width: "100%",
-                        background: "transparent",
-                        border: "none",
-                        borderBottom: `1px solid ${C.border}`,
-                        textAlign: "left",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: 4,
-                          border: active ? "none" : `2px solid ${C.borderStrong}`,
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: active ? C.blue : "transparent",
-                          color: "#fff",
-                          fontSize: 9,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {active ? "✓" : ""}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
-                        {opt.label}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
-                        {opt.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Loading */}
+          {loading && (
+            <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>
+              Loading support queue…
             </div>
+          )}
 
-            {/* ── Queue list ─────────────────────────────────────────────── */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* ── Main layout ───────────────────────────────────────────────── */}
+          {!loading && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "200px 1fr",
+                gap: 16,
+                alignItems: "start",
+              }}
+            >
+              {/* ── Filter sidebar ─────────────────────────────────────────── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-              {filteredItems.length === 0 ? (
-                <div
-                  style={{
-                    ...card,
-                    textAlign: "center",
-                    padding: "56px 24px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <span style={{ fontSize: 42 }}>🎉</span>
-                  <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
-                    All clear!
-                  </h2>
-                  <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, maxWidth: 320, margin: 0 }}>
-                    No students in the support queue right now. The queue updates automatically as new triggers are detected.
-                  </p>
-                </div>
-              ) : (
-                filteredItems.map((item) => {
-                  const accent = getAccentColor(item);
-                  const accentBg = getAccentBg(item);
-                  const accentBorder = getAccentBorder(item);
-                  const ceiling = isCeiling(item);
-                  const expanded = expandedId === item.id;
-
-                  return (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: C.surface,
-                        border: `1px solid ${C.border}`,
-                        borderLeft: `4px solid ${accent}`,
-                        borderRadius: 14,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {/* Card header */}
-                      <div
+                {/* Trigger type */}
+                <div style={{ ...card, padding: 14 }}>
+                  <span style={{ ...eyebrow, marginBottom: 10 }}>Trigger type</span>
+                  {(
+                    [
+                      { id: "all", label: "All triggers", count: activeItems.length },
+                      { id: "confidence-floor", label: "⚠️ Confidence floor", count: countByTrigger("confidence-floor") },
+                      { id: "absence", label: "📅 Absence", count: countByTrigger("absence") },
+                      { id: "hint-pattern", label: "💡 Hint pattern", count: countByTrigger("hint-pattern") },
+                      { id: "band-ceiling", label: "💙 Band ceiling", count: countByTrigger("band-ceiling") },
+                    ] as { id: TriggerFilter; label: string; count: number }[]
+                  ).map((opt) => {
+                    const active = triggerFilter === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setTriggerFilter(opt.id)}
                         style={{
                           display: "flex",
-                          alignItems: "flex-start",
-                          gap: 12,
-                          padding: "14px 16px",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "6px 0",
                           cursor: "pointer",
+                          width: "100%",
+                          background: "transparent",
+                          border: "none",
+                          borderBottom: `1px solid ${C.border}`,
+                          textAlign: "left",
                         }}
-                        onClick={() => setExpandedId(expanded ? null : item.id)}
                       >
-                        {/* Trigger icon */}
-                        <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1, lineHeight: 1 }}>
-                          {getTriggerIcon(item.trigger)}
-                        </span>
-
-                        {/* Name + detail + chips */}
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
-                            {item.name}
-                          </span>
-                          <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.4 }}>
-                            {item.triggerDetail}
-                          </span>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                padding: "2px 8px",
-                                borderRadius: 6,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                background: accentBg,
-                                border: `1px solid ${accentBorder}`,
-                                color: accent,
-                              }}
-                            >
-                              {getTriggerLabel(item.trigger)}
-                            </span>
-                            <span style={{ ...chip }}>
-                              {item.band} · {item.bandLabel}
-                            </span>
-                            <span style={{ ...chip }}>
-                              {item.topSkill}
-                            </span>
-                          </div>
+                        <div
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: 4,
+                            border: active ? "none" : `2px solid ${C.borderStrong}`,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: active ? C.blue : "transparent",
+                            color: "#fff",
+                            fontSize: 9,
+                            fontWeight: 900,
+                          }}
+                        >
+                          {active ? "✓" : ""}
                         </div>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
+                          {opt.label}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
+                          {opt.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                        {/* Right side */}
+                {/* Status */}
+                <div style={{ ...card, padding: 14 }}>
+                  <span style={{ ...eyebrow, marginBottom: 10 }}>Status</span>
+                  {(
+                    [
+                      { id: "all", label: "All", count: activeItems.length },
+                      { id: "new", label: "New", count: activeItems.length },
+                    ] as { id: StatusFilter; label: string; count: number }[]
+                  ).map((opt) => {
+                    const active = statusFilter === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setStatusFilter(opt.id)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "6px 0",
+                          cursor: "pointer",
+                          width: "100%",
+                          background: "transparent",
+                          border: "none",
+                          borderBottom: `1px solid ${C.border}`,
+                          textAlign: "left",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: 4,
+                            border: active ? "none" : `2px solid ${C.borderStrong}`,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: active ? C.blue : "transparent",
+                            color: "#fff",
+                            fontSize: 9,
+                            fontWeight: 900,
+                          }}
+                        >
+                          {active ? "✓" : ""}
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : C.muted, flex: 1 }}>
+                          {opt.label}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.subtle }}>
+                          {opt.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Queue list ─────────────────────────────────────────────── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                {filteredItems.length === 0 ? (
+                  <div
+                    style={{
+                      ...card,
+                      textAlign: "center",
+                      padding: "56px 24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 42 }}>🎉</span>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
+                      All clear!
+                    </h2>
+                    <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, maxWidth: 320, margin: 0 }}>
+                      No students in the support queue right now. The queue updates automatically as new triggers are detected.
+                    </p>
+                  </div>
+                ) : (
+                  filteredItems.map((item) => {
+                    const triggerType = detectTrigger(item.reason);
+                    const ceiling = isCeiling(triggerType);
+                    const accent = ceiling ? C.blue : C.amber;
+                    const accentBg = ceiling ? C.blueBg : C.amberBg;
+                    const accentBorder = ceiling ? C.blueBorder : C.amberBorder;
+                    const expanded = expandedId === item.id;
+                    const band = getBand(item.interventionType);
+
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: C.surface,
+                          border: `1px solid ${C.border}`,
+                          borderLeft: `4px solid ${accent}`,
+                          borderRadius: 14,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {/* Card header */}
                         <div
                           style={{
                             display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                            gap: 6,
-                            flexShrink: 0,
+                            alignItems: "flex-start",
+                            gap: 12,
+                            padding: "14px 16px",
+                            cursor: "pointer",
                           }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={() => setExpandedId(expanded ? null : item.id)}
                         >
-                          <span style={{ fontSize: 11, color: C.subtle, whiteSpace: "nowrap" }}>
-                            {item.triggeredAt}
+                          <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1, lineHeight: 1 }}>
+                            {getTriggerIcon(triggerType)}
                           </span>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button
-                              type="button"
-                              onClick={() => dismiss(item.id)}
-                              style={{
-                                padding: "6px 12px",
-                                background: "transparent",
-                                color: C.subtle,
-                                border: `1.5px solid ${C.border}`,
-                                borderRadius: 8,
-                                fontSize: 11,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              Dismiss
-                            </button>
-                            <button
-                              type="button"
-                              style={{
-                                padding: "6px 14px",
-                                background: ceiling ? C.blue : C.blue,
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: 8,
-                                fontSize: 11,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              {ceiling ? "Review band" : "View student"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Expanded detail */}
-                      {expanded && (
-                        <div
-                          style={{
-                            padding: "0 16px 16px",
-                            borderTop: `1px solid ${C.border}`,
-                          }}
-                        >
-                          {/* Skill patterns */}
-                          <div
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                              color: C.subtle,
-                              margin: "12px 0 8px",
-                            }}
-                          >
-                            Skill pattern (this week)
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                            {item.skillPatterns.map((sp) => (
-                              <div
-                                key={sp.skill}
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
+                              {item.studentName}
+                            </span>
+                            <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.4 }}>
+                              {item.reason}
+                            </span>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              <span
                                 style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                  padding: "6px 0",
-                                  borderBottom: `1px solid ${C.border}`,
-                                  fontSize: 12,
+                                  display: "inline-block",
+                                  padding: "2px 8px",
+                                  borderRadius: 6,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  background: accentBg,
+                                  border: `1px solid ${accentBorder}`,
+                                  color: accent,
                                 }}
                               >
-                                <span style={{ fontWeight: 700, flex: 1, color: C.text }}>
-                                  {sp.skill}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    color: C.amber,
-                                    fontWeight: 700,
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {sp.hits}
-                                </span>
-                                <div
-                                  style={{
-                                    width: 60,
-                                    height: 4,
-                                    background: "rgba(255,255,255,0.08)",
-                                    borderRadius: 2,
-                                    overflow: "hidden",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: `${sp.barPct}%`,
-                                      height: "100%",
-                                      background: C.amber,
-                                      borderRadius: 2,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            ))}
+                                {getTriggerLabel(triggerType)}
+                              </span>
+                              {band !== "—" && (
+                                <span style={{ ...chip }}>{band}</span>
+                              )}
+                              {item.skillCode && (
+                                <span style={{ ...chip }}>{item.skillCode}</span>
+                              )}
+                              <span style={{ ...chip }}>{item.interventionType}</span>
+                            </div>
                           </div>
 
-                          {/* Suggested support */}
                           <div
                             style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                              color: C.subtle,
-                              margin: "12px 0 6px",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-end",
+                              gap: 6,
+                              flexShrink: 0,
                             }}
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            Suggested support
-                          </div>
-                          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, margin: "0 0 12px" }}>
-                            {item.suggestedSupport}
-                          </p>
-
-                          {/* Privacy note */}
-                          <div
-                            style={{
-                              background: C.blueBg,
-                              border: `1px solid ${C.blueBorder}`,
-                              borderRadius: 10,
-                              padding: "10px 12px",
-                              fontSize: 12,
-                              color: "#93c5fd",
-                              lineHeight: 1.5,
-                              marginBottom: 12,
-                            }}
-                          >
-                            Privacy note: This card shows skill-category patterns and floor-hit counts only. Specific questions, exact answers, and accuracy percentages are never surfaced here.
-                          </div>
-
-                          {/* Action row */}
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <button
-                              type="button"
-                              style={{
-                                padding: "8px 14px",
-                                background: C.blue,
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: 8,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              View {item.name}&apos;s profile
-                            </button>
-                            <button
-                              type="button"
-                              style={{
-                                padding: "8px 14px",
-                                background: "transparent",
-                                color: C.muted,
-                                border: `1.5px solid ${C.borderStrong}`,
-                                borderRadius: 8,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              Log a note
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => resolve(item.id)}
-                              style={{
-                                padding: "8px 14px",
-                                background: "transparent",
-                                color: C.subtle,
-                                border: `1.5px solid ${C.border}`,
-                                borderRadius: 8,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                fontFamily: "system-ui",
-                              }}
-                            >
-                              Mark resolved
-                            </button>
+                            <span style={{ fontSize: 11, color: C.subtle, whiteSpace: "nowrap" }}>
+                              {formatRelativeDate(item.createdAt)}
+                            </span>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button
+                                type="button"
+                                onClick={() => dismiss(item.id)}
+                                style={{
+                                  padding: "6px 12px",
+                                  background: "transparent",
+                                  color: C.subtle,
+                                  border: `1.5px solid ${C.border}`,
+                                  borderRadius: 8,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  fontFamily: "system-ui",
+                                }}
+                              >
+                                Dismiss
+                              </button>
+                              <a
+                                href={`/teacher/intervention-detail/${item.id}`}
+                                style={{
+                                  padding: "6px 14px",
+                                  background: C.blue,
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  fontFamily: "system-ui",
+                                  textDecoration: "none",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                {ceiling ? "Review band" : "View student"}
+                              </a>
+                            </div>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+
+                        {/* Expanded detail */}
+                        {expanded && (
+                          <div
+                            style={{
+                              padding: "0 16px 16px",
+                              borderTop: `1px solid ${C.border}`,
+                            }}
+                          >
+                            {/* Suggested support */}
+                            <div
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.06em",
+                                color: C.subtle,
+                                margin: "12px 0 6px",
+                              }}
+                            >
+                              Reason / notes
+                            </div>
+                            <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, margin: "0 0 12px" }}>
+                              {item.teacherNote ?? item.reason}
+                            </p>
+
+                            {/* Privacy note */}
+                            <div
+                              style={{
+                                background: C.blueBg,
+                                border: `1px solid ${C.blueBorder}`,
+                                borderRadius: 10,
+                                padding: "10px 12px",
+                                fontSize: 12,
+                                color: "#93c5fd",
+                                lineHeight: 1.5,
+                                marginBottom: 12,
+                              }}
+                            >
+                              Privacy note: This card shows skill-category patterns and floor-hit counts only. Specific questions, exact answers, and accuracy percentages are never surfaced here.
+                            </div>
+
+                            {/* Action row */}
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <a
+                                href={`/teacher/intervention-detail/${item.id}`}
+                                style={{
+                                  padding: "8px 14px",
+                                  background: C.blue,
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  fontFamily: "system-ui",
+                                  textDecoration: "none",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                View {item.studentName}&apos;s intervention
+                              </a>
+                              <button
+                                type="button"
+                                style={{
+                                  padding: "8px 14px",
+                                  background: "transparent",
+                                  color: C.muted,
+                                  border: `1.5px solid ${C.borderStrong}`,
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  fontFamily: "system-ui",
+                                }}
+                              >
+                                Log a note
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => resolve(item.id)}
+                                style={{
+                                  padding: "8px 14px",
+                                  background: "transparent",
+                                  color: C.subtle,
+                                  border: `1.5px solid ${C.border}`,
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  fontFamily: "system-ui",
+                                }}
+                              >
+                                Mark resolved
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </AppFrame>

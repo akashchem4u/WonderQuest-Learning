@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -197,6 +197,13 @@ const CONVS: Conv[] = [
 
 const TOTAL_UNREAD = CONVS.reduce((s, c) => s + c.unreadCount, 0);
 
+// ── API types ─────────────────────────────────────────────────────────────────
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string;
+};
+
 // ── Templates data ────────────────────────────────────────────────────────────
 const TEMPLATES = [
   {
@@ -232,6 +239,28 @@ export default function TeacherMessagesPage() {
   const [announceBody, setAnnounceBody] = useState(
     "Hi Class 4B families,\n\nJust wanted to share that your students have had a wonderful week on WonderQuest! The class collectively earned over 1,800 stars — the best weekly total this term.\n\nKeep encouraging those daily sessions at home. Streaks are building and skills are clicking!\n\nThanks,\nMs. Sharma"
   );
+
+  // ── Real student roster for sidebar ──────────────────────────────────────
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+
+  useEffect(() => {
+    const teacherId = (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ?? "demo-teacher";
+    async function load() {
+      try {
+        const res = await fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`);
+        if (!res.ok) return;
+        const data = await res.json() as { roster: RosterStudent[] };
+        setRoster(data.roster);
+      } catch {
+        // silently fail — sidebar falls back to stub CONVS
+      }
+    }
+    void load();
+  }, []);
+
+  // Build sidebar items: stub CONVS + real students that don't have a stub conv
+  const stubStudentNames = new Set(CONVS.filter((c) => !c.isAnnouncement).map((c) => c.studentName.toLowerCase()));
+  const extraStudents = roster.filter((s) => !stubStudentNames.has(s.displayName.toLowerCase()));
 
   const activeConv = CONVS.find((c) => c.id === activeConvId) ?? CONVS[0];
 
@@ -536,6 +565,26 @@ export default function TeacherMessagesPage() {
                     </button>
                   );
                 })}
+
+                {/* Real students without existing stub convs */}
+                {extraStudents.map((s) => (
+                  <div
+                    key={s.studentId}
+                    style={{
+                      padding: "13px 16px",
+                      borderBottom: `1px solid rgba(255,255,255,0.04)`,
+                      borderLeft: "3px solid transparent",
+                    }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 800, color: C.violet, marginBottom: 3, letterSpacing: "0.04em" }}>
+                      re: {s.displayName}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+                      {s.displayName}&apos;s parent
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted }}>No messages yet</div>
+                  </div>
+                ))}
               </div>
             </div>
 

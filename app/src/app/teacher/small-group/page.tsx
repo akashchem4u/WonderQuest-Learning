@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -19,100 +19,53 @@ const C = {
   muted: "#8b949e",
 };
 
-// ── Stub data ────────────────────────────────────────────────────────────────
+// ── API types ────────────────────────────────────────────────────────────────
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
+};
+
+// ── Tier helpers ──────────────────────────────────────────────────────────────
+type Tier = "strong" | "building" | "support";
+
+function getTier(s: RosterStudent): Tier {
+  const total = s.totalLast7d;
+  const correct = s.correctLast7d;
+  const masteryPct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  if (masteryPct >= 70) return "strong";
+  if (masteryPct >= 40) return "building";
+  return "support";
+}
+
+function getMasteryPct(s: RosterStudent): number {
+  const total = s.totalLast7d;
+  const correct = s.correctLast7d;
+  return total > 0 ? Math.round((correct / total) * 100) : 0;
+}
+
 type GroupColor = "teal" | "violet" | "gold";
+
+const TIER_CONFIG: Record<Tier, { color: GroupColor; label: string; description: string }> = {
+  strong:   { color: "teal",   label: "Strong",   description: "≥70% mastery this week" },
+  building: { color: "violet", label: "Building", description: "40–69% mastery this week" },
+  support:  { color: "gold",   label: "Support",  description: "<40% mastery this week" },
+};
 
 const COLOR_MAP: Record<GroupColor, { hex: string; chipBg: string; chipBorder: string; chipText: string }> = {
   teal:   { hex: C.teal,   chipBg: "rgba(45,212,191,.15)",  chipBorder: "rgba(45,212,191,.3)",   chipText: C.teal   },
   violet: { hex: C.violet, chipBg: "rgba(167,139,250,.15)", chipBorder: "rgba(167,139,250,.3)",  chipText: C.violet },
   gold:   { hex: C.gold,   chipBg: "rgba(251,191,36,.15)",  chipBorder: "rgba(251,191,36,.3)",   chipText: C.gold   },
 };
-
-const GROUPS = [
-  {
-    id: "A",
-    name: "A — Quest Explorers",
-    color: "teal" as GroupColor,
-    students: ["Amara", "Ben", "Cleo", "Daniel", "Eva", "Felix"],
-    assignment: "P1 Reading Batch",
-    engagementLabel: "5/6 started",
-    engagementColor: C.green,
-    engagementBg: "rgba(80,232,144,.15)",
-    engagementBorder: "rgba(80,232,144,.3)",
-  },
-  {
-    id: "B",
-    name: "B — Star Builders",
-    color: "violet" as GroupColor,
-    students: ["Grace", "Henry", "Isla", "Juno", "Kai"],
-    assignment: "P0 Maths Batch",
-    engagementLabel: "4/5 started",
-    engagementColor: C.gold,
-    engagementBg: "rgba(251,191,36,.15)",
-    engagementBorder: "rgba(251,191,36,.3)",
-  },
-  {
-    id: "C",
-    name: "C — Adventure Squad",
-    color: "gold" as GroupColor,
-    students: ["Lena", "Marco", "Nina", "Omar"],
-    assignment: "Free Explore",
-    engagementLabel: "4/4 started",
-    engagementColor: C.blue,
-    engagementBg: "rgba(56,189,248,.15)",
-    engagementBorder: "rgba(56,189,248,.3)",
-  },
-];
-
-const ENGAGEMENT_DATA = {
-  A: {
-    stats: [
-      { val: "5/6",                      lbl: "Students Started",    color: C.teal  },
-      { val: "12",                        lbl: "Sessions This Week",  color: C.green },
-      { val: "18 min",                    lbl: "Avg Session Length",  color: C.blue  },
-    ],
-    students: [
-      { initial: "A", name: "Amara",  band: "Explorer",   active: true  },
-      { initial: "B", name: "Ben",    band: "Explorer",   active: true  },
-      { initial: "C", name: "Cleo",   band: "Adventurer", active: true  },
-      { initial: "D", name: "Daniel", band: "Explorer",   active: true  },
-      { initial: "E", name: "Eva",    band: "Explorer",   active: true  },
-      { initial: "F", name: "Felix",  band: "Adventurer", active: false },
-    ],
-    color: C.teal,
-  },
-  B: {
-    stats: [
-      { val: "4/5",   lbl: "Students Started",   color: C.violet },
-      { val: "9",     lbl: "Sessions This Week",  color: C.green  },
-      { val: "14 min",lbl: "Avg Session Length",  color: C.blue   },
-    ],
-    students: [
-      { initial: "G", name: "Grace", band: "Navigator", active: true  },
-      { initial: "H", name: "Henry", band: "Navigator", active: true  },
-      { initial: "I", name: "Isla",  band: "Explorer",  active: true  },
-      { initial: "J", name: "Juno",  band: "Navigator", active: true  },
-      { initial: "K", name: "Kai",   band: "Explorer",  active: false },
-    ],
-    color: C.violet,
-  },
-  C: {
-    stats: [
-      { val: "4/4",   lbl: "Students Started",   color: C.gold  },
-      { val: "7",     lbl: "Sessions This Week",  color: C.green },
-      { val: "21 min",lbl: "Avg Session Length",  color: C.blue  },
-    ],
-    students: [
-      { initial: "L", name: "Lena",  band: "Voyager", active: true },
-      { initial: "M", name: "Marco", band: "Voyager", active: true },
-      { initial: "N", name: "Nina",  band: "Voyager", active: true },
-      { initial: "O", name: "Omar",  band: "Voyager", active: true },
-    ],
-    color: C.gold,
-  },
-};
-
-const ALL_STUDENTS = ["Amara", "Ben", "Cleo", "Daniel", "Eva", "Felix", "Grace", "Henry", "Isla", "Juno"];
 
 const QUEST_OPTIONS = [
   { id: "q1", label: "P0 Maths Batch",    sub: "Pre-K · Numbers & Counting" },
@@ -162,12 +115,35 @@ function Btn({
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function SmallGroupPage() {
   const [activeTab, setActiveTab] = useState<"groups" | "engagement">("groups");
-  const [activeGroup, setActiveGroup] = useState<"A" | "B" | "C">("A");
+  const [activeGroup, setActiveGroup] = useState<Tier>("strong");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [assignModalGroup, setAssignModalGroup] = useState<string | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<string | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+
+  useEffect(() => {
+    const teacherId = (typeof window !== "undefined" ? localStorage.getItem("wq_teacher_id") : null) ?? "demo-teacher";
+
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json() as { roster: RosterStudent[] };
+        setRoster(data.roster);
+      } catch {
+        // silently keep empty roster on error
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void load();
+  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -179,6 +155,14 @@ export default function SmallGroupPage() {
       prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
     );
   };
+
+  // Group by tier
+  const byTier: Record<Tier, RosterStudent[]> = { strong: [], building: [], support: [] };
+  for (const s of roster) {
+    byTier[getTier(s)].push(s);
+  }
+
+  const tiers: Tier[] = ["strong", "building", "support"];
 
   const tabStyle = (tab: string): React.CSSProperties => ({
     padding: "9px 20px",
@@ -193,9 +177,9 @@ export default function SmallGroupPage() {
     minHeight: 44,
   });
 
-  const groupTabStyle = (id: string): React.CSSProperties => {
-    const col = ENGAGEMENT_DATA[id as "A" | "B" | "C"].color;
-    const isActive = activeGroup === id;
+  const groupTabStyle = (tier: Tier): React.CSSProperties => {
+    const col = COLOR_MAP[TIER_CONFIG[tier].color].hex;
+    const isActive = activeGroup === tier;
     return {
       padding: "9px 20px",
       borderRadius: 8,
@@ -211,7 +195,11 @@ export default function SmallGroupPage() {
     };
   };
 
-  const eng = ENGAGEMENT_DATA[activeGroup];
+  const engStudents = byTier[activeGroup];
+  const engConfig = TIER_CONFIG[activeGroup];
+  const engCol = COLOR_MAP[engConfig.color].hex;
+
+  const totalStudents = roster.length;
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/small-group">
@@ -255,13 +243,22 @@ export default function SmallGroupPage() {
           <button style={tabStyle("engagement")} onClick={() => setActiveTab("engagement")}>Group Engagement</button>
         </div>
 
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>
+            Loading class roster…
+          </div>
+        )}
+
         {/* ── TAB: Groups ─────────────────────────────────────────────────── */}
-        {activeTab === "groups" && (
+        {!loading && activeTab === "groups" && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>My Groups</div>
-                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>3 groups · 15 students total</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+                  {tiers.filter((t) => byTier[t].length > 0).length} groups · {totalStudents} students total
+                </div>
               </div>
               <Btn variant="primary" onClick={() => setShowCreateForm(!showCreateForm)}>
                 + Create Group
@@ -320,19 +317,19 @@ export default function SmallGroupPage() {
                       gap: 6,
                       minHeight: 60,
                     }}>
-                      {ALL_STUDENTS.map((name) => (
-                        <button key={name} onClick={() => toggleStudent(name)} style={{
+                      {roster.map((s) => (
+                        <button key={s.studentId} onClick={() => toggleStudent(s.displayName)} style={{
                           padding: "5px 11px",
                           borderRadius: 20,
-                          border: `1.5px solid ${selectedStudents.includes(name) ? C.green : C.border}`,
-                          background: selectedStudents.includes(name) ? "rgba(80,232,144,.15)" : C.surface2,
-                          color: selectedStudents.includes(name) ? C.green : C.muted,
+                          border: `1.5px solid ${selectedStudents.includes(s.displayName) ? C.green : C.border}`,
+                          background: selectedStudents.includes(s.displayName) ? "rgba(80,232,144,.15)" : C.surface2,
+                          color: selectedStudents.includes(s.displayName) ? C.green : C.muted,
                           fontSize: 12.5,
                           fontWeight: 500,
                           cursor: "pointer",
                           minHeight: 32,
                           fontFamily: "system-ui,sans-serif",
-                        }}>{name}</button>
+                        }}>{s.displayName}</button>
                       ))}
                     </div>
                   </div>
@@ -345,84 +342,100 @@ export default function SmallGroupPage() {
             )}
 
             {/* Group cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-              {GROUPS.map((g) => {
-                const col = COLOR_MAP[g.color];
-                return (
-                  <div key={g.id} style={{
-                    background: C.surface,
-                    border: `1.5px solid ${col.hex}38`,
-                    borderRadius: 12,
-                    padding: 20,
-                    transition: "border-color .2s, transform .2s",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14, gap: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-                        <div style={{ width: 12, height: 12, borderRadius: "50%", background: col.hex, flexShrink: 0, marginTop: 2 }} />
-                        <div style={{ fontSize: 15.5, fontWeight: 700, color: C.text }}>{g.name}</div>
-                      </div>
-                      <span style={{
-                        fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                        background: C.surface2, color: C.muted, whiteSpace: "nowrap",
-                      }}>{g.students.length} students</span>
-                    </div>
-
-                    {/* Student chips */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                      {g.students.map((s) => (
-                        <span key={s} style={{
-                          padding: "4px 11px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-                          background: col.chipBg, color: col.chipText, border: `1px solid ${col.chipBorder}`,
-                        }}>{s}</span>
-                      ))}
-                    </div>
-
-                    {/* Assignment row */}
-                    <div style={{
-                      background: C.surface2, borderRadius: 8, padding: "10px 13px", marginBottom: 12,
-                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap",
+            {roster.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>
+                No students found in your class roster.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                {tiers.filter((tier) => byTier[tier].length > 0).map((tier) => {
+                  const config = TIER_CONFIG[tier];
+                  const col = COLOR_MAP[config.color];
+                  const students = byTier[tier];
+                  return (
+                    <div key={tier} style={{
+                      background: C.surface,
+                      border: `1.5px solid ${col.hex}38`,
+                      borderRadius: 12,
+                      padding: 20,
+                      transition: "border-color .2s, transform .2s",
                     }}>
-                      <div>
-                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Current Assignment</div>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text, marginTop: 2 }}>{g.assignment}</div>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14, gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+                          <div style={{ width: 12, height: 12, borderRadius: "50%", background: col.hex, flexShrink: 0, marginTop: 2 }} />
+                          <div style={{ fontSize: 15.5, fontWeight: 700, color: C.text }}>{config.label}</div>
+                        </div>
+                        <span style={{
+                          fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                          background: C.surface2, color: C.muted, whiteSpace: "nowrap",
+                        }}>{students.length} students</span>
                       </div>
-                      <span style={{
-                        fontSize: 12, fontWeight: 700, padding: "4px 11px", borderRadius: 20, whiteSpace: "nowrap",
-                        background: g.engagementBg, color: g.engagementColor, border: `1px solid ${g.engagementBorder}`,
-                      }}>{g.engagementLabel}</span>
-                    </div>
 
-                    {/* Actions */}
-                    <div style={{
-                      display: "flex", gap: 8, flexWrap: "wrap",
-                      paddingTop: 14, borderTop: `1px solid ${C.border}`,
-                      alignItems: "center",
-                    }}>
-                      <Btn variant="secondary" small onClick={() => setAssignModalGroup(g.id)}>Assign Quest</Btn>
-                      <Btn variant="ghost" small onClick={() => showToast(`Edit mode — Group ${g.id}`)}>Edit Group</Btn>
-                      <button
-                        onClick={() => { setActiveTab("engagement"); setActiveGroup(g.id as "A" | "B" | "C"); }}
-                        style={{
-                          marginLeft: "auto",
-                          fontSize: 13, color: C.blue, fontWeight: 600, textDecoration: "none",
-                          background: "none", border: "none", cursor: "pointer",
-                          fontFamily: "system-ui,sans-serif",
-                          minHeight: 44, display: "inline-flex", alignItems: "center",
-                          padding: "4px 8px", borderRadius: 6,
-                        }}
-                      >
-                        View Engagement →
-                      </button>
+                      <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{config.description}</div>
+
+                      {/* Student chips */}
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                        {students.map((s) => (
+                          <span key={s.studentId} style={{
+                            padding: "4px 11px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                            background: col.chipBg, color: col.chipText, border: `1px solid ${col.chipBorder}`,
+                          }}>{s.displayName}</span>
+                        ))}
+                      </div>
+
+                      {/* Assignment row */}
+                      <div style={{
+                        background: C.surface2, borderRadius: 8, padding: "10px 13px", marginBottom: 12,
+                        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap",
+                      }}>
+                        <div>
+                          <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em" }}>Avg mastery this week</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text, marginTop: 2 }}>
+                            {students.length > 0
+                              ? `${Math.round(students.reduce((sum, s) => sum + getMasteryPct(s), 0) / students.length)}%`
+                              : "—"}
+                          </div>
+                        </div>
+                        <span style={{
+                          fontSize: 12, fontWeight: 700, padding: "4px 11px", borderRadius: 20, whiteSpace: "nowrap",
+                          background: "rgba(80,232,144,.15)", color: C.green, border: "1px solid rgba(80,232,144,.3)",
+                        }}>
+                          {students.filter((s) => s.sessionsLast7d > 0).length}/{students.length} active
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{
+                        display: "flex", gap: 8, flexWrap: "wrap",
+                        paddingTop: 14, borderTop: `1px solid ${C.border}`,
+                        alignItems: "center",
+                      }}>
+                        <Btn variant="secondary" small onClick={() => setAssignModalGroup(tier)}>Assign Quest</Btn>
+                        <Btn variant="ghost" small onClick={() => showToast(`Edit mode — ${config.label} group`)}>Edit Group</Btn>
+                        <button
+                          onClick={() => { setActiveTab("engagement"); setActiveGroup(tier); }}
+                          style={{
+                            marginLeft: "auto",
+                            fontSize: 13, color: C.blue, fontWeight: 600, textDecoration: "none",
+                            background: "none", border: "none", cursor: "pointer",
+                            fontFamily: "system-ui,sans-serif",
+                            minHeight: 44, display: "inline-flex", alignItems: "center",
+                            padding: "4px 8px", borderRadius: 6,
+                          }}
+                        >
+                          View Engagement →
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
         {/* ── TAB: Group Engagement ───────────────────────────────────────── */}
-        {activeTab === "engagement" && (
+        {!loading && activeTab === "engagement" && (
           <div>
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>Group Engagement</div>
@@ -431,16 +444,23 @@ export default function SmallGroupPage() {
 
             {/* Group selector */}
             <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-              {GROUPS.map((g) => (
-                <button key={g.id} style={groupTabStyle(g.id)} onClick={() => setActiveGroup(g.id as "A" | "B" | "C")}>
-                  {g.name}
+              {tiers.map((tier) => (
+                <button key={tier} style={groupTabStyle(tier)} onClick={() => setActiveGroup(tier)}>
+                  {TIER_CONFIG[tier].label}
                 </button>
               ))}
             </div>
 
             {/* Stats row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
-              {eng.stats.map((s) => (
+              {[
+                { val: `${engStudents.filter((s) => s.sessionsLast7d > 0).length}/${engStudents.length}`, lbl: "Students Active", color: engCol },
+                { val: String(engStudents.reduce((sum, s) => sum + s.sessionsLast7d, 0)), lbl: "Sessions This Week", color: C.green },
+                { val: engStudents.length > 0
+                    ? `${Math.round(engStudents.reduce((sum, s) => sum + getMasteryPct(s), 0) / engStudents.length)}%`
+                    : "—",
+                  lbl: "Avg Mastery", color: C.blue },
+              ].map((s) => (
                 <div key={s.lbl} style={{
                   background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 16, textAlign: "center",
                 }}>
@@ -451,41 +471,54 @@ export default function SmallGroupPage() {
             </div>
 
             {/* Student rows */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {eng.students.map((s) => (
-                <div key={s.name} style={{
-                  background: C.surface,
-                  border: `1.5px solid ${C.border}`,
-                  borderRadius: 8,
-                  padding: "14px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  flexWrap: "wrap",
-                }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: "50%",
-                    background: s.active ? eng.color + "2e" : "rgba(139,148,158,.12)",
-                    color: s.active ? eng.color : C.muted,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 14, fontWeight: 800, flexShrink: 0,
-                  }}>{s.initial}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, flex: 1, minWidth: 80, color: C.text }}>{s.name}</div>
-                  <span style={{
-                    fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                    background: "rgba(56,189,248,.15)", color: C.blue, border: `1px solid rgba(56,189,248,.3)`,
-                  }}>{s.band}</span>
-                  <span style={{
-                    fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 20,
-                    background: s.active ? "rgba(80,232,144,.15)" : "rgba(139,148,158,.12)",
-                    color: s.active ? C.green : C.muted,
-                    border: `1px solid ${s.active ? "rgba(80,232,144,.3)" : "rgba(139,148,158,.25)"}`,
-                  }}>
-                    {s.active ? "Active this week" : "Not started yet"}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {engStudents.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>
+                No students in this group.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {engStudents.map((s) => {
+                  const active = s.sessionsLast7d > 0;
+                  return (
+                    <div key={s.studentId} style={{
+                      background: C.surface,
+                      border: `1.5px solid ${C.border}`,
+                      borderRadius: 8,
+                      padding: "14px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      flexWrap: "wrap",
+                    }}>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: "50%",
+                        background: active ? engCol + "2e" : "rgba(139,148,158,.12)",
+                        color: active ? engCol : C.muted,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 14, fontWeight: 800, flexShrink: 0,
+                      }}>{s.displayName.charAt(0).toUpperCase()}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, flex: 1, minWidth: 80, color: C.text }}>{s.displayName}</div>
+                      <span style={{
+                        fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                        background: "rgba(56,189,248,.15)", color: C.blue, border: `1px solid rgba(56,189,248,.3)`,
+                      }}>{s.launchBandCode}</span>
+                      <span style={{
+                        fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                        background: "rgba(255,255,255,0.05)", color: C.muted, border: `1px solid ${C.border}`,
+                      }}>{getMasteryPct(s)}% mastery</span>
+                      <span style={{
+                        fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 20,
+                        background: active ? "rgba(80,232,144,.15)" : "rgba(139,148,158,.12)",
+                        color: active ? C.green : C.muted,
+                        border: `1px solid ${active ? "rgba(80,232,144,.3)" : "rgba(139,148,158,.25)"}`,
+                      }}>
+                        {active ? `${s.sessionsLast7d} session${s.sessionsLast7d !== 1 ? "s" : ""} this week` : "Not started yet"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Encouragement */}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
@@ -523,7 +556,7 @@ export default function SmallGroupPage() {
               width: "100%", maxWidth: 440,
             }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 18 }}>
-                Assign Quest — Group {assignModalGroup}
+                Assign Quest — {TIER_CONFIG[assignModalGroup as Tier]?.label ?? assignModalGroup} Group
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 4 }}>
                 {QUEST_OPTIONS.map((q) => (
@@ -552,7 +585,7 @@ export default function SmallGroupPage() {
                 <Btn variant="primary" onClick={() => {
                   if (selectedQuest) {
                     const quest = QUEST_OPTIONS.find((q) => q.id === selectedQuest);
-                    showToast(`"${quest?.label}" assigned to Group ${assignModalGroup}`);
+                    showToast(`"${quest?.label}" assigned to ${TIER_CONFIG[assignModalGroup as Tier]?.label ?? assignModalGroup} group`);
                   }
                   setAssignModalGroup(null);
                   setSelectedQuest(null);

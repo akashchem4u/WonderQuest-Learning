@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
@@ -17,7 +17,7 @@ const C = {
   surface2: "#1a1440",
 } as const;
 
-export default function PlayCompletePage() {
+function PlayCompletePageInner() {
   const params = useSearchParams();
 
   // Real session params from /play or /play/session page
@@ -166,5 +166,13 @@ export default function PlayCompletePage() {
         </div>
       </div>
     </AppFrame>
+  );
+}
+
+export default function PlayCompletePage() {
+  return (
+    <Suspense fallback={<div style={{ background: "#100b2e", minHeight: "100vh" }} />}>
+      <PlayCompletePageInner />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
@@ -451,7 +451,7 @@ function BarChart({ heatmap }: { heatmap: HeatmapDay[] }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ParentWeeklyReportPage() {
+function ParentWeeklyReportPageInner() {
   const [tab, setTab] = useState<Tab>("full");
   const [weekOffset, setWeekOffset] = useState(0);
   const [report, setReport] = useState<ApiReport | null>(null);
@@ -1284,5 +1284,13 @@ export default function ParentWeeklyReportPage() {
         </div>
       </div>
     </AppFrame>
+  );
+}
+
+export default function ParentWeeklyReportPage() {
+  return (
+    <Suspense fallback={<div style={{ background: "#100b2e", minHeight: "100vh" }} />}>
+      <ParentWeeklyReportPageInner />
+    </Suspense>
   );
 }

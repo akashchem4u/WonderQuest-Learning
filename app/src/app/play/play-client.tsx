@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { ShellCard, StatTile } from "@/components/ui";
@@ -1163,7 +1163,7 @@ function ProgressDot({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function PlayClient() {
+function PlayClientInner() {
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
   const entryMode = searchParams.get("entry") ?? "new";
@@ -1930,5 +1930,13 @@ export default function PlayClient() {
         ) : null}
       </div>
     </AppFrame>
+  );
+}
+
+export default function PlayClient() {
+  return (
+    <Suspense fallback={<div style={{ background: "#100b2e", minHeight: "100vh" }} />}>
+      <PlayClientInner />
+    </Suspense>
   );
 }
