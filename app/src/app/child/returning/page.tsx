@@ -1,12 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ReturnType = "same-day" | "two-day" | "seven-day" | "comeback";
+
+type SessionData = {
+  student: {
+    displayName: string;
+    launchBandCode: string;
+  };
+  progression: {
+    totalPoints: number;
+    currentLevel: number;
+    badgeCount: number;
+    trophyCount: number;
+  };
+};
 
 // ─── Stub data ────────────────────────────────────────────────────────────────
 
@@ -341,7 +354,9 @@ function WinRow({
 
 // ─── Screen components ────────────────────────────────────────────────────────
 
-function SameDayScreen() {
+function SameDayScreen({ session }: { session: SessionData | null }) {
+  const displayName = session?.student.displayName ?? "Explorer";
+  const streakCount = 0;
   const nodes = [
     { emoji: "🌟", status: "done" },
     { emoji: "🔮", status: "done" },
@@ -368,7 +383,7 @@ function SameDayScreen() {
         emoji="🦋"
         gradFrom="#c4a0ff"
         gradTo="#9b72ff"
-        name="Welcome back, Zara! ✨"
+        name={`Welcome back, ${displayName}! ✨`}
         sub="You were just here — ready to keep going?"
       />
       <div
@@ -481,7 +496,7 @@ function SameDayScreen() {
                     fontFamily: "'Nunito', system-ui, sans-serif",
                   }}
                 >
-                  5
+                  {streakCount}
                 </div>
                 <div
                   style={{
@@ -535,7 +550,10 @@ function SameDayScreen() {
   );
 }
 
-function TwoDayScreen() {
+function TwoDayScreen({ session }: { session: SessionData | null }) {
+  const displayName = session?.student.displayName ?? "Explorer";
+  const totalPoints = session?.progression.totalPoints ?? 0;
+
   const weekDays = [
     { label: "Mon", status: "played", sub: "✓" },
     { label: "Tue", status: "played", sub: "✓" },
@@ -559,7 +577,7 @@ function TwoDayScreen() {
         emoji="🦁"
         gradFrom="#ffb060"
         gradTo="#ff8020"
-        name="Zara is back! Let's quest! 🚀"
+        name={`${displayName} is back! Let's quest! 🚀`}
         sub="Your world has been waiting for you"
       />
       <div
@@ -572,7 +590,7 @@ function TwoDayScreen() {
         }}
       >
         <div>
-          <StarSafe text="Your 42 stars are safe — they never go away!" />
+          <StarSafe text={`Your ${totalPoints} stars are safe — they never go away!`} />
           <WorldResumeCard
             label="Right Where You Left Off"
             worldName="Crystal Caverns 💎"
@@ -641,8 +659,8 @@ function TwoDayScreen() {
             </div>
           </RPanel>
           <RPanel title="Still Yours ⭐">
-            <WinRow icon="⭐" text="42 stars collected" time="safe" />
-            <WinRow icon="🏅" text="3 badges earned" time="safe" />
+            <WinRow icon="⭐" text={`${totalPoints} stars collected`} time="safe" />
+            <WinRow icon="🏅" text={`${session?.progression.badgeCount ?? 0} badges earned`} time="safe" />
             <div
               style={{
                 display: "flex",
@@ -701,7 +719,10 @@ function BonusChips({
   );
 }
 
-function SevenDayScreen() {
+function SevenDayScreen({ session }: { session: SessionData | null }) {
+  const displayName = session?.student.displayName ?? "Explorer";
+  const totalPoints = session?.progression.totalPoints ?? 0;
+
   return (
     <div
       style={{
@@ -717,7 +738,7 @@ function SevenDayScreen() {
         emoji="🐉"
         gradFrom="#80d0ff"
         gradTo="#2080c0"
-        name="Zara returns! The dragons waited! 🐉"
+        name={`${displayName} returns! The dragons waited! 🐉`}
         sub="Great news — your streak is restored!"
       />
       <BonusChips
@@ -737,7 +758,7 @@ function SevenDayScreen() {
         }}
       >
         <div>
-          <StarSafe text="All 42 stars kept safe while you were away — nothing lost!" />
+          <StarSafe text={`All ${totalPoints} stars kept safe while you were away — nothing lost!`} />
           <WorldResumeCard
             label="Still Right There For You"
             worldName="Crystal Caverns 💎"
@@ -792,8 +813,8 @@ function SevenDayScreen() {
             </div>
           </RPanel>
           <RPanel title="All Still Yours ⭐">
-            <WinRow icon="⭐" text="42 stars → 43 now!" time="+1 bonus" />
-            <WinRow icon="🏅" text="3 badges" time="safe" />
+            <WinRow icon="⭐" text={`${totalPoints} stars → ${totalPoints + 1} now!`} time="+1 bonus" />
+            <WinRow icon="🏅" text={`${session?.progression.badgeCount ?? 0} badges`} time="safe" />
             <div
               style={{
                 display: "flex",
@@ -816,7 +837,10 @@ function SevenDayScreen() {
   );
 }
 
-function ComebackScreen() {
+function ComebackScreen({ session }: { session: SessionData | null }) {
+  const displayName = session?.student.displayName ?? "Explorer";
+  const totalPoints = session?.progression.totalPoints ?? 0;
+
   return (
     <div
       style={{
@@ -862,7 +886,7 @@ function ComebackScreen() {
               fontFamily: "'Nunito', system-ui, sans-serif",
             }}
           >
-            LEGENDARY COMEBACK, ZARA! 🎉
+            LEGENDARY COMEBACK, {displayName.toUpperCase()}! 🎉
           </div>
           <div
             style={{
@@ -905,7 +929,7 @@ function ComebackScreen() {
         }}
       >
         <div>
-          <StarSafe text="Every star you ever earned is still here — 42 stars, all waiting!" />
+          <StarSafe text={`Every star you ever earned is still here — ${totalPoints} stars, all waiting!`} />
           <BonusChips
             chips={[
               { label: "⭐ +2 stars", variant: "gold" },
@@ -936,7 +960,7 @@ function ComebackScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <RPanel title="Legend Status 🏆" borderColor={GOLD}>
             <WinRow icon="🏅" text="Legend Badge earned" time="now" color={GOLD} />
-            <WinRow icon="⭐" text="Stars: 42 → 44" time="+2" />
+            <WinRow icon="⭐" text={`Stars: ${totalPoints} → ${totalPoints + 2}`} time="+2" />
             <div
               style={{
                 display: "flex",
@@ -954,8 +978,8 @@ function ComebackScreen() {
             </div>
           </RPanel>
           <RPanel title="All Still Yours ⭐">
-            <WinRow icon="⭐" text="44 stars (kept all!)" time="safe" />
-            <WinRow icon="🏅" text="4 badges total" time="safe" />
+            <WinRow icon="⭐" text={`${totalPoints + 2} stars (kept all!)`} time="safe" />
+            <WinRow icon="🏅" text={`${(session?.progression.badgeCount ?? 0) + 1} badges total`} time="safe" />
             <div
               style={{
                 display: "flex",
@@ -982,6 +1006,18 @@ function ComebackScreen() {
 
 export default function ChildReturningPage() {
   const [activeTab, setActiveTab] = useState<ReturnType>("same-day");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        setSession(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -1063,11 +1099,27 @@ export default function ChildReturningPage() {
           </div>
         </div>
 
+        {/* Loading state */}
+        {loading && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "80px 0",
+              color: MUTED,
+              fontFamily: "'Nunito', system-ui, sans-serif",
+              fontSize: 16,
+              fontWeight: 700,
+            }}
+          >
+            Loading your adventure...
+          </div>
+        )}
+
         {/* Screen content */}
-        {activeTab === "same-day" && <SameDayScreen />}
-        {activeTab === "two-day" && <TwoDayScreen />}
-        {activeTab === "seven-day" && <SevenDayScreen />}
-        {activeTab === "comeback" && <ComebackScreen />}
+        {!loading && activeTab === "same-day" && <SameDayScreen session={session} />}
+        {!loading && activeTab === "two-day" && <TwoDayScreen session={session} />}
+        {!loading && activeTab === "seven-day" && <SevenDayScreen session={session} />}
+        {!loading && activeTab === "comeback" && <ComebackScreen session={session} />}
       </div>
     </AppFrame>
   );

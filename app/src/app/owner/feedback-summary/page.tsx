@@ -1,9 +1,8 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
-import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
-import OwnerGate from "../owner-gate";
-
-export const dynamic = "force-dynamic";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const BASE    = "#100b2e";
@@ -17,48 +16,42 @@ const BORDER  = "rgba(255,255,255,0.06)";
 const TEXT    = "#f0f6ff";
 const MUTED   = "rgba(255,255,255,0.4)";
 const MUTED2  = "rgba(255,255,255,0.25)";
-const MUTED3  = "rgba(255,255,255,0.06)";
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── API types ──────────────────────────────────────────────────────────────────
+interface FeedbackCategory {
+  category: string;
+  count: number;
+}
 
-const STATS = [
-  { n: "47",  label: "Total Items",   delta: "+12 vs prev", good: false },
-  { n: "2",   label: "Open P0",       delta: "+1 vs prev",  good: false },
-  { n: "94%", label: "SLA Met",       delta: "+3pp",        good: true  },
-  { n: "4.2h",label: "Avg Resolve",   delta: "-1.3h",       good: true  },
-  { n: "+42", label: "NPS Score",     delta: "+5pts",       good: true  },
-];
+interface FeedbackReviewStatus {
+  reviewStatus: string;
+  count: number;
+}
 
-const VOL_BARS: { h: number; color: string; label: string }[] = [
-  { h: 22, color: MINT,  label: "M1" },
-  { h: 18, color: MINT,  label: "" },
-  { h: 30, color: RED,   label: "" },
-  { h: 15, color: MINT,  label: "" },
-  { h: 20, color: MINT,  label: "W1" },
-  { h: 12, color: MINT,  label: "" },
-  { h: 16, color: MINT,  label: "" },
-  { h: 25, color: AMBER, label: "" },
-  { h: 14, color: MINT,  label: "" },
-  { h: 18, color: MINT,  label: "W2" },
-  { h: 10, color: MINT,  label: "" },
-  { h: 22, color: MINT,  label: "" },
-  { h: 35, color: RED,   label: "" },
-  { h: 16, color: MINT,  label: "" },
-  { h: 19, color: MINT,  label: "W3" },
-  { h: 14, color: MINT,  label: "" },
-  { h: 17, color: MINT,  label: "" },
-  { h: 21, color: MINT,  label: "" },
-  { h: 28, color: MINT,  label: "" },
-  { h: 24, color: MINT,  label: "W4" },
-];
+interface OpenFeedbackItem {
+  id: string;
+  category: string;
+  urgency: string;
+  summary: string;
+  createdAt: string;
+  resolved: string;
+}
 
-const TYPE_ROWS: { label: string; pct: number; n: number; color: string }[] = [
-  { label: "Bug",     pct: 40, n: 19, color: RED   },
-  { label: "Feature", pct: 32, n: 15, color: VIOLET },
-  { label: "Content", pct: 17, n: 8,  color: TEAL  },
-  { label: "Question",pct: 11, n: 5,  color: AMBER },
-];
+interface OverviewData {
+  counts: {
+    students: number;
+    feedbackItems: number;
+  };
+  feedbackByCategory: FeedbackCategory[];
+  feedbackByReviewStatus: FeedbackReviewStatus[];
+}
 
+interface OpenFeedbackData {
+  items: OpenFeedbackItem[];
+  total: number;
+}
+
+// ── Static display data (unchanged from original) ─────────────────────────────
 const SLA_ROWS: {
   priority: string;
   color: string;
@@ -69,26 +62,11 @@ const SLA_ROWS: {
   pct: string;
   pctGood: boolean;
 }[] = [
-  { priority: "P0 Critical", color: RED,   target: "4h",         actual: "3.2h", met: "8",  missed: "1", pct: "89%",  pctGood: true },
-  { priority: "P1 Major",    color: AMBER, target: "24h",        actual: "18h",  met: "12", missed: "0", pct: "100%", pctGood: true },
-  { priority: "P2 Moderate", color: TEAL,  target: "72h",        actual: "48h",  met: "10", missed: "1", pct: "91%",  pctGood: false },
-  { priority: "P3 Minor",    color: TEXT,  target: "7d",         actual: "4.2d", met: "8",  missed: "0", pct: "100%", pctGood: true },
-  { priority: "Feature",     color: VIOLET,target: "Best effort", actual: "—",   met: "—",  missed: "—", pct: "N/A",  pctGood: false },
-];
-
-const RECENT_RES: { icon: string; title: string; meta: string; time: string }[] = [
-  { icon: "✅", title: "SSO token expiry — P0 fixed",          meta: "Riverside Elementary · Hotfix v2.4.8", time: "2h ago" },
-  { icon: "✅", title: "G3 Fractions wrong answer — P1 fixed", meta: "Maplewood School · Content patch",     time: "1d ago" },
-  { icon: "🚫", title: "Video call feature — Won't Fix",       meta: "Lincoln Academy · Out of scope",      time: "2d ago" },
-  { icon: "✅", title: "Queue badge stale count — P1 fixed",   meta: "Oak Park Prep · Cache invalidation",  time: "3d ago" },
-];
-
-const TOP_SCHOOLS: { name: string; count: number; health: "Good" | "Attn" }[] = [
-  { name: "Lincoln Academy",      count: 9, health: "Attn" },
-  { name: "Riverside Elementary", count: 7, health: "Good" },
-  { name: "Oak Park Prep",        count: 6, health: "Good" },
-  { name: "Maplewood School",     count: 5, health: "Good" },
-  { name: "Cedar Grove",          count: 4, health: "Good" },
+  { priority: "P0 Critical", color: RED,   target: "4h",          actual: "3.2h", met: "8",  missed: "1", pct: "89%",  pctGood: true  },
+  { priority: "P1 Major",    color: AMBER, target: "24h",         actual: "18h",  met: "12", missed: "0", pct: "100%", pctGood: true  },
+  { priority: "P2 Moderate", color: TEAL,  target: "72h",         actual: "48h",  met: "10", missed: "1", pct: "91%",  pctGood: false },
+  { priority: "P3 Minor",    color: TEXT,  target: "7d",          actual: "4.2d", met: "8",  missed: "0", pct: "100%", pctGood: true  },
+  { priority: "Feature",     color: VIOLET,target: "Best effort", actual: "—",    met: "—",  missed: "—", pct: "N/A",  pctGood: false },
 ];
 
 const TREND_BARS_90D: { h: number; color: string; label: string }[] = [
@@ -107,17 +85,65 @@ const TREND_BARS_90D: { h: number; color: string; label: string }[] = [
   { h: 47, color: MINT,  label: "W13" },
 ];
 
-export default async function OwnerFeedbackSummaryPage() {
-  const configured = isOwnerAccessConfigured();
-  const allowed = configured && (await hasOwnerAccess());
+// ── Category color map ────────────────────────────────────────────────────────
+function categoryColor(cat: string): string {
+  const map: Record<string, string> = {
+    "bug": RED,
+    "feature-request": VIOLET,
+    "content-issue": TEAL,
+    "question": AMBER,
+    "product-insight": MINT,
+    "praise": MINT,
+    "other": MUTED,
+  };
+  return map[cat?.toLowerCase()] ?? MUTED;
+}
 
-  if (!allowed) {
-    return (
-      <AppFrame audience="owner" currentPath="/owner">
-        <OwnerGate configured={configured} />
-      </AppFrame>
-    );
-  }
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function OwnerFeedbackSummaryPage() {
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [openFeedback, setOpenFeedback] = useState<OpenFeedbackData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch("/api/owner/overview").then((r) => r.json()),
+      fetch("/api/owner/feedback?status=open&limit=50").then((r) => r.json()),
+    ])
+      .then(([ov, fb]) => {
+        setOverview(ov as OverviewData);
+        setOpenFeedback(fb as OpenFeedbackData);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(String(err));
+        setLoading(false);
+      });
+  }, []);
+
+  // Derived stats from real data
+  const totalFeedback = overview?.counts.feedbackItems ?? 0;
+  const openCount = openFeedback?.total ?? 0;
+
+  const resolvedCount = overview?.feedbackByReviewStatus?.find((r) => r.reviewStatus === "resolved")?.count ?? 0;
+  const pendingCount  = overview?.feedbackByReviewStatus?.find((r) => r.reviewStatus === "pending")?.count ?? 0;
+
+  const resolvedPct = totalFeedback > 0 ? Math.round((resolvedCount / totalFeedback) * 100) : 0;
+  const openPct     = totalFeedback > 0 ? Math.round((openCount / totalFeedback) * 100) : 0;
+  const otherPct    = Math.max(0, 100 - resolvedPct - openPct);
+
+  // Top category from real data
+  const topCategoryRow = overview?.feedbackByCategory?.[0];
+
+  const STATS = [
+    { n: totalFeedback.toLocaleString(), label: "Total Items",   good: false },
+    { n: openCount.toLocaleString(),     label: "Open Items",    good: false },
+    { n: resolvedCount.toLocaleString(), label: "Resolved",      good: true  },
+    { n: pendingCount.toLocaleString(),  label: "Pending Triage",good: false },
+    { n: topCategoryRow ? topCategoryRow.category : "—", label: "Top Category", good: true },
+  ];
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
@@ -129,6 +155,18 @@ export default async function OwnerFeedbackSummaryPage() {
           <h1 style={{ fontSize: 22, fontWeight: 900, color: TEXT, margin: 0 }}>Feedback Summary</h1>
           <p style={{ fontSize: 13, color: MUTED, marginTop: 4, marginBottom: 0 }}>Aggregate product health — volume trends, SLA performance, NPS, and top schools.</p>
         </div>
+
+        {/* Loading / error */}
+        {loading && (
+          <div style={{ maxWidth: 1100, margin: "0 auto 16px", fontSize: 13, color: MUTED }}>
+            Loading feedback data…
+          </div>
+        )}
+        {error && (
+          <div style={{ maxWidth: 1100, margin: "0 auto 16px", fontSize: 13, color: RED }}>
+            Error: {error}
+          </div>
+        )}
 
         {/* ── 30-day summary shell ─────────────────────────────────── */}
         <div style={{ maxWidth: 1100, margin: "0 auto 32px", background: "#0d1117", borderRadius: 16, border: `1px solid ${BORDER}`, overflow: "hidden" }}>
@@ -146,13 +184,16 @@ export default async function OwnerFeedbackSummaryPage() {
             <span style={{ fontSize: 11, fontWeight: 700, color: MINT }}>&#8595; Export CSV</span>
           </div>
 
-          {/* Top stats row */}
+          {/* Top stats row — live data */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 1, background: BORDER, borderBottom: `1px solid ${BORDER}` }}>
             {STATS.map((s) => (
               <div key={s.label} style={{ background: "#0d1117", padding: "18px 20px" }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: TEXT }}>{s.n}</div>
+                {loading ? (
+                  <div style={{ height: 22, width: 48, background: "rgba(255,255,255,.06)", borderRadius: 4, marginBottom: 6 }} />
+                ) : (
+                  <div style={{ fontSize: 22, fontWeight: 900, color: TEXT }}>{s.n}</div>
+                )}
                 <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: MUTED2, marginTop: 2 }}>{s.label}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: s.good ? MINT : AMBER }}>{s.delta}</div>
               </div>
             ))}
           </div>
@@ -163,48 +204,49 @@ export default async function OwnerFeedbackSummaryPage() {
             {/* LEFT */}
             <div style={{ padding: 24, borderRight: `1px solid ${BORDER}` }}>
 
-              {/* Section: Volume & Priority */}
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>Volume &amp; Priority</div>
+              {/* Section: By Category (live) */}
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>Feedback by AI Category</div>
 
-              {/* Volume chart */}
               <div style={{ background: SURFACE, borderRadius: 12, padding: "18px 20px", marginBottom: 16, border: "1px solid rgba(255,255,255,.05)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 12 }}>Daily Submission Volume — Last 30 Days</div>
-                <div style={{ height: 80, display: "flex", gap: 3, alignItems: "flex-end" }}>
-                  {VOL_BARS.map((b, i) => (
-                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                      <div style={{ width: "100%", borderRadius: "2px 2px 0 0", height: b.h, minHeight: 3, background: b.color, opacity: b.color === RED ? 0.7 : b.color === AMBER ? 0.6 : 0.4 }} />
-                      <div style={{ fontSize: 8, color: MUTED2, fontWeight: 600 }}>{b.label}</div>
+                {loading ? (
+                  <div style={{ fontSize: 12, color: MUTED }}>Loading…</div>
+                ) : overview?.feedbackByCategory && overview.feedbackByCategory.length > 0 ? (
+                  <>
+                    {/* Stacked bar */}
+                    <div style={{ display: "flex", gap: 3, height: 16, borderRadius: 5, overflow: "hidden", marginBottom: 12 }}>
+                      {overview.feedbackByCategory.map((row) => (
+                        <div
+                          key={row.category}
+                          style={{
+                            flex: row.count,
+                            background: categoryColor(row.category),
+                            opacity: 0.8,
+                          }}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-                  <span style={{ fontSize: 10, color: MUTED2 }}><span style={{ color: RED }}>■</span> P0 spike</span>
-                  <span style={{ fontSize: 10, color: MUTED2 }}><span style={{ color: AMBER }}>■</span> P1 cluster</span>
-                  <span style={{ fontSize: 10, color: MUTED2 }}><span style={{ color: MINT }}>■</span> Normal</span>
-                </div>
+                    {overview.feedbackByCategory.map((row) => (
+                      <div key={row.category} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: categoryColor(row.category), flexShrink: 0 }} />
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", flex: 1, textTransform: "capitalize" }}>{row.category}</div>
+                        <div style={{ flex: 1, background: "rgba(255,255,255,.07)", borderRadius: 3, height: 5 }}>
+                          <div style={{
+                            height: 5,
+                            borderRadius: 3,
+                            width: totalFeedback > 0 ? `${Math.round((row.count / totalFeedback) * 100)}%` : "0%",
+                            background: categoryColor(row.category),
+                          }} />
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.45)", width: 32, textAlign: "right" }}>{row.count}</div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: MUTED }}>No category data.</div>
+                )}
               </div>
 
-              {/* Type breakdown */}
-              <div style={{ background: SURFACE, borderRadius: 12, padding: "18px 20px", marginBottom: 16, border: "1px solid rgba(255,255,255,.05)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 12 }}>Feedback Type Breakdown</div>
-                <div style={{ display: "flex", gap: 4, height: 16, borderRadius: 5, overflow: "hidden", marginBottom: 10 }}>
-                  <div style={{ flex: 19, background: RED,   opacity: 0.8 }} />
-                  <div style={{ flex: 15, background: AMBER, opacity: 0.8 }} />
-                  <div style={{ flex: 8,  background: TEAL,  opacity: 0.7 }} />
-                  <div style={{ flex: 5,  background: VIOLET,opacity: 0.8 }} />
-                </div>
-                {TYPE_ROWS.map((r) => (
-                  <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,.55)", width: 80, flexShrink: 0 }}>{r.label}</div>
-                    <div style={{ flex: 1, background: "rgba(255,255,255,.07)", borderRadius: 3, height: 5 }}>
-                      <div style={{ height: 5, borderRadius: 3, width: `${r.pct}%`, background: r.color }} />
-                    </div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.45)", width: 32, textAlign: "right" }}>{r.n}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Section: SLA Performance */}
+              {/* Section: SLA Performance (static) */}
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>SLA Performance</div>
               <div style={{ background: SURFACE, borderRadius: 12, marginBottom: 16, border: "1px solid rgba(255,255,255,.05)", overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -230,7 +272,7 @@ export default async function OwnerFeedbackSummaryPage() {
                 </table>
               </div>
 
-              {/* Section: NPS */}
+              {/* Section: NPS (static) */}
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: MUTED, marginBottom: 12, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>NPS &amp; Satisfaction</div>
               <div style={{ background: SURFACE, borderRadius: 12, padding: "18px 20px", border: "1px solid rgba(255,255,255,.05)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 12 }}>Net Promoter Score — Post-Resolution</div>
@@ -262,48 +304,64 @@ export default async function OwnerFeedbackSummaryPage() {
             {/* RIGHT sidebar */}
             <div style={{ padding: 20 }}>
 
-              {/* Recent resolutions */}
+              {/* Open feedback items — live */}
               <div style={{ background: SURFACE, borderRadius: 10, padding: "14px 16px", marginBottom: 12, border: "1px solid rgba(255,255,255,.05)" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 10 }}>Recent Resolutions</div>
-                {RECENT_RES.map((r, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: i < RECENT_RES.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none" }}>
-                    <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>{r.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{r.title}</div>
-                      <div style={{ fontSize: 10, color: MUTED2, marginTop: 1 }}>{r.meta}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 10 }}>
+                  Open Feedback Items
+                  {openFeedback && (
+                    <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 4, background: "rgba(248,81,73,.15)", color: RED, fontSize: 9, fontWeight: 800 }}>
+                      {openFeedback.total}
+                    </span>
+                  )}
+                </div>
+                {loading ? (
+                  <div style={{ fontSize: 12, color: MUTED }}>Loading…</div>
+                ) : openFeedback?.items && openFeedback.items.length > 0 ? (
+                  openFeedback.items.slice(0, 6).map((item, i) => (
+                    <div key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: i < Math.min(openFeedback.items.length, 6) - 1 ? "1px solid rgba(255,255,255,.04)" : "none" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.7)", marginBottom: 2 }}>
+                          {item.summary || item.category}
+                        </div>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: "rgba(255,255,255,.06)", color: MUTED2, textTransform: "capitalize" }}>{item.category}</span>
+                          <span style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            padding: "1px 5px",
+                            borderRadius: 3,
+                            background: item.urgency === "high" || item.urgency === "critical" ? "rgba(248,81,73,.12)" : "rgba(245,158,11,.1)",
+                            color: item.urgency === "high" || item.urgency === "critical" ? RED : AMBER,
+                          }}>{item.urgency}</span>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10, color: MUTED2, flexShrink: 0 }}>{new Date(item.createdAt).toLocaleDateString()}</div>
                     </div>
-                    <div style={{ fontSize: 10, color: MUTED2, flexShrink: 0 }}>{r.time}</div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div style={{ fontSize: 12, color: MUTED }}>No open items.</div>
+                )}
               </div>
 
-              {/* Top submitting schools */}
-              <div style={{ background: SURFACE, borderRadius: 10, padding: "14px 16px", marginBottom: 12, border: "1px solid rgba(255,255,255,.05)" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 10 }}>Top Submitting Schools</div>
-                {TOP_SCHOOLS.map((s, i) => (
-                  <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: i < TOP_SCHOOLS.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none" }}>
-                    <div style={{ fontSize: 11, color: MUTED2, width: 18, flexShrink: 0 }}>{i + 1}</div>
-                    <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)", flex: 1 }}>{s.name}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: MUTED }}>{s.count}</div>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: s.health === "Good" ? "rgba(80,232,144,.12)" : "rgba(245,158,11,.12)", color: s.health === "Good" ? MINT : AMBER }}>{s.health}</span>
-                  </div>
-                ))}
-                <div style={{ fontSize: 10, color: MUTED2, marginTop: 8 }}>High submission count does not mean unhappy. Lincoln has the most active teachers; health tracked separately.</div>
-              </div>
-
-              {/* Resolution breakdown */}
+              {/* Resolution breakdown — live */}
               <div style={{ background: SURFACE, borderRadius: 10, padding: "14px 16px", border: "1px solid rgba(255,255,255,.05)" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 10 }}>Resolution Breakdown</div>
-                <div style={{ display: "flex", gap: 3, height: 12, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
-                  <div style={{ flex: 72, background: MINT, opacity: 0.7 }} />
-                  <div style={{ flex: 15, background: "rgba(255,255,255,.2)" }} />
-                  <div style={{ flex: 13, background: AMBER, opacity: 0.6 }} />
-                </div>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <div style={{ fontSize: 10, color: MUTED }}><span style={{ color: MINT }}>■</span> Resolved 72%</div>
-                  <div style={{ fontSize: 10, color: MUTED }}><span style={{ color: "rgba(255,255,255,.4)" }}>■</span> Won&apos;t Fix 15%</div>
-                  <div style={{ fontSize: 10, color: MUTED }}><span style={{ color: AMBER }}>■</span> Open 13%</div>
-                </div>
+                {loading ? (
+                  <div style={{ height: 12, background: "rgba(255,255,255,.06)", borderRadius: 4 }} />
+                ) : (
+                  <>
+                    <div style={{ display: "flex", gap: 3, height: 12, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
+                      <div style={{ flex: resolvedPct, background: MINT, opacity: 0.7 }} />
+                      <div style={{ flex: otherPct, background: "rgba(255,255,255,.2)" }} />
+                      <div style={{ flex: openPct, background: AMBER, opacity: 0.6 }} />
+                    </div>
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <div style={{ fontSize: 10, color: MUTED }}><span style={{ color: MINT }}>■</span> Resolved {resolvedPct}%</div>
+                      <div style={{ fontSize: 10, color: MUTED }}><span style={{ color: "rgba(255,255,255,.4)" }}>■</span> Other {otherPct}%</div>
+                      <div style={{ fontSize: 10, color: MUTED }}><span style={{ color: AMBER }}>■</span> Open {openPct}%</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -324,7 +382,7 @@ export default async function OwnerFeedbackSummaryPage() {
           </div>
 
           <div style={{ padding: 24 }}>
-            {/* 90-day volume */}
+            {/* 90-day volume (static trend chart) */}
             <div style={{ background: SURFACE, borderRadius: 12, padding: "18px 20px", marginBottom: 16, border: "1px solid rgba(255,255,255,.05)", maxWidth: 740 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: MUTED, letterSpacing: ".06em", marginBottom: 12 }}>90-Day Submission Volume (Weekly)</div>
               <div style={{ height: 100, display: "flex", gap: 3, alignItems: "flex-end" }}>

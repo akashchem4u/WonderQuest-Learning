@@ -1,9 +1,8 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
-import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
-import OwnerGate from "../owner-gate";
-
-export const dynamic = "force-dynamic";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const BASE    = "#100b2e";
@@ -18,8 +17,28 @@ const TEXT    = "#f0f6ff";
 const MUTED   = "rgba(255,255,255,0.4)";
 const MUTED2  = "rgba(255,255,255,0.25)";
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── API types ─────────────────────────────────────────────────────────────────
+interface OverviewCounts {
+  students: number;
+  guardians: number;
+  sessions: number;
+  feedbackItems: number;
+  exampleItems: number;
+  explainers: number;
+}
 
+interface ByBand {
+  code: string;
+  displayName: string;
+  studentCount: number;
+}
+
+interface OverviewData {
+  counts: OverviewCounts;
+  byBand: ByBand[];
+}
+
+// ── Static audit log data ─────────────────────────────────────────────────────
 type LogCategory = "Privacy" | "Content" | "Ops" | "Security" | "Release" | "Account";
 
 interface LogEntry {
@@ -89,7 +108,7 @@ const LOG_ENTRIES: LogEntry[] = [
   {
     time: "Mar 22 · 4:30 PM",
     category: "Release",
-    action: 'Release v2.5 "Assignment Engine" Launched to Production',
+    action: "Release v2.5 \"Assignment Engine\" Launched to Production",
     detail: "Gate score 94/100. All categories passed. Stakeholder sign-off complete (Founder + Lead Eng + Curriculum Lead). 3 skills locked at launch (curriculum review pending).",
     actor: "Actor: Owner (launch confirmed) · Engineering",
     tags: [{ label: "Release", cat: "Release" }],
@@ -138,17 +157,27 @@ const LOG_ENTRIES: LogEntry[] = [
 
 const CATEGORIES: LogCategory[] = ["Privacy", "Content", "Ops", "Security", "Release", "Account"];
 
-export default async function OwnerGovernancePage() {
-  const configured = isOwnerAccessConfigured();
-  const allowed = configured && (await hasOwnerAccess());
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function OwnerGovernancePage() {
+  const [data, setData] = useState<OverviewData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!allowed) {
-    return (
-      <AppFrame audience="owner" currentPath="/owner">
-        <OwnerGate configured={configured} />
-      </AppFrame>
-    );
-  }
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/owner/overview")
+      .then((r) => r.json())
+      .then((json) => {
+        setData(json as OverviewData);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(String(err));
+        setLoading(false);
+      });
+  }, []);
+
+  const contentItems = data ? data.counts.exampleItems + data.counts.explainers : null;
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
@@ -160,6 +189,55 @@ export default async function OwnerGovernancePage() {
           <h1 style={{ fontSize: 22, fontWeight: 900, color: TEXT, margin: 0 }}>Governance Log</h1>
           <p style={{ fontSize: 13, color: MUTED, marginTop: 4, marginBottom: 0 }}>Immutable audit trail — Privacy · Content · Ops · Security · Release · Account events. 7-year FERPA retention.</p>
         </div>
+
+        {/* Loading / error */}
+        {loading && (
+          <div style={{ maxWidth: 1100, margin: "0 auto 12px", fontSize: 13, color: MUTED }}>
+            Loading live counts…
+          </div>
+        )}
+        {error && (
+          <div style={{ maxWidth: 1100, margin: "0 auto 12px", fontSize: 13, color: RED }}>
+            Error: {error}
+          </div>
+        )}
+
+        {/* ── Live platform metrics ──────────────────────────────────── */}
+        <div style={{ maxWidth: 1100, margin: "0 auto 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+          {[
+            { label: "Students", val: data?.counts.students, color: MINT },
+            { label: "Guardians", val: data?.counts.guardians, color: MUTED },
+            { label: "Sessions", val: data?.counts.sessions, color: TEAL },
+            { label: "Feedback Items", val: data?.counts.feedbackItems, color: data?.counts.feedbackItems && data.counts.feedbackItems > 20 ? AMBER : MUTED },
+            { label: "Content Items", val: contentItems, color: VIOLET },
+          ].map((s) => (
+            <div key={s.label} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px" }}>
+              {loading ? (
+                <div style={{ height: 20, width: 40, background: "rgba(255,255,255,.06)", borderRadius: 4, marginBottom: 4 }} />
+              ) : (
+                <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1 }}>
+                  {s.val !== null && s.val !== undefined ? s.val.toLocaleString() : "—"}
+                </div>
+              )}
+              <div style={{ fontSize: 10, color: MUTED2, marginTop: 4, textTransform: "uppercase", letterSpacing: ".05em" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Students by band ─────────────────────────────────────── */}
+        {data && data.byBand.length > 0 && (
+          <div style={{ maxWidth: 1100, margin: "0 auto 24px" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: MUTED2, marginBottom: 8, letterSpacing: ".06em" }}>Students by Band</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {data.byBand.map((band) => (
+                <div key={band.code} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "8px 14px", display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: MUTED, fontWeight: 700 }}>{band.displayName}</span>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: MINT }}>{band.studentCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Governance log shell ─────────────────────────────────── */}
         <div style={{ maxWidth: 1100, margin: "0 auto 32px", background: "#0d1117", borderRadius: 16, border: `1px solid ${BORDER}`, overflow: "hidden" }}>

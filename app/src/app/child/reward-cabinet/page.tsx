@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
@@ -26,10 +26,20 @@ type MilestoneItem = {
   status: "done" | "current" | "locked";
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+type SessionData = {
+  student: {
+    displayName: string;
+    launchBandCode: string;
+  };
+  progression: {
+    totalPoints: number;
+    currentLevel: number;
+    badgeCount: number;
+    trophyCount: number;
+  };
+};
 
-const STARS_TOTAL = 42;
-const STARS_NEXT_MILESTONE = 50;
+// ─── Static reward shelves ────────────────────────────────────────────────────
 
 const BADGES: RewardItem[] = [
   { id: "first-quest", emoji: "🌟", name: "First Quest!", type: "badge", isNew: true },
@@ -54,13 +64,29 @@ const WORLDS: RewardItem[] = [
   { id: "volcano-world", emoji: "🌋", name: "Volcano Island", type: "locked" },
 ];
 
-const MILESTONES: MilestoneItem[] = [
-  { stars: 10, label: "10⭐", reward: "Beginner Explorer badge", status: "done" },
-  { stars: 25, label: "25⭐", reward: "Silver Star frame for your avatar", status: "done" },
-  { stars: 50, label: "50⭐", reward: "Gold Star Collector badge", status: "current" },
-  { stars: 100, label: "100⭐", reward: "Diamond Star Champion badge", status: "locked" },
-  { stars: 200, label: "200⭐", reward: "Legendary Quester title!", status: "locked" },
-];
+// ─── Milestones builder ───────────────────────────────────────────────────────
+
+function buildMilestones(totalPoints: number): MilestoneItem[] {
+  const thresholds = [
+    { stars: 10, reward: "Beginner Explorer badge" },
+    { stars: 25, reward: "Silver Star frame for your avatar" },
+    { stars: 50, reward: "Gold Star Collector badge" },
+    { stars: 100, reward: "Diamond Star Champion badge" },
+    { stars: 200, reward: "Legendary Quester title!" },
+  ];
+
+  let foundCurrent = false;
+  return thresholds.map(({ stars, reward }) => {
+    if (totalPoints >= stars) {
+      return { stars, label: `${stars}⭐`, reward, status: "done" as const };
+    }
+    if (!foundCurrent) {
+      foundCurrent = true;
+      return { stars, label: `${stars}⭐`, reward, status: "current" as const };
+    }
+    return { stars, label: `${stars}⭐`, reward, status: "locked" as const };
+  });
+}
 
 // ─── Reward item card ─────────────────────────────────────────────────────────
 
@@ -177,10 +203,27 @@ function RewardCard({ item, delay }: { item: RewardItem; delay: number }) {
 
 export default function ChildRewardCabinetPage() {
   const [activeTab, setActiveTab] = useState<TabId>("cabinet");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const starsProgress = Math.round(
-    (STARS_TOTAL / STARS_NEXT_MILESTONE) * 100
-  );
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        setSession(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const totalPoints = session?.progression.totalPoints ?? 0;
+  const badgeCount = session?.progression.badgeCount ?? 0;
+  const trophyCount = session?.progression.trophyCount ?? 0;
+
+  const MILESTONES = buildMilestones(totalPoints);
+  const nextMilestone = MILESTONES.find((m) => m.status === "current");
+  const starsNextMilestone = nextMilestone?.stars ?? 50;
+  const starsProgress = Math.round((totalPoints / starsNextMilestone) * 100);
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -234,294 +277,307 @@ export default function ChildRewardCabinetPage() {
           </div>
         </div>
 
-        {/* Tab bar */}
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            padding: "0 16px",
-            marginBottom: 20,
-          }}
-        >
-          {(["cabinet", "milestones"] as TabId[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                padding: "8px 14px",
-                background: activeTab === tab ? "#9b72ff" : "#1e1a40",
-                border: `2px solid ${activeTab === tab ? "#9b72ff" : "#2e2a50"}`,
-                borderRadius: 8,
-                color: activeTab === tab ? "#fff" : "#aaa",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              {tab === "cabinet" ? "Cabinet" : "Star Milestones"}
-            </button>
-          ))}
-        </div>
-
-        {/* Cabinet Tab */}
-        {activeTab === "cabinet" && (
-          <div style={{ padding: "0 28px", maxWidth: 1000 }}>
-            {/* Totals bar */}
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                marginBottom: 28,
-                flexWrap: "wrap",
-              }}
-            >
-              {[
-                { icon: "⭐", val: 42, label: "Stars total" },
-                { icon: "🏅", val: 3, label: "Badges earned" },
-                { icon: "🏆", val: 2, label: "Trophies" },
-                { icon: "🌍", val: 2, label: "Worlds complete" },
-              ].map((pill) => (
-                <div
-                  key={pill.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    background: "#1a1060",
-                    border: "2px solid #2a2060",
-                    borderRadius: 14,
-                    padding: "12px 18px",
-                  }}
-                >
-                  <span style={{ fontSize: 28 }}>{pill.icon}</span>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 24,
-                        fontWeight: 900,
-                        color: "#fff",
-                        lineHeight: 1,
-                        fontFamily: "'Nunito', system-ui, sans-serif",
-                      }}
-                    >
-                      {pill.val}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#7a6090",
-                        fontWeight: 700,
-                        marginTop: 2,
-                        fontFamily: "'Nunito', system-ui, sans-serif",
-                      }}
-                    >
-                      {pill.label}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Stars shelf */}
-            <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 900,
-                  color: "#9b72ff",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  marginBottom: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontFamily: "'Nunito', system-ui, sans-serif",
-                }}
-              >
-                ⭐ Stars{" "}
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#5a4080",
-                    fontFamily: "'Nunito', system-ui, sans-serif",
-                  }}
-                >
-                  42 collected
-                </span>
-              </div>
-              <div
-                style={{
-                  background: "#1a1060",
-                  border: "2px solid #ffd166",
-                  borderRadius: 16,
-                  padding: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                }}
-              >
-                <div style={{ fontSize: 48 }}>⭐</div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 900,
-                      color: "#ffd166",
-                      fontFamily: "'Nunito', system-ui, sans-serif",
-                    }}
-                  >
-                    42 Stars
-                  </div>
-                  <div
-                    style={{
-                      height: 10,
-                      background: "#2a2060",
-                      borderRadius: 6,
-                      overflow: "hidden",
-                      margin: "8px 0",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${starsProgress}%`,
-                        background: "linear-gradient(90deg, #ffd166, #ffb020)",
-                        borderRadius: 6,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "#b8a060",
-                      fontFamily: "'Nunito', system-ui, sans-serif",
-                    }}
-                  >
-                    8 more to reach the 50-star milestone!
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Badges shelf */}
-            <ShelfSection title="🏅 Badges" count="3 earned">
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {BADGES.map((item, i) => (
-                  <RewardCard key={item.id} item={item} delay={i * 0.4} />
-                ))}
-              </div>
-            </ShelfSection>
-
-            {/* Trophies shelf */}
-            <ShelfSection title="🏆 Trophies" count="2 earned">
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {TROPHIES.map((item, i) => (
-                  <RewardCard key={item.id} item={item} delay={i * 0.4} />
-                ))}
-              </div>
-            </ShelfSection>
-
-            {/* Worlds shelf */}
-            <ShelfSection title="🌍 Worlds Explored" count="2 of 4">
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {WORLDS.map((item, i) => (
-                  <RewardCard key={item.id} item={item} delay={i * 0.4} />
-                ))}
-              </div>
-            </ShelfSection>
+        {/* Loading state */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "#9b8ec4", fontSize: 16, fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+            Loading your rewards...
           </div>
         )}
 
-        {/* Milestones Tab */}
-        {activeTab === "milestones" && (
-          <div style={{ padding: "0 28px", maxWidth: 1000 }}>
+        {!loading && (
+          <>
+            {/* Tab bar */}
             <div
               style={{
-                fontSize: 28,
-                fontWeight: 900,
-                color: "#fff",
-                marginBottom: 6,
-                fontFamily: "'Nunito', system-ui, sans-serif",
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                padding: "0 16px",
+                marginBottom: 20,
               }}
             >
-              Star Milestones ⭐
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: "#b8a0e8",
-                fontWeight: 700,
-                marginBottom: 24,
-                fontFamily: "'Nunito', system-ui, sans-serif",
-              }}
-            >
-              Collect stars to unlock milestone rewards!
-            </div>
-
-            {/* Progress bar */}
-            <div
-              style={{
-                background: "#1a1060",
-                border: "1px solid #2a2060",
-                borderRadius: 16,
-                padding: 18,
-                marginBottom: 24,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 900,
-                  color: "#ffd166",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  marginBottom: 12,
-                  fontFamily: "'Nunito', system-ui, sans-serif",
-                }}
-              >
-                ⭐ Your Star Journey · 42 collected
-              </div>
-
-              {/* Milestone track */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "10px 0 28px",
-                  position: "relative",
-                }}
-              >
-                {MILESTONES.map((ms, idx) => (
-                  <>
-                    <MilestoneDot key={ms.stars} ms={ms} />
-                    {idx < MILESTONES.length - 1 && (
-                      <div
-                        key={`line-${ms.stars}`}
-                        style={{
-                          flex: 1,
-                          height: 4,
-                          background:
-                            ms.status === "done" ? "#ffd166" : "#2a2060",
-                        }}
-                      />
-                    )}
-                  </>
-                ))}
-              </div>
-            </div>
-
-            {/* Milestone cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {MILESTONES.map((ms) => (
-                <MilestoneCard key={ms.stars} ms={ms} />
+              {(["cabinet", "milestones"] as TabId[]).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: "8px 14px",
+                    background: activeTab === tab ? "#9b72ff" : "#1e1a40",
+                    border: `2px solid ${activeTab === tab ? "#9b72ff" : "#2e2a50"}`,
+                    borderRadius: 8,
+                    color: activeTab === tab ? "#fff" : "#aaa",
+                    fontFamily: "'Nunito', system-ui, sans-serif",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {tab === "cabinet" ? "Cabinet" : "Star Milestones"}
+                </button>
               ))}
             </div>
-          </div>
+
+            {/* Cabinet Tab */}
+            {activeTab === "cabinet" && (
+              <div style={{ padding: "0 28px", maxWidth: 1000 }}>
+                {/* Totals bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    marginBottom: 28,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {[
+                    { icon: "⭐", val: totalPoints, label: "Stars total" },
+                    { icon: "🏅", val: badgeCount, label: "Badges earned" },
+                    { icon: "🏆", val: trophyCount, label: "Trophies" },
+                    { icon: "🌍", val: 2, label: "Worlds complete" },
+                  ].map((pill) => (
+                    <div
+                      key={pill.label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        background: "#1a1060",
+                        border: "2px solid #2a2060",
+                        borderRadius: 14,
+                        padding: "12px 18px",
+                      }}
+                    >
+                      <span style={{ fontSize: 28 }}>{pill.icon}</span>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 24,
+                            fontWeight: 900,
+                            color: "#fff",
+                            lineHeight: 1,
+                            fontFamily: "'Nunito', system-ui, sans-serif",
+                          }}
+                        >
+                          {pill.val}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#7a6090",
+                            fontWeight: 700,
+                            marginTop: 2,
+                            fontFamily: "'Nunito', system-ui, sans-serif",
+                          }}
+                        >
+                          {pill.label}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Stars shelf */}
+                <div style={{ marginBottom: 28 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 900,
+                      color: "#9b72ff",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontFamily: "'Nunito', system-ui, sans-serif",
+                    }}
+                  >
+                    ⭐ Stars{" "}
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "#5a4080",
+                        fontFamily: "'Nunito', system-ui, sans-serif",
+                      }}
+                    >
+                      {totalPoints} collected
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      background: "#1a1060",
+                      border: "2px solid #ffd166",
+                      borderRadius: 16,
+                      padding: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 16,
+                    }}
+                  >
+                    <div style={{ fontSize: 48 }}>⭐</div>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 900,
+                          color: "#ffd166",
+                          fontFamily: "'Nunito', system-ui, sans-serif",
+                        }}
+                      >
+                        {totalPoints} Stars
+                      </div>
+                      <div
+                        style={{
+                          height: 10,
+                          background: "#2a2060",
+                          borderRadius: 6,
+                          overflow: "hidden",
+                          margin: "8px 0",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${Math.min(starsProgress, 100)}%`,
+                            background: "linear-gradient(90deg, #ffd166, #ffb020)",
+                            borderRadius: 6,
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "#b8a060",
+                          fontFamily: "'Nunito', system-ui, sans-serif",
+                        }}
+                      >
+                        {starsNextMilestone - totalPoints > 0
+                          ? `${starsNextMilestone - totalPoints} more to reach the ${starsNextMilestone}-star milestone!`
+                          : "All milestones complete! 🏆"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badges shelf */}
+                <ShelfSection title="🏅 Badges" count={`${badgeCount} earned`}>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {BADGES.map((item, i) => (
+                      <RewardCard key={item.id} item={item} delay={i * 0.4} />
+                    ))}
+                  </div>
+                </ShelfSection>
+
+                {/* Trophies shelf */}
+                <ShelfSection title="🏆 Trophies" count={`${trophyCount} earned`}>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {TROPHIES.map((item, i) => (
+                      <RewardCard key={item.id} item={item} delay={i * 0.4} />
+                    ))}
+                  </div>
+                </ShelfSection>
+
+                {/* Worlds shelf */}
+                <ShelfSection title="🌍 Worlds Explored" count="2 of 4">
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {WORLDS.map((item, i) => (
+                      <RewardCard key={item.id} item={item} delay={i * 0.4} />
+                    ))}
+                  </div>
+                </ShelfSection>
+              </div>
+            )}
+
+            {/* Milestones Tab */}
+            {activeTab === "milestones" && (
+              <div style={{ padding: "0 28px", maxWidth: 1000 }}>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 900,
+                    color: "#fff",
+                    marginBottom: 6,
+                    fontFamily: "'Nunito', system-ui, sans-serif",
+                  }}
+                >
+                  Star Milestones ⭐
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: "#b8a0e8",
+                    fontWeight: 700,
+                    marginBottom: 24,
+                    fontFamily: "'Nunito', system-ui, sans-serif",
+                  }}
+                >
+                  Collect stars to unlock milestone rewards!
+                </div>
+
+                {/* Progress bar */}
+                <div
+                  style={{
+                    background: "#1a1060",
+                    border: "1px solid #2a2060",
+                    borderRadius: 16,
+                    padding: 18,
+                    marginBottom: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 900,
+                      color: "#ffd166",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 12,
+                      fontFamily: "'Nunito', system-ui, sans-serif",
+                    }}
+                  >
+                    ⭐ Your Star Journey · {totalPoints} collected
+                  </div>
+
+                  {/* Milestone track */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "10px 0 28px",
+                      position: "relative",
+                    }}
+                  >
+                    {MILESTONES.map((ms, idx) => (
+                      <>
+                        <MilestoneDot key={ms.stars} ms={ms} />
+                        {idx < MILESTONES.length - 1 && (
+                          <div
+                            key={`line-${ms.stars}`}
+                            style={{
+                              flex: 1,
+                              height: 4,
+                              background:
+                                ms.status === "done" ? "#ffd166" : "#2a2060",
+                            }}
+                          />
+                        )}
+                      </>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Milestone cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {MILESTONES.map((ms) => (
+                    <MilestoneCard key={ms.stars} ms={ms} totalPoints={totalPoints} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Keyframes */}
@@ -636,10 +692,9 @@ function MilestoneDot({ ms }: { ms: MilestoneItem }) {
   );
 }
 
-function MilestoneCard({ ms }: { ms: MilestoneItem }) {
+function MilestoneCard({ ms, totalPoints }: { ms: MilestoneItem; totalPoints: number }) {
   const isDone = ms.status === "done";
   const isCurrent = ms.status === "current";
-  const isLocked = ms.status === "locked";
 
   if (isDone) {
     return (
@@ -729,7 +784,7 @@ function MilestoneCard({ ms }: { ms: MilestoneItem }) {
             <div
               style={{
                 height: "100%",
-                width: `${Math.round((42 / ms.stars) * 100)}%`,
+                width: `${Math.min(Math.round((totalPoints / ms.stars) * 100), 100)}%`,
                 background: "#ffd166",
                 borderRadius: 4,
               }}
@@ -744,7 +799,7 @@ function MilestoneCard({ ms }: { ms: MilestoneItem }) {
               fontFamily: "'Nunito', system-ui, sans-serif",
             }}
           >
-            42/{ms.stars} · {ms.stars - 42} more!
+            {totalPoints}/{ms.stars} · {ms.stars - totalPoints} more!
           </div>
         </div>
       </div>

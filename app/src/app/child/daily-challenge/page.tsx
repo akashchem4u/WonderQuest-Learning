@@ -1,7 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+
+// ─── Session types ────────────────────────────────────────────────────────────
+
+type SessionData = {
+  student: {
+    displayName: string;
+    launchBandCode: string;
+  };
+  progression: {
+    totalPoints: number;
+    currentLevel: number;
+    badgeCount: number;
+    trophyCount: number;
+  };
+};
+
+// ─── Theme / band maps ────────────────────────────────────────────────────────
 
 const THEMES: Record<string, { mascot: string; questName: string; headerBg: string }> = {
   space:    { mascot: "🚀", questName: "The Star Chart Mystery",  headerBg: "linear-gradient(135deg,#0d0d2b 0%,#1a1060 50%,#2d0b6b 100%)" },
@@ -13,19 +30,42 @@ const THEMES: Record<string, { mascot: string; questName: string; headerBg: stri
 };
 
 const BANDS: Record<string, { label: string; chipColor: string; chipBorder: string; chipBg: string; bandLabel: string }> = {
-  p0: { label: "P0 Early",    chipColor: "#ffd166", chipBorder: "rgba(255,209,102,0.4)", chipBg: "rgba(255,209,102,0.1)", bandLabel: "P0 · Early Learner" },
-  p1: { label: "P1 Growing",  chipColor: "#9b72ff", chipBorder: "rgba(155,114,255,0.4)", chipBg: "rgba(155,114,255,0.1)", bandLabel: "P1 · Growing" },
-  p2: { label: "P2 Fluent",   chipColor: "#58e8c1", chipBorder: "rgba(88,232,193,0.4)",  chipBg: "rgba(88,232,193,0.1)",  bandLabel: "P2 · Fluent" },
-  p3: { label: "P3 Advanced", chipColor: "#ff7b6b", chipBorder: "rgba(255,123,107,0.4)", chipBg: "rgba(255,123,107,0.1)", bandLabel: "P3 · Advanced" },
+  K1:  { label: "K–1 Early",    chipColor: "#ffd166", chipBorder: "rgba(255,209,102,0.4)", chipBg: "rgba(255,209,102,0.1)", bandLabel: "K–1 · Early Learner" },
+  G23: { label: "Gr 2–3",       chipColor: "#9b72ff", chipBorder: "rgba(155,114,255,0.4)", chipBg: "rgba(155,114,255,0.1)", bandLabel: "Gr 2–3 · Growing" },
+  G45: { label: "Gr 4–5",       chipColor: "#58e8c1", chipBorder: "rgba(88,232,193,0.4)",  chipBg: "rgba(88,232,193,0.1)",  bandLabel: "Gr 4–5 · Fluent" },
+  G67: { label: "Gr 6–7",       chipColor: "#ff7b6b", chipBorder: "rgba(255,123,107,0.4)", chipBg: "rgba(255,123,107,0.1)", bandLabel: "Gr 6–7 · Advanced" },
+  // legacy p-codes fallback
+  p0:  { label: "P0 Early",     chipColor: "#ffd166", chipBorder: "rgba(255,209,102,0.4)", chipBg: "rgba(255,209,102,0.1)", bandLabel: "P0 · Early Learner" },
+  p1:  { label: "P1 Growing",   chipColor: "#9b72ff", chipBorder: "rgba(155,114,255,0.4)", chipBg: "rgba(155,114,255,0.1)", bandLabel: "P1 · Growing" },
+  p2:  { label: "P2 Fluent",    chipColor: "#58e8c1", chipBorder: "rgba(88,232,193,0.4)",  chipBg: "rgba(88,232,193,0.1)",  bandLabel: "P2 · Fluent" },
+  p3:  { label: "P3 Advanced",  chipColor: "#ff7b6b", chipBorder: "rgba(255,123,107,0.4)", chipBg: "rgba(255,123,107,0.1)", bandLabel: "P3 · Advanced" },
 };
 
+function resolveBand(launchBandCode: string) {
+  return BANDS[launchBandCode] ?? BANDS.K1;
+}
+
 export default function DailyChallengePage() {
-  const [activeTab, setActiveTab]   = useState<"card" | "states">("card");
+  const [activeTab, setActiveTab] = useState<"card" | "states">("card");
   const [activeTheme, setActiveTheme] = useState("space");
-  const [activeBand, setActiveBand]   = useState("p0");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        setSession(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const launchBandCode = session?.student.launchBandCode ?? "K1";
+  const currentLevel = session?.progression.currentLevel ?? 1;
 
   const theme = THEMES[activeTheme] ?? THEMES.space;
-  const band  = BANDS[activeBand]   ?? BANDS.p0;
+  const band = resolveBand(launchBandCode);
 
   const bg     = "#0d1117";
   const card   = "#161b22";
@@ -70,8 +110,15 @@ export default function DailyChallengePage() {
           </div>
         </div>
 
+        {/* Loading state */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: "60px 0", color: muted, fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 16, fontWeight: 700 }}>
+            Loading challenge...
+          </div>
+        )}
+
         {/* ── TAB 1: Card ── */}
-        {activeTab === "card" && (
+        {!loading && activeTab === "card" && (
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
             {/* Controls */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 32 }}>
@@ -86,10 +133,12 @@ export default function DailyChallengePage() {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>Band</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Band (from session: {launchBandCode} · Level {currentLevel})
+                </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {Object.keys(BANDS).map((b) => (
-                    <button key={b} onClick={() => setActiveBand(b)} style={pillBtn(activeBand === b, BANDS[b].chipColor)}>
+                  {Object.keys(BANDS).filter((b) => !b.startsWith("p")).map((b) => (
+                    <button key={b} onClick={() => {}} style={pillBtn(launchBandCode === b, BANDS[b].chipColor)}>
                       {BANDS[b].label}
                     </button>
                   ))}
@@ -138,7 +187,7 @@ export default function DailyChallengePage() {
         )}
 
         {/* ── TAB 2: States ── */}
-        {activeTab === "states" && (
+        {!loading && activeTab === "states" && (
           <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: muted, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>Challenge States</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
@@ -164,7 +213,7 @@ export default function DailyChallengePage() {
                   <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#ffd166" }}>In Progress</div>
                 </div>
                 <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.4, color: text }}>You're on today's challenge! 🔥<br />Keep going, Emma!</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.4, color: text }}>You're on today's challenge! 🔥<br />Keep going, {session?.student.displayName ?? "Explorer"}!</div>
                   <div style={{ fontSize: 13, color: muted, lineHeight: 1.5 }}>Status: started — Child accepted and has begun the quest. CTA routes back into the active quest session.</div>
                   <style>{`@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(255,209,102,0.5)} 70%{box-shadow:0 0 0 10px rgba(255,209,102,0)} 100%{box-shadow:0 0 0 0 rgba(255,209,102,0)} }`}</style>
                   <div style={{ animation: "pulse-ring 2s ease infinite", background: "rgba(255,209,102,0.1)", border: "2px solid #ffd166", borderRadius: 12, color: "#ffd166", fontSize: 13, fontWeight: 700, padding: "10px 14px", textAlign: "center" }}>🔥 Quest in progress — tap to continue!</div>
@@ -178,7 +227,7 @@ export default function DailyChallengePage() {
                   <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#58e8c1" }}>Completed</div>
                 </div>
                 <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.4, color: text }}>CHALLENGE COMPLETE! 🏆<br />Emma crushed it today!</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.4, color: text }}>CHALLENGE COMPLETE! 🏆<br />{session?.student.displayName ?? "Explorer"} crushed it today!</div>
                   <div style={{ fontSize: 13, color: muted, lineHeight: 1.5 }}>Status: completed — XP awarded on completion. No accuracy % shown. Celebratory framing only.</div>
                   <div style={{ background: "rgba(88,232,193,0.12)", border: "1.5px solid rgba(88,232,193,0.35)", borderRadius: 10, color: "#58e8c1", fontSize: 15, fontWeight: 800, padding: "10px 16px", textAlign: "center" }}>+20 Bonus Star Dust earned! ✨</div>
                   <div style={{ color: text, fontSize: 13, fontWeight: 600, textAlign: "center" }}>See you tomorrow! 🌟</div>
