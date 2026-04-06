@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -20,61 +20,37 @@ const C = {
   surfaceHover: "rgba(255,255,255,0.04)",
 };
 
-// ── Stub data ────────────────────────────────────────────────────────────────
-const STATS = [
-  { val: "18",     lbl: "Active today",    delta: "↑ +3 vs yesterday",  up: true  },
-  { val: "⭐ 284", lbl: "Class stars",     delta: "↑ +62 this week",    up: true  },
-  { val: "67",     lbl: "Sessions today",  delta: "→ Typical",          up: null  },
-  { val: "4",      lbl: "Need check-in",   delta: "⚠ Support queue",   up: false },
-  { val: "3",      lbl: "Bands covered",   delta: "P0 / P1 / P2",       up: null  },
-];
+// ── Types ────────────────────────────────────────────────────────────────────
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
+};
 
-const ACTIVE_STUDENTS = [
-  { initial: "😊", name: "Aaliya", band: "Mint Band · Sight words",       stars: 7,  color: C.mint   },
-  { initial: "🎯", name: "Ben",    band: "Violet Band · Addition facts",  stars: 5,  color: C.violet },
-  { initial: "⭐", name: "Chloe",  band: "Mint Band · Blending",          stars: 9,  color: C.mint   },
-  { initial: "🌟", name: "Daniel", band: "Pre-K Band · Letters",          stars: 4,  color: C.gold   },
-];
+// ── Band helpers ──────────────────────────────────────────────────────────────
+const BAND_META: Record<string, { label: string; color: string }> = {
+  P0: { label: "Pre-K (P0)", color: C.gold },
+  P1: { label: "K–1 (P1)",   color: C.violet },
+  P2: { label: "G2–3 (P2)",  color: C.mint },
+  P3: { label: "G4–5 (P3)",  color: C.red },
+};
 
-const SUPPORT_QUEUE = [
-  { name: "Emma",   issue: "Hit confidence floor 4x on blending sounds — same question type each time", action: "Check in"    },
-  { name: "Marcus", issue: "No sessions in 5 days — streak broken",                                    action: "Reach out"  },
-  { name: "Priya",  issue: "Repeated hint requests on skip counting — may need a different approach",   action: "Check in"   },
-  { name: "Tommy",  issue: "Band placement may need review — consistently above ceiling",               action: "Review band" },
-];
+function bandColor(code: string): string {
+  return BAND_META[code]?.color ?? C.muted;
+}
 
-const BANDS = [
-  { name: "Pre-K (P0)", count: 5,  pct: 21, color: C.gold   },
-  { name: "K–1 (P1)",   count: 9,  pct: 38, color: C.violet },
-  { name: "G2–3 (P2)",  count: 10, pct: 42, color: C.mint   },
-  { name: "G4–5 (P3)",  count: 0,  pct: 0,  color: C.red    },
-];
-
-const SKILL_GAPS = [
-  { emoji: "🔤", label: "Blending sounds", count: 6 },
-  { emoji: "🔢", label: "Skip counting",   count: 4 },
-  { emoji: "📝", label: "CVC spelling",    count: 3 },
-];
-
-const WEEK_STATS = [
-  { lbl: "Sessions completed", val: "187",    warn: false },
-  { lbl: "Stars earned (class)", val: "⭐ 284", warn: false },
-  { lbl: "Badges earned",       val: "🏅 7",  warn: false },
-  { lbl: "Students not active", val: "6",     warn: true  },
-];
-
-const ALL_STUDENTS = [
-  { i: "A", name: "Aaliya",  band: "G2–3 (P2)",  stars: 32, color: C.mint,   status: "Active"  },
-  { i: "B", name: "Ben",     band: "K–1 (P1)",   stars: 28, color: C.violet, status: "Active"  },
-  { i: "C", name: "Chloe",   band: "G2–3 (P2)",  stars: 41, color: C.mint,   status: "Active"  },
-  { i: "D", name: "Daniel",  band: "Pre-K (P0)", stars: 17, color: C.gold,   status: "Idle"    },
-  { i: "E", name: "Emma",    band: "K–1 (P1)",   stars: 12, color: C.violet, status: "Support" },
-  { i: "M", name: "Marcus",  band: "G2–3 (P2)",  stars: 0,  color: C.muted,  status: "Support" },
-  { i: "P", name: "Priya",   band: "K–1 (P1)",   stars: 8,  color: C.violet, status: "Support" },
-  { i: "T", name: "Tommy",   band: "G2–3 (P2)",  stars: 55, color: C.mint,   status: "Active"  },
-  { i: "J", name: "Jordan",  band: "Pre-K (P0)", stars: 21, color: C.gold,   status: "Active"  },
-  { i: "S", name: "Sofia",   band: "K–1 (P1)",   stars: 38, color: C.violet, status: "Active"  },
-];
+function bandLabel(code: string): string {
+  return BAND_META[code]?.label ?? code;
+}
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
@@ -107,6 +83,61 @@ function CardHeader({ title, link, href }: { title: React.ReactNode; link?: stri
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function TeacherHomePage() {
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const teacherId = localStorage.getItem("wq_teacher_id") ?? "demo-teacher";
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => r.json())
+      .then((data: { roster?: RosterStudent[] }) => {
+        if (data.roster) setRoster(data.roster);
+      })
+      .catch(() => {/* fall through to empty roster */})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const totalStudents = roster.length;
+  const activeToday = roster.filter((s) => {
+    if (!s.lastSessionAt) return false;
+    const d = new Date(s.lastSessionAt);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  }).length;
+  const totalStars = roster.reduce((acc, s) => acc + s.totalPoints, 0);
+  const sessionsToday = roster.reduce((acc, s) => acc + s.sessionsLast7d, 0);
+  const interventionCount = roster.filter((s) => s.inInterventionQueue).length;
+
+  const bandCodes = ["P0", "P1", "P2", "P3"];
+  const bandCounts = bandCodes.map((code) => roster.filter((s) => s.launchBandCode === code).length);
+  const coveredBands = bandCounts.filter((c) => c > 0).length;
+  const bandsCovered = bandCodes
+    .filter((_, i) => bandCounts[i] > 0)
+    .join(" / ");
+
+  const STATS = [
+    { val: loading ? "…" : String(activeToday),    lbl: "Active today",    delta: `↑ ${totalStudents} total`,     up: true  },
+    { val: loading ? "…" : `⭐ ${totalStars}`,      lbl: "Class stars",     delta: "↑ this week",                  up: true  },
+    { val: loading ? "…" : String(sessionsToday),  lbl: "Sessions (7d)",   delta: "→ Typical",                    up: null  },
+    { val: loading ? "…" : String(interventionCount), lbl: "Need check-in", delta: "⚠ Support queue",             up: false },
+    { val: loading ? "…" : String(coveredBands),   lbl: "Bands covered",   delta: bandsCovered || "—",            up: null  },
+  ];
+
+  // active right now = sessions in last 7d, sorted by most recent
+  const activeStudents = roster
+    .filter((s) => s.sessionsLast7d > 0)
+    .sort((a, b) => (b.lastSessionAt ?? "").localeCompare(a.lastSessionAt ?? ""))
+    .slice(0, 4);
+
+  // support queue = students in intervention
+  const supportQueue = roster.filter((s) => s.inInterventionQueue).slice(0, 4);
+
+  const BANDS = bandCodes.map((code, i) => {
+    const count = bandCounts[i];
+    const pct = totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0;
+    return { name: bandLabel(code), count, pct, color: bandColor(code) };
+  });
 
   const tabStyle = (tab: string): React.CSSProperties => ({
     padding: "8px 18px",
@@ -127,7 +158,9 @@ export default function TeacherHomePage() {
 
         {/* Page header */}
         <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>Good morning, Ms Johnson 👋</h1>
-        <p style={{ fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 20 }}>Tuesday, March 24 · Grade 2 class · 24 students</p>
+        <p style={{ fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 20 }}>
+          {loading ? "Loading class…" : `${totalStudents} students`}
+        </p>
 
         {/* Quick nav */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
@@ -164,8 +197,15 @@ export default function TeacherHomePage() {
           ))}
         </div>
 
+        {/* Loading skeleton */}
+        {loading && (
+          <div style={{ color: C.muted, fontSize: 14, padding: "40px 0", textAlign: "center" }}>
+            Loading class data…
+          </div>
+        )}
+
         {/* ── TAB: Overview ────────────────────────────────────────────────── */}
-        {activeTab === "overview" && (
+        {!loading && activeTab === "overview" && (
           <>
             {/* Stat row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>
@@ -191,39 +231,46 @@ export default function TeacherHomePage() {
             {/* Two-col: active + support queue */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
               <Card>
-                <CardHeader title="🟢 Active right now (9)" link="View all →" href="/teacher/class" />
-                {ACTIVE_STUDENTS.map((s) => (
-                  <div key={s.name} style={{
+                <CardHeader title={`🟢 Active recently (${activeStudents.length})`} link="View all →" href="/teacher/class" />
+                {activeStudents.length === 0 && (
+                  <div style={{ fontSize: 12, color: C.muted, padding: "16px 0" }}>No recent activity.</div>
+                )}
+                {activeStudents.map((s) => (
+                  <div key={s.studentId} style={{
                     display: "flex", alignItems: "center", gap: 10,
                     padding: "9px 0", borderBottom: `1px solid ${C.border}`,
                   }}>
                     <div style={{
                       width: 28, height: 28, borderRadius: 8,
-                      background: s.color + "33",
+                      background: bandColor(s.launchBandCode) + "33",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 14, flexShrink: 0,
-                    }}>{s.initial}</div>
+                    }}>
+                      {s.displayName.charAt(0)}
+                    </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                        {s.name}
+                        {s.displayName}
                         <span style={{
                           fontSize: 10, fontWeight: 700,
                           background: C.mint + "22", color: C.mint,
                           padding: "2px 8px", borderRadius: 20, marginLeft: 6,
                         }}>Active</span>
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{s.band}</div>
+                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{bandLabel(s.launchBandCode)}</div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>⭐ {s.stars}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>⭐ {s.totalPoints}</span>
                   </div>
                 ))}
-                <div style={{ fontSize: 12, color: C.blue, cursor: "pointer", marginTop: 10, fontWeight: 700 }}>+ 5 more active →</div>
               </Card>
 
               <Card>
-                <CardHeader title="⚠️ Needs check-in (4)" link="View queue →" href="/teacher/support" />
-                {SUPPORT_QUEUE.map((q) => (
-                  <div key={q.name} style={{
+                <CardHeader title={`⚠️ Needs check-in (${supportQueue.length})`} link="View queue →" href="/teacher/support" />
+                {supportQueue.length === 0 && (
+                  <div style={{ fontSize: 12, color: C.muted, padding: "16px 0" }}>No students need check-in right now.</div>
+                )}
+                {supportQueue.map((q) => (
+                  <div key={q.studentId} style={{
                     display: "flex", alignItems: "flex-start", gap: 10,
                     padding: "10px 12px",
                     borderRadius: 10,
@@ -238,16 +285,18 @@ export default function TeacherHomePage() {
                       fontSize: 13, flexShrink: 0,
                     }}>💛</div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{q.name}</div>
-                      <div style={{ fontSize: 11, color: C.amber, lineHeight: 1.4, marginTop: 2 }}>{q.issue}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{q.displayName}</div>
+                      <div style={{ fontSize: 11, color: C.amber, lineHeight: 1.4, marginTop: 2 }}>
+                        In support queue · {q.sessionsLast7d} sessions last 7d
+                      </div>
                     </div>
-                    <span style={{ fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", flexShrink: 0, marginTop: 2 }}>{q.action}</span>
+                    <span style={{ fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", flexShrink: 0, marginTop: 2 }}>Check in</span>
                   </div>
                 ))}
               </Card>
             </div>
 
-            {/* Three-col: bands + skill gaps + week summary */}
+            {/* Three-col: bands + week summary */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
               <Card>
                 <CardHeader title="🎯 Band coverage" />
@@ -267,36 +316,13 @@ export default function TeacherHomePage() {
               </Card>
 
               <Card>
-                <CardHeader title="⚡ Common skill gaps" />
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 10, lineHeight: 1.4 }}>
-                  Skills where 3+ students are struggling. Click to drilldown.
-                </div>
-                <div>
-                  {SKILL_GAPS.map((g) => (
-                    <Link key={g.label} href={`/teacher/skill-drilldown/${g.label.toLowerCase().replace(/\s+/g, "-")}`} style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: C.amber + "22",
-                      border: `1px solid ${C.amber}44`,
-                      borderRadius: 8,
-                      padding: "6px 10px",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: C.amber,
-                      margin: 4,
-                      cursor: "pointer",
-                      textDecoration: "none",
-                    }}>
-                      {g.emoji} {g.label} ({g.count} students)
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-
-              <Card>
                 <CardHeader title="📅 Week to date" />
-                {WEEK_STATS.map((w) => (
+                {[
+                  { lbl: "Sessions (7d)",       val: String(sessionsToday),            warn: false },
+                  { lbl: "Stars (class)",        val: `⭐ ${totalStars}`,               warn: false },
+                  { lbl: "Students w/ sessions", val: String(roster.filter((s) => s.sessionsLast7d > 0).length), warn: false },
+                  { lbl: "Students not active",  val: String(totalStudents - roster.filter((s) => s.sessionsLast7d > 0).length), warn: true },
+                ].map((w) => (
                   <div key={w.lbl} style={{
                     display: "flex", alignItems: "center",
                     padding: "6px 0", borderTop: `1px solid ${C.border}`,
@@ -306,12 +332,30 @@ export default function TeacherHomePage() {
                   </div>
                 ))}
               </Card>
+
+              <Card>
+                <CardHeader title="📊 Class summary" />
+                {[
+                  { lbl: "Total students",    val: String(totalStudents) },
+                  { lbl: "In intervention",   val: String(interventionCount) },
+                  { lbl: "Bands active",      val: String(coveredBands) },
+                  { lbl: "Avg points",        val: totalStudents > 0 ? String(Math.round(totalStars / totalStudents)) : "0" },
+                ].map((w) => (
+                  <div key={w.lbl} style={{
+                    display: "flex", alignItems: "center",
+                    padding: "6px 0", borderTop: `1px solid ${C.border}`,
+                  }}>
+                    <div style={{ flex: 1, fontSize: 12, color: C.muted, fontWeight: 600 }}>{w.lbl}</div>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{w.val}</span>
+                  </div>
+                ))}
+              </Card>
             </div>
           </>
         )}
 
         {/* ── TAB: Students ────────────────────────────────────────────────── */}
-        {activeTab === "students" && (
+        {!loading && activeTab === "students" && (
           <>
             {/* Filters */}
             <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -334,7 +378,7 @@ export default function TeacherHomePage() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                    {["Student", "Band", "Stars", "Sessions", "Streak", "Status"].map((h) => (
+                    {["Student", "Band", "Stars", "Sessions (7d)", "Streak", "Status"].map((h) => (
                       <th key={h} style={{
                         padding: "12px 16px",
                         textAlign: "left",
@@ -348,32 +392,43 @@ export default function TeacherHomePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ALL_STUDENTS.map((s) => (
-                    <tr key={s.name} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: 8,
-                            background: s.color + "33",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 13, fontWeight: 900, color: s.color, flexShrink: 0,
-                          }}>{s.i}</div>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.name}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{s.band}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: C.text }}>⭐ {s.stars}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>—</td>
-                      <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>—</td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                          background: s.status === "Active" ? C.mint + "22" : s.status === "Support" ? C.amber + "22" : "rgba(255,255,255,0.06)",
-                          color: s.status === "Active" ? C.mint : s.status === "Support" ? C.amber : C.muted,
-                        }}>{s.status}</span>
+                  {roster.map((s) => {
+                    const statusLabel = s.inInterventionQueue ? "Support" : s.sessionsLast7d > 0 ? "Active" : "Idle";
+                    const color = bandColor(s.launchBandCode);
+                    return (
+                      <tr key={s.studentId} style={{ borderBottom: `1px solid ${C.border}` }}>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{
+                              width: 30, height: 30, borderRadius: 8,
+                              background: color + "33",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 13, fontWeight: 900, color, flexShrink: 0,
+                            }}>{s.displayName.charAt(0)}</div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.displayName}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{bandLabel(s.launchBandCode)}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: C.text }}>⭐ {s.totalPoints}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{s.sessionsLast7d}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{s.streak > 0 ? `${s.streak}d` : "—"}</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                            background: statusLabel === "Active" ? C.mint + "22" : statusLabel === "Support" ? C.amber + "22" : "rgba(255,255,255,0.06)",
+                            color: statusLabel === "Active" ? C.mint : statusLabel === "Support" ? C.amber : C.muted,
+                          }}>{statusLabel}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {roster.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: C.muted, fontSize: 13 }}>
+                        No students on roster.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </Card>
@@ -381,20 +436,27 @@ export default function TeacherHomePage() {
         )}
 
         {/* ── TAB: Support Queue ───────────────────────────────────────────── */}
-        {activeTab === "support" && (
+        {!loading && activeTab === "support" && (
           <Card>
-            <CardHeader title="🔧 Support Queue (4)" link="Full view →" href="/teacher/support" />
+            <CardHeader title={`🔧 Support Queue (${supportQueue.length})`} link="Full view →" href="/teacher/support" />
             <p style={{ fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>
-              System-flagged students who may need a teacher check-in. Triggered by repeated confidence-floor hits or long inactivity.
+              Students currently in the active intervention queue.
             </p>
-            {SUPPORT_QUEUE.map((q, i) => (
-              <div key={q.name} style={{
+            {supportQueue.length === 0 && (
+              <div style={{ textAlign: "center", padding: "28px 16px" }}>
+                <div style={{ fontSize: 34, marginBottom: 10 }}>✅</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 5 }}>All clear</div>
+                <div style={{ fontSize: 11, color: C.muted }}>No students currently need a check-in.</div>
+              </div>
+            )}
+            {supportQueue.map((q, i) => (
+              <div key={q.studentId} style={{
                 display: "flex", alignItems: "flex-start", gap: 12,
                 padding: "14px 16px",
                 borderRadius: 12,
                 background: C.amber + "15",
                 borderLeft: `3px solid ${C.amber}`,
-                marginBottom: i < SUPPORT_QUEUE.length - 1 ? 10 : 0,
+                marginBottom: i < supportQueue.length - 1 ? 10 : 0,
               }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: 10,
@@ -403,8 +465,10 @@ export default function TeacherHomePage() {
                   fontSize: 14, flexShrink: 0, fontWeight: 900, color: C.amber,
                 }}>!</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 4 }}>{q.name}</div>
-                  <div style={{ fontSize: 12, color: C.amber, lineHeight: 1.4 }}>{q.issue}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 4 }}>{q.displayName}</div>
+                  <div style={{ fontSize: 12, color: C.amber, lineHeight: 1.4 }}>
+                    {bandLabel(q.launchBandCode)} · {q.sessionsLast7d} sessions last 7 days
+                  </div>
                 </div>
                 <button style={{
                   padding: "6px 14px",
@@ -417,7 +481,7 @@ export default function TeacherHomePage() {
                   cursor: "pointer",
                   fontFamily: "system-ui",
                   flexShrink: 0,
-                }}>{q.action}</button>
+                }}>Check in</button>
               </div>
             ))}
           </Card>

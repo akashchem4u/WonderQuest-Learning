@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -22,81 +22,28 @@ const C = {
   accent: "#50e890",
 };
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
-const STATS = [
-  { icon: "📚", value: "18", label: "Students active this term" },
-  { icon: "🌟", value: "12", label: "Students advanced a band level" },
-  { icon: "⭐", value: "847", label: "Total skills explored (class)" },
-  { icon: "🎯", value: "3", label: "Average quests per student" },
-];
-
-const BANDS = [
-  { label: "P0 Starters", color: C.p0, pct: 16.7, count: 3 },
-  { label: "P1 Adventurers", color: C.p1, pct: 38.9, count: 7 },
-  { label: "P2 Explorers", color: C.p2, pct: 27.8, count: 5 },
-  { label: "P3 Trailblazers", color: C.p3, pct: 16.7, count: 3 },
-];
-
-const WEEKLY_TRENDS = [
-  { week: "Wk 1", maths: 52, literacy: 68, science: 44 },
-  { week: "Wk 2", maths: 58, literacy: 72, science: 51 },
-  { week: "Wk 3", maths: 63, literacy: 75, science: 57 },
-  { week: "Wk 4", maths: 70, literacy: 78, science: 62 },
-  { week: "Wk 5", maths: 74, literacy: 82, science: 68 },
-  { week: "Wk 6", maths: 79, literacy: 86, science: 71 },
-];
-
-type SubjectRow = {
-  subject: string;
-  avgLevel: string;
-  levelType: string;
-  mostActive: string;
-  bandColor: string;
-  bandLabel: string;
-  attention: string[];
-  attentionNote?: string;
+// ── Types ─────────────────────────────────────────────────────────────────────
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
 };
 
-const SUBJECTS: SubjectRow[] = [
-  {
-    subject: "Maths",
-    avgLevel: "Growing",
-    levelType: "growing",
-    mostActive: "P1 Adventurers",
-    bandColor: C.p1,
-    bandLabel: "P1",
-    attention: ["P0"],
-    attentionNote: "(3 students exploring only)",
-  },
-  {
-    subject: "Literacy",
-    avgLevel: "Strong",
-    levelType: "strong",
-    mostActive: "P2 Explorers",
-    bandColor: C.p2,
-    bandLabel: "P2",
-    attention: [],
-  },
-  {
-    subject: "Science",
-    avgLevel: "Exploring → Growing",
-    levelType: "mixed",
-    mostActive: "P1 Adventurers",
-    bandColor: C.p1,
-    bandLabel: "P1",
-    attention: ["P0", "P3"],
-  },
-  {
-    subject: "Social Studies",
-    avgLevel: "Exploring",
-    levelType: "exploring",
-    mostActive: "All bands",
-    bandColor: C.muted,
-    bandLabel: "",
-    attention: ["P2", "P3"],
-    attentionNote: "(low engagement)",
-  },
-];
+type BandRow = {
+  label: string;
+  color: string;
+  pct: number;
+  count: number;
+};
 
 type StudentCard = {
   name: string;
@@ -108,50 +55,107 @@ type StudentCard = {
   statusType: string;
 };
 
-const STUDENTS: StudentCard[] = [
-  { name: "Emma", band: "P2", bandColor: C.p2, bandBg: "rgba(88,232,193,0.18)", pct: 82, status: "Advanced ✓", statusType: "advanced" },
-  { name: "Liam", band: "P1", bandColor: C.p1, bandBg: "rgba(155,114,255,0.18)", pct: 68, status: "Active", statusType: "active" },
-  { name: "Sofia", band: "P2", bandColor: C.p2, bandBg: "rgba(88,232,193,0.18)", pct: 77, status: "Advanced ✓", statusType: "advanced" },
-  { name: "Noah", band: "P0", bandColor: C.p0, bandBg: "rgba(255,209,102,0.18)", pct: 42, status: "Active", statusType: "active" },
-  { name: "Amara", band: "P3", bandColor: C.p3, bandBg: "rgba(255,123,107,0.18)", pct: 91, status: "Advanced ✓", statusType: "advanced" },
-  { name: "Oliver", band: "P1", bandColor: C.p1, bandBg: "rgba(155,114,255,0.18)", pct: 55, status: "Active", statusType: "active" },
-  { name: "Mia", band: "P2", bandColor: C.p2, bandBg: "rgba(88,232,193,0.18)", pct: 72, status: "Advanced ✓", statusType: "advanced" },
-  { name: "Caleb", band: "P0", bandColor: C.p0, bandBg: "rgba(255,209,102,0.18)", pct: 18, status: "Inactive", statusType: "inactive" },
-  { name: "Isla", band: "P1", bandColor: C.p1, bandBg: "rgba(155,114,255,0.18)", pct: 63, status: "Advanced ✓", statusType: "advanced" },
-  { name: "Ethan", band: "P3", bandColor: C.p3, bandBg: "rgba(255,123,107,0.18)", pct: 85, status: "Active", statusType: "active" },
-  { name: "Priya", band: "P1", bandColor: C.p1, bandBg: "rgba(155,114,255,0.18)", pct: 49, status: "Active", statusType: "active" },
-  { name: "Marcus", band: "P2", bandColor: C.p2, bandBg: "rgba(88,232,193,0.18)", pct: 66, status: "Active", statusType: "active" },
-];
+const BAND_META: Record<string, { label: string; color: string; bg: string }> = {
+  P0: { label: "P0 Starters",     color: C.p0, bg: "rgba(255,209,102,0.18)" },
+  P1: { label: "P1 Adventurers",  color: C.p1, bg: "rgba(155,114,255,0.18)" },
+  P2: { label: "P2 Explorers",    color: C.p2, bg: "rgba(88,232,193,0.18)"  },
+  P3: { label: "P3 Trailblazers", color: C.p3, bg: "rgba(255,123,107,0.18)" },
+};
+
+function buildBands(roster: RosterStudent[]): BandRow[] {
+  const total = roster.length;
+  return ["P0", "P1", "P2", "P3"].map((code) => {
+    const count = roster.filter((s) => s.launchBandCode === code).length;
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    return { label: BAND_META[code].label, color: BAND_META[code].color, pct, count };
+  });
+}
+
+function buildStudentCards(roster: RosterStudent[]): StudentCard[] {
+  const total = roster.length;
+  return roster.map((s, i) => {
+    const meta = BAND_META[s.launchBandCode] ?? { label: s.launchBandCode, color: C.muted, bg: "rgba(139,148,158,0.12)" };
+    // relative progress within band: rank-based percentage
+    const rank = i + 1;
+    const pct = total > 0 ? Math.round(((total - rank + 1) / total) * 100) : 50;
+    const statusType = s.inInterventionQueue ? "inactive" :
+      s.sessionsLast7d > 3 ? "advanced" : "active";
+    const status = statusType === "advanced" ? "Active ✓" :
+      statusType === "inactive" ? "Inactive" : "Active";
+    return {
+      name: s.displayName,
+      band: s.launchBandCode,
+      bandColor: meta.color,
+      bandBg: meta.bg,
+      pct,
+      status,
+      statusType,
+    };
+  });
+}
 
 function levelChipStyle(type: string) {
   const styles: Record<string, { bg: string; color: string }> = {
-    growing: { bg: "rgba(80,232,144,0.15)", color: C.accent },
-    strong: { bg: "rgba(56,189,248,0.15)", color: C.blue },
-    exploring: { bg: "rgba(255,209,102,0.15)", color: C.p0 },
-    mixed: { bg: "rgba(155,114,255,0.15)", color: C.p1 },
+    growing:   { bg: "rgba(80,232,144,0.15)",  color: C.accent },
+    strong:    { bg: "rgba(56,189,248,0.15)",  color: C.blue   },
+    exploring: { bg: "rgba(255,209,102,0.15)", color: C.p0     },
+    mixed:     { bg: "rgba(155,114,255,0.15)", color: C.p1     },
   };
-  return styles[type] || styles.mixed;
+  return styles[type] ?? styles.mixed;
 }
 
 function statusChipStyle(type: string) {
   const styles: Record<string, { bg: string; color: string }> = {
-    advanced: { bg: "rgba(80,232,144,0.15)", color: C.accent },
-    active: { bg: "rgba(56,189,248,0.15)", color: C.blue },
-    inactive: { bg: "rgba(255,255,255,0.08)", color: C.muted },
+    advanced: { bg: "rgba(80,232,144,0.15)",  color: C.accent },
+    active:   { bg: "rgba(56,189,248,0.15)",  color: C.blue   },
+    inactive: { bg: "rgba(255,255,255,0.08)", color: C.muted  },
   };
-  return styles[type] || styles.active;
+  return styles[type] ?? styles.active;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ClassGrowthPage() {
   const [activeTab, setActiveTab] = useState<"growth" | "students">("growth");
   const [period, setPeriod] = useState("term2");
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const teacherId = localStorage.getItem("wq_teacher_id") ?? "demo-teacher";
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => r.json())
+      .then((data: { roster?: RosterStudent[] }) => {
+        if (data.roster) setRoster(data.roster);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const periodLabel: Record<string, string> = {
     term2: "Term 2",
     last30: "Last 30 days",
     last90: "Last 90 days",
   };
+
+  // ── Derived metrics ────────────────────────────────────────────────────────
+  const totalStudents = roster.length;
+  const activeStudents = roster.filter((s) => s.sessionsLast7d > 0).length;
+  const totalSessions = roster.reduce((a, s) => a + s.sessionsLast7d, 0);
+  const totalPoints = roster.reduce((a, s) => a + s.totalPoints, 0);
+  const avgSessions = totalStudents > 0 ? Math.round(totalSessions / totalStudents) : 0;
+
+  const STATS = [
+    { icon: "📚", value: loading ? "…" : String(totalStudents),  label: "Students on roster" },
+    { icon: "🌟", value: loading ? "…" : String(activeStudents), label: "Active this week" },
+    { icon: "⭐", value: loading ? "…" : String(totalPoints),    label: "Total points (class)" },
+    { icon: "🎯", value: loading ? "…" : String(avgSessions),   label: "Avg sessions per student (7d)" },
+  ];
+
+  const BANDS = loading ? [] : buildBands(roster);
+  const STUDENTS = loading ? [] : buildStudentCards(roster);
+
+  // Compute advanced count (students with >3 sessions last 7d as proxy for "advancing")
+  const advancedCount = roster.filter((s) => s.sessionsLast7d > 3).length;
 
   return (
     <AppFrame audience="teacher">
@@ -161,8 +165,10 @@ export default function ClassGrowthPage() {
           {/* Report header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, padding: "28px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: C.blue, letterSpacing: "-0.3px" }}>Class 4B — Growth Report</div>
-              <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>Teacher view · {periodLabel[period]} · Ms. Okafor</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: C.blue, letterSpacing: "-0.3px" }}>
+                {loading ? "Class — Growth Report" : `Class (${totalStudents} students) — Growth Report`}
+              </div>
+              <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>Teacher view · {periodLabel[period]}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <select
@@ -206,8 +212,15 @@ export default function ClassGrowthPage() {
             ))}
           </div>
 
+          {/* Loading */}
+          {loading && (
+            <div style={{ color: C.muted, fontSize: 14, padding: "40px 0", textAlign: "center" }}>
+              Loading class data…
+            </div>
+          )}
+
           {/* ── Tab: Class Growth Report ── */}
-          {activeTab === "growth" && (
+          {!loading && activeTab === "growth" && (
             <div>
               {/* Stat cards */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
@@ -226,105 +239,26 @@ export default function ClassGrowthPage() {
                 Band Distribution
               </div>
               <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 32 }}>
-                {BANDS.map((b) => (
-                  <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
-                    <div style={{ width: 140, fontSize: 13, fontWeight: 600, flexShrink: 0, color: b.color }}>{b.label}</div>
-                    <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 6, height: 22, overflow: "hidden" }}>
-                      <div style={{ width: `${b.pct}%`, height: "100%", background: b.color, borderRadius: 6, display: "flex", alignItems: "center", paddingLeft: 10, fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.65)" }}>
-                        {b.count}
+                {BANDS.length === 0 ? (
+                  <div style={{ color: C.muted, fontSize: 13 }}>No students on roster.</div>
+                ) : (
+                  BANDS.map((b) => (
+                    <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                      <div style={{ width: 140, fontSize: 13, fontWeight: 600, flexShrink: 0, color: b.color }}>{b.label}</div>
+                      <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 6, height: 22, overflow: "hidden" }}>
+                        <div style={{ width: `${b.pct}%`, height: "100%", background: b.color, borderRadius: 6, display: "flex", alignItems: "center", paddingLeft: 10, fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.65)" }}>
+                          {b.count > 0 ? b.count : ""}
+                        </div>
                       </div>
+                      <div style={{ width: 80, fontSize: 13, color: C.muted, textAlign: "right", flexShrink: 0 }}>{b.count} students</div>
                     </div>
-                    <div style={{ width: 80, fontSize: 13, color: C.muted, textAlign: "right", flexShrink: 0 }}>{b.count} students</div>
+                  ))
+                )}
+                {advancedCount > 0 && (
+                  <div style={{ marginTop: 16, fontSize: 13, color: C.accent, background: "rgba(80,232,144,0.07)", border: "1px solid rgba(80,232,144,0.2)", borderRadius: 7, padding: "10px 14px", display: "inline-block" }}>
+                    {advancedCount} student{advancedCount !== 1 ? "s" : ""} highly active this week
                   </div>
-                ))}
-                <div style={{ marginTop: 16, fontSize: 13, color: C.accent, background: "rgba(80,232,144,0.07)", border: "1px solid rgba(80,232,144,0.2)", borderRadius: 7, padding: "10px 14px", display: "inline-block" }}>
-                  4 students have advanced from P1 → P2 this term
-                </div>
-              </div>
-
-              {/* Weekly trend bars */}
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ display: "inline-block", width: 3, height: 16, background: C.blue, borderRadius: 2 }} />
-                Weekly Skill Engagement Trend
-              </div>
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 32 }}>
-                <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
-                  {[{ color: C.blue, label: "Maths" }, { color: C.p2, label: "Literacy" }, { color: C.violet, label: "Science" }].map((leg) => (
-                    <div key={leg.label} style={{ display: "flex", alignItems: "center", gap: 5, marginRight: 16, fontSize: 12, color: C.muted }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 2, background: leg.color, flexShrink: 0, display: "inline-block" }} />
-                      {leg.label}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 12, height: 120 }}>
-                  {WEEKLY_TRENDS.map((wk) => (
-                    <div key={wk.week} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      <div style={{ width: "100%", display: "flex", gap: 2, alignItems: "flex-end", height: 96 }}>
-                        <div style={{ flex: 1, background: C.blue, borderRadius: "3px 3px 0 0", height: `${wk.maths}%`, opacity: 0.85 }} />
-                        <div style={{ flex: 1, background: C.p2, borderRadius: "3px 3px 0 0", height: `${wk.literacy}%`, opacity: 0.85 }} />
-                        <div style={{ flex: 1, background: C.violet, borderRadius: "3px 3px 0 0", height: `${wk.science}%`, opacity: 0.85 }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{wk.week}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subject engagement table */}
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ display: "inline-block", width: 3, height: 16, background: C.blue, borderRadius: 2 }} />
-                  Subject Engagement
-                </div>
-                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-                    <thead>
-                      <tr>
-                        {["Subject", "Class Average Level", "Most Active Band", "Needs Attention"].map((h) => (
-                          <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted, borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {SUBJECTS.map((row) => {
-                        const chip = levelChipStyle(row.levelType);
-                        return (
-                          <tr key={row.subject}>
-                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}` }}><strong>{row.subject}</strong></td>
-                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}` }}>
-                              <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: chip.bg, color: chip.color }}>{row.avgLevel}</span>
-                            </td>
-                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}` }}>
-                              {row.bandLabel ? (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: row.bandColor, display: "inline-block" }} />
-                                  {row.mostActive}
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: 12, color: C.muted }}>{row.mostActive}</span>
-                              )}
-                            </td>
-                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}` }}>
-                              {row.attention.length === 0 ? (
-                                <span style={{ color: C.muted, fontSize: 13 }}>None flagged</span>
-                              ) : (
-                                <span>
-                                  {row.attention.map((a) => (
-                                    <span key={a} style={{ display: "inline-block", padding: "3px 9px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "rgba(255,123,107,0.12)", color: C.p3, margin: "1px 2px" }}>{a}</span>
-                                  ))}
-                                  {row.attentionNote && <span style={{ fontSize: 12, color: C.muted }}> {row.attentionNote}</span>}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <p style={{ fontSize: 12, color: C.muted, marginTop: 10, paddingLeft: 4 }}>
-                  "Needs Attention" identifies lowest-engagement band groups — not individual students.
-                </p>
+                )}
               </div>
 
               {/* Growth highlights */}
@@ -334,42 +268,69 @@ export default function ClassGrowthPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 32 }}>
                 <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 18px", borderLeft: `3px solid ${C.blue}`, fontSize: 14, lineHeight: 1.6 }}>
-                  7 students moved from Exploring → Growing in Maths this term 🌟
+                  {activeStudents} of {totalStudents} students active this week 🌟
                 </div>
                 <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 18px", borderLeft: `3px solid ${C.blue}`, fontSize: 14, lineHeight: 1.6 }}>
-                  Literacy engagement up <strong style={{ color: C.blue }}>34%</strong> vs last term across the class
+                  <strong style={{ color: C.blue }}>{totalSessions}</strong> sessions completed across the class this week
                 </div>
                 <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px 18px", borderLeft: `3px solid ${C.blue}`, fontSize: 14, lineHeight: 1.6 }}>
-                  4 students ready to advance band — see Interventions tab for details
+                  {roster.filter((s) => s.inInterventionQueue).length} students in intervention queue — see Support tab for details
                 </div>
               </div>
 
-              {/* Student skill gains */}
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ display: "inline-block", width: 3, height: 16, background: C.blue, borderRadius: 2 }} />
-                Top Skill Gains This Term
-              </div>
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 32 }}>
-                {[
-                  { skill: "Fractions: Division", gains: 14, students: 6, color: C.blue },
-                  { skill: "Reading Comprehension", gains: 21, students: 11, color: C.p2 },
-                  { skill: "Forces & Motion", gains: 8, students: 4, color: C.violet },
-                  { skill: "Number Sense: Place Value", gains: 18, students: 9, color: C.gold },
-                ].map((item) => (
-                  <div key={item.skill} style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-                    <div style={{ width: 220, fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{item.skill}</div>
-                    <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 6, height: 20, overflow: "hidden" }}>
-                      <div style={{ width: `${Math.min(item.gains * 5, 100)}%`, height: "100%", background: item.color, borderRadius: 6, opacity: 0.8 }} />
-                    </div>
-                    <div style={{ width: 100, fontSize: 12, color: C.muted, textAlign: "right", flexShrink: 0 }}>+{item.gains} pts · {item.students} students</div>
-                  </div>
-                ))}
+              {/* Subject engagement table — static labels, real band data */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ display: "inline-block", width: 3, height: 16, background: C.blue, borderRadius: 2 }} />
+                  Band Engagement Summary
+                </div>
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                    <thead>
+                      <tr>
+                        {["Band", "Students", "Sessions (7d)", "Avg Points", "Status"].map((h) => (
+                          <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: C.muted, borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {["P0", "P1", "P2", "P3"].map((code) => {
+                        const members = roster.filter((s) => s.launchBandCode === code);
+                        if (members.length === 0) return null;
+                        const meta = BAND_META[code];
+                        const sessions = members.reduce((a, s) => a + s.sessionsLast7d, 0);
+                        const avgPts = members.length > 0 ? Math.round(members.reduce((a, s) => a + s.totalPoints, 0) / members.length) : 0;
+                        const activeMembers = members.filter((s) => s.sessionsLast7d > 0).length;
+                        const levelType = activeMembers === members.length ? "strong" :
+                          activeMembers >= members.length * 0.5 ? "growing" : "exploring";
+                        const chip = levelChipStyle(levelType);
+                        const levelLabel = levelType === "strong" ? "Strong" : levelType === "growing" ? "Growing" : "Exploring";
+                        return (
+                          <tr key={code}>
+                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}` }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ width: 10, height: 10, borderRadius: "50%", background: meta.color, display: "inline-block" }} />
+                                <strong style={{ color: meta.color }}>{meta.label}</strong>
+                              </span>
+                            </td>
+                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>{members.length}</td>
+                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>{sessions}</td>
+                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>{avgPts}</td>
+                            <td style={{ padding: "13px 14px", borderBottom: `1px solid ${C.border}` }}>
+                              <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: chip.bg, color: chip.color }}>{levelLabel}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {/* ── Tab: Student Band Progress ── */}
-          {activeTab === "students" && (
+          {!loading && activeTab === "students" && (
             <div>
               {/* Privacy notice */}
               <div style={{ background: "rgba(56,189,248,0.07)", border: "1px solid rgba(56,189,248,0.22)", borderRadius: 10, padding: "14px 18px", marginBottom: 24, fontSize: 13, color: C.blue, display: "flex", flexDirection: "column", gap: 5 }}>
@@ -378,6 +339,13 @@ export default function ClassGrowthPage() {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 7, color: C.text, fontSize: 13 }}>🔒 Progress bars are relative to the class — not scores or percentages</div>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 7, color: C.text, fontSize: 13 }}>🔒 This data is for your planning — not for parent reports</div>
               </div>
+
+              {/* No students */}
+              {STUDENTS.length === 0 && (
+                <div style={{ color: C.muted, fontSize: 14, textAlign: "center", padding: "40px 0" }}>
+                  No students on roster.
+                </div>
+              )}
 
               {/* Student grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
@@ -396,15 +364,14 @@ export default function ClassGrowthPage() {
                     </div>
                   );
                 })}
-                <div style={{ background: C.surface, border: "1px dashed rgba(255,255,255,0.15)", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: C.muted, minHeight: 90, cursor: "pointer" }}>
-                  +6 more
-                </div>
               </div>
 
               {/* Advancement summary */}
-              <div style={{ background: "rgba(80,232,144,0.07)", border: "1px solid rgba(80,232,144,0.2)", borderRadius: 10, padding: "14px 18px", fontSize: 14, color: C.text, marginTop: 10 }}>
-                <strong style={{ color: C.accent }}>12 of 18 students</strong> advanced a band level this term — highest in 3 terms.
-              </div>
+              {totalStudents > 0 && (
+                <div style={{ background: "rgba(80,232,144,0.07)", border: "1px solid rgba(80,232,144,0.2)", borderRadius: 10, padding: "14px 18px", fontSize: 14, color: C.text, marginTop: 10 }}>
+                  <strong style={{ color: C.accent }}>{activeStudents} of {totalStudents} students</strong> active this week.
+                </div>
+              )}
             </div>
           )}
 

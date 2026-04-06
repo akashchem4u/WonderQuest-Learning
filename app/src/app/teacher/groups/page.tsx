@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
@@ -29,7 +29,22 @@ const C = {
 type ChipColor = "teal" | "violet" | "gold" | "blue" | "green";
 type EngLevel = "high" | "med" | "full";
 
-type Student = {
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  avatarKey: string;
+  launchBandCode: string;
+  totalPoints: number;
+  currentLevel: number;
+  sessionsLast7d: number;
+  correctLast7d: number;
+  totalLast7d: number;
+  lastSessionAt: string | null;
+  inInterventionQueue: boolean;
+  streak: number;
+};
+
+type StudentInGroup = {
   name: string;
   initial: string;
   band: string;
@@ -44,12 +59,23 @@ type Group = {
   color: string;
   borderColor: string;
   chipColor: ChipColor;
-  students: Student[];
+  students: StudentInGroup[];
   assignment: string;
   engLabel: string;
   engLevel: EngLevel;
   stats: { started: string; sessions: number; avgMin: number };
   accentColor: string;
+};
+
+// ── Band config ───────────────────────────────────────────────────────────────
+const BAND_CONFIG: Record<string, {
+  label: string; groupName: string; letter: string;
+  color: string; borderColor: string; chipColor: ChipColor; accentColor: string;
+}> = {
+  P0: { label: "Pre-K",        groupName: "P0 Starters",      letter: "A", color: C.gold,   borderColor: "rgba(255,209,102,0.22)", chipColor: "gold",   accentColor: C.gold   },
+  P1: { label: "K–1",          groupName: "P1 Adventurers",   letter: "B", color: C.violet, borderColor: "rgba(167,139,250,0.22)", chipColor: "violet", accentColor: C.violet },
+  P2: { label: "G2–3",         groupName: "P2 Explorers",     letter: "C", color: C.teal,   borderColor: "rgba(45,212,191,0.22)",  chipColor: "teal",   accentColor: C.teal   },
+  P3: { label: "G4–5",         groupName: "P3 Trailblazers",  letter: "D", color: C.green,  borderColor: "rgba(80,232,144,0.22)",  chipColor: "green",  accentColor: C.green  },
 };
 
 // ── Chip styles ───────────────────────────────────────────────────────────────
@@ -67,71 +93,49 @@ const ENG_STYLES: Record<EngLevel, React.CSSProperties> = {
   full: { background: "rgba(56,189,248,0.15)",  color: "#38bdf8", border: "1px solid rgba(56,189,248,0.3)" },
 };
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
-const GROUPS: Group[] = [
-  {
-    id: "A",
-    letter: "A",
-    name: "Quest Explorers",
-    color: "#2dd4bf",
-    borderColor: "rgba(45,212,191,0.22)",
-    chipColor: "teal",
-    accentColor: "#2dd4bf",
-    students: [
-      { name: "Amara",  initial: "A", band: "Explorer",   bandColor: "blue",  active: true },
-      { name: "Ben",    initial: "B", band: "Explorer",   bandColor: "blue",  active: true },
-      { name: "Cleo",   initial: "C", band: "Adventurer", bandColor: "green", active: true },
-      { name: "Daniel", initial: "D", band: "Explorer",   bandColor: "blue",  active: true },
-      { name: "Eva",    initial: "E", band: "Explorer",   bandColor: "blue",  active: true },
-      { name: "Felix",  initial: "F", band: "Adventurer", bandColor: "green", active: false },
-    ],
-    assignment: "P1 Reading Batch",
-    engLabel: "5/6 started",
-    engLevel: "high",
-    stats: { started: "5/6", sessions: 12, avgMin: 18 },
-  },
-  {
-    id: "B",
-    letter: "B",
-    name: "Star Builders",
-    color: "#a78bfa",
-    borderColor: "rgba(167,139,250,0.22)",
-    chipColor: "violet",
-    accentColor: "#a78bfa",
-    students: [
-      { name: "Grace", initial: "G", band: "Navigator", bandColor: "violet", active: true },
-      { name: "Henry", initial: "H", band: "Navigator", bandColor: "violet", active: true },
-      { name: "Isla",  initial: "I", band: "Explorer",  bandColor: "blue",   active: true },
-      { name: "Juno",  initial: "J", band: "Navigator", bandColor: "violet", active: true },
-      { name: "Kai",   initial: "K", band: "Explorer",  bandColor: "blue",   active: false },
-    ],
-    assignment: "P0 Maths Batch",
-    engLabel: "4/5 started",
-    engLevel: "med",
-    stats: { started: "4/5", sessions: 9, avgMin: 14 },
-  },
-  {
-    id: "C",
-    letter: "C",
-    name: "Adventure Squad",
-    color: "#ffd166",
-    borderColor: "rgba(255,209,102,0.22)",
-    chipColor: "gold",
-    accentColor: "#ffd166",
-    students: [
-      { name: "Lena",  initial: "L", band: "Trailblazer", bandColor: "gold", active: true },
-      { name: "Marco", initial: "M", band: "Trailblazer", bandColor: "gold", active: true },
-      { name: "Nina",  initial: "N", band: "Trailblazer", bandColor: "gold", active: true },
-      { name: "Omar",  initial: "O", band: "Trailblazer", bandColor: "gold", active: true },
-    ],
-    assignment: "Free Explore",
-    engLabel: "4/4 started",
-    engLevel: "full",
-    stats: { started: "4/4", sessions: 11, avgMin: 22 },
-  },
-];
+function buildGroupsFromRoster(roster: RosterStudent[]): Group[] {
+  const bandOrder = ["P0", "P1", "P2", "P3"];
+  return bandOrder
+    .map((code) => {
+      const cfg = BAND_CONFIG[code];
+      const members = roster.filter((s) => s.launchBandCode === code);
+      if (members.length === 0) return null;
 
-const ALL_STUDENTS = ["Amara", "Ben", "Cleo", "Daniel", "Eva", "Felix", "Grace", "Henry", "Isla", "Juno"];
+      const activeCount = members.filter((s) => s.sessionsLast7d > 0).length;
+      const totalSessions = members.reduce((a, s) => a + s.sessionsLast7d, 0);
+      const engLevel: EngLevel =
+        activeCount === members.length ? "full" :
+        activeCount >= members.length * 0.5 ? "high" : "med";
+
+      const students: StudentInGroup[] = members.map((s) => ({
+        name: s.displayName,
+        initial: s.displayName.charAt(0),
+        band: cfg.label,
+        bandColor: cfg.chipColor,
+        active: s.sessionsLast7d > 0,
+      }));
+
+      return {
+        id: code,
+        letter: cfg.letter,
+        name: cfg.groupName,
+        color: cfg.color,
+        borderColor: cfg.borderColor,
+        chipColor: cfg.chipColor,
+        accentColor: cfg.accentColor,
+        students,
+        assignment: "Free Explore",
+        engLabel: `${activeCount}/${members.length} started`,
+        engLevel,
+        stats: {
+          started: `${activeCount}/${members.length}`,
+          sessions: totalSessions,
+          avgMin: 0,
+        },
+      } as Group;
+    })
+    .filter((g): g is Group => g !== null);
+}
 
 const QUEST_OPTIONS = [
   { label: "P1 Reading Batch",    sub: "6 quests · Phonics & fluency" },
@@ -143,15 +147,34 @@ const QUEST_OPTIONS = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TeacherGroupsPage() {
   const [mainTab, setMainTab] = useState<"groups" | "engagement">("groups");
-  const [engGroup, setEngGroup] = useState<string>("A");
+  const [engGroup, setEngGroup] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectedColor, setSelectedColor] = useState("teal");
   const [assignModal, setAssignModal] = useState<string | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [allStudentNames, setAllStudentNames] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeEngGroup = GROUPS.find((g) => g.id === engGroup) ?? GROUPS[0];
+  useEffect(() => {
+    const teacherId = localStorage.getItem("wq_teacher_id") ?? "demo-teacher";
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => r.json())
+      .then((data: { roster?: RosterStudent[] }) => {
+        if (data.roster) {
+          const built = buildGroupsFromRoster(data.roster);
+          setGroups(built);
+          if (built.length > 0) setEngGroup(built[0].id);
+          setAllStudentNames(data.roster.map((s) => s.displayName));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const activeEngGroup = groups.find((g) => g.id === engGroup) ?? groups[0];
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -305,7 +328,9 @@ export default function TeacherGroupsPage() {
               </span>
             </h1>
             <p style={{ fontSize: 13, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
-              3 groups · 15 students total · Class 4B
+              {loading
+                ? "Loading…"
+                : `${groups.length} groups · ${groups.reduce((a, g) => a + g.students.length, 0)} students total`}
             </p>
           </div>
         </div>
@@ -338,8 +363,15 @@ export default function TeacherGroupsPage() {
 
         <div style={{ padding: "24px 32px" }}>
 
+          {/* Loading */}
+          {loading && (
+            <div style={{ color: C.muted, fontSize: 14, padding: "40px 0", textAlign: "center" }}>
+              Loading class groups…
+            </div>
+          )}
+
           {/* ══════ TAB: GROUPS ══════ */}
-          {mainTab === "groups" && (
+          {!loading && mainTab === "groups" && (
             <div>
               {/* Section header */}
               <div
@@ -355,7 +387,7 @@ export default function TeacherGroupsPage() {
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 700 }}>My Groups</div>
                   <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
-                    3 groups · 15 students total
+                    {groups.length} groups · {groups.reduce((a, g) => a + g.students.length, 0)} students total
                   </div>
                 </div>
                 <button
@@ -481,7 +513,7 @@ export default function TeacherGroupsPage() {
                           minHeight: 60,
                         }}
                       >
-                        {ALL_STUDENTS.map((s) => (
+                        {allStudentNames.map((s) => (
                           <button
                             key={s}
                             onClick={() => toggleStudent(s)}
@@ -524,6 +556,13 @@ export default function TeacherGroupsPage() {
                 </div>
               )}
 
+              {/* No groups */}
+              {groups.length === 0 && (
+                <div style={{ textAlign: "center", padding: "48px 0", color: C.muted, fontSize: 14 }}>
+                  No students on your roster yet. Groups will appear here once students are enrolled.
+                </div>
+              )}
+
               {/* Group cards grid */}
               <div
                 style={{
@@ -532,7 +571,7 @@ export default function TeacherGroupsPage() {
                   gap: 16,
                 }}
               >
-                {GROUPS.map((grp) => (
+                {groups.map((grp) => (
                   <div
                     key={grp.id}
                     style={{
@@ -683,7 +722,7 @@ export default function TeacherGroupsPage() {
           )}
 
           {/* ══════ TAB: ENGAGEMENT ══════ */}
-          {mainTab === "engagement" && (
+          {!loading && mainTab === "engagement" && activeEngGroup && (
             <div>
               <div
                 style={{
@@ -705,7 +744,7 @@ export default function TeacherGroupsPage() {
 
               {/* Group selector tabs */}
               <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-                {GROUPS.map((grp) => {
+                {groups.map((grp) => {
                   const isActive = engGroup === grp.id;
                   return (
                     <button
@@ -743,7 +782,7 @@ export default function TeacherGroupsPage() {
                 {[
                   { val: activeEngGroup.stats.started, label: "Students Started", color: activeEngGroup.accentColor },
                   { val: String(activeEngGroup.stats.sessions), label: "Sessions This Week", color: C.green },
-                  { val: `${activeEngGroup.stats.avgMin} min`, label: "Avg Session Length", color: C.blue },
+                  { val: activeEngGroup.stats.avgMin > 0 ? `${activeEngGroup.stats.avgMin} min` : "—", label: "Avg Session Length", color: C.blue },
                 ].map((st, i) => (
                   <div
                     key={i}
@@ -841,7 +880,7 @@ export default function TeacherGroupsPage() {
                   onClick={() => showToast("Encouragement sent through the platform!")}
                   style={btnSecondary}
                 >
-                  &#128140; Send Encouragement
+                  💌 Send Encouragement
                 </button>
               </div>
 
@@ -860,7 +899,7 @@ export default function TeacherGroupsPage() {
                   color: C.muted,
                 }}
               >
-                <span>&#128274;</span>
+                <span>🔒</span>
                 First names only · No accuracy data shown · Messages routed through platform · Group composition visible to teacher only
               </div>
             </div>
@@ -971,7 +1010,7 @@ export default function TeacherGroupsPage() {
               maxWidth: 320,
             }}
           >
-            <span>&#10003;</span>
+            <span>✓</span>
             {toast}
           </div>
         )}
