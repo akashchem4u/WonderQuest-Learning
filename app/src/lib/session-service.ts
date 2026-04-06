@@ -352,21 +352,45 @@ async function loadBandQuestionWindow(
   orderBy: "difficulty_asc" | "difficulty_desc",
   limit: number,
 ) {
-  const freshQuestions = await findQuestions({
+  // Prefer seeded (curated) bank questions — they have vetted complexity/topic metadata
+  const freshSeeded = await findQuestions({
+    launchBands: [launchBandCode],
+    sourceKinds: ["seeded"],
+    excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
+    orderBy,
+    limit,
+  });
+
+  const fallbackSeeded = await findQuestions({
+    launchBands: [launchBandCode],
+    sourceKinds: ["seeded"],
+    excludeQuestionKeys: [...usedQuestionKeys],
+    orderBy,
+    limit,
+  });
+
+  const seededPool = mergeQuestionLists(freshSeeded, fallbackSeeded);
+
+  // Only reach into the full pool (seeded + cached ai-live) if seeded questions are exhausted
+  if (seededPool.length >= limit) {
+    return seededPool;
+  }
+
+  const freshAll = await findQuestions({
     launchBands: [launchBandCode],
     excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
     orderBy,
     limit,
   });
 
-  const fallbackQuestions = await findQuestions({
+  const fallbackAll = await findQuestions({
     launchBands: [launchBandCode],
     excludeQuestionKeys: [...usedQuestionKeys],
     orderBy,
     limit,
   });
 
-  return mergeQuestionLists(freshQuestions, fallbackQuestions);
+  return mergeQuestionLists(freshAll, fallbackAll);
 }
 
 async function selectEasyFirstGuidedQuestions(
@@ -422,30 +446,42 @@ async function selectEasyFirstGuidedQuestions(
   return [...selected, ...shuffleArray(remainingQuestions)].slice(0, questionLimit);
 }
 
-async function maybeReplaceSessionQuestionsWithLiveVariants(
+async function maybeSupplementWithLiveQuestions(
   selectedQuestions: SessionQuestionRecord[],
+  questionLimit: number,
   launchBandCode: string,
   themeCode: string | null,
 ) {
-  if (!isLiveQuestionGenerationEnabled() || !selectedQuestions.length) {
+  // Bank-first strategy: only use AI to fill slots the bank couldn't cover.
+  // Never replace a curated seeded question with an AI variant.
+  if (!isLiveQuestionGenerationEnabled()) {
     return selectedQuestions;
   }
 
-  const liveCount = Math.min(
-    getInitialLiveSessionQuestionCount(),
-    selectedQuestions.length,
-  );
+  const shortage = questionLimit - selectedQuestions.length;
+  const budget = getLiveSessionQuestionBudget();
+  const supplementCount = Math.min(shortage, budget);
 
-  if (liveCount <= 0) {
+  if (supplementCount <= 0) {
+    // Bank was sufficient — warm the AI cache in the background for future sessions
+    warmLiveQuestionCache(
+      selectedQuestions.slice(0, Math.min(selectedQuestions.length, getAdaptiveWarmupCount())).map((question) => ({
+        launchBandCode,
+        skillCode: question.skill,
+        difficulty: question.difficulty,
+        themeCode: themeCode ?? question.theme ?? null,
+        reason: "session-refresh" as const,
+        referenceQuestion: question,
+      })),
+    );
     return selectedQuestions;
   }
 
+  // Fill the shortage slots with AI-generated questions
   const nextQuestions = [...selectedQuestions];
-  const targetRequests = [];
+  const seedQuestion = selectedQuestions[selectedQuestions.length - 1];
 
-  for (let offset = 0; offset < liveCount; offset += 1) {
-    const index = nextQuestions.length - 1 - offset;
-    const seedQuestion = nextQuestions[index];
+  for (let i = 0; i < supplementCount; i += 1) {
     const request = {
       launchBandCode,
       skillCode: seedQuestion.skill,
@@ -455,37 +491,15 @@ async function maybeReplaceSessionQuestionsWithLiveVariants(
       referenceQuestion: seedQuestion,
     };
 
-    targetRequests.push({ index, request });
-  }
+    const liveQuestion = await findOrCreateLiveQuestion(request, {
+      excludeQuestionKeys: nextQuestions.map((q) => q.question_key),
+      waitMs: Math.min(5000, Math.max(0, Number(process.env.OPENAI_QUESTION_ADAPTIVE_WAIT_MS ?? 2500))),
+    });
 
-  const replacements = await Promise.all(
-    targetRequests.map(async ({ index, request }) => ({
-      index,
-      liveQuestion: await findOrCreateLiveQuestion(request, {
-        excludeQuestionKeys: nextQuestions.map((item) => item.question_key),
-        waitMs: 0,
-      }),
-    })),
-  );
-
-  for (const replacement of replacements) {
-    if (replacement.liveQuestion) {
-      nextQuestions[replacement.index] = replacement.liveQuestion;
+    if (liveQuestion) {
+      nextQuestions.push(liveQuestion);
     }
   }
-
-  warmLiveQuestionCache(
-    nextQuestions
-      .slice(0, Math.min(nextQuestions.length, liveCount + 2))
-      .map((question) => ({
-        launchBandCode,
-        skillCode: question.skill,
-        difficulty: question.difficulty,
-        themeCode: themeCode ?? question.theme ?? null,
-        reason: "session-refresh" as const,
-        referenceQuestion: question,
-      })),
-  );
 
   const remainingBudget =
     getLiveSessionQuestionBudget() - countLiveQuestionRecords(nextQuestions);
@@ -529,8 +543,9 @@ async function selectSessionQuestions(
       prioritizedPool.slice(0, challengeWindow),
     ).slice(0, questionLimit);
 
-    return maybeReplaceSessionQuestionsWithLiveVariants(
+    return maybeSupplementWithLiveQuestions(
       baseSelection,
+      questionLimit,
       launchBandCode,
       themeCode,
     );
@@ -542,8 +557,9 @@ async function selectSessionQuestions(
     recentQuestionKeys,
   );
 
-  return maybeReplaceSessionQuestionsWithLiveVariants(
+  return maybeSupplementWithLiveQuestions(
     guidedSelection,
+    questionLimit,
     launchBandCode,
     themeCode,
   );
