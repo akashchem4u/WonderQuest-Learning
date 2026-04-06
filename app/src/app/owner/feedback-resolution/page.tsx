@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 const COLORS = {
@@ -19,6 +19,65 @@ const COLORS = {
 };
 
 type ResolutionState = "resolved" | "wontfix" | "escalated";
+
+interface LiveFeedbackItem {
+  id: string;
+  category: string;
+  urgency: string;
+  summary: string;
+  createdAt: string;
+  studentId: string | null;
+  guardianId: string | null;
+  resolved: string;
+}
+
+function useOpenFeedback() {
+  const [items, setItems] = useState<LiveFeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/owner/feedback?status=open&limit=20")
+      .then((res) => {
+        if (!res.ok) throw new Error("fetch failed");
+        return res.json() as Promise<{ items: LiveFeedbackItem[] }>;
+      })
+      .then((data) => {
+        setItems(data.items ?? []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
+
+  return { items, loading, error };
+}
+
+function urgencyColor(urgency: string) {
+  if (urgency === "critical") return "#ef4444";
+  if (urgency === "high") return "#f59e0b";
+  if (urgency === "medium") return "#38bdf8";
+  return "#8b949e";
+}
+
+function categoryIcon(category: string) {
+  if (category === "bug") return "🐛";
+  if (category === "safety") return "🚨";
+  if (category === "enhancement") return "✨";
+  if (category === "content") return "📝";
+  return "💬";
+}
+
+function formatRelative(isoString: string) {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 interface LogEntry {
   dot: string;
@@ -208,6 +267,7 @@ function getStateLabelColor(state: ResolutionState) {
 export default function FeedbackResolutionPage() {
   const [activeState, setActiveState] = useState<ResolutionState>("resolved");
   const item = ITEMS.find((i) => i.state === activeState)!;
+  const { items: liveItems, loading: liveLoading, error: liveError } = useOpenFeedback();
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: "8px 18px",
@@ -232,6 +292,39 @@ export default function FeedbackResolutionPage() {
               {s === "resolved" ? "Resolved" : s === "wontfix" ? "Won't Fix" : "Escalated"}
             </button>
           ))}
+        </div>
+
+        {/* Live open feedback queue */}
+        <div style={{ background: "#0d1117", borderRadius: 12, border: `1px solid ${COLORS.border}`, maxWidth: 1100, marginBottom: 20, overflow: "hidden" }}>
+          <div style={{ padding: "10px 16px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: COLORS.muted }}>Live Open Queue</span>
+            {!liveLoading && !liveError && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.amber, background: "rgba(245,158,11,0.12)", padding: "1px 7px", borderRadius: 10 }}>{liveItems.length} open</span>
+            )}
+          </div>
+          {liveLoading && (
+            <div style={{ padding: "14px 16px", fontSize: 11, color: COLORS.muted }}>Loading open feedback…</div>
+          )}
+          {liveError && (
+            <div style={{ padding: "14px 16px", fontSize: 11, color: COLORS.muted }}>Could not load live feedback.</div>
+          )}
+          {!liveLoading && !liveError && liveItems.length === 0 && (
+            <div style={{ padding: "14px 16px", fontSize: 11, color: COLORS.muted }}>No open feedback items — all clear!</div>
+          )}
+          {!liveLoading && !liveError && liveItems.length > 0 && (
+            <div>
+              {liveItems.map((fi, idx) => (
+                <div key={fi.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 16px", borderBottom: idx < liveItems.length - 1 ? `1px solid ${COLORS.border}` : "none" }}>
+                  <span style={{ fontSize: 14 }}>{categoryIcon(fi.category)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fi.summary || "(no summary)"}</div>
+                    <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 1 }}>{fi.category} · {formatRelative(fi.createdAt)}</div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: urgencyColor(fi.urgency), flexShrink: 0 }}>{fi.urgency}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Shell */}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
+import { getOwnerOverview } from "@/lib/analytics-service";
 import OwnerGate from "../owner-gate";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,15 @@ const C = {
 export default async function OwnerCommandPage() {
   const configured = isOwnerAccessConfigured();
   const allowed = configured && (await hasOwnerAccess());
+
+  let overview: Awaited<ReturnType<typeof getOwnerOverview>> | null = null;
+  if (allowed) {
+    try {
+      overview = await getOwnerOverview();
+    } catch {
+      // leave null — UI falls back to stub data
+    }
+  }
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
@@ -50,11 +60,11 @@ export default async function OwnerCommandPage() {
             {/* Stat row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginBottom: 12 }}>
               {[
-                { n: "4,820", label: "MAU (30d)", delta: "↑12% vs prior", color: C.mint },
-                { n: "$18.4K", label: "MRR", delta: "↑$800 (+4.5%)", color: C.mint },
-                { n: "$220.8K", label: "ARR (run rate)", delta: "↑$9.6K", color: C.mint },
-                { n: "142", label: "Active schools", delta: "↑3 this month", color: C.mint },
-                { n: "68%", label: "D30 retention", delta: "↑4pp vs prior 30d", color: C.mint },
+                { n: overview ? overview.counts.students.toLocaleString() : "4,820", label: "Students", delta: `${overview ? overview.counts.guardians.toLocaleString() + " guardians" : "↑12% vs prior"}`, color: C.mint },
+                { n: overview ? overview.counts.sessions.toLocaleString() : "$18.4K", label: overview ? "Sessions" : "MRR", delta: overview ? `${overview.counts.feedbackItems} feedback items` : "↑$800 (+4.5%)", color: C.mint },
+                { n: overview ? overview.counts.totalPoints.toLocaleString() : "$220.8K", label: overview ? "Total Points" : "ARR (run rate)", delta: overview ? `across all learners` : "↑$9.6K", color: C.mint },
+                { n: overview ? overview.counts.exampleItems.toLocaleString() : "142", label: overview ? "Example Items" : "Active schools", delta: overview ? `${overview.counts.explainers} explainers` : "↑3 this month", color: C.mint },
+                { n: overview ? overview.byBand.length.toString() : "68%", label: overview ? "Launch Bands" : "D30 retention", delta: overview ? overview.byBand.map((b) => b.code).join(", ") || "—" : "↑4pp vs prior 30d", color: C.mint },
               ].map((s) => (
                 <div key={s.label} style={{ background: C.surface, borderRadius: 10, padding: "10px 12px", border: `1px solid ${C.border}` }}>
                   <div style={{ fontSize: 18, fontWeight: 900, color: C.text }}>{s.n}</div>
