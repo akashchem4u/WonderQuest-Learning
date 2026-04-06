@@ -4,35 +4,44 @@ import { DisplayModeToggle } from "@/components/display-mode-toggle";
 
 export const dynamic = "force-dynamic";
 
-const routeCards = [
+const roleCards = [
+  {
+    href: "/child",
+    emoji: "🧒",
+    name: "Child",
+    tagline: "Quests, rewards & adventure",
+    tone: "child",
+  },
   {
     href: "/parent",
-    audience: "For families",
-    icon: "👨‍👩‍👧",
-    title: "See the week fast",
-    description: "Calm wins and one next step.",
-    cta: "Open family hub",
+    emoji: "👨‍👩‍👧",
+    name: "Parent",
+    tagline: "Progress & family hub",
     tone: "parent",
   },
   {
     href: "/teacher",
-    audience: "For teachers",
-    icon: "🏫",
-    title: "Spot support fast",
-    description: "Progress, cues, and next moves.",
-    cta: "Open classroom view",
+    emoji: "🏫",
+    name: "Teacher",
+    tagline: "Classroom & interventions",
     tone: "teacher",
   },
   {
     href: "/owner",
-    audience: "Platform management",
-    icon: "⚙️",
-    title: "Track launches",
-    description: "Status, feedback, and readiness stay separate.",
-    cta: "Open ops console",
+    emoji: "⚙️",
+    name: "Platform",
+    tagline: "Ops & launch readiness",
     tone: "owner",
   },
 ] as const;
+
+const trustItems = [
+  "🔒 COPPA-safe",
+  "🎓 Home + school",
+  "🚫 No chat",
+  "👁️ No child rankings",
+  "📱 Phone / tablet / desktop",
+];
 
 export default async function HomePage() {
   const launchStatus = await getLaunchStatus();
@@ -40,218 +49,85 @@ export default async function HomePage() {
     launchStatus.source === "supabase" ? "All systems operational" : "Fallback plan values";
 
   return (
-    <main className="landing-page">
-      <div className="landing-page-shell">
-        <header className="landing-topbar">
-          <Link className="landing-brand" href="/">
-            WonderQuest <span>Learning</span>
+    <main className="home-launcher">
+      {/* Ambient glows */}
+      <div className="home-glow home-glow-violet" aria-hidden="true" />
+      <div className="home-glow home-glow-teal" aria-hidden="true" />
+
+      {/* Top bar */}
+      <header className="home-topbar">
+        <Link className="home-logo" href="/">
+          Wonder<span>Quest</span>
+        </Link>
+
+        <nav className="home-topbar-links" aria-label="Primary">
+          <Link href="/parent">For families</Link>
+          <Link href="/teacher">For teachers</Link>
+          <Link href="/owner">Platform ops</Link>
+        </nav>
+
+        <div className="home-topbar-actions">
+          <DisplayModeToggle />
+          <Link className="home-start-btn" href="/child">
+            Start learning
           </Link>
+        </div>
+      </header>
 
-          <div className="landing-topbar-center">
-            <Link className="landing-mini-link" href="/parent">
-              For families
+      {/* Hero */}
+      <section className="home-hero">
+        <span className="home-badge">
+          Early access · Ages 2–10 · {launchStatus.launchBandCount} live bands
+        </span>
+        <h1 className="home-title">
+          Wonder<span>Quest</span>
+        </h1>
+        <p className="home-sub">
+          Adaptive learning for every child, every day.
+        </p>
+      </section>
+
+      {/* Role selection */}
+      <section className="home-role-section">
+        <p className="home-role-label">Choose your experience</p>
+        <div className="home-role-grid">
+          {roleCards.map((card) => (
+            <Link
+              className={`home-role-card rc-${card.tone}`}
+              href={card.href}
+              key={card.href}
+            >
+              <span className="rc-emoji" aria-hidden="true">{card.emoji}</span>
+              <span className="rc-name">{card.name}</span>
+              <span className="rc-tagline">{card.tagline}</span>
+              <span className="rc-arrow" aria-hidden="true">→</span>
             </Link>
-            <Link className="landing-mini-link" href="/teacher">
-              For teachers
-            </Link>
-            <Link className="landing-mini-link" href="/owner">
-              Platform ops
-            </Link>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="landing-topbar-actions">
-            <DisplayModeToggle />
-            <Link className="landing-topbar-cta" href="/child">
-              Start learning
-            </Link>
-          </div>
-        </header>
-
-        <section className="landing-hero">
-          <div className="landing-hero-copy">
-            <span className="landing-eyebrow">
-              Early access · Ages 2 to 10 · {launchStatus.launchBandCount} live bands
-            </span>
-            <h1>
-              Learning that
-              <br />
-              stays <em>clear</em>.
-            </h1>
-            <div className="landing-chip-row">
-              <span className="landing-chip">Child-first</span>
-              <span className="landing-chip">Separate views</span>
-              <span className="landing-chip">
-                {launchStatus.source === "supabase"
-                  ? "Live data"
-                  : "Demo data"}
-              </span>
-              <span className="landing-chip">Saved progress</span>
-            </div>
-
-            <div className="landing-hero-actions">
-              <Link className="landing-primary-btn" href="/child">
-                Start child journey
-              </Link>
-              <a className="landing-secondary-btn" href="#audiences">
-                See who it's for
-              </a>
-            </div>
-          </div>
-
-          <div className="landing-hero-visual" aria-label="WonderQuest preview">
-            <div className="landing-hero-visual-frame">
-              <div className="landing-hero-visual-top">
-                <span>Product snapshot</span>
-              </div>
-
-              <div className="landing-hero-visual-grid">
-                <article className="landing-hero-visual-card is-child">
-                  <span aria-hidden="true">🧒</span>
-                  <div className="landing-hero-visual-art" aria-hidden="true">
-                    <span className="is-one" />
-                    <span className="is-two" />
-                    <span className="is-three" />
-                    <span className="is-bar" />
-                  </div>
-                  <strong>Child</strong>
-                </article>
-                <article className="landing-hero-visual-card is-family">
-                  <span aria-hidden="true">🏠</span>
-                  <div className="landing-hero-visual-art" aria-hidden="true">
-                    <span className="is-one" />
-                    <span className="is-two" />
-                    <span className="is-three" />
-                    <span className="is-bar" />
-                  </div>
-                  <strong>Family</strong>
-                </article>
-                <article className="landing-hero-visual-card is-ops">
-                  <span aria-hidden="true">⚙️</span>
-                  <div className="landing-hero-visual-art" aria-hidden="true">
-                    <span className="is-one" />
-                    <span className="is-two" />
-                    <span className="is-three" />
-                    <span className="is-bar" />
-                  </div>
-                  <strong>Ops</strong>
-                </article>
-              </div>
-
-              <div className="landing-hero-visual-strip" aria-hidden="true">
-                <span>Visual cues</span>
-                <span>Audio support</span>
-                <span>Saved progress</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-launcher-stack" id="audiences">
-          <article className="landing-featured-card tone-kid">
-            <div className="landing-featured-copy">
-              <span className="landing-featured-label">Kid journey</span>
-              <h2>The child path stays front and center.</h2>
-              <div className="landing-chip-row">
-                <span className="landing-chip">Quick child access</span>
-                <span className="landing-chip">Voice + visuals</span>
-                <span className="landing-chip">Badges and trophies</span>
-              </div>
-            </div>
-
-            <div className="landing-featured-action">
-              <div className="landing-route-icon landing-route-icon-featured" aria-hidden="true">
-                🚀
-              </div>
-              <Link className="landing-route-link landing-route-link-featured" href="/child">
-                Start learning
-              </Link>
-            </div>
-          </article>
-
-          <div className="landing-proof-grid">
-            <article className="landing-metric-card">
-              <span>Launch bands</span>
-              <strong>{launchStatus.launchBandCount}</strong>
-            </article>
-            <article className="landing-metric-card">
-              <span>Question bank</span>
-              <strong>{launchStatus.templateCount >= 8 ? "Deep bank" : "Building"}</strong>
-            </article>
-            <article className="landing-metric-card">
-              <span>Saved progress</span>
-              <strong>Live</strong>
-            </article>
-            <article className="landing-metric-card">
-              <span>Adult views</span>
-              <strong>3</strong>
-            </article>
-          </div>
-
-          <div className="landing-route-grid">
-            {routeCards.map((card) => (
-              <article
-                className={`landing-route-card tone-${card.tone}`}
-                key={card.href}
-              >
-                <div className="landing-route-icon" aria-hidden="true">
-                  {card.icon}
-                </div>
-                <div className="landing-route-copy">
-                  <span>{card.audience}</span>
-                  <h2>{card.title}</h2>
-                  <p>{card.description}</p>
-                </div>
-                <Link className="landing-route-link" href={card.href}>
-                  {card.cta}
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-status-strip">
-          <div className="landing-status-copy">
-            <div className="landing-status-item">
-              <span className="landing-status-dot" aria-hidden="true" />
-              <strong>{sourceLabel}</strong>
-            </div>
-            <h2>Live product, not a mock.</h2>
-          </div>
-
-          <div className="landing-band-row">
-            <article className="landing-band-pill">
-              <strong>Child</strong>
-              <span>Quick access</span>
-            </article>
-            <article className="landing-band-pill">
-              <strong>Parent</strong>
-              <span>Family dashboard</span>
-            </article>
-            <article className="landing-band-pill">
-              <strong>Teacher</strong>
-              <span>Classroom view</span>
-            </article>
-            <article className="landing-band-pill">
-              <strong>Owner</strong>
-              <span>Ops console</span>
-            </article>
-          </div>
-        </section>
-
-        <section className="landing-trust-strip">
-          <span className="landing-trust-item">🔒 COPPA-safe</span>
-          <span className="landing-trust-item">🎓 Home + school</span>
-          <span className="landing-trust-item">🚫 No chat</span>
-          <span className="landing-trust-item">👁️ No child rankings</span>
-          <span className="landing-trust-item">📱 Phone / tablet / desktop</span>
-        </section>
-
-        {launchStatus.source === "fallback" ? (
-          <p className="landing-fallback-note">
-            Live launch counts are temporarily unavailable — showing fallback plan values.
-          </p>
-        ) : null}
+      {/* Trust strip */}
+      <div className="home-trust-strip">
+        {trustItems.map((item) => (
+          <span className="home-trust-item" key={item}>{item}</span>
+        ))}
       </div>
+
+      {/* Live status */}
+      <div className="home-status-bar">
+        <span className="home-status-dot" aria-hidden="true" />
+        <span>{sourceLabel}</span>
+        <span className="home-status-sep" aria-hidden="true">·</span>
+        <span>{launchStatus.launchBandCount} bands live</span>
+        <span className="home-status-sep" aria-hidden="true">·</span>
+        <span>{launchStatus.templateCount >= 8 ? "Deep question bank" : "Building content"}</span>
+      </div>
+
+      {launchStatus.source === "fallback" && (
+        <p className="home-fallback-note">
+          Live counts temporarily unavailable — showing fallback values.
+        </p>
+      )}
     </main>
   );
 }
