@@ -10,6 +10,7 @@ import TeacherGate from "../teacher-gate";
 const C = {
   base: "#100b2e",
   surface: "#161b22",
+  surfaceAlt: "#1a2133",
   border: "rgba(255,255,255,0.06)",
   violet: "#9b72ff",
   blue: "#38bdf8",
@@ -19,7 +20,6 @@ const C = {
   text: "#f0f6ff",
   muted: "#8b949e",
   red: "#ff7b6b",
-  surfaceHover: "rgba(255,255,255,0.04)",
 };
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -38,73 +38,175 @@ type RosterStudent = {
   streak: number;
 };
 
-// ── Band helpers ──────────────────────────────────────────────────────────────
-const BAND_META: Record<string, { label: string; color: string }> = {
-  P0: { label: "Pre-K (P0)", color: C.gold },
-  P1: { label: "K–1 (P1)",   color: C.violet },
-  P2: { label: "G2–3 (P2)",  color: C.mint },
-  P3: { label: "G4–5 (P3)",  color: C.red },
+type Intervention = {
+  id: string;
+  status: string;
 };
 
-function bandColor(code: string): string {
-  return BAND_META[code]?.color ?? C.muted;
+type Assignment = {
+  id: string;
+  status?: string;
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-function bandLabel(code: string): string {
-  return BAND_META[code]?.label ?? code;
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2) return "just now";
+  if (mins < 60) return `${mins} minutes ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function StatCard({
+  value,
+  label,
+  accent,
+  icon,
+}: {
+  value: string;
+  label: string;
+  accent: string;
+  icon: string;
+}) {
   return (
-    <div style={{
-      background: C.surface,
-      borderRadius: 14,
-      padding: 18,
-      border: `1px solid ${C.border}`,
-      ...style,
-    }}>
-      {children}
+    <div
+      style={{
+        background: C.surface,
+        borderRadius: 16,
+        padding: "20px 20px 16px",
+        border: `1px solid ${C.border}`,
+        borderTop: `3px solid ${accent}`,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+    >
+      <span style={{ fontSize: 22 }}>{icon}</span>
+      <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: C.muted,
+          textTransform: "uppercase",
+          letterSpacing: ".06em",
+        }}
+      >
+        {label}
+      </div>
     </div>
   );
 }
 
-function CardHeader({ title, link, href }: { title: React.ReactNode; link?: string; href?: string }) {
+function ActionButton({
+  emoji,
+  label,
+  href,
+  accent,
+}: {
+  emoji: string;
+  label: string;
+  href: string;
+  accent: string;
+}) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-      <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{title}</span>
-      {link && href && (
-        <Link href={href} style={{ fontSize: 12, color: C.blue, fontWeight: 600, textDecoration: "none" }}>
-          {link}
-        </Link>
-      )}
-    </div>
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        padding: "22px 16px",
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 16,
+        textDecoration: "none",
+        transition: "all .18s",
+      }}
+    >
+      <span style={{ fontSize: 28 }}>{emoji}</span>
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: accent,
+          textAlign: "center",
+          lineHeight: 1.3,
+        }}
+      >
+        {label}
+      </span>
+    </Link>
   );
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function TeacherHomePage() {
   const [authed, setAuthed] = useState(false);
-  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+  useEffect(() => {
+    setAuthed(!!getTeacherId());
+  }, []);
 
-  const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [teacherName, setTeacherName] = useState("");
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [teacherName, setTeacherName] = useState("");
 
   useEffect(() => {
     if (!authed) return;
     const teacherId = getTeacherId();
-    if (!teacherId) { setLoading(false); return; }
+    if (!teacherId) {
+      setLoading(false);
+      return;
+    }
 
-    // Fetch roster and teacher profile in parallel
     Promise.all([
-      fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`).then((r) => r.json()),
-      fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`).then((r) => r.ok ? r.json() : null),
+      fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : { roster: [] }
+      ),
+      fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : {}
+      ),
+      fetch(`/api/teacher/assignments?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : {}
+      ),
+      fetch(`/api/teacher/profile?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : null
+      ),
     ])
-      .then(([classData, profileData]: [{ roster?: RosterStudent[] }, { profile?: { displayName?: string } } | null]) => {
-        if (classData.roster) setRoster(classData.roster);
+      .then(([classData, interventionData, assignmentData, profileData]) => {
+        if (classData?.roster) setRoster(classData.roster);
+
+        const ivList: Intervention[] =
+          interventionData?.interventions ??
+          interventionData?.items ??
+          (Array.isArray(interventionData) ? interventionData : []);
+        setInterventions(ivList);
+
+        const asList: Assignment[] =
+          assignmentData?.assignments ??
+          assignmentData?.items ??
+          (Array.isArray(assignmentData) ? assignmentData : []);
+        setAssignments(asList);
+
         const name = profileData?.profile?.displayName;
         if (name && name !== "Teacher") setTeacherName(name);
       })
@@ -114,411 +216,370 @@ export default function TeacherHomePage() {
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalStudents = roster.length;
+  const nowMs = Date.now();
   const activeToday = roster.filter((s) => {
     if (!s.lastSessionAt) return false;
-    const d = new Date(s.lastSessionAt);
-    const now = new Date();
-    return d.toDateString() === now.toDateString();
+    return nowMs - new Date(s.lastSessionAt).getTime() < 24 * 60 * 60 * 1000;
   }).length;
-  const totalStars = roster.reduce((acc, s) => acc + s.totalPoints, 0);
-  const sessionsToday = roster.reduce((acc, s) => acc + s.sessionsLast7d, 0);
-  const interventionCount = roster.filter((s) => s.inInterventionQueue).length;
 
-  const bandCodes = ["P0", "P1", "P2", "P3"];
-  const bandCounts = bandCodes.map((code) => roster.filter((s) => s.launchBandCode === code).length);
-  const coveredBands = bandCounts.filter((c) => c > 0).length;
-  const bandsCovered = bandCodes
-    .filter((_, i) => bandCounts[i] > 0)
-    .join(" / ");
+  const activeInterventions = interventions.filter(
+    (i) => i.status === "active" || i.status === "open" || i.status === "pending"
+  ).length;
 
-  const STATS = [
-    { val: loading ? "…" : String(activeToday),    lbl: "Active today",    delta: `↑ ${totalStudents} total`,     up: true  },
-    { val: loading ? "…" : `⭐ ${totalStars}`,      lbl: "Class stars",     delta: "↑ this week",                  up: true  },
-    { val: loading ? "…" : String(sessionsToday),  lbl: "Sessions (7d)",   delta: "→ Typical",                    up: null  },
-    { val: loading ? "…" : String(interventionCount), lbl: "Need check-in", delta: "⚠ Support queue",             up: false },
-    { val: loading ? "…" : String(coveredBands),   lbl: "Bands covered",   delta: bandsCovered || "—",            up: null  },
-  ];
+  const pendingAssignments = assignments.filter(
+    (a) => !a.status || a.status === "active" || a.status === "pending"
+  ).length;
 
-  // active right now = sessions in last 7d, sorted by most recent
-  const activeStudents = roster
-    .filter((s) => s.sessionsLast7d > 0)
-    .sort((a, b) => (b.lastSessionAt ?? "").localeCompare(a.lastSessionAt ?? ""))
-    .slice(0, 4);
-
-  // support queue = students in intervention
-  const supportQueue = roster.filter((s) => s.inInterventionQueue).slice(0, 4);
-
-  const BANDS = bandCodes.map((code, i) => {
-    const count = bandCounts[i];
-    const pct = totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0;
-    return { name: bandLabel(code), count, pct, color: bandColor(code) };
-  });
-
-  const tabStyle = (tab: string): React.CSSProperties => ({
-    padding: "8px 18px",
-    borderRadius: 20,
-    border: "none",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: "system-ui",
-    background: activeTab === tab ? C.blue : C.surface,
-    color: activeTab === tab ? "#0b1622" : C.muted,
-    transition: "all .18s",
-  });
+  // ── Recent activity feed ───────────────────────────────────────────────────
+  const recentActivity = [...roster]
+    .filter((s) => s.lastSessionAt)
+    .sort(
+      (a, b) =>
+        new Date(b.lastSessionAt!).getTime() - new Date(a.lastSessionAt!).getTime()
+    )
+    .slice(0, 5)
+    .map((s) => {
+      const ago = timeAgo(s.lastSessionAt!);
+      const hadStreak = s.streak > 1;
+      return {
+        studentId: s.studentId,
+        name: s.displayName,
+        text: hadStreak
+          ? `${s.displayName} is on a ${s.streak}-day streak`
+          : `${s.displayName} played ${ago}`,
+        ago,
+        icon: hadStreak ? "🔥" : "🎮",
+      };
+    });
 
   if (!authed) {
     return (
       <AppFrame audience="teacher" currentPath="/teacher/home">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: "24px",
+          }}
+        >
           <TeacherGate configured={true} />
         </div>
       </AppFrame>
     );
   }
 
+  const greeting = getGreeting();
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher/home">
-      <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
-
-        {/* Page header */}
-        <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>{teacherName ? `Good morning, ${teacherName} 👋` : "Good morning 👋"}</h1>
-        <p style={{ fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 20 }}>
-          {loading ? "Loading class…" : `${totalStudents} students`}
-        </p>
-
-        {/* Error banner */}
-        {fetchError && (
-          <div style={{ background: "rgba(255,123,107,0.1)", border: "1px solid rgba(255,123,107,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: C.red, display: "flex", alignItems: "center", gap: 8 }}>
-            ⚠️ Couldn&apos;t load class data. <button onClick={() => window.location.reload()} style={{ background: "none", border: "none", color: C.red, fontWeight: 700, cursor: "pointer", fontSize: 13, fontFamily: "system-ui", textDecoration: "underline", padding: 0 }}>Retry</button>
-          </div>
-        )}
-
-        {/* Quick nav */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-          {[
-            { label: "⚡ Command Centre", href: "/teacher/command" },
-            { label: "👥 Class",          href: "/teacher/class"   },
-            { label: "📋 Assignments",    href: "/teacher/assignment" },
-            { label: "🔧 Support Queue",  href: "/teacher/support" },
-            { label: "📊 Skills Report",  href: "/teacher/skills"  },
-            { label: "🗂 Small Groups",   href: "/teacher/small-group" },
-          ].map((n) => (
-            <Link key={n.href} href={n.href} style={{
-              padding: "8px 16px",
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 10,
-              fontSize: 13,
+      <div
+        style={{
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          color: C.text,
+          minHeight: "100vh",
+          padding: "28px 28px 60px",
+          maxWidth: 960,
+        }}
+      >
+        {/* ── Greeting header ──────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28 }}>
+          <p
+            style={{
+              fontSize: 12,
               fontWeight: 700,
-              color: C.blue,
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}>
-              {n.label}
-            </Link>
-          ))}
+              color: C.muted,
+              textTransform: "uppercase",
+              letterSpacing: ".08em",
+              marginBottom: 4,
+            }}
+          >
+            Morning Briefing
+          </p>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: C.text, margin: 0 }}>
+            {greeting}
+            {teacherName ? `, ${teacherName}` : ""} 👋
+          </h1>
+          <p style={{ fontSize: 14, color: C.muted, marginTop: 5 }}>
+            {loading
+              ? "Loading class…"
+              : `You have ${totalStudents} student${totalStudents === 1 ? "" : "s"} on your roster.`}
+          </p>
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
-          {(["overview", "students", "support"] as const).map((t) => (
-            <button key={t} style={tabStyle(t)} onClick={() => setActiveTab(t)}>
-              {t === "overview" ? "Class Overview" : t === "students" ? "Student List" : "Support Queue"}
+        {/* ── Error banner ──────────────────────────────────────────────────── */}
+        {fetchError && (
+          <div
+            style={{
+              background: "rgba(255,123,107,0.1)",
+              border: "1px solid rgba(255,123,107,0.3)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              marginBottom: 22,
+              fontSize: 13,
+              color: C.red,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            ⚠️ Couldn&apos;t load some class data.{" "}
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                background: "none",
+                border: "none",
+                color: C.red,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: "system-ui",
+                textDecoration: "underline",
+                padding: 0,
+              }}
+            >
+              Retry
             </button>
-          ))}
-        </div>
-
-        {/* Loading skeleton */}
-        {loading && (
-          <div style={{ color: C.muted, fontSize: 14, padding: "40px 0", textAlign: "center" }}>
-            Loading class data…
           </div>
         )}
 
-        {/* ── TAB: Overview ────────────────────────────────────────────────── */}
-        {!loading && activeTab === "overview" && (
-          <>
-            {/* Stat row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 20 }}>
-              {STATS.map((s) => (
-                <div key={s.lbl} style={{
-                  background: C.surface,
-                  borderRadius: 12,
-                  padding: "14px 16px",
-                  border: `1px solid ${C.border}`,
-                }}>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: C.text, marginBottom: 2, lineHeight: 1 }}>{s.val}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: ".06em" }}>{s.lbl}</div>
-                  <div style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    marginTop: 3,
-                    color: s.up === true ? C.mint : s.up === false ? C.amber : C.muted,
-                  }}>{s.delta}</div>
-                </div>
-              ))}
-            </div>
+        {/* ── Quick stats ───────────────────────────────────────────────────── */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4,1fr)",
+            gap: 14,
+            marginBottom: 28,
+          }}
+        >
+          <StatCard
+            value={loading ? "…" : String(totalStudents)}
+            label="Total students"
+            accent={C.blue}
+            icon="👥"
+          />
+          <StatCard
+            value={loading ? "…" : String(activeToday)}
+            label="Active today"
+            accent={C.mint}
+            icon="🟢"
+          />
+          <StatCard
+            value={loading ? "…" : String(activeInterventions)}
+            label="Active interventions"
+            accent={C.amber}
+            icon="⚠️"
+          />
+          <StatCard
+            value={loading ? "…" : String(pendingAssignments)}
+            label="Pending assignments"
+            accent={C.violet}
+            icon="📋"
+          />
+        </div>
 
-            {/* Two-col: active + support queue */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-              <Card>
-                <CardHeader title={`🟢 Active recently (${activeStudents.length})`} link="View all →" href="/teacher/class" />
-                {activeStudents.length === 0 && (
-                  <div style={{ fontSize: 12, color: C.muted, padding: "16px 0" }}>No recent activity.</div>
-                )}
-                {activeStudents.map((s) => (
-                  <div key={s.studentId} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "9px 0", borderBottom: `1px solid ${C.border}`,
-                  }}>
-                    <div style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: bandColor(s.launchBandCode) + "33",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 14, flexShrink: 0,
-                    }}>
-                      {s.displayName.charAt(0)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                        {s.displayName}
-                        <span style={{
-                          fontSize: 10, fontWeight: 700,
-                          background: C.mint + "22", color: C.mint,
-                          padding: "2px 8px", borderRadius: 20, marginLeft: 6,
-                        }}>Active</span>
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{bandLabel(s.launchBandCode)}</div>
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>⭐ {s.totalPoints}</span>
-                  </div>
-                ))}
-              </Card>
+        {/* ── Quick actions ──────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28 }}>
+          <h2
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: C.muted,
+              textTransform: "uppercase",
+              letterSpacing: ".08em",
+              marginBottom: 12,
+            }}
+          >
+            Quick Actions
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4,1fr)",
+              gap: 12,
+            }}
+          >
+            <ActionButton
+              emoji="📋"
+              label="View class roster"
+              href="/teacher/class"
+              accent={C.blue}
+            />
+            <ActionButton
+              emoji="📊"
+              label="Check student reports"
+              href="/teacher/skill-mastery"
+              accent={C.violet}
+            />
+            <ActionButton
+              emoji="⚠️"
+              label="Review interventions"
+              href="/teacher/intervention-overview"
+              accent={C.amber}
+            />
+            <ActionButton
+              emoji="✏️"
+              label="Create assignment"
+              href="/teacher/assignment"
+              accent={C.mint}
+            />
+          </div>
+        </div>
 
-              <Card>
-                <CardHeader title={`⚠️ Needs check-in (${supportQueue.length})`} link="View queue →" href="/teacher/support" />
-                {supportQueue.length === 0 && (
-                  <div style={{ fontSize: 12, color: C.muted, padding: "16px 0" }}>No students need check-in right now.</div>
-                )}
-                {supportQueue.map((q) => (
-                  <div key={q.studentId} style={{
-                    display: "flex", alignItems: "flex-start", gap: 10,
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    background: C.amber + "15",
-                    borderLeft: `3px solid ${C.amber}`,
-                    marginBottom: 8,
-                  }}>
-                    <div style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: C.amber + "33",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 13, flexShrink: 0,
-                    }}>💛</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{q.displayName}</div>
-                      <div style={{ fontSize: 11, color: C.amber, lineHeight: 1.4, marginTop: 2 }}>
-                        In support queue · {q.sessionsLast7d} sessions last 7d
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", flexShrink: 0, marginTop: 2 }}>Check in</span>
-                  </div>
-                ))}
-              </Card>
-            </div>
-
-            {/* Three-col: bands + week summary */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
-              <Card>
-                <CardHeader title="🎯 Band coverage" />
-                {BANDS.map((b) => (
-                  <div key={b.name} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "8px 0", borderBottom: `1px solid ${C.border}`,
-                  }}>
-                    <div style={{ width: 12, height: 12, borderRadius: "50%", background: b.color, flexShrink: 0 }} />
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text, flex: 1 }}>{b.name}</div>
-                    <div style={{ flex: 2, height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ width: `${b.pct}%`, height: "100%", background: b.color, borderRadius: 4 }} />
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: b.count === 0 ? C.muted : C.text, minWidth: 24, textAlign: "right" }}>{b.count}</div>
-                  </div>
-                ))}
-              </Card>
-
-              <Card>
-                <CardHeader title="📅 Week to date" />
-                {[
-                  { lbl: "Sessions (7d)",       val: String(sessionsToday),            warn: false },
-                  { lbl: "Stars (class)",        val: `⭐ ${totalStars}`,               warn: false },
-                  { lbl: "Students w/ sessions", val: String(roster.filter((s) => s.sessionsLast7d > 0).length), warn: false },
-                  { lbl: "Students not active",  val: String(totalStudents - roster.filter((s) => s.sessionsLast7d > 0).length), warn: true },
-                ].map((w) => (
-                  <div key={w.lbl} style={{
-                    display: "flex", alignItems: "center",
-                    padding: "6px 0", borderTop: `1px solid ${C.border}`,
-                  }}>
-                    <div style={{ flex: 1, fontSize: 12, color: C.muted, fontWeight: 600 }}>{w.lbl}</div>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: w.warn ? C.amber : C.text }}>{w.val}</span>
-                  </div>
-                ))}
-              </Card>
-
-              <Card>
-                <CardHeader title="📊 Class summary" />
-                {[
-                  { lbl: "Total students",    val: String(totalStudents) },
-                  { lbl: "In intervention",   val: String(interventionCount) },
-                  { lbl: "Bands active",      val: String(coveredBands) },
-                  { lbl: "Avg points",        val: totalStudents > 0 ? String(Math.round(totalStars / totalStudents)) : "0" },
-                ].map((w) => (
-                  <div key={w.lbl} style={{
-                    display: "flex", alignItems: "center",
-                    padding: "6px 0", borderTop: `1px solid ${C.border}`,
-                  }}>
-                    <div style={{ flex: 1, fontSize: 12, color: C.muted, fontWeight: 600 }}>{w.lbl}</div>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{w.val}</span>
-                  </div>
-                ))}
-              </Card>
-            </div>
-          </>
-        )}
-
-        {/* ── TAB: Students ────────────────────────────────────────────────── */}
-        {!loading && activeTab === "students" && (
-          <>
-            {/* Filters */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-              {["All bands", "Pre-K", "K–1", "G2–3", "G4–5"].map((opt, i) => (
-                <button key={opt} style={{
-                  padding: "8px 14px",
-                  background: i === 0 ? C.blue : C.surface,
-                  border: `1px solid ${i === 0 ? C.blue : C.border}`,
-                  borderRadius: 8,
+        {/* ── Two-column: recent activity + extra nav ────────────────────────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16 }}>
+          {/* Recent activity feed */}
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 16,
+              padding: "20px 20px",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: C.text,
+                  margin: 0,
+                }}
+              >
+                Recent Student Activity
+              </h2>
+              <Link
+                href="/teacher/class"
+                style={{
                   fontSize: 12,
+                  color: C.blue,
                   fontWeight: 600,
-                  color: i === 0 ? "#0b1622" : C.muted,
-                  cursor: "pointer",
-                  fontFamily: "system-ui",
-                }}>{opt}</button>
-              ))}
+                  textDecoration: "none",
+                }}
+              >
+                View all →
+              </Link>
             </div>
 
-            <Card style={{ padding: 0 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                    {["Student", "Band", "Stars", "Sessions (7d)", "Streak", "Status"].map((h) => (
-                      <th key={h} style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: C.muted,
-                        textTransform: "uppercase",
-                        letterSpacing: ".07em",
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {roster.map((s) => {
-                    const statusLabel = s.inInterventionQueue ? "Support" : s.sessionsLast7d > 0 ? "Active" : "Idle";
-                    const color = bandColor(s.launchBandCode);
-                    return (
-                      <tr key={s.studentId} style={{ borderBottom: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "12px 16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{
-                              width: 30, height: 30, borderRadius: 8,
-                              background: color + "33",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 13, fontWeight: 900, color, flexShrink: 0,
-                            }}>{s.displayName.charAt(0)}</div>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{s.displayName}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{bandLabel(s.launchBandCode)}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: C.text }}>⭐ {s.totalPoints}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{s.sessionsLast7d}</td>
-                        <td style={{ padding: "12px 16px", fontSize: 12, color: C.muted }}>{s.streak > 0 ? `${s.streak}d` : "—"}</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                            background: statusLabel === "Active" ? C.mint + "22" : statusLabel === "Support" ? C.amber + "22" : "rgba(255,255,255,0.06)",
-                            color: statusLabel === "Active" ? C.mint : statusLabel === "Support" ? C.amber : C.muted,
-                          }}>{statusLabel}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {roster.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: C.muted, fontSize: 13 }}>
-                        No students on roster.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </Card>
-          </>
-        )}
-
-        {/* ── TAB: Support Queue ───────────────────────────────────────────── */}
-        {!loading && activeTab === "support" && (
-          <Card>
-            <CardHeader title={`🔧 Support Queue (${supportQueue.length})`} link="Full view →" href="/teacher/support" />
-            <p style={{ fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>
-              Students currently in the active intervention queue.
-            </p>
-            {supportQueue.length === 0 && (
-              <div style={{ textAlign: "center", padding: "28px 16px" }}>
-                <div style={{ fontSize: 34, marginBottom: 10 }}>✅</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 5 }}>All clear</div>
-                <div style={{ fontSize: 11, color: C.muted }}>No students currently need a check-in.</div>
+            {loading && (
+              <div style={{ color: C.muted, fontSize: 13, padding: "16px 0" }}>
+                Loading activity…
               </div>
             )}
-            {supportQueue.map((q, i) => (
-              <div key={q.studentId} style={{
-                display: "flex", alignItems: "flex-start", gap: 12,
-                padding: "14px 16px",
-                borderRadius: 12,
-                background: C.amber + "15",
-                borderLeft: `3px solid ${C.amber}`,
-                marginBottom: i < supportQueue.length - 1 ? 10 : 0,
-              }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: C.amber + "33",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, flexShrink: 0, fontWeight: 900, color: C.amber,
-                }}>!</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 4 }}>{q.displayName}</div>
-                  <div style={{ fontSize: 12, color: C.amber, lineHeight: 1.4 }}>
-                    {bandLabel(q.launchBandCode)} · {q.sessionsLast7d} sessions last 7 days
+
+            {!loading && recentActivity.length === 0 && (
+              <div
+                style={{
+                  color: C.muted,
+                  fontSize: 13,
+                  padding: "16px 0",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 8 }}>💤</div>
+                No recent activity yet. Students will appear here once they start playing.
+              </div>
+            )}
+
+            {!loading &&
+              recentActivity.map((item) => (
+                <div
+                  key={item.studentId}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 0",
+                    borderBottom: `1px solid ${C.border}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "rgba(155,114,255,0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 18,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                      {item.text}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                      {item.ago}
+                    </div>
                   </div>
                 </div>
-                <button style={{
-                  padding: "6px 14px",
-                  background: "transparent",
-                  border: `1.5px solid ${C.blue}`,
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: C.blue,
-                  cursor: "pointer",
-                  fontFamily: "system-ui",
-                  flexShrink: 0,
-                }}>Check in</button>
-              </div>
-            ))}
-          </Card>
-        )}
+              ))}
+          </div>
 
+          {/* More links sidebar */}
+          <div
+            style={{
+              background: C.surface,
+              borderRadius: 16,
+              padding: "20px",
+              border: `1px solid ${C.border}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: C.muted,
+                textTransform: "uppercase",
+                letterSpacing: ".08em",
+                margin: "0 0 12px",
+              }}
+            >
+              More pages
+            </h2>
+            {[
+              { label: "⚡ Command Centre", href: "/teacher/command" },
+              { label: "🔧 Support Queue",  href: "/teacher/support" },
+              { label: "📊 Skills Report",  href: "/teacher/skills" },
+              { label: "🗂 Small Groups",   href: "/teacher/small-group" },
+              { label: "👀 Watchlist",      href: "/teacher/watchlist" },
+              { label: "🏆 Class Growth",   href: "/teacher/class-growth" },
+            ].map((n) => (
+              <Link
+                key={n.href}
+                href={n.href}
+                style={{
+                  display: "block",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: C.blue,
+                  textDecoration: "none",
+                  background: "transparent",
+                  borderBottom: `1px solid ${C.border}`,
+                }}
+              >
+                {n.label}
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </AppFrame>
   );

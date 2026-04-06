@@ -1,40 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
+// ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
   base: "#100b2e",
-  blue: "#2563eb",
+  surface: "#161b22",
+  border: "rgba(255,255,255,0.06)",
   violet: "#9b72ff",
+  blue: "#38bdf8",
   mint: "#22c55e",
   gold: "#ffd166",
   amber: "#f59e0b",
-  red: "#ef4444",
   text: "#f0f6ff",
-  muted: "rgba(255,255,255,0.5)",
-  surface: "rgba(255,255,255,0.04)",
-  border: "rgba(255,255,255,0.06)",
+  muted: "#8b949e",
+  red: "#ff7b6b",
 } as const;
 
-const BAND_COLORS: Record<string, string> = { P0: "#ffd166", P1: "#9b72ff", P2: "#58e8c1", P3: "#ff7b6b" };
-
-function bandKey(code: string): string {
-  if (code === "PREK" || code === "P0") return "P0";
-  if (code === "K1" || code === "P1") return "P1";
-  if (code === "G23" || code === "P2") return "P2";
-  if (code === "G45" || code === "P3") return "P3";
-  return code;
-}
-
-const SKILL_ALERTS = [
-  "Blending sounds: 4 students repeated misses — consider small group session",
-  "Skip counting: 3 students at support threshold — review this week",
-  "Letter recognition: showing consistent gaps — 1:1 check recommended",
-];
-
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface RosterStudent {
   studentId: string;
   displayName: string;
@@ -46,208 +33,431 @@ interface RosterStudent {
   lastSessionAt: string | null;
 }
 
-export default function TeacherCommandPage() {
-  const [roster, setRoster] = useState<RosterStudent[]>([]);
-  const [loading, setLoading] = useState(true);
+// ── Quick-action config ───────────────────────────────────────────────────────
+const QUICK_ACTIONS: {
+  key: string;
+  label: string;
+  href: string;
+  icon: string;
+  accent: string;
+  comingSoon?: boolean;
+}[] = [
+  { key: "R", label: "View roster",            href: "/teacher/class",                  icon: "👥", accent: C.blue },
+  { key: "A", label: "Create assignment",       href: "/teacher/assignment",             icon: "✏️", accent: C.mint },
+  { key: "I", label: "Review interventions",    href: "/teacher/intervention-overview",  icon: "⚠️", accent: C.amber },
+  { key: "S", label: "Check skill mastery",     href: "/teacher/skill-mastery",          icon: "📊", accent: C.violet },
+  { key: "E", label: "Export class data",       href: "#",                               icon: "📤", accent: C.muted, comingSoon: true },
+];
 
+const TIPS = [
+  "💡 Tip: Check the Watchlist daily for students who need attention",
+  "💡 Tip: Share your class code with parents to grow your roster",
+  "💡 Tip: Assign targeted quests to students struggling with specific skills",
+];
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+export default function TeacherCommandPage() {
+  const [authed, setAuthed] = useState(false);
   useEffect(() => {
-    const teacherId = getTeacherId();
-    fetch(`/api/teacher/class?teacherId=${teacherId}`)
-      .then((r) => r.ok ? r.json() : { roster: [] })
-      .then((data: { roster: RosterStudent[] }) => {
-        setRoster(data.roster ?? []);
-      })
-      .catch(() => {/* ignore */})
-      .finally(() => setLoading(false));
+    setAuthed(!!getTeacherId());
   }, []);
 
-  // Top 6 by totalPoints
-  const STUDENTS = [...roster]
-    .sort((a, b) => b.totalPoints - a.totalPoints)
-    .slice(0, 6)
-    .map((s) => {
-      const bk = bandKey(s.launchBandCode);
-      const color = BAND_COLORS[bk] ?? C.muted;
-      const isInQueue = s.inInterventionQueue;
-      const now = Date.now();
-      const isActive = s.lastSessionAt && now - new Date(s.lastSessionAt).getTime() < 24 * 60 * 60 * 1000;
-      const status = isInQueue ? "⚠ Queue" : isActive ? "Active" : "Idle";
-      const statusColor = isInQueue ? C.amber : isActive ? C.mint : C.muted;
-      return {
-        name: s.displayName,
-        band: bk,
-        stars: s.totalPoints,
-        sessions: s.sessionsLast7d,
-        streak: s.streak > 0 ? `🔥 ${s.streak}d` : "—",
-        status,
-        statusColor,
-      };
-    });
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [interventionCount, setInterventionCount] = useState(0);
+  const [assignmentCount, setAssignmentCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Students in intervention queue
-  const QUEUE = roster
-    .filter((s) => s.inInterventionQueue)
-    .map((s) => ({
-      name: s.displayName,
-      reason: "Flagged for check-in — review recent session activity",
-      type: "warn" as const,
-    }));
+  useEffect(() => {
+    if (!authed) return;
+    const teacherId = getTeacherId();
+    if (!teacherId) {
+      setLoading(false);
+      return;
+    }
 
-  // Band coverage counts
-  const bandCounts: Record<string, number> = { P0: 0, P1: 0, P2: 0, P3: 0 };
-  for (const s of roster) {
-    const k = bandKey(s.launchBandCode);
-    if (k in bandCounts) bandCounts[k]++;
+    Promise.all([
+      fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : { roster: [] }
+      ),
+      fetch(`/api/teacher/interventions?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : {}
+      ),
+      fetch(`/api/teacher/assignments?teacherId=${encodeURIComponent(teacherId)}`).then((r) =>
+        r.ok ? r.json() : {}
+      ),
+    ])
+      .then(([classData, interventionData, assignmentData]) => {
+        if (classData?.roster) setRoster(classData.roster);
+
+        const ivList: unknown[] =
+          interventionData?.interventions ??
+          interventionData?.items ??
+          (Array.isArray(interventionData) ? interventionData : []);
+        setInterventionCount(ivList.length);
+
+        const asList: unknown[] =
+          assignmentData?.assignments ??
+          assignmentData?.items ??
+          (Array.isArray(assignmentData) ? assignmentData : []);
+        setAssignmentCount(asList.length);
+      })
+      .catch(() => {/* silently ignore */})
+      .finally(() => setLoading(false));
+  }, [authed]);
+
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const totalStudents = roster.length;
+  const activeToday = roster.filter((s) => {
+    if (!s.lastSessionAt) return false;
+    return Date.now() - new Date(s.lastSessionAt).getTime() < 24 * 60 * 60 * 1000;
+  }).length;
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement
+      )
+        return;
+
+      const action = QUICK_ACTIONS.find(
+        (a) => a.key.toLowerCase() === e.key.toLowerCase()
+      );
+      if (!action) return;
+
+      if (action.comingSoon) {
+        setToastMsg("Coming soon");
+        setTimeout(() => setToastMsg(null), 2000);
+        return;
+      }
+      window.location.href = action.href;
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!authed) return;
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [authed, handleKeyDown]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/command">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: "24px",
+          }}
+        >
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
   }
-  const total = roster.length || 1;
-  const bandRows: [string, number, string, number][] = [
-    ["P0 Pre-K", Math.round((bandCounts.P0 / total) * 100), BAND_COLORS.P0, bandCounts.P0],
-    ["P1 K–1", Math.round((bandCounts.P1 / total) * 100), BAND_COLORS.P1, bandCounts.P1],
-    ["P2 G2–3", Math.round((bandCounts.P2 / total) * 100), BAND_COLORS.P2, bandCounts.P2],
-    ["P3 G4–5", Math.round((bandCounts.P3 / total) * 100), BAND_COLORS.P3, bandCounts.P3],
-  ];
-
-  const totalSessions = roster.reduce((sum, s) => sum + s.sessionsLast7d, 0);
-  const classStars = roster.reduce((sum, s) => sum + s.totalPoints, 0);
-  const activeCount = roster.filter((s) => s.lastSessionAt && Date.now() - new Date(s.lastSessionAt).getTime() < 7 * 24 * 60 * 60 * 1000).length;
-  const avgStreak = roster.length > 0
-    ? (roster.reduce((sum, s) => sum + s.streak, 0) / roster.length).toFixed(1)
-    : "—";
 
   return (
-    <AppFrame audience="teacher" currentPath="/teacher">
-      <div style={{ minHeight: "100vh", background: C.base, padding: "24px 24px 60px" }}>
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: C.muted, marginBottom: 4 }}>Teacher</div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>🎛️ Command Center</h1>
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Week of Apr 7–13, 2026 · {loading ? "—" : `${roster.length} students`}</p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ padding: "8px 16px", background: "rgba(255,255,255,0.06)", color: C.muted, border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>📤 Export week</button>
-            <button style={{ padding: "8px 16px", background: C.blue, color: "#fff", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "system-ui" }}>+ New assignment</button>
-          </div>
+    <AppFrame audience="teacher" currentPath="/teacher/command">
+      <div
+        style={{
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          color: C.text,
+          minHeight: "100vh",
+          padding: "28px 28px 60px",
+          maxWidth: 860,
+        }}
+      >
+        {/* ── Header ───────────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28 }}>
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: ".08em",
+              color: C.muted,
+              marginBottom: 4,
+            }}
+          >
+            Power user view
+          </p>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: C.text, margin: 0 }}>
+            🎛️ Command Centre
+          </h1>
+          <p style={{ fontSize: 13, color: C.muted, marginTop: 5 }}>
+            Quick access to everything. Use keyboard shortcuts to navigate.
+          </p>
         </div>
 
-        {/* Stat row */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+        {/* ── Compact stat row ──────────────────────────────────────────────── */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginBottom: 28,
+            flexWrap: "wrap",
+          }}
+        >
           {[
-            { label: "Total sessions", val: loading ? "—" : String(totalSessions), delta: "last 7 days", up: true },
-            { label: "Class stars", val: loading ? "—" : `⭐ ${classStars}`, delta: "all time", up: true },
-            { label: "Active students", val: loading ? "—" : `${activeCount}/${roster.length}`, delta: `${roster.length - activeCount} not seen this week`, up: roster.length - activeCount === 0 },
-            { label: "Avg streak", val: loading ? "—" : `${avgStreak}d`, delta: "days in a row", up: true },
+            { label: "Students", val: loading ? "…" : String(totalStudents), accent: C.blue },
+            { label: "Active today", val: loading ? "…" : String(activeToday), accent: C.mint },
+            { label: "Interventions", val: loading ? "…" : String(interventionCount), accent: C.amber },
+            { label: "Assignments", val: loading ? "…" : String(assignmentCount), accent: C.violet },
           ].map((s) => (
-            <div key={s.label} style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", flex: 1, minWidth: 120, border: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", marginBottom: 6 }}>{s.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{s.val}</div>
-              <div style={{ fontSize: 11, color: s.up ? C.mint : C.amber, marginTop: 4 }}>{s.delta}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main grid: student table + right column */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14, marginBottom: 14 }}>
-          {/* Student table */}
-          <div style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: C.text, textTransform: "uppercase", letterSpacing: "0.06em" }}>Top this week</span>
-              <Link href="/teacher/class" style={{ fontSize: 11, fontWeight: 700, color: C.blue, textDecoration: "none" }}>Full roster →</Link>
-            </div>
-            {loading && <div style={{ fontSize: 12, color: C.muted, padding: "10px 0" }}>Loading…</div>}
-            {!loading && (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    {["Name", "Band", "Stars", "Sessions", "Streak", "Status"].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: C.muted, borderBottom: `2px solid rgba(255,255,255,0.05)` }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {STUDENTS.map((s) => (
-                    <tr key={s.name}>
-                      <td style={{ padding: "6px 8px", borderBottom: `1px solid rgba(255,255,255,0.03)`, color: C.text, fontWeight: 700 }}>{s.name}</td>
-                      <td style={{ padding: "6px 8px", borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 8, background: `${BAND_COLORS[s.band] ?? C.muted}22`, color: BAND_COLORS[s.band] ?? C.muted }}>{s.band}</span>
-                      </td>
-                      <td style={{ padding: "6px 8px", borderBottom: `1px solid rgba(255,255,255,0.03)`, color: C.gold }}>⭐ {s.stars}</td>
-                      <td style={{ padding: "6px 8px", borderBottom: `1px solid rgba(255,255,255,0.03)`, color: C.muted }}>{s.sessions}</td>
-                      <td style={{ padding: "6px 8px", borderBottom: `1px solid rgba(255,255,255,0.03)`, color: C.muted }}>{s.streak}</td>
-                      <td style={{ padding: "6px 8px", borderBottom: `1px solid rgba(255,255,255,0.03)` }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: `${s.statusColor}22`, color: s.statusColor }}>{s.status}</span>
-                      </td>
-                    </tr>
-                  ))}
-                  {STUDENTS.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ padding: "10px 8px", color: C.muted, fontSize: 12 }}>No students found</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {/* Right column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Band coverage */}
-            <div style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.text, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>Band coverage</div>
-              {bandRows.map(([band, pct, color, n]) => (
-                <div key={band as string} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, minWidth: 72, color: color as string }}>{band}</span>
-                  <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: color as string, borderRadius: 3 }} />
-                  </div>
-                  <span style={{ fontSize: 11, color: C.muted, minWidth: 22, textAlign: "right" }}>{n}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Support queue */}
-            <div style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}`, flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: C.text, textTransform: "uppercase", letterSpacing: "0.06em" }}>Support Queue</span>
-                <span style={{ background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 8 }}>{loading ? "—" : QUEUE.length}</span>
+            <div
+              key={s.label}
+              style={{
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderTop: `3px solid ${s.accent}`,
+                borderRadius: 12,
+                padding: "14px 20px",
+                flex: 1,
+                minWidth: 100,
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 26, fontWeight: 900, color: C.text }}>{s.val}</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: C.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: ".06em",
+                  marginTop: 4,
+                }}
+              >
+                {s.label}
               </div>
-              {loading && <div style={{ fontSize: 12, color: C.muted }}>Loading…</div>}
-              {!loading && QUEUE.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No students in queue</div>}
-              {QUEUE.map((q) => (
-                <div key={q.name} style={{ display: "flex", gap: 8, padding: "8px 10px", borderRadius: 8, marginBottom: 6, background: q.type === "warn" ? "rgba(245,158,11,0.08)" : "rgba(37,99,235,0.08)", borderLeft: `3px solid ${q.type === "warn" ? C.amber : C.blue}` }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>{q.name}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{q.reason}</div>
-                    <Link href={`/teacher/students/s-${q.name.toLowerCase()}`} style={{ fontSize: 11, fontWeight: 700, color: C.blue, marginTop: 4, display: "block", textDecoration: "none" }}>View student →</Link>
-                  </div>
-                </div>
-              ))}
             </div>
+          ))}
+        </div>
+
+        {/* ── Command palette ───────────────────────────────────────────────── */}
+        <div style={{ marginBottom: 28 }}>
+          <h2
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: C.muted,
+              textTransform: "uppercase",
+              letterSpacing: ".08em",
+              margin: "0 0 12px",
+            }}
+          >
+            Quick Actions
+          </h2>
+          <div
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 16,
+              overflow: "hidden",
+            }}
+          >
+            {QUICK_ACTIONS.map((action, i) => {
+              const isLast = i === QUICK_ACTIONS.length - 1;
+              return action.comingSoon ? (
+                <div
+                  key={action.key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    padding: "14px 20px",
+                    borderBottom: isLast ? "none" : `1px solid ${C.border}`,
+                    opacity: 0.5,
+                    cursor: "not-allowed",
+                  }}
+                >
+                  <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>
+                    {action.icon}
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: C.muted,
+                    }}
+                  >
+                    {action.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: C.amber,
+                      background: "rgba(245,158,11,0.12)",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                      marginRight: 8,
+                    }}
+                  >
+                    COMING SOON
+                  </span>
+                  <kbd
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 28,
+                      height: 28,
+                      borderRadius: 7,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.05)",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: C.muted,
+                      fontFamily: "system-ui",
+                    }}
+                  >
+                    {action.key}
+                  </kbd>
+                </div>
+              ) : (
+                <Link
+                  key={action.key}
+                  href={action.href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    padding: "14px 20px",
+                    borderBottom: isLast ? "none" : `1px solid ${C.border}`,
+                    textDecoration: "none",
+                    transition: "background .14s",
+                  }}
+                >
+                  <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>
+                    {action.icon}
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: action.accent,
+                    }}
+                  >
+                    {action.label}
+                  </span>
+                  <kbd
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 28,
+                      height: 28,
+                      borderRadius: 7,
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      background: "rgba(255,255,255,0.06)",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: C.muted,
+                      fontFamily: "system-ui",
+                    }}
+                  >
+                    {action.key}
+                  </kbd>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
-        {/* Skill alerts */}
-        <div style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", border: `1px solid ${C.border}`, marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: C.text, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>⚠️ Skill Alerts</div>
-          {SKILL_ALERTS.map((alert, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, padding: "8px 10px", background: "rgba(245,158,11,0.06)", borderRadius: 8, marginBottom: 6, fontSize: 11, color: "#d97706", lineHeight: 1.4 }}>
-              <span>⚠</span><span>{alert}</span>
-            </div>
+        {/* ── Teacher tips ──────────────────────────────────────────────────── */}
+        <div>
+          <h2
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: C.muted,
+              textTransform: "uppercase",
+              letterSpacing: ".08em",
+              margin: "0 0 12px",
+            }}
+          >
+            Shortcuts &amp; Tips
+          </h2>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {TIPS.map((tip, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "14px 18px",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderLeft: `3px solid ${C.violet}`,
+                  borderRadius: 12,
+                  fontSize: 13,
+                  color: C.text,
+                  lineHeight: 1.5,
+                }}
+              >
+                {tip}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Footer nav ────────────────────────────────────────────────────── */}
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 32 }}>
+          {[
+            { href: "/teacher/home",    label: "← Home" },
+            { href: "/teacher",         label: "Dashboard" },
+            { href: "/teacher/class",   label: "Full Roster" },
+            { href: "/teacher/support", label: "Support Queue" },
+          ].map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+              }}
+            >
+              {l.label}
+            </Link>
           ))}
         </div>
 
-        {/* Footer nav */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[
-            { href: "/teacher", label: "← Dashboard" },
-            { href: "/teacher/class", label: "Full Roster" },
-            { href: "/teacher/support", label: "Support Queue" },
-            { href: "/teacher/assignment", label: "Assignments" },
-          ].map((l) => (
-            <Link key={l.href} href={l.href} style={{ fontSize: 12, fontWeight: 700, color: C.violet, textDecoration: "none" }}>{l.label}</Link>
-          ))}
-        </div>
+        {/* ── Toast ─────────────────────────────────────────────────────────── */}
+        {toastMsg && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: 32,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(30,30,50,0.96)",
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              padding: "12px 22px",
+              fontSize: 13,
+              fontWeight: 700,
+              color: C.text,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+              zIndex: 999,
+            }}
+          >
+            {toastMsg}
+          </div>
+        )}
       </div>
     </AppFrame>
   );
