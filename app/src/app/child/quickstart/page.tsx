@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import AppFrame from "@/components/app-frame";
+import { AppFrame } from "@/components/app-frame";
 
 // ── Stub data ──────────────────────────────────────────────────────────────
 

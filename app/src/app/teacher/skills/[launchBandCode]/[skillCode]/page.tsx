@@ -53,9 +53,9 @@ const TREND_WEEKS = [
 ];
 
 const DISTRIBUTION: { label: string; emoji: string; pct: number; count: number; color: string; status: MasteryStatus }[] = [
-  { label: "Strong", emoji: "\u{1F4AA}", pct: 44, count: 8, color: C.mint, status: "strong" },
-  { label: "Building", emoji: "\u{1F4C8}", pct: 33, count: 6, color: C.blue, status: "building" },
-  { label: "Just started", emoji: "\u{1F331}", pct: 22, count: 4, color: C.muted, status: "started" },
+  { label: "Strong", emoji: "💪", pct: 44, count: 8, color: C.mint, status: "strong" },
+  { label: "Building", emoji: "📈", pct: 33, count: 6, color: C.blue, status: "building" },
+  { label: "Just started", emoji: "🌱", pct: 22, count: 4, color: C.muted, status: "started" },
 ];
 
 const STUDENTS: StudentRow[] = [
@@ -76,9 +76,9 @@ function statusColor(s: MasteryStatus): string {
 }
 
 function statusLabel(s: MasteryStatus): string {
-  if (s === "strong") return "\u{1F4AA} Strong";
-  if (s === "building") return "\u{1F4C8} Building";
-  return "\u{1F331} Just started";
+  if (s === "strong") return "💪 Strong";
+  if (s === "building") return "📈 Building";
+  return "🌱 Just started";
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -320,7 +320,7 @@ export default function TeacherSkillDrilldownPage() {
                   lineHeight: 1.5,
                 }}
               >
-                \u{1F4CC} 5 students have had 4+ sessions on this skill without advancing to Strong \u2014 consider a group review activity for the \u201Cequal parts\u201D concept.
+                📌 5 students have had 4+ sessions on this skill without advancing to Strong \u2014 consider a group review activity for the \u201Cequal parts\u201D concept.
               </div>
             </div>
 

@@ -549,7 +549,6 @@ export default function ParentWeeklyReportPage() {
                 onClick={() => setTab(t.id)}
                 style={{
                   padding: "8px 16px",
-                  border: "none",
                   borderRadius: "8px",
                   fontSize: "0.82rem",
                   fontWeight: 700,

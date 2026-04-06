@@ -287,7 +287,7 @@ export default function TeacherClassPage() {
                 Class Summary
               </div>
               <h1 style={{ fontSize: 24, fontWeight: 900, color: C.text, margin: 0, lineHeight: 1.2 }}>
-                \u{1F4CA} Class 4B Summary
+                📊 Class 4B Summary
               </h1>
               <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
                 Weekly snapshot \u00b7 28 students enrolled
@@ -689,7 +689,7 @@ export default function TeacherClassPage() {
                             }}
                           >
                             {s.name}
-                            {s.streak && <span style={{ marginLeft: 4, fontSize: 11 }}>\u{1F525}</span>}
+                            {s.streak && <span style={{ marginLeft: 4, fontSize: 11 }}>🔥</span>}
                             {s.inQueue && (
                               <span
                                 style={{
@@ -812,7 +812,7 @@ export default function TeacherClassPage() {
                     color: "rgba(255,255,255,0.2)",
                   }}
                 >
-                  Class-level mastery bars shown. Individual accuracy % not displayed. \u{1F525} = active streak.
+                  Class-level mastery bars shown. Individual accuracy % not displayed. 🔥 = active streak.
                 </div>
               </div>
             </>

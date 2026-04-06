@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import AppFrame from "@/components/app-frame";
+import { AppFrame } from "@/components/app-frame";
 
 // ─── Colour tokens ─────────────────────────────────────────────────────────────
 const C = {
