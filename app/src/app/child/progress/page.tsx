@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+
+type SessionData = {
+  student: { displayName: string; avatarKey: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
 
 const font = "'Nunito', system-ui, sans-serif";
 const bg = "#100b2e";
@@ -246,6 +251,30 @@ function NodePath({ nodes, connectors, opacity }: { nodes: PathNode[]; connector
 
 export default function ChildProgressPage() {
   const [activeTab, setActiveTab] = useState<Tab>("map");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => setSession(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const displayName = session?.student.displayName ?? "Explorer";
+  const totalPoints = session?.progression.totalPoints ?? 42;
+  const badgeCount = session?.progression.badgeCount ?? 3;
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, color: "#9b8ec4", fontSize: 18, fontWeight: 700 }}>
+          Loading your progress...
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -401,7 +430,7 @@ export default function ChildProgressPage() {
         {activeTab === "stats" && (
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: 32 }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", marginBottom: 6, fontFamily: font }}>
-              Zara&apos;s Journey 🌟
+              {displayName}&apos;s Journey 🌟
             </div>
             <div style={{ fontSize: 14, color: "#b8a0e8", fontWeight: 700, marginBottom: 28, fontFamily: font }}>
               Everything you&apos;ve collected on your adventure
@@ -410,10 +439,10 @@ export default function ChildProgressPage() {
             {/* Stats bar */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
               {[
-                { val: "⭐ 42", label: "Stars collected" },
+                { val: `⭐ ${totalPoints}`, label: "Stars collected" },
                 { val: "31", label: "Nodes explored" },
-                { val: "3", label: "Badges earned" },
-                { val: "🔥 5", label: "Day streak" },
+                { val: String(badgeCount), label: "Badges earned" },
+                { val: "🔥 —", label: "Day streak" },
               ].map((s) => (
                 <div
                   key={s.label}

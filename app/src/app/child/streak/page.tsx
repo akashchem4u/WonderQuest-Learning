@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
+
+// ─── Session type ─────────────────────────────────────────────────────────────
+
+type SessionData = {
+  student: { displayName: string; avatarKey: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -154,7 +161,35 @@ function MilestoneStyle(state: "done" | "current" | "locked"): React.CSSProperti
 
 export default function ChildStreakPage() {
   const [view, setView] = useState<StreakState>("active");
-  const d = DATA[view];
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => setSession(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // streakCount not yet in API; derive best view from totalPoints as proxy
+  // totalPoints > 0 = active learner; show "active" state
+  // We override DATA[view].streakCount with the level for display context
+  const liveStreakCount = session ? (session.progression.currentLevel > 1 ? session.progression.currentLevel : 1) : null;
+  const d = {
+    ...DATA[view],
+    streakCount: view === "active" && session ? liveStreakCount : DATA[view].streakCount,
+  };
+
+  if (loading) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito', system-ui, sans-serif", color: C.muted, fontSize: 18, fontWeight: 700 }}>
+          Loading your streak...
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="kid" currentPath="/child">

@@ -106,6 +106,11 @@ const WORLDS: World[] = [
   },
 ];
 
+type SessionData = {
+  student: { displayName: string; avatarKey: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
+
 const STATS = {
   totalStars: 42,
   nodesExplored: 31,
@@ -366,7 +371,7 @@ function WorldRow({ world }: { world: World }) {
 
 // ─── Stats tab ────────────────────────────────────────────────────────────────
 
-function StatsView() {
+function StatsView({ liveStats }: { liveStats: typeof STATS }) {
   return (
     <div>
       {/* Stats bar */}
@@ -379,10 +384,10 @@ function StatsView() {
         }}
       >
         {[
-          { val: `⭐ ${STATS.totalStars}`, label: "Stars collected" },
-          { val: String(STATS.nodesExplored), label: "Nodes explored" },
-          { val: String(STATS.badgesEarned), label: "Badges earned" },
-          { val: `🔥 ${STATS.dayStreak}`, label: "Day streak" },
+          { val: `⭐ ${liveStats.totalStars}`, label: "Stars collected" },
+          { val: String(liveStats.nodesExplored), label: "Nodes explored" },
+          { val: String(liveStats.badgesEarned), label: "Badges earned" },
+          { val: `🔥 ${liveStats.dayStreak}`, label: "Day streak" },
         ].map((s) => (
           <div
             key={s.label}
@@ -691,6 +696,7 @@ export default function ChildMapPage() {
   const router = useRouter();
   const [unlocked, setUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState<"map" | "stats">("map");
+  const [session, setSession] = useState<SessionData | null>(null);
   const currentWorld = WORLDS.find((w) => w.status === "current") ?? WORLDS[0];
 
   // Try to restore session silently
@@ -698,13 +704,24 @@ export default function ChildMapPage() {
     async function tryRestore() {
       try {
         const res = await fetch("/api/child/session", { method: "GET" });
-        if (res.ok) setUnlocked(true);
+        if (res.ok) {
+          const data: SessionData = await res.json();
+          setSession(data);
+          setUnlocked(true);
+        }
       } catch {
         // Stay on PIN gate
       }
     }
     void tryRestore();
   }, []);
+
+  const liveStats = {
+    totalStars: session?.progression.totalPoints ?? STATS.totalStars,
+    nodesExplored: STATS.nodesExplored,
+    badgesEarned: session?.progression.badgeCount ?? STATS.badgesEarned,
+    dayStreak: STATS.dayStreak,
+  };
 
   if (!unlocked) {
     return <PinGate onUnlock={() => setUnlocked(true)} />;
@@ -825,7 +842,7 @@ export default function ChildMapPage() {
               color: C.gold,
             }}
           >
-            ⭐ {STATS.totalStars}
+            ⭐ {liveStats.totalStars}
           </div>
 
           {/* Streak */}
@@ -836,7 +853,7 @@ export default function ChildMapPage() {
               color: "#ff9d3b",
             }}
           >
-            🔥 {STATS.dayStreak}
+            🔥 {liveStats.dayStreak}
           </div>
         </div>
 
@@ -855,7 +872,7 @@ export default function ChildMapPage() {
             { icon: "🏠", label: "Home", href: "/child" },
             { icon: "🗺️", label: "World Map", active: true },
             { icon: "⭐", label: "My Stars" },
-            { icon: "🏅", label: "Badges", badge: String(STATS.badgesEarned) },
+            { icon: "🏅", label: "Badges", badge: String(liveStats.badgesEarned) },
             { icon: "🏆", label: "Trophies" },
             { icon: "🎯", label: "Daily Quest" },
           ].map((item) => (
@@ -983,7 +1000,7 @@ export default function ChildMapPage() {
               >
                 Everything you've collected on your adventure
               </div>
-              <StatsView />
+              <StatsView liveStats={liveStats} />
             </>
           )}
         </div>
@@ -1032,7 +1049,7 @@ export default function ChildMapPage() {
                     lineHeight: 1,
                   }}
                 >
-                  {STATS.dayStreak}
+                  {liveStats.dayStreak}
                 </div>
                 <div
                   style={{
@@ -1080,7 +1097,7 @@ export default function ChildMapPage() {
                     lineHeight: 1,
                   }}
                 >
-                  {STATS.totalStars}
+                  {liveStats.totalStars}
                 </div>
                 <div
                   style={{
@@ -1128,7 +1145,7 @@ export default function ChildMapPage() {
                     lineHeight: 1,
                   }}
                 >
-                  {STATS.badgesEarned}
+                  {liveStats.badgesEarned}
                 </div>
                 <div
                   style={{
