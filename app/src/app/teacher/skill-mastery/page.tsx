@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   base: "#100b2e",
@@ -89,12 +91,25 @@ function tagStyle(level: Mastery): React.CSSProperties {
 const TAG_LABELS = ["Not started", "Exploring", "Growing", "Strong"];
 
 export default function SkillMasteryPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [activeSubject, setActiveSubject] = useState("All");
   const subjects = ["All", "Maths", "Literacy", "Science", "Social Studies"];
 
   const filteredSkills = activeSubject === "All" ? SKILLS : SKILLS.filter((s) => s.subject === activeSubject);
   const filteredIndices = SKILLS.map((s, i) => ({ s, i })).filter(({ s }) => activeSubject === "All" || s.subject === activeSubject).map(({ i }) => i);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/skill-mastery">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher">

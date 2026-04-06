@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -147,6 +148,9 @@ const QUEST_OPTIONS = [
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TeacherGroupsPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [mainTab, setMainTab] = useState<"groups" | "engagement">("groups");
   const [engGroup, setEngGroup] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -160,6 +164,7 @@ export default function TeacherGroupsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
@@ -173,7 +178,7 @@ export default function TeacherGroupsPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [authed]);
 
   const activeEngGroup = groups.find((g) => g.id === engGroup) ?? groups[0];
 
@@ -258,6 +263,16 @@ export default function TeacherGroupsPage() {
     { key: "coral",  hex: "#f87171" },
     { key: "green",  hex: "#50e890" },
   ];
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/groups">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">

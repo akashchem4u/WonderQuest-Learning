@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -83,6 +84,9 @@ function CardHeader({ title, link, href }: { title: React.ReactNode; link?: stri
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function TeacherHomePage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +94,7 @@ export default function TeacherHomePage() {
   const [teacherName, setTeacherName] = useState("");
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
     if (!teacherId) { setLoading(false); return; }
 
@@ -105,7 +110,7 @@ export default function TeacherHomePage() {
       })
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [authed]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalStudents = roster.length;
@@ -161,6 +166,16 @@ export default function TeacherHomePage() {
     color: activeTab === tab ? "#0b1622" : C.muted,
     transition: "all .18s",
   });
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/home">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/home">

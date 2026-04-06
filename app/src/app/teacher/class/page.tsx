@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -252,12 +253,16 @@ function bandColor(b: Band): string {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TeacherClassPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [activeWeek, setActiveWeek] = useState(0);
   const [activeTab, setActiveTab] = useState<"summary" | "compare">("summary");
   const [students, setStudents] = useState<StudentRow[]>(FALLBACK_STUDENTS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
 
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
@@ -272,7 +277,7 @@ export default function TeacherClassPage() {
         // fetch error → keep fallback
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [authed]);
 
   const glassCard: React.CSSProperties = {
     background: C.surface,
@@ -289,6 +294,16 @@ export default function TeacherClassPage() {
     color: C.muted,
     marginBottom: 12,
   };
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/class">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
