@@ -512,11 +512,11 @@ export default function ParentAccessPage() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   const heroCardStyle: React.CSSProperties = {
-    background: "linear-gradient(135deg, #fff 0%, #faf8ff 100%)",
+    background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(155,114,255,0.07) 100%)",
     borderRadius: "20px",
     padding: "28px",
     boxShadow: "0 4px 24px rgba(100,60,200,0.08)",
-    border: "1px solid #e0d8f0",
+    border: "1px solid rgba(255,255,255,0.1)",
     marginBottom: "24px",
     display: "grid",
     gridTemplateColumns: "auto 1fr auto",
@@ -545,11 +545,11 @@ export default function ParentAccessPage() {
   };
 
   const statCardStyle: React.CSSProperties = {
-    background: "#fff",
+    background: "rgba(255,255,255,0.05)",
     borderRadius: "14px",
     padding: "18px 20px",
     boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
-    border: "1px solid #e8e0f0",
+    border: "1px solid rgba(255,255,255,0.1)",
   };
 
   const twoColStyle: React.CSSProperties = {
@@ -560,10 +560,10 @@ export default function ParentAccessPage() {
   };
 
   const skillCardStyle: React.CSSProperties = {
-    background: "#fff",
+    background: "rgba(255,255,255,0.05)",
     borderRadius: "16px",
     padding: "22px",
-    border: "1px solid #e8e0f0",
+    border: "1px solid rgba(255,255,255,0.1)",
     boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
   };
 
@@ -619,7 +619,7 @@ export default function ParentAccessPage() {
                 </span>
               </div>
 
-              <h1 style={{ font: "700 2.4rem/1.15 system-ui", color: "#1a1240", maxWidth: "440px" }}>
+              <h1 style={{ font: "700 2.4rem/1.15 system-ui", color: "#ffffff", maxWidth: "440px" }}>
                 See how your child is{" "}
                 <span
                   style={{
@@ -642,8 +642,8 @@ export default function ParentAccessPage() {
                     key={badge}
                     style={{
                       display: "flex", alignItems: "center", gap: "6px",
-                      font: "500 0.75rem system-ui", color: "#7060a0",
-                      background: "#ede8ff", border: "1px solid #ccc0f0",
+                      font: "500 0.75rem system-ui", color: "rgba(216,240,234,0.5)",
+                      background: "rgba(155,114,255,0.15)", border: "1px solid rgba(155,114,255,0.25)",
                       borderRadius: "20px", padding: "5px 12px",
                     }}
                   >
@@ -655,15 +655,15 @@ export default function ParentAccessPage() {
               {/* Preview dashboard card */}
               <div
                 style={{
-                  background: "#fff", borderRadius: "20px", padding: "24px",
-                  border: "1px solid #e0d8f0", boxShadow: "0 4px 24px rgba(100,60,200,0.08)",
+                  background: "rgba(255,255,255,0.05)", borderRadius: "20px", padding: "24px",
+                  border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 24px rgba(100,60,200,0.08)",
                   marginTop: "8px",
                 }}
               >
                 <div style={{ font: "600 0.7rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
                   Preview — what you'll see
                 </div>
-                <div style={{ font: "700 0.95rem system-ui", color: "#1a1240", marginBottom: "16px" }}>
+                <div style={{ font: "700 0.95rem system-ui", color: "#ffffff", marginBottom: "16px" }}>
                   {parentPreviewWeekly.childName}'s week at a glance
                 </div>
 
@@ -676,10 +676,10 @@ export default function ParentAccessPage() {
                     { icon: "🏅", val: "2", label: "Badges" },
                   ].map((s) => (
                     <div key={s.label}>
-                      <span style={{ font: "700 1.2rem system-ui", color: "#1a1240", display: "block" }}>
+                      <span style={{ font: "700 1.2rem system-ui", color: "#ffffff", display: "block" }}>
                         {s.icon} {s.val}
                       </span>
-                      <span style={{ font: "400 0.68rem system-ui", color: "#9080a0" }}>{s.label}</span>
+                      <span style={{ font: "400 0.68rem system-ui", color: "rgba(216,240,234,0.55)" }}>{s.label}</span>
                     </div>
                   ))}
                 </div>
@@ -692,13 +692,13 @@ export default function ParentAccessPage() {
                     { name: "Counting", pct: 60, color: "#ffd166" },
                   ].map((skill) => (
                     <div key={skill.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ font: "600 0.78rem system-ui", color: "#1a1240", width: "110px", flexShrink: 0 }}>
+                      <span style={{ font: "600 0.78rem system-ui", color: "#ffffff", width: "110px", flexShrink: 0 }}>
                         {skill.name}
                       </span>
-                      <div style={{ flex: 1, height: "6px", background: "#e8e0f0", borderRadius: "3px", overflow: "hidden" }}>
+                      <div style={{ flex: 1, height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
                         <div style={{ width: `${skill.pct}%`, height: "100%", background: skill.color, borderRadius: "3px" }} />
                       </div>
-                      <span style={{ font: "600 0.7rem system-ui", color: "#9080a0", width: "30px", textAlign: "right" }}>
+                      <span style={{ font: "600 0.7rem system-ui", color: "rgba(216,240,234,0.55)", width: "30px", textAlign: "right" }}>
                         {skill.pct}%
                       </span>
                     </div>
@@ -710,15 +710,15 @@ export default function ParentAccessPage() {
             {/* Right: sign-in card */}
             <div
               style={{
-                background: "#fff", borderRadius: "20px", padding: "40px 36px",
-                boxShadow: "0 8px 40px rgba(100,60,200,0.1)", border: "1px solid #e0d8f8",
+                background: "rgba(255,255,255,0.05)", borderRadius: "20px", padding: "40px 36px",
+                boxShadow: "0 8px 40px rgba(100,60,200,0.1)", border: "1px solid rgba(255,255,255,0.1)",
                 position: "sticky", top: "24px",
               }}
             >
               <div style={{ font: "600 0.75rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
                 Parent access
               </div>
-              <div style={{ font: "700 1.4rem system-ui", color: "#1a1240", marginBottom: "22px" }}>
+              <div style={{ font: "700 1.4rem system-ui", color: "#ffffff", marginBottom: "22px" }}>
                 {returningAccessMode ? "Sign in to family view" : "Create parent access"}
               </div>
 
@@ -784,7 +784,7 @@ export default function ParentAccessPage() {
                 ) : null}
 
                 {returningAccessMode ? (
-                  <div style={{ font: "500 0.78rem system-ui", color: "#7060a0", background: "#f5f0ff", borderRadius: "8px", padding: "10px 14px" }}>
+                  <div style={{ font: "500 0.78rem system-ui", color: "rgba(216,240,234,0.5)", background: "rgba(155,114,255,0.1)", borderRadius: "8px", padding: "10px 14px" }}>
                     Username + PIN only needed to sign in.
                   </div>
                 ) : (
@@ -800,13 +800,13 @@ export default function ParentAccessPage() {
                         style={{
                           display: "flex", justifyContent: "space-between", alignItems: "center",
                           padding: "11px 14px", borderRadius: "10px", cursor: "pointer",
-                          border: "1.5px solid #e0d8f0", background: item.val ? "#faf5ff" : "#faf8ff",
+                          border: "1.5px solid rgba(255,255,255,0.12)", background: item.val ? "#faf5ff" : "#faf8ff",
                           textAlign: "left",
                         }}
                       >
                         <div>
-                          <div style={{ font: "600 0.82rem system-ui", color: "#1a1240" }}>{item.label}</div>
-                          <div style={{ font: "400 0.7rem system-ui", color: "#9080a0" }}>{item.sub}</div>
+                          <div style={{ font: "600 0.82rem system-ui", color: "#ffffff" }}>{item.label}</div>
+                          <div style={{ font: "400 0.7rem system-ui", color: "rgba(216,240,234,0.55)" }}>{item.sub}</div>
                         </div>
                         <span
                           style={{
@@ -868,10 +868,10 @@ export default function ParentAccessPage() {
           >
             {/* Page header */}
             <div style={{ marginBottom: "28px" }}>
-              <div style={{ font: "700 1.6rem system-ui", color: "#1a1240", marginBottom: "4px" }}>
+              <div style={{ font: "700 1.6rem system-ui", color: "#ffffff", marginBottom: "4px" }}>
                 👋 Hello, {result.guardian.displayName}
               </div>
-              <div style={{ font: "400 0.88rem system-ui", color: "#6a5890" }}>
+              <div style={{ font: "400 0.88rem system-ui", color: "rgba(216,240,234,0.7)" }}>
                 Here's how {activeChild.displayName} is doing this week
               </div>
               {result.linkedChildren.length > 1 ? (
@@ -906,15 +906,15 @@ export default function ParentAccessPage() {
               </div>
 
               <div>
-                <div style={{ font: "700 1.3rem system-ui", color: "#1a1240", marginBottom: "6px" }}>
+                <div style={{ font: "700 1.3rem system-ui", color: "#ffffff", marginBottom: "6px" }}>
                   {activeChild.displayName}
                 </div>
                 <div
                   style={{
                     display: "inline-flex", alignItems: "center", gap: "6px",
                     padding: "3px 12px", borderRadius: "16px", marginBottom: "12px",
-                    background: "#ede8ff", border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
-                    font: "700 0.72rem system-ui", color: "#4a2090",
+                    background: "rgba(155,114,255,0.15)", border: `1.5px solid ${getBandColor(activeChild.launchBandCode)}`,
+                    font: "700 0.72rem system-ui", color: "#c3aaff",
                   }}
                 >
                   <span
@@ -934,10 +934,10 @@ export default function ParentAccessPage() {
                     { val: `${activeChild.badgeCount}`, label: "Badges" },
                   ].map((s) => (
                     <div key={s.label}>
-                      <span style={{ font: "900 1.35rem system-ui", color: "#1a1240", display: "block" }}>
+                      <span style={{ font: "900 1.35rem system-ui", color: "#ffffff", display: "block" }}>
                         {s.val}
                       </span>
-                      <span style={{ font: "400 0.7rem system-ui", color: "#8070a0", marginTop: "1px", display: "block" }}>
+                      <span style={{ font: "400 0.7rem system-ui", color: "rgba(216,240,234,0.55)", marginTop: "1px", display: "block" }}>
                         {s.label}
                       </span>
                     </div>
@@ -961,7 +961,7 @@ export default function ParentAccessPage() {
                   onClick={() => openAccessManager("profile")}
                   type="button"
                   style={{
-                    padding: "9px 18px", background: "#fff", color: "#4a3880",
+                    padding: "9px 18px", background: "rgba(255,255,255,0.05)", color: "rgba(216,240,234,0.8)",
                     border: "1.5px solid #d0c8e8", borderRadius: "10px",
                     font: "600 0.78rem system-ui", cursor: "pointer", whiteSpace: "nowrap",
                   }}
@@ -1005,10 +1005,10 @@ export default function ParentAccessPage() {
               ].map((tile) => (
                 <div key={tile.label} style={statCardStyle}>
                   <div style={{ fontSize: "1.2rem", marginBottom: "10px" }}>{tile.icon}</div>
-                  <span style={{ font: "900 1.5rem system-ui", color: "#1a1240", display: "block", marginBottom: "2px" }}>
+                  <span style={{ font: "900 1.5rem system-ui", color: "#ffffff", display: "block", marginBottom: "2px" }}>
                     {tile.val}
                   </span>
-                  <div style={{ font: "400 0.72rem system-ui", color: "#9080a0" }}>{tile.label}</div>
+                  <div style={{ font: "400 0.72rem system-ui", color: "rgba(216,240,234,0.55)" }}>{tile.label}</div>
                   <div
                     style={{
                       font: "600 0.72rem system-ui", marginTop: "6px",
@@ -1026,7 +1026,7 @@ export default function ParentAccessPage() {
               {/* Left: Skills practiced */}
               <div style={skillCardStyle}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                  <span style={{ font: "700 0.95rem system-ui", color: "#1a1240" }}>Skills practiced this week</span>
+                  <span style={{ font: "700 0.95rem system-ui", color: "#ffffff" }}>Skills practiced this week</span>
                   <a href="#parent-family-detail" style={{ font: "500 0.75rem system-ui", color: "#9b72ff", textDecoration: "none" }}>
                     See all →
                   </a>
@@ -1043,7 +1043,7 @@ export default function ParentAccessPage() {
                         >
                           <span
                             style={{
-                              font: "600 0.8rem system-ui", color: "#1a1240",
+                              font: "600 0.8rem system-ui", color: "#ffffff",
                               width: "120px", flexShrink: 0,
                               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                             }}
@@ -1052,7 +1052,7 @@ export default function ParentAccessPage() {
                           </span>
                           <div
                             style={{
-                              flex: 1, height: "6px", background: "#e8e0f0",
+                              flex: 1, height: "6px", background: "rgba(255,255,255,0.1)",
                               borderRadius: "3px", overflow: "hidden",
                             }}
                           >
@@ -1064,7 +1064,7 @@ export default function ParentAccessPage() {
                               }}
                             />
                           </div>
-                          <span style={{ font: "600 0.72rem system-ui", color: "#9080a0", width: "32px", textAlign: "right", flexShrink: 0 }}>
+                          <span style={{ font: "600 0.72rem system-ui", color: "rgba(216,240,234,0.55)", width: "32px", textAlign: "right", flexShrink: 0 }}>
                             {skill.masteryRate}%
                           </span>
                         </div>
@@ -1076,9 +1076,9 @@ export default function ParentAccessPage() {
                       <div
                         style={{
                           marginTop: "14px", padding: "10px 12px",
-                          background: "#f0fdf8", borderRadius: "8px",
-                          border: "1px solid #b0f0d0",
-                          font: "400 0.76rem/1.4 system-ui", color: "#1a5030",
+                          background: "rgba(88,232,193,0.1)", borderRadius: "8px",
+                          border: "1px solid rgba(88,232,193,0.25)",
+                          font: "400 0.76rem/1.4 system-ui", color: "#58e8c1",
                         }}
                       >
                         💡 <strong>Support tip:</strong>{" "}
@@ -1087,7 +1087,7 @@ export default function ParentAccessPage() {
                     ) : null}
                   </>
                 ) : (
-                  <p style={{ font: "400 0.82rem system-ui", color: "#9080a0" }}>
+                  <p style={{ font: "400 0.82rem system-ui", color: "rgba(216,240,234,0.55)" }}>
                     Skills appear after a few sessions.
                   </p>
                 )}
@@ -1132,7 +1132,7 @@ export default function ParentAccessPage() {
 
                 {/* Recent activity */}
                 <div style={{ ...skillCardStyle, flex: 1 }}>
-                  <div style={{ font: "700 0.95rem system-ui", color: "#1a1240", marginBottom: "14px" }}>
+                  <div style={{ font: "700 0.95rem system-ui", color: "#ffffff", marginBottom: "14px" }}>
                     Recent activity
                   </div>
                   {activeChildDashboard.recentSessions.length > 0 ? (
@@ -1160,8 +1160,8 @@ export default function ParentAccessPage() {
                               }}
                             />
                             <div style={{ flex: 1 }}>
-                              <div style={{ font: "400 0.82rem/1.4 system-ui", color: "#3a3060" }}>
-                                <strong style={{ fontWeight: 700, color: "#1a1240" }}>
+                              <div style={{ font: "400 0.82rem/1.4 system-ui", color: "rgba(216,240,234,0.7)" }}>
+                                <strong style={{ fontWeight: 700, color: "#ffffff" }}>
                                   {activeChild.displayName}
                                 </strong>{" "}
                                 completed a {formatSessionMode(session.sessionMode).toLowerCase()} session
@@ -1169,7 +1169,7 @@ export default function ParentAccessPage() {
                                   ? ` · ${session.effectivenessScore}% engagement`
                                   : ""}
                               </div>
-                              <div style={{ font: "400 0.7rem system-ui", color: "#b0a0c0", marginTop: "2px" }}>
+                              <div style={{ font: "400 0.7rem system-ui", color: "rgba(216,240,234,0.4)", marginTop: "2px" }}>
                                 {formatLastSeen(session.startedAt)}
                               </div>
                             </div>
@@ -1178,7 +1178,7 @@ export default function ParentAccessPage() {
                       })}
                     </ul>
                   ) : (
-                    <p style={{ font: "400 0.82rem system-ui", color: "#9080a0" }}>
+                    <p style={{ font: "400 0.82rem system-ui", color: "rgba(216,240,234,0.55)" }}>
                       Activity appears here after the first lesson.
                     </p>
                   )}
@@ -1189,15 +1189,15 @@ export default function ParentAccessPage() {
             {/* ── Weekly snapshot section ──────────────────────────────────── */}
             <div
               style={{
-                background: "#fff", borderRadius: "16px", padding: "24px",
-                border: "1px solid #e8e0f0", boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
+                background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "24px",
+                border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
                 marginBottom: "24px",
               }}
             >
               <div style={{ font: "600 0.7rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
                 Family learning snapshot
               </div>
-              <div style={{ font: "700 1rem system-ui", color: "#1a1240", marginBottom: "18px" }}>
+              <div style={{ font: "700 1rem system-ui", color: "#ffffff", marginBottom: "18px" }}>
                 {parentWeekSummary?.headline ?? `${activeChild.displayName} is making progress.`}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
@@ -1223,39 +1223,39 @@ export default function ParentAccessPage() {
                   <div
                     key={item.label}
                     style={{
-                      background: "#faf8ff", borderRadius: "12px", padding: "16px",
-                      border: "1px solid #ede8ff",
+                      background: "rgba(255,255,255,0.04)", borderRadius: "12px", padding: "16px",
+                      border: "1px solid rgba(155,114,255,0.2)",
                     }}
                   >
-                    <div style={{ font: "400 0.72rem system-ui", color: "#8070a0", marginBottom: "4px" }}>{item.label}</div>
-                    <div style={{ font: "900 1.4rem system-ui", color: "#1a1240", marginBottom: "2px" }}>{item.val}</div>
-                    <div style={{ font: "400 0.68rem system-ui", color: "#b0a0c0" }}>{item.detail}</div>
+                    <div style={{ font: "400 0.72rem system-ui", color: "rgba(216,240,234,0.55)", marginBottom: "4px" }}>{item.label}</div>
+                    <div style={{ font: "900 1.4rem system-ui", color: "#ffffff", marginBottom: "2px" }}>{item.val}</div>
+                    <div style={{ font: "400 0.68rem system-ui", color: "rgba(216,240,234,0.4)" }}>{item.detail}</div>
                   </div>
                 ))}
               </div>
 
               {parentWeekendActivities.length > 0 ? (
                 <div style={{ marginTop: "18px" }}>
-                  <div style={{ font: "600 0.75rem system-ui", color: "#6a5890", marginBottom: "10px" }}>Try at home</div>
+                  <div style={{ font: "600 0.75rem system-ui", color: "rgba(216,240,234,0.7)", marginBottom: "10px" }}>Try at home</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {parentWeekendActivities.map((activity) => (
                       <div
                         key={activity.title}
                         style={{
                           display: "flex", alignItems: "center", gap: "12px",
-                          padding: "10px 14px", background: "#f5f0ff",
-                          borderRadius: "10px", border: "1px solid #e0d8f8",
+                          padding: "10px 14px", background: "rgba(155,114,255,0.1)",
+                          borderRadius: "10px", border: "1px solid rgba(255,255,255,0.1)",
                         }}
                       >
                         <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>{activity.icon}</span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ font: "600 0.82rem system-ui", color: "#1a1240" }}>{activity.title}</div>
-                          <div style={{ font: "400 0.72rem system-ui", color: "#7060a0" }}>{activity.body}</div>
+                          <div style={{ font: "600 0.82rem system-ui", color: "#ffffff" }}>{activity.title}</div>
+                          <div style={{ font: "400 0.72rem system-ui", color: "rgba(216,240,234,0.5)" }}>{activity.body}</div>
                         </div>
                         <span
                           style={{
                             font: "600 0.68rem system-ui", color: "#9b72ff",
-                            background: "#ede8ff", padding: "3px 8px",
+                            background: "rgba(155,114,255,0.15)", padding: "3px 8px",
                             borderRadius: "8px", whiteSpace: "nowrap",
                           }}
                         >
@@ -1272,8 +1272,8 @@ export default function ParentAccessPage() {
             {showAccessManager ? (
               <div
                 style={{
-                  background: "#fff", borderRadius: "16px", padding: "24px",
-                  border: "1px solid #e0d8f0", marginBottom: "24px",
+                  background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "24px",
+                  border: "1px solid rgba(255,255,255,0.1)", marginBottom: "24px",
                   boxShadow: "0 2px 12px rgba(100,60,200,0.06)",
                 }}
               >
@@ -1282,7 +1282,7 @@ export default function ParentAccessPage() {
                     <div style={{ font: "600 0.7rem system-ui", color: "#9b72ff", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
                       Access manager
                     </div>
-                    <div style={{ font: "700 0.95rem system-ui", color: "#1a1240" }}>
+                    <div style={{ font: "700 0.95rem system-ui", color: "#ffffff" }}>
                       Family access — {result.guardian.displayName}
                     </div>
                   </div>
@@ -1291,8 +1291,8 @@ export default function ParentAccessPage() {
                     type="button"
                     style={{
                       padding: "6px 14px", borderRadius: "8px", cursor: "pointer",
-                      border: "1.5px solid #e0d8f0", background: "#faf8ff",
-                      font: "500 0.78rem system-ui", color: "#6a5890",
+                      border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)",
+                      font: "500 0.78rem system-ui", color: "rgba(216,240,234,0.7)",
                     }}
                   >
                     Done
@@ -1359,14 +1359,14 @@ export default function ParentAccessPage() {
                           style={{
                             display: "flex", justifyContent: "space-between", alignItems: "center",
                             padding: "11px 14px", borderRadius: "10px", cursor: "pointer",
-                            border: "1.5px solid #e0d8f0",
+                            border: "1.5px solid rgba(255,255,255,0.12)",
                             background: item.val ? "#faf5ff" : "#faf8ff",
                             textAlign: "left",
                           }}
                         >
                           <div>
-                            <div style={{ font: "600 0.82rem system-ui", color: "#1a1240" }}>{item.label}</div>
-                            <div style={{ font: "400 0.7rem system-ui", color: "#9080a0" }}>{item.sub}</div>
+                            <div style={{ font: "600 0.82rem system-ui", color: "#ffffff" }}>{item.label}</div>
+                            <div style={{ font: "400 0.7rem system-ui", color: "rgba(216,240,234,0.55)" }}>{item.sub}</div>
                           </div>
                           <span
                             style={{
@@ -1385,7 +1385,7 @@ export default function ParentAccessPage() {
 
                   {openAccessSection === "relink" ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
-                      <div style={{ font: "500 0.8rem system-ui", color: "#805020", background: "#fff8ee", border: "1px solid #ffe0b0", borderRadius: "8px", padding: "10px 14px" }}>
+                      <div style={{ font: "500 0.8rem system-ui", color: "#805020", background: "rgba(255,209,102,0.1)", border: "1px solid #ffe0b0", borderRadius: "8px", padding: "10px 14px" }}>
                         <strong>Relinking is uncommon.</strong> Only use this if your child has a new account.
                       </div>
                       <FieldBlock
@@ -1395,10 +1395,10 @@ export default function ParentAccessPage() {
                         value={childUsername}
                       />
                       {activeChild ? (
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f5f0ff", borderRadius: "10px", border: "1px solid #e0d8f8" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(155,114,255,0.1)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.1)" }}>
                           <div>
-                            <div style={{ font: "600 0.8rem system-ui", color: "#1a1240" }}>Currently linked</div>
-                            <div style={{ font: "400 0.72rem system-ui", color: "#7060a0" }}>{activeChild.displayName}</div>
+                            <div style={{ font: "600 0.8rem system-ui", color: "#ffffff" }}>Currently linked</div>
+                            <div style={{ font: "400 0.72rem system-ui", color: "rgba(216,240,234,0.5)" }}>{activeChild.displayName}</div>
                           </div>
                           <span style={{ font: "500 0.72rem system-ui", color: "#9b72ff" }}>{getBandLabel(activeChild.launchBandCode)}</span>
                         </div>
