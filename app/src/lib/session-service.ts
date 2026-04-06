@@ -1413,6 +1413,8 @@ export async function answerQuestion(input: AnswerInput) {
       correct: isCorrect,
       firstTry: serverAttempt === 1,
       remediationTriggered: !isCorrect,
+      timeSpentMs,
+      bandCode: session.rows[0]?.launch_band_code as string | undefined,
     });
     await syncTeacherInterventionSignals(masteryRecord);
   } catch (error) {

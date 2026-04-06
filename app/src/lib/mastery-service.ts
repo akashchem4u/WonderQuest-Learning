@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isProficient, getBandCurriculum } from "@/lib/skill-curriculum";
 
 type MasteryUpdateInput = {
   studentId: string;
@@ -7,6 +8,8 @@ type MasteryUpdateInput = {
   correct: boolean;
   firstTry: boolean;
   remediationTriggered: boolean;
+  timeSpentMs: number;
+  bandCode?: string;
 };
 
 export type StudentSkillMasteryRecord = {
@@ -28,6 +31,10 @@ export type StudentSkillMasteryRecord = {
   lastSessionId: string | null;
   lastSeenAt: string | null;
   updatedAt: string | null;
+  sessionCount: number;
+  avgTimeMs: number;
+  proficientAt: string | null;
+  proficiencyEvidence: Record<string, unknown> | null;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -94,6 +101,16 @@ function mapMasteryRow(row: Record<string, unknown>) {
       row.updated_at === null || row.updated_at === undefined
         ? null
         : String(row.updated_at),
+    sessionCount: Number(row.session_count ?? 0),
+    avgTimeMs: Number(row.avg_time_ms ?? 0),
+    proficientAt:
+      row.proficient_at === null || row.proficient_at === undefined
+        ? null
+        : String(row.proficient_at),
+    proficiencyEvidence:
+      row.proficiency_evidence === null || row.proficiency_evidence === undefined
+        ? null
+        : (row.proficiency_evidence as Record<string, unknown>),
   } satisfies StudentSkillMasteryRecord;
 }
 
@@ -124,7 +141,11 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
         mastery_score,
         confidence_score,
         consecutive_correct,
-        consecutive_incorrect
+        consecutive_incorrect,
+        last_session_id,
+        session_count,
+        avg_time_ms,
+        proficient_at
       from public.student_skill_mastery
       where student_id = $1
         and skill_id = $2
@@ -156,6 +177,37 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
     : Number(row.consecutive_incorrect ?? 0) + 1;
   const nextOutcome = input.correct ? "correct" : "incorrect";
 
+  // Proficiency tracking
+  const isNewSession = input.sessionId !== (row.last_session_id ?? null);
+  const nextSessionCount = Number(row.session_count ?? 0) + (isNewSession ? 1 : 0);
+  const currentAvgTime = Number(row.avg_time_ms ?? 0);
+  const nextAvgTime =
+    currentAvgTime === 0
+      ? input.timeSpentMs
+      : Math.round(currentAvgTime * 0.75 + input.timeSpentMs * 0.25);
+
+  const alreadyProficient = !!row.proficient_at;
+  const nowProficient =
+    !alreadyProficient &&
+    isProficient(nextMasteryScore, nextSessionCount, nextAvgTime, input.bandCode ?? "K1");
+
+  const proficientAtValue = alreadyProficient
+    ? null // will use coalesce in SQL to keep existing
+    : nowProficient
+      ? new Date().toISOString()
+      : null;
+
+  const proficiencyEvidenceValue = nowProficient
+    ? JSON.stringify({
+        masteryScore: nextMasteryScore,
+        sessionCount: nextSessionCount,
+        avgTimeMs: nextAvgTime,
+        correctAttempts: nextCorrectAttempts,
+        totalAttempts: nextAttempts,
+        achievedAt: proficientAtValue,
+      })
+    : null;
+
   const result = await db.query(
     `
       update public.student_skill_mastery
@@ -170,7 +222,11 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
         consecutive_incorrect = $10,
         last_outcome = $11,
         last_session_id = $12,
-        last_seen_at = now()
+        last_seen_at = now(),
+        session_count = $13,
+        avg_time_ms = $14,
+        proficient_at = coalesce(proficient_at, $15::timestamptz),
+        proficiency_evidence = coalesce(proficiency_evidence, $16::jsonb)
       where student_id = $1
         and skill_id = $2
       returning
@@ -187,7 +243,11 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
         last_outcome,
         last_session_id,
         last_seen_at,
-        updated_at
+        updated_at,
+        session_count,
+        avg_time_ms,
+        proficient_at,
+        proficiency_evidence
     `,
     [
       input.studentId,
@@ -202,6 +262,10 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
       nextConsecutiveIncorrect,
       nextOutcome,
       input.sessionId,
+      nextSessionCount,
+      nextAvgTime,
+      proficientAtValue,
+      proficiencyEvidenceValue,
     ],
   );
 
@@ -225,7 +289,11 @@ export async function updateStudentSkillMastery(input: MasteryUpdateInput) {
         ssm.last_outcome,
         ssm.last_session_id,
         ssm.last_seen_at,
-        ssm.updated_at
+        ssm.updated_at,
+        ssm.session_count,
+        ssm.avg_time_ms,
+        ssm.proficient_at,
+        ssm.proficiency_evidence
       from public.student_skill_mastery ssm
       join public.skills sk
         on sk.id = ssm.skill_id
@@ -277,7 +345,11 @@ export async function getStudentSkillMastery(
         ssm.last_outcome,
         ssm.last_session_id,
         ssm.last_seen_at,
-        ssm.updated_at
+        ssm.updated_at,
+        ssm.session_count,
+        ssm.avg_time_ms,
+        ssm.proficient_at,
+        ssm.proficiency_evidence
       from public.student_skill_mastery ssm
       join public.skills sk
         on sk.id = ssm.skill_id
@@ -302,3 +374,87 @@ export async function getStudentSkillMasteryByCode(
   return mastery ?? null;
 }
 
+export type SkillProficiencySummaryItem = {
+  skillCode: string;
+  displayName: string;
+  subjectCode: string;
+  masteryScore: number;
+  sessionCount: number;
+  avgTimeMs: number;
+  proficientAt: string | null;
+  proficiencyEvidence: Record<string, unknown> | null;
+  attempts: number;
+  correctAttempts: number;
+};
+
+export async function getSkillProficiencySummary(
+  studentId: string,
+  bandCode: string,
+): Promise<SkillProficiencySummaryItem[]> {
+  const curriculumCodes = getBandCurriculum(bandCode);
+  if (curriculumCodes.length === 0) return [];
+
+  const result = await db.query(
+    `
+      select
+        sk.code as skill_code,
+        sk.display_name,
+        sk.subject_code,
+        ssm.mastery_score,
+        ssm.session_count,
+        ssm.avg_time_ms,
+        ssm.proficient_at,
+        ssm.proficiency_evidence,
+        ssm.attempts,
+        ssm.correct_attempts
+      from public.skills sk
+      left join public.student_skill_mastery ssm
+        on ssm.skill_id = sk.id
+        and ssm.student_id = $1
+      where sk.code = any($2::text[])
+      order by sk.display_name asc
+    `,
+    [studentId, curriculumCodes],
+  );
+
+  // Build a map of results and fill in missing curriculum skills with nulls
+  const byCode = new Map<string, SkillProficiencySummaryItem>();
+  for (const row of result.rows) {
+    byCode.set(String(row.skill_code), {
+      skillCode: String(row.skill_code),
+      displayName: String(row.display_name),
+      subjectCode: String(row.subject_code),
+      masteryScore: Number(row.mastery_score ?? 0),
+      sessionCount: Number(row.session_count ?? 0),
+      avgTimeMs: Number(row.avg_time_ms ?? 0),
+      proficientAt:
+        row.proficient_at === null || row.proficient_at === undefined
+          ? null
+          : String(row.proficient_at),
+      proficiencyEvidence:
+        row.proficiency_evidence === null || row.proficiency_evidence === undefined
+          ? null
+          : (row.proficiency_evidence as Record<string, unknown>),
+      attempts: Number(row.attempts ?? 0),
+      correctAttempts: Number(row.correct_attempts ?? 0),
+    });
+  }
+
+  return curriculumCodes.map((code) => {
+    if (byCode.has(code)) return byCode.get(code)!;
+    // Skill not yet practiced — look up display name from result if available
+    const matched = result.rows.find((r) => String(r.skill_code) === code);
+    return {
+      skillCode: code,
+      displayName: matched ? String(matched.display_name) : code,
+      subjectCode: matched ? String(matched.subject_code) : "unknown",
+      masteryScore: 0,
+      sessionCount: 0,
+      avgTimeMs: 0,
+      proficientAt: null,
+      proficiencyEvidence: null,
+      attempts: 0,
+      correctAttempts: 0,
+    };
+  });
+}

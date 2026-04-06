@@ -902,6 +902,35 @@ function ParentWeeklyReportPageInner() {
                     </div>
                   </SectionCard>
 
+                  {/* Proficiency report link */}
+                  <Link
+                    href="/parent/proficiency"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "14px 18px",
+                      background: "rgba(155,114,255,0.1)",
+                      border: "1px solid rgba(155,114,255,0.25)",
+                      borderRadius: 12,
+                      textDecoration: "none",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 18 }}>📊</span>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#e0d4ff" }}>
+                          View Proficiency Report
+                        </div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+                          Track skill mastery across all sessions
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 18, color: "#9b72ff" }}>→</span>
+                  </Link>
+
                   {/* Session log */}
                   <SectionCard
                     title="Session log"

@@ -527,6 +527,16 @@ export async function runTeacherInterventionAutoQueue(teacherId: string) {
         row.updated_at === null || row.updated_at === undefined
           ? null
           : String(row.updated_at),
+      sessionCount: Number(row.session_count ?? 0),
+      avgTimeMs: Number(row.avg_time_ms ?? 0),
+      proficientAt:
+        row.proficient_at === null || row.proficient_at === undefined
+          ? null
+          : String(row.proficient_at),
+      proficiencyEvidence:
+        row.proficiency_evidence === null || row.proficiency_evidence === undefined
+          ? null
+          : (row.proficiency_evidence as Record<string, unknown>),
     });
 
     queued += created.filter((item) => item.teacherId === normalizedTeacherId).length;
