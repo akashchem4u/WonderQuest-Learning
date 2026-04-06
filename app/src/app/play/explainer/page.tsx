@@ -1,18 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
-type TabId = "k1-first" | "k1-reviewing" | "prek" | "g23-g45" | "spec";
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: "k1-first", label: "K-1 First Time" },
-  { id: "k1-reviewing", label: "K-1 Reviewing" },
-  { id: "prek", label: "Pre-K Variant" },
-  { id: "g23-g45", label: "G2-3 / G4-5" },
-  { id: "spec", label: "Spec" },
-];
+type Band = "k1" | "prek" | "g23" | "g45";
 
 // ── Shared sub-components ────────────────────────────────────────────────────
 
@@ -79,7 +72,7 @@ function TopBar({
   );
 }
 
-// ── Tab 1 — K-1 First Time ───────────────────────────────────────────────────
+// ── K-1 First Time ───────────────────────────────────────────────────────────
 
 function K1FirstTimePhone() {
   return (
@@ -350,7 +343,7 @@ function K1FirstTimePhone() {
   );
 }
 
-// ── Tab 2 — K-1 Reviewing ────────────────────────────────────────────────────
+// ── K-1 Reviewing ────────────────────────────────────────────────────────────
 
 function K1ReviewingPhone() {
   return (
@@ -498,7 +491,7 @@ function K1ReviewingPhone() {
   );
 }
 
-// ── Tab 3 — Pre-K Variant ────────────────────────────────────────────────────
+// ── Pre-K Variant ────────────────────────────────────────────────────────────
 
 function PreKPhone() {
   return (
@@ -793,15 +786,15 @@ function PreKPhone() {
   );
 }
 
-// ── Tab 4 — G2-3 / G4-5 ─────────────────────────────────────────────────────
+// ── G2-3 ─────────────────────────────────────────────────────────────────────
 
 function G23Phone() {
   return (
     <div
       style={{
-        width: 330,
-        height: 620,
-        borderRadius: 32,
+        width: 390,
+        height: 700,
+        borderRadius: 40,
         background: "#100b2e",
         border: "2.5px solid #2a1f60",
         boxShadow: "0 0 0 1px #9b72ff22, 0 24px 48px #00000088",
@@ -824,12 +817,12 @@ function G23Phone() {
           gap: 16,
         }}
       >
-        <TopBar filledCount={2} stars={11} accentColor="#58e8c1" starColor="#7af0d0" starBorderColor="#58e8c144" />
+        <TopBar filledCount={2} stars={11} accentColor="#22c55e" starColor="#7af0d0" starBorderColor="#22c55e44" />
 
         <div
           style={{
             background: "#0d1e18",
-            border: "2px solid #58e8c144",
+            border: "2px solid #22c55e44",
             borderRadius: 14,
             padding: 20,
             display: "flex",
@@ -881,19 +874,19 @@ function G23Phone() {
           bottom: 0,
           left: 0,
           right: 0,
-          borderRadius: "20px 20px 0 0",
+          borderRadius: "24px 24px 0 0",
           zIndex: 10,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
           background: "linear-gradient(180deg, #0a1e1a 0%, #100b2e 100%)",
-          borderTop: "2px solid #58e8c155",
+          borderTop: "2px solid #22c55e55",
           boxShadow: "0 -8px 32px #00000066",
         }}
       >
         <DragHandle />
         <div style={{ padding: "16px 20px 28px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ fontSize: "0.72rem", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6, color: "#58e8c1" }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6, color: "#22c55e" }}>
             ✨ New Question Type
           </div>
           <div style={{ fontSize: "1.3rem", fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>Multiplication</div>
@@ -904,7 +897,7 @@ function G23Phone() {
           <div
             style={{
               background: "#0d2820",
-              border: "1.5px solid #58e8c144",
+              border: "1.5px solid #22c55e44",
               borderRadius: 14,
               padding: "14px 16px",
               display: "flex",
@@ -943,7 +936,7 @@ function G23Phone() {
                     fontWeight: 900,
                     flexShrink: 0,
                     marginTop: 1,
-                    background: "#58e8c1",
+                    background: "#22c55e",
                     color: "#051a14",
                   }}
                 >
@@ -982,7 +975,7 @@ function G23Phone() {
                 fontSize: "1rem",
                 fontWeight: 900,
                 cursor: "pointer",
-                background: "linear-gradient(135deg, #58e8c1, #30b090)",
+                background: "linear-gradient(135deg, #22c55e, #15803d)",
                 color: "#051a14",
                 fontFamily: "'Nunito', system-ui, sans-serif",
               }}
@@ -996,13 +989,15 @@ function G23Phone() {
   );
 }
 
+// ── G4-5 ─────────────────────────────────────────────────────────────────────
+
 function G45Phone() {
   return (
     <div
       style={{
-        width: 330,
-        height: 620,
-        borderRadius: 32,
+        width: 390,
+        height: 700,
+        borderRadius: 40,
         background: "#100b2e",
         border: "2.5px solid #2a1f60",
         boxShadow: "0 0 0 1px #9b72ff22, 0 24px 48px #00000088",
@@ -1090,7 +1085,7 @@ function G45Phone() {
           bottom: 0,
           left: 0,
           right: 0,
-          borderRadius: "20px 20px 0 0",
+          borderRadius: "24px 24px 0 0",
           zIndex: 10,
           display: "flex",
           flexDirection: "column",
@@ -1207,135 +1202,25 @@ function G45Phone() {
   );
 }
 
-// ── Tab 5 — Spec ─────────────────────────────────────────────────────────────
+// ── Band label / description ──────────────────────────────────────────────────
 
-function SpecTab() {
-  const specCards = [
-    {
-      title: "Trigger Logic",
-      items: [
-        { type: "do", text: "Show full panel on first-ever encounter of a question type" },
-        { type: "do", text: "Show abbreviated panel on encounters 2–3" },
-        { type: "do", text: "Stop showing entirely after encounter 4+" },
-        { type: "do", text: "Track per child × per question-type (not global)" },
-        { type: "dont", text: "Never show explainer mid-session (only before question 1 of a type)" },
-        { type: "dont", text: "Never auto-advance — child must tap CTA or Skip" },
-      ],
-    },
-    {
-      title: "Layout Rules",
-      items: [
-        { type: "neutral", text: "Full sheet: ~55–65% of phone frame height" },
-        { type: "neutral", text: "Abbreviated sheet: ~22–28% of phone frame height" },
-        { type: "neutral", text: "Always has drag handle (::before 36px bar)" },
-        { type: "neutral", text: "Content above sheet is dimmed with scrim overlay" },
-        { type: "neutral", text: "Full sheet has Skip link; abbreviated sheet has no Skip" },
-        { type: "neutral", text: "Sheet always position: absolute; bottom: 0" },
-      ],
-    },
-    {
-      title: "Band Color Tokens",
-      items: [
-        { type: "neutral", text: "Pre-K: gold #ffd166 border-top, dark #1e1400 bg" },
-        { type: "neutral", text: "K-1: violet #9b72ff border-top, dark #1a1040 bg" },
-        { type: "neutral", text: "G2-3: mint #58e8c1 border-top, dark #0a1e1a bg" },
-        { type: "neutral", text: "G4-5: coral #ff7b6b border-top, dark #1e0e0a bg" },
-        { type: "neutral", text: "Step number circles: filled with band color" },
-        { type: "neutral", text: "CTA button: linear-gradient from band color → darker shade" },
-      ],
-    },
-    {
-      title: "Content Guidelines",
-      items: [
-        { type: "neutral", text: "Pre-K: ≤2-word steps (Look / Find / Tap)" },
-        { type: "neutral", text: "K-1: short action sentences, sound-it-out language" },
-        { type: "neutral", text: 'G2-3: math framing ("groups of"), skip-count hint' },
-        { type: "neutral", text: 'G4-5: inference framing, "detective thinking" metaphor' },
-        { type: "dont", text: 'Never say "If you get it wrong…"' },
-        { type: "dont", text: "Never mention scoring/accuracy in panel" },
-      ],
-    },
-    {
-      title: "Abbreviated Panel Rules",
-      items: [
-        { type: "neutral", text: "Single row: icon + 1 sentence (≤12 words)" },
-        { type: "neutral", text: "No steps, no example card" },
-        { type: "neutral", text: "Scrim opacity: 0.30 (lighter than full = 0.55)" },
-        { type: "neutral", text: 'Got it! → no "Let\'s go" suffix (brevity)' },
-        { type: "neutral", text: "No Skip link (short enough to not need escape)" },
-        { type: "neutral", text: "Same band color border-top and CTA gradient" },
-      ],
-    },
-    {
-      title: "Accessibility / UX",
-      items: [
-        { type: "neutral", text: "CTA button: min height 52px (touch target)" },
-        { type: "neutral", text: "Skip link: min tap area 44px (add padding)" },
-        { type: "neutral", text: "Sheet: border-radius: 24px 24px 0 0" },
-        { type: "neutral", text: "Drag handle: cosmetic only — no swipe-dismiss in v3" },
-        { type: "neutral", text: "No animation on sheet entry in this file (shown static)" },
-        { type: "neutral", text: "Sheet slide-up: translateY(100%) → 0, 0.3s ease-out" },
-      ],
-    },
-  ];
+const BAND_META: Record<Band, { label: string; subtitle: string }> = {
+  k1:   { label: "K-1 — First Time",   subtitle: "Beginning Sounds · Violet theme" },
+  prek: { label: "Pre-K",              subtitle: "Finding Shapes · Gold theme" },
+  g23:  { label: "G2-3",               subtitle: "Multiplication · Mint theme" },
+  g45:  { label: "G4-5",               subtitle: "Inference Questions · Coral theme" },
+};
 
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 10,
-        maxWidth: 760,
-        width: "100%",
-      }}
-    >
-      {specCards.map((card) => (
-        <div
-          key={card.title}
-          style={{
-            background: "#fffbea",
-            border: "2px solid #f0c040",
-            borderRadius: 10,
-            padding: "12px 14px",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            color: "#3a2800",
-            lineHeight: 1.6,
-            fontFamily: "system-ui, sans-serif",
-          }}
-        >
-          <div style={{ fontSize: "0.8rem", marginBottom: 6, color: "#7a4800", fontWeight: 900 }}>
-            {card.title}
-          </div>
-          <ul style={{ paddingLeft: 14, margin: 0 }}>
-            {card.items.map((item, i) => (
-              <li
-                key={i}
-                style={{
-                  marginBottom: 3,
-                  color:
-                    item.type === "do"
-                      ? "#1a6030"
-                      : item.type === "dont"
-                      ? "#8a1010"
-                      : "#3a2800",
-                }}
-              >
-                {item.type === "do" ? "✅ " : item.type === "dont" ? "❌ " : ""}
-                {item.text}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
+// ── Inner page (reads search params) ─────────────────────────────────────────
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+function ExplainerInner() {
+  const searchParams = useSearchParams();
+  const rawBand = searchParams.get("band") ?? "k1";
+  const band: Band = (["k1", "prek", "g23", "g45"] as Band[]).includes(rawBand as Band)
+    ? (rawBand as Band)
+    : "k1";
 
-export default function PlayExplainerPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("k1-first");
+  const meta = BAND_META[band];
 
   return (
     <AppFrame audience="kid" currentPath="/play">
@@ -1352,166 +1237,31 @@ export default function PlayExplainerPage() {
           gap: 20,
         }}
       >
-        {/* Page title */}
-        <p
-          style={{
-            fontSize: "1rem",
-            fontWeight: 900,
-            color: "#6050a0",
-            letterSpacing: "0.04em",
-            margin: 0,
-          }}
-        >
-          play-explainer-panel-v3 · WonderQuest Design System
-        </p>
-
-        {/* Dev state-switcher tabs */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: "7px 14px",
-                borderRadius: 20,
-                border: `1.5px solid ${activeTab === tab.id ? "#9b72ff" : "#2a2050"}`,
-                background: activeTab === tab.id ? "#9b72ff" : "#14102a",
-                color: activeTab === tab.id ? "#fff" : "#9080c0",
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "'Nunito', system-ui, sans-serif",
-                transition: "all 0.15s",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Band label */}
+        <div style={{ textAlign: "center" }}>
+          <p
+            style={{
+              fontSize: "1rem",
+              fontWeight: 900,
+              color: "#9b72ff",
+              letterSpacing: "0.04em",
+              margin: 0,
+            }}
+          >
+            {meta.label}
+          </p>
+          <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#6050a0", margin: "4px 0 0" }}>
+            {meta.subtitle}
+          </p>
         </div>
 
-        {/* Tab content */}
-        {activeTab === "k1-first" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <div
-              style={{
-                background: "#fffbea",
-                border: "2px solid #f0c040",
-                borderRadius: 10,
-                padding: "12px 16px",
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                color: "#3a2800",
-                lineHeight: 1.6,
-                maxWidth: 390,
-                width: "100%",
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              <div style={{ fontSize: "0.82rem", marginBottom: 6, color: "#7a4800", fontWeight: 900 }}>
-                K-1 First Time — Full Explainer Sheet
-              </div>
-              First encounter with this question type. Full 3-step how-to shown. Sheet occupies ~60% of frame height.
-              Content above dimmed with scrim. Child must tap &ldquo;Got it! Let&apos;s go →&rdquo; or &ldquo;Skip&rdquo; — never auto-advances.
-            </div>
-            <K1FirstTimePhone />
-          </div>
-        )}
-
-        {activeTab === "k1-reviewing" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <div
-              style={{
-                background: "#fffbea",
-                border: "2px solid #f0c040",
-                borderRadius: 10,
-                padding: "12px 16px",
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                color: "#3a2800",
-                lineHeight: 1.6,
-                maxWidth: 390,
-                width: "100%",
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              <div style={{ fontSize: "0.82rem", marginBottom: 6, color: "#7a4800", fontWeight: 900 }}>
-                K-1 Reviewing — Abbreviated Sheet
-              </div>
-              Child has seen this question type before (≥1 prior session). Single-row reminder: icon + 1 short sentence.
-              Smaller sheet (~25% height). Same &ldquo;Got it!&rdquo; CTA; no Skip needed. Appears for ≤3 sessions, then stops showing entirely.
-            </div>
-            <K1ReviewingPhone />
-          </div>
-        )}
-
-        {activeTab === "prek" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <div
-              style={{
-                background: "#fffbea",
-                border: "2px solid #f0c040",
-                borderRadius: 10,
-                padding: "12px 16px",
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                color: "#3a2800",
-                lineHeight: 1.6,
-                maxWidth: 390,
-                width: "100%",
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              <div style={{ fontSize: "0.82rem", marginBottom: 6, color: "#7a4800", fontWeight: 900 }}>
-                Pre-K Variant — Gold Theme, Simpler Language
-              </div>
-              Pre-K explainer uses shorter sentences, bigger emoji, fewer steps. &ldquo;New type&rdquo; label becomes &ldquo;🌟 Something new!&rdquo;
-              Steps use simple action verbs only (Look / Find / Tap).
-            </div>
-            <PreKPhone />
-          </div>
-        )}
-
-        {activeTab === "g23-g45" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <div
-              style={{
-                background: "#fffbea",
-                border: "2px solid #f0c040",
-                borderRadius: 10,
-                padding: "12px 16px",
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                color: "#3a2800",
-                lineHeight: 1.6,
-                maxWidth: 760,
-                width: "100%",
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              <div style={{ fontSize: "0.82rem", marginBottom: 6, color: "#7a4800", fontWeight: 900 }}>
-                G2-3 Mint · G4-5 Coral — Band Variants
-              </div>
-              G2-3: math explainer (multiplication / skip-count). Mint theme. G4-5: reading explainer (inference questions).
-              Coral theme. Both use same sheet structure — only color tokens + content change.
-            </div>
-            <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "center" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#58e8c1" }}>
-                  G2-3 Mint · Multiplication
-                </div>
-                <G23Phone />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#ff7b6b" }}>
-                  G4-5 Coral · Inference
-                </div>
-                <G45Phone />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "spec" && <SpecTab />}
+        {/* Explainer for the requested band */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
+          {band === "k1"   && <K1FirstTimePhone />}
+          {band === "prek" && <PreKPhone />}
+          {band === "g23"  && <G23Phone />}
+          {band === "g45"  && <G45Phone />}
+        </div>
 
         {/* Back navigation */}
         <div style={{ marginTop: 24 }}>
@@ -1531,10 +1281,20 @@ export default function PlayExplainerPage() {
               background: "#1a1040",
             }}
           >
-            ← Back to Play
+            Back to Play
           </Link>
         </div>
       </div>
     </AppFrame>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function PlayExplainerPage() {
+  return (
+    <Suspense>
+      <ExplainerInner />
+    </Suspense>
   );
 }

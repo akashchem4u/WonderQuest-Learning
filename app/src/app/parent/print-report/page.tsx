@@ -42,7 +42,7 @@ interface ReportData {
   skills: SkillRow[];
 }
 
-type TabType = "preview" | "teacher" | "spec";
+type TabType = "preview" | "teacher";
 
 const NOT_INCLUDED = [
   "Accuracy percentages or scores",
@@ -148,7 +148,6 @@ export default function PrintReportPage() {
         <div style={{ display: "flex", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
           <button style={tabBtnStyle(tab === "preview")} onClick={() => setTab("preview")}>Print Preview</button>
           <button style={tabBtnStyle(tab === "teacher")} onClick={() => setTab("teacher")}>Teacher Message Section</button>
-          <button style={tabBtnStyle(tab === "spec")} onClick={() => setTab("spec")}>Spec</button>
         </div>
 
         {/* ─── Tab 1: Print Preview ─── */}
@@ -377,61 +376,7 @@ export default function PrintReportPage() {
           </div>
         )}
 
-        {/* ─── Tab 3: Spec ─── */}
-        {tab === "spec" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-            {[
-              {
-                title: "Route & Auth",
-                items: [
-                  { key: "Route", val: "/parent/print-report" },
-                  { key: "Auth", val: "Parent role, must have linked child" },
-                  { key: "Privacy", val: "No scores, no comparisons, no other students" },
-                  { key: "Benchmark note", val: "Always included — cannot be removed by parent" },
-                ],
-              },
-              {
-                title: "Print Behaviour",
-                items: [
-                  { key: "Print trigger", val: "window.print() — browser print dialog" },
-                  { key: "PDF trigger", val: "Server-side PDF generation (stub)" },
-                  { key: "Print styles", val: "Settings panel + tabs hidden; paper full width" },
-                  { key: "Max width", val: "595px (A4)" },
-                ],
-              },
-              {
-                title: "Sections",
-                items: [
-                  { key: "Learning Highlights", val: "Always available. Shows skills, strengths, quests." },
-                  { key: "Subject Progress", val: "Bar chart — engagement time, not scores." },
-                  { key: "Skill Details", val: "Optional. Lists skill names only." },
-                  { key: "Teacher Messages", val: "Optional. Platform-summarised only." },
-                ],
-              },
-              {
-                title: "Privacy Rules",
-                items: [
-                  { key: "No scores", val: "No percentages, accuracy, or correct/incorrect counts" },
-                  { key: "No comparisons", val: "No rankings or relative performance" },
-                  { key: "No teacher names", val: "School name OK; individual teacher name excluded" },
-                  { key: "No other students", val: "Report is strictly per-child" },
-                ],
-              },
-            ].map((card) => (
-              <div key={card.title} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: C.parent, marginBottom: 14 }}>{card.title}</div>
-                <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 9 }}>
-                  {card.items.map((item) => (
-                    <li key={item.key} style={{ fontSize: 13, color: C.text, lineHeight: 1.55, display: "flex", gap: 8 }}>
-                      <span style={{ color: C.parent, flexShrink: 0, marginTop: 1 }}>▸</span>
-                      <span><span style={{ fontWeight: 600, color: C.green, marginRight: 4 }}>{item.key}:</span><span style={{ color: C.muted }}>{item.val}</span></span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
+
       </div>
     </AppFrame>
   );

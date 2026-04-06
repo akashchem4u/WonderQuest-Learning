@@ -30,7 +30,7 @@ const C = {
 type Category = "ux" | "feature" | "content" | "accessibility" | "performance" | "compliance";
 type Priority = "P0" | "P1" | "P2" | "P3";
 type Status = "backlog" | "under_review" | "scoped" | "in_dev" | "in_qa" | "shipped";
-type Tab = "board" | "metrics" | "spec";
+type Tab = "board" | "metrics";
 
 interface ECard {
   title: string;
@@ -299,22 +299,6 @@ const TIMELINE_ITEMS = [
   },
 ];
 
-const PRIORITY_DEFS = [
-  { p: "P0", label: "Blocker", desc: "accessibility violation, compliance/legal issue, or production crash" },
-  { p: "P1", label: "High",    desc: "significant UX friction or content gap affecting multiple users" },
-  { p: "P2", label: "Medium",  desc: "moderate impact, scheduled in upcoming release" },
-  { p: "P3", label: "Nice to have", desc: "low urgency, backlog until capacity available" },
-];
-
-const BIZ_RULES = [
-  "Enhancement titles/descriptions must never contain child PII",
-  "source_feedback_ids links to classified items only — raw feedback never referenced directly",
-  "P0 items must have a target_release assigned within 48h of creation",
-  "Deferred items require a notes field explaining deferral reason",
-  "Accessibility and compliance items auto-tagged P0 minimum",
-  "Owner-only view — not visible to Teacher, Parent, or Child personas",
-];
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EnhancementPipelinePage() {
   return (
@@ -366,7 +350,7 @@ function EnhancementPipelineContent() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }}>
-        {(["board", "metrics", "spec"] as Tab[]).map((t) => (
+        {(["board", "metrics"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -383,7 +367,7 @@ function EnhancementPipelineContent() {
               textTransform: "capitalize",
             }}
           >
-            {t === "board" ? "Pipeline Board" : t === "metrics" ? "Metrics" : "Spec"}
+            {t === "board" ? "Pipeline Board" : "Metrics"}
           </button>
         ))}
       </div>
@@ -565,140 +549,6 @@ function EnhancementPipelineContent() {
         </div>
       )}
 
-      {/* ── Tab: Spec ── */}
-      {tab === "spec" && (
-        <div>
-          {/* Spec grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
-            {[
-              {
-                title: "Component",
-                lines: ["EnhancementPipeline", "Route: /owner/product/enhancements", "Auth: Owner only"],
-              },
-              {
-                title: "Props",
-                lines: ["release_filter?: string", "category_filter?: string", "show_deferred?: boolean"],
-              },
-            ].map((card) => (
-              <div key={card.title} style={{
-                background: C.surface2, border: `1px solid ${C.border2}`,
-                borderRadius: "8px", padding: "14px",
-              }}>
-                <div style={{
-                  fontSize: "12px", fontWeight: 700, color: C.muted,
-                  textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px",
-                }}>
-                  {card.title}
-                </div>
-                {card.lines.map((line, i) => (
-                  <p key={i} style={{ fontSize: "13px", color: C.muted2, lineHeight: 1.6 }}>
-                    <code style={{ background: "rgba(255,255,255,.07)", padding: "1px 4px", borderRadius: "3px", fontFamily: "monospace", fontSize: "12px" }}>
-                      {line}
-                    </code>
-                  </p>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* DB schema */}
-          <div style={{
-            background: C.surface2, border: `1px solid ${C.border2}`,
-            borderRadius: "8px", padding: "14px", marginBottom: "14px",
-          }}>
-            <div style={{
-              fontSize: "12px", fontWeight: 700, color: C.muted,
-              textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px",
-            }}>
-              DB Schema
-            </div>
-            <pre style={{
-              background: C.surface3, border: `1px solid ${C.border2}`,
-              borderRadius: "6px", padding: "14px", fontSize: "12px",
-              overflowX: "auto", lineHeight: 1.6, color: C.teal, fontFamily: "monospace",
-            }}>
-{`enhancement_items {
-  id                UUID PRIMARY KEY,
-  title             TEXT NOT NULL,
-  source_feedback_ids UUID[],
-  category          ENUM('ux','feature','content',
-                         'accessibility','performance','compliance'),
-  priority          ENUM('p0','p1','p2','p3'),
-  status            ENUM('backlog','under_review','scoped',
-                         'in_dev','in_qa','shipped','deferred'),
-  target_release    TEXT,
-  owner_name        TEXT,
-  notes             TEXT,
-  created_at        TIMESTAMPTZ DEFAULT NOW(),
-  shipped_at        TIMESTAMPTZ
-}`}
-            </pre>
-          </div>
-
-          {/* Priority definitions */}
-          <div style={{
-            background: C.surface2, border: `1px solid ${C.border2}`,
-            borderRadius: "8px", padding: "16px", marginBottom: "14px",
-          }}>
-            <div style={{
-              fontSize: "12px", fontWeight: 700, color: C.muted,
-              textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "12px",
-            }}>
-              Priority Definitions
-            </div>
-            {PRIORITY_DEFS.map((def) => (
-              <div key={def.p} style={{
-                display: "flex", gap: "10px", padding: "8px 0",
-                borderBottom: `1px solid rgba(255,255,255,.04)`, alignItems: "flex-start",
-              }}>
-                <div style={{
-                  width: "22px", height: "22px", borderRadius: "50%",
-                  background: "rgba(80,232,144,.15)", color: C.mintAlt,
-                  fontSize: "11px", fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0, marginTop: "1px",
-                }}>
-                  {def.p}
-                </div>
-                <div style={{ fontSize: "13px", color: C.muted2, lineHeight: 1.5 }}>
-                  <strong style={{ color: C.text }}>{def.label}</strong> — {def.desc}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Business rules */}
-          <div style={{
-            background: C.surface2, border: `1px solid ${C.border2}`,
-            borderRadius: "8px", padding: "16px",
-          }}>
-            <div style={{
-              fontSize: "12px", fontWeight: 700, color: C.muted,
-              textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "12px",
-            }}>
-              Business Rules
-            </div>
-            {BIZ_RULES.map((rule, i) => (
-              <div key={i} style={{
-                display: "flex", gap: "10px", padding: "8px 0",
-                borderBottom: i < BIZ_RULES.length - 1 ? `1px solid rgba(255,255,255,.04)` : "none",
-                alignItems: "flex-start",
-              }}>
-                <div style={{
-                  width: "22px", height: "22px", borderRadius: "50%",
-                  background: "rgba(80,232,144,.15)", color: C.mintAlt,
-                  fontSize: "11px", fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0, marginTop: "1px",
-                }}>
-                  {i + 1}
-                </div>
-                <div style={{ fontSize: "13px", color: C.muted2, lineHeight: 1.5 }}>{rule}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   );
 }

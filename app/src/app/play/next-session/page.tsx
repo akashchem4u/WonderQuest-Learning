@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
 const FONT: React.CSSProperties = {
@@ -21,18 +23,50 @@ const C = {
   dimBorder: "#2a1f60",
 };
 
-type TabId = "bonus" | "limit" | "tomorrow";
+type Mode = "bonus" | "limit" | "tomorrow" | "default";
 
-// ─── Shared sub-components ────────────────────────────────────────────────────
-function MiniSummary({ label, stars }: { label: string; stars: string }) {
+const MODE_CONFIG: Record<Mode, { headline: string; emoji: string; subtext: string; cardBorder: string; cardBg: string }> = {
+  bonus: {
+    headline: "Great session! 🎉",
+    emoji: "🚀",
+    subtext: "Want one more challenge? There's a bonus star waiting!",
+    cardBorder: `${C.violet}55`,
+    cardBg: "linear-gradient(180deg, #1a1040 0%, #221960 100%)",
+  },
+  limit: {
+    headline: "Amazing work today!",
+    emoji: "🌙",
+    subtext: "You've hit your adventure goal for today. See you tomorrow!",
+    cardBorder: `${C.violet}33`,
+    cardBg: "linear-gradient(180deg, #1a1040 0%, #14102a 100%)",
+  },
+  tomorrow: {
+    headline: "Come back tomorrow!",
+    emoji: "👋",
+    subtext: "More adventures are waiting for you tomorrow!",
+    cardBorder: `${C.violet}44`,
+    cardBg: "linear-gradient(180deg, #1a1040 0%, #221960 100%)",
+  },
+  default: {
+    headline: "Session complete! 🌟",
+    emoji: "🌟",
+    subtext: "You did an amazing job today. Keep up the great work!",
+    cardBorder: `${C.violet}44`,
+    cardBg: "linear-gradient(180deg, #1a1040 0%, #14102a 100%)",
+  },
+};
+
+function StarSafeNote({ stars }: { stars: number }) {
   return (
     <div style={{
-      width: "100%", background: C.card, border: `1.5px solid ${C.border}`,
-      borderRadius: 14, padding: "12px 16px",
-      display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+      width: "100%", background: "#1a2a15", border: "1.5px solid rgba(80,232,144,0.27)",
+      borderRadius: 12, padding: "10px 14px",
+      display: "flex", alignItems: "center", gap: 9, flexShrink: 0,
     }}>
-      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: C.muted }}>{label}</div>
-      <div style={{ fontSize: "1rem", fontWeight: 900, color: C.gold }}>{stars}</div>
+      <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>🛡</span>
+      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#90e890", lineHeight: 1.4 }}>
+        Your {stars > 0 ? `⭐ ${stars} stars are` : "stars are"} saved and waiting for you!
+      </div>
     </div>
   );
 }
@@ -55,272 +89,180 @@ function CoachRow({ message }: { message: string }) {
   );
 }
 
-function StarSafeNote({ message }: { message: string }) {
-  return (
-    <div style={{
-      width: "100%", background: "#1a2a15", border: `1.5px solid rgba(80,232,144,0.27)`,
-      borderRadius: 12, padding: "10px 14px",
-      display: "flex", alignItems: "center", gap: 9, flexShrink: 0,
-    }}>
-      <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>🛡</span>
-      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#90e890", lineHeight: 1.4 }}>{message}</div>
-    </div>
-  );
-}
+const COACH_MESSAGES: Record<Mode, string> = {
+  bonus: "You're on a roll! One more session and I'll have a surprise for you!",
+  limit: "That was an incredible day of learning! Rest up and I'll see you tomorrow!",
+  tomorrow: "Tomorrow is going to be so fun — I can't wait to see you!",
+  default: "Every question you answer makes you smarter. I'm so proud of you!",
+};
 
-function AnnoBox({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{
-      background: "#fffbea", border: "2px solid #f0c040", borderRadius: 10,
-      padding: "12px 16px", fontSize: "0.78rem", fontWeight: 700, color: "#3a2800",
-      lineHeight: 1.6, maxWidth: 390, width: "100%",
-    }}>
-      <div style={{ fontSize: "0.82rem", marginBottom: 6, color: "#7a4800", fontWeight: 700 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
+function NextSessionInner() {
+  const params = useSearchParams();
+  const rawMode = params.get("mode");
+  const mode: Mode = (rawMode === "bonus" || rawMode === "limit" || rawMode === "tomorrow") ? rawMode : "default";
+  const stars = parseInt(params.get("stars") ?? "0", 10) || 0;
 
-function PrimaryBtn({ children, bg, color, onClick }: { children: React.ReactNode; bg?: string; color?: string; onClick?: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      width: "100%", height: 54, borderRadius: 27, border: "none",
-      background: bg ?? "linear-gradient(135deg, #9b72ff, #7248e8)",
-      color: color ?? "#fff",
-      ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer", flexShrink: 0,
-    }}>
-      {children}
-    </button>
-  );
-}
-
-function SecondaryLink({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      width: "100%", ...FONT, fontSize: "0.84rem", fontWeight: 700, color: "#6050a0",
-      background: "none", border: "none", cursor: "pointer",
-      textDecoration: "underline", textUnderlineOffset: 2, flexShrink: 0,
-    }}>
-      {children}
-    </button>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function PlayNextSessionPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("bonus");
+  const cfg = MODE_CONFIG[mode];
 
   return (
     <AppFrame audience="kid">
-      <div style={{ ...FONT, background: "#0a0a12", minHeight: "100vh", padding: "24px 16px 48px", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+      <div style={{
+        ...FONT, background: "#0a0a12", minHeight: "100vh",
+        padding: "32px 16px 48px",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+      }}>
         <style>{`
           @keyframes chip-pop {
             from { transform: scale(0.4); opacity: 0; }
             60%  { transform: scale(1.15); }
             to   { transform: scale(1); opacity: 1; }
           }
+          @keyframes star-spin {
+            from { transform: rotate(0deg) scale(0.3); opacity: 0; }
+            60%  { transform: rotate(15deg) scale(1.2); }
+            to   { transform: rotate(0deg) scale(1); opacity: 1; }
+          }
         `}</style>
 
-        <p style={{ fontSize: "1rem", fontWeight: 900, color: C.muted, letterSpacing: "0.04em" }}>
-          play-next-session-prompt-v2 · WonderQuest Design System
-        </p>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-          {([
-            { id: "bonus", label: "Same Day Bonus" },
-            { id: "limit", label: "Daily Limit" },
-            { id: "tomorrow", label: "Tomorrow Teaser" },
-          ] as { id: TabId; label: string }[]).map(({ id, label }) => (
-            <button key={id} onClick={() => setActiveTab(id)} style={{
-              padding: "7px 14px", borderRadius: 20,
-              border: `1.5px solid ${activeTab === id ? C.violet : "#2a2050"}`,
-              background: activeTab === id ? C.violet : "#14102a",
-              color: activeTab === id ? "#fff" : C.muted,
-              ...FONT, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer",
-            }}>
-              {label}
-            </button>
-          ))}
+        {/* Stars earned row */}
+        <div style={{
+          width: "100%", maxWidth: 390,
+          background: C.card, border: `1.5px solid ${C.border}`,
+          borderRadius: 14, padding: "12px 16px",
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+        }}>
+          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: C.muted }}>⭐ Stars earned this session</div>
+          <div style={{ fontSize: "1rem", fontWeight: 900, color: C.gold }}>
+            {stars > 0 ? `+${stars} ⭐` : "0 ⭐"}
+          </div>
         </div>
 
-        {/* ── Tab 1: Same Day Bonus ── */}
-        {activeTab === "bonus" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <AnnoBox title='Same Day Bonus — "One more session today?"'>
-              Warm invitation after session 1 of the day. Gold bonus chip. Two options: "Play another!" (primary) / "See you tomorrow!" (text link). No guilt, no time pressure.
-            </AnnoBox>
+        {/* Main card */}
+        <div style={{
+          width: "100%", maxWidth: 390,
+          background: cfg.cardBg,
+          border: `2px solid ${cfg.cardBorder}`,
+          borderRadius: 20, padding: "28px 20px",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", gap: 14, textAlign: "center", flexShrink: 0,
+        }}>
+          <span style={{
+            fontSize: "3.5rem",
+            animation: "star-spin 0.5s 0.1s cubic-bezier(0.34,1.56,0.64,1) both",
+          }}>
+            {cfg.emoji}
+          </span>
+          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
+            {cfg.headline}
+          </div>
+          <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.5 }}>
+            {cfg.subtext}
+          </div>
 
+          {/* Bonus chip only shown for bonus mode */}
+          {mode === "bonus" && (
             <div style={{
-              width: 390, height: 700, borderRadius: 40,
-              background: C.bg, border: `2.5px solid ${C.dimBorder}`,
-              boxShadow: `0 0 0 1px ${C.violet}22, 0 24px 48px #00000088`,
-              position: "relative", overflow: "hidden", flexShrink: 0,
+              background: "linear-gradient(135deg, #ffd166, #f0a000)",
+              borderRadius: 20, padding: "6px 16px",
+              fontSize: "0.88rem", fontWeight: 900, color: "#1a0c00",
+              display: "flex", alignItems: "center", gap: 6,
+              animation: "chip-pop 0.4s 0.2s cubic-bezier(0.34,1.56,0.64,1) both",
             }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                padding: "28px 22px 32px", gap: 16,
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <MiniSummary label="⭐ Stars earned this session" stars="+7 ⭐" />
-
-                {/* Prompt card */}
-                <div style={{
-                  width: "100%", background: "linear-gradient(180deg, #1a1040 0%, #221960 100%)",
-                  border: `2px solid ${C.violet}55`, borderRadius: 20,
-                  padding: "24px 20px", display: "flex", flexDirection: "column",
-                  alignItems: "center", gap: 14, textAlign: "center", flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: "3.5rem" }}>🚀</span>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
-                    Want to keep going?
-                  </div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.5 }}>
-                    There's more to learn — and a bonus star waiting for you!
-                  </div>
-                  <div style={{
-                    background: "linear-gradient(135deg, #ffd166, #f0a000)",
-                    borderRadius: 20, padding: "6px 16px",
-                    fontSize: "0.88rem", fontWeight: 900, color: "#1a0c00",
-                    display: "flex", alignItems: "center", gap: 6,
-                    animation: "chip-pop 0.4s 0.2s cubic-bezier(0.34,1.56,0.64,1) both",
-                  }}>
-                    ⭐ +1 Bonus for playing again today!
-                  </div>
-                </div>
-
-                <CoachRow message="You're on a roll! One more session and I'll have a surprise for you!" />
-
-                <PrimaryBtn>Play another session! 🎉</PrimaryBtn>
-                <SecondaryLink onClick={() => setActiveTab("tomorrow")}>See you tomorrow!</SecondaryLink>
-              </div>
+              ⭐ +1 Bonus for playing again today!
             </div>
+          )}
+        </div>
+
+        {/* Stars safe note */}
+        {(mode === "limit" || mode === "tomorrow") && (
+          <div style={{ width: "100%", maxWidth: 390 }}>
+            <StarSafeNote stars={stars} />
           </div>
         )}
 
-        {/* ── Tab 2: Daily Limit ── */}
-        {activeTab === "limit" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <AnnoBox title="Daily Limit — 3 Sessions Reached">
-              Child has hit their daily session limit (default: 3, parent-configurable). No shame — warm close. Stars safe message + tomorrow teaser. Only CTA: "See you tomorrow!"
-            </AnnoBox>
+        {/* Coach message */}
+        <div style={{ width: "100%", maxWidth: 390 }}>
+          <CoachRow message={COACH_MESSAGES[mode]} />
+        </div>
 
-            <div style={{
-              width: 390, height: 700, borderRadius: 40,
-              background: C.bg, border: `2.5px solid ${C.dimBorder}`,
-              boxShadow: `0 0 0 1px ${C.violet}22, 0 24px 48px #00000088`,
-              position: "relative", overflow: "hidden", flexShrink: 0,
-            }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                padding: "28px 22px 32px", gap: 16,
-                alignItems: "center", justifyContent: "center",
+        {/* CTA buttons */}
+        <div style={{ width: "100%", maxWidth: 390, display: "flex", flexDirection: "column", gap: 12 }}>
+          {mode === "bonus" && (
+            <Link href="/play" style={{ textDecoration: "none" }}>
+              <button style={{
+                width: "100%", height: 54, borderRadius: 27, border: "none",
+                background: "linear-gradient(135deg, #9b72ff, #7248e8)",
+                color: "#fff", ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer",
               }}>
-                <MiniSummary label="Total stars today" stars="⭐ 21" />
+                Play another session! 🎉
+              </button>
+            </Link>
+          )}
 
-                {/* Limit card */}
-                <div style={{
-                  width: "100%", background: "linear-gradient(180deg, #1a1040 0%, #14102a 100%)",
-                  border: `2px solid ${C.violet}33`, borderRadius: 20,
-                  padding: "24px 20px", display: "flex", flexDirection: "column",
-                  alignItems: "center", gap: 14, textAlign: "center", flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: "3.5rem" }}>🌙</span>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
-                    Amazing session! 🌟
-                  </div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.5 }}>
-                    You've played 3 sessions today — that's your adventure goal! Come back tomorrow for more!
-                  </div>
-                </div>
-
-                <StarSafeNote message="Your ⭐ 21 stars are saved and waiting for you tomorrow!" />
-                <CoachRow message="That was an incredible day of learning! Rest up and I'll see you tomorrow!" />
-
-                <PrimaryBtn
-                  bg={`linear-gradient(135deg, ${C.mint}, ${C.mintDark})`}
-                  color="#051a14"
-                  onClick={() => setActiveTab("tomorrow")}
-                >
-                  See you tomorrow! 👋
-                </PrimaryBtn>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Tab 3: Tomorrow Teaser ── */}
-        {activeTab === "tomorrow" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <AnnoBox title="Tomorrow Teaser — Preview of What's Coming">
-              Shown as child leaves. Teaser card previews next session's skill. Builds curiosity without spoiling. No urgency, no FOMO language.
-            </AnnoBox>
-
-            <div style={{
-              width: 390, height: 700, borderRadius: 40,
-              background: C.bg, border: `2.5px solid ${C.dimBorder}`,
-              boxShadow: `0 0 0 1px ${C.violet}22, 0 24px 48px #00000088`,
-              position: "relative", overflow: "hidden", flexShrink: 0,
-            }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                padding: "28px 22px 32px", gap: 16,
-                alignItems: "center", justifyContent: "center",
+          {mode === "limit" && (
+            <Link href="/child" style={{ textDecoration: "none" }}>
+              <button style={{
+                width: "100%", height: 54, borderRadius: 27, border: "none",
+                background: `linear-gradient(135deg, ${C.mint}, ${C.mintDark})`,
+                color: "#051a14", ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer",
               }}>
-                {/* Prompt card */}
-                <div style={{
-                  width: "100%", background: "linear-gradient(180deg, #1a1040 0%, #221960 100%)",
-                  border: `2px solid ${C.violet}55`, borderRadius: 20,
-                  padding: "24px 20px", display: "flex", flexDirection: "column",
-                  alignItems: "center", gap: 12, textAlign: "center", flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: "3.5rem" }}>👋</span>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
-                    See you tomorrow!
-                  </div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.5 }}>
-                    Your stars are safe and ready for tomorrow's adventure!
-                  </div>
-                  <StarSafeNote message="⭐ 7 stars saved — they'll be here when you return!" />
-                </div>
+                See you tomorrow! 👋
+              </button>
+            </Link>
+          )}
 
-                {/* Teaser card */}
-                <div style={{
-                  width: "100%", background: "#14102a", border: `1.5px solid #2a2050`,
-                  borderRadius: 16, padding: 16,
-                  display: "flex", flexDirection: "column", gap: 10, flexShrink: 0,
-                }}>
-                  <div style={{ fontSize: "0.7rem", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: "#6050a0" }}>
-                    👀 Coming up tomorrow
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: "2.4rem", flexShrink: 0 }}>📚</span>
-                    <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.4 }}>
-                      <strong style={{ color: "#fff" }}>Sight Words!</strong>
-                      <br />
-                      You'll learn to read words like "jump", "play", and "make" super fast!
-                    </div>
-                  </div>
-                </div>
+          {mode === "tomorrow" && (
+            <Link href="/child" style={{ textDecoration: "none" }}>
+              <button style={{
+                width: "100%", height: 54, borderRadius: 27, border: "none",
+                background: "linear-gradient(135deg, #9b72ff, #7248e8)",
+                color: "#fff", ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer",
+              }}>
+                Can't wait! 🌙
+              </button>
+            </Link>
+          )}
 
-                <CoachRow message="Tomorrow is going to be so fun — I can't wait to see you!" />
+          {mode === "default" && (
+            <Link href="/play" style={{ textDecoration: "none" }}>
+              <button style={{
+                width: "100%", height: 54, borderRadius: 27, border: "none",
+                background: "linear-gradient(135deg, #9b72ff, #7248e8)",
+                color: "#fff", ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer",
+              }}>
+                Play again! ▶
+              </button>
+            </Link>
+          )}
 
-                <button onClick={() => setActiveTab("bonus")} style={{
-                  width: "100%", height: 54, borderRadius: 27,
-                  background: "#1a1440", border: `1.5px solid ${C.dimBorder}`,
-                  color: "#b89eff",
-                  ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer", flexShrink: 0,
-                }}>
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          {/* Go home link — shown on all modes */}
+          <Link href="/child" style={{
+            textAlign: "center", ...FONT,
+            fontSize: "0.84rem", fontWeight: 700,
+            color: "#6050a0", textDecoration: "underline", textUnderlineOffset: 2,
+          }}>
+            Go home
+          </Link>
+        </div>
       </div>
     </AppFrame>
+  );
+}
+
+export default function PlayNextSessionPage() {
+  return (
+    <Suspense fallback={
+      <AppFrame audience="kid">
+        <div style={{
+          minHeight: "100vh", background: "#0a0a12",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#9080c0", fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 16, fontWeight: 700,
+        }}>
+          Loading...
+        </div>
+      </AppFrame>
+    }>
+      <NextSessionInner />
+    </Suspense>
   );
 }

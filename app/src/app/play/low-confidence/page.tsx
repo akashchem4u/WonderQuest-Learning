@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
 const FONT: React.CSSProperties = {
@@ -15,16 +17,12 @@ const C = {
   violet: "#9b72ff",
   gold: "#ffd166",
   mint: "#58e8c1",
-  coral: "#ff7b6b",
   correct: "#50e890",
   text: "#e8e0ff",
   muted: "#9080c0",
   dimBorder: "#2a1f60",
 };
 
-type TabId = "review" | "practice" | "done";
-
-// ─── Shared sub-components ────────────────────────────────────────────────────
 function CoachRow({ message }: { message: string }) {
   return (
     <div style={{
@@ -43,348 +41,158 @@ function CoachRow({ message }: { message: string }) {
   );
 }
 
-function AnnoBox({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{
-      background: "#fffbea", border: "2px solid #f0c040", borderRadius: 10,
-      padding: "12px 16px", fontSize: "0.78rem", fontWeight: 700, color: "#3a2800",
-      lineHeight: 1.6, maxWidth: 390, width: "100%",
-    }}>
-      <div style={{ fontSize: "0.82rem", marginBottom: 6, color: "#7a4800", fontWeight: 700 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function ConfidenceMeter({ fillWidth, gradient, height = 10 }: { fillWidth: string; gradient: string; height?: number }) {
-  return (
-    <div style={{ height, background: "#1a1440", borderRadius: 5, overflow: "hidden" }}>
-      <div style={{ height: "100%", width: fillWidth, borderRadius: 5, background: gradient }} />
-    </div>
-  );
-}
-
-// ─── Stub question choices (In Practice tab) ─────────────────────────────────
-const PRACTICE_CHOICES = [
-  { letter: "C", phoneme: "cuh" },
-  { letter: "T", phoneme: "tuh" },
-];
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function PlayLowConfidencePage() {
-  const [activeTab, setActiveTab] = useState<TabId>("review");
-  const [selected, setSelected] = useState<number | null>(null);
-
-  const handleChoice = (i: number) => setSelected(i);
+function LowConfidenceInner() {
+  const params = useSearchParams();
+  const skill = params.get("skill") ?? "this skill";
 
   return (
     <AppFrame audience="kid">
-      <div style={{ ...FONT, background: "#0a0a12", minHeight: "100vh", padding: "24px 16px 48px", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+      <div style={{
+        ...FONT, background: "#0a0a12", minHeight: "100vh",
+        padding: "32px 16px 48px",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+      }}>
         <style>{`
-          @keyframes pop {
-            from { transform: scale(0.3); opacity: 0; }
-            60%  { transform: scale(1.15); }
-            to   { transform: scale(1); opacity: 1; }
+          @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+          }
+          @keyframes fade-up {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
           }
         `}</style>
 
-        <p style={{ fontSize: "1rem", fontWeight: 900, color: C.muted, letterSpacing: "0.04em" }}>
-          play-low-confidence-retry-v2 · WonderQuest Design System
-        </p>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-          {([
-            { id: "review", label: "Skill Review" },
-            { id: "practice", label: "In Practice" },
-            { id: "done", label: "Practice Done" },
-          ] as { id: TabId; label: string }[]).map(({ id, label }) => (
-            <button key={id} onClick={() => { setActiveTab(id); setSelected(null); }} style={{
-              padding: "7px 14px", borderRadius: 20,
-              border: `1.5px solid ${activeTab === id ? C.violet : "#2a2050"}`,
-              background: activeTab === id ? C.violet : "#14102a",
-              color: activeTab === id ? "#fff" : C.muted,
-              ...FONT, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer",
-            }}>
-              {label}
-            </button>
-          ))}
+        {/* Hero section */}
+        <div style={{
+          width: "100%", maxWidth: 390, textAlign: "center",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+        }}>
+          <span style={{
+            fontSize: "3.8rem",
+            animation: "wiggle 1s ease-in-out infinite",
+            display: "inline-block",
+          }}>
+            🌟
+          </span>
+          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
+            That was a tough one!
+          </div>
+          <div style={{ fontSize: "1rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.5 }}>
+            Let's look at it together 🌟
+          </div>
         </div>
 
-        {/* ── Tab 1: Skill Review ── */}
-        {activeTab === "review" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <AnnoBox title="Skill Review — Practice Mode Offer">
-              Shown at session start when system detects low confidence on a skill.
-              Confidence meter shows current level (low = red-to-gold gradient).
-              Practice plan: 3 scaffolded questions. Child opts in — never forced.
-              Stars awarded for practice questions too.
-            </AnnoBox>
+        {/* Question review card */}
+        <div style={{
+          width: "100%", maxWidth: 390,
+          background: "linear-gradient(180deg, #1a1040 0%, #221960 100%)",
+          border: `2px solid ${C.violet}44`, borderRadius: 20,
+          padding: "20px 18px",
+          display: "flex", flexDirection: "column", gap: 12,
+          animation: "fade-up 0.4s 0.1s both",
+        }}>
+          <div style={{ fontSize: "0.7rem", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: C.violet }}>
+            📋 Question Review
+          </div>
 
-            <div style={{
-              width: 390, height: 700, borderRadius: 40,
-              background: C.bg, border: `2.5px solid ${C.dimBorder}`,
-              boxShadow: `0 0 0 1px ${C.violet}22, 0 24px 48px #00000088`,
-              position: "relative", overflow: "hidden", flexShrink: 0,
-            }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                padding: "24px 20px 28px", gap: 14,
-              }}>
-                {/* Practice banner */}
-                <div style={{
-                  background: "linear-gradient(135deg, #1a1040, #221960)",
-                  border: `2px solid ${C.violet}44`, borderRadius: 16,
-                  padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0,
-                }}>
-                  <div style={{ fontSize: "0.7rem", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: C.violet }}>
-                    🎯 Practice Mode
-                  </div>
-                  <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "#fff" }}>Let's practice one skill!</div>
-                  <div style={{ fontSize: "0.84rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.4 }}>
-                    You've been working on Beginning Sounds. A little practice now will make it easier!
-                  </div>
-                </div>
-
-                {/* Skill card */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  background: C.card2, border: `1.5px solid ${C.violet}44`,
-                  borderRadius: 14, padding: "14px 16px", flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: "2.4rem", flexShrink: 0 }}>🔤</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div style={{ fontSize: "0.96rem", fontWeight: 900, color: "#fff" }}>Beginning Sounds</div>
-                    <div style={{ fontSize: "0.78rem", fontWeight: 700, color: C.muted }}>K-1 · Phonics · 3 practice questions</div>
-                  </div>
-                </div>
-
-                {/* Confidence meter */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", fontWeight: 700, color: "#6050a0" }}>
-                    <span>Your confidence</span>
-                    <span style={{ color: "#ff9b6b" }}>Building up… 💪</span>
-                  </div>
-                  <ConfidenceMeter fillWidth="22%" gradient="linear-gradient(90deg, #ff7b6b, #ffd166)" />
-                </div>
-
-                {/* Practice plan */}
-                <div style={{
-                  background: "#14102a", border: `1.5px solid ${C.border}`,
-                  borderRadius: 12, padding: "12px 14px",
-                  display: "flex", flexDirection: "column", gap: 8, flexShrink: 0,
-                }}>
-                  <div style={{ fontSize: "0.7rem", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: "#6050a0" }}>
-                    Today's practice plan
-                  </div>
-                  {[
-                    "Start with easy words (2 choices)",
-                    "Try normal words (4 choices)",
-                    "One challenge word! (4 choices)",
-                  ].map((item, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.violet, flexShrink: 0 }} />
-                      <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#b0a0e0" }}>{item}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <CoachRow message="This will only take a minute — and you'll feel so much more confident after!" />
-
-                <button onClick={() => setActiveTab("practice")} style={{
-                  height: 54, borderRadius: 27, border: "none",
-                  background: "linear-gradient(135deg, #9b72ff, #7248e8)", color: "#fff",
-                  ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer", flexShrink: 0,
-                }}>
-                  Start 3-question practice! ▶
-                </button>
-                <button style={{
-                  height: 44, borderRadius: 22, background: "none",
-                  border: `1.5px solid ${C.border}`, color: C.muted,
-                  ...FONT, fontSize: "0.84rem", fontWeight: 700, cursor: "pointer", flexShrink: 0,
-                }}>
-                  Skip to regular session
-                </button>
+          {/* Skill name badge */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: C.card, border: `1.5px solid ${C.violet}33`,
+            borderRadius: 14, padding: "12px 14px",
+          }}>
+            <span style={{ fontSize: "2rem", flexShrink: 0 }}>🔤</span>
+            <div>
+              <div style={{ fontSize: "0.96rem", fontWeight: 900, color: "#fff" }}>{skill}</div>
+              <div style={{ fontSize: "0.76rem", fontWeight: 700, color: C.muted, marginTop: 2 }}>
+                Let's work through this together
               </div>
             </div>
           </div>
-        )}
 
-        {/* ── Tab 2: In Practice ── */}
-        {activeTab === "practice" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <AnnoBox title="In Practice — Easier Questions, Clear Mode Label">
-              Practice topbar shows mode label + dot progress (3 dots for 3 Qs).
-              Questions are scaffolded: 2 choices instead of 4, picture/phoneme hints shown.
-              Stars awarded normally. No timer. Practice mode badge persistent at top.
-            </AnnoBox>
+          <div style={{
+            fontSize: "0.84rem", fontWeight: 700, color: "#b0a0e0", lineHeight: 1.6,
+            padding: "8px 0",
+          }}>
+            It's totally okay not to get it right every time — that's how we learn! Let's slow down and think through it together.
+          </div>
+        </div>
 
-            <div style={{
-              width: 390, height: 700, borderRadius: 40,
-              background: C.bg, border: `2.5px solid ${C.dimBorder}`,
-              boxShadow: `0 0 0 1px ${C.violet}22, 0 24px 48px #00000088`,
-              position: "relative", overflow: "hidden", flexShrink: 0,
-            }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                padding: "24px 20px 28px", gap: 14,
-              }}>
-                {/* Practice topbar */}
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: "#1a1040", border: `1.5px solid ${C.violet}33`,
-                  borderRadius: 12, padding: "8px 12px", flexShrink: 0,
-                }}>
-                  <div style={{ fontSize: "0.72rem", fontWeight: 900, color: C.violet }}>
-                    🎯 Practice — Beginning Sounds
-                  </div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {[true, "current", false].map((state, i) => (
-                      <div key={i} style={{
-                        width: 10, height: 10, borderRadius: "50%",
-                        background: state === true ? C.violet : state === "current" ? `${C.violet}55` : "#2a2050",
-                        border: state === "current" ? `2px solid ${C.violet}` : "none",
-                      }} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Question hero */}
-                <div style={{
-                  background: "#1a1440", border: `2px solid ${C.violet}44`,
-                  borderRadius: 16, padding: 18,
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  gap: 8, flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: "3rem" }}>🐱</span>
-                  <div style={{ fontSize: "1rem", fontWeight: 900, color: "#fff" }}>"cat" starts with…</div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 700, color: C.muted }}>(Hint: it sounds like "cuh"!)</div>
-                </div>
-
-                {/* 2-choice grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flexShrink: 0 }}>
-                  {PRACTICE_CHOICES.map((choice, i) => {
-                    const isSelected = selected === i;
-                    const isCorrect = i === 0; // "C" is correct
-                    const showResult = isSelected;
-
-                    let borderColor = "#2a2060";
-                    let bg = "#1a1440";
-                    let letterColor = C.text;
-
-                    if (showResult && isCorrect) {
-                      borderColor = C.correct; bg = "#0d2a1a"; letterColor = C.correct;
-                    } else if (showResult && !isCorrect) {
-                      borderColor = C.coral; bg = "#2a0e0e"; letterColor = C.coral;
-                    }
-
-                    return (
-                      <div key={i} onClick={() => handleChoice(i)} style={{
-                        background: bg, border: `2px solid ${borderColor}`,
-                        borderRadius: 14, height: 86,
-                        display: "flex", flexDirection: "column", alignItems: "center",
-                        justifyContent: "center", gap: 4,
-                        fontSize: "2.4rem", fontWeight: 900,
-                        cursor: "pointer", color: letterColor,
-                        transition: "all 0.15s",
-                      }}>
-                        {choice.letter}
-                        <span style={{ fontSize: "0.7rem", color: isSelected ? letterColor : C.muted, fontWeight: 700 }}>
-                          {choice.phoneme}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#6050a0", textAlign: "center", flexShrink: 0 }}>
-                  Question 2 of 3 · ⭐ 1 star earned
-                </div>
-
-                <CoachRow message='Say "cat" slowly — "cuh-aaa-t" — what letter do you hear first?' />
-
-                {selected !== null && (
-                  <button onClick={() => setActiveTab("done")} style={{
-                    height: 54, borderRadius: 27, border: "none",
-                    background: "linear-gradient(135deg, #9b72ff, #7248e8)", color: "#fff",
-                    ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer", flexShrink: 0,
-                  }}>
-                    Next question →
-                  </button>
-                )}
-              </div>
+        {/* Tip / hint section */}
+        <div style={{
+          width: "100%", maxWidth: 390,
+          background: "#1a2a15", border: "1.5px solid rgba(80,232,144,0.27)",
+          borderRadius: 16, padding: "16px 18px",
+          display: "flex", flexDirection: "column", gap: 10,
+          animation: "fade-up 0.4s 0.2s both",
+        }}>
+          <div style={{ fontSize: "0.7rem", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: C.correct }}>
+            💡 Here's a helpful hint...
+          </div>
+          <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#c8f0c8", lineHeight: 1.6 }}>
+            Try saying the word out loud slowly. Break it into little pieces — one sound at a time. Your brain is already working hard on this!
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#0d2a1a", borderRadius: 10, padding: "8px 12px",
+          }}>
+            <span style={{ fontSize: "1.2rem" }}>🧠</span>
+            <div style={{ fontSize: "0.76rem", fontWeight: 700, color: "#90d890", lineHeight: 1.4 }}>
+              Every try — even a wrong one — helps your brain grow!
             </div>
           </div>
-        )}
+        </div>
 
-        {/* ── Tab 3: Practice Done ── */}
-        {activeTab === "done" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%" }}>
-            <AnnoBox title="Practice Done — Confidence Increased">
-              Confidence meter shows before/after (from 22% to 55%). Big celebration. "Now let's try the real session!" CTA. Stars earned in practice are KEPT. Coach sends off encouragingly.
-            </AnnoBox>
+        {/* Coach Leo */}
+        <div style={{ width: "100%", maxWidth: 390, animation: "fade-up 0.4s 0.3s both" }}>
+          <CoachRow message={`You've got this! Let's try "${skill}" again — I'll be right here cheering you on! 🎉`} />
+        </div>
 
-            <div style={{
-              width: 390, height: 700, borderRadius: 40,
-              background: C.bg, border: `2.5px solid ${C.dimBorder}`,
-              boxShadow: `0 0 0 1px ${C.violet}22, 0 24px 48px #00000088`,
-              position: "relative", overflow: "hidden", flexShrink: 0,
+        {/* CTA buttons */}
+        <div style={{
+          width: "100%", maxWidth: 390,
+          display: "flex", flexDirection: "column", gap: 12,
+          animation: "fade-up 0.4s 0.35s both",
+        }}>
+          <Link href="/play" style={{ textDecoration: "none" }}>
+            <button style={{
+              width: "100%", height: 58, borderRadius: 29, border: "none",
+              background: "linear-gradient(135deg, #9b72ff, #7248e8)",
+              color: "#fff", ...FONT, fontSize: "1.1rem", fontWeight: 900, cursor: "pointer",
+              boxShadow: "0 4px 20px rgba(155,114,255,0.35)",
             }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                padding: "24px 20px 28px", gap: 14,
-              }}>
-                {/* Done hero */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, flex: 1, justifyContent: "center" }}>
-                  <div style={{ fontSize: "4rem", animation: "pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}>🌟</div>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#fff", textAlign: "center" }}>
-                    Practice complete!
-                  </div>
-                  <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#b0a0e0", textAlign: "center", lineHeight: 1.4 }}>
-                    You got all 3 practice questions right — your skills are growing!
-                  </div>
+              Try it again! 💪
+            </button>
+          </Link>
 
-                  {/* Confidence before/after */}
-                  <div style={{
-                    background: "#1a2a15", border: `1.5px solid rgba(80,232,144,0.27)`,
-                    borderRadius: 12, padding: "10px 16px", width: "100%",
-                    display: "flex", flexDirection: "column", gap: 6,
-                  }}>
-                    <div style={{ fontSize: "0.7rem", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: C.correct }}>
-                      Confidence level
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", fontWeight: 700, color: "#6050a0" }}>
-                      <span>Before practice</span>
-                      <span>After practice</span>
-                    </div>
-                    {/* Before bar (faint) */}
-                    <div style={{ height: 12, background: "#1a1440", borderRadius: 5, overflow: "hidden", position: "relative", marginTop: 2 }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "22%", background: "linear-gradient(90deg, #ff7b6b, #ffd166)", borderRadius: 5, opacity: 0.4 }} />
-                      <div style={{ height: "100%", width: "55%", borderRadius: 5, background: "linear-gradient(90deg, #ffd166, #9b72ff)" }} />
-                    </div>
-                    <div style={{ fontSize: "0.76rem", fontWeight: 700, color: C.correct, textAlign: "right" }}>
-                      22% → 55% ✓
-                    </div>
-                  </div>
-                </div>
-
-                <CoachRow message="Look at that confidence jump! Now let's take that into the real session!" />
-
-                <button onClick={() => setActiveTab("review")} style={{
-                  height: 54, borderRadius: 27, border: "none",
-                  background: "linear-gradient(135deg, #9b72ff, #7248e8)", color: "#fff",
-                  ...FONT, fontSize: "1rem", fontWeight: 900, cursor: "pointer", flexShrink: 0,
-                }}>
-                  Start regular session → ⭐ 1 star earned
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          <Link href="/child" style={{
+            textAlign: "center", ...FONT,
+            fontSize: "0.84rem", fontWeight: 700,
+            color: "#6050a0", textDecoration: "underline", textUnderlineOffset: 2,
+          }}>
+            Skip for now
+          </Link>
+        </div>
       </div>
     </AppFrame>
+  );
+}
+
+export default function PlayLowConfidencePage() {
+  return (
+    <Suspense fallback={
+      <AppFrame audience="kid">
+        <div style={{
+          minHeight: "100vh", background: "#0a0a12",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#9080c0", fontFamily: "'Nunito', system-ui, sans-serif", fontSize: 16, fontWeight: 700,
+        }}>
+          Loading...
+        </div>
+      </AppFrame>
+    }>
+      <LowConfidenceInner />
+    </Suspense>
   );
 }
