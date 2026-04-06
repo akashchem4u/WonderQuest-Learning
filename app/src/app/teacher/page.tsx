@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Design tokens ───────────────────────────────────────────────────────────
 const C = {
@@ -94,6 +95,37 @@ function CardHeader({ title, link, href }: { title: React.ReactNode; link?: stri
 // ── Page component ──────────────────────────────────────────────────────────
 export default function TeacherPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileSchool, setProfileSchool] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  useEffect(() => {
+    const teacherId = getTeacherId();
+    if (!teacherId || teacherId === "demo-teacher") return;
+    fetch("/api/teacher/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { profile?: { displayName: string; schoolName: string | null } } | null) => {
+        if (data?.profile?.displayName === "Teacher") {
+          setShowProfileSetup(true);
+        }
+      })
+      .catch(() => {/* ignore */});
+  }, []);
+
+  function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!profileName.trim()) return;
+    setProfileSaving(true);
+    fetch("/api/teacher/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: profileName.trim(), schoolName: profileSchool.trim() || null }),
+    })
+      .then(() => setShowProfileSetup(false))
+      .catch(() => {/* ignore */})
+      .finally(() => setProfileSaving(false));
+  }
 
   const tabStyle = (tab: string): React.CSSProperties => ({
     padding: "8px 18px",
@@ -110,6 +142,99 @@ export default function TeacherPage() {
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
+      {showProfileSetup && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.7)",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          <div style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 18,
+            padding: "32px 36px",
+            width: "100%",
+            maxWidth: 440,
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Welcome to WonderQuest</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.5 }}>
+              Set up your teacher profile to get started.
+            </div>
+            <form onSubmit={handleProfileSave}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 6 }}>
+                  Your name
+                </label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="e.g. Ms Johnson"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    color: C.text,
+                    fontSize: 14,
+                    fontFamily: "system-ui,-apple-system,sans-serif",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 6 }}>
+                  School name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={profileSchool}
+                  onChange={(e) => setProfileSchool(e.target.value)}
+                  placeholder="e.g. Lincoln Elementary"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    color: C.text,
+                    fontSize: 14,
+                    fontFamily: "system-ui,-apple-system,sans-serif",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={profileSaving}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: C.blue,
+                  border: "none",
+                  borderRadius: 10,
+                  color: "#0b1622",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: profileSaving ? "default" : "pointer",
+                  fontFamily: "system-ui,-apple-system,sans-serif",
+                  opacity: profileSaving ? 0.7 : 1,
+                }}
+              >
+                {profileSaving ? "Saving…" : "Save and continue"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <div style={{ fontFamily: "system-ui,-apple-system,sans-serif", color: C.text, minHeight: "100vh", padding: "24px 28px" }}>
 
         {/* Page header */}

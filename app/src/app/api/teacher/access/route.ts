@@ -9,6 +9,9 @@ import {
   recordTeacherAccessAttempt,
 } from "@/lib/teacher-access";
 import { getRequestIpAddress, getRequestUserAgent } from "@/lib/child-access";
+import { getOrCreateTeacherProfile } from "@/lib/teacher-service";
+
+export const TEACHER_ID_COOKIE_NAME = "wonderquest-teacher-id";
 
 export async function POST(request: NextRequest) {
   const ipAddress = getRequestIpAddress(request);
@@ -37,7 +40,9 @@ export async function POST(request: NextRequest) {
 
     await recordTeacherAccessAttempt({ ipAddress, userAgent, succeeded: true });
 
-    const response = NextResponse.json({ ok: true });
+    const profile = await getOrCreateTeacherProfile({});
+
+    const response = NextResponse.json({ ok: true, teacherId: profile.id, isNew: profile.isNew });
     response.cookies.set({
       name: TEACHER_COOKIE_NAME,
       value: issueTeacherAccessToken(),
@@ -45,7 +50,16 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 12,
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    response.cookies.set({
+      name: TEACHER_ID_COOKIE_NAME,
+      value: profile.id,
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
     });
 
     return response;

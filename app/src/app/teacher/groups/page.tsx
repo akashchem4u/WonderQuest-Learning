@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -159,7 +160,7 @@ export default function TeacherGroupsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const teacherId = localStorage.getItem("wq_teacher_id") ?? "demo-teacher";
+    const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
       .then((data: { roster?: RosterStudent[] }) => {

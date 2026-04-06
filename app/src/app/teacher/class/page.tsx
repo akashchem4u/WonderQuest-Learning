@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
+import { getTeacherId } from "@/lib/teacher-identity";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
@@ -257,13 +258,7 @@ export default function TeacherClassPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let teacherId = "demo-teacher";
-    try {
-      const stored = localStorage.getItem("wq_teacher_id");
-      if (stored) teacherId = stored;
-    } catch {
-      // localStorage unavailable
-    }
+    const teacherId = getTeacherId();
 
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
