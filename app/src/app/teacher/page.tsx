@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "./teacher-gate";
 
 // ── Design tokens ───────────────────────────────────────────────────────────
 const C = {
@@ -117,6 +118,10 @@ function CardHeader({ title, link, href }: { title: React.ReactNode; link?: stri
 
 // ── Page component ──────────────────────────────────────────────────────────
 export default function TeacherPage() {
+  // Auth gate — resolved client-side to avoid hydration mismatch
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -125,6 +130,7 @@ export default function TeacherPage() {
   const [loading, setLoading] = useState(true);
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [teacherName, setTeacherName] = useState("");
 
   useEffect(() => {
     const teacherId = getTeacherId();
@@ -132,8 +138,9 @@ export default function TeacherPage() {
     fetch("/api/teacher/profile")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { profile?: { displayName: string; schoolName: string | null } } | null) => {
-        if (data?.profile?.displayName === "Teacher") {
-          setShowProfileSetup(true);
+        if (data?.profile) {
+          setTeacherName(data.profile.displayName === "Teacher" ? "" : data.profile.displayName);
+          if (data.profile.displayName === "Teacher") setShowProfileSetup(true);
         }
       })
       .catch(() => {/* ignore */});
@@ -252,6 +259,17 @@ export default function TeacherPage() {
     transition: "all .18s",
   });
 
+  // ── Auth gate ────────────────────────────────────────────────────────────
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
       {showProfileSetup && (
@@ -351,8 +369,12 @@ export default function TeacherPage() {
 
         {/* Page header */}
         <div style={{ marginBottom: 6 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>Good morning, Ms Johnson 👋</h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Tuesday, March 24 · Grade 2 class · {loading ? "—" : `${roster.length} students`}</p>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: 0 }}>
+            {teacherName ? `Good morning, ${teacherName} 👋` : "Good morning 👋"}
+          </h1>
+          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
+            {loading ? "Loading your classroom…" : `${roster.length} student${roster.length !== 1 ? "s" : ""} · WonderQuest Classroom`}
+          </p>
         </div>
 
         {/* Quick nav links */}
@@ -383,6 +405,41 @@ export default function TeacherPage() {
             </Link>
           ))}
         </div>
+
+        {/* Empty roster onboarding */}
+        {!loading && roster.length === 0 && (
+          <div style={{
+            background: "rgba(155,114,255,0.07)",
+            border: `1px solid rgba(155,114,255,0.25)`,
+            borderRadius: 16,
+            padding: "28px 24px",
+            marginBottom: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}>
+            <div style={{ fontSize: 22 }}>🎉</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>Your classroom is ready</div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, maxWidth: 480 }}>
+              Share your teacher code with students to get started. Once they log in, their progress will appear here automatically.
+            </div>
+            <Link href="/teacher/class" style={{
+              display: "inline-flex",
+              alignSelf: "flex-start",
+              marginTop: 4,
+              padding: "9px 18px",
+              background: "rgba(155,114,255,0.18)",
+              border: "1px solid rgba(155,114,255,0.35)",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#c4a8ff",
+              textDecoration: "none",
+            }}>
+              Go to Class →
+            </Link>
+          </div>
+        )}
 
         {/* Tab bar */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>

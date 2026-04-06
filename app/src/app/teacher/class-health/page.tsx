@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -252,6 +253,9 @@ function NavBtn({ href, children }: { href: string; children: string }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function ClassHealthPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [stats, setStats] = useState<Stats>(STUB);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -292,6 +296,16 @@ export default function ClassHealthPage() {
       : stats.onStreakCount / stats.total >= 0.5
       ? "green"
       : "amber";
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/class-health">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/class-health">

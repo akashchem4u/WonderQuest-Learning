@@ -5,6 +5,7 @@
 // Exports: accessParent, restoreParentSession
 
 import { db } from "@/lib/db";
+import { getStudentSkillMastery } from "@/lib/mastery-service";
 import {
   assertParentAccessAllowed,
   clearParentAccessFailures,
@@ -642,5 +643,361 @@ export async function getParentLinkHealth(guardianId: string) {
     linkedChildren: links.length,
     healthy: links.every((link) => link.hasStudentProfile && link.dashboardReady),
     links,
+  };
+}
+
+async function getGuardianChildRecord(
+  guardianId: string,
+  childId?: string | null,
+) {
+  await repairGuardianStudentLinks(guardianId);
+
+  const result = await db.query(
+    `
+      select
+        sp.id,
+        sp.username,
+        sp.display_name,
+        sp.avatar_key,
+        sp.launch_band_code
+      from public.guardian_student_links gsl
+      join public.student_profiles sp
+        on sp.id = gsl.student_id
+      where gsl.guardian_id = $1
+        and ($2::uuid is null or sp.id = $2::uuid)
+      order by sp.display_name asc
+      limit 1
+    `,
+    [guardianId, childId ?? null],
+  );
+
+  if (!result.rowCount) {
+    throw new Error("Linked child was not found for this guardian.");
+  }
+
+  const row = result.rows[0];
+
+  return {
+    studentId: String(row.id),
+    username: String(row.username),
+    displayName: String(row.display_name),
+    avatarKey: String(row.avatar_key),
+    launchBandCode: String(row.launch_band_code),
+  };
+}
+
+async function getParentSkillFallback(studentId: string) {
+  const result = await db.query(
+    `
+      select
+        sk.code as skill_code,
+        sk.display_name,
+        sk.subject_code,
+        sk.launch_band_code,
+        count(sr.id) as attempts,
+        count(*) filter (where sr.correct) as correct_attempts,
+        count(*) filter (where sr.correct and sr.first_try) as first_try_correct_attempts,
+        count(*) filter (where sr.remediation_triggered) as remediation_count,
+        round(
+          100.0 * count(*) filter (where sr.correct) / nullif(count(sr.id), 0),
+          1
+        ) as mastery_score
+      from public.session_results sr
+      join public.challenge_sessions cs
+        on cs.id = sr.session_id
+      join public.skills sk
+        on sk.id = sr.skill_id
+      where cs.student_id = $1
+      group by sk.code, sk.display_name, sk.subject_code, sk.launch_band_code
+      having count(sr.id) > 0
+      order by mastery_score asc, attempts desc, sk.display_name asc
+    `,
+    [studentId],
+  );
+
+  return result.rows.map((row) => ({
+    skillCode: String(row.skill_code),
+    displayName: String(row.display_name),
+    subjectCode: String(row.subject_code),
+    launchBandCode: String(row.launch_band_code),
+    attempts: Number(row.attempts ?? 0),
+    correctAttempts: Number(row.correct_attempts ?? 0),
+    firstTryCorrectAttempts: Number(row.first_try_correct_attempts ?? 0),
+    remediationCount: Number(row.remediation_count ?? 0),
+    masteryScore: Number(row.mastery_score ?? 0),
+    confidenceScore: 0,
+    lastOutcome: null,
+    supportSignal:
+      Number(row.mastery_score ?? 0) < 45
+        ? "support"
+        : Number(row.mastery_score ?? 0) < 75
+          ? "watch"
+          : "strong",
+  }));
+}
+
+export async function getParentSkills(
+  guardianId: string,
+  options: { childId?: string | null } = {},
+) {
+  const child = await getGuardianChildRecord(guardianId, options.childId ?? null);
+  const mastery = await getStudentSkillMastery(child.studentId);
+  const skills =
+    mastery.length > 0
+      ? mastery.map((row) => ({
+          skillCode: row.skillCode,
+          displayName: row.displayName,
+          subjectCode: row.subjectCode,
+          launchBandCode: row.launchBandCode,
+          attempts: row.attempts,
+          correctAttempts: row.correctAttempts,
+          firstTryCorrectAttempts: row.firstTryCorrectAttempts,
+          remediationCount: row.remediationCount,
+          masteryScore: row.masteryScore,
+          confidenceScore: row.confidenceScore,
+          lastOutcome: row.lastOutcome,
+          supportSignal:
+            row.masteryScore < 45
+              ? "support"
+              : row.masteryScore < 75
+                ? "watch"
+                : "strong",
+        }))
+      : await getParentSkillFallback(child.studentId);
+
+  const supportAreas = skills
+    .filter((skill) => skill.supportSignal !== "strong")
+    .slice(0, 5);
+  const strengthAreas = [...skills]
+    .sort((left, right) => right.masteryScore - left.masteryScore)
+    .slice(0, 5);
+
+  return {
+    guardianId,
+    child,
+    skills,
+    supportAreas,
+    strengthAreas,
+  };
+}
+
+export async function getParentReport(
+  guardianId: string,
+  options: { childId?: string | null } = {},
+) {
+  const child = await getGuardianChildRecord(guardianId, options.childId ?? null);
+  const childDashboard = await getChildDashboard(child.studentId);
+  const periods = [
+    { key: "weekly", days: 7 },
+    { key: "monthly", days: 30 },
+  ] as const;
+
+  const summaries = await Promise.all(
+    periods.map(async (period) => {
+      const summary = await db.query(
+        `
+          select
+            count(distinct cs.id) as session_count,
+            count(distinct cs.id) filter (where cs.ended_at is not null) as completed_session_count,
+            count(sr.id) as attempts,
+            count(*) filter (where sr.correct) as correct_attempts,
+            coalesce(sum(sr.time_spent_ms), 0) as total_time_spent_ms,
+            coalesce(sum(sr.effective_time_ms), 0) as effective_time_spent_ms,
+            coalesce(sum(sr.points_earned), 0) as total_points_earned,
+            round(avg(cs.effectiveness_score), 1) as average_effectiveness
+          from public.challenge_sessions cs
+          left join public.session_results sr
+            on sr.session_id = cs.id
+          where cs.student_id = $1
+            and cs.started_at >= now() - make_interval(days => $2)
+        `,
+        [child.studentId, period.days],
+      );
+
+      const trend = await db.query(
+        `
+          with day_window as (
+            select
+              generate_series(
+                current_date - ($2::int - 1),
+                current_date,
+                interval '1 day'
+              )::date as day
+          )
+          select
+            dw.day,
+            coalesce(count(distinct cs.id), 0) as session_count,
+            coalesce(count(sr.id), 0) as attempts,
+            coalesce(count(*) filter (where sr.correct), 0) as correct_attempts,
+            coalesce(sum(sr.points_earned), 0) as points_earned
+          from day_window dw
+          left join public.challenge_sessions cs
+            on cs.student_id = $1
+           and cs.started_at::date = dw.day
+          left join public.session_results sr
+            on sr.session_id = cs.id
+          group by dw.day
+          order by dw.day asc
+        `,
+        [child.studentId, period.days],
+      );
+
+      const subjectBreakdown = await db.query(
+        `
+          select
+            sk.subject_code,
+            count(sr.id) as attempts,
+            count(*) filter (where sr.correct) as correct_attempts
+          from public.session_results sr
+          join public.challenge_sessions cs
+            on cs.id = sr.session_id
+          join public.skills sk
+            on sk.id = sr.skill_id
+          where cs.student_id = $1
+            and cs.started_at >= now() - make_interval(days => $2)
+          group by sk.subject_code
+          order by attempts desc, sk.subject_code asc
+        `,
+        [child.studentId, period.days],
+      );
+
+      const row = summary.rows[0] ?? {};
+      const attempts = Number(row.attempts ?? 0);
+      const correctAttempts = Number(row.correct_attempts ?? 0);
+
+      return {
+        key: period.key,
+        rangeDays: period.days,
+        sessionCount: Number(row.session_count ?? 0),
+        completedSessionCount: Number(row.completed_session_count ?? 0),
+        attempts,
+        correctAttempts,
+        accuracyRate:
+          attempts > 0
+            ? Math.round((correctAttempts / attempts) * 100)
+            : null,
+        totalTimeSpentMs: Number(row.total_time_spent_ms ?? 0),
+        effectiveTimeSpentMs: Number(row.effective_time_spent_ms ?? 0),
+        totalPointsEarned: Number(row.total_points_earned ?? 0),
+        averageEffectiveness:
+          row.average_effectiveness === null || row.average_effectiveness === undefined
+            ? null
+            : Number(row.average_effectiveness),
+        dailyTrend: trend.rows.map((trendRow) => ({
+          day: String(trendRow.day).slice(0, 10),
+          sessionCount: Number(trendRow.session_count ?? 0),
+          attempts: Number(trendRow.attempts ?? 0),
+          correctAttempts: Number(trendRow.correct_attempts ?? 0),
+          pointsEarned: Number(trendRow.points_earned ?? 0),
+        })),
+        subjectBreakdown: subjectBreakdown.rows.map((subjectRow) => {
+          const subjectAttempts = Number(subjectRow.attempts ?? 0);
+          const subjectCorrectAttempts = Number(subjectRow.correct_attempts ?? 0);
+
+          return {
+            subjectCode: String(subjectRow.subject_code),
+            attempts: subjectAttempts,
+            correctAttempts: subjectCorrectAttempts,
+            accuracyRate:
+              subjectAttempts > 0
+                ? Math.round((subjectCorrectAttempts / subjectAttempts) * 100)
+                : null,
+          };
+        }),
+      };
+    }),
+  );
+
+  const skills = await getParentSkills(guardianId, { childId: child.studentId });
+
+  return {
+    guardianId,
+    child,
+    childDashboard,
+    report: {
+      weekly: summaries.find((item) => item.key === "weekly") ?? null,
+      monthly: summaries.find((item) => item.key === "monthly") ?? null,
+    },
+    supportAreas: skills.supportAreas,
+    strengthAreas: skills.strengthAreas,
+  };
+}
+
+export async function markParentNotificationRead(
+  guardianId: string,
+  notificationId: string,
+  read = true,
+) {
+  const result = await db.query(
+    `
+      update public.student_notifications sn
+      set read = $3
+      where sn.id = $1
+        and (
+          sn.guardian_id = $2
+          or (
+            sn.guardian_id is null
+            and exists (
+              select 1
+              from public.guardian_student_links gsl
+              where gsl.guardian_id = $2
+                and gsl.student_id = sn.student_id
+            )
+          )
+        )
+      returning id, read, guardian_id
+    `,
+    [notificationId, guardianId, read],
+  );
+
+  if (!result.rowCount) {
+    throw new Error("Notification was not found.");
+  }
+
+  return {
+    notificationId: String(result.rows[0].id),
+    read: Boolean(result.rows[0].read),
+    guardianScoped:
+      result.rows[0].guardian_id !== null && result.rows[0].guardian_id !== undefined,
+  };
+}
+
+export async function markAllParentNotificationsRead(
+  guardianId: string,
+  options: { childId?: string | null; read?: boolean } = {},
+) {
+  const read = options.read ?? true;
+  const child =
+    options.childId === undefined
+      ? null
+      : await getGuardianChildRecord(guardianId, options.childId ?? null);
+
+  const result = await db.query(
+    `
+      update public.student_notifications sn
+      set read = $3
+      where (
+        sn.guardian_id = $1
+        or (
+          sn.guardian_id is null
+          and exists (
+            select 1
+            from public.guardian_student_links gsl
+            where gsl.guardian_id = $1
+              and gsl.student_id = sn.student_id
+          )
+        )
+      )
+        and ($2::uuid is null or sn.student_id = $2::uuid)
+      returning id
+    `,
+    [guardianId, child?.studentId ?? null, read],
+  );
+
+  return {
+    guardianId,
+    childId: child?.studentId ?? null,
+    read,
+    updatedCount: result.rowCount ?? 0,
   };
 }

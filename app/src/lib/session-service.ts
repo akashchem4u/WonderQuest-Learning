@@ -6,15 +6,22 @@
 
 import { db } from "@/lib/db";
 import {
-  getExplainerByKey,
+  findQuestions,
+  getQuestionsByKeys,
   getQuestionByKey,
-  getSampleQuestions,
+  type ContentQuestion,
 } from "@/lib/content-bank";
-import { checkAndTriggerInterventions } from "@/lib/intervention-trigger-service";
 import {
-  detectNewMilestones,
-  storeMilestoneNotifications,
-} from "@/lib/milestone-service";
+  findOrCreateLiveQuestion,
+  isLiveQuestionGenerationEnabled,
+  warmLiveQuestionCache,
+} from "@/lib/live-question-generator";
+import {
+  updateStudentSkillMastery,
+  type StudentSkillMasteryRecord,
+} from "@/lib/mastery-service";
+import { syncTeacherInterventionSignals } from "@/lib/intervention-service";
+import { createMilestoneNotifications } from "@/lib/milestone-service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,10 +82,129 @@ const EARLY_GUIDED_QUESTION_LIMIT = 5;
 const STANDARD_GUIDED_QUESTION_LIMIT = 7;
 const EARLY_SELF_DIRECTED_QUESTION_LIMIT = 6;
 const STANDARD_SELF_DIRECTED_QUESTION_LIMIT = 8;
+const MAX_ADAPTIVE_INSERTIONS = 4;
+const LAUNCH_BAND_ORDER = ["PREK", "K1", "G23", "G45", "G6"];
 const EARLY_GUIDED_SKILL_ORDER: Record<string, string[]> = {
   PREK: ["count-to-3", "shape-circle", "letter-b-recognition"],
   K1: ["short-a-sound", "read-simple-word", "add-to-10"],
 };
+const MODULE_BY_SUBJECT: Record<string, string> = {
+  "early-literacy": "english",
+  phonics: "english",
+  reading: "english",
+  math: "math",
+  logic: "logic",
+  "world-knowledge": "world-knowledge",
+  geography: "geography",
+  civics: "civics",
+  science: "science",
+  writing: "writing",
+  history: "history",
+};
+const SKILL_LADDERS: Record<string, string[]> = {
+  PREK: [
+    "letter-a-recognition",
+    "letter-b-recognition",
+    "rhyme-match",
+    "count-to-3",
+    "count-to-5",
+    "shape-circle",
+    "shape-triangle",
+    "bigger-smaller",
+    "color-recognition",
+    "land-water-basics",
+    "place-clue-basics",
+    "community-helper-basics",
+    "safe-choice-basics",
+    "weather-basics",
+  ],
+  K1: [
+    "short-a-sound",
+    "short-e-sound",
+    "short-i-sound",
+    "decodable-cvc-word",
+    "read-simple-word",
+    "sight-words-basic",
+    "add-to-10",
+    "subtract-from-10",
+    "number-bonds-to-5",
+    "map-symbol-basics",
+    "landform-clues",
+    "community-services-basics",
+    "rules-and-fairness",
+    "weather-patterns",
+    "sentence-complete-basics",
+    "past-present-basics",
+  ],
+  G23: [
+    "main-idea",
+    "cause-effect",
+    "add-3-digit",
+    "multiply-3x4",
+    "time-to-hour",
+    "skip-count-by-5",
+    "compare-numbers",
+    "pattern-next-item",
+    "continent-basics",
+    "region-climate",
+    "government-branches-intro",
+    "citizen-responsibility",
+    "life-cycle-basics",
+    "paragraph-sequence",
+    "timeline-order",
+  ],
+  G45: [
+    "use-context-clues",
+    "text-evidence",
+    "inference-making",
+    "compare-fractions",
+    "decimal-place-value",
+    "percent-basics",
+    "ratio-simple",
+    "engineering-basics",
+    "latitude-longitude",
+    "human-physical-geography",
+    "government-branches-powers",
+    "election-process",
+    "ecosystem-change",
+    "revision-choice",
+    "historical-cause-effect",
+  ],
+  G6: [
+    "author-claim",
+    "theme-analysis",
+    "integer-number-line",
+    "order-of-operations",
+    "simple-equations",
+    "rate-reasoning",
+    "force-motion",
+    "ecosystem-evidence",
+    "earth-processes",
+    "map-scale-data",
+    "population-patterns",
+    "constitution-principles",
+    "media-citizenship",
+    "argument-evidence",
+    "revision-precision",
+    "source-analysis",
+    "multi-step-patterns",
+  ],
+};
+
+type RequestedFocusPayload = {
+  type: "question-sequence";
+  sessionMode: string;
+  questionKeys: string[];
+  adaptiveQuestionKeys: string[];
+};
+
+type AdaptiveRoute = {
+  action: "retest" | "stretch";
+  message: string;
+  questionKey: string;
+} | null;
+
+type SessionQuestionRecord = ContentQuestion;
 
 function isEarlyLearnerBand(launchBandCode: string) {
   return launchBandCode === "PREK" || launchBandCode === "K1";
@@ -98,67 +224,180 @@ function getQuestionLimit(launchBandCode: string, sessionMode: string) {
     : STANDARD_GUIDED_QUESTION_LIMIT;
 }
 
-function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
-  const pool = getSampleQuestions().filter(
-    (item) => item.launch_band === launchBandCode,
+function getLiveSessionQuestionBudget() {
+  const configured = Number(process.env.OPENAI_QUESTION_MAX_PER_SESSION ?? 1);
+
+  if (!Number.isFinite(configured) || configured <= 0) {
+    return 0;
+  }
+
+  return Math.min(6, Math.floor(configured));
+}
+
+function getInitialLiveSessionQuestionCount() {
+  return Math.min(2, getLiveSessionQuestionBudget());
+}
+
+function getAdaptiveWarmupCount() {
+  const configured = Number(process.env.OPENAI_QUESTION_PREWARM_PER_SESSION ?? 2);
+
+  if (!Number.isFinite(configured) || configured <= 0) {
+    return 0;
+  }
+
+  return Math.min(4, Math.floor(configured));
+}
+
+function countLiveQuestionRecords(questions: SessionQuestionRecord[]) {
+  return questions.filter((question) => question.source_kind === "ai-live").length;
+}
+
+async function countLiveQuestionsInSequence(questionKeys: string[]) {
+  if (!questionKeys.length) {
+    return 0;
+  }
+
+  const questions = await getQuestionsByKeys(questionKeys);
+  return questions.filter((question) => question.source_kind === "ai-live").length;
+}
+
+function buildAdaptiveWarmupRequests(input: {
+  selectedQuestions: SessionQuestionRecord[];
+  launchBandCode: string;
+  themeCode: string | null;
+  remainingBudget: number;
+}) {
+  const maxWarmups = Math.min(
+    getAdaptiveWarmupCount(),
+    Math.max(0, input.remainingBudget),
   );
 
-  if (sessionMode === "self-directed-challenge") {
-    return [...pool].sort((left, right) => {
-      if (right.difficulty !== left.difficulty) {
-        return right.difficulty - left.difficulty;
-      }
+  if (!isLiveQuestionGenerationEnabled() || maxWarmups <= 0) {
+    return [];
+  }
 
-      return left.subject.localeCompare(right.subject);
+  const candidates = input.selectedQuestions.slice(0, 2);
+  const requests = [];
+
+  for (const question of candidates) {
+    requests.push({
+      launchBandCode: input.launchBandCode,
+      skillCode: question.skill,
+      difficulty: Math.max(1, question.difficulty - 1),
+      themeCode: input.themeCode ?? question.theme ?? null,
+      reason: "adaptive-retest" as const,
+      referenceQuestion: question,
+    });
+    requests.push({
+      launchBandCode: input.launchBandCode,
+      skillCode: question.skill,
+      difficulty: question.difficulty + 1,
+      themeCode: input.themeCode ?? question.theme ?? null,
+      reason: "adaptive-stretch" as const,
+      referenceQuestion: question,
     });
   }
 
-  return [...pool].sort((left, right) => {
-    if (left.difficulty !== right.difficulty) {
-      return left.difficulty - right.difficulty;
-    }
-
-    return left.subject.localeCompare(right.subject);
-  });
+  return requests.slice(0, maxWarmups);
 }
 
-function selectEasyFirstGuidedQuestions(
+function mergeQuestionLists(...lists: SessionQuestionRecord[][]) {
+  const merged = new Map<string, SessionQuestionRecord>();
+
+  for (const list of lists) {
+    for (const item of list) {
+      if (!merged.has(item.question_key)) {
+        merged.set(item.question_key, item);
+      }
+    }
+  }
+
+  return [...merged.values()];
+}
+
+async function pickQuestion(
   launchBandCode: string,
-  pool: ReturnType<typeof getSessionQuestionPool>,
+  skillCode: string,
+  usedQuestionKeys: Set<string>,
+  recentQuestionKeys: Set<string>,
+) {
+  const baseFilters = {
+    launchBands: [launchBandCode],
+    skillCodes: [skillCode],
+    orderBy: "difficulty_asc" as const,
+    limit: 1,
+  };
+
+  const [freshQuestion] = await findQuestions({
+    ...baseFilters,
+    excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
+  });
+
+  if (freshQuestion) {
+    return freshQuestion;
+  }
+
+  const [fallbackQuestion] = await findQuestions({
+    ...baseFilters,
+    excludeQuestionKeys: [...usedQuestionKeys],
+  });
+
+  return fallbackQuestion ?? null;
+}
+
+async function loadBandQuestionWindow(
+  launchBandCode: string,
+  usedQuestionKeys: Set<string>,
+  recentQuestionKeys: Set<string>,
+  orderBy: "difficulty_asc" | "difficulty_desc",
+  limit: number,
+) {
+  const freshQuestions = await findQuestions({
+    launchBands: [launchBandCode],
+    excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
+    orderBy,
+    limit,
+  });
+
+  const fallbackQuestions = await findQuestions({
+    launchBands: [launchBandCode],
+    excludeQuestionKeys: [...usedQuestionKeys],
+    orderBy,
+    limit,
+  });
+
+  return mergeQuestionLists(freshQuestions, fallbackQuestions);
+}
+
+async function selectEasyFirstGuidedQuestions(
+  launchBandCode: string,
   questionLimit: number,
   recentQuestionKeys: Set<string>,
 ) {
   const skillPriority = EARLY_GUIDED_SKILL_ORDER[launchBandCode];
 
   if (!skillPriority?.length) {
-    const prioritizedPool = [
-      ...pool.filter((item) => !recentQuestionKeys.has(item.question_key)),
-      ...pool.filter((item) => recentQuestionKeys.has(item.question_key)),
-    ];
+    const prioritizedPool = await loadBandQuestionWindow(
+      launchBandCode,
+      new Set<string>(),
+      recentQuestionKeys,
+      "difficulty_asc",
+      Math.max(questionLimit * 6, 24),
+    );
 
     return shuffleArray(prioritizedPool).slice(0, questionLimit);
   }
 
-  const groupedBySkill = new Map<string, typeof pool>();
-
-  for (const item of pool) {
-    const existing = groupedBySkill.get(item.skill) ?? [];
-    existing.push(item);
-    groupedBySkill.set(item.skill, existing);
-  }
-
-  const selected = [];
+  const selected: SessionQuestionRecord[] = [];
   const usedQuestionKeys = new Set<string>();
 
   for (const skill of skillPriority) {
-    const skillPool = shuffleArray(groupedBySkill.get(skill) ?? []);
-    const nextQuestion =
-      skillPool.find(
-        (item) =>
-          !usedQuestionKeys.has(item.question_key) &&
-          !recentQuestionKeys.has(item.question_key),
-      ) ??
-      skillPool.find((item) => !usedQuestionKeys.has(item.question_key));
+    const nextQuestion = await pickQuestion(
+      launchBandCode,
+      skill,
+      usedQuestionKeys,
+      recentQuestionKeys,
+    );
 
     if (!nextQuestion) {
       continue;
@@ -172,106 +411,240 @@ function selectEasyFirstGuidedQuestions(
     }
   }
 
-  // Skill-diversity fill: prefer questions from skills not yet represented,
-  // then fall back to any non-recent, then recently-seen as a last resort.
-  const usedSkills = new Set(selected.map((item) => item.skill));
-
-  const freshNewSkill = pool.filter(
-    (item) =>
-      !usedQuestionKeys.has(item.question_key) &&
-      !recentQuestionKeys.has(item.question_key) &&
-      !usedSkills.has(item.skill),
+  const remainingQuestions = await loadBandQuestionWindow(
+    launchBandCode,
+    usedQuestionKeys,
+    recentQuestionKeys,
+    "difficulty_asc",
+    Math.max(questionLimit * 8, 32),
   );
 
-  const freshSameSkill = pool.filter(
-    (item) =>
-      !usedQuestionKeys.has(item.question_key) &&
-      !recentQuestionKeys.has(item.question_key) &&
-      usedSkills.has(item.skill),
+  return [...selected, ...shuffleArray(remainingQuestions)].slice(0, questionLimit);
+}
+
+async function maybeReplaceSessionQuestionsWithLiveVariants(
+  selectedQuestions: SessionQuestionRecord[],
+  launchBandCode: string,
+  themeCode: string | null,
+) {
+  if (!isLiveQuestionGenerationEnabled() || !selectedQuestions.length) {
+    return selectedQuestions;
+  }
+
+  const liveCount = Math.min(
+    getInitialLiveSessionQuestionCount(),
+    selectedQuestions.length,
   );
 
-  const staleFallback = pool.filter(
-    (item) =>
-      !usedQuestionKeys.has(item.question_key) &&
-      recentQuestionKeys.has(item.question_key),
+  if (liveCount <= 0) {
+    return selectedQuestions;
+  }
+
+  const nextQuestions = [...selectedQuestions];
+  const targetRequests = [];
+
+  for (let offset = 0; offset < liveCount; offset += 1) {
+    const index = nextQuestions.length - 1 - offset;
+    const seedQuestion = nextQuestions[index];
+    const request = {
+      launchBandCode,
+      skillCode: seedQuestion.skill,
+      difficulty: seedQuestion.difficulty,
+      themeCode: themeCode ?? seedQuestion.theme ?? null,
+      reason: "session-refresh" as const,
+      referenceQuestion: seedQuestion,
+    };
+
+    targetRequests.push({ index, request });
+  }
+
+  const replacements = await Promise.all(
+    targetRequests.map(async ({ index, request }) => ({
+      index,
+      liveQuestion: await findOrCreateLiveQuestion(request, {
+        excludeQuestionKeys: nextQuestions.map((item) => item.question_key),
+        waitMs: 0,
+      }),
+    })),
   );
 
-  const remainingQuestions = [
-    ...shuffleArray(freshNewSkill),
-    ...shuffleArray(freshSameSkill),
-    ...shuffleArray(staleFallback),
-  ];
+  for (const replacement of replacements) {
+    if (replacement.liveQuestion) {
+      nextQuestions[replacement.index] = replacement.liveQuestion;
+    }
+  }
 
-  return [...selected, ...remainingQuestions].slice(0, questionLimit);
+  warmLiveQuestionCache(
+    nextQuestions
+      .slice(0, Math.min(nextQuestions.length, liveCount + 2))
+      .map((question) => ({
+        launchBandCode,
+        skillCode: question.skill,
+        difficulty: question.difficulty,
+        themeCode: themeCode ?? question.theme ?? null,
+        reason: "session-refresh" as const,
+        referenceQuestion: question,
+      })),
+  );
+
+  const remainingBudget =
+    getLiveSessionQuestionBudget() - countLiveQuestionRecords(nextQuestions);
+  const adaptiveWarmups = buildAdaptiveWarmupRequests({
+    selectedQuestions: nextQuestions,
+    launchBandCode,
+    themeCode,
+    remainingBudget,
+  });
+
+  if (adaptiveWarmups.length) {
+    warmLiveQuestionCache(adaptiveWarmups);
+  }
+
+  return nextQuestions;
 }
 
 async function selectSessionQuestions(
   studentId: string,
   launchBandCode: string,
   sessionMode: string,
+  themeCode: string | null,
 ) {
-  const pool = getSessionQuestionPool(launchBandCode, sessionMode);
   const questionLimit = getQuestionLimit(launchBandCode, sessionMode);
   const recentQuestionKeys = await getRecentSessionQuestionKeys(studentId);
 
-  if (pool.length <= questionLimit) {
-    return pool;
-  }
-
   if (sessionMode === "self-directed-challenge") {
-    const prioritizedPool = [
-      ...pool.filter((item) => !recentQuestionKeys.has(item.question_key)),
-      ...pool.filter((item) => recentQuestionKeys.has(item.question_key)),
-    ];
+    const prioritizedPool = await loadBandQuestionWindow(
+      launchBandCode,
+      new Set<string>(),
+      recentQuestionKeys,
+      "difficulty_desc",
+      Math.max(questionLimit * 4, 32),
+    );
     const challengeWindow = Math.min(
       prioritizedPool.length,
       Math.max(questionLimit * 4, 32),
     );
 
-    return shuffleArray(prioritizedPool.slice(0, challengeWindow)).slice(0, questionLimit);
+    const baseSelection = shuffleArray(
+      prioritizedPool.slice(0, challengeWindow),
+    ).slice(0, questionLimit);
+
+    return maybeReplaceSessionQuestionsWithLiveVariants(
+      baseSelection,
+      launchBandCode,
+      themeCode,
+    );
   }
 
-  return selectEasyFirstGuidedQuestions(
+  const guidedSelection = await selectEasyFirstGuidedQuestions(
     launchBandCode,
-    pool,
     questionLimit,
     recentQuestionKeys,
   );
+
+  return maybeReplaceSessionQuestionsWithLiveVariants(
+    guidedSelection,
+    launchBandCode,
+    themeCode,
+  );
 }
 
-function buildRequestedFocus(questionKeys: string[], sessionMode: string) {
+function buildRequestedFocus(
+  questionKeys: string[],
+  sessionMode: string,
+  adaptiveQuestionKeys: string[] = [],
+) {
   return JSON.stringify({
     type: "question-sequence",
     sessionMode,
     questionKeys,
+    adaptiveQuestionKeys,
   });
+}
+
+function parseRequestedFocus(
+  requestedFocus: string | null | undefined,
+  fallbackSessionMode = "guided-quest",
+): RequestedFocusPayload {
+  try {
+    const parsed = JSON.parse(requestedFocus ?? "{}") as Partial<RequestedFocusPayload>;
+    const questionKeys = Array.isArray(parsed.questionKeys)
+      ? parsed.questionKeys.filter(
+          (item): item is string => typeof item === "string" && item.length > 0,
+        )
+      : [];
+    const adaptiveQuestionKeys = Array.isArray(parsed.adaptiveQuestionKeys)
+      ? parsed.adaptiveQuestionKeys.filter(
+          (item): item is string => typeof item === "string" && item.length > 0,
+        )
+      : [];
+
+    return {
+      type: "question-sequence",
+      sessionMode:
+        typeof parsed.sessionMode === "string" && parsed.sessionMode.length > 0
+          ? parsed.sessionMode
+          : fallbackSessionMode,
+      questionKeys,
+      adaptiveQuestionKeys,
+    };
+  } catch {
+    return {
+      type: "question-sequence",
+      sessionMode: fallbackSessionMode,
+      questionKeys: [],
+      adaptiveQuestionKeys: [],
+    };
+  }
 }
 
 function extractRequestedQuestionKeys(
   requestedFocus: string | null | undefined,
   totalQuestions: number,
 ) {
-  try {
-    const parsed = JSON.parse(requestedFocus ?? "{}") as {
-      questionKeys?: unknown;
-    };
-
-    if (Array.isArray(parsed.questionKeys)) {
-      return parsed.questionKeys
-        .filter((item): item is string => typeof item === "string" && item.length > 0)
-        .slice(0, totalQuestions);
-    }
-  } catch {
-    // Fall back to the stored session order when the JSON payload is missing or stale.
-  }
-
-  return [];
+  return parseRequestedFocus(requestedFocus).questionKeys.slice(0, totalQuestions);
 }
 
-function getRequestedQuestionSequence(
+function extractAdaptiveQuestionKeys(requestedFocus: string | null | undefined) {
+  return new Set(parseRequestedFocus(requestedFocus).adaptiveQuestionKeys);
+}
+
+function insertAdaptiveQuestionIntoFocus(
+  requestedFocus: string | null | undefined,
+  afterQuestionKey: string,
+  adaptiveQuestionKey: string,
+  sessionMode: string,
+) {
+  const parsed = parseRequestedFocus(requestedFocus, sessionMode);
+
+  if (parsed.questionKeys.includes(adaptiveQuestionKey)) {
+    return {
+      requestedFocus: buildRequestedFocus(
+        parsed.questionKeys,
+        parsed.sessionMode,
+        parsed.adaptiveQuestionKeys,
+      ),
+      totalQuestions: parsed.questionKeys.length,
+    };
+  }
+
+  const afterIndex = parsed.questionKeys.indexOf(afterQuestionKey);
+  const questionKeys = [...parsed.questionKeys];
+  const insertAt = afterIndex >= 0 ? afterIndex + 1 : questionKeys.length;
+  questionKeys.splice(insertAt, 0, adaptiveQuestionKey);
+
+  const adaptiveQuestionKeys = [...new Set([...parsed.adaptiveQuestionKeys, adaptiveQuestionKey])];
+
+  return {
+    requestedFocus: buildRequestedFocus(questionKeys, parsed.sessionMode, adaptiveQuestionKeys),
+    totalQuestions: questionKeys.length,
+  };
+}
+
+async function getRequestedQuestionSequence(
   requestedFocus: string | null | undefined,
   launchBandCode: string,
-  sessionMode: string,
+  _sessionMode: string,
   totalQuestions: number,
 ) {
   const sanitized = extractRequestedQuestionKeys(requestedFocus, totalQuestions);
@@ -280,9 +653,13 @@ function getRequestedQuestionSequence(
     return sanitized;
   }
 
-  return getSessionQuestionPool(launchBandCode, sessionMode)
-    .slice(0, totalQuestions)
-    .map((item) => item.question_key);
+  return (
+    await findQuestions({
+      launchBands: [launchBandCode],
+      limit: totalQuestions,
+      orderBy: "difficulty_asc",
+    })
+  ).map((item) => item.question_key);
 }
 
 async function getRecentSessionQuestionKeys(studentId: string, lookbackSessions = 8) {
@@ -347,6 +724,60 @@ async function ensureProgressionState(studentId: string) {
   );
 }
 
+async function getSessionSkillCodes(sessionId: string) {
+  const result = await db.query(
+    `
+      select distinct sk.code
+      from public.session_results sr
+      join public.skills sk
+        on sk.id = sr.skill_id
+      where sr.session_id = $1
+    `,
+    [sessionId],
+  );
+
+  return result.rows
+    .map((row) => String(row.code ?? ""))
+    .filter(Boolean);
+}
+
+async function completeAssignmentIfActive(input: {
+  sessionId: string;
+  studentId: string;
+  sessionMode: string;
+  launchBandCode: string;
+}) {
+  const skillCodes = await getSessionSkillCodes(input.sessionId);
+  const result = await db.query(
+    `
+      update public.assignment_students ast
+      set
+        completed_at = coalesce(ast.completed_at, now()),
+        session_id = coalesce(ast.session_id, $1)
+      from public.assignments a
+      where ast.assignment_id = a.id
+        and ast.student_id = $2
+        and ast.completed_at is null
+        and a.session_mode = $3
+        and (a.launch_band_code is null or a.launch_band_code = $4)
+        and (
+          cardinality(a.skill_codes) = 0
+          or a.skill_codes && $5::text[]
+        )
+      returning ast.assignment_id
+    `,
+    [
+      input.sessionId,
+      input.studentId,
+      input.sessionMode,
+      input.launchBandCode,
+      skillCodes,
+    ],
+  );
+
+  return result.rows.map((row) => String(row.assignment_id));
+}
+
 async function getQuestionMetadata(questionKey: string) {
   const result = await db.query(
     `
@@ -364,67 +795,275 @@ async function getQuestionMetadata(questionKey: string) {
   };
 }
 
-function buildQuestionCard(questionKey: string) {
-  const question = getQuestionByKey(questionKey);
+function getQuestionModule(question: { subject: string; module?: string }) {
+  return question.module ?? MODULE_BY_SUBJECT[question.subject] ?? "general";
+}
 
-  if (!question) {
-    throw new Error("Question was not found.");
+function getNeighborBand(
+  launchBandCode: string,
+  direction: "previous" | "next",
+) {
+  const currentIndex = LAUNCH_BAND_ORDER.indexOf(launchBandCode);
+  if (currentIndex < 0) {
+    return null;
   }
 
+  const nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
+  return LAUNCH_BAND_ORDER[nextIndex] ?? null;
+}
+
+async function findAdaptiveCandidate(filters: {
+  launchBands?: string[];
+  skillCodes?: string[];
+  modules?: string[];
+  minDifficulty?: number;
+  maxDifficulty?: number;
+  excludeQuestionKeys?: string[];
+  orderBy?: "difficulty_asc" | "difficulty_desc";
+}) {
+  const [candidate] = await findQuestions({
+    launchBands: filters.launchBands,
+    skillCodes: filters.skillCodes,
+    modules: filters.modules,
+    minDifficulty: filters.minDifficulty,
+    maxDifficulty: filters.maxDifficulty,
+    excludeQuestionKeys: filters.excludeQuestionKeys,
+    orderBy: filters.orderBy,
+    limit: 1,
+  });
+
+  return candidate ?? null;
+}
+
+async function selectAdaptiveRoute(
+  currentQuestion: ContentQuestion,
+  launchBandCode: string,
+  requestedFocus: string | null | undefined,
+  recoveryMode: boolean,
+  themeCode: string | null,
+  options: {
+    mastery?: StudentSkillMasteryRecord | null;
+    liveBudgetRemaining?: number;
+  } = {},
+): Promise<AdaptiveRoute> {
+  const usedQuestionKeys = new Set(
+    extractRequestedQuestionKeys(requestedFocus, Number.MAX_SAFE_INTEGER),
+  );
+  usedQuestionKeys.add(currentQuestion.question_key);
+  const currentModule = getQuestionModule(currentQuestion);
+  const exclusionList = [...usedQuestionKeys];
+  const mastery = options.mastery ?? null;
+  const liveBudgetRemaining = Math.max(0, options.liveBudgetRemaining ?? 0);
+
+  if (recoveryMode) {
+    const sameSkillRecovery = await findAdaptiveCandidate({
+      launchBands: [launchBandCode],
+      skillCodes: [currentQuestion.skill],
+      maxDifficulty: currentQuestion.difficulty,
+      excludeQuestionKeys: exclusionList,
+      orderBy: "difficulty_asc",
+    });
+
+    if (sameSkillRecovery) {
+      return {
+        action: "retest",
+        message:
+          "Quick concept check before we jump back to the main trail.",
+        questionKey: sameSkillRecovery.question_key,
+      };
+    }
+
+    const sameModuleRecovery = await findAdaptiveCandidate({
+      launchBands: [launchBandCode],
+      modules: [currentModule],
+      maxDifficulty: currentQuestion.difficulty,
+      excludeQuestionKeys: exclusionList,
+      orderBy: "difficulty_asc",
+    });
+
+    if (sameModuleRecovery) {
+      return {
+        action: "retest",
+        message:
+          "One short support check is queued before the next main question.",
+        questionKey: sameModuleRecovery.question_key,
+      };
+    }
+
+    const previousBand = getNeighborBand(launchBandCode, "previous");
+    if (previousBand) {
+      const previousBandRecovery = await findAdaptiveCandidate({
+        launchBands: [previousBand],
+        modules: [currentModule],
+        excludeQuestionKeys: exclusionList,
+        orderBy: "difficulty_asc",
+      });
+
+      if (previousBandRecovery) {
+        return {
+          action: "retest",
+          message:
+            "Dropping to a simpler check for a moment, then we return to the main trail.",
+          questionKey: previousBandRecovery.question_key,
+        };
+      }
+    }
+
+    if (isLiveQuestionGenerationEnabled() && liveBudgetRemaining > 0) {
+      try {
+        const liveQuestion = await findOrCreateLiveQuestion({
+          launchBandCode,
+          skillCode: currentQuestion.skill,
+          difficulty: Math.max(1, currentQuestion.difficulty - 1),
+          themeCode: currentQuestion.theme || themeCode,
+          reason: "adaptive-retest",
+          referenceQuestion: currentQuestion,
+        }, {
+          excludeQuestionKeys: exclusionList,
+        });
+
+        if (liveQuestion) {
+          return {
+            action: "retest",
+            message:
+              "A fresh support check is ready before we jump back to the main trail.",
+            questionKey: liveQuestion.question_key,
+          };
+        }
+      } catch (error) {
+        console.error("WonderQuest live adaptive reteach generation failed", error);
+      }
+    }
+
+    return null;
+  }
+
+  const weakMastery =
+    mastery !== null &&
+    (mastery.masteryScore < 55 ||
+      mastery.consecutiveIncorrect >= 2 ||
+      mastery.remediationCount >= 2);
+
+  if (weakMastery) {
+    return null;
+  }
+
+  const sameSkillStretch = await findAdaptiveCandidate({
+    launchBands: [launchBandCode],
+    skillCodes: [currentQuestion.skill],
+    minDifficulty: currentQuestion.difficulty + 1,
+    excludeQuestionKeys: exclusionList,
+    orderBy: "difficulty_desc",
+  });
+
+  if (sameSkillStretch) {
+    return {
+      action: "stretch",
+      message:
+        "Stretch check unlocked. We will test a harder version before the next main question.",
+      questionKey: sameSkillStretch.question_key,
+    };
+  }
+
+  const ladder = SKILL_LADDERS[launchBandCode] ?? [];
+  const currentSkillIndex = ladder.indexOf(currentQuestion.skill);
+  if (currentSkillIndex >= 0) {
+    for (const nextSkill of ladder.slice(currentSkillIndex + 1)) {
+      const nextSkillQuestion = await findAdaptiveCandidate({
+        launchBands: [launchBandCode],
+        skillCodes: [nextSkill],
+        excludeQuestionKeys: exclusionList,
+        orderBy: "difficulty_desc",
+      });
+
+      if (nextSkillQuestion) {
+        return {
+          action: "stretch",
+          message:
+            "Strong answer. A next-step concept is queued before the main flow resumes.",
+          questionKey: nextSkillQuestion.question_key,
+        };
+      }
+    }
+  }
+
+  const nextBand = getNeighborBand(launchBandCode, "next");
+  if (nextBand) {
+    const nextBandStretch = await findAdaptiveCandidate({
+      launchBands: [nextBand],
+      modules: [currentModule],
+      excludeQuestionKeys: exclusionList,
+      orderBy: "difficulty_asc",
+    });
+
+    if (nextBandStretch) {
+      return {
+        action: "stretch",
+        message:
+          "Strong answer. We are sampling the next grade band before returning to the main route.",
+        questionKey: nextBandStretch.question_key,
+      };
+    }
+  }
+
+  if (isLiveQuestionGenerationEnabled() && liveBudgetRemaining > 0) {
+    try {
+      const liveQuestion = await findOrCreateLiveQuestion({
+        launchBandCode,
+        skillCode: currentQuestion.skill,
+        difficulty: currentQuestion.difficulty + 1,
+        themeCode: currentQuestion.theme || themeCode,
+        reason: "adaptive-stretch",
+        referenceQuestion: currentQuestion,
+      }, {
+        excludeQuestionKeys: exclusionList,
+      });
+
+      if (liveQuestion) {
+        return {
+          action: "stretch",
+          message:
+            "Strong answer. A fresh live stretch check is queued before the main flow resumes.",
+          questionKey: liveQuestion.question_key,
+        };
+      }
+    } catch (error) {
+      console.error("WonderQuest live adaptive stretch generation failed", error);
+    }
+  }
+
+  return null;
+}
+
+function buildQuestionCardFromQuestion(
+  question: ContentQuestion,
+  routeType: "main" | "retest" | "stretch" = "main",
+) {
   return {
     questionKey: question.question_key,
     prompt: question.prompt,
     answers: shuffleArray([question.correct_answer, ...question.distractors]),
     correctAnswer: question.correct_answer,
-    explainerKey: question.explainer_key,
+    explainerKey: question.question_key,
     subject: question.subject,
     skill: question.skill,
     difficulty: question.difficulty,
     theme: question.theme,
+    routeType,
   };
 }
 
-// ─── Assignment helpers ───────────────────────────────────────────────────────
-
-async function getActiveAssignment(studentId: string) {
-  const result = await db.query(
-    `
-      SELECT a.id, a.skill_codes, a.launch_band_code, a.session_mode, a.title
-      FROM public.assignments a
-      JOIN public.assignment_students ast ON ast.assignment_id = a.id
-      WHERE ast.student_id = $1
-        AND ast.completed_at IS NULL
-        AND (a.due_date IS NULL OR a.due_date >= now())
-      ORDER BY a.created_at ASC
-      LIMIT 1
-    `,
-    [studentId],
-  );
-
-  if (!result.rowCount) return null;
-
-  const row = result.rows[0];
-  return {
-    id: row.id as string,
-    title: row.title as string,
-    skillCodes: row.skill_codes as string[],
-    sessionMode: row.session_mode as string,
-  };
-}
-
-export async function completeAssignmentIfActive(
-  studentId: string,
-  assignmentId: string,
-  sessionId: string,
+async function buildQuestionCard(
+  questionKey: string,
+  routeType: "main" | "retest" | "stretch" = "main",
 ) {
-  await db.query(
-    `
-      UPDATE public.assignment_students
-      SET completed_at = now(), session_id = $1
-      WHERE assignment_id = $2 AND student_id = $3 AND completed_at IS NULL
-    `,
-    [sessionId, assignmentId, studentId],
-  );
+  const question = await getQuestionByKey(questionKey);
+
+  if (!question) {
+    throw new Error("Question was not found.");
+  }
+
+  return buildQuestionCardFromQuestion(question, routeType);
 }
 
 // ─── Exported service functions ───────────────────────────────────────────────
@@ -450,15 +1089,14 @@ export async function createPlaySession(input: PlaySessionInput) {
 
   await ensureProgressionState(studentRow.id as string);
 
-  const activeAssignment = await getActiveAssignment(input.studentId);
-
   const selectedQuestions = await selectSessionQuestions(
     input.studentId,
     studentRow.launch_band_code as string,
     sessionMode,
+    (studentRow.preferred_theme_code as string | undefined) ?? null,
   );
   const questionKeys = selectedQuestions.map((item) => item.question_key);
-  const questions = selectedQuestions.map((item) => buildQuestionCard(item.question_key));
+  const questions = selectedQuestions.map((item) => buildQuestionCardFromQuestion(item));
 
   const session = await db.query(
     `
@@ -502,54 +1140,6 @@ export async function createPlaySession(input: PlaySessionInput) {
     },
     progression: toProgression(progression.rows[0]),
     questions,
-    activeAssignment,
-  };
-}
-
-export async function getPlaySessionHistory(studentId: string, limit = 10) {
-  const sessions = await db.query(
-    `
-      select
-        cs.id,
-        cs.session_mode,
-        cs.started_at,
-        cs.ended_at,
-        cs.total_questions,
-        cs.effectiveness_score,
-        coalesce(
-          (
-            select count(*)
-            from public.session_results sr
-            where sr.session_id = cs.id and sr.correct = true
-          ), 0
-        ) as correct_count,
-        coalesce(
-          (
-            select sum(sr.points_earned)
-            from public.session_results sr
-            where sr.session_id = cs.id
-          ), 0
-        ) as points_earned
-      from public.challenge_sessions cs
-      where cs.student_id = $1
-      order by cs.started_at desc
-      limit $2
-    `,
-    [studentId, limit],
-  );
-
-  return {
-    sessions: sessions.rows.map((row) => ({
-      sessionId: row.id as string,
-      sessionMode: row.session_mode as string,
-      startedAt: row.started_at as string,
-      endedAt: (row.ended_at as string | null) ?? null,
-      totalQuestions: Number(row.total_questions ?? 0),
-      correctCount: Number(row.correct_count ?? 0),
-      pointsEarned: Number(row.points_earned ?? 0),
-      effectivenessScore: row.effectiveness_score != null ? Number(row.effectiveness_score) : null,
-      completed: row.ended_at != null,
-    })),
   };
 }
 
@@ -576,7 +1166,7 @@ export async function answerQuestion(input: AnswerInput) {
     throw new Error("Session was not found.");
   }
 
-  const question = getQuestionByKey(input.questionKey);
+  const question = await getQuestionByKey(input.questionKey);
 
   if (!question) {
     throw new Error("Question was not found.");
@@ -584,8 +1174,12 @@ export async function answerQuestion(input: AnswerInput) {
 
   await ensureProgressionState(input.studentId);
 
-  const questionSequence = getRequestedQuestionSequence(
-    (session.rows[0].requested_focus as string | undefined) ?? null,
+  const requestedFocus =
+    (session.rows[0].requested_focus as string | undefined) ?? null;
+  const adaptiveQuestionKeys = extractAdaptiveQuestionKeys(requestedFocus);
+  const currentQuestionIsAdaptive = adaptiveQuestionKeys.has(input.questionKey);
+  const questionSequence = await getRequestedQuestionSequence(
+    requestedFocus,
     session.rows[0].launch_band_code as string,
     (session.rows[0].session_mode as string) || "guided-quest",
     Number(session.rows[0].total_questions ?? 0),
@@ -632,6 +1226,9 @@ export async function answerQuestion(input: AnswerInput) {
 
   const serverAttempt = Number(priorAttempts.rows[0]?.attempt_count ?? 0) + 1;
   const pointsEarned = isCorrect ? (serverAttempt === 1 ? 10 : 6) : 0;
+  let totalQuestions = Number(session.rows[0]?.total_questions ?? 0);
+  let adaptiveRoute: AdaptiveRoute = null;
+  let masteryRecord: StudentSkillMasteryRecord | null = null;
 
   await db.query(
     `
@@ -661,9 +1258,42 @@ export async function answerQuestion(input: AnswerInput) {
     ],
   );
 
+  try {
+    masteryRecord = await updateStudentSkillMastery({
+      studentId: input.studentId,
+      skillId: metadata.skillId,
+      sessionId: input.sessionId,
+      correct: isCorrect,
+      firstTry: serverAttempt === 1,
+      remediationTriggered: !isCorrect,
+    });
+    await syncTeacherInterventionSignals(masteryRecord);
+  } catch (error) {
+    console.error("WonderQuest mastery/intervention update failed", error);
+  }
+
+  const liveQuestionsUsed = await countLiveQuestionsInSequence(questionSequence);
+  const liveBudgetRemaining = Math.max(
+    0,
+    getLiveSessionQuestionBudget() - liveQuestionsUsed,
+  );
+
+  if (!isCorrect && liveBudgetRemaining > 0 && isLiveQuestionGenerationEnabled()) {
+    warmLiveQuestionCache([
+      {
+        launchBandCode: session.rows[0].launch_band_code as string,
+        skillCode: question.skill,
+        difficulty: Math.max(1, question.difficulty - 1),
+        themeCode: question.theme || null,
+        reason: "adaptive-retest",
+        referenceQuestion: question,
+      },
+    ]);
+  }
+
   const current = await db.query(
     `
-      select total_points, current_level, badge_count, trophy_count, streak_count
+      select total_points, current_level, badge_count, trophy_count
       from public.progression_states
       where student_id = $1
       limit 1
@@ -672,13 +1302,19 @@ export async function answerQuestion(input: AnswerInput) {
   );
 
   const previousProgression = toProgression(current.rows[0]);
-  const prevStreakCount = Number(current.rows[0]?.streak_count ?? 0);
   const nextTotalPoints = previousProgression.totalPoints + pointsEarned;
   const nextProgression = {
     totalPoints: nextTotalPoints,
     currentLevel: levelFromPoints(nextTotalPoints),
     badgeCount: badgeCountFromPoints(nextTotalPoints),
     trophyCount: trophyCountFromPoints(nextTotalPoints),
+  };
+  const milestoneFlags = {
+    leveledUp:
+      nextProgression.currentLevel > previousProgression.currentLevel,
+    badgeEarned: nextProgression.badgeCount > previousProgression.badgeCount,
+    trophyEarned:
+      nextProgression.trophyCount > previousProgression.trophyCount,
   };
 
   if (pointsEarned > 0) {
@@ -702,6 +1338,67 @@ export async function answerQuestion(input: AnswerInput) {
         nextProgression.trophyCount,
       ],
     );
+
+    if (
+      milestoneFlags.leveledUp ||
+      milestoneFlags.badgeEarned ||
+      milestoneFlags.trophyEarned
+    ) {
+      try {
+        await createMilestoneNotifications({
+          studentId: input.studentId,
+          previousProgression,
+          nextProgression,
+          milestones: milestoneFlags,
+        });
+      } catch (error) {
+        console.error("WonderQuest milestone notification write failed", error);
+      }
+    }
+  }
+
+  if (
+    isCorrect &&
+    !currentQuestionIsAdaptive &&
+    adaptiveQuestionKeys.size < MAX_ADAPTIVE_INSERTIONS
+  ) {
+    const masteryDrivenRecovery =
+      masteryRecord !== null &&
+      (masteryRecord.masteryScore < 55 ||
+        masteryRecord.consecutiveIncorrect >= 2 ||
+        masteryRecord.remediationCount >= 2);
+
+    adaptiveRoute = await selectAdaptiveRoute(
+      question,
+      session.rows[0].launch_band_code as string,
+      requestedFocus,
+      serverAttempt > 1 || masteryDrivenRecovery,
+      question.theme || null,
+      {
+        mastery: masteryRecord,
+        liveBudgetRemaining,
+      },
+    );
+
+    if (adaptiveRoute) {
+      const updatedFocus = insertAdaptiveQuestionIntoFocus(
+        requestedFocus,
+        input.questionKey,
+        adaptiveRoute.questionKey,
+        (session.rows[0].session_mode as string) || "guided-quest",
+      );
+
+      totalQuestions = updatedFocus.totalQuestions;
+
+      await db.query(
+        `
+          update public.challenge_sessions
+          set requested_focus = $2, total_questions = $3
+          where id = $1
+        `,
+        [input.sessionId, updatedFocus.requestedFocus, totalQuestions],
+      );
+    }
   }
 
   const summary = await db.query(
@@ -716,7 +1413,6 @@ export async function answerQuestion(input: AnswerInput) {
   );
 
   const correctItems = Number(summary.rows[0]?.correct_attempts ?? 0);
-  const totalQuestions = Number(session.rows[0]?.total_questions ?? 0);
   const sessionCompleted = totalQuestions > 0 && correctItems >= totalQuestions;
 
   if (sessionCompleted) {
@@ -734,29 +1430,17 @@ export async function answerQuestion(input: AnswerInput) {
       [input.sessionId, effectivenessScore],
     );
 
-    // Mark active assignment complete if one exists for this student
-    const assignment = await getActiveAssignment(input.studentId);
-    if (assignment) {
-      await completeAssignmentIfActive(input.studentId, assignment.id, input.sessionId);
+    try {
+      await completeAssignmentIfActive({
+        sessionId: input.sessionId,
+        studentId: input.studentId,
+        sessionMode: (session.rows[0].session_mode as string) || "guided-quest",
+        launchBandCode: session.rows[0].launch_band_code as string,
+      });
+    } catch (error) {
+      console.error("WonderQuest assignment completion tracking failed", error);
     }
-
-    // Fire-and-forget: check and auto-trigger skill-weakness interventions
-    checkAndTriggerInterventions(input.studentId, input.sessionId).catch(
-      (err) => console.error("[intervention-trigger]", err),
-    );
-
-    // Fire-and-forget: detect and store milestone notifications for parents
-    detectNewMilestones(input.studentId, input.sessionId, {
-      totalPoints: previousProgression.totalPoints,
-      currentLevel: previousProgression.currentLevel,
-      badgeCount: previousProgression.badgeCount,
-      streakCount: prevStreakCount,
-    })
-      .then((milestones) => storeMilestoneNotifications(input.studentId, milestones))
-      .catch((err) => console.error("[milestone-service]", err));
   }
-
-  const explainer = getExplainerByKey(question.explainer_key);
 
   return {
     correct: isCorrect,
@@ -764,20 +1448,57 @@ export async function answerQuestion(input: AnswerInput) {
     correctAnswer: question.correct_answer,
     needsRetry: !isCorrect,
     sessionCompleted,
+    adaptiveAction: adaptiveRoute?.action ?? null,
+    adaptiveMessage: adaptiveRoute?.message ?? null,
+    adaptiveQuestion: adaptiveRoute
+      ? await buildQuestionCard(adaptiveRoute.questionKey, adaptiveRoute.action)
+      : null,
     explainer: !isCorrect
       ? {
-          format: explainer?.format ?? "voice-video",
-          script: explainer?.script ?? "Let us try that one more time together.",
-          mediaHint: explainer?.media_hint ?? "simple guided example",
+          format: question.voice_script ? "voice-video" : "text",
+          script:
+            question.voice_script ||
+            question.explanation_text ||
+            "Let us try that one more time together.",
+          mediaHint: question.media_hint || "simple guided example",
         }
       : null,
     progression: pointsEarned > 0 ? nextProgression : previousProgression,
-    milestones: {
-      leveledUp:
-        nextProgression.currentLevel > previousProgression.currentLevel,
-      badgeEarned: nextProgression.badgeCount > previousProgression.badgeCount,
-      trophyEarned:
-        nextProgression.trophyCount > previousProgression.trophyCount,
-    },
+    milestones: milestoneFlags,
   };
+}
+
+// ─── Play session history ─────────────────────────────────────────────────────
+
+export type PlaySessionSummary = {
+  sessionId: string;
+  startedAt: string;
+  sessionMode: string;
+  starsEarned: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationMinutes: number | null;
+};
+
+export async function getPlaySessionHistory(
+  studentId: string,
+  limit = 30,
+): Promise<{ sessions: PlaySessionSummary[] }> {
+  const { db } = await import("@/lib/db");
+  const result = await db.query<PlaySessionSummary>(
+    `select
+       id              as "sessionId",
+       started_at      as "startedAt",
+       session_mode    as "sessionMode",
+       stars_earned    as "starsEarned",
+       correct_count   as "correctCount",
+       total_questions as "totalQuestions",
+       duration_minutes as "durationMinutes"
+     from public.challenge_sessions
+     where student_id = $1
+     order by started_at desc
+     limit $2`,
+    [studentId, limit],
+  );
+  return { sessions: result.rows };
 }

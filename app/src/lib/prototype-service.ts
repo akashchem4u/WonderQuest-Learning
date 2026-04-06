@@ -28,6 +28,10 @@ export {
   restoreParentSession,
   getParentNotifications,
   getParentLinkHealth,
+  getParentSkills,
+  getParentReport,
+  markParentNotificationRead,
+  markAllParentNotificationsRead,
 } from "@/lib/parent-service";
 export {
   getOwnerOverview,
@@ -44,6 +48,7 @@ export {
   deleteTeacherAssignment,
   getAssignmentProgress,
 } from "@/lib/assignment-service";
+export { resolveTeacherIntervention } from "@/lib/intervention-service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

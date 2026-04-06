@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   bg: "#100b2e",
@@ -263,6 +264,9 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
 }
 
 export default function TeacherInterventionOverviewPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [filter, setFilter] = useState<FilterTab>("active");
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
@@ -337,6 +341,16 @@ export default function TeacherInterventionOverviewPage() {
     } finally {
       setAutoQueueBusy(false);
     }
+  }
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/intervention-overview">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
   }
 
   return (

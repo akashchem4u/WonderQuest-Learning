@@ -180,6 +180,33 @@ async function seedTeacherRoster(pool, studentId) {
   };
 }
 
+async function seedTeacherIntervention(pool, teacherId, studentId, skillCode) {
+  const result = await pool.query(
+    `
+      insert into public.teacher_interventions (
+        teacher_id,
+        student_id,
+        skill_code,
+        reason,
+        intervention_type,
+        status,
+        teacher_note
+      )
+      values ($1, $2, $3, $4, 'support-queue', 'active', $5)
+      returning id
+    `,
+    [
+      teacherId,
+      studentId,
+      skillCode,
+      "backend smoke seeded intervention",
+      "Resolve through API verification.",
+    ],
+  );
+
+  return String(result.rows[0].id);
+}
+
 async function primeStudentForMilestone(pool, studentId) {
   const result = await pool.query(
     `
@@ -453,20 +480,79 @@ async function main() {
     );
 
     const sessionOutcome = await completeSession(baseUrl, playSession.payload);
+    const seededInterventionId = await seedTeacherIntervention(
+      pool,
+      teacherId,
+      studentId,
+      String(playSession.payload.questions[0]?.skill ?? "short-a-sound"),
+    );
 
     const parentNotifications = await requestJson(
       baseUrl,
       "/api/parent/notifications?includeRead=1&limit=10",
     );
     const parentLinkHealth = await requestJson(baseUrl, "/api/parent/link-health");
+    const parentSkills = await requestJson(baseUrl, "/api/parent/skills");
+    const parentReport = await requestJson(baseUrl, "/api/parent/report");
     const assignmentProgress = await requestJson(
       baseUrl,
       `/api/teacher/assignments/${assignmentId}/progress?teacherId=${teacherId}`,
     );
+    const health = await requestJson(baseUrl, "/api/health");
 
     assert(parentNotifications.ok, "parent notifications route should succeed");
     assert(parentLinkHealth.ok, "parent link health route should succeed");
+    assert(parentSkills.ok, "parent skills route should succeed");
+    assert(parentReport.ok, "parent report route should succeed");
     assert(assignmentProgress.ok, "teacher assignment progress route should succeed");
+    assert(health.ok, "health route should succeed");
+
+    const firstNotificationId = String(
+      parentNotifications.payload.notifications?.[0]?.id ?? "",
+    );
+    assert(firstNotificationId, "parent notifications should return at least one item");
+
+    const markNotificationRead = await requestJson(
+      baseUrl,
+      `/api/parent/notifications/${firstNotificationId}`,
+      {
+        method: "PATCH",
+        body: { read: true },
+      },
+    );
+    const markAllNotificationsRead = await requestJson(
+      baseUrl,
+      "/api/parent/notifications/read-all",
+      {
+        method: "PATCH",
+        body: { read: true },
+      },
+    );
+    const parentNotificationsAfterRead = await requestJson(
+      baseUrl,
+      "/api/parent/notifications?includeRead=1&limit=10",
+    );
+    const resolveIntervention = await requestJson(
+      baseUrl,
+      `/api/teacher/interventions/${seededInterventionId}/resolve`,
+      {
+        method: "POST",
+        body: {
+          teacherId,
+          resolutionNote: "Small-group reteach worked.",
+          strategyTag: "small-group-reteach",
+          effectivenessRating: 4,
+        },
+      },
+    );
+
+    assert(markNotificationRead.ok, "single notification read route should succeed");
+    assert(markAllNotificationsRead.ok, "bulk notification read route should succeed");
+    assert(
+      parentNotificationsAfterRead.ok,
+      "parent notifications route should still succeed after marking read",
+    );
+    assert(resolveIntervention.ok, "teacher intervention resolve route should succeed");
 
     const assignmentRow = await pool.query(
       `
@@ -486,6 +572,15 @@ async function main() {
         order by created_at desc
       `,
       [studentId],
+    );
+    const interventionFeedbackRows = await pool.query(
+      `
+        select strategy_tag, effectiveness_rating
+        from public.intervention_resolution_feedback
+        where intervention_id = $1
+        limit 1
+      `,
+      [seededInterventionId],
     );
 
     assert(assignmentRow.rowCount === 1, "assignment_students row should exist");
@@ -518,8 +613,29 @@ async function main() {
       "parent link health should report a healthy guardian/student link",
     );
     assert(
+      Array.isArray(parentSkills.payload.skills) &&
+        parentSkills.payload.skills.length > 0,
+      "parent skills route should return persisted or fallback mastery data",
+    );
+    assert(
+      parentReport.payload.report?.weekly?.sessionCount >= 1,
+      "parent report weekly summary should include the smoke session",
+    );
+    assert(
       Number(assignmentProgress.payload.summary?.completedStudents ?? 0) === 1,
       "assignment progress summary should show the learner as completed",
+    );
+    assert(
+      Number(parentNotificationsAfterRead.payload.unreadCount ?? -1) === 0,
+      "notification lifecycle routes should clear unread count",
+    );
+    assert(
+      interventionFeedbackRows.rowCount === 1,
+      "intervention resolution should write feedback",
+    );
+    assert(
+      Number(interventionFeedbackRows.rows[0].effectiveness_rating ?? 0) === 4,
+      "intervention resolution should persist the effectiveness rating",
     );
 
     console.log(
@@ -532,15 +648,24 @@ async function main() {
           assignmentId,
           deletedAssignmentId,
           sessionId: playSession.payload.sessionId,
+          interventionId: seededInterventionId,
           assignmentListCount: listAfterDelete.payload.assignments.length,
           answeredQuestionKeys: sessionOutcome.answeredQuestionKeys,
           milestones: sessionOutcome.lastAnswer.milestones,
           assignmentProgressSummary: assignmentProgress.payload.summary,
           notificationTypes: notificationRows.rows.map((row) => String(row.type)),
           parentUnreadCount: Number(parentNotifications.payload.unreadCount ?? 0),
+          parentUnreadCountAfterRead: Number(
+            parentNotificationsAfterRead.payload.unreadCount ?? 0,
+          ),
           parentNotificationCount: Array.isArray(parentNotifications.payload.notifications)
             ? parentNotifications.payload.notifications.length
             : 0,
+          parentSkillCount: Array.isArray(parentSkills.payload.skills)
+            ? parentSkills.payload.skills.length
+            : 0,
+          weeklyReportSessions: Number(parentReport.payload.report?.weekly?.sessionCount ?? 0),
+          healthStatus: health.payload.status,
         },
         null,
         2,
