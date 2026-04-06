@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 const BASE     = "#100b2e";
@@ -36,10 +36,17 @@ interface Risk {
   owner: string;
 }
 
+// ── API type ───────────────────────────────────────────────────────────────
+interface OverviewData {
+  counts: {
+    feedbackItems: number;
+  };
+}
+
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const SEVERITY_SCORE_STYLE: Record<Severity, { bg: string; color: string }> = {
-  critical: { bg: "rgba(248,81,73,0.2)",  color: RED },
+  critical: { bg: "rgba(248,81,73,0.2)",   color: RED },
   high:     { bg: "rgba(245,158,11,0.18)", color: AMBER },
   medium:   { bg: "rgba(255,209,102,0.12)", color: GOLD },
   low:      { bg: "rgba(80,232,144,0.12)", color: MINT },
@@ -232,6 +239,21 @@ const SEVERITY_ORDER: Severity[] = ["critical", "high", "medium", "low"];
 export default function OwnerRiskRegisterPage() {
   const [activeCat, setActiveCat] = useState<string>("All");
   const [activeStatus, setActiveStatus] = useState<string>("All");
+  const [overviewData, setOverviewData] = useState<OverviewData | null>(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
+  useEffect(() => {
+    setLoadingOverview(true);
+    fetch("/api/owner/overview")
+      .then((r) => r.json())
+      .then((json) => {
+        setOverviewData(json as OverviewData);
+        setLoadingOverview(false);
+      })
+      .catch(() => {
+        setLoadingOverview(false);
+      });
+  }, []);
 
   const categories = ["All", "Privacy", "Technical", "Product", "Business", "Legal"];
   const statuses = ["All", "Open", "Monitoring", "Mitigated"];
@@ -240,15 +262,21 @@ export default function OwnerRiskRegisterPage() {
     const catOk = activeCat === "All" || r.tags.includes(activeCat as RiskCat);
     const statusOk =
       activeStatus === "All" ||
-      r.status === activeStatus.toLowerCase() as RiskStatus;
+      r.status === (activeStatus.toLowerCase() as RiskStatus);
     return catOk && statusOk;
   });
 
-  const critCount   = RISKS.filter((r) => r.severity === "critical").length;
-  const highCount   = RISKS.filter((r) => r.severity === "high").length;
-  const medCount    = RISKS.filter((r) => r.severity === "medium").length;
-  const lowCount    = RISKS.filter((r) => r.severity === "low").length;
+  const critCount    = RISKS.filter((r) => r.severity === "critical").length;
+  const highCount    = RISKS.filter((r) => r.severity === "high").length;
+  const medCount     = RISKS.filter((r) => r.severity === "medium").length;
+  const lowCount     = RISKS.filter((r) => r.severity === "low").length;
   const openMonCount = RISKS.filter((r) => r.status === "open" || r.status === "monitoring").length;
+
+  // Live feedback count from API
+  const liveFeedbackCount = overviewData?.counts.feedbackItems;
+  const feedbackRiskColor = liveFeedbackCount !== undefined
+    ? liveFeedbackCount > 30 ? RED : liveFeedbackCount > 10 ? AMBER : MINT
+    : MUTED;
 
   const chipStyle = (active: boolean): React.CSSProperties => ({
     padding: "4px 12px",
@@ -269,6 +297,49 @@ export default function OwnerRiskRegisterPage() {
           <h1 style={{ fontSize: 20, fontWeight: 900, color: TEXT, marginBottom: 24 }}>
             ⚠️ Risk Register
           </h1>
+
+          {/* ── Live feedback risk metric ──────────────────────────── */}
+          <div style={{
+            background: SURFACE,
+            border: `1px solid ${liveFeedbackCount !== undefined && liveFeedbackCount > 10 ? "rgba(245,158,11,0.3)" : BORDER}`,
+            borderRadius: 12,
+            padding: "16px 20px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            flexWrap: "wrap",
+          }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", color: MUTED2, marginBottom: 4 }}>
+                Live Risk Metric — Open Feedback Items
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                {loadingOverview ? (
+                  <div style={{ width: 48, height: 28, background: "rgba(255,255,255,.06)", borderRadius: 4 }} />
+                ) : (
+                  <span style={{ fontSize: 28, fontWeight: 900, color: feedbackRiskColor, lineHeight: 1 }}>
+                    {liveFeedbackCount !== undefined ? liveFeedbackCount.toLocaleString() : "—"}
+                  </span>
+                )}
+                <span style={{ fontSize: 12, color: MUTED }}>total feedback items</span>
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>
+                Live count from <code style={{ fontSize: 10, background: "rgba(255,255,255,.06)", padding: "1px 5px", borderRadius: 3 }}>GET /api/owner/overview</code>.
+                {liveFeedbackCount !== undefined && liveFeedbackCount > 30 && (
+                  <span style={{ marginLeft: 6, color: RED, fontWeight: 700 }}>HIGH — review open items in Feedback Workbench.</span>
+                )}
+                {liveFeedbackCount !== undefined && liveFeedbackCount > 10 && liveFeedbackCount <= 30 && (
+                  <span style={{ marginLeft: 6, color: AMBER, fontWeight: 700 }}>ELEVATED — monitor triage queue.</span>
+                )}
+                {liveFeedbackCount !== undefined && liveFeedbackCount <= 10 && (
+                  <span style={{ marginLeft: 6, color: MINT, fontWeight: 700 }}>NORMAL — within expected range.</span>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div style={{
             background: "#0d1117",
@@ -299,7 +370,7 @@ export default function OwnerRiskRegisterPage() {
                   cursor: "pointer",
                   padding: "5px 12px",
                   borderRadius: 6,
-                  border: `1px solid rgba(80,232,144,0.3)`,
+                  border: "1px solid rgba(80,232,144,0.3)",
                 }}>+ Add Risk</div>
               </div>
             </div>
@@ -313,11 +384,11 @@ export default function OwnerRiskRegisterPage() {
               borderBottom: `1px solid ${BORDER}`,
             }}>
               {[
-                { val: critCount,    lbl: "Critical (≥16)",     color: RED },
-                { val: highCount,    lbl: "High (10–15)",        color: AMBER },
-                { val: medCount,     lbl: "Medium (5–9)",        color: GOLD },
-                { val: lowCount,     lbl: "Low (1–4)",           color: MINT },
-                { val: openMonCount, lbl: "Open / Monitoring",   color: AMBER },
+                { val: critCount,    lbl: "Critical (≥16)",   color: RED },
+                { val: highCount,    lbl: "High (10–15)",      color: AMBER },
+                { val: medCount,     lbl: "Medium (5–9)",      color: GOLD },
+                { val: lowCount,     lbl: "Low (1–4)",         color: MINT },
+                { val: openMonCount, lbl: "Open / Monitoring", color: AMBER },
               ].map((s, i) => (
                 <div key={i} style={{ background: SURFACE2, padding: "14px 18px" }}>
                   <div style={{ fontSize: 22, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.val}</div>
@@ -393,7 +464,7 @@ export default function OwnerRiskRegisterPage() {
                           alignItems: "start",
                         }}>
                           {/* ID */}
-                          <div style={{ padding: "10px 0 10px 0", fontSize: 9, fontWeight: 700, color: MUTED2, fontVariantNumeric: "tabular-nums" }}>{risk.id}</div>
+                          <div style={{ padding: "10px 0", fontSize: 9, fontWeight: 700, color: MUTED2, fontVariantNumeric: "tabular-nums" }}>{risk.id}</div>
                           {/* Risk */}
                           <div style={{ padding: "10px 12px" }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, marginBottom: 3 }}>{risk.title}</div>
