@@ -128,7 +128,7 @@ export default function TeacherPage() {
 
   useEffect(() => {
     const teacherId = getTeacherId();
-    if (!teacherId || teacherId === "demo-teacher") return;
+    if (!teacherId) return;
     fetch("/api/teacher/profile")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { profile?: { displayName: string; schoolName: string | null } } | null) => {
