@@ -294,10 +294,22 @@ export default function ParentSkillsPage() {
           const body = await res.json().catch(() => ({}));
           throw new Error((body as { error?: string }).error ?? "Failed to load skills.");
         }
-        return res.json() as Promise<{ skills: SkillProgress[] }>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return res.json() as Promise<{ skills: any[] }>;
       })
-      .then(({ skills: s }) => {
-        setSkills(s);
+      .then(({ skills: raw }) => {
+        // Normalise API field names → page type
+        const mapped: SkillProgress[] = (raw ?? []).map((s) => ({
+          skillCode: String(s.skillCode ?? ""),
+          skillName: String(s.displayName ?? s.skillName ?? ""),
+          subjectCode: String(s.subjectCode ?? ""),
+          launchBandCode: String(s.launchBandCode ?? ""),
+          correctCount: Number(s.correctAttempts ?? s.correctCount ?? 0),
+          totalCount: Number(s.attempts ?? s.totalCount ?? 0),
+          masteryPct: Number(s.masteryScore ?? s.masteryPct ?? 0),
+          lastPracticed: s.updatedAt ?? s.lastPracticed ?? null,
+        }));
+        setSkills(mapped);
         setLoading(false);
       })
       .catch((err: unknown) => {
