@@ -29,6 +29,7 @@ type SessionData = {
     avatarKey: string;
     launchBandCode: string;
     preferredThemeCode: string | null;
+    streakCount?: number;
   };
   progression: {
     totalPoints: number;
@@ -172,6 +173,7 @@ export default function ChildHubPage() {
   const [sidebarActive, setSidebarActive] = useState("home");
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
 
   useEffect(() => {
     fetch("/api/child/session")
@@ -180,19 +182,21 @@ export default function ChildHubPage() {
         setSession(data);
         setSelectedBand(data.student.launchBandCode);
       })
-      .catch(() => {
-        // No-op: render with null session — stubs remain visible
-      })
+      .catch(() => setSessionError(true))
       .finally(() => setLoading(false));
   }, []);
 
-  const streak = 0; // streak not yet in backend; placeholder
+  const streak = session?.student?.streakCount ?? 0;
   const stars = session?.progression.totalPoints ?? 0;
   const badgeCount = session?.progression.badgeCount ?? 0;
+  const currentLevel = session?.progression.currentLevel ?? 1;
   const avatarEmoji = session ? getAvatarEmoji(session.student.avatarKey) : "🦋";
   const world = getWorldForBand(session?.student.launchBandCode ?? "K1");
   const activeNodes = world.nodes;
-  const completedNodes = world.completedNodes;
+  // Derive completedNodes from real level: each level ≈ 1 node, capped at totalNodes-1
+  const completedNodes = session
+    ? Math.min(currentLevel - 1, world.totalNodes - 1)
+    : world.completedNodes;
   const totalNodes = world.totalNodes;
   const progressPct = Math.round((completedNodes / totalNodes) * 100);
   const activeNodeIndex = completedNodes; // 0-based index of active node
@@ -228,20 +232,21 @@ export default function ChildHubPage() {
   if (loading) {
     return (
       <AppFrame audience="kid" currentPath="/child">
-        <div
-          style={{
-            minHeight: "100vh",
-            background: bg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: font,
-            color: textPrimary,
-            fontSize: 18,
-            fontWeight: 700,
-          }}
-        >
+        <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, color: textPrimary, fontSize: 18, fontWeight: 700 }}>
           Loading your quest hub…
+        </div>
+      </AppFrame>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <div style={{ minHeight: "100vh", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: font, color: textPrimary, gap: 16, padding: 24 }}>
+          <div style={{ fontSize: 48 }}>🌟</div>
+          <div style={{ fontSize: 20, fontWeight: 900 }}>Oops, something went wrong!</div>
+          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", textAlign: "center", maxWidth: 280 }}>We couldn&apos;t load your quest hub. Check your connection and try again.</div>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 8, padding: "12px 28px", background: violet, color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: font }}>Try again</button>
         </div>
       </AppFrame>
     );

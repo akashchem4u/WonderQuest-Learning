@@ -11,6 +11,7 @@ type SessionData = {
     displayName: string;
     avatarKey: string;
     launchBandCode: string;
+    streakCount?: number;
   };
   progression: {
     totalPoints: number;
@@ -62,15 +63,16 @@ export default function ChildProfilePage() {
   const [editMode, setEditMode] = useState(false);
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
 
   useEffect(() => {
     fetch("/api/child/session")
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data: SessionData) => {
         setSession(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setSessionError(true); setLoading(false); });
   }, []);
 
   const displayName = session?.student.displayName ?? "Explorer";
@@ -79,7 +81,7 @@ export default function ChildProfilePage() {
   const totalPoints = session?.progression.totalPoints ?? 0;
   const currentLevel = session?.progression.currentLevel ?? 1;
   const badgeCount = session?.progression.badgeCount ?? 0;
-  const streakCount = 0; // streakCount not in session API
+  const streakCount = session?.student?.streakCount ?? 0;
 
   // Use avatarKey as emoji if it's short (emoji key), else fall back to 🦋
   const avatarDisplay = avatarKey.length <= 4 ? avatarKey : "🦋";
@@ -97,8 +99,18 @@ export default function ChildProfilePage() {
             </div>
           )}
 
+          {/* Error state */}
+          {!loading && sessionError && (
+            <div style={{ textAlign: "center", padding: "60px 20px" }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🌟</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 8 }}>Couldn&apos;t load your profile</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Check your connection and try again.</div>
+              <button onClick={() => window.location.reload()} style={{ padding: "10px 24px", background: C.violet, color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "'Nunito', system-ui, sans-serif" }}>Try again</button>
+            </div>
+          )}
+
           {/* Profile card */}
-          {!loading && (
+          {!loading && !sessionError && (
             <div style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, overflow: "hidden", animation: "card-enter 0.3s cubic-bezier(0.34,1.56,0.64,1) both" }}>
               {/* Hero */}
               <div style={{ background: "linear-gradient(135deg, #1e1470, #2a1060)", padding: "20px 20px 16px", position: "relative" }}>

@@ -86,6 +86,7 @@ export default function TeacherHomePage() {
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "support">("overview");
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [teacherName, setTeacherName] = useState("");
 
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function TeacherHomePage() {
         const name = profileData?.profile?.displayName;
         if (name && name !== "Teacher") setTeacherName(name);
       })
-      .catch(() => {/* fall through to empty roster */})
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -170,6 +171,13 @@ export default function TeacherHomePage() {
         <p style={{ fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 20 }}>
           {loading ? "Loading class…" : `${totalStudents} students`}
         </p>
+
+        {/* Error banner */}
+        {fetchError && (
+          <div style={{ background: "rgba(255,123,107,0.1)", border: "1px solid rgba(255,123,107,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: C.red, display: "flex", alignItems: "center", gap: 8 }}>
+            ⚠️ Couldn&apos;t load class data. <button onClick={() => window.location.reload()} style={{ background: "none", border: "none", color: C.red, fontWeight: 700, cursor: "pointer", fontSize: 13, fontFamily: "system-ui", textDecoration: "underline", padding: 0 }}>Retry</button>
+          </div>
+        )}
 
         {/* Quick nav */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>

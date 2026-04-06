@@ -73,6 +73,7 @@ export default function ParentFamilyPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [session, setSession] = useState<ParentSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [topSkills, setTopSkills] = useState<{ name: string; pct: number }[]>([]);
   const [pinReset, setPinReset] = useState<PinResetState>({
     studentId: null,
     pin: "",
@@ -87,6 +88,21 @@ export default function ParentFamilyPage() {
       .then((r) => r.ok ? r.json() : null)
       .then((data: ParentSession | null) => {
         setSession(data);
+        // Fetch skills for the first linked child
+        const childId = data?.linkedChildren?.[0]?.id;
+        if (childId) {
+          fetch(`/api/parent/skills?studentId=${encodeURIComponent(childId)}`)
+            .then((r) => r.ok ? r.json() : null)
+            .then((skillData: { skills?: { skillName: string; masteryPct: number }[] } | null) => {
+              const top = (skillData?.skills ?? [])
+                .filter((s) => s.masteryPct > 0)
+                .sort((a, b) => b.masteryPct - a.masteryPct)
+                .slice(0, 4)
+                .map((s) => ({ name: s.skillName, pct: s.masteryPct }));
+              setTopSkills(top);
+            })
+            .catch(() => {/* ignore */});
+        }
       })
       .catch(() => {/* ignore */})
       .finally(() => setLoading(false));
@@ -203,7 +219,7 @@ export default function ParentFamilyPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>
             👋 Good morning, {loading ? "…" : (firstChild ? firstChild.displayName + "'s family" : guardianName)}
           </h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Week of April 7 – April 13, 2026</p>
+          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>{(() => { const now = new Date(); const day = now.getDay(); const mon = new Date(now); mon.setDate(now.getDate() - ((day + 6) % 7)); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); const fmt = (d: Date) => d.toLocaleDateString("en", { month: "long", day: "numeric" }); return `Week of ${fmt(mon)} – ${fmt(sun)}, ${now.getFullYear()}`; })()}</p>
         </div>
 
         {/* Tab bar */}
@@ -282,17 +298,23 @@ export default function ParentFamilyPage() {
                   <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Skills practiced this week</span>
                   <Link href="/parent/skills/phonics-blending" style={{ fontSize: 11, fontWeight: 700, color: C.violet, textDecoration: "none" }}>See all →</Link>
                 </div>
-                {[["Rhyming words", 88, C.violet], ["Letter sounds", 74, C.violet], ["Counting objects", 60, C.gold], ["First words", 45, C.gold]].map(([name, pct, color]) => (
-                  <div key={name as string} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-                    <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: color as string, borderRadius: 3 }} />
+                {topSkills.length > 0
+                  ? topSkills.map(({ name, pct }, idx) => (
+                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, width: 120, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: idx < 2 ? C.violet : C.gold, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: C.muted, width: 32, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
                     </div>
-                    <span style={{ fontSize: 11, color: C.muted, width: 32, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
-                  </div>
-                ))}
+                  ))
+                  : (loading
+                    ? <div style={{ fontSize: 12, color: C.muted, padding: "8px 0" }}>Loading skills…</div>
+                    : <div style={{ fontSize: 12, color: C.muted, padding: "8px 0" }}>No skills practiced yet.</div>
+                  )
+                }
                 <div style={{ marginTop: 14, padding: "10px 12px", background: "rgba(88,232,193,0.08)", borderRadius: 8, border: "1px solid rgba(88,232,193,0.2)", fontSize: 12, color: C.mint, lineHeight: 1.4 }}>
-                  💡 <strong>Support tip:</strong> {firstChild ? `${firstChild.displayName} is building great skills` : "Keep practicing"} — try pointing out rhymes in bedtime books!
+                  💡 <strong>Support tip:</strong> {firstChild ? `${firstChild.displayName} is building great skills` : "Keep practicing"}{topSkills[0] ? ` — keep practicing ${topSkills[0].name.toLowerCase()} together!` : " — ask your child to show you what they learned today!"}
                 </div>
               </div>
 
@@ -301,8 +323,8 @@ export default function ParentFamilyPage() {
                 <div style={{ background: "linear-gradient(135deg, #1a1240, #2a1860)", borderRadius: 16, padding: 22, color: C.text }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(192,176,240,0.8)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Current streak</div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 8 }}>
-                    <span style={{ fontSize: 36, fontWeight: 900, color: C.gold }}>🔥 —</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>days in a row!</span>
+                    <span style={{ fontSize: 36, fontWeight: 900, color: C.gold }}>🔥 {loading ? "—" : (firstChild ? "…" : "0")}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>day streak</span>
                   </div>
                   <div style={{ display: "flex", gap: 5 }}>
                     {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
