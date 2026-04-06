@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import OwnerGate from "@/app/owner/owner-gate";
 
@@ -19,15 +20,24 @@ const C = {
   red: "#ef4444",
 } as const;
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
-const KPI_CARDS = [
-  { label: "MAU", value: "2,847", delta: "▲ +12% MoM", up: true },
-  { label: "DAU", value: "634", delta: "▲ +8% WoW", up: true },
-  { label: "Schools", value: "14", delta: "+2 this month", up: true },
-  { label: "Families", value: "1,203", delta: "+134 this month", up: true },
-  { label: "DAU / MAU", value: "22.3%", delta: "● Healthy", up: true, valueSm: true },
-];
+// ── API types ─────────────────────────────────────────────────────────────────
+interface BandCount {
+  code: string;
+  displayName: string;
+  studentCount: number;
+}
 
+interface OverviewData {
+  counts: {
+    students: number;
+    guardians: number;
+    sessions: number;
+    feedbackItems: number;
+  };
+  byBand: BandCount[];
+}
+
+// ── Static chart/funnel data (unchanged) ──────────────────────────────────────
 const CHART_POINTS = [
   { x: 52, y: 196.7, label: "Apr" },
   { x: 117, y: 183.3, label: "May" },
@@ -71,19 +81,6 @@ const FUNNEL = [
   { step: "30-day active", pct: 40, count: "734", color: "#ff7a5c" },
 ];
 
-const SCHOOLS = [
-  { name: "Maplewood Elementary", bands: ["K–1", "G2–3"], teachers: 4, students: 96, sessions: "1,840", eng: "High", since: "Sep 2024" },
-  { name: "Ridgeline Academy", bands: ["Pre-K", "K–1", "G2–3"], teachers: 3, students: 74, sessions: "1,210", eng: "High", since: "Oct 2024" },
-  { name: "Sunridge Primary School", bands: ["K–1"], teachers: 2, students: 48, sessions: "724", eng: "High", since: "Oct 2024" },
-  { name: "Clearwater Learning Center", bands: ["G2–3", "G4–5"], teachers: 2, students: 52, sessions: "680", eng: "Medium", since: "Nov 2024" },
-  { name: "Pinecrest Charter School", bands: ["Pre-K", "K–1"], teachers: 2, students: 44, sessions: "590", eng: "Medium", since: "Nov 2024" },
-  { name: "Heritage Grove School", bands: ["K–1", "G2–3", "G4–5"], teachers: 3, students: 70, sessions: "870", eng: "High", since: "Oct 2024" },
-  { name: "Westfield Elementary", bands: ["G2–3"], teachers: 2, students: 50, sessions: "410", eng: "Medium", since: "Dec 2024" },
-  { name: "Lakeside Prep", bands: ["Pre-K", "K–1"], teachers: 2, students: 38, sessions: "295", eng: "Low", since: "Jan 2025" },
-  { name: "Northgate Primary", bands: ["K–1", "G2–3"], teachers: 3, students: 65, sessions: "780", eng: "High", since: "Nov 2024" },
-  { name: "Elm Street Academy", bands: ["G4–5"], teachers: 1, students: 24, sessions: "180", eng: "Low", since: "Feb 2025" },
-];
-
 const BAND_COLORS: Record<string, { bg: string; color: string }> = {
   "Pre-K": { bg: "rgba(255,180,60,.18)", color: "#ffb43c" },
   "K–1":   { bg: "rgba(80,232,144,.18)", color: "#50e890" },
@@ -97,14 +94,45 @@ const ENG_STYLE: Record<string, { bg: string; color: string; border: string }> =
   Low:    { bg: "rgba(255,100,90,.12)", color: "#ff6a5e", border: "1px solid rgba(255,100,90,.25)" },
 };
 
+function fmt(n: number): string {
+  return n.toLocaleString();
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AdoptionPage() {
-  // Static stub — no real auth in client component; gate shown in real app via server
-  const allowed = true;
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  if (!allowed) {
+  useEffect(() => {
+    fetch("/api/owner/overview")
+      .then((res) => res.json())
+      .then((data: OverviewData & { error?: string }) => {
+        if (data?.error) {
+          setLoadError(data.error);
+        } else {
+          setOverview(data);
+        }
+      })
+      .catch(() => setLoadError("Failed to fetch overview data."));
+  }, []);
+
+  if (loadError) {
     return <OwnerGate configured={false} />;
   }
+
+  const studentCount = overview?.counts.students ?? 0;
+  const sessionCount = overview?.counts.sessions ?? 0;
+  const guardianCount = overview?.counts.guardians ?? 0;
+  const byBand = overview?.byBand ?? [];
+
+  // Build KPI cards from real data
+  const kpiCards = [
+    { label: "Students", value: fmt(studentCount), delta: overview ? "Live data" : "Loading…", up: true },
+    { label: "Families", value: fmt(guardianCount), delta: overview ? "Live data" : "Loading…", up: true },
+    { label: "Sessions", value: fmt(sessionCount), delta: overview ? "All time" : "Loading…", up: true },
+    { label: "Feedback", value: fmt(overview?.counts.feedbackItems ?? 0), delta: overview ? "All time" : "Loading…", up: true },
+    { label: "DAU / MAU", value: "—", delta: "● Analytics lag", up: false, valueSm: true },
+  ];
 
   const polylinePoints = CHART_POINTS.map((p) => `${p.x},${p.y}`).join(" ");
   const areaPoints =
@@ -200,7 +228,7 @@ export default function AdoptionPage() {
             marginBottom: "28px",
           }}
         >
-          {KPI_CARDS.map((kpi) => (
+          {kpiCards.map((kpi) => (
             <div
               key={kpi.label}
               style={{
@@ -249,6 +277,48 @@ export default function AdoptionPage() {
             </div>
           ))}
         </div>
+
+        {/* ── Band breakdown ────────────────────────────────────────────── */}
+        {byBand.length > 0 && (
+          <div
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: "10px",
+              padding: "20px",
+              marginBottom: "28px",
+            }}
+          >
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "rgba(240,246,255,.6)", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "16px" }}>
+              Students by Band
+            </div>
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              {byBand.map((band) => {
+                const style = BAND_COLORS[band.code] ?? { bg: "rgba(255,255,255,.1)", color: C.muted };
+                return (
+                  <div
+                    key={band.code}
+                    style={{
+                      background: style.bg,
+                      borderRadius: "8px",
+                      padding: "14px 18px",
+                      minWidth: "120px",
+                      flex: "1 1 120px",
+                    }}
+                  >
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: style.color, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
+                      {band.displayName || band.code}
+                    </div>
+                    <div style={{ fontSize: "26px", fontWeight: 800, color: C.text, lineHeight: 1 }}>
+                      {fmt(band.studentCount)}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "rgba(240,246,255,.4)", marginTop: "4px" }}>students</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── MAU Trend Chart ───────────────────────────────────────────── */}
         <div
@@ -455,10 +525,10 @@ export default function AdoptionPage() {
                 marginBottom: "8px",
               }}
             >
-              Teacher Cohort — 14 Schools · 28 Teachers
+              Teacher Cohort — Sessions per Week (8-week window)
             </div>
             <div style={{ fontSize: "12px", color: "rgba(240,246,255,.45)", marginBottom: "4px" }}>
-              Engagement sessions per week (8-week window)
+              Total sessions (all time): {fmt(sessionCount)}
             </div>
             <div
               style={{
@@ -521,7 +591,7 @@ export default function AdoptionPage() {
                 marginBottom: "8px",
               }}
             >
-              Family Retention Curve — 1,203 Families
+              Family Retention Curve — {fmt(guardianCount)} Families
             </div>
             <div style={{ fontSize: "12px", color: "rgba(240,246,255,.45)", marginBottom: "2px" }}>
               % still active by week
@@ -652,137 +722,118 @@ export default function AdoptionPage() {
           </div>
         </div>
 
-        {/* ── School adoption table ─────────────────────────────────────── */}
-        <div style={{ marginBottom: "28px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "16px",
-              flexWrap: "wrap",
-              gap: "10px",
-            }}
-          >
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "rgba(240,246,255,.6)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-              Active Schools (14)
-            </div>
-            <div style={{ fontSize: "12px", color: "rgba(240,246,255,.4)", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              Engagement:
-              {(["High", "Medium", "Low"] as const).map((eng) => (
-                <span
-                  key={eng}
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    padding: "3px 10px",
-                    borderRadius: "5px",
-                    ...ENG_STYLE[eng],
-                  }}
-                >
-                  {eng}
-                </span>
-              ))}
-              DAU/MAU
-            </div>
-          </div>
-          <div
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: "10px",
-              overflowX: "auto",
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-              <thead>
-                <tr>
-                  {["School Name", "Band Mix", "Teachers", "Students", "Sessions (30d)", "Engagement", "Since"].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        color: "rgba(240,246,255,.4)",
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        borderBottom: "1px solid rgba(255,255,255,.06)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {SCHOOLS.map((school) => (
-                  <tr
-                    key={school.name}
-                    style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}
+        {/* ── Band adoption table ───────────────────────────────────────── */}
+        {byBand.length > 0 && (
+          <div style={{ marginBottom: "28px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "16px",
+                flexWrap: "wrap",
+                gap: "10px",
+              }}
+            >
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "rgba(240,246,255,.6)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+                Students by Band ({fmt(studentCount)} total)
+              </div>
+              <div style={{ fontSize: "12px", color: "rgba(240,246,255,.4)", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                Engagement:
+                {(["High", "Medium", "Low"] as const).map((eng) => (
+                  <span
+                    key={eng}
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "3px 10px",
+                      borderRadius: "5px",
+                      ...ENG_STYLE[eng],
+                    }}
                   >
-                    <td style={{ padding: "11px 16px", color: C.text, fontWeight: 600 }}>{school.name}</td>
-                    <td style={{ padding: "11px 16px" }}>
-                      <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                        {school.bands.map((b) => (
+                    {eng}
+                  </span>
+                ))}
+                DAU/MAU
+              </div>
+            </div>
+            <div
+              style={{
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: "10px",
+                overflowX: "auto",
+              }}
+            >
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                <thead>
+                  <tr>
+                    {["Band", "Display Name", "Students"].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                          color: "rgba(240,246,255,.4)",
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          borderBottom: "1px solid rgba(255,255,255,.06)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {byBand.map((band) => {
+                    const style = BAND_COLORS[band.code] ?? { bg: "rgba(255,255,255,.08)", color: C.muted };
+                    return (
+                      <tr
+                        key={band.code}
+                        style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}
+                      >
+                        <td style={{ padding: "11px 16px" }}>
                           <span
-                            key={b}
                             style={{
                               fontSize: "10px",
                               fontWeight: 700,
                               padding: "2px 7px",
                               borderRadius: "3px",
                               letterSpacing: "0.3px",
-                              ...(BAND_COLORS[b] ?? { bg: "rgba(255,255,255,.1)", color: C.muted }),
-                              background: BAND_COLORS[b]?.bg,
-                              color: BAND_COLORS[b]?.color,
+                              background: style.bg,
+                              color: style.color,
                             }}
                           >
-                            {b}
+                            {band.code}
                           </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ padding: "11px 16px", color: C.text }}>{school.teachers}</td>
-                    <td style={{ padding: "11px 16px", color: C.text }}>{school.students}</td>
-                    <td style={{ padding: "11px 16px", color: C.text }}>{school.sessions}</td>
-                    <td style={{ padding: "11px 16px" }}>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          padding: "3px 10px",
-                          borderRadius: "5px",
-                          ...ENG_STYLE[school.eng],
-                        }}
-                      >
-                        {school.eng}
-                      </span>
-                    </td>
-                    <td style={{ padding: "11px 16px", color: "rgba(240,246,255,.45)", fontSize: "12px" }}>
-                      {school.since}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </td>
+                        <td style={{ padding: "11px 16px", color: C.text, fontWeight: 600 }}>{band.displayName || band.code}</td>
+                        <td style={{ padding: "11px 16px", color: C.text }}>{fmt(band.studentCount)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginTop: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: "#f0c040",
+                  flexShrink: 0,
+                }}
+              />
+              Individual student names are never displayed · B2B contract context only
+            </div>
           </div>
-          <div style={{ fontSize: "11px", color: "rgba(240,246,255,.35)", marginTop: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                background: "#f0c040",
-                flexShrink: 0,
-              }}
-            />
-            Individual student names are never displayed · B2B contract context only
-          </div>
-        </div>
+        )}
       </main>
     </AppFrame>
   );

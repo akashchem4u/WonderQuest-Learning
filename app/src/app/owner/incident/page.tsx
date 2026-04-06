@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import OwnerGate from "@/app/owner/owner-gate";
 
@@ -19,7 +19,39 @@ const C = {
   amber: "#f59e0b",
 } as const;
 
-// ── Stub data ─────────────────────────────────────────────────────────────────
+// ── API types ─────────────────────────────────────────────────────────────────
+interface FeedbackCategory {
+  category: string;
+  count: number;
+}
+
+interface RecentFeedback {
+  id: string;
+  submittedByRole: string;
+  sourceChannel: string;
+  createdAt: string;
+  category: string;
+  urgency: string;
+  summary: string;
+  reviewStatus: string;
+}
+
+interface FeedbackByReviewStatus {
+  reviewStatus: string;
+  count: number;
+}
+
+interface OverviewData {
+  counts: {
+    feedbackItems: number;
+    sessions: number;
+  };
+  feedbackByCategory: FeedbackCategory[];
+  feedbackByReviewStatus: FeedbackByReviewStatus[];
+  recentFeedback: RecentFeedback[];
+}
+
+// ── Static incident data (operational, not from feedback API) ─────────────────
 const TIMELINE = [
   {
     dot: C.violet,
@@ -67,13 +99,6 @@ const ON_CALL = [
   { initial: "A", name: "Alex (Backend)", avatarBg: "rgba(155,114,255,.12)", avatarColor: C.violet, status: "Acknowledged", statusBg: "rgba(80,232,144,.1)", statusColor: C.mint },
 ];
 
-const HISTORY = [
-  { sev: "P0", sevBg: "rgba(248,81,73,.2)", sevColor: C.red, title: "SSO token expiry — Batch deploy misconfiguration", meta: "Auth/SSO · Mar 24 · Resolved in 3h 18m · Hotfix v2.4.8", ttr: "3h 18m", ttrColor: C.mint },
-  { sev: "P0", sevBg: "rgba(248,81,73,.2)", sevColor: C.red, title: "Assignment queue failure — Redis consumer crash", meta: "Assignment Engine · Mar 17 · Resolved in 5h 45m · Hotfix v2.4.7", ttr: "5h 45m", ttrColor: C.mint },
-  { sev: "P1", sevBg: "rgba(245,158,11,.15)", sevColor: C.amber, title: "Mastery score calculation lag spike", meta: "Mastery Score · Mar 10 · Resolved in 22h · DB query optimisation", ttr: "22h", ttrColor: C.amber },
-  { sev: "P1", sevBg: "rgba(245,158,11,.15)", sevColor: C.amber, title: "Content CDN cache invalidation failure", meta: "Content Delivery · Feb 28 · Resolved in 4h · CDN config rollback", ttr: "4h", ttrColor: C.mint },
-];
-
 const POST_INCIDENT = [
   { label: "Incident", val: "P0 — Assignment Engine Queue Failure", valColor: C.text },
   { label: "Root cause", val: "Redis consumer null payload crash (v2.5.0 regression)", valColor: C.text },
@@ -88,16 +113,56 @@ const POST_INCIDENT = [
 
 type TabId = "active" | "clear" | "resolved";
 
+function urgencyColor(urgency: string): string {
+  if (urgency === "critical" || urgency === "high") return C.red;
+  if (urgency === "medium") return C.amber;
+  return C.muted;
+}
+
+function urgencyBg(urgency: string): string {
+  if (urgency === "critical" || urgency === "high") return "rgba(248,81,73,.15)";
+  if (urgency === "medium") return "rgba(245,158,11,.12)";
+  return "rgba(255,255,255,.06)";
+}
+
+function statusColor(status: string): string {
+  if (status === "resolved") return C.mint;
+  if (status === "in_review") return C.amber;
+  return C.muted;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function IncidentPage() {
   const [tab, setTab] = useState<TabId>("active");
   const [updateText, setUpdateText] = useState("");
 
-  // Static stub — gate not wired; OwnerGate shown via real server guard
-  const allowed = true;
-  if (!allowed) {
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/owner/overview")
+      .then((res) => res.json())
+      .then((data: OverviewData & { error?: string }) => {
+        if (data?.error) {
+          setLoadError(data.error);
+        } else {
+          setOverview(data);
+        }
+      })
+      .catch(() => setLoadError("Failed to fetch overview data."));
+  }, []);
+
+  if (loadError) {
     return <OwnerGate configured={false} />;
   }
+
+  const feedbackByCategory = overview?.feedbackByCategory ?? [];
+  const feedbackByReviewStatus = overview?.feedbackByReviewStatus ?? [];
+  const recentFeedback = overview?.recentFeedback ?? [];
+  const totalFeedback = overview?.counts.feedbackItems ?? 0;
+
+  const pendingCount = feedbackByReviewStatus.find((r) => r.reviewStatus === "pending")?.count ?? 0;
+  const resolvedCount = feedbackByReviewStatus.find((r) => r.reviewStatus === "resolved")?.count ?? 0;
 
   const TABS: { id: TabId; label: string }[] = [
     { id: "active", label: "Active P0 Incident" },
@@ -120,6 +185,37 @@ export default function IncidentPage() {
         <div style={{ fontSize: "22px", fontWeight: 700, color: C.text, marginBottom: "20px" }}>
           Live Incident Center
         </div>
+
+        {/* ── Feedback summary strip (live) ─────────────────────────────── */}
+        {overview && (
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              marginBottom: "20px",
+            }}
+          >
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "10px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255,255,255,.35)" }}>Total Feedback</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: C.text }}>{totalFeedback}</div>
+            </div>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "10px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255,255,255,.35)" }}>Pending</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: C.amber }}>{pendingCount}</div>
+            </div>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "10px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255,255,255,.35)" }}>Resolved</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: C.mint }}>{resolvedCount}</div>
+            </div>
+            {feedbackByCategory.slice(0, 4).map((cat) => (
+              <div key={cat.category} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: "8px", padding: "10px 16px", display: "flex", gap: "10px", alignItems: "center" }}>
+                <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "rgba(255,255,255,.35)", maxWidth: "100px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.category}</div>
+                <div style={{ fontSize: "18px", fontWeight: 800, color: C.text }}>{cat.count}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Tab bar ───────────────────────────────────────────────────── */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "24px" }}>
@@ -337,6 +433,83 @@ export default function IncidentPage() {
                     ))}
                   </div>
 
+                  {/* Recent feedback from API — incident context */}
+                  {recentFeedback.length > 0 && (
+                    <>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".08em",
+                          color: "rgba(255,255,255,.3)",
+                          marginBottom: "12px",
+                          paddingBottom: "6px",
+                          borderBottom: `1px solid ${C.border}`,
+                        }}
+                      >
+                        Recent Feedback Reports ({recentFeedback.length})
+                      </div>
+                      <div
+                        style={{
+                          background: C.surface,
+                          borderRadius: "12px",
+                          padding: "16px 18px",
+                          marginBottom: "14px",
+                          border: "1px solid rgba(255,255,255,.05)",
+                        }}
+                      >
+                        {recentFeedback.map((fb, i) => (
+                          <div
+                            key={fb.id}
+                            style={{
+                              display: "flex",
+                              gap: "10px",
+                              padding: "8px 0",
+                              borderBottom: i < recentFeedback.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "9px",
+                                fontWeight: 800,
+                                padding: "2px 6px",
+                                borderRadius: "3px",
+                                flexShrink: 0,
+                                marginTop: "1px",
+                                background: urgencyBg(fb.urgency),
+                                color: urgencyColor(fb.urgency),
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {fb.urgency}
+                            </span>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,.7)" }}>
+                                {fb.summary || fb.category}
+                              </div>
+                              <div style={{ fontSize: "10px", color: "rgba(255,255,255,.3)", marginTop: "1px" }}>
+                                {fb.submittedByRole} · {fb.sourceChannel} · {new Date(fb.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: "9px",
+                                fontWeight: 700,
+                                color: statusColor(fb.reviewStatus),
+                                flexShrink: 0,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {fb.reviewStatus}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
                   {/* Add update form */}
                   <div
                     style={{
@@ -418,6 +591,39 @@ export default function IncidentPage() {
 
                 {/* Sidebar */}
                 <div style={{ padding: "18px 20px" }}>
+                  {/* Feedback by category (live) */}
+                  {feedbackByCategory.length > 0 && (
+                    <div
+                      style={{
+                        background: C.surface,
+                        borderRadius: "10px",
+                        padding: "14px 16px",
+                        marginBottom: "12px",
+                        border: "1px solid rgba(255,255,255,.05)",
+                      }}
+                    >
+                      <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: "rgba(255,255,255,.3)", letterSpacing: ".06em", marginBottom: "8px" }}>
+                        Feedback by Category
+                      </div>
+                      {feedbackByCategory.map((cat, i) => (
+                        <div
+                          key={cat.category}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "5px 0",
+                            borderBottom: i < feedbackByCategory.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
+                          }}
+                        >
+                          <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: C.violet, flexShrink: 0 }} />
+                          <div style={{ fontSize: "11px", color: "rgba(255,255,255,.6)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.category}</div>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: C.text, flexShrink: 0 }}>{cat.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Affected routes */}
                   <div
                     style={{
@@ -580,7 +786,7 @@ export default function IncidentPage() {
                   { val: "0", label: "Active Incidents" },
                   { val: "10", label: "Routes Healthy" },
                   { val: "99.8%", label: "30d Uptime" },
-                  { val: "4", label: "Incidents 30d" },
+                  { val: String(overview?.counts.feedbackItems ?? "—"), label: "Feedback Items" },
                 ].map((cell) => (
                   <div
                     key={cell.label}
@@ -597,65 +803,51 @@ export default function IncidentPage() {
                 ))}
               </div>
 
-              {/* Incident history */}
-              <div style={{ padding: "20px 24px" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: ".08em",
-                    color: "rgba(255,255,255,.3)",
-                    marginBottom: "12px",
-                    paddingBottom: "6px",
-                    borderBottom: `1px solid ${C.border}`,
-                  }}
-                >
-                  Incident History — Last 30 Days
-                </div>
-                <div
-                  style={{
-                    background: C.surface,
-                    borderRadius: "12px",
-                    padding: "16px 18px",
-                    border: "1px solid rgba(255,255,255,.05)",
-                  }}
-                >
-                  {HISTORY.map((h, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        padding: "8px 0",
-                        borderBottom: i < HISTORY.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
-                      }}
-                    >
-                      <span
+              {/* Feedback category breakdown (live) */}
+              {feedbackByCategory.length > 0 && (
+                <div style={{ padding: "20px 24px" }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: ".08em",
+                      color: "rgba(255,255,255,.3)",
+                      marginBottom: "12px",
+                      paddingBottom: "6px",
+                      borderBottom: `1px solid ${C.border}`,
+                    }}
+                  >
+                    Feedback by Category
+                  </div>
+                  <div
+                    style={{
+                      background: C.surface,
+                      borderRadius: "12px",
+                      padding: "16px 18px",
+                      border: "1px solid rgba(255,255,255,.05)",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {feedbackByCategory.map((cat, i) => (
+                      <div
+                        key={cat.category}
                         style={{
-                          fontSize: "9px",
-                          fontWeight: 800,
-                          padding: "2px 6px",
-                          borderRadius: "3px",
-                          flexShrink: 0,
-                          marginTop: "1px",
-                          background: h.sevBg,
-                          color: h.sevColor,
+                          display: "flex",
+                          gap: "8px",
+                          padding: "8px 0",
+                          borderBottom: i < feedbackByCategory.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
+                          alignItems: "center",
                         }}
                       >
-                        {h.sev}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{h.title}</div>
-                        <div style={{ fontSize: "10px", color: "rgba(255,255,255,.3)", marginTop: "1px" }}>{h.meta}</div>
+                        <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: C.violet, flexShrink: 0 }} />
+                        <div style={{ flex: 1, fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{cat.category}</div>
+                        <span style={{ fontSize: "12px", fontWeight: 700, color: C.text }}>{cat.count}</span>
                       </div>
-                      <span style={{ fontSize: "10px", fontWeight: 700, color: h.ttrColor, flexShrink: 0 }}>
-                        {h.ttr}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
@@ -737,6 +929,66 @@ export default function IncidentPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Resolved feedback items (live) */}
+                {recentFeedback.filter((f) => f.reviewStatus === "resolved").length > 0 && (
+                  <>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: ".08em",
+                        color: "rgba(255,255,255,.3)",
+                        marginBottom: "12px",
+                        paddingBottom: "6px",
+                        borderBottom: `1px solid ${C.border}`,
+                      }}
+                    >
+                      Resolved Feedback Items
+                    </div>
+                    <div
+                      style={{
+                        background: C.surface,
+                        borderRadius: "12px",
+                        padding: "16px 18px",
+                        border: "1px solid rgba(80,232,144,.12)",
+                      }}
+                    >
+                      {recentFeedback.filter((f) => f.reviewStatus === "resolved").map((fb, i, arr) => (
+                        <div
+                          key={fb.id}
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            padding: "8px 0",
+                            borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: "9px",
+                              fontWeight: 800,
+                              padding: "2px 6px",
+                              borderRadius: "3px",
+                              flexShrink: 0,
+                              marginTop: "1px",
+                              background: "rgba(80,232,144,.1)",
+                              color: C.mint,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            resolved
+                          </span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,.7)" }}>{fb.summary || fb.category}</div>
+                            <div style={{ fontSize: "10px", color: "rgba(255,255,255,.3)", marginTop: "1px" }}>{fb.submittedByRole} · {new Date(fb.createdAt).toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </>
           )}

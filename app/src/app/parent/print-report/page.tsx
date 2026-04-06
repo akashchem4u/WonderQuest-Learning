@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 const C = {
@@ -17,22 +17,32 @@ const C = {
   green: "#50e890",
 };
 
-const CHILDREN = ["Emma", "Noah", "Lily"];
-const DATE_RANGES = ["Term 2 2026", "Last 30 days", "Last 90 days", "Custom"];
+const DATE_RANGES = ["This Week", "Last Week", "2 Weeks Ago"];
 const LANGUAGES = ["English UK", "English US"];
 
-interface SubjectRow {
+interface SkillRow {
+  skillName: string;
   subject: string;
-  pct: number;
-  label: string;
+  sessionCount: number;
+  masteryPct: number;
 }
 
-const SUBJECTS: SubjectRow[] = [
-  { subject: "Maths", pct: 82, label: "Strong" },
-  { subject: "Literacy", pct: 62, label: "Growing" },
-  { subject: "Science", pct: 72, label: "Strong" },
-  { subject: "Social Studies", pct: 55, label: "Exploring" },
-];
+interface ReportData {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string;
+  weekLabel: string;
+  stats: {
+    starsEarned: number;
+    sessions: number;
+    learningMinutes: number;
+    newBadges: number;
+    streakDays: number;
+  };
+  skills: SkillRow[];
+}
+
+type TabType = "preview" | "teacher" | "spec";
 
 const NOT_INCLUDED = [
   "Accuracy percentages or scores",
@@ -45,9 +55,7 @@ const NOT_INCLUDED = [
   "Individual teacher names",
 ];
 
-type TabType = "preview" | "teacher" | "spec";
-
-function PillGroup({ items, active, onSelect, groupId }: { items: string[]; active: string; onSelect: (v: string) => void; groupId: string }) {
+function PillGroup({ items, active, onSelect }: { items: string[]; active: string; onSelect: (v: string) => void }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
       {items.map((item) => (
@@ -57,12 +65,61 @@ function PillGroup({ items, active, onSelect, groupId }: { items: string[]; acti
   );
 }
 
+// Map week selection to offset (0 = this week, 1 = last week, etc.)
+function rangeToOffset(range: string): number {
+  if (range === "Last Week") return 1;
+  if (range === "2 Weeks Ago") return 2;
+  return 0;
+}
+
+// Derive top subjects from skills
+function getSubjectRows(skills: SkillRow[]): { subject: string; sessionCount: number; label: string }[] {
+  const map: Record<string, number> = {};
+  for (const s of skills) {
+    map[s.subject] = (map[s.subject] ?? 0) + s.sessionCount;
+  }
+  const entries = Object.entries(map)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const max = entries[0]?.[1] ?? 1;
+  return entries.map(([subject, count]) => {
+    const pct = Math.round((count / max) * 100);
+    const label = pct >= 75 ? "Strong" : pct >= 50 ? "Growing" : "Exploring";
+    return { subject, sessionCount: count, label };
+  });
+}
+
 export default function PrintReportPage() {
   const [tab, setTab] = useState<TabType>("preview");
-  const [selectedChild, setSelectedChild] = useState("Emma");
-  const [selectedRange, setSelectedRange] = useState("Term 2 2026");
+  const [selectedRange, setSelectedRange] = useState("This Week");
   const [selectedLang, setSelectedLang] = useState("English UK");
   const [sections, setSections] = useState({ highlights: true, subjects: true, skills: false, teacher: false });
+
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const studentId = typeof window !== "undefined" ? localStorage.getItem("wq_active_student_id") : null;
+    if (!studentId) {
+      setError("No active student selected.");
+      return;
+    }
+    const offset = rangeToOffset(selectedRange);
+    setLoading(true);
+    setError(null);
+    fetch(`/api/parent/report?studentId=${encodeURIComponent(studentId)}&weekOffset=${offset}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.report) {
+          setReport(data.report as ReportData);
+        } else {
+          setError(data?.error ?? "Could not load report.");
+        }
+      })
+      .catch(() => setError("Failed to fetch report."))
+      .finally(() => setLoading(false));
+  }, [selectedRange]);
 
   const tabBtnStyle = (active: boolean): React.CSSProperties => ({
     background: active ? C.parent : C.surface,
@@ -75,6 +132,13 @@ export default function PrintReportPage() {
     fontFamily: "inherit",
     fontWeight: active ? 600 : 400,
   });
+
+  const displayName = report?.displayName ?? "—";
+  const bandLabel = report?.launchBandCode ?? "—";
+  const weekLabel = report?.weekLabel ?? selectedRange;
+  const stats = report?.stats;
+  const subjectRows = report ? getSubjectRows(report.skills) : [];
+  const topSkills = report?.skills.slice(0, 6) ?? [];
 
   return (
     <AppFrame audience="parent">
@@ -93,8 +157,8 @@ export default function PrintReportPage() {
             {/* Left: paper preview */}
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>
               <div style={{ fontSize: 11, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.green, display: "inline-block" }} />
-                A4 Print Preview — white paper / dark text
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: loading ? C.amber : error ? "#ef4444" : C.green, display: "inline-block" }} />
+                {loading ? "Loading…" : error ? error : "A4 Print Preview — white paper / dark text"}
               </div>
 
               {/* White paper */}
@@ -102,25 +166,33 @@ export default function PrintReportPage() {
                 {/* Header */}
                 <div style={{ borderBottom: "2px solid #111", paddingBottom: 10, marginBottom: 18 }}>
                   <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Segoe UI', system-ui, sans-serif", color: "#111", letterSpacing: "-0.01em" }}>WonderQuest Learning Report</div>
-                  <div style={{ fontSize: 13, color: "#444", marginTop: 3, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>{selectedChild} &bull; Explorer Band (G2–3) &bull; {selectedRange}</div>
-                  <div style={{ fontSize: 11, color: "#666", marginTop: 2, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>Generated: 6 April 2026</div>
+                  <div style={{ fontSize: 13, color: "#444", marginTop: 3, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>{displayName} &bull; {bandLabel} &bull; {weekLabel}</div>
+                  <div style={{ fontSize: 11, color: "#666", marginTop: 2, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>Generated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
                 </div>
 
                 {/* Learning highlights */}
                 {sections.highlights && (
                   <>
-                    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>Learning Highlights This Term</div>
-                    <ul style={{ listStyle: "none", padding: 0 }}>
-                      {[`${selectedChild} explored 14 skills this term`, "Strongest area: Shapes & Patterns", "Growing in: Reading Comprehension", "Quest completions: 3 quests completed"].map((item, i) => (
-                        <li key={i} style={{ padding: "3px 0", fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 13, color: "#222" }}>
-                          <span style={{ color: "#555", marginRight: 8 }}>✦</span>
-                          {item.includes("14 skills") ? <>{selectedChild} explored <strong>14 skills</strong> this term</> :
-                           item.includes("Shapes") ? <>Strongest area: <strong>Shapes &amp; Patterns</strong></> :
-                           item.includes("Reading") ? <>Growing in: <strong>Reading Comprehension</strong></> :
-                           <>Quest completions: <strong>3 quests completed</strong></>}
-                        </li>
-                      ))}
-                    </ul>
+                    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>Learning Highlights This Week</div>
+                    {loading ? (
+                      <p style={{ fontFamily: "'Segoe UI', sans-serif", fontSize: 13, color: "#888" }}>Loading…</p>
+                    ) : stats ? (
+                      <ul style={{ listStyle: "none", padding: 0 }}>
+                        {[
+                          { text: `${displayName} completed`, bold: `${stats.sessions} session${stats.sessions !== 1 ? "s" : ""}`, suffix: " this week" },
+                          { text: "Learning time:", bold: `${stats.learningMinutes} minutes` },
+                          { text: "Stars earned:", bold: `${stats.starsEarned} stars` },
+                          { text: "Day streak:", bold: `${stats.streakDays} day${stats.streakDays !== 1 ? "s" : ""}` },
+                        ].map((item, i) => (
+                          <li key={i} style={{ padding: "3px 0", fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 13, color: "#222" }}>
+                            <span style={{ color: "#555", marginRight: 8 }}>✦</span>
+                            {item.text} <strong>{item.bold}</strong>{item.suffix ?? ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p style={{ fontFamily: "'Segoe UI', sans-serif", fontSize: 13, color: "#888" }}>No data available for this period.</p>
+                    )}
                     <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
                   </>
                 )}
@@ -129,22 +201,51 @@ export default function PrintReportPage() {
                 {sections.subjects && (
                   <>
                     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>Subject Highlights</div>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 12.5 }}>
-                      <tbody>
-                        {SUBJECTS.map((row) => (
-                          <tr key={row.subject} style={{ verticalAlign: "middle" }}>
-                            <td style={{ width: 120, color: "#222", padding: "4px 0" }}>{row.subject}</td>
-                            <td style={{ paddingRight: 12, padding: "4px 12px 4px 0" }}>
-                              <div style={{ width: "100%", height: 10, background: "#e5e5e5", borderRadius: 5, overflow: "hidden" }}>
-                                <div style={{ height: "100%", borderRadius: 5, background: "#333", width: `${row.pct}%` }} />
-                              </div>
-                            </td>
-                            <td style={{ width: 80, color: "#555", fontSize: 11.5, padding: "4px 0" }}>{row.label}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {loading ? (
+                      <p style={{ fontFamily: "'Segoe UI', sans-serif", fontSize: 13, color: "#888" }}>Loading…</p>
+                    ) : subjectRows.length > 0 ? (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 12.5 }}>
+                        <tbody>
+                          {subjectRows.map((row) => {
+                            const max = subjectRows[0]?.sessionCount ?? 1;
+                            const pct = Math.round((row.sessionCount / max) * 100);
+                            return (
+                              <tr key={row.subject} style={{ verticalAlign: "middle" }}>
+                                <td style={{ width: 120, color: "#222", padding: "4px 0" }}>{row.subject}</td>
+                                <td style={{ paddingRight: 12, padding: "4px 12px 4px 0" }}>
+                                  <div style={{ width: "100%", height: 10, background: "#e5e5e5", borderRadius: 5, overflow: "hidden" }}>
+                                    <div style={{ height: "100%", borderRadius: 5, background: "#333", width: `${pct}%` }} />
+                                  </div>
+                                </td>
+                                <td style={{ width: 80, color: "#555", fontSize: 11.5, padding: "4px 0" }}>{row.label}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p style={{ fontFamily: "'Segoe UI', sans-serif", fontSize: 13, color: "#888" }}>No subject data for this period.</p>
+                    )}
                     <div style={{ fontFamily: "'Segoe UI', sans-serif", fontSize: 11, color: "#777", marginTop: 6 }}>Progress bars show learning time engagement — no percentages shown.</div>
+                    <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
+                  </>
+                )}
+
+                {/* Skill Details */}
+                {sections.skills && (
+                  <>
+                    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>Skills Explored</div>
+                    {topSkills.length > 0 ? (
+                      <ul style={{ listStyle: "none", padding: 0 }}>
+                        {topSkills.map((sk, i) => (
+                          <li key={i} style={{ padding: "2px 0", fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 12.5, color: "#333" }}>
+                            <span style={{ color: "#888", marginRight: 6 }}>·</span>{sk.skillName} <span style={{ color: "#999", fontSize: 11 }}>({sk.subject})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p style={{ fontFamily: "'Segoe UI', sans-serif", fontSize: 13, color: "#888" }}>No skills data for this period.</p>
+                    )}
                     <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
                   </>
                 )}
@@ -152,7 +253,7 @@ export default function PrintReportPage() {
                 {/* Note from team */}
                 <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#333", marginBottom: 10, marginTop: 18 }}>A Note from the WonderQuest Team</div>
                 <p style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 12, color: "#333", lineHeight: 1.65 }}>
-                  Progress bars show where {selectedChild} is spending their learning time — not test scores. All children learn at their own pace and adventure style. Keep celebrating curiosity!
+                  Progress bars show where {displayName} is spending their learning time — not test scores. All children learn at their own pace and adventure style. Keep celebrating curiosity!
                 </p>
                 <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: "16px 0" }} />
 
@@ -176,13 +277,8 @@ export default function PrintReportPage() {
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: C.parent, marginBottom: 0 }}>Report Settings</div>
 
               <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Child</label>
-                <PillGroup items={CHILDREN} active={selectedChild} onSelect={setSelectedChild} groupId="child" />
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Date Range</label>
-                <PillGroup items={DATE_RANGES} active={selectedRange} onSelect={setSelectedRange} groupId="range" />
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Week</label>
+                <PillGroup items={DATE_RANGES} active={selectedRange} onSelect={setSelectedRange} />
               </div>
 
               <div>
@@ -207,7 +303,7 @@ export default function PrintReportPage() {
 
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted, marginBottom: 8 }}>Language</label>
-                <PillGroup items={LANGUAGES} active={selectedLang} onSelect={setSelectedLang} groupId="lang" />
+                <PillGroup items={LANGUAGES} active={selectedLang} onSelect={setSelectedLang} />
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -232,7 +328,7 @@ export default function PrintReportPage() {
                 </div>
                 <div style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted, marginBottom: 6 }}>Platform-Summarised Message</div>
-                  <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.65 }}>Your child's teacher has shared that {selectedChild} is engaging well with maths activities this term.</div>
+                  <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.65 }}>Your child's teacher has shared that {displayName} is engaging well with maths activities this term.</div>
                 </div>
                 <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
                   This message is <strong style={{ color: C.text }}>platform-generated and summarised</strong>. Raw teacher text is never included in exported reports. The school name may appear; individual teacher names are not shown.
