@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
@@ -31,7 +31,12 @@ type AccentOption = {
   label: string;
 };
 
-// ─── Stub data ────────────────────────────────────────────────────────────────
+// ─── Theme and accent data ────────────────────────────────────────────────────
+
+type SessionData = {
+  student: { displayName: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
 
 const THEMES: ThemeOption[] = [
   {
@@ -143,6 +148,16 @@ export default function ChildThemePage() {
   const [saved, setSaved] = useState(false);
   const [hoveredTheme, setHoveredTheme] = useState<ThemeId | null>(null);
   const [hoveredAccent, setHoveredAccent] = useState<AccentId | null>(null);
+  const [displayName, setDisplayName] = useState("Explorer");
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        if (data?.student?.displayName) setDisplayName(data.student.displayName);
+      })
+      .catch(() => {});
+  }, []);
 
   const activeTheme = THEMES.find((t) => t.id === selectedTheme) ?? THEMES[0];
 
@@ -188,7 +203,7 @@ export default function ChildThemePage() {
               fontFamily: "'Nunito', system-ui, sans-serif",
             }}
           >
-            Choose Your Theme 🎨
+            {`${displayName}'s Theme 🎨`}
           </div>
           <div
             style={{
@@ -260,7 +275,7 @@ export default function ChildThemePage() {
                       fontFamily: "'Nunito', system-ui, sans-serif",
                     }}
                   >
-                    Emma's World
+                    {`${displayName}'s World`}
                   </div>
                   <div
                     style={{

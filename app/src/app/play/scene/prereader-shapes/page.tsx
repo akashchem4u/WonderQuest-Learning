@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
@@ -32,7 +32,13 @@ const FONT: React.CSSProperties = {
   fontFamily: "'Nunito', system-ui, sans-serif",
 };
 
-// ─── Stub data ─────────────────────────────────────────────────────────────────
+// ─── Session type ──────────────────────────────────────────────────────────────
+type SessionData = {
+  student: { displayName: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
+
+// ─── Scene data ────────────────────────────────────────────────────────────────
 const QUESTION = {
   questName: "Shapes Quest",
   totalSegs: 5,
@@ -172,6 +178,17 @@ export default function PrereaderShapesScenePage() {
   const [sceneState, setSceneState] = useState<SceneState>("question");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [stars, setStars] = useState(QUESTION.stars);
+  const [displayName, setDisplayName] = useState("Explorer");
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        if (data?.student?.displayName) setDisplayName(data.student.displayName);
+        if (typeof data?.progression?.totalPoints === "number") setStars(data.progression.totalPoints);
+      })
+      .catch(() => {});
+  }, []);
 
   function handleChoice(id: string, correct: boolean) {
     if (sceneState !== "question") return;
@@ -320,7 +337,7 @@ export default function PrereaderShapesScenePage() {
             >
               ←
             </Link>
-            <span style={{ fontSize: "0.9rem", fontWeight: 900, color: C.gold }}>{QUESTION.questName}</span>
+            <span style={{ fontSize: "0.9rem", fontWeight: 900, color: C.gold }}>{`${displayName} · ${QUESTION.questName}`}</span>
             <div style={{
               display: "flex",
               alignItems: "center",

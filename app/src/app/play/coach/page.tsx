@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 
@@ -30,7 +30,13 @@ const FONT: React.CSSProperties = {
   fontFamily: "'Nunito', system-ui, sans-serif",
 };
 
-// ─── Stub data ─────────────────────────────────────────────────────────────────
+// ─── Session type ──────────────────────────────────────────────────────────────
+type SessionData = {
+  student: { displayName: string; launchBandCode: string };
+  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+};
+
+// ─── Question data ─────────────────────────────────────────────────────────────
 const QUESTION = {
   prompt: "What sound does 🐝 start with?",
   hero: "🐝",
@@ -56,6 +62,18 @@ type CoachState = "idle" | "speaking" | "celebration" | "support";
 export default function PlayCoachPage() {
   const [coachState, setCoachState] = useState<CoachState>("idle");
   const [personaIdx, setPersonaIdx] = useState(0);
+  const [displayName, setDisplayName] = useState("Explorer");
+  const [launchBandCode, setLaunchBandCode] = useState("k1");
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        if (data?.student?.displayName) setDisplayName(data.student.displayName);
+        if (data?.student?.launchBandCode) setLaunchBandCode(data.student.launchBandCode);
+      })
+      .catch(() => {});
+  }, []);
 
   const persona = PERSONAS[personaIdx];
 
@@ -106,7 +124,7 @@ export default function PlayCoachPage() {
               letterSpacing: "0.04em",
             }}
           >
-            {"🦁"} Voice Coach
+            {`🦁 ${displayName}'s Coach (${launchBandCode.toUpperCase()})`}
           </div>
           <div style={{ width: 48 }} />
         </div>

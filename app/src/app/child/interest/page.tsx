@@ -44,6 +44,16 @@ export default function ChildInterestPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [screen, setScreen] = useState<ScreenId>("pick");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("Explorer");
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => r.json())
+      .then((data: SessionData) => {
+        if (data?.student?.displayName) setDisplayName(data.student.displayName);
+      })
+      .catch(() => {});
+  }, []);
 
   const count = selected.size;
   const isMaxed = count >= MAX_INTERESTS;
@@ -168,7 +178,7 @@ export default function ChildInterestPage() {
                     fontFamily: "'Nunito', system-ui, sans-serif",
                   }}
                 >
-                  What do you love? 🌟
+                  {`${displayName}, what do you love? 🌟`}
                 </div>
                 <div
                   style={{
