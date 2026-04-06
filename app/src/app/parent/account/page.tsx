@@ -54,12 +54,10 @@ interface NotificationPrefs {
 // ── Band label helper ─────────────────────────────────────────────────────────
 function bandLabel(code: string): string {
   const map: Record<string, string> = {
-    "K":  "Kindergarten",
-    "G1": "Grade 1",
-    "G2": "Grade 2",
-    "G3": "Grade 3",
-    "G4": "Grade 4",
-    "G5": "Grade 5",
+    "PREK": "Pre-K",
+    "K1":   "K – Grade 1",
+    "G23":  "Grade 2 – 3",
+    "G45":  "Grade 4 – 5",
   };
   return map[code] ?? code;
 }
@@ -119,6 +117,14 @@ export default function ParentAccountPage() {
   const [pinResetSaving,    setPinResetSaving]    = useState(false);
   const [pinResetError,     setPinResetError]     = useState<string | null>(null);
   const [pinResetSuccess,   setPinResetSuccess]   = useState(false);
+
+  // Band edit modal (child)
+  const [bandChildId,    setBandChildId]    = useState<string | null>(null);
+  const [bandChildName,  setBandChildName]  = useState("");
+  const [bandSelected,   setBandSelected]   = useState("");
+  const [bandSaving,     setBandSaving]     = useState(false);
+  const [bandError,      setBandError]      = useState<string | null>(null);
+  const [bandSuccess,    setBandSuccess]    = useState(false);
 
   // ── Fetch session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -262,6 +268,52 @@ export default function ParentAccountPage() {
     setPinResetValue("");
     setPinResetError(null);
     setPinResetSuccess(false);
+  }
+
+  // ── Band modal ────────────────────────────────────────────────────────────
+  function openBandModal(childId: string, childName: string, currentBand: string) {
+    setBandChildId(childId);
+    setBandChildName(childName);
+    setBandSelected(currentBand);
+    setBandError(null);
+    setBandSuccess(false);
+  }
+
+  async function submitBandUpdate() {
+    if (!bandChildId) return;
+    setBandSaving(true);
+    setBandError(null);
+    try {
+      const res = await fetch("/api/parent/update-child-band", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId: bandChildId, launchBandCode: bandSelected }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Update failed.");
+      }
+      // Update local state so the badge refreshes immediately without a reload
+      setSessionData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          linkedChildren: prev.linkedChildren.map((c) =>
+            c.id === bandChildId ? { ...c, launchBandCode: bandSelected } : c
+          ),
+        };
+      });
+      setBandSuccess(true);
+      setTimeout(() => {
+        setBandChildId(null);
+        setBandSuccess(false);
+        setBandError(null);
+      }, 1600);
+    } catch (err) {
+      setBandError(err instanceof Error ? err.message : "Update failed.");
+    } finally {
+      setBandSaving(false);
+    }
   }
 
   // ── Shared card styles ────────────────────────────────────────────────────
@@ -597,18 +649,18 @@ export default function ParentAccountPage() {
                     >
                       🔑 Reset PIN
                     </button>
-                    <a
-                      href="/parent"
+                    <button
+                      onClick={() => openBandModal(child.id, child.displayName, child.launchBandCode)}
                       style={{
                         padding: "8px 16px",
                         background: "rgba(255,209,102,0.08)",
                         border: `1.5px solid rgba(255,209,102,0.25)`,
                         borderRadius: 8, fontSize: 12, fontWeight: 700,
-                        color: GOLD, textDecoration: "none", fontFamily: "system-ui",
+                        color: GOLD, cursor: "pointer", fontFamily: "system-ui",
                       }}
                     >
-                      ✏️ Edit band (coming soon)
-                    </a>
+                      ✏️ Edit grade level
+                    </button>
                     <a
                       href={`/parent?studentId=${child.id}`}
                       style={{
@@ -1060,6 +1112,126 @@ export default function ParentAccountPage() {
                   </button>
                   <button
                     onClick={() => { setPinResetChildId(null); setPinResetValue(""); setPinResetError(null); }}
+                    style={{
+                      flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
+                      color: MUTED, border: "none", borderRadius: 10,
+                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
+                    }}
+                  >Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Band edit modal ── */}
+      {bandChildId && (
+        <div
+          onClick={() => { setBandChildId(null); setBandError(null); }}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: SURFACE,
+              border: `1px solid rgba(255,209,102,0.3)`,
+              borderRadius: 18,
+              padding: "28px 28px 24px",
+              width: 360,
+              maxWidth: "92vw",
+            }}
+          >
+            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, marginBottom: 6 }}>
+              Grade level — {bandChildName}
+            </div>
+            <div style={{ fontSize: 13, color: MUTED, marginBottom: 20, lineHeight: 1.5 }}>
+              Pick the level that matches where {bandChildName} is right now. Questions and difficulty will update on their next quiz.
+            </div>
+
+            {bandSuccess ? (
+              <div style={{
+                background: "rgba(80,232,144,0.1)", border: `1px solid rgba(80,232,144,0.3)`,
+                borderRadius: 10, padding: "14px", fontSize: 14, fontWeight: 700,
+                color: "#50e890", textAlign: "center" as const,
+              }}>
+                ✅ Grade level updated!
+              </div>
+            ) : (
+              <>
+                {bandError && (
+                  <div style={{
+                    background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
+                    borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 14,
+                  }}>{bandError}</div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column" as const, gap: 8, marginBottom: 20 }}>
+                  {([
+                    { code: "PREK", label: "Pre-K",         ages: "Ages 3–5",  desc: "Letters, counting, shapes, colors" },
+                    { code: "K1",   label: "Kindergarten – Grade 1", ages: "Ages 5–7",  desc: "Phonics, first words, simple addition" },
+                    { code: "G23",  label: "Grade 2 – 3",   ages: "Ages 7–9",  desc: "Reading, multiplication, problem solving" },
+                    { code: "G45",  label: "Grade 4 – 5",   ages: "Ages 9–11", desc: "Complex math, comprehension, reasoning" },
+                  ] as const).map((band) => {
+                    const isSelected = bandSelected === band.code;
+                    return (
+                      <button
+                        key={band.code}
+                        onClick={() => setBandSelected(band.code)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 14,
+                          padding: "12px 14px",
+                          background: isSelected ? "rgba(255,209,102,0.1)" : "rgba(255,255,255,0.03)",
+                          border: isSelected ? `2px solid ${GOLD}` : `1.5px solid rgba(255,255,255,0.08)`,
+                          borderRadius: 12, cursor: "pointer", textAlign: "left" as const,
+                          fontFamily: "system-ui", width: "100%",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <div style={{
+                          width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                          border: `2px solid ${isSelected ? GOLD : "rgba(255,255,255,0.2)"}`,
+                          background: isSelected ? GOLD : "transparent",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          {isSelected && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1a0800" }} />}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: isSelected ? GOLD : TEXT }}>
+                            {band.label}
+                          </div>
+                          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                            {band.ages} · {band.desc}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    disabled={bandSaving}
+                    onClick={submitBandUpdate}
+                    style={{
+                      flex: 1, padding: 12,
+                      background: `linear-gradient(135deg, ${GOLD}, #e8a000)`,
+                      color: "#1a0800", border: "none", borderRadius: 10,
+                      fontSize: 14, fontWeight: 800, fontFamily: "system-ui",
+                      cursor: bandSaving ? "not-allowed" : "pointer",
+                      opacity: bandSaving ? 0.6 : 1,
+                    }}
+                  >
+                    {bandSaving ? "Saving..." : "Save grade level"}
+                  </button>
+                  <button
+                    onClick={() => { setBandChildId(null); setBandError(null); }}
                     style={{
                       flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
                       color: MUTED, border: "none", borderRadius: 10,
