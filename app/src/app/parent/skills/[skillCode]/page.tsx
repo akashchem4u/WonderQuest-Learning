@@ -1,71 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard, StatTile } from "@/components/ui";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type ParentAccessResponse = {
-  guardian: {
-    id: string;
-    username: string;
-    displayName: string;
-  };
-  linkedChild: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarKey: string;
-    launchBandCode: string;
-    totalPoints: number;
-    currentLevel: number;
-    badgeCount: number;
-    trophyCount: number;
-  } | null;
-  linkedChildren: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarKey: string;
-    launchBandCode: string;
-    totalPoints: number;
-    currentLevel: number;
-    badgeCount: number;
-    trophyCount: number;
-  }[];
-  childDashboards: {
-    studentId: string;
-    sessionCount: number;
-    completedSessions: number;
-    totalTimeSpentMs: number;
-    effectiveTimeSpentMs: number;
-    averageEffectiveness: number | null;
-    completionRate: number | null;
-    effectiveRatio: number | null;
-    lastSessionAt: string | null;
-    recommendedFocus: string;
-    readinessLabel: string;
-    strengths: { skillCode: string; displayName: string; masteryRate: number; attempts: number }[];
-    supportAreas: { skillCode: string; displayName: string; masteryRate: number; attempts: number }[];
-    recentSessions: {
-      id: string;
-      sessionMode: string;
-      startedAt: string;
-      endedAt: string | null;
-      effectivenessScore: number | null;
-      totalQuestions: number;
-    }[];
-  }[];
-  childDashboard: {
-    studentId: string;
-    strengths: { skillCode: string; displayName: string; masteryRate: number; attempts: number }[];
-    supportAreas: { skillCode: string; displayName: string; masteryRate: number; attempts: number }[];
-  } | null;
-};
-
-// ─── Stub data helpers ────────────────────────────────────────────────────────
 
 type SessionEntry = {
   date: string;
@@ -97,6 +37,8 @@ type SkillStub = {
   relatedSkills: { icon: string; name: string; code: string }[];
   explainer: string;
 };
+
+// ─── Stub data ────────────────────────────────────────────────────────────────
 
 const SKILL_STUBS: Record<string, SkillStub> = {
   "sight-words": {
@@ -152,7 +94,7 @@ const SKILL_STUBS: Record<string, SkillStub> = {
       { date: "Today, 3:40pm", stars: 3, durationMin: 9, perfect: false },
       { date: "Mon, 4:55pm", stars: 3, durationMin: 7, perfect: false },
     ],
-    supportTip: "Read picture books aloud together and pause at new words. Ask 'what sounds do you hear?' before reading the word — this mirrors exactly what WonderQuest is teaching.",
+    supportTip: "Read picture books aloud together and pause at new words. Ask what sounds do you hear? before reading the word — this mirrors exactly what WonderQuest is teaching.",
     celebrationNote: "",
     relatedSkills: [
       { icon: "📖", name: "Sight words", code: "sight-words" },
@@ -219,16 +161,16 @@ const SKILL_STUBS: Record<string, SkillStub> = {
       { icon: "🔤", name: "Blending sounds", code: "blending-sounds" },
       { icon: "📖", name: "Sight words", code: "sight-words" },
     ],
-    explainer: "CVC (consonant-vowel-consonant) words like 'cat', 'dog', and 'sun' are the simplest spelled words. Mastering them builds confidence and transfers directly to reading fluency.",
+    explainer: "CVC (consonant-vowel-consonant) words like cat, dog, and sun are the simplest spelled words. Mastering them builds confidence and transfers directly to reading fluency.",
   },
 };
 
-// ─── Utility functions ────────────────────────────────────────────────────────
+// ─── Utilities ────────────────────────────────────────────────────────────────
 
 function formatSkillName(code: string): string {
   return code
     .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
 
@@ -255,7 +197,7 @@ function getDefaultStub(code: string): SkillStub {
       { date: "Wed, 4:00pm", stars: 3, durationMin: 7, perfect: false },
       { date: "Mon, 4:20pm", stars: 3, durationMin: 7, perfect: true },
     ],
-    supportTip: `Keep practice short around ${formatSkillName(code).toLowerCase()} — 5–10 minutes of calm, focused play is more effective than longer sessions.`,
+    supportTip: "Keep practice short — 5 to 10 minutes of calm, focused play is more effective than longer sessions.",
     celebrationNote: "",
     relatedSkills: [
       { icon: "📖", name: "Sight words", code: "sight-words" },
@@ -277,7 +219,7 @@ function getStatusLabel(status: "strong" | "building" | "started"): string {
   return "🚀 Just started";
 }
 
-function getMasteryFillColor(status: "strong" | "building" | "started"): string {
+function getMasteryFill(status: "strong" | "building" | "started"): string {
   if (status === "strong") return "linear-gradient(90deg, #9b72ff, #58e8c1)";
   if (status === "building") return "linear-gradient(90deg, #ffd166, #ffb347)";
   return "linear-gradient(90deg, #ff7b6b, #ffd166)";
@@ -287,23 +229,30 @@ function getMasteryFillColor(status: "strong" | "building" | "started"): string 
 
 function SparkChart({ values, labels, trend }: { values: number[]; labels: string[]; trend: string }) {
   const maxVal = Math.max(...values, 1);
-  const maxHeightPx = 48;
+  const maxH = 52;
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: `${maxHeightPx + 4}px`, marginBottom: "8px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "6px",
+          height: `${maxH + 4}px`,
+          marginBottom: "8px",
+        }}
+      >
         {values.map((v, i) => {
-          const heightPx = Math.max(Math.round((v / maxVal) * maxHeightPx), v === 0 ? 0 : 4);
+          const h = v === 0 ? 0 : Math.max(Math.round((v / maxVal) * maxH), 4);
           const isLast = i === values.length - 1;
           return (
             <div
               key={i}
               style={{
                 flex: 1,
-                height: `${heightPx}px`,
+                height: `${h}px`,
                 borderRadius: "4px 4px 0 0",
-                background: isLast ? "#9b72ff" : "rgba(155,114,255,0.25)",
-                transition: "height 0.3s ease",
+                background: isLast ? "#9b72ff" : "rgba(155,114,255,0.22)",
                 alignSelf: "flex-end",
               }}
             />
@@ -317,7 +266,7 @@ function SparkChart({ values, labels, trend }: { values: number[]; labels: strin
             style={{
               flex: 1,
               fontSize: "9px",
-              color: "rgba(255,255,255,0.4)",
+              color: "rgba(255,255,255,0.38)",
               textAlign: "center",
               overflow: "hidden",
               whiteSpace: "nowrap",
@@ -327,106 +276,124 @@ function SparkChart({ values, labels, trend }: { values: number[]; labels: strin
           </span>
         ))}
       </div>
-      <div style={{ fontSize: "11px", color: "#58e8c1", fontWeight: 700, marginTop: "8px" }}>{trend}</div>
+      <div style={{ fontSize: "11px", color: "#58e8c1", fontWeight: 700, marginTop: "8px" }}>
+        {trend}
+      </div>
     </div>
   );
 }
 
-function SessionLogItem({ entry }: { entry: SessionEntry }) {
+function SessionRow({ entry, isLast }: { entry: SessionEntry; isLast: boolean }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         gap: "10px",
-        padding: "10px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        padding: "11px 0",
+        borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.06)",
       }}
     >
-      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", fontWeight: 600, minWidth: "100px", flexShrink: 0 }}>
+      <span
+        style={{
+          fontSize: "12px",
+          color: "rgba(255,255,255,0.45)",
+          fontWeight: 600,
+          minWidth: "110px",
+          flexShrink: 0,
+        }}
+      >
         {entry.date}
       </span>
-      <span style={{ fontSize: "12px", fontWeight: 700, color: "#fff" }}>
+      <span style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>
         ⭐ {entry.stars} stars
       </span>
       {entry.perfect && (
         <span
           style={{
-            background: "rgba(255,209,102,0.15)",
-            border: "1px solid rgba(255,209,102,0.3)",
+            background: "rgba(255,209,102,0.14)",
+            border: "1px solid rgba(255,209,102,0.28)",
             borderRadius: "20px",
-            padding: "2px 8px",
+            padding: "2px 9px",
             fontSize: "10px",
             fontWeight: 700,
             color: "#ffd166",
+            flexShrink: 0,
           }}
         >
           ⭐ Perfect session
         </span>
       )}
-      <span style={{ marginLeft: "auto", fontSize: "11px", color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>
+      <span
+        style={{
+          marginLeft: "auto",
+          fontSize: "11px",
+          color: "rgba(255,255,255,0.38)",
+          flexShrink: 0,
+        }}
+      >
         {entry.durationMin}m
       </span>
     </div>
   );
 }
 
+// ─── Card shell ───────────────────────────────────────────────────────────────
+
+function Card({
+  title,
+  children,
+  accent,
+}: {
+  title?: string;
+  children: React.ReactNode;
+  accent?: string;
+}) {
+  const border = accent ? `1px solid ${accent}30` : "1px solid rgba(255,255,255,0.08)";
+  const borderLeft = accent ? `4px solid ${accent}` : undefined;
+  return (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border,
+        borderLeft,
+        borderRadius: "14px",
+        padding: "20px",
+      }}
+    >
+      {title && (
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 800,
+            color: "#e8e4f8",
+            marginBottom: "14px",
+          }}
+        >
+          {title}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type PageProps = {
-  params: Promise<{ skillCode: string }>;
-};
+export default function ParentSkillDetailPage() {
+  const params = useParams();
+  const skillCode = typeof params?.skillCode === "string" ? params.skillCode : "";
 
-export default function ParentSkillDetailPage({ params }: PageProps) {
-  const [skillCode, setSkillCode] = useState<string>("");
-  const [authResult, setAuthResult] = useState<ParentAccessResponse | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  // Resolve async params
-  useEffect(() => {
-    params.then(({ skillCode: code }) => setSkillCode(code));
-  }, [params]);
-
-  // Cookie-based session restore (same pattern as parent/page.tsx)
-  useEffect(() => {
-    let cancelled = false;
-
-    async function trySessionRestore() {
-      try {
-        const response = await fetch("/api/parent/session", { method: "GET" });
-        if (!response.ok || cancelled) {
-          setAuthChecked(true);
-          return;
-        }
-        const payload = (await response.json()) as ParentAccessResponse;
-        if (cancelled) return;
-        setAuthResult(payload);
-      } catch {
-        // No valid session
-      } finally {
-        if (!cancelled) setAuthChecked(true);
-      }
-    }
-
-    void trySessionRestore();
-    return () => { cancelled = true; };
-  }, []);
-
-  const stub = skillCode
-    ? (SKILL_STUBS[skillCode] ?? getDefaultStub(skillCode))
-    : null;
-
-  const skillDisplayName = skillCode ? formatSkillName(skillCode) : "";
-  const childName =
-    authResult?.linkedChild?.displayName ??
-    authResult?.linkedChildren[0]?.displayName ??
-    "your child";
-
+  const stub = skillCode ? (SKILL_STUBS[skillCode] ?? getDefaultStub(skillCode)) : null;
+  const skillDisplayName = skillCode ? formatSkillName(skillCode) : "Skill";
   const statusColor = stub ? getStatusColor(stub.status) : "#9b72ff";
   const isStrong = stub?.status === "strong";
 
-  // ── Loading state ──────────────────────────────────────────────────────────
-  if (!authChecked || !stub) {
+  // Suppress hydration mismatch — stub is always available client-side
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  if (!ready || !stub) {
     return (
       <AppFrame audience="parent" currentPath="/parent">
         <div
@@ -442,12 +409,12 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
               width: "32px",
               height: "32px",
               borderRadius: "50%",
-              border: "3px solid rgba(155,114,255,0.2)",
+              border: "3px solid rgba(155,114,255,0.18)",
               borderTopColor: "#9b72ff",
               animation: "spin 0.8s linear infinite",
             }}
           />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       </AppFrame>
     );
@@ -459,18 +426,20 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
         style={{
           minHeight: "100vh",
           background: "#100b2e",
-          padding: "0 0 48px",
+          padding: "0 0 56px",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          color: "#f0f6ff",
         }}
       >
-        {/* ── Page header ──────────────────────────────────────────────────── */}
+        {/* ── Top nav bar ────────────────────────────────────────────────────── */}
         <div
           style={{
             background: "rgba(255,255,255,0.03)",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-            padding: "20px 32px 16px",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            padding: "16px 32px",
             display: "flex",
             alignItems: "center",
-            gap: "16px",
+            gap: "12px",
             flexWrap: "wrap",
           }}
         >
@@ -479,7 +448,7 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "6px",
+              gap: "5px",
               color: "#9b72ff",
               fontSize: "13px",
               fontWeight: 700,
@@ -487,24 +456,68 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
               padding: "6px 12px",
               borderRadius: "8px",
               background: "rgba(155,114,255,0.1)",
-              border: "1px solid rgba(155,114,255,0.2)",
-              flexShrink: 0,
+              border: "1px solid rgba(155,114,255,0.22)",
             }}
           >
-            ← Family Hub
+            ← Skills
           </Link>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
+          {/* Breadcrumb */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.35)",
+            }}
+          >
+            <Link
+              href="/parent"
+              style={{
+                color: "#9b72ff",
+                fontWeight: 600,
+                textDecoration: "none",
+                fontSize: "12px",
+              }}
+            >
+              Home
+            </Link>
+            <span>›</span>
+            <span>Skills</span>
+            <span>›</span>
+            <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
+              {skillDisplayName}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Page header ────────────────────────────────────────────────────── */}
+        <div
+          style={{
+            padding: "28px 32px 0",
+            maxWidth: 1000,
+            margin: "0 auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "16px",
+              marginBottom: "24px",
+            }}
+          >
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "14px",
-                background: "rgba(255,255,255,0.06)",
+                width: "60px",
+                height: "60px",
+                borderRadius: "16px",
+                background: "rgba(255,255,255,0.07)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "22px",
+                fontSize: "28px",
                 flexShrink: 0,
               }}
             >
@@ -513,21 +526,21 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
             <div>
               <h1
                 style={{
-                  fontSize: "22px",
+                  fontSize: "24px",
                   fontWeight: 900,
                   color: "#fff",
-                  margin: 0,
+                  margin: "0 0 6px",
                   lineHeight: 1.2,
                 }}
               >
                 {skillDisplayName}
               </h1>
-              <div style={{ display: "flex", gap: "8px", marginTop: "5px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <span
                   style={{
                     background: "rgba(88,232,193,0.12)",
                     color: "#58e8c1",
-                    border: "1px solid rgba(88,232,193,0.25)",
+                    border: "1px solid rgba(88,232,193,0.24)",
                     borderRadius: "20px",
                     padding: "3px 10px",
                     fontSize: "11px",
@@ -538,7 +551,7 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
                 </span>
                 <span
                   style={{
-                    background: `${statusColor}18`,
+                    background: `${statusColor}1a`,
                     color: statusColor,
                     border: `1px solid ${statusColor}40`,
                     borderRadius: "20px",
@@ -552,273 +565,279 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Stat tiles row ────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "12px",
-            padding: "24px 32px 0",
-          }}
-        >
+          {/* ── Stat row ─────────────────────────────────────────────────────── */}
           <div
             style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px",
-              padding: "16px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: "12px",
+              marginBottom: "24px",
             }}
           >
-            <StatTile
-              label="Stars this week"
-              value={`⭐ ${stub.starsThisWeek}`}
-              detail={stub.starsDelta}
-            />
-          </div>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px",
-              padding: "16px",
-            }}
-          >
-            <StatTile
-              label="Sessions"
-              value={String(stub.sessions)}
-              detail={stub.sessionsDelta}
-            />
-          </div>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px",
-              padding: "16px",
-            }}
-          >
-            <StatTile
-              label="Time on skill"
-              value={`${stub.timeMin}m`}
-              detail={stub.timeDelta}
-            />
-          </div>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "12px",
-              padding: "16px",
-            }}
-          >
-            <StatTile
-              label="Perfect sessions"
-              value={stub.perfectSessions === 0 ? "0×" : `🔥 ${stub.perfectSessions}×`}
-              detail={stub.perfectDelta}
-            />
-          </div>
-        </div>
-
-        {/* ── Two-column main layout ────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: "16px",
-            padding: "20px 32px 0",
-          }}
-        >
-          {/* ── LEFT column ─────────────────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-            {/* Mastery progress */}
-            <ShellCard
-              title="Mastery progress"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "14px",
-                padding: "20px",
-              }}
-            >
+            {[
+              {
+                label: "Stars this week",
+                value: `⭐ ${stub.starsThisWeek}`,
+                delta: stub.starsDelta,
+                up: stub.starsDelta.startsWith("↑"),
+              },
+              {
+                label: "Sessions",
+                value: String(stub.sessions),
+                delta: stub.sessionsDelta,
+                up: stub.sessionsDelta.startsWith("↑"),
+              },
+              {
+                label: "Time on skill",
+                value: `${stub.timeMin}m`,
+                delta: stub.timeDelta,
+                up: stub.timeDelta.startsWith("↑"),
+              },
+              {
+                label: "Perfect sessions",
+                value: stub.perfectSessions === 0 ? "0×" : `🔥 ${stub.perfectSessions}×`,
+                delta: stub.perfectDelta,
+                up: stub.perfectDelta.startsWith("↑"),
+              },
+            ].map((stat) => (
               <div
+                key={stat.label}
                 style={{
-                  height: "12px",
-                  borderRadius: "6px",
-                  background: "rgba(255,255,255,0.08)",
-                  overflow: "hidden",
-                  margin: "12px 0 6px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  borderRadius: "12px",
+                  padding: "16px",
                 }}
               >
                 <div
                   style={{
-                    height: "100%",
-                    width: `${stub.masteryScore}%`,
-                    borderRadius: "6px",
-                    background: getMasteryFillColor(stub.status),
-                    transition: "width 0.5s ease",
+                    fontSize: "24px",
+                    fontWeight: 900,
+                    color: "#fff",
+                    marginBottom: "3px",
+                    lineHeight: 1.1,
                   }}
-                />
+                >
+                  {stat.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: "rgba(255,255,255,0.4)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    marginBottom: "5px",
+                  }}
+                >
+                  {stat.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: stat.up ? "#22c55e" : "rgba(255,255,255,0.38)",
+                  }}
+                >
+                  {stat.delta}
+                </div>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "11px",
-                  color: "rgba(255,255,255,0.4)",
-                  marginBottom: "10px",
-                }}
-              >
-                <span>0</span>
-                <span style={{ color: statusColor, fontWeight: 800 }}>{stub.masteryScore} / 100</span>
-                <span>100</span>
-              </div>
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "rgba(255,255,255,0.55)",
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}
-              >
-                {stub.status === "strong"
-                  ? `${childName} is very strong here — approaching the top of this skill!`
-                  : stub.status === "building"
-                  ? `${childName} is building confidence. Consistent practice over 2–3 more weeks will help it click.`
-                  : `${childName} has just started this skill. Early sessions look great — keep the momentum going!`}
-              </p>
-            </ShellCard>
+            ))}
+          </div>
 
-            {/* Weekly sparkline */}
-            <ShellCard
-              title="Stars over 5 weeks"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "14px",
-                padding: "20px",
-              }}
-            >
-              <div style={{ marginTop: "12px" }}>
+          {/* ── Two column layout ────────────────────────────────────────────── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {/* LEFT column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+              {/* Mastery progress */}
+              <Card title="Mastery progress">
+                <div
+                  style={{
+                    height: "14px",
+                    borderRadius: "7px",
+                    background: "rgba(255,255,255,0.08)",
+                    overflow: "hidden",
+                    marginBottom: "6px",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${stub.masteryScore}%`,
+                      borderRadius: "7px",
+                      background: getMasteryFill(stub.status),
+                      transition: "width 0.5s ease",
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "11px",
+                    color: "rgba(255,255,255,0.38)",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <span>0</span>
+                  <span style={{ color: statusColor, fontWeight: 800 }}>
+                    {stub.masteryScore} / 100
+                  </span>
+                  <span>100</span>
+                </div>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "rgba(255,255,255,0.5)",
+                    lineHeight: 1.6,
+                    margin: 0,
+                  }}
+                >
+                  {stub.status === "strong"
+                    ? `Approaching the top of this skill — really strong work here!`
+                    : stub.status === "building"
+                    ? "Building confidence. Consistent practice over 2–3 more weeks will help it click."
+                    : "Just started this skill. Early sessions look great — keep the momentum going!"}
+                </p>
+              </Card>
+
+              {/* Week-by-week sparkline */}
+              <Card title="Week-by-week stars">
                 <SparkChart
                   values={stub.weeklyStars}
                   labels={stub.weeklyLabels}
                   trend={stub.weeklyTrend}
                 />
-              </div>
-            </ShellCard>
+              </Card>
 
-            {/* Support tip or celebration */}
-            {isStrong ? (
+              {/* Support tip or celebration */}
+              {isStrong ? (
+                <div
+                  style={{
+                    background: "rgba(88,232,193,0.07)",
+                    border: "1px solid rgba(88,232,193,0.2)",
+                    borderLeft: "4px solid #58e8c1",
+                    borderRadius: "12px",
+                    padding: "18px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      color: "#58e8c1",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    🎉 Great work on this skill!
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "rgba(255,255,255,0.55)",
+                      lineHeight: 1.6,
+                      margin: 0,
+                    }}
+                  >
+                    {stub.celebrationNote}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background: "rgba(255,209,102,0.07)",
+                    border: "1px solid rgba(255,209,102,0.2)",
+                    borderLeft: "4px solid #ffd166",
+                    borderRadius: "12px",
+                    padding: "18px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      color: "#ffd166",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    💡 Support tip for {skillDisplayName}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "rgba(255,255,255,0.55)",
+                      lineHeight: 1.6,
+                      margin: 0,
+                    }}
+                  >
+                    {stub.supportTip}
+                  </p>
+                </div>
+              )}
+
+              {/* What this means */}
               <div
                 style={{
-                  background: "rgba(88,232,193,0.08)",
-                  border: "1px solid rgba(88,232,193,0.2)",
-                  borderLeft: "4px solid #58e8c1",
-                  borderRadius: "12px",
-                  padding: "16px 18px",
+                  background: "rgba(155,114,255,0.06)",
+                  border: "1px solid rgba(155,114,255,0.15)",
+                  borderRadius: "14px",
+                  padding: "20px",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "13px",
-                    fontWeight: 800,
-                    color: "#58e8c1",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: "#9b72ff",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
                     marginBottom: "6px",
                   }}
                 >
-                  🎉 {childName} is great at this!
+                  For parents
                 </div>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "rgba(255,255,255,0.6)",
-                    lineHeight: 1.6,
-                    margin: 0,
-                  }}
-                >
-                  {stub.celebrationNote}
-                </p>
-              </div>
-            ) : (
-              <div
-                style={{
-                  background: "rgba(255,209,102,0.07)",
-                  border: "1px solid rgba(255,209,102,0.2)",
-                  borderLeft: "4px solid #ffd166",
-                  borderRadius: "12px",
-                  padding: "16px 18px",
-                }}
-              >
                 <div
                   style={{
                     fontSize: "13px",
                     fontWeight: 800,
-                    color: "#ffd166",
-                    marginBottom: "6px",
+                    color: "#e8e4f8",
+                    marginBottom: "8px",
                   }}
                 >
-                  💡 Support tip for {skillDisplayName}
+                  What this means
                 </div>
                 <p
                   style={{
-                    fontSize: "12px",
+                    fontSize: "13px",
                     color: "rgba(255,255,255,0.6)",
-                    lineHeight: 1.6,
+                    lineHeight: 1.7,
                     margin: 0,
                   }}
                 >
-                  {stub.supportTip}
+                  {stub.explainer}
                 </p>
               </div>
-            )}
+            </div>
 
-            {/* What this means */}
-            <ShellCard
-              title="What this means"
-              eyebrow="For parents"
-              style={{
-                background: "rgba(155,114,255,0.06)",
-                border: "1px solid rgba(155,114,255,0.15)",
-                borderRadius: "14px",
-                padding: "20px",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "rgba(255,255,255,0.65)",
-                  lineHeight: 1.7,
-                  margin: "10px 0 0",
-                }}
-              >
-                {stub.explainer}
-              </p>
-            </ShellCard>
-          </div>
+            {/* RIGHT column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
-          {/* ── RIGHT column ────────────────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-            {/* Session log */}
-            <ShellCard
-              title="Sessions this week"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "14px",
-                padding: "20px",
-              }}
-            >
-              <div style={{ marginTop: "4px" }}>
+              {/* Session log */}
+              <Card title="Sessions this week">
                 {stub.sessionLog.length === 0 ? (
                   <p
                     style={{
                       fontSize: "13px",
-                      color: "rgba(255,255,255,0.35)",
-                      padding: "16px 0",
+                      color: "rgba(255,255,255,0.32)",
+                      padding: "12px 0",
                       textAlign: "center",
                     }}
                   >
@@ -826,89 +845,28 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
                   </p>
                 ) : (
                   stub.sessionLog.map((entry, i) => (
-                    <div
+                    <SessionRow
                       key={i}
-                      style={
-                        i === stub.sessionLog.length - 1
-                          ? { borderBottom: "none" }
-                          : undefined
-                      }
-                    >
-                      <SessionLogItem entry={entry} />
-                    </div>
+                      entry={entry}
+                      isLast={i === stub.sessionLog.length - 1}
+                    />
                   ))
                 )}
-              </div>
-            </ShellCard>
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "10px",
+                    color: "rgba(255,255,255,0.28)",
+                    borderTop: "1px solid rgba(255,255,255,0.06)",
+                    paddingTop: "10px",
+                  }}
+                >
+                  ⭐ Perfect session = every question correct that session
+                </div>
+              </Card>
 
-            {/* Encourage action card */}
-            <div
-              style={{
-                background: "rgba(255,123,107,0.08)",
-                border: "1px solid rgba(255,123,107,0.2)",
-                borderRadius: "14px",
-                padding: "20px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 800,
-                  color: "#ff7b6b",
-                  marginBottom: "8px",
-                }}
-              >
-                💬 Encourage {childName}
-              </div>
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "rgba(255,255,255,0.6)",
-                  lineHeight: 1.6,
-                  margin: "0 0 14px",
-                }}
-              >
-                {isStrong
-                  ? `Tell ${childName} you noticed how well they're doing with ${skillDisplayName.toLowerCase()} — even a quick mention means a lot.`
-                  : `${childName} is putting real effort into ${skillDisplayName.toLowerCase()}. A calm "I noticed you're working hard on this" goes a long way.`}
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  flexWrap: "wrap",
-                }}
-              >
-                {["Great effort!", "I noticed!", "Keep it up!"].map((msg) => (
-                  <span
-                    key={msg}
-                    style={{
-                      background: "rgba(255,123,107,0.12)",
-                      border: "1px solid rgba(255,123,107,0.25)",
-                      borderRadius: "20px",
-                      padding: "4px 12px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: "#ff7b6b",
-                    }}
-                  >
-                    {msg}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Related skills */}
-            <ShellCard
-              title="Related skills"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "14px",
-                padding: "20px",
-              }}
-            >
-              <div style={{ marginTop: "8px" }}>
+              {/* Related skills */}
+              <Card title="Related skills">
                 {stub.relatedSkills.map((related, i) => (
                   <Link
                     key={related.code}
@@ -923,19 +881,18 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
                           ? "1px solid rgba(255,255,255,0.06)"
                           : "none",
                       textDecoration: "none",
-                      cursor: "pointer",
                     }}
                   >
                     <div
                       style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "8px",
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "9px",
                         background: "rgba(255,255,255,0.07)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "14px",
+                        fontSize: "15px",
                         flexShrink: 0,
                       }}
                     >
@@ -945,54 +902,68 @@ export default function ParentSkillDetailPage({ params }: PageProps) {
                       style={{
                         fontSize: "13px",
                         fontWeight: 600,
-                        color: "#fff",
+                        color: "#f0f6ff",
                         flex: 1,
                       }}
                     >
                       {related.name}
                     </span>
-                    <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "14px" }}>›</span>
+                    <span style={{ color: "rgba(255,255,255,0.28)", fontSize: "14px" }}>›</span>
                   </Link>
                 ))}
-              </div>
-            </ShellCard>
+              </Card>
 
-            {/* Auth context — only shown when not authenticated (session preview) */}
-            {!authResult && (
+              {/* Encourage action */}
               <div
                 style={{
                   background: "rgba(155,114,255,0.08)",
-                  border: "1px solid rgba(155,114,255,0.2)",
-                  borderRadius: "12px",
-                  padding: "14px 16px",
+                  border: "1px solid rgba(155,114,255,0.18)",
+                  borderRadius: "14px",
+                  padding: "18px",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
+                    fontSize: "13px",
+                    fontWeight: 800,
                     color: "#9b72ff",
-                    marginBottom: "4px",
+                    marginBottom: "8px",
                   }}
                 >
-                  Preview mode
+                  💬 Say something encouraging
                 </div>
                 <p
                   style={{
-                    fontSize: "11px",
-                    color: "rgba(255,255,255,0.45)",
-                    margin: 0,
-                    lineHeight: 1.5,
+                    fontSize: "12px",
+                    color: "rgba(255,255,255,0.55)",
+                    lineHeight: 1.6,
+                    margin: "0 0 12px",
                   }}
                 >
-                  Sign in from{" "}
-                  <Link href="/parent" style={{ color: "#9b72ff", fontWeight: 600 }}>
-                    Family Hub
-                  </Link>{" "}
-                  to see live data for your child.
+                  {isStrong
+                    ? `Let them know you noticed how well they are doing with ${skillDisplayName.toLowerCase()} — even a brief mention means a lot.`
+                    : `Your child is putting real effort into ${skillDisplayName.toLowerCase()}. A calm "I noticed you are working hard on this" goes a long way.`}
                 </p>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {["Great effort!", "I noticed!", "Keep it up!"].map((msg) => (
+                    <span
+                      key={msg}
+                      style={{
+                        background: "rgba(155,114,255,0.14)",
+                        border: "1px solid rgba(155,114,255,0.28)",
+                        borderRadius: "20px",
+                        padding: "4px 12px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#c4a8ff",
+                      }}
+                    >
+                      {msg}
+                    </span>
+                  ))}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

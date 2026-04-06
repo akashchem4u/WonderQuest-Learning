@@ -1,65 +1,76 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-type ParentAccessResponse = {
-  guardian: { id: string; username: string; displayName: string };
-  linkedChild: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarKey: string;
-    launchBandCode: string;
-    totalPoints: number;
-    currentLevel: number;
-    badgeCount: number;
-    trophyCount: number;
-  } | null;
-  linkedChildren: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarKey: string;
-    launchBandCode: string;
-    totalPoints: number;
-    currentLevel: number;
-    badgeCount: number;
-    trophyCount: number;
-  }[];
-  childDashboards: unknown[];
-  childDashboard: unknown | null;
+type Tab = "full" | "skills" | "habits" | "suggestions";
+
+type StatTileData = {
+  label: string;
+  value: string;
+  color: string;
+  delta: string;
+  deltaDir: "up" | "down" | "same";
 };
 
-// ─── Component prop types ────────────────────────────────────────────────────
+type SkillRow = {
+  name: string;
+  subject: string;
+  pct: number;
+  barColor: string;
+  pctColor: string;
+  sessions: number;
+  delta: string;
+  deltaDir: "up" | "down" | "same" | "new";
+  status: "Strong" | "Building" | "Just started";
+};
 
-type StatTileProps = { label: string; value: string; color: string; delta: string; deltaUp: boolean | null };
-type SkillProps = { name: string; subject: string; pct: number; bar: string; sessions: number; delta: string; deltaUp: boolean | null; status: string };
-type HeatmapDayProps = { label: string; sessions: number; active: boolean };
+type SessionLogRow = {
+  date: string;
+  stars: number;
+  skills: string;
+  duration: string;
+  perfect: boolean;
+};
 
-// ─── Stubbed weekly data ─────────────────────────────────────────────────────
+type HeatmapDay = {
+  label: string;
+  sessions: number;
+  active: boolean;
+};
+
+// ─── Stub data ────────────────────────────────────────────────────────────────
 
 const WEEK_LABEL = "March 18 – March 24, 2026";
 
-const STAT_TILES: StatTileProps[] = [
-  { label: "Sessions", value: "14", color: "#9b72ff", delta: "+3 vs last week", deltaUp: true },
-  { label: "Learning time", value: "3.2h", color: "#58e8c1", delta: "Same as last week", deltaUp: null },
-  { label: "Accuracy", value: "74%", color: "#ffd166", delta: "+8% vs last week", deltaUp: true },
-  { label: "Day streak", value: "5 days", color: "#ff7b6b", delta: "+2 days", deltaUp: true },
+const HEADLINE_STATS: StatTileData[] = [
+  { label: "Stars earned", value: "⭐ 42", color: "#ffd166", delta: "↑ 8 vs last week", deltaDir: "up" },
+  { label: "Sessions", value: "14", color: "#9b72ff", delta: "↑ 3 sessions", deltaDir: "up" },
+  { label: "Learning time", value: "3.2h", color: "#58e8c1", delta: "→ Same as last week", deltaDir: "same" },
+  { label: "New badges", value: "2", color: "#ff7b6b", delta: "↑ 2 new", deltaDir: "up" },
+  { label: "Day streak", value: "🔥 5", color: "#9b72ff", delta: "↑ 2 days", deltaDir: "up" },
 ];
 
-const SKILLS: SkillProps[] = [
-  { name: "Rhyming words", subject: "Reading", pct: 88, bar: "#9b72ff", sessions: 6, delta: "+12%", deltaUp: true, status: "Strong" },
-  { name: "Letter sounds", subject: "Phonics", pct: 74, bar: "#9b72ff", sessions: 4, delta: "+6%", deltaUp: true, status: "Strong" },
-  { name: "Counting objects", subject: "Math", pct: 60, bar: "#ffd166", sessions: 2, delta: "—", deltaUp: null, status: "Building" },
-  { name: "First words", subject: "Reading", pct: 45, bar: "#ffd166", sessions: 2, delta: "+8%", deltaUp: true, status: "Building" },
-  { name: "Simple addition", subject: "Math", pct: 30, bar: "#9b72ff44", sessions: 1, delta: "New", deltaUp: null, status: "Just started" },
+const SKILLS: SkillRow[] = [
+  { name: "Rhyming words", subject: "Reading", pct: 88, barColor: "#9b72ff", pctColor: "#9b72ff", sessions: 6, delta: "↑ 12%", deltaDir: "up", status: "Strong" },
+  { name: "Letter sounds", subject: "Phonics", pct: 74, barColor: "#9b72ff", pctColor: "#9b72ff", sessions: 4, delta: "↑ 6%", deltaDir: "up", status: "Strong" },
+  { name: "Counting objects", subject: "Math", pct: 60, barColor: "#ffd166", pctColor: "#a07000", sessions: 2, delta: "→ 0%", deltaDir: "same", status: "Building" },
+  { name: "First words", subject: "Reading", pct: 45, barColor: "#ffd166", pctColor: "#a07000", sessions: 2, delta: "↑ 8%", deltaDir: "up", status: "Building" },
+  { name: "Simple addition", subject: "Math", pct: 30, barColor: "rgba(155,114,255,0.3)", pctColor: "rgba(255,255,255,0.38)", sessions: 1, delta: "New", deltaDir: "new", status: "Just started" },
 ];
 
-const HEATMAP_DAYS: HeatmapDayProps[] = [
+const SESSION_LOG: SessionLogRow[] = [
+  { date: "Today (Fri)", stars: 9, skills: "Rhyming words, Letter sounds", duration: "14 min", perfect: true },
+  { date: "Thursday", stars: 9, skills: "Rhyming words, Counting objects", duration: "12 min", perfect: false },
+  { date: "Wednesday", stars: 9, skills: "Letter sounds, First words", duration: "15 min", perfect: false },
+  { date: "Tuesday", stars: 8, skills: "Rhyming words, Simple addition", duration: "13 min", perfect: false },
+  { date: "Monday", stars: 7, skills: "Letter sounds, First words", duration: "11 min", perfect: true },
+];
+
+const HEATMAP: HeatmapDay[] = [
   { label: "Mon", sessions: 2, active: true },
   { label: "Tue", sessions: 3, active: true },
   { label: "Wed", sessions: 3, active: true },
@@ -69,141 +80,274 @@ const HEATMAP_DAYS: HeatmapDayProps[] = [
   { label: "Sun", sessions: 0, active: false },
 ];
 
-const SESSION_LOG = [
-  { day: "Friday, Mar 21", stars: 9, skills: "Rhyming words, Letter sounds", duration: "14 min", perfect: true },
-  { day: "Thursday, Mar 20", stars: 9, skills: "Rhyming words, Counting objects", duration: "12 min", perfect: false },
-  { day: "Wednesday, Mar 19", stars: 9, skills: "Letter sounds, First words", duration: "15 min", perfect: false },
-  { day: "Tuesday, Mar 18", stars: 8, skills: "Rhyming words, Simple addition", duration: "13 min", perfect: false },
-  { day: "Monday, Mar 17", stars: 7, skills: "Letter sounds, First words", duration: "11 min", perfect: true },
-  { day: "Friday, Mar 21 (2nd)", stars: 6, skills: "Counting objects", duration: "9 min", perfect: false },
-  { day: "Wednesday, Mar 19 (2nd)", stars: 8, skills: "Rhyming words", duration: "10 min", perfect: false },
+const ENGAGEMENT_SUMMARY = [
+  { label: "Total learning time", value: "3.2h", color: "#9b72ff" },
+  { label: "Avg session length", value: "14 min", color: "#ffd166" },
+  { label: "Perfect sessions", value: "2 / 14", color: "#58e8c1" },
+  { label: "Days active", value: "5 / 7", color: "#ff7b6b" },
 ];
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+const SUGGESTIONS = [
+  {
+    icon: "🎵",
+    title: "Keep the rhyming momentum going!",
+    body: "Rhyming is at 88% — a huge jump this week! Try playing rhyme games during car rides: \"I say cat, you say a word that rhymes!\" Nursery rhymes at bedtime also reinforce these patterns naturally.",
+    tag: "📖 Reading · High impact",
+    tagBg: "rgba(155,114,255,0.18)",
+    tagColor: "#c4a8ff",
+    iconBg: "rgba(155,114,255,0.2)",
+  },
+  {
+    icon: "🔢",
+    title: "Help counting click for your child",
+    body: "Counting objects is at 60% and stable. Real-world counting helps enormously — try counting stairs, apples at the store, or steps to the bedroom. Touching objects while counting is especially effective for K-age kids.",
+    tag: "➕ Math · Building",
+    tagBg: "rgba(255,209,102,0.15)",
+    tagColor: "#ffd166",
+    iconBg: "rgba(255,209,102,0.15)",
+  },
+  {
+    icon: "📚",
+    title: "First words — try pointing to words in books",
+    body: "When reading together, point to simple words like \"the\", \"is\", \"on\" as you read aloud. Ask your child to spot them on the page. This bridges the WonderQuest practice to real reading.",
+    tag: "📖 Reading · Building",
+    tagBg: "rgba(88,232,193,0.12)",
+    tagColor: "#58e8c1",
+    iconBg: "rgba(88,232,193,0.12)",
+  },
+];
 
-function StatTile({ label, value, color, delta, deltaUp }: StatTileProps) {
-  const deltaColor = deltaUp === true ? "#58e8c1" : deltaUp === false ? "#ff7b6b" : "#9b8ec4";
-  return (
-    <div style={{
-      background: "rgba(255,255,255,0.06)",
-      border: "1px solid rgba(155,114,255,0.25)",
-      borderRadius: 14,
-      padding: "18px 20px",
-      textAlign: "center",
-      flex: 1,
-      minWidth: 120,
-    }}>
-      <div style={{ fontWeight: 900, fontSize: "1.6rem", color, marginBottom: 4, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: "0.7rem", color: "#9b8ec4", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: "0.68rem", color: deltaColor, fontWeight: 600 }}>{delta}</div>
-    </div>
-  );
-}
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SkillBar({ skill }: { skill: SkillProps }) {
-  const pctColor = skill.pct >= 70 ? "#9b72ff" : skill.pct >= 50 ? "#ffd166" : "#9b8ec4";
-  const deltaColor = skill.deltaUp === true ? "#58e8c1" : skill.deltaUp === false ? "#ff7b6b" : "#9b8ec4";
-  const statusBg = skill.status === "Strong" ? "rgba(88,232,193,0.15)" : skill.status === "Building" ? "rgba(255,209,102,0.15)" : "rgba(155,114,255,0.15)";
-  const statusColor = skill.status === "Strong" ? "#58e8c1" : skill.status === "Building" ? "#ffd166" : "#9b72ff";
-
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <div>
-          <span style={{ fontWeight: 600, fontSize: "0.88rem", color: "#e8e4f8" }}>{skill.name}</span>
-          <span style={{ marginLeft: 8, fontSize: "0.7rem", color: "#9b8ec4" }}>{skill.subject}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: "0.82rem", color: pctColor }}>{skill.pct}%</span>
-          <span style={{ fontSize: "0.72rem", color: deltaColor, fontWeight: 600 }}>{skill.delta}</span>
-          <span style={{ padding: "2px 8px", borderRadius: 10, fontSize: "0.65rem", fontWeight: 700, background: statusBg, color: statusColor }}>{skill.status}</span>
-        </div>
-      </div>
-      <div style={{ height: 7, background: "rgba(155,114,255,0.2)", borderRadius: 4, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${skill.pct}%`, background: skill.bar, borderRadius: 4, transition: "width 0.6s ease" }} />
-      </div>
-    </div>
-  );
-}
-
-function HeatmapDot({ day }: { day: HeatmapDayProps }) {
-  const intensity = day.sessions === 3 ? 1 : day.sessions === 2 ? 0.7 : day.sessions === 1 ? 0.4 : 0;
-  const bg = day.active
-    ? `rgba(155,114,255,${0.2 + intensity * 0.8})`
-    : "rgba(255,255,255,0.05)";
-  const border = day.active ? "1px solid rgba(155,114,255,0.5)" : "1px solid rgba(255,255,255,0.08)";
+function HeadlineStat({ stat }: { stat: StatTileData }) {
+  const deltaColor =
+    stat.deltaDir === "up" ? "#50e890"
+    : stat.deltaDir === "down" ? "#ff7b6b"
+    : "rgba(255,255,255,0.38)";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{
-        width: 36,
-        height: 36,
-        borderRadius: "50%",
-        background: bg,
-        border,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "0.72rem",
-        fontWeight: 700,
-        color: day.active ? "#e8e4f8" : "#4a3a7a",
-      }}>
-        {day.active ? day.sessions : "·"}
-      </div>
-      <span style={{ fontSize: "0.65rem", color: "#9b8ec4", fontWeight: 600 }}>{day.label}</span>
-    </div>
-  );
-}
-
-// ─── Auth gate ────────────────────────────────────────────────────────────────
-
-function LoadingState() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
-      <div style={{ textAlign: "center", color: "#9b8ec4" }}>
-        <div style={{ fontSize: "2rem", marginBottom: 12 }}>🌙</div>
-        <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>Loading report…</div>
-      </div>
-    </div>
-  );
-}
-
-function AuthGate({ onBack }: { onBack: () => void }) {
-  return (
-    <div style={{
-      maxWidth: 420,
-      margin: "60px auto",
-      background: "rgba(255,255,255,0.05)",
-      border: "1px solid rgba(155,114,255,0.25)",
-      borderRadius: 20,
-      padding: "36px 32px",
-      textAlign: "center",
-    }}>
-      <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>🔒</div>
-      <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "#e8e4f8", marginBottom: 8 }}>Sign in to view this report</div>
-      <div style={{ fontSize: "0.85rem", color: "#9b8ec4", marginBottom: 28, lineHeight: 1.5 }}>
-        Your weekly report is ready. Sign into Family Hub to see Maya&apos;s progress.
-      </div>
-      <Link
-        href="/parent"
+    <div
+      style={{
+        background: "rgba(255,255,255,0.05)",
+        border: "1px solid rgba(155,114,255,0.2)",
+        borderRadius: "14px",
+        padding: "18px 16px",
+        textAlign: "center",
+        flex: "1 1 130px",
+      }}
+    >
+      <div
         style={{
-          display: "inline-block",
-          padding: "12px 28px",
-          background: "#9b72ff",
-          color: "#fff",
-          borderRadius: 10,
-          fontWeight: 700,
-          fontSize: "0.88rem",
-          textDecoration: "none",
+          fontSize: "1.6rem",
+          fontWeight: 900,
+          color: stat.color,
+          lineHeight: 1,
+          marginBottom: "5px",
         }}
       >
-        Go to Family Hub
-      </Link>
-      <div style={{ marginTop: 16 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: "#9b8ec4", fontSize: "0.8rem", cursor: "pointer" }}>
-          ← Back
-        </button>
+        {stat.value}
       </div>
+      <div
+        style={{
+          fontSize: "0.68rem",
+          color: "rgba(255,255,255,0.42)",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          marginBottom: "6px",
+        }}
+      >
+        {stat.label}
+      </div>
+      <div style={{ fontSize: "0.68rem", fontWeight: 600, color: deltaColor }}>
+        {stat.delta}
+      </div>
+    </div>
+  );
+}
+
+function SkillTableRow({ skill, isLast }: { skill: SkillRow; isLast: boolean }) {
+  const deltaColor =
+    skill.deltaDir === "up" ? "#50e890"
+    : skill.deltaDir === "down" ? "#ff7b6b"
+    : skill.deltaDir === "new" ? "#9b72ff"
+    : "rgba(255,255,255,0.38)";
+
+  const statusStyle: React.CSSProperties =
+    skill.status === "Strong"
+      ? { background: "rgba(80,232,144,0.14)", color: "#50e890" }
+      : skill.status === "Building"
+      ? { background: "rgba(255,209,102,0.14)", color: "#ffd166" }
+      : { background: "rgba(155,114,255,0.18)", color: "#c4a8ff" };
+
+  return (
+    <tr
+      style={{
+        borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.05)",
+      }}
+    >
+      <td style={{ padding: "11px 12px", fontSize: "0.84rem", fontWeight: 600, color: "#f0f6ff" }}>
+        {skill.name}
+      </td>
+      <td style={{ padding: "11px 12px", fontSize: "0.72rem", color: "rgba(255,255,255,0.42)" }}>
+        {skill.subject}
+      </td>
+      <td style={{ padding: "11px 12px", minWidth: "110px" }}>
+        <div
+          style={{
+            height: "7px",
+            background: "rgba(255,255,255,0.08)",
+            borderRadius: "4px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${skill.pct}%`,
+              background: skill.barColor,
+              borderRadius: "4px",
+              transition: "width 0.5s ease",
+            }}
+          />
+        </div>
+      </td>
+      <td
+        style={{
+          padding: "11px 8px",
+          fontSize: "0.82rem",
+          fontWeight: 700,
+          color: skill.pctColor,
+          textAlign: "right",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {skill.pct}%
+      </td>
+      <td
+        style={{
+          padding: "11px 12px",
+          fontSize: "0.78rem",
+          color: "rgba(255,255,255,0.5)",
+          textAlign: "center",
+        }}
+      >
+        {skill.sessions}
+      </td>
+      <td
+        style={{
+          padding: "11px 12px",
+          fontSize: "0.72rem",
+          fontWeight: 600,
+          color: deltaColor,
+          textAlign: "center",
+        }}
+      >
+        {skill.delta}
+      </td>
+      <td style={{ padding: "11px 12px" }}>
+        <span
+          style={{
+            display: "inline-block",
+            padding: "2px 10px",
+            borderRadius: "12px",
+            fontSize: "0.68rem",
+            fontWeight: 700,
+            ...statusStyle,
+          }}
+        >
+          {skill.status}
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+function SectionCard({
+  title,
+  icon,
+  children,
+  right,
+}: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(155,114,255,0.18)",
+        borderRadius: "16px",
+        padding: "22px 24px",
+        marginBottom: "20px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "18px",
+        }}
+      >
+        <span style={{ fontSize: "1.1rem" }}>{icon}</span>
+        <span style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8" }}>{title}</span>
+        {right && <div style={{ marginLeft: "auto" }}>{right}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function BarChart() {
+  const data = [
+    { label: "Mon", pct: 60 },
+    { label: "Tue", pct: 80 },
+    { label: "Wed", pct: 100 },
+    { label: "Thu", pct: 100 },
+    { label: "Fri", pct: 60 },
+    { label: "Sat", pct: 0 },
+    { label: "Sun", pct: 0 },
+  ];
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-end",
+        gap: "6px",
+        height: "80px",
+      }}
+    >
+      {data.map((d) => (
+        <div
+          key={d.label}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+            flex: 1,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              height: `${Math.max(d.pct * 0.64, d.pct === 0 ? 4 : 4)}px`,
+              borderRadius: "3px 3px 0 0",
+              background:
+                d.pct === 0
+                  ? "rgba(255,255,255,0.06)"
+                  : d.pct === 100
+                  ? "#9b72ff"
+                  : "rgba(155,114,255,0.55)",
+              alignSelf: "flex-end",
+            }}
+          />
+          <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.38)" }}>{d.label}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -211,460 +355,861 @@ function AuthGate({ onBack }: { onBack: () => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ParentWeeklyReportPage() {
-  const [session, setSession] = useState<ParentAccessResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authed, setAuthed] = useState(false);
+  const [tab, setTab] = useState<Tab>("full");
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function trySessionRestore() {
-      try {
-        const response = await fetch("/api/parent/session", { method: "GET" });
-        if (!response.ok || cancelled) {
-          setLoading(false);
-          return;
-        }
-        const payload = (await response.json()) as ParentAccessResponse;
-        if (cancelled) return;
-        setSession(payload);
-        setAuthed(true);
-      } catch {
-        // No valid session — show auth gate.
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void trySessionRestore();
-    return () => { cancelled = true; };
-  }, []);
-
-  const childName = session?.linkedChild?.displayName ?? session?.linkedChildren[0]?.displayName ?? "Maya";
-  const avatarKey = session?.linkedChild?.avatarKey ?? session?.linkedChildren[0]?.avatarKey ?? "";
-  const bandCode = session?.linkedChild?.launchBandCode ?? session?.linkedChildren[0]?.launchBandCode ?? "k1";
-  const level = session?.linkedChild?.currentLevel ?? session?.linkedChildren[0]?.currentLevel ?? 2;
-
-  function getAvatarSymbol(key: string) {
-    if (key.includes("bunny")) return "🐰";
-    if (key.includes("bear")) return "🐻";
-    if (key.includes("lion")) return "🦁";
-    if (key.includes("fox")) return "🦊";
-    if (key.includes("panda")) return "🐼";
-    if (key.includes("owl")) return "🦉";
-    return "🦁";
-  }
-
-  function getBandLabel(code: string) {
-    if (code.startsWith("pre")) return "Pre-K";
-    if (code.startsWith("k1")) return "K–1";
-    if (code.startsWith("g2")) return "Grade 2";
-    if (code.startsWith("g3")) return "Grade 3";
-    return "K–1";
-  }
-
-  const BASE = "#100b2e";
-  const MINT = "#58e8c1";
-  const VIOLET = "#9b72ff";
-  const GOLD = "#ffd166";
-  const CORAL = "#ff7b6b";
-
-  // Suppress unused var warnings for palette constants used inline
-  void MINT; void CORAL;
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "full", label: "📊 Full Report" },
+    { id: "skills", label: "📚 Skills" },
+    { id: "habits", label: "⏱ Habits" },
+    { id: "suggestions", label: "💡 Suggestions" },
+  ];
 
   return (
     <AppFrame audience="parent" currentPath="/parent">
-      <div style={{
-        background: `linear-gradient(160deg, ${BASE} 0%, #1a1248 50%, #0e1a38 100%)`,
-        minHeight: "100vh",
-        padding: "0 0 60px",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        color: "#e8e4f8",
-      }}>
-
-        {/* ── Page header ── */}
-        <div style={{
-          padding: "24px 32px 0",
-          maxWidth: 1100,
-          margin: "0 auto",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(160deg, #100b2e 0%, #1a1248 55%, #0e1a38 100%)",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          color: "#f0f6ff",
+        }}
+      >
+        {/* ── Top nav ────────────────────────────────────────────────────────── */}
+        <div
+          style={{
+            padding: "20px 32px 0",
+            maxWidth: 960,
+            margin: "0 auto",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
             <Link
               href="/parent"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                color: VIOLET,
+                gap: "5px",
+                color: "#9b72ff",
                 textDecoration: "none",
-                fontWeight: 600,
-                fontSize: "0.82rem",
+                fontWeight: 700,
+                fontSize: "13px",
                 padding: "6px 12px",
-                background: "rgba(155,114,255,0.12)",
-                borderRadius: 8,
-                border: "1px solid rgba(155,114,255,0.25)",
+                background: "rgba(155,114,255,0.1)",
+                borderRadius: "8px",
+                border: "1px solid rgba(155,114,255,0.22)",
               }}
             >
-              ← Family Hub
+              ← Home
+            </Link>
+            <Link
+              href="/parent/practice"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                color: "#ffd166",
+                textDecoration: "none",
+                fontWeight: 700,
+                fontSize: "13px",
+                padding: "6px 12px",
+                background: "rgba(255,209,102,0.08)",
+                borderRadius: "8px",
+                border: "1px solid rgba(255,209,102,0.2)",
+                marginLeft: "auto",
+              }}
+            >
+              Practice Tips →
             </Link>
           </div>
-          <div style={{ fontSize: "0.7rem", fontWeight: 700, color: VIOLET, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4, marginTop: 16 }}>
-            Weekly Report
-          </div>
-          <h1 style={{ fontWeight: 900, fontSize: "clamp(1.4rem, 3vw, 2rem)", color: "#fff", margin: 0, marginBottom: 4 }}>
-            {loading ? "Loading…" : `${childName}'s week — great progress! 🌟`}
-          </h1>
-          <div style={{ fontSize: "0.85rem", color: "#9b8ec4", marginBottom: 24 }}>
-            {WEEK_LABEL} · Generated Sunday, March 24, 2026
-          </div>
-        </div>
 
-        {/* ── Auth / loading gate ── */}
-        {loading && (
-          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px" }}>
-            <LoadingState />
-          </div>
-        )}
+          {/* Report header */}
+          <div
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(155,114,255,0.22)",
+              borderRadius: "20px",
+              padding: "28px 30px",
+              marginBottom: "20px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "#9b72ff",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "6px",
+              }}
+            >
+              Weekly Learning Report
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(1.3rem, 3vw, 1.8rem)",
+                fontWeight: 700,
+                color: "#fff",
+                marginBottom: "4px",
+              }}
+            >
+              {"Maya's week — amazing progress! 🌟"}
+            </div>
+            <div
+              style={{
+                fontSize: "0.85rem",
+                color: "rgba(255,255,255,0.45)",
+                marginBottom: "20px",
+              }}
+            >
+              {WEEK_LABEL} · Generated Sunday, March 24
+            </div>
 
-        {!loading && !authed && (
-          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px" }}>
-            <AuthGate onBack={() => window.history.back()} />
-          </div>
-        )}
-
-        {!loading && authed && (
-          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px" }}>
-
-            {/* ── Child identity strip ── */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              padding: "16px 20px",
-              background: "rgba(155,114,255,0.1)",
-              border: "1px solid rgba(155,114,255,0.25)",
-              borderRadius: 14,
-              marginBottom: 24,
-            }}>
-              <div style={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #2a1e5e, #3d2a8a)",
+            <div
+              style={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.4rem",
-                flexShrink: 0,
-                border: `2px solid ${VIOLET}`,
-              }}>
-                {getAvatarSymbol(avatarKey)}
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: "1rem", color: "#fff" }}>{childName}</div>
-                <div style={{
-                  display: "inline-flex",
+                alignItems: "flex-start",
+                gap: "20px",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* Avatar */}
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #2a1e5e, #3d2a8a)",
+                  display: "flex",
                   alignItems: "center",
-                  gap: 5,
-                  padding: "2px 10px",
-                  borderRadius: 12,
-                  background: "rgba(155,114,255,0.2)",
-                  border: "1px solid rgba(155,114,255,0.35)",
-                  fontSize: "0.7rem",
+                  justifyContent: "center",
+                  fontSize: "1.6rem",
+                  flexShrink: 0,
+                  border: "2px solid #9b72ff",
+                }}
+              >
+                🦁
+              </div>
+
+              {/* Child info */}
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "3px 12px",
+                    borderRadius: "16px",
+                    background: "rgba(155,114,255,0.18)",
+                    border: "1.5px solid rgba(155,114,255,0.35)",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#c4a8ff",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      background: "#9b72ff",
+                      display: "inline-block",
+                    }}
+                  />
+                  K–1 Band · Kindergarten · Level 2 Star Explorer
+                </div>
+                <p
+                  style={{
+                    fontSize: "0.82rem",
+                    color: "rgba(255,255,255,0.52)",
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  Maya had a great week! She completed all her sessions and earned 2 new badges.
+                  Her rhyming skills jumped from building to strong — a significant milestone for Kindergarten.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Tab bar ────────────────────────────────────────────────────────── */}
+          <div
+            style={{
+              display: "flex",
+              gap: "4px",
+              marginBottom: "24px",
+              overflowX: "auto",
+              paddingBottom: "2px",
+            }}
+          >
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  padding: "8px 16px",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "0.82rem",
                   fontWeight: 700,
-                  color: "#c8b0ff",
-                  marginTop: 4,
-                }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: VIOLET, display: "inline-block" }} />
-                  {getBandLabel(bandCode)} · Level {level} Star Explorer
-                </div>
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontFamily: "system-ui, -apple-system, sans-serif",
+                  background:
+                    tab === t.id
+                      ? "rgba(155,114,255,0.22)"
+                      : "rgba(255,255,255,0.04)",
+                  color: tab === t.id ? "#e0d4ff" : "rgba(255,255,255,0.45)",
+                  border: tab === t.id
+                    ? "1px solid rgba(155,114,255,0.4)"
+                    : "1px solid rgba(255,255,255,0.07)",
+                  transition: "all 0.18s",
+                } as React.CSSProperties}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ═══════════════ FULL REPORT ═══════════════ */}
+          {tab === "full" && (
+            <div>
+              {/* Headline stats */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginBottom: "24px",
+                }}
+              >
+                {HEADLINE_STATS.map((s) => (
+                  <HeadlineStat key={s.label} stat={s} />
+                ))}
               </div>
-              <div style={{ marginLeft: "auto", fontSize: "0.82rem", color: "#9b8ec4" }}>
-                Week of {WEEK_LABEL}
-              </div>
-            </div>
 
-            {/* ── 4 Stat tiles ── */}
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 28 }}>
-              {STAT_TILES.map((tile) => (
-                <StatTile key={tile.label} label={tile.label} value={tile.value} color={tile.color} delta={tile.delta} deltaUp={tile.deltaUp} />
-              ))}
-            </div>
+              {/* Skills table */}
+              <SectionCard title="Skills practiced this week" icon="📚">
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        {["Skill", "Subject", "Mastery", "", "Sessions", "vs last week", "Status"].map(
+                          (h) => (
+                            <th
+                              key={h}
+                              style={{
+                                textAlign: "left",
+                                padding: "8px 12px",
+                                fontSize: "0.7rem",
+                                fontWeight: 700,
+                                color: "rgba(255,255,255,0.38)",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                borderBottom: "1px solid rgba(255,255,255,0.07)",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {SKILLS.map((skill, i) => (
+                        <SkillTableRow
+                          key={skill.name}
+                          skill={skill}
+                          isLast={i === SKILLS.length - 1}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px 12px",
+                    background: "rgba(155,114,255,0.08)",
+                    borderRadius: "8px",
+                    fontSize: "0.72rem",
+                    color: "rgba(255,255,255,0.38)",
+                  }}
+                >
+                  Accuracy % shown for parent context only — children see stars.
+                </div>
+              </SectionCard>
 
-            {/* ── 2-col main layout ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(0,1fr)", gap: 20, marginBottom: 24 }}>
-
-              {/* LEFT column */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-                {/* Skills practiced */}
-                <div style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(155,114,255,0.2)",
-                  borderRadius: 16,
-                  padding: "22px 24px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                    <span style={{ fontSize: "1.1rem" }}>📚</span>
-                    <span style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8" }}>Skills practiced this week</span>
-                  </div>
-                  {SKILLS.map((skill) => (
-                    <SkillBar key={skill.name} skill={skill} />
-                  ))}
-                  <div style={{ marginTop: 8, padding: "8px 12px", background: "rgba(155,114,255,0.1)", borderRadius: 8, fontSize: "0.72rem", color: "#9b8ec4" }}>
-                    Accuracy % shown for parent context only — children see stars.
-                  </div>
+              {/* Session log */}
+              <SectionCard
+                title="Session log"
+                icon="📅"
+                right={
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "rgba(255,255,255,0.38)",
+                    }}
+                  >
+                    {SESSION_LOG.length} sessions this week
+                  </span>
+                }
+              >
+                {/* Header row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "90px 60px 1fr 60px 28px",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    background: "rgba(155,114,255,0.08)",
+                    borderRadius: "8px",
+                    marginBottom: "6px",
+                    fontSize: "0.67rem",
+                    fontWeight: 700,
+                    color: "rgba(255,255,255,0.38)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  <span>Date</span>
+                  <span>Stars</span>
+                  <span>Skills practiced</span>
+                  <span style={{ textAlign: "right" }}>Time</span>
+                  <span style={{ textAlign: "center" }}></span>
                 </div>
 
-                {/* Day-by-day heatmap */}
-                <div style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(155,114,255,0.2)",
-                  borderRadius: 16,
-                  padding: "22px 24px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                    <span style={{ fontSize: "1.1rem" }}>📅</span>
-                    <span style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8" }}>Day-by-day activity</span>
-                    <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "#9b8ec4" }}>Mon – Sun · number = sessions</span>
+                {/* Rows */}
+                {SESSION_LOG.map((row, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "90px 60px 1fr 60px 28px",
+                      gap: "8px",
+                      padding: "11px 12px",
+                      borderRadius: "8px",
+                      background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+                      borderBottom:
+                        i < SESSION_LOG.length - 1
+                          ? "1px solid rgba(155,114,255,0.07)"
+                          : "none",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#c8b8f0" }}>
+                      {row.date}
+                    </span>
+                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#ffd166" }}>
+                      ⭐ {row.stars}
+                    </span>
+                    <span style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.48)" }}>
+                      {row.skills}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.72rem",
+                        color: "rgba(255,255,255,0.38)",
+                        textAlign: "right",
+                      }}
+                    >
+                      {row.duration}
+                    </span>
+                    <span style={{ textAlign: "center", fontSize: "0.88rem" }}>
+                      {row.perfect ? "⭐" : ""}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", gap: 12, justifyContent: "space-between", flexWrap: "wrap" }}>
-                    {HEATMAP_DAYS.map((day) => (
-                      <HeatmapDot key={day.label} day={day} />
+                ))}
+
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px 12px",
+                    background: "rgba(155,114,255,0.08)",
+                    borderRadius: "8px",
+                    fontSize: "0.72rem",
+                    color: "rgba(255,255,255,0.38)",
+                  }}
+                >
+                  ⭐ in last column = perfect session (every question correct)
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* ═══════════════ SKILLS BREAKDOWN ═══════════════ */}
+          {tab === "skills" && (
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
+                📚 Skills Breakdown
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
+                Detailed mastery levels and trends · March 18–24
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: "20px",
+                  marginBottom: "20px",
+                }}
+              >
+                {/* Reading & Phonics */}
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(155,114,255,0.18)",
+                    borderRadius: "16px",
+                    padding: "22px 24px",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                    📖 Reading &amp; Phonics
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    {[
+                      { name: "Rhyming words", pct: 88, color: "#9b72ff", note: "↑ 12% from last week — strong momentum!", noteColor: "#50e890" },
+                      { name: "Letter sounds", pct: 74, color: "#9b72ff", note: "↑ 6% steady improvement", noteColor: "#50e890" },
+                      { name: "First words", pct: 45, color: "#ffd166", note: "Building toward mastery — normal for K stage", noteColor: "rgba(255,255,255,0.38)" },
+                    ].map((item) => (
+                      <div key={item.name}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "5px",
+                          }}
+                        >
+                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "#f0f6ff" }}>
+                            {item.name}
+                          </span>
+                          <span style={{ fontWeight: 700, fontSize: "0.82rem", color: item.color }}>
+                            {item.pct}%
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            height: "7px",
+                            background: "rgba(255,255,255,0.08)",
+                            borderRadius: "4px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: "100%",
+                              width: `${item.pct}%`,
+                              background: item.color,
+                              borderRadius: "4px",
+                            }}
+                          />
+                        </div>
+                        <div style={{ fontSize: "0.7rem", color: item.noteColor, marginTop: "4px" }}>
+                          {item.note}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem", color: "#9b8ec4" }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "rgba(155,114,255,0.9)" }} />
-                      3 sessions (full day)
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem", color: "#9b8ec4" }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "rgba(155,114,255,0.55)" }} />
-                      2 sessions
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.72rem", color: "#9b8ec4" }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }} />
-                      No session
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT column */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-                {/* Highlights card */}
-                <div style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(88,232,193,0.2)",
-                  borderRadius: 16,
-                  padding: "22px 24px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                    <span style={{ fontSize: "1.1rem" }}>🌟</span>
-                    <span style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8" }}>Highlights</span>
-                  </div>
-
-                  {/* Top skill */}
-                  <div style={{
-                    padding: "12px 14px",
-                    background: "rgba(155,114,255,0.12)",
-                    border: "1px solid rgba(155,114,255,0.25)",
-                    borderRadius: 12,
-                    marginBottom: 10,
-                  }}>
-                    <div style={{ fontSize: "0.65rem", fontWeight: 700, color: VIOLET, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
-                      Top skill
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "#e8e4f8" }}>Rhyming words</div>
-                    <div style={{ fontSize: "0.78rem", color: "#9b8ec4", marginTop: 3 }}>
-                      Jumped from 76% → 88% — a big milestone for Kindergarten!
-                    </div>
-                  </div>
-
-                  {/* Best day */}
-                  <div style={{
-                    padding: "12px 14px",
-                    background: "rgba(255,209,102,0.1)",
-                    border: "1px solid rgba(255,209,102,0.2)",
-                    borderRadius: 12,
-                    marginBottom: 10,
-                  }}>
-                    <div style={{ fontSize: "0.65rem", fontWeight: 700, color: GOLD, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
-                      Best day
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "#e8e4f8" }}>Wednesday</div>
-                    <div style={{ fontSize: "0.78rem", color: "#9b8ec4", marginTop: 3 }}>
-                      3 sessions completed · 15 min total learning time
-                    </div>
-                  </div>
-
-                  {/* Milestone */}
-                  <div style={{
-                    padding: "12px 14px",
-                    background: "rgba(255,123,107,0.1)",
-                    border: "1px solid rgba(255,123,107,0.2)",
-                    borderRadius: 12,
-                  }}>
-                    <div style={{ fontSize: "0.65rem", fontWeight: 700, color: CORAL, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
-                      Milestone
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "#e8e4f8" }}>5-day streak 🔥</div>
-                    <div style={{ fontSize: "0.78rem", color: "#9b8ec4", marginTop: 3 }}>
-                      New personal record! Completed every school day this week.
-                    </div>
-                  </div>
                 </div>
 
-                {/* What to try next */}
-                <div style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(155,114,255,0.2)",
-                  borderRadius: 16,
-                  padding: "22px 24px",
-                  flex: 1,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                    <span style={{ fontSize: "1.1rem" }}>💡</span>
-                    <span style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8" }}>What to try next</span>
+                {/* Math */}
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(155,114,255,0.18)",
+                    borderRadius: "16px",
+                    padding: "22px 24px",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                    ➕ Math
                   </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {[
-                      {
-                        icon: "🎵",
-                        title: "Keep the rhyming going",
-                        body: `Rhyming jumped to 88%! Try rhyme games in the car — "I say cat, you say a word that rhymes!"`,
-                        tag: "High impact",
-                        tagBg: "rgba(155,114,255,0.2)",
-                        tagColor: VIOLET,
-                      },
-                      {
-                        icon: "🔢",
-                        title: "Make counting hands-on",
-                        body: "Counting is at 60% and stable. Real-world counting helps — try counting stairs, apples, or steps.",
-                        tag: "Building",
-                        tagBg: "rgba(255,209,102,0.15)",
-                        tagColor: GOLD,
-                      },
-                      {
-                        icon: "📚",
-                        title: "Point to words in books",
-                        body: "Point to simple words like \"the\", \"is\", \"on\" while reading aloud together.",
-                        tag: "First words",
-                        tagBg: "rgba(88,232,193,0.15)",
-                        tagColor: "#58e8c1",
-                      },
+                      { name: "Counting objects", pct: 60, color: "#ffd166", note: "Stable — needs a few more practice sessions", noteColor: "rgba(255,255,255,0.38)" },
+                      { name: "Simple addition", pct: 30, color: "rgba(155,114,255,0.55)", note: "Just started this week — great first step!", noteColor: "#9b72ff" },
                     ].map((item) => (
-                      <div key={item.title} style={{
-                        display: "flex",
-                        gap: 12,
-                        padding: "12px 14px",
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(155,114,255,0.12)",
-                        borderRadius: 12,
-                      }}>
-                        <div style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 9,
-                          background: "rgba(155,114,255,0.15)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "1rem",
-                          flexShrink: 0,
-                        }}>
-                          {item.icon}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#e8e4f8", marginBottom: 3 }}>{item.title}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#9b8ec4", lineHeight: 1.5 }}>{item.body}</div>
-                          <span style={{
-                            display: "inline-block",
-                            marginTop: 6,
-                            padding: "2px 9px",
-                            borderRadius: 10,
-                            fontSize: "0.62rem",
-                            fontWeight: 700,
-                            background: item.tagBg,
-                            color: item.tagColor,
-                          }}>
-                            {item.tag}
+                      <div key={item.name}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "5px",
+                          }}
+                        >
+                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "#f0f6ff" }}>
+                            {item.name}
                           </span>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              fontSize: "0.82rem",
+                              color: item.pct < 40 ? "rgba(255,255,255,0.38)" : "#a07000",
+                            }}
+                          >
+                            {item.pct}%
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            height: "7px",
+                            background: "rgba(255,255,255,0.08)",
+                            borderRadius: "4px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: "100%",
+                              width: `${item.pct}%`,
+                              background: item.color,
+                              borderRadius: "4px",
+                            }}
+                          />
+                        </div>
+                        <div style={{ fontSize: "0.7rem", color: item.noteColor, marginTop: "4px" }}>
+                          {item.note}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
+
+              {/* Curriculum coverage */}
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(155,114,255,0.18)",
+                  borderRadius: "16px",
+                  padding: "22px 24px",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                  🎯 K–1 Curriculum coverage this week
+                </div>
+                <div style={{ display: "flex", gap: "32px", flexWrap: "wrap" }}>
+                  <div style={{ flex: "1 1 180px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "rgba(255,255,255,0.38)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      Phonics
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {[
+                        { label: "Beginning sounds", done: true },
+                        { label: "Rhyming pairs", done: true },
+                        { label: "Ending sounds (next)", done: false },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            fontSize: "0.82rem",
+                            color: item.done ? "#f0f6ff" : "rgba(255,255,255,0.32)",
+                          }}
+                        >
+                          <span style={{ color: item.done ? "#50e890" : "rgba(255,255,255,0.18)" }}>
+                            {item.done ? "✓" : "○"}
+                          </span>
+                          {item.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ flex: "1 1 180px" }}>
+                    <div
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "rgba(255,255,255,0.38)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      Math
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {[
+                        { label: "Counting to 10", symbol: "✓", color: "#50e890", dimmed: false },
+                        { label: "Addition (started)", symbol: "◐", color: "#ffd166", dimmed: false },
+                        { label: "Subtraction (later)", symbol: "○", color: "rgba(255,255,255,0.18)", dimmed: true },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            fontSize: "0.82rem",
+                            color: item.dimmed ? "rgba(255,255,255,0.32)" : "#f0f6ff",
+                          }}
+                        >
+                          <span style={{ color: item.color }}>{item.symbol}</span>
+                          {item.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* ── Full session log ── */}
-            <div style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(155,114,255,0.2)",
-              borderRadius: 16,
-              padding: "22px 24px",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                <span style={{ fontSize: "1.1rem" }}>🗓️</span>
-                <span style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8" }}>Full session log</span>
-                <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "#9b8ec4" }}>{SESSION_LOG.length} sessions this week</span>
+          {/* ═══════════════ HABITS ═══════════════ */}
+          {tab === "habits" && (
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
+                ⏱ Time &amp; Habits
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
+                Session patterns and consistency this week
               </div>
 
-              {/* Table header */}
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1.8fr 70px 1fr 60px 40px",
-                gap: 8,
-                padding: "8px 14px",
-                background: "rgba(155,114,255,0.08)",
-                borderRadius: 8,
-                marginBottom: 6,
-                fontSize: "0.67rem",
-                fontWeight: 700,
-                color: "#9b8ec4",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}>
-                <span>Date</span>
-                <span>Stars</span>
-                <span>Skills practiced</span>
-                <span style={{ textAlign: "right" }}>Time</span>
-                <span style={{ textAlign: "center" }}>Perf.</span>
-              </div>
-
-              {/* Rows */}
-              {SESSION_LOG.map((session, i) => (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: "20px",
+                  marginBottom: "20px",
+                }}
+              >
+                {/* Sessions per day */}
                 <div
-                  key={i}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.8fr 70px 1fr 60px 40px",
-                    gap: 8,
-                    padding: "11px 14px",
-                    borderRadius: 9,
-                    background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
-                    borderBottom: i < SESSION_LOG.length - 1 ? "1px solid rgba(155,114,255,0.08)" : "none",
-                    alignItems: "center",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(155,114,255,0.18)",
+                    borderRadius: "16px",
+                    padding: "22px 24px",
                   }}
                 >
-                  <span style={{ fontWeight: 600, fontSize: "0.8rem", color: "#c8b8f0" }}>{session.day}</span>
-                  <span style={{ fontWeight: 700, fontSize: "0.82rem", color: GOLD }}>⭐ {session.stars}</span>
-                  <span style={{ fontSize: "0.78rem", color: "#9b8ec4" }}>{session.skills}</span>
-                  <span style={{ fontSize: "0.75rem", color: "#9b8ec4", textAlign: "right" }}>{session.duration}</span>
-                  <span style={{ textAlign: "center", fontSize: "0.85rem" }}>{session.perfect ? "⭐" : ""}</span>
+                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                    📅 Sessions per day
+                  </div>
+                  <BarChart />
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "0.74rem",
+                      color: "rgba(255,255,255,0.38)",
+                    }}
+                  >
+                    Daily limit: 3 sessions. Maya used her full limit on Wed &amp; Thu.
+                  </div>
+                </div>
+
+                {/* Typical play times */}
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(155,114,255,0.18)",
+                    borderRadius: "16px",
+                    padding: "22px 24px",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                    ⏰ Typical play times
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {[
+                      { icon: "🌅", label: "Morning (7–9 AM)", detail: "Most active — 6 sessions", pct: "43%" },
+                      { icon: "🌤️", label: "Afternoon (3–5 PM)", detail: "5 sessions", pct: "36%" },
+                      { icon: "🌙", label: "Evening (6–8 PM)", detail: "3 sessions", pct: "21%" },
+                    ].map((t) => (
+                      <div
+                        key={t.label}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          padding: "10px 14px",
+                          background: "rgba(155,114,255,0.08)",
+                          borderRadius: "10px",
+                          border: "1px solid rgba(155,114,255,0.15)",
+                        }}
+                      >
+                        <span style={{ fontSize: "1.3rem" }}>{t.icon}</span>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#e8e4f8" }}>
+                            {t.label}
+                          </div>
+                          <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.42)" }}>
+                            {t.detail}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            marginLeft: "auto",
+                            fontWeight: 700,
+                            fontSize: "0.82rem",
+                            color: "#9b72ff",
+                          }}
+                        >
+                          {t.pct}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Engagement summary */}
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(155,114,255,0.18)",
+                  borderRadius: "16px",
+                  padding: "22px 24px",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: "1rem", color: "#e8e4f8", marginBottom: "18px" }}>
+                  🎯 Engagement summary
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                    gap: "14px",
+                  }}
+                >
+                  {ENGAGEMENT_SUMMARY.map((item) => (
+                    <div
+                      key={item.label}
+                      style={{
+                        textAlign: "center",
+                        padding: "14px",
+                        background: "rgba(155,114,255,0.07)",
+                        borderRadius: "12px",
+                        border: "1px solid rgba(155,114,255,0.14)",
+                      }}
+                    >
+                      <div style={{ fontSize: "1.3rem", fontWeight: 900, color: item.color, marginBottom: "4px" }}>
+                        {item.value}
+                      </div>
+                      <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.38)" }}>
+                        {item.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════ SUGGESTIONS ═══════════════ */}
+          {tab === "suggestions" && (
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "1.3rem", color: "#fff", marginBottom: "6px" }}>
+                💡 Suggestions for this week
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.42)", marginBottom: "22px" }}>
+                Ways to support {"Maya's"} learning beyond the app
+              </div>
+
+              {SUGGESTIONS.map((item) => (
+                <div
+                  key={item.title}
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(155,114,255,0.16)",
+                    borderRadius: "16px",
+                    padding: "22px",
+                    marginBottom: "16px",
+                    display: "grid",
+                    gridTemplateColumns: "44px 1fr",
+                    gap: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "11px",
+                      background: item.iconBg,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.2rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "0.94rem", color: "#f0f6ff", marginBottom: "6px" }}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.52)", lineHeight: 1.6 }}>
+                      {item.body}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: "10px",
+                        padding: "3px 10px",
+                        borderRadius: "12px",
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        background: item.tagBg,
+                        color: item.tagColor,
+                      }}
+                    >
+                      {item.tag}
+                    </span>
+                  </div>
                 </div>
               ))}
 
-              <div style={{ marginTop: 12, padding: "8px 14px", background: "rgba(155,114,255,0.08)", borderRadius: 8, fontSize: "0.72rem", color: "#9b8ec4" }}>
-                ⭐ in Perf. column = perfect session (every question correct)
+              {/* Overall note */}
+              <div
+                style={{
+                  padding: "18px 22px",
+                  background: "rgba(155,114,255,0.1)",
+                  borderRadius: "14px",
+                  border: "1.5px solid rgba(155,114,255,0.24)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#9b72ff",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.07em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  🌟 Overall this week
+                </div>
+                <p style={{ fontSize: "0.84rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.6, margin: 0 }}>
+                  Maya showed impressive consistency this week — 5 days in a row is a new personal record!
+                  Her engagement is highest in the mornings. Keeping that morning routine stable will compound
+                  her progress significantly.
+                </p>
               </div>
             </div>
+          )}
 
-          </div>
-        )}
+          {/* Bottom spacer */}
+          <div style={{ height: "56px" }} />
+        </div>
       </div>
     </AppFrame>
   );

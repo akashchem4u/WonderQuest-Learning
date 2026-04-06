@@ -1,34 +1,34 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard } from "@/components/ui";
-import { hasTeacherAccess, isTeacherAccessConfigured } from "@/lib/teacher-access";
-import TeacherGate from "@/app/teacher/teacher-gate";
 
-export const dynamic = "force-dynamic";
+// ── Palette ───────────────────────────────────────────────────────────────────
+const C = {
+  base: "#100b2e",
+  blue: "#38bdf8",
+  violet: "#9b72ff",
+  mint: "#22c55e",
+  gold: "#ffd166",
+  amber: "#f59e0b",
+  text: "#f0f6ff",
+  muted: "#8b949e",
+  surface: "#161b22",
+  border: "rgba(255,255,255,0.06)",
+};
 
-// ---------------------------------------------------------------------------
-// Colour palette (design spec)
-// ---------------------------------------------------------------------------
-const BASE = "#100b2e";
-const MINT = "#58e8c1";
-const VIOLET = "#9b72ff";
-const GOLD = "#ffd166";
-const CORAL = "#ff7b6b";
+// ── Stub data ─────────────────────────────────────────────────────────────────
 
-// ---------------------------------------------------------------------------
-// Stub data
-// ---------------------------------------------------------------------------
-
-type StudentTier = "strong" | "building" | "support";
 type Band = "P0" | "P1" | "P2" | "P3";
+type StudentTier = "strong" | "building" | "support";
 
-type StudentStub = {
+type StudentRow = {
   id: string;
   name: string;
   initials: string;
   avatarColor: string;
   band: Band;
-  accuracy: number;
   masteryPct: number;
   sessions: number;
   stars: number;
@@ -37,57 +37,63 @@ type StudentStub = {
   inQueue: boolean;
 };
 
-type SkillCoverageEntry = {
-  name: string;
-  count: number;
-  total: number;
-};
+const WEEKS = [
+  "This week (Mar 24\u201328)",
+  "Last week",
+  "Mar 10\u201314",
+  "Mar 3\u20137",
+  "All time",
+];
 
-type BandDistEntry = {
-  band: Band;
-  label: string;
-  color: string;
-  count: number;
-};
+const STAT_TILES = [
+  { val: "22", label: "Active students", delta: "\u21913 vs last week", up: true },
+  { val: "\u2B50 1,847", label: "Stars earned", delta: "\u2191210", up: true },
+  { val: "12", label: "Skills mastered", delta: "\u21932 vs last week", up: false },
+  { val: "16", label: "Active streaks", delta: "\u21914", up: true },
+  { val: "4", label: "Queue open", delta: "\u21911", up: false },
+];
 
-type DaySession = {
-  day: string;
-  count: number;
-};
+const BAND_DISTRIBUTION: { band: Band; label: string; color: string; count: number; total: number }[] = [
+  { band: "P0", label: "P0 Pre-K", color: C.gold, count: 2, total: 28 },
+  { band: "P1", label: "P1 K\u20131", color: C.violet, count: 7, total: 28 },
+  { band: "P2", label: "P2 G2\u20133", color: C.mint, count: 15, total: 28 },
+  { band: "P3", label: "P3 G4\u20135", color: "#ff7b6b", count: 4, total: 28 },
+];
 
-type QueueItem = {
-  label: string;
-  count: number;
-  color: string;
-};
+const DAILY_SESSIONS = [
+  { day: "M", count: 14 },
+  { day: "T", count: 18 },
+  { day: "W", count: 22 },
+  { day: "Th", count: 20 },
+  { day: "F", count: 0 },
+];
 
-const STUDENTS: StudentStub[] = [
+const TOP_SKILLS = [
+  { name: "Long Division", count: 18 },
+  { name: "Fractions: Adding Unlike", count: 12 },
+  { name: "Multiplication: Advanced", count: 8 },
+  { name: "Place Value: Thousands", count: 6 },
+  { name: "Subtraction: Regrouping", count: 5 },
+];
+
+const QUEUE_ITEMS = [
+  { label: "Confidence floor", count: 2, color: C.amber },
+  { label: "Absence follow-up", count: 1, color: C.amber },
+  { label: "Band ceiling (ready)", count: 1, color: C.blue },
+];
+
+const STUDENTS: StudentRow[] = [
   {
     id: "bella",
     name: "Bella",
     initials: "B",
     avatarColor: "#ec4899",
     band: "P3",
-    accuracy: 88,
     masteryPct: 88,
     sessions: 4,
     stars: 92,
-    streak: true,
+    streak: false,
     tier: "strong",
-    inQueue: false,
-  },
-  {
-    id: "ethan",
-    name: "Ethan",
-    initials: "E",
-    avatarColor: "#16a34a",
-    band: "P2",
-    accuracy: 65,
-    masteryPct: 65,
-    sessions: 7,
-    stars: 118,
-    streak: true,
-    tier: "building",
     inQueue: false,
   },
   {
@@ -96,38 +102,9 @@ const STUDENTS: StudentStub[] = [
     initials: "M",
     avatarColor: "#0ea5e9",
     band: "P2",
-    accuracy: 72,
     masteryPct: 72,
     sessions: 5,
     stars: 78,
-    streak: false,
-    tier: "building",
-    inQueue: false,
-  },
-  {
-    id: "aisha",
-    name: "Aisha",
-    initials: "A",
-    avatarColor: "#f59e0b",
-    band: "P2",
-    accuracy: 80,
-    masteryPct: 80,
-    sessions: 6,
-    stars: 101,
-    streak: true,
-    tier: "strong",
-    inQueue: false,
-  },
-  {
-    id: "priya",
-    name: "Priya",
-    initials: "P",
-    avatarColor: "#8b5cf6",
-    band: "P1",
-    accuracy: 52,
-    masteryPct: 52,
-    sessions: 2,
-    stars: 28,
     streak: false,
     tier: "building",
     inQueue: false,
@@ -138,7 +115,6 @@ const STUDENTS: StudentStub[] = [
     initials: "J",
     avatarColor: "#475569",
     band: "P2",
-    accuracy: 38,
     masteryPct: 38,
     sessions: 3,
     stars: 41,
@@ -147,881 +123,851 @@ const STUDENTS: StudentStub[] = [
     inQueue: true,
   },
   {
-    id: "lena",
-    name: "Lena",
-    initials: "L",
-    avatarColor: "#e11d48",
-    band: "P3",
-    accuracy: 83,
-    masteryPct: 83,
-    sessions: 5,
-    stars: 87,
-    streak: false,
-    tier: "strong",
-    inQueue: false,
-  },
-  {
-    id: "noah",
-    name: "Noah",
-    initials: "N",
-    avatarColor: "#0891b2",
-    band: "P2",
-    accuracy: 44,
-    masteryPct: 44,
-    sessions: 2,
-    stars: 33,
-    streak: false,
-    tier: "support",
-    inQueue: true,
-  },
-  {
-    id: "grace",
-    name: "Grace",
-    initials: "G",
-    avatarColor: "#059669",
+    id: "priya",
+    name: "Priya",
+    initials: "P",
+    avatarColor: "#ec4899",
     band: "P1",
-    accuracy: 61,
-    masteryPct: 61,
-    sessions: 4,
-    stars: 55,
+    masteryPct: 52,
+    sessions: 2,
+    stars: 28,
     streak: false,
     tier: "building",
     inQueue: false,
   },
   {
-    id: "sam",
-    name: "Sam",
-    initials: "S",
-    avatarColor: "#7c3aed",
-    band: "P0",
-    accuracy: 48,
-    masteryPct: 48,
-    sessions: 3,
-    stars: 22,
-    streak: false,
-    tier: "building",
-    inQueue: false,
-  },
-  {
-    id: "maya",
-    name: "Maya",
-    initials: "M",
-    avatarColor: "#b45309",
+    id: "ethan",
+    name: "Ethan",
+    initials: "E",
+    avatarColor: "#16a34a",
     band: "P2",
-    accuracy: 70,
-    masteryPct: 70,
-    sessions: 5,
-    stars: 64,
-    streak: true,
-    tier: "building",
-    inQueue: false,
-  },
-  {
-    id: "oliver",
-    name: "Oliver",
-    initials: "O",
-    avatarColor: "#1d4ed8",
-    band: "P3",
-    accuracy: 76,
-    masteryPct: 76,
-    sessions: 4,
-    stars: 73,
+    masteryPct: 65,
+    sessions: 7,
+    stars: 118,
     streak: true,
     tier: "building",
     inQueue: false,
   },
 ];
 
-const BAND_DISTRIBUTION: BandDistEntry[] = [
-  { band: "P0", label: "P0 · Pre-K", color: GOLD, count: 1 },
-  { band: "P1", label: "P1 · K–1", color: VIOLET, count: 2 },
-  { band: "P2", label: "P2 · G2–3", color: MINT, count: 7 },
-  { band: "P3", label: "P3 · G4–5", color: CORAL, count: 3 },
+const WEEKLY_COMPARISON = [
+  { week: "This week", active: 22, sessions: 88, stars: "1,847", mastered: 12, queue: 4, streak: "4.2 days", isCurrent: true },
+  { week: "Last week (Mar 17\u201321)", active: 19, sessions: 76, stars: "1,637", mastered: 14, queue: 3, streak: "3.8 days", isCurrent: false },
+  { week: "Mar 10\u201314", active: 21, sessions: 84, stars: "1,720", mastered: 18, queue: 2, streak: "4.0 days", isCurrent: false },
+  { week: "Mar 3\u20137", active: 17, sessions: 68, stars: "1,402", mastered: 9, queue: 5, streak: "3.1 days", isCurrent: false },
 ];
 
-const SKILL_COVERAGE: SkillCoverageEntry[] = [
-  { name: "Long Division", count: 9, total: 12 },
-  { name: "Fractions: Adding Unlike", count: 7, total: 12 },
-  { name: "Multiplication: Advanced", count: 5, total: 12 },
-  { name: "Place Value: Thousands", count: 4, total: 12 },
-  { name: "Subtraction: Regrouping", count: 3, total: 12 },
-  { name: "Reading Clocks", count: 2, total: 12 },
-];
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const WEEK_SESSIONS: DaySession[] = [
-  { day: "M", count: 8 },
-  { day: "T", count: 10 },
-  { day: "W", count: 12 },
-  { day: "Th", count: 11 },
-  { day: "F", count: 0 },
-];
+const MAX_SESSIONS = Math.max(...DAILY_SESSIONS.map((d) => d.count), 1);
 
-const QUEUE_ITEMS: QueueItem[] = [
-  { label: "Confidence floor", count: 2, color: CORAL },
-  { label: "Absence follow-up", count: 1, color: GOLD },
-  { label: "Band ceiling (ready)", count: 1, color: MINT },
-];
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function bandColor(band: Band): string {
-  if (band === "P0") return GOLD;
-  if (band === "P1") return VIOLET;
-  if (band === "P2") return MINT;
-  return CORAL;
+function tierColor(t: StudentTier): string {
+  if (t === "strong") return C.mint;
+  if (t === "building") return C.blue;
+  return C.amber;
 }
 
-function bandBg(band: Band): string {
-  return `${bandColor(band)}22`;
-}
-
-function tierColor(tier: StudentTier): string {
-  if (tier === "strong") return MINT;
-  if (tier === "building") return VIOLET;
-  return CORAL;
-}
-
-function tierLabel(tier: StudentTier): string {
-  if (tier === "strong") return "Strong";
-  if (tier === "building") return "Building";
+function tierLabel(t: StudentTier): string {
+  if (t === "strong") return "Strong";
+  if (t === "building") return "Building";
   return "Needs support";
 }
 
-const MAX_WEEK_SESSIONS = Math.max(...WEEK_SESSIONS.map((d) => d.count), 1);
-
-// ---------------------------------------------------------------------------
-// Sub-components (inline)
-// ---------------------------------------------------------------------------
-
-function StatTileBlock({
-  value,
-  label,
-  delta,
-  deltaUp,
-}: {
-  value: string;
-  label: string;
-  delta?: string;
-  deltaUp?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "12px",
-        padding: "16px 18px",
-        flex: "1 1 0",
-        minWidth: "120px",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "24px",
-          fontWeight: 900,
-          color: "#fff",
-          lineHeight: 1.1,
-          marginBottom: "4px",
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          color: "rgba(255,255,255,0.45)",
-          textTransform: "uppercase",
-          letterSpacing: "0.07em",
-          marginBottom: delta ? "4px" : "0",
-        }}
-      >
-        {label}
-      </div>
-      {delta ? (
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 700,
-            color: deltaUp === false ? GOLD : MINT,
-          }}
-        >
-          {delta}
-        </div>
-      ) : null}
-    </div>
-  );
+function bandColor(b: Band): string {
+  if (b === "P0") return C.gold;
+  if (b === "P1") return C.violet;
+  if (b === "P2") return C.mint;
+  return "#ff7b6b";
 }
 
-function SectionCard({
-  title,
-  children,
-  action,
-}: {
-  title: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "14px",
-        padding: "20px 22px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "14px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            color: "rgba(255,255,255,0.5)",
-          }}
-        >
-          {title}
-        </div>
-        {action}
-      </div>
-      {children}
-    </div>
-  );
-}
+// ── Page ──────────────────────────────────────────────────────────────────────
 
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
+export default function TeacherClassPage() {
+  const [activeWeek, setActiveWeek] = useState(0);
+  const [activeTab, setActiveTab] = useState<"summary" | "compare">("summary");
 
-export default async function TeacherClassPage() {
-  const configured = isTeacherAccessConfigured();
-  const hasAccess = await hasTeacherAccess();
+  const glassCard: React.CSSProperties = {
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: 14,
+    padding: "18px 20px",
+  };
 
-  if (!hasAccess) {
-    return (
-      <AppFrame audience="teacher" currentPath="/teacher">
-        <main className="page-shell page-shell-split">
-          <section className="page-hero">
-            <div>
-              <span className="eyebrow">Teacher dashboard</span>
-              <h1>Access your class dashboard.</h1>
-            </div>
-          </section>
-          <ShellCard className="shell-card-emphasis" eyebrow="Teacher" title="Unlock teacher dashboard">
-            <TeacherGate configured={configured} />
-          </ShellCard>
-        </main>
-      </AppFrame>
-    );
-  }
+  const cardTitle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: "0.07em",
+    color: C.muted,
+    marginBottom: 12,
+  };
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
       <div
         style={{
           minHeight: "100vh",
-          background: BASE,
-          padding: "0 0 56px",
+          background: C.base,
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          color: C.text,
+          paddingBottom: 56,
         }}
       >
-        {/* ── Page header ─────────────────────────────────────────────── */}
+        {/* ── Top bar ─────────────────────────────────────────────────── */}
         <div
           style={{
-            padding: "28px 32px 24px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            padding: "20px 28px 16px",
+            borderBottom: `1px solid ${C.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
           }}
         >
           <Link
             href="/teacher"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "rgba(255,255,255,0.45)",
+              fontSize: 12,
+              fontWeight: 700,
+              color: C.blue,
               textDecoration: "none",
-              marginBottom: "18px",
-              letterSpacing: "0.01em",
             }}
           >
-            ← Classroom Board
+            \u2190 Dashboard
           </Link>
-
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              color: MINT,
-              marginBottom: "6px",
-            }}
-          >
-            Class Summary
-          </div>
-
-          <h1
-            style={{
-              fontSize: "26px",
-              fontWeight: 900,
-              color: "#fff",
-              lineHeight: 1.2,
-              margin: 0,
-            }}
-          >
-            Full class overview
-          </h1>
-        </div>
-
-        {/* ── Stat tiles ──────────────────────────────────────────────── */}
-        <div
-          style={{
-            padding: "24px 32px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              flexWrap: "wrap",
-            }}
-          >
-            <StatTileBlock value="12" label="Students enrolled" delta="↑2 this week" deltaUp />
-            <StatTileBlock value="⭐ 986" label="Stars earned" delta="↑143" deltaUp />
-            <StatTileBlock value="8" label="Skills mastered" delta="↓1 vs last week" deltaUp={false} />
-            <StatTileBlock value="10" label="Active streaks" delta="↑3" deltaUp />
-          </div>
-        </div>
-
-        {/* ── 2-column main layout ─────────────────────────────────────── */}
-        <div
-          style={{
-            padding: "28px 32px",
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
-            gap: "24px",
-            alignItems: "start",
-          }}
-        >
-          {/* ── LEFT: Student roster ───────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div
+          <span style={{ color: C.border, fontSize: 14 }}>|</span>
+          <span style={{ fontSize: 12, color: C.muted }}>Class Summary</span>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+            <Link
+              href="/teacher/command"
               style={{
-                fontSize: "13px",
-                fontWeight: 800,
-                color: "rgba(255,255,255,0.55)",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginBottom: "4px",
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+                padding: "6px 14px",
+                border: `1px solid ${C.violet}55`,
+                borderRadius: 8,
               }}
             >
-              Student Roster
+              Command Center
+            </Link>
+            <button
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "6px 14px",
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.05)",
+                border: `1px solid ${C.border}`,
+                color: C.text,
+                cursor: "pointer",
+              }}
+            >
+              Export PDF
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* ── Page title ──────────────────────────────────────────────── */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  color: C.mint,
+                  marginBottom: 4,
+                }}
+              >
+                Class Summary
+              </div>
+              <h1 style={{ fontSize: 24, fontWeight: 900, color: C.text, margin: 0, lineHeight: 1.2 }}>
+                \u{1F4CA} Class 4B Summary
+              </h1>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
+                Weekly snapshot \u00b7 28 students enrolled
+              </div>
             </div>
 
-            {STUDENTS.map((student) => (
-              <Link
-                href={`/teacher/students/${student.id}`}
-                key={student.id}
-                style={{ textDecoration: "none" }}
-              >
-                <div
+            {/* Tab switcher */}
+            <div style={{ display: "flex", gap: 6 }}>
+              {(["summary", "compare"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
                   style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    padding: "14px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "14px",
+                    padding: "6px 16px",
+                    borderRadius: 20,
+                    border: "none",
                     cursor: "pointer",
-                    transition: "border-color 0.15s",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "system-ui,-apple-system,sans-serif",
+                    background: activeTab === tab ? C.blue : "rgba(255,255,255,0.06)",
+                    color: activeTab === tab ? "#0f172a" : C.muted,
+                    transition: "all 0.15s",
                   }}
                 >
-                  {/* Avatar */}
-                  <div
+                  {tab === "summary" ? "Class Summary" : "Weekly Comparison"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeTab === "summary" && (
+            <>
+              {/* ── Week selector ─────────────────────────────────────── */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {WEEKS.map((w, i) => (
+                  <button
+                    key={w}
+                    onClick={() => setActiveWeek(i)}
                     style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "50%",
-                      background: student.avatarColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "14px",
-                      fontWeight: 900,
-                      color: "#fff",
-                      flexShrink: 0,
+                      padding: "5px 14px",
+                      borderRadius: 16,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "system-ui,-apple-system,sans-serif",
+                      border: "none",
+                      background: activeWeek === i ? C.blue : "rgba(255,255,255,0.06)",
+                      color: activeWeek === i ? "#0f172a" : C.muted,
                     }}
                   >
-                    {student.initials}
-                  </div>
+                    {w}
+                  </button>
+                ))}
+              </div>
 
-                  {/* Name + band */}
-                  <div style={{ flex: "1 1 0", minWidth: 0 }}>
+              {/* ── Stat tiles ────────────────────────────────────────── */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(5,1fr)",
+                  gap: 10,
+                }}
+              >
+                {STAT_TILES.map((s) => (
+                  <div
+                    key={s.label}
+                    style={{
+                      background: C.surface,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                      {s.val}
+                    </div>
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        marginBottom: "3px",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                        color: C.muted,
+                        margin: "4px 0 2px",
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: 800,
-                          color: "#fff",
-                        }}
-                      >
-                        {student.name}
-                      </span>
-                      {student.streak && (
-                        <span style={{ fontSize: "12px" }}>🔥</span>
-                      )}
-                      {student.inQueue && (
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: 700,
-                            background: `${CORAL}22`,
-                            color: CORAL,
-                            border: `1px solid ${CORAL}44`,
-                            borderRadius: "5px",
-                            padding: "1px 6px",
-                          }}
-                        >
-                          ⚠ Queue
-                        </span>
-                      )}
+                      {s.label}
                     </div>
-
-                    {/* Accuracy bar */}
                     <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: s.up ? C.mint : C.amber,
+                      }}
+                    >
+                      {s.delta}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── 2-col: band dist + daily sessions ─────────────────── */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
+                  gap: 14,
+                }}
+              >
+                {/* Band distribution */}
+                <div style={glassCard}>
+                  <div style={cardTitle}>Band Distribution</div>
+                  {BAND_DISTRIBUTION.map((b) => (
+                    <div
+                      key={b.band}
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px",
+                        gap: 10,
+                        marginBottom: 8,
                       }}
                     >
                       <div
                         style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: b.color,
+                          width: 68,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {b.label}
+                      </div>
+                      <div
+                        style={{
                           flex: 1,
-                          background: "rgba(255,255,255,0.08)",
-                          borderRadius: "3px",
-                          height: "4px",
-                          maxWidth: "100px",
+                          background: "rgba(255,255,255,0.07)",
+                          borderRadius: 4,
+                          height: 8,
+                          overflow: "hidden",
                         }}
                       >
                         <div
                           style={{
-                            width: `${student.masteryPct}%`,
-                            height: "4px",
-                            borderRadius: "3px",
-                            background: tierColor(student.tier),
+                            width: `${Math.round((b.count / b.total) * 100)}%`,
+                            height: "100%",
+                            background: b.color,
+                            borderRadius: 4,
                           }}
                         />
                       </div>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          color: "rgba(255,255,255,0.4)",
-                        }}
-                      >
-                        {student.accuracy}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Band chip */}
-                  <div
-                    style={{
-                      background: bandBg(student.band),
-                      color: bandColor(student.band),
-                      border: `1px solid ${bandColor(student.band)}44`,
-                      borderRadius: "6px",
-                      fontSize: "10px",
-                      fontWeight: 800,
-                      padding: "3px 8px",
-                      letterSpacing: "0.04em",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {student.band}
-                  </div>
-
-                  {/* Tier badge */}
-                  <div
-                    style={{
-                      background: `${tierColor(student.tier)}18`,
-                      color: tierColor(student.tier),
-                      border: `1px solid ${tierColor(student.tier)}33`,
-                      borderRadius: "6px",
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      padding: "3px 9px",
-                      flexShrink: 0,
-                      minWidth: "78px",
-                      textAlign: "center",
-                    }}
-                  >
-                    {tierLabel(student.tier)}
-                  </div>
-
-                  {/* Arrow */}
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,0.2)",
-                      fontSize: "14px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    →
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* ── RIGHT: Analytics ───────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-
-            {/* Band distribution */}
-            <SectionCard title="Band Distribution">
-              {BAND_DISTRIBUTION.map((entry) => (
-                <div
-                  key={entry.band}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "72px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      color: entry.color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {entry.label}
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      background: "rgba(255,255,255,0.08)",
-                      borderRadius: "4px",
-                      height: "7px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.round((entry.count / 12) * 100)}%`,
-                        height: "7px",
-                        borderRadius: "4px",
-                        background: entry.color,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "rgba(255,255,255,0.4)",
-                      fontWeight: 700,
-                      width: "18px",
-                      textAlign: "right",
-                    }}
-                  >
-                    {entry.count}
-                  </div>
-                </div>
-              ))}
-            </SectionCard>
-
-            {/* Daily sessions bar chart */}
-            <SectionCard title="Daily Sessions — This Week">
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "flex-end",
-                  height: "72px",
-                  marginBottom: "6px",
-                }}
-              >
-                {WEEK_SESSIONS.map((day) => {
-                  const barH = day.count
-                    ? Math.round((day.count / MAX_WEEK_SESSIONS) * 60)
-                    : 4;
-                  const barColor = day.count ? VIOLET : "rgba(255,255,255,0.1)";
-
-                  return (
-                    <div
-                      key={day.day}
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: 700,
-                          color: "rgba(255,255,255,0.35)",
-                        }}
-                      >
-                        {day.count > 0 ? day.count : "—"}
-                      </span>
                       <div
                         style={{
-                          width: "100%",
-                          height: `${barH}px`,
-                          background: barColor,
-                          borderRadius: "3px 3px 0 0",
-                          minHeight: "4px",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: "10px",
+                          fontSize: 11,
+                          color: C.muted,
                           fontWeight: 700,
-                          color: "rgba(255,255,255,0.3)",
+                          width: 20,
+                          textAlign: "right",
                         }}
                       >
-                        {day.day}
-                      </span>
+                        {b.count}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-              <div
-                style={{
-                  fontSize: "10px",
-                  color: "rgba(255,255,255,0.25)",
-                }}
-              >
-                Sessions per day · Average: 10.2
-              </div>
-            </SectionCard>
+                  ))}
+                </div>
 
-            {/* Skill coverage */}
-            <SectionCard title="Skills in Progress">
-              {SKILL_COVERAGE.map((skill) => (
-                <div
-                  key={skill.name}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "6px 0",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
-                  }}
-                >
-                  <span
+                {/* Daily sessions bar chart */}
+                <div style={glassCard}>
+                  <div style={cardTitle}>Daily Sessions \u2014 This Week</div>
+                  <div
                     style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: "rgba(255,255,255,0.7)",
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "flex-end",
+                      height: 72,
+                      marginBottom: 6,
                     }}
                   >
-                    {skill.name}
-                  </span>
+                    {DAILY_SESSIONS.map((d) => {
+                      const barH = d.count
+                        ? Math.round((d.count / MAX_SESSIONS) * 60)
+                        : 4;
+                      return (
+                        <div
+                          key={d.day}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <span
+                            style={{ fontSize: 9, fontWeight: 700, color: C.muted }}
+                          >
+                            {d.count > 0 ? d.count : "\u2014"}
+                          </span>
+                          <div
+                            style={{
+                              width: "100%",
+                              height: `${barH}px`,
+                              background: d.count ? C.blue : "rgba(255,255,255,0.1)",
+                              borderRadius: "3px 3px 0 0",
+                              minHeight: 4,
+                            }}
+                          />
+                          <span
+                            style={{ fontSize: 10, fontWeight: 700, color: C.muted }}
+                          >
+                            {d.day}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>
+                    Sessions per day \u00b7 Average: 18.5
+                  </div>
+                </div>
+              </div>
+
+              {/* ── 2-col: top skills + support queue ─────────────────── */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
+                  gap: 14,
+                }}
+              >
+                {/* Top skills */}
+                <div style={glassCard}>
+                  <div style={cardTitle}>Top Skills in Progress This Week</div>
+                  {TOP_SKILLS.map((s) => (
+                    <div
+                      key={s.name}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 0",
+                        borderBottom: `1px solid ${C.border}`,
+                        fontSize: 12,
+                      }}
+                    >
+                      <span style={{ color: C.text, fontWeight: 600 }}>{s.name}</span>
+                      <span style={{ color: C.blue, fontWeight: 700 }}>
+                        {s.count} students
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Support queue */}
+                <div style={glassCard}>
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      justifyContent: "space-between",
+                      marginBottom: 12,
                     }}
                   >
-                    <div
+                    <div style={cardTitle}>Support Queue This Week</div>
+                    <Link
+                      href="/teacher/support"
                       style={{
-                        width: "50px",
-                        background: "rgba(255,255,255,0.08)",
-                        borderRadius: "3px",
-                        height: "4px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${Math.round((skill.count / skill.total) * 100)}%`,
-                          height: "4px",
-                          borderRadius: "3px",
-                          background: MINT,
-                        }}
-                      />
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "11px",
+                        fontSize: 11,
                         fontWeight: 700,
-                        color: MINT,
-                        minWidth: "54px",
-                        textAlign: "right",
+                        color: C.mint,
+                        textDecoration: "none",
                       }}
                     >
-                      {skill.count}/{skill.total}
-                    </span>
+                      Review \u2192
+                    </Link>
+                  </div>
+                  {QUEUE_ITEMS.map((q) => (
+                    <div
+                      key={q.label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 0",
+                        borderBottom: `1px solid ${C.border}`,
+                        fontSize: 12,
+                      }}
+                    >
+                      <span style={{ color: C.text, fontWeight: 600 }}>{q.label}</span>
+                      <span style={{ color: q.color, fontWeight: 700 }}>
+                        {q.count} {q.count === 1 ? "student" : "students"}
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 12 }}>
+                    <Link
+                      href="/teacher/support"
+                      style={{
+                        display: "inline-block",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: C.blue,
+                        textDecoration: "none",
+                        padding: "6px 14px",
+                        border: `1px solid ${C.blue}44`,
+                        borderRadius: 8,
+                      }}
+                    >
+                      Review queue \u2192
+                    </Link>
                   </div>
                 </div>
-              ))}
-            </SectionCard>
+              </div>
 
-            {/* Support queue summary */}
-            <SectionCard
-              title="Support Queue"
-              action={
-                <Link
-                  href="/teacher/support"
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: MINT,
-                    textDecoration: "none",
-                  }}
-                >
-                  Review →
-                </Link>
-              }
-            >
-              {QUEUE_ITEMS.map((item) => (
+              {/* ── Student progress table ─────────────────────────────── */}
+              <div style={glassCard}>
                 <div
-                  key={item.label}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "6px 0",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    marginBottom: 14,
                   }}
                 >
-                  <span
+                  <div style={cardTitle}>Student Progress This Week</div>
+                  <Link
+                    href="/teacher/students"
                     style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: "rgba(255,255,255,0.65)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: C.blue,
+                      textDecoration: "none",
+                      padding: "5px 12px",
+                      border: `1px solid ${C.blue}44`,
+                      borderRadius: 8,
                     }}
                   >
-                    {item.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 800,
-                      color: item.color,
-                    }}
-                  >
-                    {item.count} {item.count === 1 ? "student" : "students"}
-                  </span>
+                    See all students \u2192
+                  </Link>
                 </div>
-              ))}
 
-              <div
-                style={{
-                  marginTop: "12px",
-                  padding: "10px 12px",
-                  background: `${CORAL}14`,
-                  border: `1px solid ${CORAL}33`,
-                  borderRadius: "8px",
-                  fontSize: "11px",
-                  color: "rgba(255,255,255,0.55)",
-                }}
-              >
-                4 open queue items this week.{" "}
-                <Link
-                  href="/teacher/support"
-                  style={{
-                    color: CORAL,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                  }}
-                >
-                  Open support view
-                </Link>
-              </div>
-            </SectionCard>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        {["", "Student", "Band", "Sessions", "Stars", "Mastery (primary)", "Status"].map(
+                          (h) => (
+                            <th
+                              key={h}
+                              style={{
+                                textAlign: "left",
+                                padding: "8px 10px",
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.06em",
+                                color: C.muted,
+                                borderBottom: `2px solid ${C.border}`,
+                                background: "rgba(255,255,255,0.02)",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {h}
+                            </th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {STUDENTS.map((s) => (
+                        <tr key={s.id}>
+                          <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
+                            <div
+                              style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: "50%",
+                                background: s.avatarColor,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 10,
+                                fontWeight: 900,
+                                color: "#fff",
+                              }}
+                            >
+                              {s.initials}
+                            </div>
+                          </td>
+                          <td
+                            style={{
+                              padding: "8px 10px",
+                              borderBottom: `1px solid ${C.border}`,
+                              fontWeight: 700,
+                              color: C.text,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {s.name}
+                            {s.streak && <span style={{ marginLeft: 4, fontSize: 11 }}>\u{1F525}</span>}
+                            {s.inQueue && (
+                              <span
+                                style={{
+                                  marginLeft: 6,
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  background: `${C.amber}22`,
+                                  color: C.amber,
+                                  border: `1px solid ${C.amber}44`,
+                                  borderRadius: 5,
+                                  padding: "1px 5px",
+                                }}
+                              >
+                                \u26A0 Queue
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
+                            <span
+                              style={{
+                                fontSize: 9,
+                                fontWeight: 700,
+                                padding: "1px 6px",
+                                borderRadius: 5,
+                                background: `${bandColor(s.band)}22`,
+                                color: bandColor(s.band),
+                                border: `1px solid ${bandColor(s.band)}44`,
+                              }}
+                            >
+                              {s.band}
+                            </span>
+                          </td>
+                          <td
+                            style={{
+                              padding: "8px 10px",
+                              borderBottom: `1px solid ${C.border}`,
+                              color: C.text,
+                            }}
+                          >
+                            {s.sessions}
+                          </td>
+                          <td
+                            style={{
+                              padding: "8px 10px",
+                              borderBottom: `1px solid ${C.border}`,
+                              color: C.gold,
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            \u2B50 {s.stars}
+                          </td>
+                          <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
+                            <div
+                              style={{
+                                width: 60,
+                                height: 5,
+                                background: "rgba(255,255,255,0.07)",
+                                borderRadius: 3,
+                                overflow: "hidden",
+                                display: "inline-block",
+                                verticalAlign: "middle",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${s.masteryPct}%`,
+                                  height: "100%",
+                                  background: tierColor(s.tier),
+                                  borderRadius: 3,
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}` }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                              <div
+                                style={{
+                                  width: 7,
+                                  height: 7,
+                                  borderRadius: "50%",
+                                  background: tierColor(s.tier),
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>
+                                {tierLabel(s.tier)}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td
+                          colSpan={7}
+                          style={{
+                            textAlign: "center",
+                            color: C.muted,
+                            fontSize: 11,
+                            padding: "10px",
+                          }}
+                        >
+                          + 23 more students \u2014{" "}
+                          <Link
+                            href="/teacher/students"
+                            style={{ color: C.blue, fontWeight: 700, textDecoration: "none" }}
+                          >
+                            View all
+                          </Link>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* Recent class activity */}
-            <SectionCard title="Recent Class Activity">
-              {[
-                { text: "Ethan completed Long Division — 7 sessions this week 🔥", time: "Today" },
-                { text: "Bella mastered Fractions: Adding Unlike", time: "Yesterday" },
-                { text: "Jordan flagged for confidence support", time: "Yesterday" },
-                { text: "Aisha reached P2 band ceiling — ready to advance", time: "Mon" },
-                { text: "Noah missed 2 sessions — follow-up recommended", time: "Mon" },
-              ].map((item, i) => (
                 <div
-                  key={i}
                   style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "10px",
-                    padding: "7px 0",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    marginTop: 10,
+                    fontSize: 10,
+                    color: "rgba(255,255,255,0.2)",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: VIOLET,
-                      flexShrink: 0,
-                      marginTop: "5px",
-                    }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.65)",
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      {item.text}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "rgba(255,255,255,0.25)",
-                        marginTop: "2px",
-                      }}
-                    >
-                      {item.time}
-                    </div>
-                  </div>
+                  Class-level mastery bars shown. Individual accuracy % not displayed. \u{1F525} = active streak.
                 </div>
-              ))}
-            </SectionCard>
-          </div>
-        </div>
+              </div>
+            </>
+          )}
 
-        {/* ── Footer disclaimer ───────────────────────────────────────── */}
-        <div
-          style={{
-            padding: "0 32px",
-            fontSize: "11px",
-            color: "rgba(255,255,255,0.2)",
-          }}
-        >
-          Class-level mastery bars shown. Individual accuracy % not displayed to students. 🔥 = active streak.
+          {activeTab === "compare" && (
+            <div style={glassCard}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>
+                4-Week Class Comparison
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      {["Week", "Active students", "Sessions", "Stars", "Skills mastered", "Queue items", "Avg streak"].map(
+                        (h) => (
+                          <th
+                            key={h}
+                            style={{
+                              textAlign: "left",
+                              padding: "8px 12px",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                              color: C.muted,
+                              borderBottom: `2px solid ${C.border}`,
+                              background: "rgba(255,255,255,0.02)",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h}
+                          </th>
+                        )
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {WEEKLY_COMPARISON.map((row) => (
+                      <tr
+                        key={row.week}
+                        style={{
+                          background: row.isCurrent
+                            ? `${C.blue}10`
+                            : "transparent",
+                        }}
+                      >
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            fontWeight: row.isCurrent ? 800 : 600,
+                            color: row.isCurrent ? C.blue : C.muted,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {row.week}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            color: C.text,
+                            fontWeight: row.isCurrent ? 800 : 400,
+                          }}
+                        >
+                          {row.active}
+                          {row.isCurrent && (
+                            <span style={{ color: C.mint, fontSize: 10, marginLeft: 4 }}>
+                              \u21913
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            color: C.text,
+                          }}
+                        >
+                          {row.sessions}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            color: C.text,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          \u2B50 {row.stars}
+                          {row.isCurrent && (
+                            <span style={{ color: C.mint, fontSize: 10, marginLeft: 4 }}>
+                              \u2191
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            color: C.text,
+                          }}
+                        >
+                          {row.mastered}
+                          {row.isCurrent && (
+                            <span style={{ color: C.amber, fontSize: 10, marginLeft: 4 }}>
+                              \u21932
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            color: C.text,
+                          }}
+                        >
+                          {row.queue}
+                          {row.isCurrent && (
+                            <span style={{ color: C.amber, fontSize: 10, marginLeft: 4 }}>
+                              \u21911
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px 12px",
+                            borderBottom: `1px solid ${C.border}`,
+                            color: C.text,
+                          }}
+                        >
+                          {row.streak}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
+                Down deltas are informational \u2014 slight week-over-week variation is normal. Down is amber, not red.
+              </div>
+            </div>
+          )}
+
+          {/* ── Footer disclaimer ───────────────────────────────────────── */}
+          <div
+            style={{
+              fontSize: 11,
+              color: "rgba(255,255,255,0.2)",
+              lineHeight: 1.5,
+            }}
+          >
+            Class-level accuracy aggregate only. Per-student accuracy % not displayed. Export PDF generates a 1-page summary for parent-teacher use.
+          </div>
         </div>
       </div>
     </AppFrame>

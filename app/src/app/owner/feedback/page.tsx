@@ -1,1219 +1,870 @@
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard } from "@/components/ui";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
-import { getOwnerOverview } from "@/lib/prototype-service";
 import OwnerGate from "../owner-gate";
 
 export const dynamic = "force-dynamic";
 
-// ── Palette ─────────────────────────────────────────────────────────────────
+// ── Palette ──────────────────────────────────────────────────────────────────
 const BASE = "#100b2e";
-const MINT = "#58e8c1";
+const MINT = "#50e890";
 const VIOLET = "#9b72ff";
-const GOLD = "#ffd166";
-const CORAL = "#ff7b6b";
+const RED = "#f85149";
+const AMBER = "#f59e0b";
+const BLUE = "#2563eb";
+const SURFACE = "#161b22";
+const BORDER = "rgba(255,255,255,0.06)";
+const TEXT = "#f0f6ff";
+const MUTED = "rgba(255,255,255,0.4)";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Stub data ─────────────────────────────────────────────────────────────────
 
-function urgencyColor(urgency: string): string {
-  const u = urgency.toLowerCase();
-  if (u === "critical") return CORAL;
-  if (u === "high") return GOLD;
-  if (u === "medium") return VIOLET;
-  return MINT;
+type FbStatus = "open" | "review" | "resolved";
+type FbPriority = "P0" | "P1" | "P2" | "Feature";
+
+interface FeedbackItem {
+  id: string;
+  priority: FbPriority;
+  type: string;
+  timeAgo: string;
+  summary: string;
+  school: string;
+  screen: string;
+  status: FbStatus;
+  statusLabel: string;
+  severity: string;
+  body: string;
+  upvotes?: number;
+  history: { time: string; text: string }[];
+  productNote?: string;
+  upvotedBy?: string;
 }
 
-function urgencyBg(urgency: string): string {
-  const u = urgency.toLowerCase();
-  if (u === "critical") return "rgba(255,123,107,0.13)";
-  if (u === "high") return "rgba(255,209,102,0.13)";
-  if (u === "medium") return "rgba(155,114,255,0.13)";
-  return "rgba(88,232,193,0.13)";
-}
-
-function categoryColor(category: string): string {
-  const c = (category ?? "").toLowerCase();
-  if (c === "bug") return CORAL;
-  if (c === "content") return GOLD;
-  if (c === "ux" || c === "ui") return VIOLET;
-  if (c === "praise") return MINT;
-  return "#bdcade";
-}
-
-function reviewStatusColor(status: string): string {
-  if (status === "resolved") return MINT;
-  if (status === "pending") return GOLD;
-  if (status === "reviewed") return VIOLET;
-  return "rgba(189,204,221,0.55)";
-}
-
-function reviewStatusBg(status: string): string {
-  if (status === "resolved") return "rgba(88,232,193,0.13)";
-  if (status === "pending") return "rgba(255,209,102,0.13)";
-  if (status === "reviewed") return "rgba(155,114,255,0.13)";
-  return "rgba(255,255,255,0.07)";
-}
-
-function routeLabel(target: string): string {
-  if (target === "content") return "Content";
-  if (target === "engineering") return "Engineering";
-  return "Product";
-}
-
-function routeColor(target: string): string {
-  if (target === "content") return GOLD;
-  if (target === "engineering") return CORAL;
-  return VIOLET;
-}
-
-function routeBg(target: string): string {
-  if (target === "content") return "rgba(255,209,102,0.12)";
-  if (target === "engineering") return "rgba(255,123,107,0.12)";
-  return "rgba(155,114,255,0.12)";
-}
-
-function pct(value: number, total: number): number {
-  if (total <= 0) return 0;
-  return Math.round((value / total) * 100);
-}
-
-function formatShortDate(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
-}
-
-// ── Static trend data (prototype — weekly resolution rate bars) ──────────────
-const WEEKLY_TREND = [
-  { week: "W1", rate: 68 },
-  { week: "W2", rate: 74 },
-  { week: "W3", rate: 71 },
-  { week: "W4", rate: 82 },
-  { week: "W5", rate: 79 },
-  { week: "W6", rate: 88 },
+const FEEDBACK_ITEMS: FeedbackItem[] = [
+  {
+    id: "fb-001",
+    priority: "P1",
+    type: "Bug",
+    timeAgo: "2h ago",
+    summary: "Mastery bar not updating after session ends",
+    school: "Maple Ridge Elementary",
+    screen: "Student detail page",
+    status: "review",
+    statusLabel: "Under review",
+    severity: "Moderate severity",
+    body: "I viewed Jordan's profile after their session ended but the mastery bar for Long Division still shows the old value. Refreshing the page fixes it but the stale state is confusing. Happened twice this week on the same student's profile.",
+    history: [
+      { time: "9:14am", text: "Feedback submitted by teacher at Maple Ridge Elementary" },
+      { time: "9:22am", text: "Auto-triaged: P1 (Moderate severity bug · Teacher portal). Slack alert sent to #engineering." },
+      { time: "10:08am", text: "Kavya R. confirmed bug — cache invalidation missing on session_end event. Fix in progress." },
+      { time: "11:05am", text: "Status set to Under review by Avi M." },
+    ],
+  },
+  {
+    id: "fb-002",
+    priority: "Feature",
+    type: "Request",
+    timeAgo: "Mar 18",
+    summary: "Export class progress as PDF for parent-teacher conferences",
+    school: "Sunnybrook K-5",
+    screen: "Command center",
+    status: "review",
+    statusLabel: "In review · Product team",
+    severity: "Enhancement",
+    body: "Would love a printable one-page class summary I can bring to parent-teacher night. Ideally: student name, band, current skills in progress, streak, and a mastery trend. Parents love having something tangible. Could also use it for my own planning.",
+    upvotes: 12,
+    productNote: "This is the #3 most upvoted feature request this month. 12 teachers from 8 schools. Already in Q2 roadmap (teacher-class-summary PDF export). Targeting April release.",
+    upvotedBy: "12 teachers across 8 schools · Sunnybrook K-5 (3) · Maple Ridge (2) · Lincoln Park (2) · 5 others",
+    history: [
+      { time: "Mar 18", text: "Feature request submitted by teacher at Sunnybrook K-5" },
+      { time: "Mar 19", text: "Auto-triaged: Feature request. Added to monthly review queue." },
+      { time: "Mar 21", text: "12 upvotes collected across 8 schools. Added to Q2 roadmap." },
+    ],
+  },
+  {
+    id: "fb-003",
+    priority: "P2",
+    type: "Content",
+    timeAgo: "Mar 10",
+    summary: "Ambiguous diagram in P2 Fractions: Comparing question set",
+    school: "Lincoln Park Primary",
+    screen: "Play session",
+    status: "review",
+    statusLabel: "Curriculum review",
+    severity: "Low severity",
+    body: "The diagram in question 4 of the Fractions Comparing set shows two bars of nearly identical length — students are confused which is larger. Multiple students in my class asked for help on this specific question. Suggest redrawing with a clearer visual ratio.",
+    history: [
+      { time: "Mar 10", text: "Content feedback submitted by teacher at Lincoln Park Primary" },
+      { time: "Mar 11", text: "Auto-triaged: P2 content issue. Routed to curriculum team for review." },
+      { time: "Mar 12", text: "Curriculum team confirmed diagram ambiguity. Redraw scheduled." },
+    ],
+  },
 ];
 
-const MAX_TREND_RATE = Math.max(...WEEKLY_TREND.map((w) => w.rate));
+// ── Priority badge styles ─────────────────────────────────────────────────────
+
+function priorityStyle(p: FbPriority): React.CSSProperties {
+  if (p === "P0") return { background: RED, color: "#fff" };
+  if (p === "P1") return { background: AMBER, color: "#1a1440" };
+  if (p === "P2") return { background: BLUE, color: "#fff" };
+  return { background: "rgba(80,232,144,0.2)", color: MINT };
+}
+
+function statusStyle(s: FbStatus): React.CSSProperties {
+  if (s === "open") return { background: "rgba(245,158,11,0.15)", color: AMBER };
+  if (s === "review") return { background: "rgba(37,99,235,0.2)", color: "#60a5fa" };
+  return { background: "rgba(80,232,144,0.15)", color: MINT };
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function OwnerFeedbackPage() {
   const configured = isOwnerAccessConfigured();
-  const unlocked = await hasOwnerAccess();
+  const allowed = configured && (await hasOwnerAccess());
 
-  if (!unlocked) {
+  if (!allowed) {
     return (
       <AppFrame audience="owner" currentPath="/owner">
-        <main className="page-shell page-shell-split">
-          <section className="page-hero">
-            <div>
-              <span className="eyebrow">Feedback</span>
-              <h1>Sign in to view feedback analytics.</h1>
-              <small>Protected console. Sign in with an existing owner code.</small>
-            </div>
-          </section>
-          <ShellCard
-            className="shell-card-emphasis"
-            eyebrow="Owner"
-            title="Existing owner sign-in"
-          >
-            <OwnerGate configured={configured} />
-          </ShellCard>
-        </main>
+        <OwnerGate configured={configured} />
       </AppFrame>
     );
   }
 
-  let overview: Awaited<ReturnType<typeof getOwnerOverview>> | null = null;
-  let error = "";
-
-  try {
-    overview = await getOwnerOverview();
-  } catch (caughtError) {
-    error =
-      caughtError instanceof Error
-        ? caughtError.message
-        : "Feedback data is not available.";
-  }
-
-  if (!overview) {
-    return (
-      <AppFrame audience="owner" currentPath="/owner">
-        <main className="page-shell owner-command-shell">
-          <ShellCard eyebrow="Feedback" title="Dashboard data is not available">
-            <p>{error || "Feedback analytics data is not available yet."}</p>
-          </ShellCard>
-        </main>
-      </AppFrame>
-    );
-  }
-
-  // ── Derived counts ───────────────────────────────────────────────────────
-  const totalItems = overview.counts.feedbackItems;
-
-  const pendingCount =
-    overview.feedbackByReviewStatus.find((s) => s.reviewStatus === "pending")
-      ?.count ?? 0;
-
-  const resolvedCount =
-    overview.feedbackByReviewStatus.find(
-      (s) => s.reviewStatus === "resolved" || s.reviewStatus === "reviewed",
-    )?.count ?? 0;
-
-  const openBugs = overview.feedbackByCategory.find(
-    (c) => c.category.toLowerCase() === "bug",
-  )?.count ?? 0;
-
-  const resolutionRate =
-    totalItems > 0 ? Math.round((resolvedCount / totalItems) * 100) : 0;
-
-  // ── Category breakdown (bug, content, ux, praise + rest) ─────────────────
-  const knownCategories = ["bug", "content", "ux", "praise"];
-  const allCategories = [
-    ...overview.feedbackByCategory,
-    ...knownCategories
-      .filter(
-        (c) =>
-          !overview!.feedbackByCategory.find(
-            (d) => d.category.toLowerCase() === c,
-          ),
-      )
-      .map((c) => ({ category: c, count: 0 })),
-  ];
-
-  const categoryRows = knownCategories.map((key) => {
-    const found = allCategories.find((c) => c.category.toLowerCase() === key);
-    return {
-      label: key.charAt(0).toUpperCase() + key.slice(1),
-      key,
-      count: found?.count ?? 0,
-    };
-  });
-
-  // ── Urgency distribution ─────────────────────────────────────────────────
-  const urgencyLevels = ["critical", "high", "medium", "low"];
-  const urgencyMap: Record<string, number> = {};
-  for (const item of overview.recentFeedback) {
-    const u = (item.urgency ?? "low").toLowerCase();
-    urgencyMap[u] = (urgencyMap[u] ?? 0) + 1;
-  }
-
-  const urgencyRows = urgencyLevels.map((u) => ({
-    label: u.charAt(0).toUpperCase() + u.slice(1),
-    key: u,
-    count: urgencyMap[u] ?? 0,
-  }));
-
-  const maxUrgencyCount = Math.max(...urgencyRows.map((u) => u.count), 1);
-
-  // ── Pending items (top 5 unresolved) ────────────────────────────────────
-  const pendingItems = overview.recentFeedback
-    .filter((item) => item.reviewStatus !== "resolved")
-    .slice(0, 5);
-
-  // ── Stat tiles ───────────────────────────────────────────────────────────
-  const statTiles = [
-    {
-      label: "Total Items",
-      value: String(totalItems),
-      sub: "all time",
-      tone: "neutral",
-    },
-    {
-      label: "Pending",
-      value: String(pendingCount),
-      sub: "needs action",
-      tone: pendingCount > 3 ? "alert" : pendingCount > 0 ? "warn" : "good",
-    },
-    {
-      label: "Resolved",
-      value: String(resolvedCount),
-      sub: `${resolutionRate}% resolved`,
-      tone: "good",
-    },
-    {
-      label: "Open Bugs",
-      value: String(openBugs),
-      sub: "bug category",
-      tone: openBugs > 2 ? "alert" : openBugs > 0 ? "warn" : "good",
-    },
-  ] as const;
-
-  const tileAccent = (tone: string): string => {
-    if (tone === "good") return MINT;
-    if (tone === "warn") return GOLD;
-    if (tone === "alert") return CORAL;
-    return "rgba(244,248,253,0.8)";
-  };
+  const openCount = FEEDBACK_ITEMS.length;
+  const activeItem = FEEDBACK_ITEMS[0];
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
       <main
-        className="page-shell owner-command-shell"
-        style={{ paddingBottom: "48px" }}
+        style={{
+          minHeight: "100vh",
+          background: BASE,
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          paddingBottom: 48,
+        }}
       >
-        {/* ── Back nav + Hero ──────────────────────────────────────────── */}
-        <section
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            marginBottom: "28px",
-          }}
-        >
-          <Link
-            href="/owner"
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              color: "rgba(189,204,221,0.6)",
-              textDecoration: "none",
-              letterSpacing: "0.04em",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "5px",
-            }}
-          >
-            ← Owner Console
-          </Link>
-          <span
-            className="eyebrow"
-            style={{ color: MINT, letterSpacing: "0.12em" }}
-          >
-            FEEDBACK
-          </span>
-          <h1
-            style={{
-              fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)",
-              fontWeight: 900,
-              color: "#f4f8fd",
-              lineHeight: 1.1,
-              margin: 0,
-            }}
-          >
-            Feedback Summary
-          </h1>
-          <p
-            style={{
-              fontSize: "0.9rem",
-              color: "rgba(189,204,221,0.65)",
-              margin: 0,
-              lineHeight: 1.5,
-            }}
-          >
-            Category breakdown, urgency distribution, routing decisions, and
-            resolution trends.
-          </p>
-        </section>
-
-        {/* ── Stat tiles ───────────────────────────────────────────────── */}
+        {/* ── Top header bar ──────────────────────────────────────────────── */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: "12px",
-            marginBottom: "28px",
+            background: "rgba(1,4,9,0.97)",
+            borderBottom: `1px solid ${BORDER}`,
+            padding: "0 28px",
+            height: 52,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          {statTiles.map((tile) => (
-            <article
-              key={tile.label}
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <span style={{ fontSize: 14, fontWeight: 900, color: TEXT }}>
+              WQ <span style={{ color: MINT }}>Console</span>
+            </span>
+            <span
               style={{
-                background:
-                  "linear-gradient(160deg, rgba(18,26,39,0.97), rgba(12,18,27,0.93))",
-                border: `1px solid ${tileAccent(tile.tone)}22`,
-                borderRadius: "16px",
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
+                fontSize: 11,
+                fontWeight: 800,
+                color: TEXT,
+                letterSpacing: "0.04em",
               }}
             >
-              <span
-                style={{
-                  fontSize: "0.68rem",
-                  fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "rgba(132,157,183,0.7)",
-                }}
-              >
-                {tile.label}
-              </span>
-              <strong
-                style={{
-                  fontSize: "clamp(1.8rem, 4vw, 2.4rem)",
-                  fontWeight: 900,
-                  lineHeight: 0.95,
-                  color: tileAccent(tile.tone),
-                }}
-              >
-                {tile.value}
-              </strong>
-              <small
-                style={{
-                  fontSize: "0.75rem",
-                  color: "rgba(189,204,221,0.55)",
-                  lineHeight: 1.3,
-                }}
-              >
-                {tile.sub}
-              </small>
-            </article>
-          ))}
+              💬 Feedback Workbench
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                background: AMBER,
+                color: "#1a1440",
+                borderRadius: 4,
+                padding: "1px 6px",
+              }}
+            >
+              {openCount} open
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <Link
+              href="/owner"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: VIOLET,
+                textDecoration: "none",
+              }}
+            >
+              ← Dashboard
+            </Link>
+            <Link
+              href="/owner/routes"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: MUTED,
+                textDecoration: "none",
+              }}
+            >
+              Route Health
+            </Link>
+            <Link
+              href="/owner/release"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: MUTED,
+                textDecoration: "none",
+              }}
+            >
+              Release Gate
+            </Link>
+          </div>
         </div>
 
-        {/* ── Main 2-column grid ───────────────────────────────────────── */}
+        {/* ── 2-panel workbench ────────────────────────────────────────────── */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-            gap: "20px",
-            alignItems: "start",
+            display: "flex",
+            maxWidth: 1100,
+            margin: "0 auto",
+            minHeight: "calc(100vh - 52px)",
           }}
         >
-          {/* ── LEFT column ─────────────────────────────────────────── */}
-          <div style={{ display: "grid", gap: "20px" }}>
-            {/* Category Breakdown ─────────────────────────────────── */}
-            <section
+          {/* ── Left: queue ─────────────────────────────────────────────── */}
+          <div
+            style={{
+              width: 320,
+              borderRight: `1px solid ${BORDER}`,
+              display: "flex",
+              flexDirection: "column",
+              flexShrink: 0,
+            }}
+          >
+            {/* Queue header + filters */}
+            <div
               style={{
-                background:
-                  "linear-gradient(180deg, rgba(18,26,39,0.98), rgba(12,18,27,0.95))",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "20px",
-                padding: "22px 24px",
+                padding: "14px 16px",
+                borderBottom: `1px solid ${BORDER}`,
               }}
             >
-              <header
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  justifyContent: "space-between",
-                  marginBottom: "18px",
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "0.68rem",
-                      fontWeight: 800,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      color: "rgba(132,157,183,0.65)",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Category breakdown
-                  </span>
-                  <h2
-                    style={{
-                      fontSize: "1rem",
-                      fontWeight: 800,
-                      color: "#f4f8fd",
-                      margin: 0,
-                    }}
-                  >
-                    Where is feedback clustering?
-                  </h2>
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.72rem",
-                    color: "rgba(132,157,183,0.5)",
-                  }}
-                >
-                  {totalItems} total
-                </span>
-              </header>
-
-              {/* Stacked donut-style segmented bar */}
               <div
                 style={{
-                  display: "flex",
-                  height: "14px",
-                  borderRadius: "7px",
-                  overflow: "hidden",
-                  gap: "2px",
-                  marginBottom: "20px",
-                  background: "rgba(255,255,255,0.05)",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: TEXT,
+                  marginBottom: 10,
                 }}
-                aria-hidden="true"
               >
-                {categoryRows
-                  .filter((c) => c.count > 0)
-                  .map((c) => (
-                    <div
-                      key={c.key}
-                      style={{
-                        flex: c.count,
-                        background: categoryColor(c.key),
-                        opacity: 0.8,
-                        minWidth: "3px",
-                      }}
-                    />
-                  ))}
-              </div>
-
-              {/* Per-category bar rows */}
-              <div style={{ display: "grid", gap: "14px" }}>
-                {categoryRows.map((cat) => {
-                  const share = pct(cat.count, totalItems);
-                  return (
-                    <div key={cat.key} style={{ display: "grid", gap: "6px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span
-                            style={{
-                              display: "inline-block",
-                              width: "8px",
-                              height: "8px",
-                              borderRadius: "50%",
-                              background: categoryColor(cat.key),
-                              flexShrink: 0,
-                            }}
-                          />
-                          <span
-                            style={{
-                              fontSize: "0.85rem",
-                              fontWeight: 700,
-                              color: "rgba(244,248,253,0.85)",
-                            }}
-                          >
-                            {cat.label}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "0.75rem",
-                              color: "rgba(132,157,183,0.65)",
-                            }}
-                          >
-                            {share}%
-                          </span>
-                          <span
-                            style={{
-                              fontSize: "0.85rem",
-                              fontWeight: 800,
-                              color: categoryColor(cat.key),
-                              minWidth: "24px",
-                              textAlign: "right",
-                            }}
-                          >
-                            {cat.count}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          height: "6px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.07)",
-                        }}
-                        aria-hidden="true"
-                      >
-                        <span
-                          style={{
-                            display: "block",
-                            height: "100%",
-                            borderRadius: "inherit",
-                            background: categoryColor(cat.key),
-                            width: `${share}%`,
-                            opacity: 0.85,
-                            transition: "width 0.4s ease",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Urgency Distribution ───────────────────────────────── */}
-            <section
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(18,26,39,0.98), rgba(12,18,27,0.95))",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "20px",
-                padding: "22px 24px",
-              }}
-            >
-              <header style={{ marginBottom: "18px" }}>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: "0.68rem",
-                    fontWeight: 800,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "rgba(132,157,183,0.65)",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Urgency distribution
+                Feedback Queue{" "}
+                <span style={{ color: MUTED, fontWeight: 400 }}>
+                  ({openCount} open)
                 </span>
-                <h2
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 800,
-                    color: "#f4f8fd",
-                    margin: 0,
-                  }}
-                >
-                  Pressure by severity level
-                </h2>
-              </header>
-
-              <div style={{ display: "grid", gap: "12px" }}>
-                {urgencyRows.map((u) => {
-                  const barPct =
-                    maxUrgencyCount > 0
-                      ? Math.round((u.count / maxUrgencyCount) * 100)
-                      : 0;
-                  return (
-                    <div
-                      key={u.key}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "72px 1fr 32px",
-                        gap: "10px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "0.78rem",
-                          fontWeight: 800,
-                          color: urgencyColor(u.key),
-                          letterSpacing: "0.03em",
-                        }}
-                      >
-                        {u.label}
-                      </span>
-                      <div
-                        style={{
-                          height: "8px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.07)",
-                        }}
-                        aria-hidden="true"
-                      >
-                        <span
-                          style={{
-                            display: "block",
-                            height: "100%",
-                            borderRadius: "inherit",
-                            background: urgencyColor(u.key),
-                            width: `${barPct}%`,
-                            opacity: 0.8,
-                            transition: "width 0.4s ease",
-                          }}
-                        />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.82rem",
-                          fontWeight: 800,
-                          color: "rgba(189,204,221,0.7)",
-                          textAlign: "right",
-                        }}
-                      >
-                        {u.count}
-                      </span>
-                    </div>
-                  );
-                })}
               </div>
-
-              <p
-                style={{
-                  marginTop: "14px",
-                  fontSize: "0.72rem",
-                  color: "rgba(132,157,183,0.5)",
-                  lineHeight: 1.5,
-                }}
-              >
-                Counts drawn from the most recent{" "}
-                {overview.recentFeedback.length} feedback items. Critical and
-                high urgency items auto-alert engineering.
-              </p>
-            </section>
-          </div>
-
-          {/* ── RIGHT column ────────────────────────────────────────── */}
-          <div style={{ display: "grid", gap: "20px" }}>
-            {/* Pending Items ─────────────────────────────────────────── */}
-            <section
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(18,26,39,0.98), rgba(12,18,27,0.95))",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "20px",
-                padding: "22px 24px",
-              }}
-            >
-              <header
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  justifyContent: "space-between",
-                  marginBottom: "18px",
-                }}
-              >
-                <div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {(
+                  [
+                    { label: "All open", active: true, tone: "mint" },
+                    { label: "P0/P1", active: false, tone: "red" },
+                    { label: "Bugs", active: false, tone: "muted" },
+                    { label: "Features", active: false, tone: "muted" },
+                  ] as const
+                ).map((f) => (
                   <span
+                    key={f.label}
                     style={{
-                      display: "block",
-                      fontSize: "0.68rem",
-                      fontWeight: 800,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      color: "rgba(132,157,183,0.65)",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    Pending items
-                  </span>
-                  <h2
-                    style={{
-                      fontSize: "1rem",
-                      fontWeight: 800,
-                      color: "#f4f8fd",
-                      margin: 0,
-                    }}
-                  >
-                    Top 5 unresolved
-                  </h2>
-                </div>
-                {pendingItems[0] ? (
-                  <Link
-                    href={`/owner/triage/${pendingItems[0].id}`}
-                    style={{
-                      fontSize: "0.72rem",
+                      fontSize: 10,
                       fontWeight: 700,
-                      color: MINT,
-                      textDecoration: "none",
-                      letterSpacing: "0.04em",
+                      padding: "3px 9px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      background:
+                        f.tone === "mint"
+                          ? MINT
+                          : f.tone === "red"
+                            ? "rgba(248,81,73,0.2)"
+                            : "rgba(255,255,255,0.07)",
+                      color:
+                        f.tone === "mint"
+                          ? "#010409"
+                          : f.tone === "red"
+                            ? RED
+                            : MUTED,
                     }}
                   >
-                    Open queue →
-                  </Link>
-                ) : null}
-              </header>
-
-              {pendingItems.length > 0 ? (
-                <div style={{ display: "grid", gap: "10px" }}>
-                  {pendingItems.map((item) => (
-                    <article
-                      key={item.id}
-                      style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: `1px solid ${urgencyColor(item.urgency)}22`,
-                        borderRadius: "12px",
-                        padding: "14px 16px",
-                        display: "grid",
-                        gap: "8px",
-                      }}
-                    >
-                      {/* Top chips row */}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "6px",
-                          flexWrap: "wrap",
-                          alignItems: "center",
-                        }}
-                      >
-                        {/* Urgency chip */}
-                        <span
-                          style={{
-                            fontSize: "0.65rem",
-                            fontWeight: 800,
-                            letterSpacing: "0.08em",
-                            textTransform: "uppercase",
-                            padding: "2px 8px",
-                            borderRadius: "6px",
-                            background: urgencyBg(item.urgency),
-                            color: urgencyColor(item.urgency),
-                            border: `1px solid ${urgencyColor(item.urgency)}33`,
-                          }}
-                        >
-                          {item.urgency}
-                        </span>
-                        {/* Route chip */}
-                        <span
-                          style={{
-                            fontSize: "0.65rem",
-                            fontWeight: 800,
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                            padding: "2px 8px",
-                            borderRadius: "6px",
-                            background: routeBg(item.routingTarget),
-                            color: routeColor(item.routingTarget),
-                          }}
-                        >
-                          {routeLabel(item.routingTarget)}
-                        </span>
-                        {/* Date */}
-                        <span
-                          style={{
-                            marginLeft: "auto",
-                            fontSize: "0.7rem",
-                            color: "rgba(132,157,183,0.5)",
-                          }}
-                        >
-                          {formatShortDate(item.createdAt)}
-                        </span>
-                      </div>
-
-                      {/* Summary */}
-                      <p
-                        style={{
-                          fontSize: "0.85rem",
-                          fontWeight: 600,
-                          color: "rgba(244,248,253,0.85)",
-                          lineHeight: 1.4,
-                          margin: 0,
-                        }}
-                      >
-                        {item.summary || item.message.slice(0, 90)}
-                      </p>
-
-                      {/* Meta + triage link */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "8px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "0.72rem",
-                            color: "rgba(132,157,183,0.55)",
-                          }}
-                        >
-                          {item.category} · {item.submittedByRole}
-                        </span>
-                        <Link
-                          href={`/owner/triage/${item.id}`}
-                          style={{
-                            fontSize: "0.72rem",
-                            fontWeight: 700,
-                            color: MINT,
-                            textDecoration: "none",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Triage →
-                        </Link>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: "24px 20px",
-                    textAlign: "center",
-                    color: "rgba(189,204,221,0.5)",
-                  }}
-                >
-                  <strong
-                    style={{
-                      display: "block",
-                      color: MINT,
-                      fontSize: "0.9rem",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Queue is clear
-                  </strong>
-                  <span style={{ fontSize: "0.82rem", lineHeight: 1.5 }}>
-                    All feedback has been reviewed or resolved.
+                    {f.label}
                   </span>
-                </div>
-              )}
-            </section>
+                ))}
+              </div>
+            </div>
 
-            {/* Resolution Rate Trend ─────────────────────────────────── */}
-            <section
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(18,26,39,0.98), rgba(12,18,27,0.95))",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "20px",
-                padding: "22px 24px",
-              }}
-            >
-              <header style={{ marginBottom: "18px" }}>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: "0.68rem",
-                    fontWeight: 800,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "rgba(132,157,183,0.65)",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Resolution trend
-                </span>
-                <h2
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 800,
-                    color: "#f4f8fd",
-                    margin: 0,
-                  }}
-                >
-                  Weekly resolution rate
-                </h2>
-              </header>
-
-              {/* Weekly bar chart */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "6px",
-                  alignItems: "flex-end",
-                  height: "80px",
-                  marginBottom: "8px",
-                }}
-                aria-hidden="true"
-              >
-                {WEEKLY_TREND.map((w) => {
-                  const barH = Math.max(
-                    Math.round((w.rate / MAX_TREND_RATE) * 68),
-                    4,
-                  );
-                  const barColor = w.rate >= 85 ? MINT : w.rate >= 70 ? GOLD : CORAL;
-                  return (
+            {/* Feedback list */}
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {FEEDBACK_ITEMS.map((item, idx) => {
+                const isActive = idx === 0;
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: "11px 14px",
+                      borderBottom: `1px solid rgba(255,255,255,0.04)`,
+                      cursor: "pointer",
+                      background: isActive
+                        ? "rgba(80,232,144,0.06)"
+                        : "transparent",
+                      borderLeft: isActive ? `3px solid ${MINT}` : "3px solid transparent",
+                    }}
+                  >
                     <div
-                      key={w.week}
                       style={{
-                        flex: 1,
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
-                        gap: "4px",
-                        justifyContent: "flex-end",
+                        gap: 6,
+                        marginBottom: 4,
                       }}
                     >
-                      <div
-                        style={{
-                          width: "100%",
-                          height: `${barH}px`,
-                          borderRadius: "3px 3px 0 0",
-                          background: barColor,
-                          opacity: 0.75,
-                        }}
-                      />
                       <span
                         style={{
-                          fontSize: "0.62rem",
-                          fontWeight: 700,
-                          color: "rgba(132,157,183,0.55)",
+                          ...priorityStyle(item.priority),
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: "1px 5px",
+                          borderRadius: 4,
                         }}
                       >
-                        {w.week}
+                        {item.priority}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          color: "rgba(255,255,255,0.3)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.type}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          color: "rgba(255,255,255,0.2)",
+                          marginLeft: "auto",
+                        }}
+                      >
+                        {item.timeAgo}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Legend */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "14px",
-                  marginTop: "4px",
-                }}
-              >
-                {[
-                  { color: MINT, label: "≥85% on track" },
-                  { color: GOLD, label: "70–84% watch" },
-                  { color: CORAL, label: "<70% alert" },
-                ].map((l) => (
-                  <span
-                    key={l.label}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      fontSize: "0.68rem",
-                      color: "rgba(132,157,183,0.6)",
-                    }}
-                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "rgba(255,255,255,0.7)",
+                        lineHeight: 1.3,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {item.summary}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "rgba(255,255,255,0.25)",
+                        marginBottom: 5,
+                      }}
+                    >
+                      {item.school} · {item.screen}
+                    </div>
                     <span
                       style={{
-                        display: "inline-block",
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "2px",
-                        background: l.color,
-                        opacity: 0.8,
-                        flexShrink: 0,
-                      }}
-                    />
-                    {l.label}
-                  </span>
-                ))}
-              </div>
-
-              {/* Current resolution rate callout */}
-              <div
-                style={{
-                  marginTop: "16px",
-                  padding: "12px 16px",
-                  borderRadius: "10px",
-                  background:
-                    resolutionRate >= 80
-                      ? "rgba(88,232,193,0.07)"
-                      : "rgba(255,209,102,0.07)",
-                  border: `1px solid ${resolutionRate >= 80 ? MINT : GOLD}22`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "0.68rem",
-                      fontWeight: 800,
-                      letterSpacing: "0.09em",
-                      textTransform: "uppercase",
-                      color: "rgba(132,157,183,0.6)",
-                      marginBottom: "3px",
-                    }}
-                  >
-                    All-time resolution rate
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "0.82rem",
-                      color: "rgba(189,204,221,0.7)",
-                    }}
-                  >
-                    {resolvedCount} of {totalItems} items resolved
-                  </span>
-                </div>
-                <strong
-                  style={{
-                    fontSize: "1.6rem",
-                    fontWeight: 900,
-                    color: resolutionRate >= 80 ? MINT : GOLD,
-                    lineHeight: 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  {resolutionRate}%
-                </strong>
-              </div>
-            </section>
-
-            {/* Review Status Breakdown ──────────────────────────────── */}
-            <section
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(18,26,39,0.98), rgba(12,18,27,0.95))",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "20px",
-                padding: "22px 24px",
-              }}
-            >
-              <header style={{ marginBottom: "16px" }}>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: "0.68rem",
-                    fontWeight: 800,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "rgba(132,157,183,0.65)",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Routing decisions
-                </span>
-                <h2
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 800,
-                    color: "#f4f8fd",
-                    margin: 0,
-                  }}
-                >
-                  Review status breakdown
-                </h2>
-              </header>
-
-              {/* Stacked status bar */}
-              <div
-                style={{
-                  display: "flex",
-                  height: "10px",
-                  borderRadius: "5px",
-                  overflow: "hidden",
-                  gap: "2px",
-                  marginBottom: "16px",
-                  background: "rgba(255,255,255,0.05)",
-                }}
-                aria-hidden="true"
-              >
-                {overview.feedbackByReviewStatus.map((s) => (
-                  <div
-                    key={s.reviewStatus}
-                    style={{
-                      flex: s.count || 0,
-                      background: reviewStatusColor(s.reviewStatus),
-                      opacity: 0.7,
-                      minWidth: s.count > 0 ? "3px" : "0",
-                    }}
-                  />
-                ))}
-              </div>
-
-              <div style={{ display: "grid", gap: "10px" }}>
-                {overview.feedbackByReviewStatus.map((s) => {
-                  const share = pct(s.count, totalItems);
-                  return (
-                    <div
-                      key={s.reviewStatus}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
+                        ...statusStyle(item.status),
+                        fontSize: 9,
+                        fontWeight: 700,
+                        padding: "1px 6px",
+                        borderRadius: 4,
                       }}
                     >
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "2px 10px",
-                          borderRadius: "6px",
-                          fontSize: "0.68rem",
-                          fontWeight: 800,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                          background: reviewStatusBg(s.reviewStatus),
-                          color: reviewStatusColor(s.reviewStatus),
-                          minWidth: "80px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {s.reviewStatus}
-                      </span>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: "5px",
-                          borderRadius: "999px",
-                          background: "rgba(255,255,255,0.07)",
-                        }}
-                        aria-hidden="true"
-                      >
-                        <span
-                          style={{
-                            display: "block",
-                            height: "100%",
-                            borderRadius: "inherit",
-                            background: reviewStatusColor(s.reviewStatus),
-                            width: `${share}%`,
-                            opacity: 0.75,
-                          }}
-                        />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.8rem",
-                          fontWeight: 800,
-                          color: "rgba(189,204,221,0.7)",
-                          minWidth: "28px",
-                          textAlign: "right",
-                        }}
-                      >
-                        {s.count}
-                      </span>
-                    </div>
-                  );
-                })}
+                      {item.statusLabel}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Right: detail panel ──────────────────────────────────────── */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "20px 24px",
+              background: BASE,
+            }}
+          >
+            {/* Detail header card */}
+            <div
+              style={{
+                background: SURFACE,
+                borderRadius: 10,
+                padding: "14px 16px",
+                marginBottom: 14,
+                border: `1px solid rgba(255,255,255,0.05)`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <span
+                  style={{
+                    ...priorityStyle(activeItem.priority),
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  {activeItem.priority} {activeItem.type}
+                </span>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: TEXT,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {activeItem.summary} ({activeItem.screen})
+                </div>
               </div>
-            </section>
+
+              {/* Meta chips */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginBottom: 10,
+                }}
+              >
+                {(
+                  [
+                    {
+                      label: activeItem.school,
+                      bg: "rgba(255,255,255,0.08)",
+                      color: MUTED,
+                    },
+                    {
+                      label: activeItem.screen,
+                      bg: "rgba(37,99,235,0.15)",
+                      color: "#60a5fa",
+                    },
+                    {
+                      label: activeItem.severity,
+                      bg: "rgba(245,158,11,0.15)",
+                      color: AMBER,
+                    },
+                    {
+                      label: `Submitted ${activeItem.timeAgo}`,
+                      bg: "rgba(255,255,255,0.06)",
+                      color: MUTED,
+                    },
+                  ] as const
+                ).map((chip) => (
+                  <span
+                    key={chip.label}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: 5,
+                      background: chip.bg,
+                      color: chip.color,
+                    }}
+                  >
+                    {chip.label}
+                  </span>
+                ))}
+              </div>
+
+              {/* Feedback body */}
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.6)",
+                  lineHeight: 1.6,
+                  background: "rgba(255,255,255,0.03)",
+                  borderRadius: 6,
+                  padding: "8px 10px",
+                  border: `1px solid rgba(255,255,255,0.05)`,
+                  fontStyle: "italic",
+                }}
+              >
+                &ldquo;{activeItem.body}&rdquo;
+              </div>
+            </div>
+
+            {/* Product note (feature requests) */}
+            {activeItem.productNote && (
+              <div
+                style={{
+                  background: SURFACE,
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  marginBottom: 12,
+                  border: `1px solid rgba(80,232,144,0.15)`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: MINT,
+                    marginBottom: 4,
+                  }}
+                >
+                  PRODUCT NOTE — Avi M.
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.6)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {activeItem.productNote}
+                </div>
+              </div>
+            )}
+
+            {/* Action row */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginBottom: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              {(
+                [
+                  {
+                    label: "✓ Mark resolved",
+                    bg: MINT,
+                    color: "#010409",
+                    border: "none",
+                  },
+                  {
+                    label: "↑ Bump to P0",
+                    bg: BLUE,
+                    color: "#fff",
+                    border: "none",
+                  },
+                  {
+                    label: "🔔 Escalate to on-call",
+                    bg: "rgba(248,81,73,0.15)",
+                    color: RED,
+                    border: `1px solid rgba(248,81,73,0.3)`,
+                  },
+                  {
+                    label: "✕ Won't fix",
+                    bg: "rgba(255,255,255,0.07)",
+                    color: MUTED,
+                    border: "none",
+                  },
+                ] as const
+              ).map((btn) => (
+                <button
+                  key={btn.label}
+                  style={{
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "system-ui",
+                    background: btn.bg,
+                    color: btn.color,
+                    border: btn.border ?? "none",
+                  }}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Reply to teacher */}
+            <div style={{ marginBottom: 18 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: MUTED,
+                  marginBottom: 6,
+                }}
+              >
+                Reply to teacher (delivered via platform notification)
+              </div>
+              <textarea
+                readOnly
+                value={
+                  "Thanks for flagging this — confirmed. The mastery score is cached client-side and not invalidated after a session closes. We're pushing a fix in today's build (#248). You should see accurate mastery on refresh after 6pm."
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  background: SURFACE,
+                  border: `1px solid rgba(255,255,255,0.1)`,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  fontFamily: "system-ui",
+                  color: "rgba(255,255,255,0.7)",
+                  resize: "none",
+                  minHeight: 72,
+                  outline: "none",
+                  display: "block",
+                }}
+              />
+              <button
+                style={{
+                  marginTop: 6,
+                  padding: "6px 14px",
+                  background: MINT,
+                  color: "#010409",
+                  border: "none",
+                  borderRadius: 7,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "system-ui",
+                }}
+              >
+                Send reply
+              </button>
+            </div>
+
+            {/* Upvoted by */}
+            {activeItem.upvotedBy && (
+              <div style={{ marginBottom: 18 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    color: MUTED,
+                    marginBottom: 6,
+                  }}
+                >
+                  Upvoted by
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.4)",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {activeItem.upvotedBy}
+                </div>
+              </div>
+            )}
+
+            {/* History */}
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: MUTED,
+                  marginBottom: 8,
+                }}
+              >
+                History
+              </div>
+              {activeItem.history.map((h, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    padding: "6px 0",
+                    borderBottom:
+                      i < activeItem.history.length - 1
+                        ? `1px solid rgba(255,255,255,0.04)`
+                        : "none",
+                    fontSize: 11,
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.2)",
+                      flexShrink: 0,
+                      width: 70,
+                    }}
+                  >
+                    {h.time}
+                  </div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.5)",
+                      flex: 1,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {h.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Priority auto-triage spec callout */}
+            <div
+              style={{
+                marginTop: 32,
+                background: SURFACE,
+                borderRadius: 10,
+                padding: "14px 16px",
+                border: `1px solid rgba(255,255,255,0.05)`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: MUTED,
+                  marginBottom: 10,
+                }}
+              >
+                Priority Auto-triage Rules
+              </div>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: 11,
+                }}
+              >
+                <thead>
+                  <tr>
+                    {["Severity", "Auto P-level", "Slack alert", "SLA"].map(
+                      (h) => (
+                        <th
+                          key={h}
+                          style={{
+                            textAlign: "left",
+                            padding: "4px 8px",
+                            fontSize: 9,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            color: "rgba(255,255,255,0.25)",
+                            borderBottom: `1px solid rgba(255,255,255,0.06)`,
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(
+                    [
+                      ["Critical (platform unusable)", "P0", "#on-call immediate", "4h"],
+                      ["Major (impacts teaching)", "P1", "#engineering", "24h"],
+                      ["Moderate (workaround exists)", "P2", "None", "48h"],
+                      ["Minor", "P3", "None", "1 week"],
+                      ["Feature request", "Feature", "None", "Monthly review"],
+                    ] as const
+                  ).map((row, i) => (
+                    <tr key={i}>
+                      {row.map((cell, j) => (
+                        <td
+                          key={j}
+                          style={{
+                            padding: "5px 8px",
+                            fontSize: 10,
+                            color: "rgba(255,255,255,0.5)",
+                            borderBottom:
+                              i < 4
+                                ? `1px solid rgba(255,255,255,0.04)`
+                                : "none",
+                          }}
+                        >
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer nav */}
+            <div
+              style={{
+                marginTop: 32,
+                paddingTop: 16,
+                borderTop: `1px solid ${BORDER}`,
+                display: "flex",
+                gap: 24,
+                flexWrap: "wrap",
+              }}
+            >
+              <Link
+                href="/owner"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: VIOLET,
+                  textDecoration: "none",
+                }}
+              >
+                ← Dashboard
+              </Link>
+              <Link
+                href="/owner/routes"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: MUTED,
+                  textDecoration: "none",
+                }}
+              >
+                Route Health
+              </Link>
+              <Link
+                href="/owner/release"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: MUTED,
+                  textDecoration: "none",
+                }}
+              >
+                Release Gate
+              </Link>
+              <Link
+                href="/owner/analytics"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: MUTED,
+                  textDecoration: "none",
+                }}
+              >
+                Command Center
+              </Link>
+            </div>
           </div>
         </div>
-
-        {/* ── Footer nav ───────────────────────────────────────────────── */}
-        <section
-          style={{
-            marginTop: "32px",
-            display: "flex",
-            gap: "14px",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <Link
-            href="/owner"
-            style={{
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              color: MINT,
-              textDecoration: "none",
-              padding: "8px 16px",
-              borderRadius: "8px",
-              background: "rgba(88,232,193,0.1)",
-              border: "1px solid rgba(88,232,193,0.2)",
-            }}
-          >
-            Owner Console
-          </Link>
-          <Link
-            href="/teacher"
-            style={{
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              color: "rgba(189,204,221,0.7)",
-              textDecoration: "none",
-            }}
-          >
-            Teacher view
-          </Link>
-          <Link
-            href="/parent"
-            style={{
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              color: "rgba(189,204,221,0.7)",
-              textDecoration: "none",
-            }}
-          >
-            Parent hub
-          </Link>
-        </section>
       </main>
     </AppFrame>
   );

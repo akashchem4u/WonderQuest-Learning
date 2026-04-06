@@ -1,737 +1,574 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard } from "@/components/ui";
-import { hasTeacherAccess, isTeacherAccessConfigured } from "@/lib/teacher-access";
-import { getTeacherSkillDetail } from "@/lib/prototype-service";
-import TeacherGate from "@/app/teacher/teacher-gate";
 
-export const dynamic = "force-dynamic";
-
-type TeacherSkillDetailPageProps = {
-  params?: Promise<{
-    launchBandCode: string;
-    skillCode: string;
-  }>;
-};
-
-function formatSessionMode(value: string) {
-  return value === "self-directed-challenge" ? "Self-directed" : "Guided";
-}
-
-function formatLastSeen(value: string) {
-  return new Date(value).toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-// ── Palette ──────────────────────────────────────────────────────────────────
+// ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
   base: "#100b2e",
-  mint: "#58e8c1",
+  blue: "#38bdf8",
   violet: "#9b72ff",
+  mint: "#22c55e",
   gold: "#ffd166",
-  coral: "#ff7b6b",
-  cardBg: "rgba(255,255,255,0.05)",
-  cardBorder: "rgba(255,255,255,0.1)",
-  text: "#ffffff",
-  muted: "rgba(216,240,234,0.6)",
+  amber: "#f59e0b",
+  text: "#f0f6ff",
+  muted: "#8b949e",
+  surface: "#161b22",
+  border: "rgba(255,255,255,0.06)",
 };
 
-// ── Shared style objects ──────────────────────────────────────────────────────
-const glassCard: React.CSSProperties = {
-  background: C.cardBg,
-  border: `1px solid ${C.cardBorder}`,
-  borderRadius: 16,
-  padding: "20px 24px",
+// ── Stub data ─────────────────────────────────────────────────────────────────
+
+type MasteryStatus = "strong" | "building" | "started";
+
+type StudentRow = {
+  id: string;
+  name: string;
+  mastery: number;
+  status: MasteryStatus;
+  sessions: number;
+  stars: number;
+  lastActive: string;
 };
 
-const eyebrowStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 800,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: C.mint,
-  marginBottom: 6,
+const SKILL = {
+  name: "Fractions: Addition",
+  band: "P2",
+  gradeRange: "G2\u20133",
+  subject: "Mathematics",
+  difficulty: "Intermediate",
+  icon: "\u2795",
+  studentsOnSkill: 18,
+  strongThisWeek: 8,
+  totalSessions: 47,
+  classAvgAccuracy: 72,
 };
 
-const chipStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "3px 10px",
-  borderRadius: 20,
-  fontSize: 11,
-  fontWeight: 700,
-  background: "rgba(255,255,255,0.08)",
-  border: `1px solid ${C.cardBorder}`,
-  color: C.muted,
-};
+const TREND_WEEKS = [
+  { label: "Week 1", pct: 40, sessions: 8 },
+  { label: "Week 2", pct: 62, sessions: 12 },
+  { label: "Week 3", pct: 88, sessions: 18 },
+  { label: "This wk", pct: 100, sessions: 47 },
+];
 
-export default async function TeacherSkillDetailPage({
-  params,
-}: TeacherSkillDetailPageProps) {
-  const configured = isTeacherAccessConfigured();
-  const unlocked = await hasTeacherAccess();
+const DISTRIBUTION: { label: string; emoji: string; pct: number; count: number; color: string; status: MasteryStatus }[] = [
+  { label: "Strong", emoji: "\u{1F4AA}", pct: 44, count: 8, color: C.mint, status: "strong" },
+  { label: "Building", emoji: "\u{1F4C8}", pct: 33, count: 6, color: C.blue, status: "building" },
+  { label: "Just started", emoji: "\u{1F331}", pct: 22, count: 4, color: C.muted, status: "started" },
+];
 
-  if (!unlocked) {
-    return (
-      <AppFrame audience="teacher" currentPath="/teacher">
-        <main
-          style={{
-            minHeight: "100vh",
-            background: C.base,
-            padding: "32px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-          }}
-        >
-          <section
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              maxWidth: 560,
-            }}
-          >
-            <span style={eyebrowStyle}>Classroom</span>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>
-              Unlock dashboard access.
-            </h1>
-            <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6 }}>
-              This dashboard shows class-level insights only — it is separate from
-              individual student and family views.
-            </p>
-          </section>
+const STUDENTS: StudentRow[] = [
+  { id: "bella", name: "Bella", mastery: 88, status: "strong", sessions: 8, stars: 24, lastActive: "Today" },
+  { id: "aarav", name: "Aarav", mastery: 76, status: "strong", sessions: 6, stars: 18, lastActive: "Today" },
+  { id: "carlos", name: "Carlos", mastery: 58, status: "building", sessions: 5, stars: 12, lastActive: "Yesterday" },
+  { id: "ethan", name: "Ethan", mastery: 51, status: "building", sessions: 4, stars: 9, lastActive: "Today" },
+  { id: "jordan", name: "Jordan", mastery: 32, status: "started", sessions: 4, stars: 6, lastActive: "2 days ago" },
+  { id: "sam", name: "Sam", mastery: 28, status: "started", sessions: 3, stars: 5, lastActive: "Today" },
+];
 
-          <div style={{ ...glassCard, maxWidth: 480 }}>
-            <ShellCard
-              className="shell-card-emphasis"
-              eyebrow="Teacher"
-              title="Unlock teacher dashboard"
-            >
-              <TeacherGate configured={configured} />
-            </ShellCard>
-          </div>
-        </main>
-      </AppFrame>
-    );
-  }
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-  const resolvedParams = params ? await params : undefined;
-  const requestedSkillCode = resolvedParams?.skillCode ?? "";
+function statusColor(s: MasteryStatus): string {
+  if (s === "strong") return C.mint;
+  if (s === "building") return C.blue;
+  return C.muted;
+}
 
-  let detail: Awaited<ReturnType<typeof getTeacherSkillDetail>> | null = null;
-  let error = "";
+function statusLabel(s: MasteryStatus): string {
+  if (s === "strong") return "\u{1F4AA} Strong";
+  if (s === "building") return "\u{1F4C8} Building";
+  return "\u{1F331} Just started";
+}
 
-  try {
-    detail = await getTeacherSkillDetail(requestedSkillCode);
-  } catch (caughtError) {
-    error =
-      caughtError instanceof Error
-        ? caughtError.message
-        : "Teacher skill detail is not available.";
-  }
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function TeacherSkillDrilldownPage() {
+  const [activeTab, setActiveTab] = useState<"drilldown" | "compare">("drilldown");
+
+  const glassCard: React.CSSProperties = {
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: 14,
+    padding: "18px 20px",
+  };
+
+  const cardTitle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: "0.07em",
+    color: C.muted,
+    marginBottom: 14,
+  };
+
+  const chip: React.CSSProperties = {
+    display: "inline-block",
+    padding: "3px 10px",
+    borderRadius: 20,
+    fontSize: 11,
+    fontWeight: 700,
+  };
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
-      <main
+      <div
         style={{
           minHeight: "100vh",
           background: C.base,
-          padding: "28px 24px 48px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 24,
+          fontFamily: "system-ui,-apple-system,sans-serif",
+          color: C.text,
+          paddingBottom: 56,
         }}
       >
-        {/* ── Header ── */}
-        <section style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {/* ── Top bar ─────────────────────────────────────────────────── */}
+        <div
+          style={{
+            padding: "20px 28px 16px",
+            borderBottom: `1px solid ${C.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
           <Link
             href="/teacher"
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: C.mint,
+              color: C.blue,
               textDecoration: "none",
-              marginBottom: 8,
-              display: "inline-block",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
             }}
           >
-            ← Teacher Dashboard
+            \u2190 Skills
           </Link>
-          <span style={eyebrowStyle}>Skill Drilldown</span>
-          <h1
-            style={{
-              fontSize: 30,
-              fontWeight: 900,
-              color: C.text,
-              lineHeight: 1.15,
-              marginBottom: 16,
-            }}
-          >
-            {detail ? detail.skill.displayName : "Skill Overview"}
-          </h1>
+          <span style={{ color: C.border, fontSize: 14 }}>|</span>
+          <span style={{ fontSize: 12, color: C.muted }}>
+            {SKILL.band} \u203a {SKILL.name}
+          </span>
+          <div style={{ marginLeft: "auto" }}>
+            <Link
+              href="/teacher/command"
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.violet,
+                textDecoration: "none",
+                padding: "6px 14px",
+                border: `1px solid ${C.violet}55`,
+                borderRadius: 8,
+              }}
+            >
+              Command Center
+            </Link>
+          </div>
+        </div>
 
-          {/* Stat tiles row */}
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+          {/* ── Skill header card ──────────────────────────────────────── */}
           <div
             style={{
+              ...glassCard,
               display: "flex",
-              gap: 12,
+              alignItems: "flex-start",
+              gap: 20,
               flexWrap: "wrap",
             }}
           >
-            {/* Accuracy */}
-            <div
-              style={{
-                ...glassCard,
-                padding: "16px 20px",
-                minWidth: 130,
-                flex: "1 1 130px",
-              }}
-            >
+            <div style={{ fontSize: 42, flexShrink: 0 }}>{SKILL.icon}</div>
+
+            <div style={{ flex: 1, minWidth: 220 }}>
               <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 900,
-                  color: C.mint,
-                  lineHeight: 1,
-                  marginBottom: 4,
-                }}
+                style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 3 }}
               >
-                {detail ? `${detail.skill.masteryRate}%` : "n/a"}
+                {SKILL.name}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                Accuracy
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>
+                {SKILL.band} \u00b7 {SKILL.gradeRange} \u00b7 {SKILL.subject}
               </div>
-              <div style={{ fontSize: 11, color: C.muted }}>Class mastery</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    ...chip,
+                    background: `${C.mint}22`,
+                    color: C.mint,
+                    border: `1px solid ${C.mint}44`,
+                  }}
+                >
+                  {SKILL.band} {SKILL.gradeRange}
+                </span>
+                <span
+                  style={{
+                    ...chip,
+                    background: `${C.blue}22`,
+                    color: C.blue,
+                    border: `1px solid ${C.blue}44`,
+                  }}
+                >
+                  {SKILL.subject}
+                </span>
+                <span
+                  style={{
+                    ...chip,
+                    background: "rgba(255,255,255,0.06)",
+                    color: C.muted,
+                    border: `1px solid ${C.border}`,
+                  }}
+                >
+                  {SKILL.difficulty}
+                </span>
+              </div>
             </div>
 
-            {/* First try */}
-            <div
-              style={{
-                ...glassCard,
-                padding: "16px 20px",
-                minWidth: 130,
-                flex: "1 1 130px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 900,
-                  color: C.violet,
-                  lineHeight: 1,
-                  marginBottom: 4,
-                }}
-              >
-                {detail ? `${detail.firstTryRate}%` : "n/a"}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                First Try
-              </div>
-              <div style={{ fontSize: 11, color: C.muted }}>Without support</div>
-            </div>
-
-            {/* Remediation */}
-            <div
-              style={{
-                ...glassCard,
-                padding: "16px 20px",
-                minWidth: 130,
-                flex: "1 1 130px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 900,
-                  color: C.coral,
-                  lineHeight: 1,
-                  marginBottom: 4,
-                }}
-              >
-                {detail ? `${detail.skill.remediationCount}` : "n/a"}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                Remediation
-              </div>
-              <div style={{ fontSize: 11, color: C.muted }}>Support triggers</div>
+            {/* Stat row */}
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
+              {[
+                { val: SKILL.studentsOnSkill, lbl: "Students on skill" },
+                { val: SKILL.strongThisWeek, lbl: "Strong this week" },
+                { val: SKILL.totalSessions, lbl: "Total sessions" },
+                { val: `${SKILL.classAvgAccuracy}%`, lbl: "Class avg accuracy" },
+              ].map((s) => (
+                <div key={s.lbl} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                    {s.val}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{s.lbl}</div>
+                </div>
+              ))}
             </div>
           </div>
-        </section>
 
-        {/* ── Error state ── */}
-        {error ? (
-          <div style={{ ...glassCard, borderColor: `${C.coral}44` }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.coral, marginBottom: 8 }}>
-              Error
-            </div>
-            <p style={{ fontSize: 14, color: C.muted }}>{error}</p>
-          </div>
-        ) : null}
+          {/* ── Two columns: distribution + trend ──────────────────────── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
+              gap: 16,
+            }}
+          >
+            {/* Distribution card */}
+            <div style={glassCard}>
+              <div style={cardTitle}>Class Distribution \u2014 {SKILL.name}</div>
 
-        {/* ── Main content ── */}
-        {detail ? (
-          <>
-            {/* Row 1: Skill overview + Tier distribution */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
-                gap: 20,
-              }}
-            >
-              {/* ── Skill overview card ── */}
-              <div style={glassCard}>
-                <div style={eyebrowStyle}>Skill Overview</div>
+              {DISTRIBUTION.map((d) => (
                 <div
+                  key={d.status}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
-                    marginBottom: 16,
-                    flexWrap: "wrap",
+                    padding: "7px 0",
+                    borderBottom: `1px solid ${C.border}`,
                   }}
                 >
-                  {/* Band chip */}
-                  <span
-                    style={{
-                      ...chipStyle,
-                      background: `${C.mint}22`,
-                      border: `1px solid ${C.mint}44`,
-                      color: C.mint,
-                    }}
-                  >
-                    {detail.skill.launchBandCode}
-                  </span>
-                </div>
-
-                {/* Mastery % large */}
-                <div style={{ marginBottom: 16 }}>
                   <div
                     style={{
-                      fontSize: 52,
-                      fontWeight: 900,
-                      color: C.mint,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {detail.skill.masteryRate}%
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: 700,
-                      color: C.muted,
-                      marginTop: 4,
+                      color: d.color,
+                      minWidth: 110,
                     }}
                   >
-                    {detail.trendLabel}
+                    {d.emoji} {d.label}
                   </div>
-                </div>
-
-                {/* Response time + correct count chips */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    flexWrap: "wrap",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span style={chipStyle}>
-                    {detail.skill.averageSeconds.toFixed(1)}s avg response
-                  </span>
-                  <span style={chipStyle}>
-                    {detail.skill.correctAttempts} correct
-                  </span>
-                </div>
-
-                {/* Suggested next move banner */}
-                <div
-                  style={{
-                    background: `${C.gold}15`,
-                    border: `1px solid ${C.gold}44`,
-                    borderRadius: 12,
-                    padding: "14px 16px",
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    marginBottom: 20,
-                  }}
-                >
-                  <span style={{ fontSize: 20, flexShrink: 0 }} aria-hidden="true">
-                    🎯
-                  </span>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: C.gold,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Suggested next move
-                    </div>
-                    <p style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>
-                      {detail.recommendedAction}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Peer skill links */}
-                <div>
                   <div
                     style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: C.muted,
-                      marginBottom: 8,
+                      flex: 1,
+                      height: 8,
+                      background: "rgba(255,255,255,0.07)",
+                      borderRadius: 4,
+                      overflow: "hidden",
                     }}
                   >
-                    Change focus
+                    <div
+                      style={{
+                        width: `${d.pct}%`,
+                        height: "100%",
+                        background: d.color,
+                        borderRadius: 4,
+                      }}
+                    />
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {detail.peerSkills.map((skill) => {
-                      const isCurrent =
-                        skill.skillCode === detail.skill.skillCode;
-                      return (
-                        <Link
-                          key={skill.skillCode}
-                          href={`/teacher/skills/${skill.launchBandCode}/${skill.skillCode}`}
-                          style={{
-                            ...chipStyle,
-                            textDecoration: "none",
-                            background: isCurrent
-                              ? `${C.violet}33`
-                              : "rgba(255,255,255,0.06)",
-                            border: isCurrent
-                              ? `1px solid ${C.violet}88`
-                              : `1px solid ${C.cardBorder}`,
-                            color: isCurrent ? C.violet : C.muted,
-                          }}
-                        >
-                          {skill.displayName}
-                        </Link>
-                      );
-                    })}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: C.text,
+                      minWidth: 24,
+                      textAlign: "right",
+                    }}
+                  >
+                    {d.count}
                   </div>
                 </div>
-              </div>
+              ))}
 
-              {/* ── Tier distribution card ── */}
-              <div style={glassCard}>
-                <div style={eyebrowStyle}>Class Distribution</div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: C.muted,
-                    marginBottom: 20,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Where learners are landing on this skill
-                </p>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 12,
-                  }}
-                >
-                  {/* Needs Support */}
-                  <div
-                    style={{
-                      background: `${C.coral}15`,
-                      border: `1px solid ${C.coral}44`,
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: C.coral,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Needs Support
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 900,
-                        color: C.coral,
-                        lineHeight: 1,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {detail.tierCounts.support}
-                    </div>
-                    <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
-                      Lower-confidence learners who likely need teacher-led
-                      examples.
-                    </p>
-                  </div>
-
-                  {/* Watch Closely */}
-                  <div
-                    style={{
-                      background: `${C.gold}15`,
-                      border: `1px solid ${C.gold}44`,
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: C.gold,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Watch Closely
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 900,
-                        color: C.gold,
-                        lineHeight: 1,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {detail.tierCounts.watch}
-                    </div>
-                    <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
-                      Mixed performance that still needs short guided practice.
-                    </p>
-                  </div>
-
-                  {/* On Track */}
-                  <div
-                    style={{
-                      background: `${C.mint}15`,
-                      border: `1px solid ${C.mint}44`,
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: C.mint,
-                        marginBottom: 6,
-                      }}
-                    >
-                      On Track
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 900,
-                        color: C.mint,
-                        lineHeight: 1,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {detail.tierCounts.onTrack}
-                    </div>
-                    <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
-                      Learners showing enough consistency to keep moving.
-                    </p>
-                  </div>
-
-                  {/* Building Confidence */}
-                  <div
-                    style={{
-                      background: `${C.violet}15`,
-                      border: `1px solid ${C.violet}44`,
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: C.violet,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Building Confidence
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 900,
-                        color: C.violet,
-                        lineHeight: 1,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {detail.tierCounts.strong}
-                    </div>
-                    <p style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
-                      Students who can be used as a confidence reference in class.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Recent activity card ── */}
-            <div style={glassCard}>
-              <div style={eyebrowStyle}>Recent Movement</div>
-              <p
+              <div
                 style={{
+                  marginTop: 14,
+                  padding: "12px 14px",
+                  background: `${C.amber}18`,
+                  border: `1px solid ${C.amber}44`,
+                  borderRadius: 8,
                   fontSize: 12,
-                  color: C.muted,
-                  marginBottom: 20,
+                  color: "#fde68a",
                   lineHeight: 1.5,
                 }}
               >
-                Latest class activity on this skill
-              </p>
+                \u{1F4CC} 5 students have had 4+ sessions on this skill without advancing to Strong \u2014 consider a group review activity for the \u201Cequal parts\u201D concept.
+              </div>
+            </div>
 
-              {detail.recentSkillActivity.length ? (
+            {/* Trend card */}
+            <div style={glassCard}>
+              <div style={cardTitle}>Sessions Trend \u2014 4 Weeks</div>
+
+              {TREND_WEEKS.map((w) => (
                 <div
-                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                >
-                  {detail.recentSkillActivity.map((item) => (
-                    <article
-                      key={`${item.id}-${item.startedAt}`}
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: `1px solid ${C.cardBorder}`,
-                        borderRadius: 10,
-                        padding: "12px 16px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 8,
-                        }}
-                      >
-                        <strong
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: C.text,
-                          }}
-                        >
-                          {formatSessionMode(item.sessionMode)}
-                        </strong>
-                        <span style={{ fontSize: 12, color: C.muted }}>
-                          {formatLastSeen(item.startedAt)}
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <span
-                          style={{
-                            ...chipStyle,
-                            background: `${C.mint}22`,
-                            border: `1px solid ${C.mint}44`,
-                            color: C.mint,
-                          }}
-                        >
-                          {item.launchBandCode}
-                        </span>
-                        <span
-                          style={{
-                            ...chipStyle,
-                            background: item.correct
-                              ? `${C.mint}15`
-                              : `${C.coral}15`,
-                            border: `1px solid ${item.correct ? C.mint : C.coral}44`,
-                            color: item.correct ? C.mint : C.coral,
-                          }}
-                        >
-                          {item.correct ? "Correct" : "Needs retry"}
-                        </span>
-                        <span
-                          style={{
-                            ...chipStyle,
-                            background: item.firstTry
-                              ? `${C.violet}15`
-                              : "rgba(255,255,255,0.06)",
-                            border: `1px solid ${item.firstTry ? C.violet : C.cardBorder}`,
-                            color: item.firstTry ? C.violet : C.muted,
-                          }}
-                        >
-                          {item.firstTry ? "First try" : "After support"}
-                        </span>
-                        <span style={chipStyle}>
-                          {Math.round(item.timeSpentMs / 1000)}s
-                        </span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "32px 16px",
-                  }}
+                  key={w.label}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}
                 >
                   <div
                     style={{
-                      fontSize: 32,
-                      marginBottom: 12,
-                    }}
-                  >
-                    📭
-                  </div>
-                  <strong
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: C.text,
-                      display: "block",
-                      marginBottom: 6,
-                    }}
-                  >
-                    No activity yet
-                  </strong>
-                  <p
-                    style={{
-                      fontSize: 13,
+                      fontSize: 10,
+                      fontWeight: 700,
                       color: C.muted,
-                      lineHeight: 1.6,
-                      maxWidth: 380,
-                      margin: "0 auto",
+                      minWidth: 48,
                     }}
                   >
-                    Students will appear here once they have attempted this skill.
-                    Assign a session or run a guided quest to get started.
-                  </p>
+                    {w.label}
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 6,
+                      background: "rgba(255,255,255,0.07)",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${w.pct}%`,
+                        height: "100%",
+                        background: C.blue,
+                        borderRadius: 3,
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: C.muted,
+                      minWidth: 52,
+                      textAlign: "right",
+                    }}
+                  >
+                    {w.sessions} sess.
+                  </div>
                 </div>
-              )}
+              ))}
+
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: "10px 14px",
+                  background: `${C.blue}14`,
+                  border: `1px solid ${C.blue}33`,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "#bae6fd",
+                  lineHeight: 1.5,
+                }}
+              >
+                \u2139\uFE0F Class accuracy shown as a class-level average only. Individual student accuracy is not shown here to avoid unfair comparisons.
+              </div>
             </div>
-          </>
-        ) : null}
-      </main>
+          </div>
+
+          {/* ── Student table ───────────────────────────────────────────── */}
+          <div style={glassCard}>
+            <div style={cardTitle}>Students on This Skill</div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: 12,
+                }}
+              >
+                <thead>
+                  <tr>
+                    {["Name", "Mastery", "Status", "Sessions", "Stars", "Last active"].map(
+                      (h) => (
+                        <th
+                          key={h}
+                          style={{
+                            textAlign: "left",
+                            padding: "8px 10px",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            color: C.muted,
+                            borderBottom: `2px solid ${C.border}`,
+                            background: "rgba(255,255,255,0.02)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {h}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {STUDENTS.map((s) => (
+                    <tr key={s.id}>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                          fontWeight: 700,
+                          color: C.text,
+                        }}
+                      >
+                        {s.name}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                        }}
+                      >
+                        <div
+                          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                        >
+                          <div
+                            style={{
+                              width: 80,
+                              height: 5,
+                              background: "rgba(255,255,255,0.08)",
+                              borderRadius: 3,
+                              overflow: "hidden",
+                              display: "inline-block",
+                              verticalAlign: "middle",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${s.mastery}%`,
+                                height: "100%",
+                                background: statusColor(s.status),
+                                borderRadius: 3,
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: 12, color: C.text, fontWeight: 700 }}>
+                            {s.mastery}
+                          </span>
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: `${statusColor(s.status)}22`,
+                            color: statusColor(s.status),
+                            border: `1px solid ${statusColor(s.status)}44`,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {statusLabel(s.status)}
+                        </span>
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                          color: C.text,
+                        }}
+                      >
+                        {s.sessions}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                          color: C.gold,
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        \u2B50 {s.stars}
+                      </td>
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          borderBottom: `1px solid ${C.border}`,
+                          color: C.muted,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {s.lastActive}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div
+              style={{
+                padding: "8px 10px",
+                fontSize: 11,
+                color: C.muted,
+                borderTop: `1px solid ${C.border}`,
+              }}
+            >
+              Showing 6 of 18 \u2014{" "}
+              <button
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: C.blue,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontSize: 11,
+                  padding: 0,
+                }}
+              >
+                Load more
+              </button>
+            </div>
+          </div>
+
+          {/* ── Privacy disclaimer ──────────────────────────────────────── */}
+          <div
+            style={{
+              fontSize: 11,
+              color: "rgba(255,255,255,0.2)",
+              lineHeight: 1.5,
+            }}
+          >
+            Mastery status (Strong / Building / Just started) shown per student. Mastery score shown as a bar (N/100), never as % text. Class avg accuracy only \u2014 individual accuracy never shown.
+          </div>
+        </div>
+      </div>
     </AppFrame>
   );
 }
