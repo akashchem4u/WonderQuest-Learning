@@ -67,6 +67,7 @@ function toProgression(row?: Record<string, unknown>) {
     currentLevel: Number(row?.current_level ?? 1),
     badgeCount: Number(row?.badge_count ?? 0),
     trophyCount: Number(row?.trophy_count ?? 0),
+    streakCount: Number(row?.streak_count ?? 0),
   };
 }
 
@@ -96,7 +97,8 @@ export async function restoreChildSession(studentId: string) {
         ps.total_points,
         ps.current_level,
         ps.badge_count,
-        ps.trophy_count
+        ps.trophy_count,
+        ps.streak_count
       from public.student_profiles sp
       left join public.progression_states ps
         on ps.student_id = sp.id
@@ -159,7 +161,8 @@ export async function accessChild(
         ps.total_points,
         ps.current_level,
         ps.badge_count,
-        ps.trophy_count
+        ps.trophy_count,
+        ps.streak_count
       from public.student_profiles sp
       left join public.progression_states ps
         on ps.student_id = sp.id
