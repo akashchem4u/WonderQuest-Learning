@@ -30,7 +30,11 @@ const SKILLS = [
   { id: "main-idea", name: "Main idea & details", subject: "Reading", band: "G2-3" },
 ];
 
-const STUDENTS = ["Bella", "Marcus", "Luna", "Aarav", "Jordan", "Priya", "Sam", "Tyler", "Zoe", "Alex"];
+type RosterStudent = {
+  studentId: string;
+  displayName: string;
+  launchBandCode: string;
+};
 
 type Assignment = {
   id: string;
@@ -71,8 +75,13 @@ export default function TeacherAssignmentPage() {
   const [step, setStep] = useState<Step>(1);
   const [assignmentType, setAssignmentType] = useState<"quest" | "skill" | "free">("skill");
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
-  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set(STUDENTS));
-  const [dueDate, setDueDate] = useState("2026-04-13");
+  const [roster, setRoster] = useState<RosterStudent[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
   const [title, setTitle] = useState("");
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -108,6 +117,20 @@ export default function TeacherAssignmentPage() {
 
   useEffect(() => {
     fetchAssignments();
+  }, []);
+
+  // Fetch real roster
+  useEffect(() => {
+    if (!teacherId) { setRosterLoading(false); return; }
+    fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
+      .then((r) => r.ok ? r.json() : { roster: [] })
+      .then((data: { roster?: RosterStudent[] }) => {
+        const students = data.roster ?? [];
+        setRoster(students);
+        setSelectedStudents(new Set(students.map((s) => s.studentId)));
+      })
+      .catch(() => {})
+      .finally(() => setRosterLoading(false));
   }, []);
 
   function openProgressModal(assignmentId: string) {
@@ -162,6 +185,7 @@ export default function TeacherAssignmentPage() {
           title: assignmentTitle,
           skillCodes: [...selectedSkills],
           dueDate,
+          studentIds: [...selectedStudents],
         }),
       });
 
@@ -175,7 +199,7 @@ export default function TeacherAssignmentPage() {
       setStep(1);
       setAssignmentType("skill");
       setSelectedSkills(new Set());
-      setSelectedStudents(new Set(STUDENTS));
+      setSelectedStudents(new Set(roster.map((s) => s.studentId)));
       setDueDate("2026-04-13");
       setTitle("");
       // Refresh list
@@ -308,22 +332,34 @@ export default function TeacherAssignmentPage() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>Assign to students</div>
-                <div style={{ fontSize: 12, color: C.muted }}>{selectedStudents.size} of {STUDENTS.length} selected</div>
+                <div style={{ fontSize: 12, color: C.muted }}>{selectedStudents.size} of {roster.length} selected</div>
               </div>
-              <button onClick={() => setSelectedStudents(new Set(STUDENTS))} style={{ fontSize: 11, fontWeight: 700, color: C.blue, background: "none", border: "none", cursor: "pointer" }}>Select all</button>
+              <button onClick={() => setSelectedStudents(new Set(roster.map((s) => s.studentId)))} style={{ fontSize: 11, fontWeight: 700, color: C.blue, background: "none", border: "none", cursor: "pointer" }}>Select all</button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 24 }}>
-              {STUDENTS.map((name) => {
-                const sel = selectedStudents.has(name);
-                return (
-                  <div key={name} onClick={() => toggleStudent(name)} style={{ background: sel ? "rgba(56,189,248,0.06)" : C.surface, border: `1.5px solid ${sel ? C.blue : C.border}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: sel ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: sel ? C.blue : C.muted }}>{name[0]}</div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: sel ? C.text : C.muted, flex: 1 }}>{name}</span>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${sel ? C.blue : C.border}`, background: sel ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#0d1117", fontWeight: 900 }}>{sel && "✓"}</div>
-                  </div>
-                );
-              })}
-            </div>
+            {rosterLoading ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>Loading students…</div>
+            ) : roster.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>
+                No students in your class yet. <br />
+                <span style={{ fontSize: 11 }}>Add students via the Class page first.</span>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 24 }}>
+                {roster.map((student) => {
+                  const sel = selectedStudents.has(student.studentId);
+                  return (
+                    <div key={student.studentId} onClick={() => toggleStudent(student.studentId)} style={{ background: sel ? "rgba(56,189,248,0.06)" : C.surface, border: `1.5px solid ${sel ? C.blue : C.border}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: sel ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: sel ? C.blue : C.muted }}>{student.displayName[0]}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: sel ? C.text : C.muted, display: "block" }}>{student.displayName}</span>
+                        <span style={{ fontSize: 10, color: C.muted }}>{student.launchBandCode}</span>
+                      </div>
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${sel ? C.blue : C.border}`, background: sel ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#0d1117", fontWeight: 900 }}>{sel && "✓"}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -337,7 +373,7 @@ export default function TeacherAssignmentPage() {
                 ["Type", assignmentType === "skill" ? "Skill Practice" : assignmentType === "quest" ? "Quest Assignment" : "Free Practice"],
                 ["Skills", selectedSkills.size > 0 ? [...selectedSkills].map((id) => SKILLS.find((s) => s.id === id)?.name).join(", ") : "None selected"],
                 ["Due date", new Date(dueDate).toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })],
-                ["Students", `${selectedStudents.size} of ${STUDENTS.length} students`],
+                ["Students", `${selectedStudents.size} of ${roster.length} students`],
               ].map(([label, val]) => (
                 <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
                   <span style={{ color: C.muted, fontWeight: 600 }}>{label}</span>
