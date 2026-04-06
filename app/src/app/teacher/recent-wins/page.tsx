@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -305,6 +306,9 @@ function NavBtn({ href, children }: { href: string; children: string }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function RecentWinsPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [wins, setWins] = useState<WinCard[]>([]);
   const [summary, setSummary] = useState<SummaryStats>({
     totalWins: 0,
@@ -315,6 +319,7 @@ export default function RecentWinsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => {
@@ -332,7 +337,17 @@ export default function RecentWinsPage() {
         setError(String(e));
         setLoading(false);
       });
-  }, []);
+  }, [authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/recent-wins">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher/recent-wins">

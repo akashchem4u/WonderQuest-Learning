@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   bg: "#100b2e",
@@ -217,11 +218,15 @@ function SkeletonSection() {
 }
 
 export default function FeedbackPanelPage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => {
@@ -237,7 +242,17 @@ export default function FeedbackPanelPage() {
         setError("Could not load class data. Please try again.");
         setLoading(false);
       });
-  }, []);
+  }, [authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/feedback-panel">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   // Confidence signals: students in intervention queue
   const confidenceStudents = roster.filter((s) => s.inInterventionQueue);

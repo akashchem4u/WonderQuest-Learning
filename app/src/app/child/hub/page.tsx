@@ -307,6 +307,9 @@ export default function ChildHubPage() {
             <Link href="/child" style={{ padding: "8px 14px", background: "#1e1a40", border: "2px solid #2e2a50", borderRadius: 8, color: textMuted, fontFamily: font, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
               Back
             </Link>
+            <a href="/api/child/logout" style={{ padding: "8px 14px", background: "transparent", border: "2px solid #2e2a50", borderRadius: 8, color: "rgba(155,142,196,0.5)", fontFamily: font, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+              Sign out
+            </a>
             <Link href="/play" style={{ padding: "8px 14px", background: violet, border: `2px solid ${violet}`, borderRadius: 8, color: "#fff", fontFamily: font, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
               Play
             </Link>

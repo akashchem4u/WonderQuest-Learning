@@ -352,45 +352,21 @@ async function loadBandQuestionWindow(
   orderBy: "difficulty_asc" | "difficulty_desc",
   limit: number,
 ) {
-  // Prefer seeded (curated) bank questions — they have vetted complexity/topic metadata
-  const freshSeeded = await findQuestions({
-    launchBands: [launchBandCode],
-    sourceKinds: ["seeded"],
-    excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
-    orderBy,
-    limit,
-  });
-
-  const fallbackSeeded = await findQuestions({
-    launchBands: [launchBandCode],
-    sourceKinds: ["seeded"],
-    excludeQuestionKeys: [...usedQuestionKeys],
-    orderBy,
-    limit,
-  });
-
-  const seededPool = mergeQuestionLists(freshSeeded, fallbackSeeded);
-
-  // Only reach into the full pool (seeded + cached ai-live) if seeded questions are exhausted
-  if (seededPool.length >= limit) {
-    return seededPool;
-  }
-
-  const freshAll = await findQuestions({
+  const freshQuestions = await findQuestions({
     launchBands: [launchBandCode],
     excludeQuestionKeys: [...usedQuestionKeys, ...recentQuestionKeys],
     orderBy,
     limit,
   });
 
-  const fallbackAll = await findQuestions({
+  const fallbackQuestions = await findQuestions({
     launchBands: [launchBandCode],
     excludeQuestionKeys: [...usedQuestionKeys],
     orderBy,
     limit,
   });
 
-  return mergeQuestionLists(freshAll, fallbackAll);
+  return mergeQuestionLists(freshQuestions, fallbackQuestions);
 }
 
 async function selectEasyFirstGuidedQuestions(
@@ -446,42 +422,30 @@ async function selectEasyFirstGuidedQuestions(
   return [...selected, ...shuffleArray(remainingQuestions)].slice(0, questionLimit);
 }
 
-async function maybeSupplementWithLiveQuestions(
+async function maybeReplaceSessionQuestionsWithLiveVariants(
   selectedQuestions: SessionQuestionRecord[],
-  questionLimit: number,
   launchBandCode: string,
   themeCode: string | null,
 ) {
-  // Bank-first strategy: only use AI to fill slots the bank couldn't cover.
-  // Never replace a curated seeded question with an AI variant.
-  if (!isLiveQuestionGenerationEnabled()) {
+  if (!isLiveQuestionGenerationEnabled() || !selectedQuestions.length) {
     return selectedQuestions;
   }
 
-  const shortage = questionLimit - selectedQuestions.length;
-  const budget = getLiveSessionQuestionBudget();
-  const supplementCount = Math.min(shortage, budget);
+  const liveCount = Math.min(
+    getInitialLiveSessionQuestionCount(),
+    selectedQuestions.length,
+  );
 
-  if (supplementCount <= 0) {
-    // Bank was sufficient — warm the AI cache in the background for future sessions
-    warmLiveQuestionCache(
-      selectedQuestions.slice(0, Math.min(selectedQuestions.length, getAdaptiveWarmupCount())).map((question) => ({
-        launchBandCode,
-        skillCode: question.skill,
-        difficulty: question.difficulty,
-        themeCode: themeCode ?? question.theme ?? null,
-        reason: "session-refresh" as const,
-        referenceQuestion: question,
-      })),
-    );
+  if (liveCount <= 0) {
     return selectedQuestions;
   }
 
-  // Fill the shortage slots with AI-generated questions
   const nextQuestions = [...selectedQuestions];
-  const seedQuestion = selectedQuestions[selectedQuestions.length - 1];
+  const targetRequests = [];
 
-  for (let i = 0; i < supplementCount; i += 1) {
+  for (let offset = 0; offset < liveCount; offset += 1) {
+    const index = nextQuestions.length - 1 - offset;
+    const seedQuestion = nextQuestions[index];
     const request = {
       launchBandCode,
       skillCode: seedQuestion.skill,
@@ -491,15 +455,37 @@ async function maybeSupplementWithLiveQuestions(
       referenceQuestion: seedQuestion,
     };
 
-    const liveQuestion = await findOrCreateLiveQuestion(request, {
-      excludeQuestionKeys: nextQuestions.map((q) => q.question_key),
-      waitMs: Math.min(5000, Math.max(0, Number(process.env.OPENAI_QUESTION_ADAPTIVE_WAIT_MS ?? 2500))),
-    });
+    targetRequests.push({ index, request });
+  }
 
-    if (liveQuestion) {
-      nextQuestions.push(liveQuestion);
+  const replacements = await Promise.all(
+    targetRequests.map(async ({ index, request }) => ({
+      index,
+      liveQuestion: await findOrCreateLiveQuestion(request, {
+        excludeQuestionKeys: nextQuestions.map((item) => item.question_key),
+        waitMs: 0,
+      }),
+    })),
+  );
+
+  for (const replacement of replacements) {
+    if (replacement.liveQuestion) {
+      nextQuestions[replacement.index] = replacement.liveQuestion;
     }
   }
+
+  warmLiveQuestionCache(
+    nextQuestions
+      .slice(0, Math.min(nextQuestions.length, liveCount + 2))
+      .map((question) => ({
+        launchBandCode,
+        skillCode: question.skill,
+        difficulty: question.difficulty,
+        themeCode: themeCode ?? question.theme ?? null,
+        reason: "session-refresh" as const,
+        referenceQuestion: question,
+      })),
+  );
 
   const remainingBudget =
     getLiveSessionQuestionBudget() - countLiveQuestionRecords(nextQuestions);
@@ -543,9 +529,8 @@ async function selectSessionQuestions(
       prioritizedPool.slice(0, challengeWindow),
     ).slice(0, questionLimit);
 
-    return maybeSupplementWithLiveQuestions(
+    return maybeReplaceSessionQuestionsWithLiveVariants(
       baseSelection,
-      questionLimit,
       launchBandCode,
       themeCode,
     );
@@ -557,9 +542,8 @@ async function selectSessionQuestions(
     recentQuestionKeys,
   );
 
-  return maybeSupplementWithLiveQuestions(
+  return maybeReplaceSessionQuestionsWithLiveVariants(
     guidedSelection,
-    questionLimit,
     launchBandCode,
     themeCode,
   );
@@ -1201,12 +1185,20 @@ export async function answerQuestion(input: AnswerInput) {
     Number(session.rows[0].total_questions ?? 0),
   );
 
-  // Guard: if the session has a fixed sequence, make sure the submitted key
-  // appears somewhere in it (but do NOT require strict positional ordering —
-  // adaptive question insertions can legally shift the expected index and the
-  // UI may not always follow the adaptive route).
-  if (questionSequence.length > 0 && !questionSequence.includes(input.questionKey)) {
-    throw new Error("Question is not part of this session.");
+  const completed = await db.query(
+    `
+      select count(*) as correct_attempts
+      from public.session_results
+      where session_id = $1 and correct = true
+    `,
+    [input.sessionId],
+  );
+
+  const expectedQuestionKey =
+    questionSequence[Number(completed.rows[0]?.correct_attempts ?? 0)] ?? null;
+
+  if (expectedQuestionKey !== input.questionKey) {
+    throw new Error("Question order is out of sync. Refresh the session and try again.");
   }
 
   const isCorrect = ensureText(input.answer) === question.correct_answer;
@@ -1476,52 +1468,35 @@ export async function answerQuestion(input: AnswerInput) {
   };
 }
 
-// ─── Play session history ─────────────────────────────────────────────────────
-
-export type PlaySessionSummary = {
-  sessionId: string;
-  startedAt: string;
-  sessionMode: string;
-  starsEarned: number;
-  correctCount: number;
-  totalQuestions: number;
-  durationMinutes: number | null;
-};
-
-export async function getPlaySessionHistory(
-  studentId: string,
-  limit = 30,
-  skillCode?: string,
-): Promise<{ sessions: PlaySessionSummary[] }> {
-  const { db } = await import("@/lib/db");
-  const result = await db.query<PlaySessionSummary>(
-    skillCode
-      ? `select
-           id              as "sessionId",
-           started_at      as "startedAt",
-           session_mode    as "sessionMode",
-           stars_earned    as "starsEarned",
-           correct_count   as "correctCount",
-           total_questions as "totalQuestions",
-           duration_minutes as "durationMinutes"
-         from public.challenge_sessions
-         where student_id = $1
-           and skill_codes @> ARRAY[$3]::text[]
-         order by started_at desc
-         limit $2`
-      : `select
-           id              as "sessionId",
-           started_at      as "startedAt",
-           session_mode    as "sessionMode",
-           stars_earned    as "starsEarned",
-           correct_count   as "correctCount",
-           total_questions as "totalQuestions",
-           duration_minutes as "durationMinutes"
-         from public.challenge_sessions
-         where student_id = $1
-         order by started_at desc
-         limit $2`,
-    skillCode ? [studentId, limit, skillCode] : [studentId, limit],
+// ─── Play session history for child profile ───────────────────────────────────
+export async function getPlaySessionHistory(studentId: string) {
+  const res = await db.query(
+    `select
+       ps.id,
+       ps.session_mode,
+       ps.started_at,
+       ps.ended_at,
+       ps.total_questions,
+       ps.correct_answers,
+       ps.points_earned,
+       ps.effectiveness_score
+     from play_sessions ps
+     where ps.student_id = $1
+       and ps.ended_at is not null
+     order by ps.started_at desc
+     limit 20`,
+    [studentId],
   );
-  return { sessions: result.rows };
+  return {
+    sessions: res.rows.map((r) => ({
+      id: String(r.id),
+      sessionMode: String(r.session_mode ?? "practice"),
+      startedAt: String(r.started_at),
+      endedAt: r.ended_at ? String(r.ended_at) : null,
+      totalQuestions: Number(r.total_questions ?? 0),
+      correctAnswers: Number(r.correct_answers ?? 0),
+      pointsEarned: Number(r.points_earned ?? 0),
+      effectivenessScore: r.effectiveness_score != null ? Number(r.effectiveness_score) : null,
+    })),
+  };
 }

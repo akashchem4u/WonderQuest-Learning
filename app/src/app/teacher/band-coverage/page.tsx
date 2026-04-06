@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { getTeacherId } from "@/lib/teacher-identity";
+import TeacherGate from "../teacher-gate";
 
 const C = {
   base: "#100b2e",
@@ -83,6 +84,9 @@ function statusLabel(s: Status) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BandCoveragePage() {
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => { setAuthed(!!getTeacherId()); }, []);
+
   const [activeView, setActiveView] = useState<"standard" | "expanded" | "wide">("standard");
   const [expandedBand, setExpandedBand] = useState<string | null>(null);
   const [bands, setBands] = useState<LiveBand[]>(buildLiveBands([]));
@@ -90,6 +94,7 @@ export default function BandCoveragePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authed) return;
     const teacherId = getTeacherId();
     fetch(`/api/teacher/class?teacherId=${encodeURIComponent(teacherId)}`)
       .then((r) => r.json())
@@ -106,7 +111,17 @@ export default function BandCoveragePage() {
         // Keep zeroed-out bands on error
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [authed]);
+
+  if (!authed) {
+    return (
+      <AppFrame audience="teacher" currentPath="/teacher/band-coverage">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: "24px" }}>
+          <TeacherGate configured={true} />
+        </div>
+      </AppFrame>
+    );
+  }
 
   function toggleBand(id: string) {
     setExpandedBand((prev) => (prev === id ? null : id));
