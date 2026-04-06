@@ -178,11 +178,26 @@ type AssignmentItem = {
   teacherName: string;
 };
 
+type StatsData = {
+  totalPoints: number;
+  currentLevel: number;
+  badgeCount: number;
+  trophyCount: number;
+  streakDays: number;
+  masteredSkillsCount: number;
+  lastSession: {
+    correctAnswers: number;
+    totalQuestions: number;
+    pointsEarned: number;
+  } | null;
+};
+
 export default function ChildHubPage() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [selectedBand, setSelectedBand] = useState("K1");
   const [sidebarActive, setSidebarActive] = useState("home");
   const [session, setSession] = useState<SessionData | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionError, setSessionError] = useState(false);
   const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
@@ -207,10 +222,19 @@ export default function ChildHubPage() {
       .catch(() => {/* non-fatal */});
   }, []);
 
-  const streak = session?.student?.streakCount ?? 0;
-  const stars = session?.progression.totalPoints ?? 0;
-  const badgeCount = session?.progression.badgeCount ?? 0;
-  const currentLevel = session?.progression.currentLevel ?? 1;
+  useEffect(() => {
+    fetch("/api/child/stats")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: StatsData | null) => { if (data) setStats(data); })
+      .catch(() => {/* non-fatal */});
+  }, []);
+
+  const streak = session?.student?.streakCount ?? stats?.streakDays ?? 0;
+  const stars = session?.progression.totalPoints ?? stats?.totalPoints ?? 0;
+  const badgeCount = session?.progression.badgeCount ?? stats?.badgeCount ?? 0;
+  const currentLevel = session?.progression.currentLevel ?? stats?.currentLevel ?? 1;
+  const masteredSkillsCount = stats?.masteredSkillsCount ?? 0;
+  const lastSession = stats?.lastSession ?? null;
   const avatarEmoji = session ? getAvatarEmoji(session.student.avatarKey) : "🦋";
   const world = getWorldForBand(session?.student.launchBandCode ?? "K1");
   const activeNodes = world.nodes;
@@ -449,6 +473,33 @@ export default function ChildHubPage() {
 
             {/* Main content */}
             <div style={{ padding: "20px 24px", overflowY: "auto" }}>
+              {/* Streak flame display */}
+              {streak > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 16 }}>
+                  <span style={{ fontSize: 28 }}>🔥</span>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: "#ffd166", fontFamily: font }}>{streak} day streak</span>
+                </div>
+              )}
+
+              {/* Quick stats pill row */}
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,209,102,0.1)", border: "1.5px solid rgba(255,209,102,0.3)", borderRadius: 20, padding: "6px 14px" }}>
+                  <span style={{ fontSize: 16 }}>⭐</span>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: gold, fontFamily: font }}>{stars}</span>
+                  <span style={{ fontSize: 11, color: textMuted, fontFamily: font }}>Stars</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(155,114,255,0.1)", border: "1.5px solid rgba(155,114,255,0.3)", borderRadius: 20, padding: "6px 14px" }}>
+                  <span style={{ fontSize: 16 }}>📈</span>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: violet, fontFamily: font }}>Lv.{currentLevel}</span>
+                  <span style={{ fontSize: 11, color: textMuted, fontFamily: font }}>Level</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(88,232,193,0.1)", border: "1.5px solid rgba(88,232,193,0.3)", borderRadius: 20, padding: "6px 14px" }}>
+                  <span style={{ fontSize: 16 }}>🏅</span>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: mint, fontFamily: font }}>{badgeCount}</span>
+                  <span style={{ fontSize: 11, color: textMuted, fontFamily: font }}>Badges</span>
+                </div>
+              </div>
+
               {/* Hero world card */}
               <div
                 style={{
@@ -511,28 +562,56 @@ export default function ChildHubPage() {
                     <span style={{ fontSize: 11, opacity: 0.7 }}>Play →</span>
                   </Link>
                 )}
-                <Link
-                  href="/play"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: 14,
-                    borderRadius: 14,
-                    border: "none",
-                    background: "linear-gradient(135deg, #9b72ff, #7c4ddb)",
-                    color: "#fff",
-                    fontFamily: font,
-                    fontSize: 18,
-                    fontWeight: 900,
-                    cursor: "pointer",
-                    marginTop: 14,
-                    boxShadow: "0 6px 20px rgba(155,114,255,0.4)",
-                    textDecoration: "none",
-                    textAlign: "center",
-                  }}
-                >
-                  Continue Adventure
-                </Link>
+                {/* Play mode buttons */}
+                <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                  <Link
+                    href="/play?sessionMode=guided-quest&entry=returning"
+                    style={{
+                      flex: 2,
+                      display: "block",
+                      padding: 14,
+                      borderRadius: 14,
+                      border: "none",
+                      background: "linear-gradient(135deg, #9b72ff, #7c4ddb)",
+                      color: "#fff",
+                      fontFamily: font,
+                      fontSize: 16,
+                      fontWeight: 900,
+                      cursor: "pointer",
+                      boxShadow: "0 6px 20px rgba(155,114,255,0.4)",
+                      textDecoration: "none",
+                      textAlign: "center",
+                    }}
+                  >
+                    ▶ Start Quest
+                  </Link>
+                  <Link
+                    href="/play?sessionMode=challenge&entry=returning"
+                    style={{
+                      flex: 1,
+                      display: "block",
+                      padding: 14,
+                      borderRadius: 14,
+                      border: `2px solid ${violet}`,
+                      background: "transparent",
+                      color: violet,
+                      fontFamily: font,
+                      fontSize: 16,
+                      fontWeight: 900,
+                      cursor: "pointer",
+                      textDecoration: "none",
+                      textAlign: "center",
+                    }}
+                  >
+                    ⚡ Challenge
+                  </Link>
+                </div>
+                {/* Last session teaser */}
+                {lastSession && lastSession.totalQuestions > 0 && (
+                  <div style={{ marginTop: 10, textAlign: "center", fontSize: 12, color: textMuted, fontFamily: font, fontWeight: 700 }}>
+                    Last session: {lastSession.correctAnswers}/{lastSession.totalQuestions} correct · +{lastSession.pointsEarned} ⭐
+                  </div>
+                )}
               </div>
 
               {/* Node map */}

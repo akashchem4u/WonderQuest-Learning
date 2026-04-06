@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 const C = {
@@ -43,15 +43,88 @@ const NODES: Node[] = [
   { id: 12, emoji: "🏰", name: "Castle Master", state: "locked", stars: 0, maxStars: 9 },
 ];
 
+const BAND_TRACK = [
+  { key: "PREK", label: "Pre-K", icon: "🌈" },
+  { key: "K1",   label: "K–1",   icon: "⚡" },
+  { key: "G23",  label: "G2–3",  icon: "🌊" },
+  { key: "G45",  label: "G4–5",  icon: "🔥" },
+];
+
+type ChildStats = {
+  currentLevel: number;
+  masteredSkillsCount: number;
+  streakDays: number;
+};
+
+type ChildSession = {
+  student: { launchBandCode: string };
+};
+
 export default function ChildWorldPage() {
   const [selectedWorld, setSelectedWorld] = useState("cosmic");
+  const [childSession, setChildSession] = useState<ChildSession | null>(null);
+  const [childStats, setChildStats] = useState<ChildStats | null>(null);
   const world = WORLDS.find((w) => w.id === selectedWorld) ?? WORLDS[0];
   const totalStars = NODES.reduce((s, n) => s + n.stars, 0);
+
+  useEffect(() => {
+    fetch("/api/child/session")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: ChildSession | null) => { if (d) setChildSession(d); })
+      .catch(() => {});
+    fetch("/api/child/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: ChildStats | null) => { if (d) setChildStats(d); })
+      .catch(() => {});
+  }, []);
+
+  const currentBandCode = childSession?.student?.launchBandCode ?? "K1";
+  const currentBandIdx = BAND_TRACK.findIndex((b) => b.key === currentBandCode);
+  const masteredSkillsCount = childStats?.masteredSkillsCount ?? 0;
 
   return (
     <AppFrame audience="kid" currentPath="/child">
       <style>{`@keyframes active-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); } 50% { box-shadow: 0 0 0 8px rgba(155,114,255,0); } }`}</style>
       <div style={{ minHeight: "100vh", background: C.base, fontFamily: "'Nunito', system-ui, sans-serif", padding: "24px 24px 60px" }}>
+
+        {/* Band progress track */}
+        <div style={{ maxWidth: 1100, margin: "0 auto 24px", background: C.surface2, border: `2px solid ${C.border}`, borderRadius: 16, padding: "16px 24px" }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Learning Journey</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+            {BAND_TRACK.map((band, idx) => {
+              const isDone = idx < currentBandIdx;
+              const isActive = idx === currentBandIdx;
+              const isLocked = idx > currentBandIdx;
+              return (
+                <div key={band.key} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+                  <div style={{ textAlign: "center", flex: "0 0 auto" }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: "50%",
+                      background: isDone ? C.mint : isActive ? C.violet : C.surface,
+                      border: `2px solid ${isDone ? C.mint : isActive ? C.violet : C.border}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 20,
+                      opacity: isLocked ? 0.4 : 1,
+                      margin: "0 auto 4px",
+                    }}>
+                      {isDone ? "✓" : band.icon}
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: isActive ? C.violet : isDone ? C.mint : C.muted }}>{band.label}</div>
+                  </div>
+                  {idx < BAND_TRACK.length - 1 && (
+                    <div style={{ flex: 1, height: 3, background: isDone ? C.mint : C.border, borderRadius: 2, margin: "0 4px", marginBottom: 18 }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {masteredSkillsCount > 0 && (
+            <div style={{ marginTop: 12, textAlign: "center", fontSize: 13, fontWeight: 700, color: C.mint }}>
+              You&apos;ve mastered {masteredSkillsCount} skill{masteredSkillsCount !== 1 ? "s" : ""} so far!
+            </div>
+          )}
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20, maxWidth: 1100, margin: "0 auto", alignItems: "start" }}>
 
           {/* Left panel */}
