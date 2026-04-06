@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ThemeId = "cosmic" | "forest" | "ocean" | "sunset" | "candy" | "midnight";
+type ThemeId = "cosmic" | "forest" | "ocean" | "sunset" | "candy" | "midnight" | "galaxy";
 type AccentId = "violet" | "mint" | "gold" | "coral" | "cyan" | "rose";
 
 type ThemeOption = {
@@ -129,6 +130,21 @@ const THEMES: ThemeOption[] = [
     headerBg: "rgba(16,16,24,0.6)",
     ctaGradient: "linear-gradient(135deg, #4444aa, #222266)",
   },
+  {
+    id: "galaxy",
+    label: "Galaxy",
+    emoji: "🪐",
+    previewBg: "linear-gradient(135deg, #0d0728, #1e0a52)",
+    labelBg: "#0d0728",
+    labelColor: "#b87dff",
+    pageBg: "#0d0728",
+    cardBg: "#1e0a52",
+    accentColor: "#9b72ff",
+    textColor: "#e8d8ff",
+    connColor: "#b87dff",
+    headerBg: "rgba(30,10,82,0.7)",
+    ctaGradient: "linear-gradient(135deg, #7c2dff, #4a0aaa)",
+  },
 ];
 
 const ACCENTS: AccentOption[] = [
@@ -143,6 +159,7 @@ const ACCENTS: AccentOption[] = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChildThemePage() {
+  const router = useRouter();
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("cosmic");
   const [selectedAccent, setSelectedAccent] = useState<AccentId>("violet");
   const [saved, setSaved] = useState(false);
@@ -150,7 +167,28 @@ export default function ChildThemePage() {
   const [hoveredAccent, setHoveredAccent] = useState<AccentId | null>(null);
   const [displayName, setDisplayName] = useState("Explorer");
 
+  // Auth check
   useEffect(() => {
+    if (!document.cookie.includes("wonderquest-child-session")) {
+      router.replace("/child");
+    }
+  }, [router]);
+
+  // Load saved theme + accent from localStorage and fetch child name
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("wonderquest-child-theme") as ThemeId | null;
+      if (savedTheme && THEMES.some((t) => t.id === savedTheme)) {
+        setSelectedTheme(savedTheme);
+      }
+      const savedAccent = localStorage.getItem("wonderquest-child-accent") as AccentId | null;
+      if (savedAccent && ACCENTS.some((a) => a.id === savedAccent)) {
+        setSelectedAccent(savedAccent);
+      }
+    } catch {
+      // ignore
+    }
+
     fetch("/api/child/session")
       .then((r) => r.json())
       .then((data: SessionData) => {
@@ -162,6 +200,14 @@ export default function ChildThemePage() {
   const activeTheme = THEMES.find((t) => t.id === selectedTheme) ?? THEMES[0];
 
   async function handleSave() {
+    // Save to localStorage first (immediate, always works)
+    try {
+      localStorage.setItem("wonderquest-child-theme", selectedTheme);
+      localStorage.setItem("wonderquest-child-accent", selectedAccent);
+    } catch {
+      // ignore
+    }
+    // Also persist to server best-effort
     try {
       await fetch("/api/child/profile", {
         method: "PATCH",
@@ -169,7 +215,7 @@ export default function ChildThemePage() {
         body: JSON.stringify({ preferredThemeCode: selectedTheme }),
       });
     } catch {
-      // best-effort — still show confirmation
+      // best-effort — localStorage save already succeeded
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

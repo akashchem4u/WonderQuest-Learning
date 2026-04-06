@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,21 +26,24 @@ const NUMPAD_KEYS = [
   { digit: "backspace", letters: "" },
 ];
 
-// ─── Stub correct PIN ─────────────────────────────────────────────────────────
-
-const CORRECT_PIN = ["1", "2", "3", "4"];
 const MAX_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 30_000;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ChildPinPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [pin, setPin] = useState<string[]>([]);
   const [pinState, setPinState] = useState<PinState>("idle");
   const [wrongCount, setWrongCount] = useState(0);
   const [lockUntil, setLockUntil] = useState<number | null>(null);
   const [lockSecondsLeft, setLockSecondsLeft] = useState(0);
   const [bouncing, setBouncing] = useState(true);
+
+  // Get username from URL params or stored in localStorage
+  const username = searchParams.get("username") ??
+    (typeof window !== "undefined" ? localStorage.getItem("wonderquest-last-username") ?? "" : "");
 
   // Locked countdown timer
   useEffect(() => {
@@ -60,16 +64,28 @@ export default function ChildPinPage() {
     return () => clearInterval(interval);
   }, [pinState, lockUntil]);
 
-  // Auto-check when 4 digits entered
+  // Auto-check when 4 digits entered — call real API
   useEffect(() => {
     if (pin.length === 4 && pinState !== "checking") {
+      if (!username) {
+        // No username available — redirect to full login
+        router.push("/child");
+        return;
+      }
       setPinState("checking");
       setBouncing(false);
-      const timer = setTimeout(() => {
-        const correct = pin.every((d, i) => d === CORRECT_PIN[i]);
-        if (correct) {
+      fetch("/api/child/access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, pin: pin.join(""), launchBandCode: "" }),
+      })
+        .then((r) => r.json())
+        .then((data: { error?: string }) => {
+          if (data.error) throw new Error(data.error);
           setPinState("complete");
-        } else {
+          setTimeout(() => router.push("/play?sessionMode=guided-quest&entry=returning"), 600);
+        })
+        .catch(() => {
           const next = wrongCount + 1;
           setWrongCount(next);
           if (next >= MAX_ATTEMPTS) {
@@ -85,9 +101,7 @@ export default function ChildPinPage() {
               setBouncing(true);
             }, 1200);
           }
-        }
-      }, 900);
-      return () => clearTimeout(timer);
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);

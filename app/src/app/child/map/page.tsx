@@ -15,6 +15,7 @@ interface WorldNode {
   stars: number; // 0–3
   state: NodeState;
   isBoss?: boolean;
+  masteryPct?: number; // 0–100; drives color when present
 }
 
 interface World {
@@ -106,23 +107,29 @@ const WORLDS: World[] = [
   },
 ];
 
-type SessionData = {
-  student: { displayName: string; avatarKey: string; launchBandCode: string };
-  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+type LiveStats = {
+  totalPoints: number;
+  currentLevel: number;
+  badgeCount: number;
+  trophyCount: number;
+  streakDays: number;
+  masteredSkillsCount: number;
+  displayName: string | null;
+  lastSkillName: string | null;
 };
 
-const STATS = {
-  totalStars: 42,
-  nodesExplored: 31,
-  badgesEarned: 3,
-  dayStreak: 5,
+const STATS_FALLBACK = {
+  totalStars: 0,
+  nodesExplored: 0,
+  badgesEarned: 0,
+  dayStreak: 0,
 };
 
 const RECENT_WINS = [
-  { icon: "⭐", text: "Earned 3 stars · Word Builders", meta: "today" },
-  { icon: "🏅", text: "Crystal Explorer badge", meta: "today" },
-  { icon: "🔥", text: "5-day streak!", meta: "today" },
-  { icon: "🌊", text: "Ocean Kingdom complete", meta: "4d ago" },
+  { icon: "⭐", text: "Keep playing to collect stars!", meta: "" },
+  { icon: "🏅", text: "Earn badges by mastering skills", meta: "" },
+  { icon: "🔥", text: "Play every day to build a streak!", meta: "" },
+  { icon: "🌊", text: "Complete worlds to unlock more", meta: "" },
 ];
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
@@ -148,30 +155,49 @@ const C = {
 
 // ─── Node component ───────────────────────────────────────────────────────────
 
+// Determine mastery level from masteryPct or NodeState
+function masteryLevel(node: WorldNode): "mastered" | "inProgress" | "notStarted" {
+  if (node.masteryPct !== undefined) {
+    if (node.masteryPct >= 80) return "mastered";
+    if (node.masteryPct >= 40) return "inProgress";
+    return "notStarted";
+  }
+  if (node.state === "done") return "mastered";
+  if (node.state === "active") return "inProgress";
+  return "notStarted";
+}
+
 function MapNode({ node }: { node: WorldNode }) {
   const isDone = node.state === "done";
   const isActive = node.state === "active";
   const isLocked = node.state === "locked";
   const isBossNode = node.isBoss;
+  const mastery = masteryLevel(node);
 
-  const borderColor = isBossNode && isDone
+  // Mastery-colored borders and backgrounds
+  const borderColor = isBossNode && mastery === "mastered"
     ? C.gold
-    : isDone
+    : mastery === "mastered"
     ? C.mint
-    : isActive
+    : mastery === "inProgress"
     ? C.violet
     : C.panelBorder;
 
-  const bgColor = isBossNode && isDone
+  const bgColor = isBossNode && mastery === "mastered"
     ? C.goldDim
-    : isDone
+    : mastery === "mastered"
     ? C.mintDim
-    : isActive
+    : mastery === "inProgress"
     ? C.violetDim
     : "#1a1060";
 
-  const stars = isDone && node.stars > 0
+  const stars = mastery === "mastered" && node.stars > 0
     ? "⭐".repeat(node.stars)
+    : null;
+
+  // Mastery badge label for tooltip-like indicator
+  const masteryBadge = node.masteryPct !== undefined && !isBossNode
+    ? `${node.masteryPct}%`
     : null;
 
   return (
@@ -188,16 +214,22 @@ function MapNode({ node }: { node: WorldNode }) {
           border: `3px solid ${borderColor}`,
           background: bgColor,
           cursor: isLocked ? "default" : "pointer",
-          opacity: isLocked ? 0.3 : 1,
+          opacity: mastery === "notStarted" && !isActive ? 0.3 : 1,
           position: "relative",
           transition: "transform 0.15s",
           animation: isActive ? "nd-pulse 1.5s ease-in-out infinite" : "none",
-          boxShadow: isActive ? "0 0 16px rgba(155,114,255,0.4)" : "none",
+          boxShadow: mastery === "mastered" && isBossNode
+            ? `0 0 16px rgba(255,209,102,0.5)`
+            : isActive
+            ? "0 0 16px rgba(155,114,255,0.4)"
+            : mastery === "mastered"
+            ? "0 0 8px rgba(88,232,193,0.3)"
+            : "none",
           flexShrink: 0,
         }}
       >
         {node.emoji}
-        {isDone && (
+        {mastery === "mastered" && (
           <div
             style={{
               position: "absolute",
@@ -218,6 +250,25 @@ function MapNode({ node }: { node: WorldNode }) {
             ✓
           </div>
         )}
+        {mastery === "inProgress" && node.masteryPct !== undefined && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "-6px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: C.violet,
+              borderRadius: "6px",
+              padding: "1px 5px",
+              fontSize: "9px",
+              fontWeight: 900,
+              color: "#fff",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {masteryBadge}
+          </div>
+        )}
       </div>
       {stars && (
         <div style={{ marginTop: "3px", fontSize: "9px", letterSpacing: "1px" }}>
@@ -229,7 +280,7 @@ function MapNode({ node }: { node: WorldNode }) {
           marginTop: stars ? "1px" : "4px",
           fontSize: "9px",
           fontWeight: 700,
-          color: isActive ? C.violet : C.textMuted,
+          color: isActive ? C.violet : mastery === "mastered" ? C.mint : C.textMuted,
           whiteSpace: "nowrap",
           maxWidth: "64px",
           textAlign: "center",
@@ -694,37 +745,64 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
 
 export default function ChildMapPage() {
   const router = useRouter();
-  const [unlocked, setUnlocked] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState<"map" | "stats">("map");
-  const [session, setSession] = useState<SessionData | null>(null);
+  const [liveStatsData, setLiveStatsData] = useState<LiveStats | null>(null);
   const currentWorld = WORLDS.find((w) => w.status === "current") ?? WORLDS[0];
 
-  // Try to restore session silently
+  // Auth check — cookie-based, consistent with other child pages
   useEffect(() => {
-    async function tryRestore() {
+    if (!document.cookie.includes("wonderquest-child-session")) {
+      router.replace("/child");
+    } else {
+      setAuthChecked(true);
+    }
+  }, [router]);
+
+  // Fetch real stats when authenticated
+  useEffect(() => {
+    if (!authChecked) return;
+    async function fetchStats() {
       try {
-        const res = await fetch("/api/child/session", { method: "GET" });
+        const res = await fetch("/api/child/stats");
         if (res.ok) {
-          const data: SessionData = await res.json();
-          setSession(data);
-          setUnlocked(true);
+          const data: LiveStats = await res.json();
+          setLiveStatsData(data);
         }
       } catch {
-        // Stay on PIN gate
+        // fall back to zeroes — handled below
       }
     }
-    void tryRestore();
-  }, []);
+    void fetchStats();
+  }, [authChecked]);
 
   const liveStats = {
-    totalStars: session?.progression.totalPoints ?? STATS.totalStars,
-    nodesExplored: STATS.nodesExplored,
-    badgesEarned: session?.progression.badgeCount ?? STATS.badgesEarned,
-    dayStreak: STATS.dayStreak,
+    totalStars: liveStatsData?.totalPoints ?? STATS_FALLBACK.totalStars,
+    nodesExplored: liveStatsData?.masteredSkillsCount ?? STATS_FALLBACK.nodesExplored,
+    badgesEarned: liveStatsData?.badgeCount ?? STATS_FALLBACK.badgesEarned,
+    dayStreak: liveStatsData?.streakDays ?? STATS_FALLBACK.dayStreak,
   };
 
-  if (!unlocked) {
-    return <PinGate onUnlock={() => setUnlocked(true)} />;
+  const displayName = liveStatsData?.displayName ?? "Explorer";
+
+  if (!authChecked) {
+    return (
+      <AppFrame audience="kid" currentPath="/child">
+        <main style={{
+          minHeight: "100vh",
+          background: C.base,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'Nunito', 'Inter', sans-serif",
+        }}>
+          <div style={{ textAlign: "center", color: C.textSub }}>
+            <div style={{ fontSize: "48px", marginBottom: "12px" }}>🗺️</div>
+            <div style={{ fontSize: "18px", fontWeight: 900 }}>Loading your map…</div>
+          </div>
+        </main>
+      </AppFrame>
+    );
   }
 
   return (
@@ -800,7 +878,7 @@ export default function ChildMapPage() {
               marginLeft: "8px",
             }}
           >
-            🗺️ World Map
+            🗺️ {displayName}&rsquo;s Map
           </div>
 
           <div style={{ flex: 1 }} />
@@ -968,10 +1046,38 @@ export default function ChildMapPage() {
                   fontSize: "14px",
                   color: C.textSub,
                   fontWeight: 700,
-                  marginBottom: "24px",
+                  marginBottom: "16px",
                 }}
               >
-                See every world you've explored — and everything still ahead!
+                See every world you&rsquo;ve explored — and everything still ahead!
+              </div>
+
+              {/* Mastery legend */}
+              <div style={{
+                display: "flex",
+                gap: "16px",
+                marginBottom: "20px",
+                flexWrap: "wrap",
+              }}>
+                {[
+                  { color: C.gold, label: "Mastered (≥80%)", bg: C.goldDim },
+                  { color: C.violet, label: "In Progress (40–79%)", bg: C.violetDim },
+                  { color: C.panelBorder, label: "Not Started", bg: "#1a1060" },
+                ].map((item) => (
+                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div style={{
+                      width: "14px",
+                      height: "14px",
+                      borderRadius: "4px",
+                      border: `2px solid ${item.color}`,
+                      background: item.bg,
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: C.textMuted }}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               {WORLDS.map((world) => (

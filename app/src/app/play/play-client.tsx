@@ -1225,11 +1225,22 @@ function PlayClientInner() {
       setError("");
 
       try {
-        const response = await fetch("/api/play/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionMode }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        let response: Response;
+        try {
+          response = await fetch("/api/play/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionMode }),
+            signal: controller.signal,
+          });
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          const isTimeout = fetchErr instanceof Error && fetchErr.name === "AbortError";
+          throw new Error(isTimeout ? "Session request timed out. Please go back and try again." : "Network error starting session.");
+        }
+        clearTimeout(timeoutId);
 
         const payload = (await response.json()) as SessionPayload & { error?: string };
 

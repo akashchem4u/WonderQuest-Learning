@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppFrame } from "@/components/app-frame";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -9,9 +9,12 @@ const BASE    = "#100b2e";
 const SURFACE = "#161b22";
 const VIOLET  = "#9b72ff";
 const TEXT    = "#f0f6ff";
+const GOLD    = "#ffd166";
 const MUTED   = "rgba(240,246,255,0.5)";
 const BORDER  = "rgba(255,255,255,0.06)";
 const GREEN   = "#50e890";
+
+const LS_KEY = "wonderquest-quiet-hours";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +28,7 @@ type QuietHoursSettings = {
   playQuietStart: string;
   playQuietEnd: string;
   playQuietDays: DayId[];
+  blockDevice: boolean; // block child device during play quiet hours
 };
 
 // ─── Stub defaults ────────────────────────────────────────────────────────────
@@ -45,6 +49,7 @@ const DEFAULT_SETTINGS: QuietHoursSettings = {
   playQuietStart: "20:00",
   playQuietEnd: "07:00",
   playQuietDays: [...ALL_DAYS],
+  blockDevice: false,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -304,6 +309,19 @@ export default function ParentQuietHoursPage() {
   const [s, setS] = useState<QuietHoursSettings>({ ...DEFAULT_SETTINGS });
   const [saved, setSaved] = useState(false);
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<QuietHoursSettings>;
+        setS((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
   function update(patch: Partial<QuietHoursSettings>) {
     setS((prev) => ({ ...prev, ...patch }));
     setSaved(false);
@@ -317,6 +335,11 @@ export default function ParentQuietHoursPage() {
   }
 
   function handleSave() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(s));
+    } catch {
+      // localStorage unavailable — silent fail
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
@@ -561,6 +584,33 @@ export default function ParentQuietHoursPage() {
               </div>
             )}
 
+            {/* Block device toggle */}
+            {s.playQuietEnabled && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "14px 0",
+                  borderTop: `1px solid ${BORDER}`,
+                  marginTop: 10,
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: TEXT }}>
+                    Block device during quiet hours
+                  </div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                    Your child will see a lock screen instead of the app
+                  </div>
+                </div>
+                <Toggle
+                  checked={s.blockDevice}
+                  onChange={(v) => update({ blockDevice: v })}
+                />
+              </div>
+            )}
+
             {/* COPPA info box */}
             <div
               style={{
@@ -574,10 +624,67 @@ export default function ParentQuietHoursPage() {
                 marginBottom: 6,
               }}
             >
-              ℹ️ This only controls WonderQuest session starts — it's not a device-level lock. Your
+              ℹ️ This only controls WonderQuest session starts — it&#39;s not a device-level lock. Your
               child can still use other apps during quiet hours.
             </div>
           </div>
+
+          {/* ── Preview card ── */}
+          {s.playQuietEnabled && (
+            <div
+              style={{
+                background: "rgba(16,11,46,0.95)",
+                border: `1.5px solid rgba(155,114,255,0.25)`,
+                borderRadius: 16,
+                padding: "20px 22px",
+                marginBottom: 20,
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Decorative stars */}
+              <div style={{ position: "absolute", top: 10, right: 16, fontSize: 18, opacity: 0.3 }}>✨</div>
+              <div style={{ position: "absolute", top: 30, right: 40, fontSize: 10, opacity: 0.2 }}>★</div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: VIOLET, textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 12 }}>
+                Preview — What your child sees
+              </div>
+
+              {/* Mock lock screen */}
+              <div
+                style={{
+                  background: "linear-gradient(160deg, #0e0b2a 0%, #1a0f3c 100%)",
+                  border: `1px solid rgba(155,114,255,0.15)`,
+                  borderRadius: 12,
+                  padding: "24px 16px",
+                  textAlign: "center" as const,
+                }}
+              >
+                <div style={{ fontSize: 36, marginBottom: 8 }}>🌙</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, marginBottom: 6 }}>
+                  Rest time!
+                </div>
+                <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5, marginBottom: 14 }}>
+                  WonderQuest is taking a break right now.
+                  <br />Come back in the morning!
+                </div>
+                <div
+                  style={{
+                    display: "inline-block",
+                    background: "rgba(155,114,255,0.15)",
+                    border: `1px solid rgba(155,114,255,0.2)`,
+                    borderRadius: 20,
+                    padding: "5px 16px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: VIOLET,
+                  }}
+                >
+                  Quiet hours: {to12h(s.playQuietStart).hours}:{to12h(s.playQuietStart).minutes} {to12h(s.playQuietStart).ampm} – {to12h(s.playQuietEnd).hours}:{to12h(s.playQuietEnd).minutes} {to12h(s.playQuietEnd).ampm}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Save button ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 4 }}>
@@ -602,6 +709,9 @@ export default function ParentQuietHoursPage() {
             {saved && (
               <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>✓ Saved!</span>
             )}
+          </div>
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 10 }}>
+            Settings are saved to this device. Backend sync coming soon.
           </div>
         </div>
       </div>

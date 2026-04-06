@@ -18,7 +18,7 @@ const TEXT     = "#f0f6ff";
 const MUTED    = "#8b949e";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = "profile" | "notifications" | "security" | "danger";
+type Tab = "profile" | "children" | "notifications" | "security" | "danger";
 
 type RelationshipLabel = "Parent" | "Guardian" | "Grandparent" | "Caregiver";
 
@@ -111,6 +111,14 @@ export default function ParentAccountPage() {
   // Danger zone confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteChecked, setDeleteChecked] = useState(false);
+
+  // PIN reset modal (child)
+  const [pinResetChildId,   setPinResetChildId]   = useState<string | null>(null);
+  const [pinResetChildName, setPinResetChildName] = useState("");
+  const [pinResetValue,     setPinResetValue]     = useState("");
+  const [pinResetSaving,    setPinResetSaving]    = useState(false);
+  const [pinResetError,     setPinResetError]     = useState<string | null>(null);
+  const [pinResetSuccess,   setPinResetSuccess]   = useState(false);
 
   // ── Fetch session on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -214,6 +222,46 @@ export default function ParentAccountPage() {
     } finally {
       setPinSaving(false);
     }
+  }
+
+  // ── Reset child PIN ───────────────────────────────────────────────────────
+  async function submitResetChildPin() {
+    if (!/^\d{4}$/.test(pinResetValue)) {
+      setPinResetError("PIN must be exactly 4 digits.");
+      return;
+    }
+    setPinResetSaving(true);
+    setPinResetError(null);
+    try {
+      const res = await fetch("/api/parent/reset-child-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId: pinResetChildId, newPin: pinResetValue }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Reset failed.");
+      }
+      setPinResetSuccess(true);
+      setTimeout(() => {
+        setPinResetChildId(null);
+        setPinResetValue("");
+        setPinResetSuccess(false);
+        setPinResetError(null);
+      }, 1800);
+    } catch (err) {
+      setPinResetError(err instanceof Error ? err.message : "Reset failed.");
+    } finally {
+      setPinResetSaving(false);
+    }
+  }
+
+  function openPinResetModal(childId: string, childName: string) {
+    setPinResetChildId(childId);
+    setPinResetChildName(childName);
+    setPinResetValue("");
+    setPinResetError(null);
+    setPinResetSuccess(false);
   }
 
   // ── Shared card styles ────────────────────────────────────────────────────
@@ -332,6 +380,7 @@ export default function ParentAccountPage() {
         {/* Tab bar */}
         <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
           <button style={tabBtnStyle(tab === "profile")}       onClick={() => setTab("profile")}>Profile</button>
+          <button style={tabBtnStyle(tab === "children")}      onClick={() => setTab("children")}>Children</button>
           <button style={tabBtnStyle(tab === "notifications")} onClick={() => setTab("notifications")}>Notifications</button>
           <button style={tabBtnStyle(tab === "security")}      onClick={() => setTab("security")}>Security</button>
           <button style={tabBtnStyle(tab === "danger")}        onClick={() => setTab("danger")}>Danger Zone</button>
@@ -359,6 +408,32 @@ export default function ParentAccountPage() {
                 borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 16,
               }}>{profileError}</div>
             )}
+
+            {/* Account Info card */}
+            <div style={cardStyle}>
+              <div style={cardHead}>Account info</div>
+              <div style={{ ...rowStyle }}>
+                <span style={labelStyle}>Email / username</span>
+                <span style={valStyle}>@{guardian?.username ?? "—"}</span>
+              </div>
+              <div style={{ ...rowStyle }}>
+                <span style={labelStyle}>Display name</span>
+                <span style={valStyle}>{guardian?.displayName ?? "—"}</span>
+              </div>
+              <div style={{ ...rowStyle, borderBottom: "none" }}>
+                <span style={labelStyle}>Session</span>
+                <a
+                  href="/api/parent/logout"
+                  style={{
+                    fontSize: 12, fontWeight: 700, color: RED, textDecoration: "none",
+                    background: "rgba(248,81,73,0.08)", border: `1.5px solid rgba(248,81,73,0.3)`,
+                    borderRadius: 8, padding: "5px 14px",
+                  }}
+                >
+                  Sign out
+                </a>
+              </div>
+            </div>
 
             {/* Profile card */}
             <div style={cardStyle}>
@@ -455,70 +530,117 @@ export default function ParentAccountPage() {
               </div>
             </div>
 
-            {/* Children card */}
-            <div style={cardStyle}>
-              <div style={cardHead}>Linked children</div>
+          </div>
+        )}
 
-              {loadingSession ? (
-                <div style={{ fontSize: 14, color: MUTED, padding: "8px 0" }}>Loading children...</div>
-              ) : linkedChildren.length === 0 ? (
-                <div style={{ fontSize: 14, color: MUTED, padding: "8px 0" }}>
+        {/* ── Children Tab ── */}
+        {tab === "children" && (
+          <div>
+            {loadingSession ? (
+              <div style={{ fontSize: 14, color: MUTED, padding: "16px 0" }}>Loading children...</div>
+            ) : linkedChildren.length === 0 ? (
+              <div style={cardStyle}>
+                <div style={{ fontSize: 14, color: MUTED }}>
                   No children linked yet.{" "}
-                  <a href="/parent" style={{ color: VIOLET, fontWeight: 700 }}>Go to dashboard →</a>
+                  <a href="/parent/link" style={{ color: VIOLET, fontWeight: 700 }}>Link a child account →</a>
                 </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {linkedChildren.map((child, i) => (
-                    <div
-                      key={child.id}
+              </div>
+            ) : (
+              linkedChildren.map((child) => (
+                <div key={child.id} style={{ ...cardStyle }}>
+                  {/* Child header */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 14,
+                      background: "rgba(155,114,255,0.15)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 26, flexShrink: 0,
+                      border: `1.5px solid rgba(155,114,255,0.3)`,
+                    }}>
+                      {avatarEmoji(child.avatarKey)}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: TEXT }}>{child.displayName}</div>
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>@{child.username}</div>
+                      <span style={{
+                        display: "inline-block", marginTop: 5,
+                        background: "rgba(155,114,255,0.14)", color: VIOLET,
+                        borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700,
+                      }}>{bandLabel(child.launchBandCode)}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                      <span style={{
+                        background: "rgba(255,209,102,0.12)", color: GOLD,
+                        borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
+                      }}>Level {child.currentLevel}</span>
+                      <span style={{
+                        background: "rgba(80,232,144,0.1)", color: "#50e890",
+                        borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
+                      }}>⭐ {child.totalPoints.toLocaleString()} pts</span>
+                    </div>
+                  </div>
+
+                  {/* Action row */}
+                  <div style={{
+                    display: "flex", gap: 10, flexWrap: "wrap",
+                    borderTop: `1px solid rgba(255,255,255,0.05)`, paddingTop: 12,
+                  }}>
+                    <button
+                      onClick={() => openPinResetModal(child.id, child.displayName)}
                       style={{
-                        display: "flex", alignItems: "center", gap: 14, padding: "12px 0",
-                        borderBottom: i < linkedChildren.length - 1
-                          ? `1px solid rgba(255,255,255,0.05)` : "none",
+                        padding: "8px 16px",
+                        background: "rgba(155,114,255,0.12)",
+                        border: `1.5px solid rgba(155,114,255,0.3)`,
+                        borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        color: VIOLET, cursor: "pointer", fontFamily: "system-ui",
                       }}
                     >
-                      <div style={{
-                        width: 44, height: 44, borderRadius: 12,
-                        background: "rgba(155,114,255,0.15)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 22, flexShrink: 0,
-                        border: `1.5px solid rgba(155,114,255,0.3)`,
-                      }}>
-                        {avatarEmoji(child.avatarKey)}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: TEXT }}>{child.displayName}</div>
-                        <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>@{child.username}</div>
-                        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                          <span style={{
-                            background: "rgba(155,114,255,0.14)", color: VIOLET,
-                            borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
-                          }}>{bandLabel(child.launchBandCode)}</span>
-                          <span style={{
-                            background: "rgba(255,209,102,0.12)", color: GOLD,
-                            borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
-                          }}>Level {child.currentLevel}</span>
-                          <span style={{
-                            background: "rgba(34,197,94,0.1)", color: MINT,
-                            borderRadius: 20, padding: "2px 9px", fontSize: 11, fontWeight: 700,
-                          }}>⭐ {child.totalPoints.toLocaleString()} pts</span>
-                        </div>
-                      </div>
-                      <a
-                        href={`/parent?studentId=${child.id}`}
-                        style={{ fontSize: 12, color: VIOLET, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}
-                      >
-                        Dashboard →
-                      </a>
-                    </div>
-                  ))}
+                      🔑 Reset PIN
+                    </button>
+                    <a
+                      href="/parent"
+                      style={{
+                        padding: "8px 16px",
+                        background: "rgba(255,209,102,0.08)",
+                        border: `1.5px solid rgba(255,209,102,0.25)`,
+                        borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        color: GOLD, textDecoration: "none", fontFamily: "system-ui",
+                      }}
+                    >
+                      ✏️ Edit band (coming soon)
+                    </a>
+                    <a
+                      href={`/parent?studentId=${child.id}`}
+                      style={{
+                        padding: "8px 16px",
+                        background: "rgba(255,255,255,0.05)",
+                        border: `1.5px solid rgba(255,255,255,0.1)`,
+                        borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        color: MUTED, textDecoration: "none", fontFamily: "system-ui",
+                      }}
+                    >
+                      Dashboard →
+                    </a>
+                  </div>
                 </div>
-              )}
+              ))
+            )}
 
-              <div style={{ marginTop: 14, borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
-                <a href="/parent" style={{ fontSize: 13, color: VIOLET, fontWeight: 700, textDecoration: "none" }}>
-                  Manage children →
-                </a>
+            {/* Add another child CTA */}
+            <div style={{
+              marginTop: 8, padding: "16px 20px",
+              background: "rgba(155,114,255,0.06)",
+              border: `1.5px dashed rgba(155,114,255,0.3)`,
+              borderRadius: 14, textAlign: "center" as const,
+            }}>
+              <a
+                href="/parent/link"
+                style={{ fontSize: 14, fontWeight: 700, color: VIOLET, textDecoration: "none" }}
+              >
+                + Add another child
+              </a>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
+                Link an additional child account to your guardian profile
               </div>
             </div>
           </div>
@@ -842,6 +964,114 @@ export default function ParentAccountPage() {
           </div>
         )}
       </div>
+
+      {/* ── PIN Reset Modal ── */}
+      {pinResetChildId && (
+        <div
+          onClick={() => { setPinResetChildId(null); setPinResetValue(""); }}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: SURFACE,
+              border: `1px solid rgba(155,114,255,0.3)`,
+              borderRadius: 18,
+              padding: "28px 28px 24px",
+              width: 320,
+              maxWidth: "90vw",
+            }}
+          >
+            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT, marginBottom: 6 }}>
+              Reset PIN — {pinResetChildName}
+            </div>
+            <div style={{ fontSize: 13, color: MUTED, marginBottom: 20, lineHeight: 1.5 }}>
+              Enter a new 4-digit PIN for {pinResetChildName}&#39;s account. They will use this to sign in on their device.
+            </div>
+
+            {pinResetSuccess ? (
+              <div style={{
+                background: "rgba(80,232,144,0.1)", border: `1px solid rgba(80,232,144,0.3)`,
+                borderRadius: 10, padding: "12px 14px", fontSize: 14, fontWeight: 700,
+                color: "#50e890", textAlign: "center" as const,
+              }}>
+                PIN updated!
+              </div>
+            ) : (
+              <>
+                {pinResetError && (
+                  <div style={{
+                    background: "rgba(248,81,73,0.1)", border: `1px solid rgba(248,81,73,0.3)`,
+                    borderRadius: 10, padding: "10px 14px", fontSize: 13, color: RED, marginBottom: 14,
+                  }}>{pinResetError}</div>
+                )}
+
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase" as const, letterSpacing: "0.07em", marginBottom: 8 }}>
+                    New 4-digit PIN
+                  </div>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    value={pinResetValue}
+                    autoFocus
+                    onChange={(e) => setPinResetValue(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    onKeyDown={(e) => e.key === "Enter" && submitResetChildPin()}
+                    style={{
+                      width: "100%",
+                      background: SURFACE2,
+                      border: `1.5px solid rgba(155,114,255,0.4)`,
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      fontSize: 20,
+                      fontWeight: 800,
+                      color: TEXT,
+                      fontFamily: "system-ui",
+                      outline: "none",
+                      letterSpacing: "0.35em",
+                      boxSizing: "border-box" as const,
+                      textAlign: "center" as const,
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    disabled={pinResetSaving || pinResetValue.length !== 4}
+                    onClick={submitResetChildPin}
+                    style={{
+                      flex: 1, padding: 12,
+                      background: pinResetValue.length === 4 ? VIOLET : "rgba(155,114,255,0.3)",
+                      color: "#fff", border: "none", borderRadius: 10,
+                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui",
+                      cursor: pinResetValue.length === 4 ? "pointer" : "not-allowed",
+                      opacity: pinResetSaving ? 0.6 : 1,
+                    }}
+                  >
+                    {pinResetSaving ? "Saving..." : "Set PIN"}
+                  </button>
+                  <button
+                    onClick={() => { setPinResetChildId(null); setPinResetValue(""); setPinResetError(null); }}
+                    style={{
+                      flex: 1, padding: 12, background: "rgba(255,255,255,0.06)",
+                      color: MUTED, border: "none", borderRadius: 10,
+                      fontSize: 14, fontWeight: 700, fontFamily: "system-ui", cursor: "pointer",
+                    }}
+                  >Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </AppFrame>
   );
 }
