@@ -33,6 +33,20 @@ interface SkillRow {
   sessionCount: number;
 }
 
+interface RawSkillApiRow {
+  skillCode?: string;
+  displayName?: string;
+  skillName?: string;
+  subjectCode?: string;
+  masteryScore?: number;
+  masteryPct?: number;
+  attempts?: number;
+}
+
+interface ChildRecord {
+  displayName?: string;
+}
+
 interface HeatmapDay {
   dayLabel: string;
   date: string;
@@ -50,6 +64,21 @@ interface ReportData {
     starsEarned: number;
     streakDays: number;
   };
+}
+
+function getPracticeTip(skillName: string): string {
+  const name = skillName.toLowerCase();
+  if (name.includes("count")) return "Count objects around the house together — toys, steps, snacks!";
+  if (name.includes("letter") || name.includes("phonics")) return "Point out letters on cereal boxes or street signs.";
+  if (name.includes("shape")) return "Find shapes in everyday objects — circle plates, square windows.";
+  if (name.includes("add") || name.includes("sum")) return "Use fingers or small objects to add numbers while cooking.";
+  if (name.includes("subtract") || name.includes("minus")) return "Play 'take away' games with snacks or toys.";
+  if (name.includes("read") || name.includes("word")) return "Read 2 pages of a book together before bedtime.";
+  if (name.includes("pattern")) return "Make patterns with colored blocks or crayons.";
+  if (name.includes("time") || name.includes("clock")) return "Point to the clock and say the time together twice a day.";
+  if (name.includes("fraction")) return "Cut a sandwich in half and talk about halves and quarters.";
+  if (name.includes("multiply")) return "Count by 2s or 5s while walking or doing chores.";
+  return `Spend 5 minutes practicing ${name} together today.`;
 }
 
 function getChildId(): string | null {
@@ -88,28 +117,49 @@ export default function PracticePlannerPage() {
   const [checkedDays, setCheckedDays] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    async function loadReport() {
+    async function loadSkills() {
       try {
         setLoading(true);
-        const childId = getChildId();
+        const childId =
+          getChildId() ??
+          (typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("studentId") ??
+              localStorage.getItem("wq_active_student_id")
+            : null);
         if (!childId) {
           setError("No child profile linked. Please sign in again.");
           return;
         }
-        const res = await fetch(`/api/parent/report?studentId=${encodeURIComponent(childId)}&weekOffset=0`);
+        const res = await fetch(`/api/parent/skills?childId=${encodeURIComponent(childId)}`);
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? `Failed to load report (${res.status})`);
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? `Failed to load skills (${res.status})`);
         }
-        const data = await res.json();
-        setReport(data.report as ReportData);
+        const data = (await res.json()) as { child?: ChildRecord; skills?: RawSkillApiRow[] };
+        const rawSkills: RawSkillApiRow[] = data.skills ?? [];
+        const childFirstNameFromApi = data.child?.displayName?.split(" ")[0] ?? "your child";
+        const mapped: SkillRow[] = rawSkills.map((s) => ({
+          skillId: s.skillCode ?? "",
+          skillName: s.displayName ?? s.skillName ?? s.skillCode ?? "Unknown skill",
+          subject: s.subjectCode ?? "",
+          masteryPct: Math.round(s.masteryScore ?? s.masteryPct ?? 0),
+          sessionCount: s.attempts ?? 0,
+        }));
+        setReport({
+          displayName: childFirstNameFromApi,
+          launchBandCode: "",
+          weekLabel: "This week",
+          skills: mapped,
+          heatmap: [],
+          stats: { sessions: 0, starsEarned: 0, streakDays: 0 },
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
         setLoading(false);
       }
     }
-    loadReport();
+    loadSkills();
   }, []);
 
   const practiceSkills: SkillRow[] = report
@@ -305,7 +355,7 @@ export default function PracticePlannerPage() {
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 3 }}>{skill.skillName}</div>
                             <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
-                              Practice this skill at home — short everyday moments make a big difference for {childFirstName}.
+                              {getPracticeTip(skill.skillName)}
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
                               <div style={{ flex: 1, height: 4, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
