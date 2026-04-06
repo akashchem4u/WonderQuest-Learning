@@ -24,25 +24,80 @@ type Trophy = {
   isNew?: boolean;
 };
 
-type SessionData = {
-  student: { displayName: string; avatarKey: string; launchBandCode: string };
-  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+type ApiTrophy = {
+  id: string;
+  trophyKey: string;
+  displayName: string;
+  description: string;
+  iconKey: string | null;
+  tier: string;
+  earned: boolean;
+  earnedAt: string | null;
 };
 
-// ─── Trophy catalog ───────────────────────────────────────────────────────────
+// ─── API trophy conversion ─────────────────────────────────────────────────────
+
+function getTrophyEmoji(tier: string, key: string): string {
+  if (key.includes("mastery") || key.includes("champion") || tier === "gold") return "🏆";
+  if (key.includes("ocean")) return "🌊";
+  if (key.includes("crystal")) return "💎";
+  if (key.includes("volcano")) return "🌋";
+  if (key.includes("peak") || key.includes("frozen")) return "🏔️";
+  if (tier === "silver") return "🥈";
+  if (tier === "bronze") return "🥉";
+  return "🏆";
+}
+
+function getTrophyTier(t: string): TrophyTier {
+  if (t === "gold") return "gold";
+  if (t === "silver") return "silver";
+  if (t === "bronze") return "bronze";
+  return "locked";
+}
+
+function formatEarnedAt(earnedAt: string | null): string | undefined {
+  if (!earnedAt) return undefined;
+  const d = new Date(earnedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString();
+}
+
+function apiTrophiesToTrophyList(apiTrophies: ApiTrophy[]): Trophy[] {
+  return apiTrophies.map((at, i) => ({
+    id: at.id,
+    emoji: getTrophyEmoji(at.tier, at.trophyKey),
+    name: at.displayName,
+    world: "Any World",
+    worldEmoji: "🌍",
+    description: at.description ?? "",
+    earnCondition: "Keep playing to unlock",
+    tier: at.earned ? getTrophyTier(at.tier) : "locked",
+    earned: at.earned,
+    earnedDate: formatEarnedAt(at.earnedAt),
+    isNew: at.earned && i === 0,
+  }));
+}
+
+// ─── Trophy catalog (fallback/placeholder) ───────────────────────────────────
 
 const TROPHY_CATALOG: Omit<Trophy, "earned" | "earnedDate" | "isNew">[] = [
   { id: "forest-champion", emoji: "🏆", name: "Forest Champion", world: "Enchanted Forest", worldEmoji: "🌲", description: "You explored every single node in the Enchanted Forest! That takes skill, bravery, and a love of adventure!", earnCondition: "Complete the Enchanted Forest world", tier: "gold", stars: 30 },
   { id: "ocean-hero", emoji: "🌊", name: "Ocean Hero", world: "Ocean Kingdom", worldEmoji: "🌊", description: "You dove deep and conquered the Ocean Kingdom — every wave, every challenge!", earnCondition: "Complete the Ocean Kingdom world", tier: "gold", stars: 28 },
   { id: "boss-slayer", emoji: "🥉", name: "Boss Slayer", world: "Any World", worldEmoji: "⚔️", description: "You defeated your very first legendary boss node!", earnCondition: "Defeat a boss node", tier: "bronze" },
-  { id: "star-collector", emoji: "🥉", name: "Star Collector", world: "Any World", worldEmoji: "⭐", description: "You gathered 25 stars across your adventures — shining bright!", earnCondition: "Collect 25 stars", tier: "bronze" },
-  { id: "crystal-master", emoji: "💎", name: "Crystal Master", world: "Crystal Caverns", worldEmoji: "💎", description: "The Crystal Caverns await a true master. Will it be you?", earnCondition: "Complete Crystal Caverns", tier: "locked" },
-  { id: "volcano-victor", emoji: "🌋", name: "Volcano Victor", world: "Volcano Island", worldEmoji: "🌋", description: "Conquer the Volcano Island and prove you can handle the heat!", earnCondition: "Complete Volcano Island", tier: "locked" },
-  { id: "peak-climber", emoji: "🏔️", name: "Peak Climber", world: "Frozen Peaks", worldEmoji: "🏔️", description: "Scale the Frozen Peaks to earn this icy achievement.", earnCondition: "Complete Frozen Peaks", tier: "locked" },
-  { id: "world-champion", emoji: "🥇", name: "World Champion", world: "All Worlds", worldEmoji: "🌍", description: "Complete 3 full worlds to claim the legendary World Champion trophy!", earnCondition: "Complete 3 worlds", tier: "locked" },
 ];
 
-function buildTrophyList(trophyCount: number): Trophy[] {
+const MYSTERY_TROPHIES: Omit<Trophy, "earned" | "earnedDate" | "isNew">[] = [
+  { id: "mystery-trophy-1", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
+  { id: "mystery-trophy-2", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
+  { id: "mystery-trophy-3", emoji: "❓", name: "???", world: "???", worldEmoji: "🌍", description: "Keep playing to unlock this trophy", earnCondition: "Keep playing to unlock", tier: "locked" },
+];
+
+function buildPlaceholderTrophyList(trophyCount: number): Trophy[] {
   return TROPHY_CATALOG.map((t, i) => {
     if (i < trophyCount) {
       return { ...t, earned: true, earnedDate: i === trophyCount - 1 ? "Today" : "Recently", isNew: i === trophyCount - 1 };
@@ -95,6 +150,7 @@ function TrophyCard({ trophy, animDelay, onSelect }: { trophy: Trophy; animDelay
       onKeyDown={(e) => e.key === "Enter" && !locked && onSelect(trophy)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      title={locked ? "Keep playing to unlock" : undefined}
       style={{
         background: locked ? "#1a1060" : tierBg(trophy.tier),
         border: `2px ${locked ? "dashed" : "solid"} ${tierBorder(trophy.tier)}`,
@@ -115,13 +171,13 @@ function TrophyCard({ trophy, animDelay, onSelect }: { trophy: Trophy; animDelay
         </div>
       )}
       <div style={{ fontSize: 40, marginBottom: 8, display: "block", animation: locked ? "none" : `trophy-bob 3s ${animDelay ?? 0}s ease-in-out infinite` }}>
-        {trophy.emoji}
+        {locked ? "🔒" : trophy.emoji}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 900, color: tierNameColor(trophy.tier), marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+      <div style={{ fontSize: 13, fontWeight: 900, color: locked ? "#5a4080" : tierNameColor(trophy.tier), marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
         {trophy.name}
       </div>
-      <div style={{ fontSize: 10, color: locked ? "#3a2a60" : "#6a5030", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-        {trophy.earned ? trophy.earnedDate : trophy.earnCondition}
+      <div style={{ fontSize: 10, color: locked ? "#3a2a60" : "#50e890", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+        {trophy.earned ? (trophy.earnedDate ? `Earned ${trophy.earnedDate}` : "Earned!") : trophy.earnCondition}
       </div>
     </div>
   );
@@ -167,7 +223,7 @@ function TrophyDetailModal({ trophy, onClose }: { trophy: Trophy; onClose: () =>
           </div>
         )}
         {trophy.earnedDate && (
-          <div style={{ fontSize: 12, color: "#5a4080", marginBottom: 20, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+          <div style={{ fontSize: 12, color: "#50e890", fontWeight: 900, marginBottom: 20, fontFamily: "'Nunito', system-ui, sans-serif" }}>
             Earned {trophy.earnedDate}
           </div>
         )}
@@ -187,19 +243,50 @@ function TrophyDetailModal({ trophy, onClose }: { trophy: Trophy; onClose: () =>
 export default function ChildTrophiesPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [selectedTrophy, setSelectedTrophy] = useState<Trophy | null>(null);
-  const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [trophies, setTrophies] = useState<Trophy[]>([]);
+  const [trophiesComingSoon, setTrophiesComingSoon] = useState(false);
+  const [noSession, setNoSession] = useState(false);
 
   useEffect(() => {
-    fetch("/api/child/session")
-      .then((r) => r.json())
-      .then((data: SessionData) => setSession(data))
-      .catch(() => {})
+    // Fetch from the trophies API endpoint
+    fetch("/api/child/trophies")
+      .then((r) => {
+        if (r.status === 401) {
+          setNoSession(true);
+          return null;
+        }
+        return r.json();
+      })
+      .then((data: { trophies: ApiTrophy[] } | null) => {
+        if (!data) return;
+        if (data.trophies.length === 0) {
+          // No trophy_definitions table or no trophies defined — show placeholder
+          setTrophiesComingSoon(true);
+          setTrophies(MYSTERY_TROPHIES.map((t) => ({ ...t, earned: false })));
+        } else {
+          setTrophies(apiTrophiesToTrophyList(data.trophies));
+        }
+      })
+      .catch(() => {
+        // Fallback: try session for trophy count
+        fetch("/api/child/session")
+          .then((r) => {
+            if (r.status === 401) {
+              setNoSession(true);
+              return null;
+            }
+            return r.json();
+          })
+          .then((data: { progression?: { trophyCount?: number } } | null) => {
+            if (!data) return;
+            const trophyCount = data.progression?.trophyCount ?? 0;
+            setTrophies(buildPlaceholderTrophyList(trophyCount));
+          })
+          .catch(() => {});
+      })
       .finally(() => setLoading(false));
   }, []);
-
-  const trophyCount = session?.progression.trophyCount ?? 0;
-  const trophies = buildTrophyList(trophyCount);
 
   const earnedCount = trophies.filter((t) => t.earned).length;
   const totalCount = trophies.length;
@@ -231,16 +318,50 @@ export default function ChildTrophiesPage() {
             Trophy Wall 🏆
           </div>
           <div style={{ fontSize: 14, color: "#b8a0e8", fontWeight: 700, marginBottom: 20, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-            {loading ? "Loading..." : `${earnedCount} earned · ${totalCount - earnedCount} more waiting for you!`}
+            {loading ? "Loading..." : noSession ? "Sign in to see your trophies!" : `${earnedCount} earned · ${totalCount - earnedCount} more waiting for you!`}
           </div>
         </div>
 
-        {loading ? (
+        {noSession ? (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 8, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+              Sign in to see your trophies
+            </div>
+            <div style={{ fontSize: 14, color: "#9b8ec4", marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+              You need to be signed in to view your trophy wall.
+            </div>
+            <Link
+              href="/child"
+              style={{ background: "#9b72ff", color: "#fff", borderRadius: 12, padding: "12px 28px", fontWeight: 900, fontSize: 15, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif" }}
+            >
+              Sign In
+            </Link>
+          </div>
+        ) : loading ? (
           <div style={{ textAlign: "center", padding: "80px 0", color: "#9b8ec4", fontSize: 18, fontWeight: 700 }}>
             Loading your trophies...
           </div>
         ) : (
           <>
+            {trophiesComingSoon && (
+              <div style={{
+                margin: "0 16px 20px",
+                background: "linear-gradient(135deg, #1a1060, #2a1880)",
+                border: "2px solid #9b72ff",
+                borderRadius: 16,
+                padding: "16px 24px",
+                textAlign: "center",
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#9b72ff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                  🎉 Trophies Coming Soon!
+                </div>
+                <div style={{ fontSize: 13, color: "#9b8ec4", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                  Complete worlds and challenges — trophies will appear here as you earn them!
+                </div>
+              </div>
+            )}
+
             {/* Trophy Shelf */}
             <div style={{ padding: "0 16px", marginBottom: 28 }}>
               <div
@@ -295,7 +416,7 @@ export default function ChildTrophiesPage() {
                     <div style={{ fontSize: 10, color: "#5a4080", fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
                       {trophy.worldEmoji} {trophy.world}
                     </div>
-                    <div style={{ fontSize: 10, color: "#4a3070", fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                    <div style={{ fontSize: 10, color: "#50e890", fontWeight: 900, fontFamily: "'Nunito', system-ui, sans-serif" }}>
                       {trophy.earnedDate}
                     </div>
                   </div>
@@ -312,6 +433,13 @@ export default function ChildTrophiesPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* Show placeholder if shelf is empty */}
+                {shelfTrophies.length === 0 && lockedShelf.length === 0 && (
+                  <div style={{ color: "#3a2a60", fontWeight: 700, fontSize: 14, fontFamily: "'Nunito', system-ui, sans-serif", padding: "20px 0" }}>
+                    Earn trophies to display them here!
+                  </div>
+                )}
               </div>
             </div>
 

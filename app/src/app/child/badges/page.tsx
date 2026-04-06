@@ -20,35 +20,90 @@ type Badge = {
   progress?: { current: number; total: number; color: string; label: string };
 };
 
-type SessionData = {
-  student: { displayName: string; avatarKey: string; launchBandCode: string };
-  progression: { totalPoints: number; currentLevel: number; badgeCount: number; trophyCount: number };
+type ApiBadge = {
+  id: string;
+  badgeKey: string;
+  displayName: string;
+  description: string;
+  iconKey: string | null;
+  earned: boolean;
+  earnedAt: string | null;
 };
 
-// ─── All badges catalog ───────────────────────────────────────────────────────
+// ─── Badge emoji mapping ───────────────────────────────────────────────────────
+
+function getBadgeEmoji(key: string): string {
+  if (key.includes("streak")) return "🔥";
+  if (key.includes("perfect")) return "💯";
+  if (key.includes("first")) return "🌟";
+  if (key.includes("speed")) return "⚡";
+  if (key.includes("mastery") || key.includes("master")) return "🏆";
+  if (key.includes("count") || key.includes("session")) return "📚";
+  if (key.includes("math")) return "🔢";
+  if (key.includes("read") || key.includes("letter")) return "📖";
+  return "🏅";
+}
+
+function getBadgeCategory(key: string): BadgeCategory {
+  if (key.includes("streak")) return "streak";
+  if (key.includes("star")) return "star";
+  if (key.includes("world") || key.includes("forest") || key.includes("ocean") || key.includes("island")) return "world";
+  if (key.includes("special") || key.includes("night") || key.includes("butterfly")) return "special";
+  return "quest";
+}
+
+function formatEarnedAt(earnedAt: string | null): string | undefined {
+  if (!earnedAt) return undefined;
+  const d = new Date(earnedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString();
+}
+
+// ─── All badges catalog (fallback/placeholder) ───────────────────────────────
 
 const ALL_BADGES_CATALOG: Omit<Badge, "earned" | "earnedDate" | "isNew">[] = [
-  { id: "first-quest", emoji: "🌟", name: "First Quest!", description: "Completed your very first quest", category: "quest" },
-  { id: "forest-explorer", emoji: "🌲", name: "Forest Explorer", description: "Completed the Enchanted Forest", category: "world" },
-  { id: "on-fire", emoji: "🔥", name: "On Fire!", description: "Reached a 5-day quest streak", category: "streak" },
-  { id: "star-collector", emoji: "⭐", name: "Star Collector", description: "Collect 50 stars", category: "star", progress: { current: 42, total: 50, color: "#ffd166", label: "42/50 stars so close!" } },
-  { id: "crystal-master", emoji: "💎", name: "Crystal Master", description: "Complete Crystal Caverns", category: "quest", progress: { current: 7, total: 12, color: "#50e890", label: "7/12 nodes · keep going!" } },
+  { id: "first-quest", emoji: "🌟", name: "First Quest!", description: "Complete your very first quest", category: "quest" },
+  { id: "forest-explorer", emoji: "🌲", name: "Forest Explorer", description: "Complete the Enchanted Forest", category: "world" },
+  { id: "on-fire", emoji: "🔥", name: "On Fire!", description: "Reach a 5-day quest streak", category: "streak" },
+  { id: "star-collector", emoji: "⭐", name: "Star Collector", description: "Collect 50 stars", category: "star" },
+  { id: "crystal-master", emoji: "💎", name: "Crystal Master", description: "Complete Crystal Caverns", category: "quest" },
   { id: "world-champion", emoji: "🏆", name: "World Champion", description: "Complete 3 worlds", category: "world" },
-  { id: "ten-day-streak", emoji: "🔟", name: "10-Day Streak", description: "Quest 10 days in a row", category: "streak" },
-  { id: "hundred-stars", emoji: "💯", name: "100 Stars!", description: "Collect 100 total stars", category: "star" },
-  { id: "butterfly-effect", emoji: "🦋", name: "Butterfly Effect", description: "Pick Flutter as your explorer", category: "special" },
-  { id: "dragon-tamer", emoji: "🐉", name: "Dragon Tamer", description: "Complete a boss node", category: "quest" },
-  { id: "rainbow-seeker", emoji: "🌈", name: "Rainbow Seeker", description: "Play in 3 different worlds in one day", category: "world" },
-  { id: "night-owl", emoji: "🌙", name: "Night Owl", description: "Complete a quest after 8pm", category: "special" },
-  { id: "speed-quester", emoji: "⚡", name: "Speed Quester", description: "Complete 5 quests in one day", category: "quest" },
-  { id: "ocean-hero", emoji: "🌊", name: "Ocean Hero", description: "Complete Ocean Kingdom", category: "world" },
-  { id: "grand-champion", emoji: "👑", name: "Grand Champion", description: "Earn every other badge!", category: "special" },
 ];
 
-function buildBadgeList(badgeCount: number): Badge[] {
+const MYSTERY_BADGES: Omit<Badge, "earned" | "earnedDate" | "isNew">[] = [
+  { id: "mystery-1", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
+  { id: "mystery-2", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
+  { id: "mystery-3", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
+  { id: "mystery-4", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
+  { id: "mystery-5", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
+  { id: "mystery-6", emoji: "❓", name: "???", description: "Keep playing to discover this badge", category: "special" },
+];
+
+function apiBadgesToBadgeList(apiBadges: ApiBadge[]): Badge[] {
+  return apiBadges.map((ab, i) => {
+    const key = ab.iconKey ?? ab.badgeKey;
+    return {
+      id: ab.id,
+      emoji: getBadgeEmoji(key),
+      name: ab.displayName,
+      description: ab.description ?? "",
+      category: getBadgeCategory(ab.badgeKey),
+      earned: ab.earned,
+      earnedDate: formatEarnedAt(ab.earnedAt),
+      isNew: ab.earned && i === 0,
+    };
+  });
+}
+
+function buildPlaceholderBadgeList(sessionBadgeCount: number): Badge[] {
   return ALL_BADGES_CATALOG.map((b, i) => {
-    if (i < badgeCount) {
-      return { ...b, earned: true, earnedDate: i === badgeCount - 1 ? "today" : "recently", isNew: i === badgeCount - 1 };
+    if (i < sessionBadgeCount) {
+      return { ...b, earned: true, earnedDate: i === sessionBadgeCount - 1 ? "today" : "recently", isNew: i === sessionBadgeCount - 1 };
     }
     return { ...b, earned: false };
   });
@@ -59,6 +114,7 @@ function buildBadgeList(badgeCount: number): Badge[] {
 const BASE_BG = "#100b2e";
 const VIOLET = "#9b72ff";
 const MUTED = "#9b8ec4";
+const MINT = "#50e890";
 
 const CAT_STYLES: Record<BadgeCategory, { bg: string; border: string }> = {
   quest: { bg: "linear-gradient(135deg, #1a1060, #2a1880)", border: "#9b72ff" },
@@ -87,6 +143,7 @@ function BadgeCard({ badge, onClick, animDelay }: { badge: Badge; onClick?: () =
   return (
     <div
       onClick={badge.earned || isClose ? onClick : undefined}
+      title={!badge.earned && !isClose ? "Keep playing to unlock" : undefined}
       style={{
         background: badge.earned ? cat.bg : "#1a1060",
         border: `2px solid ${badge.earned ? cat.border : isClose ? cat.border : "#2a2060"}`,
@@ -131,9 +188,10 @@ function BadgeCard({ badge, onClick, animDelay }: { badge: Badge; onClick?: () =
           marginBottom: 10,
           display: "block",
           animation: badge.earned ? `badgeFloat 3s ease-in-out ${animDelay ?? 0}s infinite` : undefined,
+          filter: !badge.earned && !isClose ? "grayscale(1)" : undefined,
         }}
       >
-        {badge.emoji}
+        {!badge.earned && !isClose ? "🔒" : badge.emoji}
       </span>
       <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
         {badge.name}
@@ -141,9 +199,9 @@ function BadgeCard({ badge, onClick, animDelay }: { badge: Badge; onClick?: () =
       <div style={{ fontSize: 11, color: "#7a6090", fontWeight: 700, lineHeight: 1.3, fontFamily: "'Nunito', system-ui, sans-serif" }}>
         {badge.description}
       </div>
-      {badge.earnedDate && (
-        <div style={{ fontSize: 10, color: "#5a4080", marginTop: 6, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-          Earned {badge.earnedDate}
+      {badge.earned && (
+        <div style={{ fontSize: 11, color: MINT, fontWeight: 900, marginTop: 6, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+          {badge.earnedDate ? `Earned ${badge.earnedDate}` : "Earned!"}
         </div>
       )}
       {badge.progress && (
@@ -172,19 +230,50 @@ function BadgeCard({ badge, onClick, animDelay }: { badge: Badge; onClick?: () =
 export default function ChildBadgesPage() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
-  const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [allBadges, setAllBadges] = useState<Badge[]>([]);
+  const [badgesComingSoon, setBadgesComingSoon] = useState(false);
+  const [noSession, setNoSession] = useState(false);
 
   useEffect(() => {
-    fetch("/api/child/session")
-      .then((r) => r.json())
-      .then((data: SessionData) => setSession(data))
-      .catch(() => {})
+    // Fetch from the badges API endpoint
+    fetch("/api/child/badges")
+      .then((r) => {
+        if (r.status === 401) {
+          setNoSession(true);
+          return null;
+        }
+        return r.json();
+      })
+      .then((data: { badges: ApiBadge[] } | null) => {
+        if (!data) return;
+        if (data.badges.length === 0) {
+          // No badge_definitions table or no badges defined — show placeholder
+          setBadgesComingSoon(true);
+          setAllBadges(MYSTERY_BADGES.map((b) => ({ ...b, earned: false })));
+        } else {
+          setAllBadges(apiBadgesToBadgeList(data.badges));
+        }
+      })
+      .catch(() => {
+        // Fallback: try session for badge count
+        fetch("/api/child/session")
+          .then((r) => {
+            if (r.status === 401) {
+              setNoSession(true);
+              return null;
+            }
+            return r.json();
+          })
+          .then((data: { progression?: { badgeCount?: number } } | null) => {
+            if (!data) return;
+            const badgeCount = data.progression?.badgeCount ?? 0;
+            setAllBadges(buildPlaceholderBadgeList(badgeCount));
+          })
+          .catch(() => {});
+      })
       .finally(() => setLoading(false));
   }, []);
-
-  const badgeCount = session?.progression.badgeCount ?? 0;
-  const allBadges = buildBadgeList(badgeCount);
 
   const earned = allBadges.filter((b) => b.earned);
   const totalCount = allBadges.length;
@@ -243,20 +332,61 @@ export default function ChildBadgesPage() {
                 ← Home
               </Link>
               <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", fontFamily: "'Nunito', system-ui, sans-serif" }}>
-                My Badge Collection 🏅
+                🏅 Your Badges
               </div>
             </div>
-            <div style={{ background: "#1a1060", border: `2px solid ${VIOLET}`, borderRadius: 12, padding: "8px 16px", fontSize: 14, fontWeight: 700, color: VIOLET, fontFamily: "'Nunito', system-ui, sans-serif" }}>
-              {loading ? "Loading..." : `${earned.length} earned · ${totalCount - earned.length} to unlock`}
-            </div>
+            {!noSession && (
+              <div style={{ background: "#1a1060", border: `2px solid ${VIOLET}`, borderRadius: 12, padding: "8px 16px", fontSize: 14, fontWeight: 700, color: VIOLET, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                {loading ? "Loading..." : `${earned.length} earned · ${totalCount - earned.length} to unlock`}
+              </div>
+            )}
           </div>
 
-          {loading ? (
+          {/* Subtitle */}
+          <div style={{ fontSize: 14, color: MUTED, fontWeight: 700, marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+            Collect them all by playing quests!
+          </div>
+
+          {noSession ? (
+            <div style={{ textAlign: "center", padding: "80px 0" }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🏅</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 8, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                Sign in to see your badges
+              </div>
+              <div style={{ fontSize: 14, color: MUTED, marginBottom: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                You need to be signed in to view your badge collection.
+              </div>
+              <Link
+                href="/child"
+                style={{ background: VIOLET, color: "#fff", borderRadius: 12, padding: "12px 28px", fontWeight: 900, fontSize: 15, textDecoration: "none", fontFamily: "'Nunito', system-ui, sans-serif" }}
+              >
+                Sign In
+              </Link>
+            </div>
+          ) : loading ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: MUTED, fontSize: 18, fontWeight: 700 }}>
               Loading your badges...
             </div>
           ) : (
             <>
+              {badgesComingSoon && (
+                <div style={{
+                  background: "linear-gradient(135deg, #1a1060, #2a1880)",
+                  border: `2px solid ${VIOLET}`,
+                  borderRadius: 16,
+                  padding: "16px 24px",
+                  marginBottom: 24,
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: VIOLET, marginBottom: 4, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                    🎉 Badges Coming Soon!
+                  </div>
+                  <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                    Keep playing quests — badges will appear here as you earn them!
+                  </div>
+                </div>
+              )}
+
               {/* Category filter */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
                 {filterBtns.map(({ key, label }) => (
@@ -311,7 +441,7 @@ export default function ChildBadgesPage() {
               }}
             >
               <span style={{ fontSize: 80, display: "block", marginBottom: 14, animation: "badgeFloat 3s ease-in-out infinite" }}>
-                {selectedBadge.emoji}
+                {selectedBadge.earned ? selectedBadge.emoji : "🔒"}
               </span>
               <div
                 style={{
@@ -336,7 +466,7 @@ export default function ChildBadgesPage() {
                 {selectedBadge.description}
               </div>
               {selectedBadge.earned && selectedBadge.earnedDate && (
-                <div style={{ fontSize: 12, color: "#5a4080", fontWeight: 700, marginBottom: 16, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+                <div style={{ fontSize: 12, color: MINT, fontWeight: 900, marginBottom: 16, fontFamily: "'Nunito', system-ui, sans-serif" }}>
                   Earned {selectedBadge.earnedDate}
                 </div>
               )}
