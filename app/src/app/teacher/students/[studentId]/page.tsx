@@ -1,23 +1,30 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { useParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard, StatTile } from "@/components/ui";
-import { hasTeacherAccess, isTeacherAccessConfigured } from "@/lib/teacher-access";
-import TeacherGate from "@/app/teacher/teacher-gate";
-
-export const dynamic = "force-dynamic";
 
 // ---------------------------------------------------------------------------
-// Colour palette (design spec)
+// Colour palette
 // ---------------------------------------------------------------------------
-const MINT = "#58e8c1";
-const VIOLET = "#9b72ff";
-const GOLD = "#ffd166";
-const CORAL = "#ff7b6b";
+const C = {
+  base: "#100b2e",
+  blue: "#38bdf8",
+  violet: "#9b72ff",
+  mint: "#22c55e",
+  gold: "#ffd166",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  text: "#f0f6ff",
+  muted: "#8b949e",
+  surface: "#161b22",
+  border: "rgba(255,255,255,0.06)",
+};
 
 // ---------------------------------------------------------------------------
-// Stub data helpers
+// Stub data
 // ---------------------------------------------------------------------------
-
 type SkillStatus = "strong" | "building" | "started";
 
 type SkillEntry = {
@@ -38,174 +45,59 @@ type WeekDay = {
   count: number;
 };
 
-type StudentStub = {
-  name: string;
-  initials: string;
-  avatarColor: string;
-  band: string;
-  bandColor: string;
-  activeSince: string;
-  starsThisWeek: number;
-  sessionsThisWeek: number;
-  streak: number;
-  strongSkillsCount: number;
-  inQueue: boolean;
-  queueNote: string;
-  skills: SkillEntry[];
-  sessions: SessionEntry[];
-  weekActivity: WeekDay[];
-  bandInfo: string;
-  interventionHistory: string[];
-  recommendedActions: string[];
-  teacherNote: string;
+const STUDENT = {
+  name: "Maya",
+  initials: "M",
+  avatarColor: "#9b72ff",
+  band: "P2 \u00b7 G2\u20133",
+  bandBg: "rgba(155,114,255,0.15)",
+  bandColor: "#9b72ff",
+  activeSince: "Sep 2025",
+  starsThisWeek: 18,
+  sessionsThisWeek: 5,
+  streak: 3,
+  skillsInQueue: 2,
+  inQueue: true,
+  queueNote: "Confidence floor 3\u00d7 on Fractions: Division",
+  skills: [
+    { name: "Fractions: Addition", score: 51, status: "building" as SkillStatus },
+    { name: "Fractions: Division", score: 32, status: "started" as SkillStatus },
+    { name: "Place Value: Tens", score: 74, status: "strong" as SkillStatus },
+    { name: "Addition: Regrouping", score: 68, status: "strong" as SkillStatus },
+    { name: "Multiplication: \u00d72\u2013\u00d75", score: 44, status: "building" as SkillStatus },
+  ] as SkillEntry[],
+  sessions: [
+    { date: "Today", skill: "Fractions: Addition", stars: 4, perfect: false },
+    { date: "Today", skill: "Fractions: Division", stars: 2, perfect: false },
+    { date: "Yesterday", skill: "Multiplication: \u00d72\u2013\u00d75", stars: 6, perfect: true },
+    { date: "Mon", skill: "Place Value: Tens", stars: 5, perfect: false },
+  ] as SessionEntry[],
+  weekActivity: [
+    { label: "Mon", count: 1 },
+    { label: "Tue", count: 2 },
+    { label: "Wed", count: 0 },
+    { label: "Thu", count: 0 },
+    { label: "Fri", count: 2 },
+  ] as WeekDay[],
+  teacherNote:
+    "Spoke with Maya on Wednesday. She mentioned fractions are confusing \u2014 specifically the equal parts idea. Suggested visual model (pizza slices). Will monitor progress over next 2 sessions before escalating.",
 };
 
-function deriveStudentStub(studentId: string): StudentStub {
-  // Use a simple hash of the id to deterministically vary stub data
-  const hash = [...studentId].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const variant = hash % 3;
-
-  const variants: StudentStub[] = [
-    {
-      name: "Jordan",
-      initials: "J",
-      avatarColor: "#475569",
-      band: "P2 · G2–3",
-      bandColor: MINT,
-      activeSince: "Sep 2025",
-      starsThisWeek: 14,
-      sessionsThisWeek: 4,
-      streak: 1,
-      strongSkillsCount: 2,
-      inQueue: true,
-      queueNote: "Confidence floor 3× on Fractions: Division",
-      skills: [
-        { name: "Fractions: Addition", score: 51, status: "building" },
-        { name: "Fractions: Division", score: 32, status: "started" },
-        { name: "Place Value: Tens", score: 74, status: "strong" },
-        { name: "Addition: Regrouping", score: 68, status: "strong" },
-        { name: "Multiplication: ×2–×5", score: 44, status: "building" },
-      ],
-      sessions: [
-        { date: "Today", skill: "Fractions: Addition", stars: 4, perfect: false },
-        { date: "Today", skill: "Fractions: Division", stars: 2, perfect: false },
-        { date: "Yesterday", skill: "Multiplication: ×2–×5", stars: 6, perfect: true },
-        { date: "Mon", skill: "Place Value: Tens", stars: 5, perfect: false },
-      ],
-      weekActivity: [
-        { label: "Mon", count: 1 },
-        { label: "Tue", count: 2 },
-        { label: "Wed", count: 0 },
-        { label: "Thu", count: 0 },
-        { label: "Fri", count: 1 },
-      ],
-      bandInfo: "P2 maps to Grade 2–3 curriculum level. Focus areas: fractions foundations, two-digit operations.",
-      interventionHistory: [
-        "Week of Mar 17 — Added to support queue: confidence floor on Fractions: Division",
-        "Week of Mar 10 — Teacher note: introduced visual model for equal parts",
-      ],
-      recommendedActions: [
-        "Review Fractions: Division over next 2 sessions",
-        "Consider visual manipulatives (fraction tiles) for equal-parts concept",
-        "Monitor Multiplication: ×2–×5 progress before advancing",
-      ],
-      teacherNote:
-        "Spoke with Jordan on Wednesday. They mentioned fractions are confusing — specifically the equal parts idea. Suggested visual model (pizza slices). Will monitor progress over next 2 sessions before escalating.",
-    },
-    {
-      name: "Bella",
-      initials: "B",
-      avatarColor: CORAL,
-      band: "P3 · G4–5",
-      bandColor: CORAL,
-      activeSince: "Sep 2025",
-      starsThisWeek: 52,
-      sessionsThisWeek: 14,
-      streak: 7,
-      strongSkillsCount: 5,
-      inQueue: false,
-      queueNote: "",
-      skills: [
-        { name: "Long Division", score: 88, status: "strong" },
-        { name: "Fractions: Comparing", score: 82, status: "strong" },
-        { name: "Word Problems: Multi-step", score: 74, status: "strong" },
-        { name: "Algebra: Basic expressions", score: 62, status: "building" },
-        { name: "Geometry: Perimeter", score: 55, status: "building" },
-      ],
-      sessions: [
-        { date: "Today", skill: "Long Division", stars: 10, perfect: true },
-        { date: "Today", skill: "Algebra: Basic expressions", stars: 8, perfect: false },
-        { date: "Yesterday", skill: "Fractions: Comparing", stars: 12, perfect: true },
-        { date: "Tue", skill: "Word Problems: Multi-step", stars: 9, perfect: false },
-      ],
-      weekActivity: [
-        { label: "Mon", count: 2 },
-        { label: "Tue", count: 3 },
-        { label: "Wed", count: 2 },
-        { label: "Thu", count: 3 },
-        { label: "Fri", count: 2 },
-      ],
-      bandInfo: "P3 maps to Grade 4–5 curriculum level. High performer — approaching advanced topics.",
-      interventionHistory: [
-        "No support queue entries. On track across all skills.",
-      ],
-      recommendedActions: [
-        "Consider unlocking P4 challenge content",
-        "Algebra: Basic expressions needs 2–3 more strong sessions before advancing",
-      ],
-      teacherNote: "Bella is excelling across all skill areas. Recommend discussing stretch goals next check-in.",
-    },
-    {
-      name: "Marcus",
-      initials: "M",
-      avatarColor: VIOLET,
-      band: "P1 · G1–2",
-      bandColor: VIOLET,
-      activeSince: "Oct 2025",
-      starsThisWeek: 8,
-      sessionsThisWeek: 2,
-      streak: 0,
-      strongSkillsCount: 1,
-      inQueue: true,
-      queueNote: "Low session frequency — below 3 sessions per week for 2 weeks",
-      skills: [
-        { name: "Counting: to 100", score: 78, status: "strong" },
-        { name: "Addition: Single digit", score: 45, status: "building" },
-        { name: "Subtraction: Basics", score: 28, status: "started" },
-        { name: "Shapes: 2D recognition", score: 33, status: "started" },
-      ],
-      sessions: [
-        { date: "Yesterday", skill: "Addition: Single digit", stars: 4, perfect: false },
-        { date: "Mon", skill: "Counting: to 100", stars: 5, perfect: false },
-      ],
-      weekActivity: [
-        { label: "Mon", count: 1 },
-        { label: "Tue", count: 0 },
-        { label: "Wed", count: 0 },
-        { label: "Thu", count: 1 },
-        { label: "Fri", count: 0 },
-      ],
-      bandInfo: "P1 maps to Grade 1–2 curriculum level. Building foundational number sense.",
-      interventionHistory: [
-        "Week of Mar 24 — Flagged for low engagement (< 3 sessions / week)",
-        "Week of Mar 17 — Same low-frequency flag",
-      ],
-      recommendedActions: [
-        "Check in with family about device access or schedule barriers",
-        "Prioritise short daily sessions over longer infrequent ones",
-        "Subtraction: Basics — may benefit from physical manipulatives at home",
-      ],
-      teacherNote: "Marcus is quiet in class but engaged when one-on-one. Worth a brief check-in to see if anything is blocking home practice.",
-    },
-  ];
-
-  return variants[variant];
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function skillBarColor(status: SkillStatus): string {
+  if (status === "strong") return C.mint;
+  if (status === "building") return C.blue;
+  return "rgba(255,255,255,0.2)";
 }
 
-function skillBarColor(status: SkillStatus): string {
-  if (status === "strong") return MINT;
-  if (status === "building") return VIOLET;
-  return "#4a4a6a";
+function skillBadgeStyle(status: SkillStatus): React.CSSProperties {
+  if (status === "strong")
+    return { background: "rgba(34,197,94,0.15)", color: C.mint, border: "1px solid rgba(34,197,94,0.35)" };
+  if (status === "building")
+    return { background: "rgba(56,189,248,0.15)", color: C.blue, border: "1px solid rgba(56,189,248,0.35)" };
+  return { background: "rgba(255,255,255,0.07)", color: C.muted, border: "1px solid rgba(255,255,255,0.12)" };
 }
 
 function skillStatusLabel(status: SkillStatus): string {
@@ -214,103 +106,148 @@ function skillStatusLabel(status: SkillStatus): string {
   return "Just started";
 }
 
-function skillStatusStyle(status: SkillStatus): React.CSSProperties {
-  if (status === "strong") {
-    return { background: `${MINT}22`, color: MINT, border: `1px solid ${MINT}44` };
-  }
-  if (status === "building") {
-    return { background: `${VIOLET}22`, color: VIOLET, border: `1px solid ${VIOLET}44` };
-  }
-  return { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.15)" };
-}
-
 function weekBarMax(days: WeekDay[]): number {
   return Math.max(...days.map((d) => d.count), 1);
 }
 
 // ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+function Card({
+  title,
+  titleRight,
+  children,
+}: {
+  title: string;
+  titleRight?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: "16px 18px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            textTransform: "uppercase" as const,
+            letterSpacing: "0.1em",
+            color: C.muted,
+          }}
+        >
+          {title}
+        </span>
+        {titleRight}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+export default function TeacherStudentDetailPage() {
+  const params = useParams();
+  const studentId = params?.studentId as string | undefined;
 
-type PageProps = {
-  params: Promise<{ studentId: string }>;
-};
+  const student = STUDENT;
+  const maxWeek = weekBarMax(student.weekActivity);
 
-export default async function TeacherStudentDetailPage({ params }: PageProps) {
-  const { studentId } = await params;
-
-  const configured = isTeacherAccessConfigured();
-  const hasAccess = await hasTeacherAccess();
-
-  if (!hasAccess) {
-    return (
-      <AppFrame audience="teacher" currentPath="/teacher">
-        <TeacherGate configured={configured} />
-      </AppFrame>
-    );
-  }
-
-  const student = deriveStudentStub(studentId);
-  const maxWeekCount = weekBarMax(student.weekActivity);
+  const [noteExpanded, setNoteExpanded] = useState(false);
 
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
       <div
         style={{
           minHeight: "100vh",
-          background: "#100b2e",
-          padding: "0 0 48px",
+          background: C.base,
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          color: C.text,
+          paddingBottom: 60,
         }}
       >
-        {/* ── Page header ─────────────────────────────────────────────── */}
+        {/* ── Topbar ── */}
         <div
           style={{
-            padding: "28px 32px 24px",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            borderBottom: `1px solid ${C.border}`,
+            padding: "14px 28px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
           }}
         >
           <Link
-            href="/teacher"
+            href="/teacher/class"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "rgba(255,255,255,0.5)",
+              fontSize: 13,
+              fontWeight: 700,
+              color: C.muted,
               textDecoration: "none",
-              marginBottom: "16px",
-              letterSpacing: "0.01em",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
             }}
           >
-            ← Classroom Board
+            {"← Class"}
           </Link>
-
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              color: MINT,
-              marginBottom: "6px",
-            }}
-          >
-            Student Detail
+          <span style={{ color: C.border, fontSize: 16 }}>/</span>
+          <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>
+            {student.name}
+          </span>
+          <div style={{ marginLeft: "auto" }}>
+            <Link
+              href="/teacher/command"
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.blue,
+                textDecoration: "none",
+                padding: "6px 14px",
+                border: `1px solid rgba(56,189,248,0.3)`,
+                borderRadius: 8,
+              }}
+            >
+              Command Center
+            </Link>
           </div>
+        </div>
 
-          {/* Name + avatar row */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+        {/* ── Student profile header ── */}
+        <div
+          style={{
+            margin: "22px 28px 0",
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 14,
+            padding: "20px 22px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+            {/* Avatar */}
             <div
               style={{
-                width: "52px",
-                height: "52px",
+                width: 52,
+                height: 52,
                 borderRadius: "50%",
                 background: student.avatarColor,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "22px",
+                fontSize: 22,
                 fontWeight: 900,
                 color: "#fff",
                 flexShrink: 0,
@@ -318,476 +255,298 @@ export default async function TeacherStudentDetailPage({ params }: PageProps) {
             >
               {student.initials}
             </div>
-            <div>
-              <h1
-                style={{
-                  fontSize: "28px",
-                  fontWeight: 900,
-                  color: "#fff",
-                  lineHeight: 1.15,
-                  marginBottom: "4px",
-                }}
-              >
+
+            {/* Info */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>
                 {student.name}
-              </h1>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <span
                   style={{
-                    fontSize: "11px",
+                    fontSize: 11,
                     fontWeight: 700,
                     padding: "3px 10px",
-                    borderRadius: "14px",
-                    background: `${student.bandColor}22`,
+                    borderRadius: 14,
+                    background: student.bandBg,
                     color: student.bandColor,
                     border: `1px solid ${student.bandColor}44`,
                   }}
                 >
                   {student.band}
                 </span>
-                <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
+                <span style={{ fontSize: 11, color: C.muted }}>
                   Active since {student.activeSince}
                 </span>
               </div>
+
+              {/* Stats row */}
+              <div style={{ display: "flex", gap: 18, flexWrap: "wrap" as const }}>
+                {[
+                  { val: `\u2b50 ${student.starsThisWeek}`, lbl: "Stars this week" },
+                  { val: String(student.sessionsThisWeek), lbl: "Sessions this week" },
+                  { val: student.streak > 0 ? `\uD83D\uDD25 ${student.streak}d` : "\u2014", lbl: "Current streak" },
+                  { val: String(student.skillsInQueue), lbl: "Skills in queue" },
+                ].map(({ val, lbl }) => (
+                  <div key={lbl} style={{ textAlign: "center" as const }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>{val}</div>
+                    <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Queue flag */}
+              {student.inQueue && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "9px 14px",
+                    background: "rgba(245,158,11,0.12)",
+                    border: "1px solid rgba(245,158,11,0.35)",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: C.amber,
+                  }}
+                >
+                  <span>⚠️</span>
+                  <span>In support queue — {student.queueNote}</span>
+                  <Link
+                    href={`/teacher/interventions/${studentId ?? "s-maya"}`}
+                    style={{
+                      marginLeft: "auto",
+                      padding: "5px 12px",
+                      background: C.amber,
+                      color: "#100b2e",
+                      borderRadius: 8,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textDecoration: "none",
+                      whiteSpace: "nowrap" as const,
+                    }}
+                  >
+                    View queue item
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* 4 stat tiles */}
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            <StatTile
-              label="Stars this week"
-              value={`⭐ ${student.starsThisWeek}`}
-            />
-            <StatTile
-              label="Sessions this week"
-              value={String(student.sessionsThisWeek)}
-            />
-            <StatTile
-              label="Current streak"
-              value={student.streak > 0 ? `🔥 ${student.streak}d` : "—"}
-            />
-            <StatTile
-              label="Strong skills"
-              value={String(student.strongSkillsCount)}
-            />
-          </div>
-
-          {/* Queue flag */}
-          {student.inQueue ? (
-            <div
-              style={{
-                marginTop: "16px",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 14px",
-                borderRadius: "10px",
-                background: `${GOLD}18`,
-                border: `1px solid ${GOLD}44`,
-                fontSize: "12px",
-                fontWeight: 700,
-                color: GOLD,
-              }}
-            >
-              <span>⚠️</span>
-              <span>In support queue — {student.queueNote}</span>
-              <Link
-                href="/teacher"
-                style={{
-                  marginLeft: "auto",
-                  padding: "5px 12px",
-                  background: GOLD,
-                  color: "#100b2e",
-                  borderRadius: "8px",
-                  fontSize: "11px",
-                  fontWeight: 800,
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                View queue item
-              </Link>
-            </div>
-          ) : null}
         </div>
 
-        {/* ── Body ────────────────────────────────────────────────────── */}
+        {/* ── Content grid ── */}
         <div
           style={{
-            padding: "24px 32px",
+            margin: "18px 28px 0",
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
+            gap: 16,
           }}
         >
-          {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
-
-          {/* Skills mastery */}
-          <ShellCard title="Skills Mastery" eyebrow="Curriculum progress">
-            <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-              {student.skills.map((skill, i) => (
-                <div
-                  key={skill.name}
+          {/* Skills */}
+          <Card title="Skills" titleRight={
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, cursor: "pointer" }}>
+              View all
+            </span>
+          }>
+            {student.skills.map((skill, i) => (
+              <div
+                key={skill.name}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 0",
+                  borderBottom: i < student.skills.length - 1 ? `1px solid ${C.border}` : "none",
+                }}
+              >
+                <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "9px 0",
-                    borderBottom:
-                      i < student.skills.length - 1
-                        ? "1px solid rgba(255,255,255,0.06)"
-                        : "none",
+                    flex: 1,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: C.text,
                   }}
                 >
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      color: "rgba(255,255,255,0.85)",
-                    }}
-                  >
-                    {skill.name}
-                  </span>
-                  {/* Mastery bar */}
+                  {skill.name}
+                </span>
+                <div
+                  style={{
+                    width: 60,
+                    height: 5,
+                    background: "rgba(255,255,255,0.08)",
+                    borderRadius: 3,
+                    overflow: "hidden",
+                    flexShrink: 0,
+                  }}
+                >
                   <div
                     style={{
-                      width: "64px",
-                      height: "5px",
-                      background: "rgba(255,255,255,0.1)",
-                      borderRadius: "3px",
-                      overflow: "hidden",
-                      flexShrink: 0,
+                      width: `${skill.score}%`,
+                      height: "100%",
+                      background: skillBarColor(skill.status),
+                      borderRadius: 3,
                     }}
-                  >
-                    <div
-                      style={{
-                        width: `${skill.score}%`,
-                        height: "100%",
-                        background: skillBarColor(skill.status),
-                        borderRadius: "3px",
-                      }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "rgba(255,255,255,0.4)",
-                      minWidth: "28px",
-                      textAlign: "right",
-                    }}
-                  >
-                    {skill.score}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      padding: "2px 7px",
-                      borderRadius: "6px",
-                      whiteSpace: "nowrap",
-                      ...skillStatusStyle(skill.status),
-                    }}
-                  >
-                    {skillStatusLabel(skill.status)}
-                  </span>
+                  />
                 </div>
-              ))}
-            </div>
-          </ShellCard>
+                <span style={{ fontSize: 11, color: C.muted, minWidth: 28, textAlign: "right" as const }}>
+                  {skill.score}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    whiteSpace: "nowrap" as const,
+                    ...skillBadgeStyle(skill.status),
+                  }}
+                >
+                  {skillStatusLabel(skill.status)}
+                </span>
+              </div>
+            ))}
+          </Card>
 
           {/* Recent sessions */}
-          <ShellCard title="Recent Sessions" eyebrow="Session log">
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {student.sessions.map((sess, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "7px 0",
-                    borderBottom:
-                      i < student.sessions.length - 1
-                        ? "1px solid rgba(255,255,255,0.06)"
-                        : "none",
-                    fontSize: "12px",
-                  }}
-                >
+          <Card title="Recent Sessions">
+            {student.sessions.map((sess, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "7px 0",
+                  borderBottom: i < student.sessions.length - 1 ? `1px solid ${C.border}` : "none",
+                  fontSize: 11,
+                }}
+              >
+                <span style={{ minWidth: 68, color: C.muted, fontWeight: 600 }}>{sess.date}</span>
+                <span style={{ flex: 1, fontWeight: 700, color: C.text }}>{sess.skill}</span>
+                <span style={{ color: C.muted }}>\u2b50 {sess.stars}</span>
+                {sess.perfect && (
                   <span
                     style={{
-                      minWidth: "70px",
-                      color: "rgba(255,255,255,0.4)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {sess.date}
-                  </span>
-                  <span
-                    style={{
-                      flex: 1,
+                      fontSize: 10,
                       fontWeight: 700,
-                      color: "rgba(255,255,255,0.8)",
+                      padding: "1px 6px",
+                      borderRadius: 6,
+                      background: "rgba(255,209,102,0.15)",
+                      color: C.gold,
+                      border: "1px solid rgba(255,209,102,0.35)",
                     }}
                   >
-                    {sess.skill}
+                    \u2b50 Perfect
                   </span>
-                  <span style={{ color: "rgba(255,255,255,0.5)" }}>
-                    ⭐ {sess.stars}
-                  </span>
-                  {sess.perfect ? (
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        padding: "1px 6px",
-                        borderRadius: "6px",
-                        background: `${GOLD}22`,
-                        color: GOLD,
-                        border: `1px solid ${GOLD}44`,
-                      }}
-                    >
-                      ⭐ Perfect
-                    </span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </ShellCard>
+                )}
+              </div>
+            ))}
+          </Card>
 
-          {/* Sessions this week (activity bars) */}
-          <ShellCard title="Sessions This Week" eyebrow="Weekly activity">
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {/* Sessions this week */}
+          <Card title="Sessions This Week">
+            <div style={{ display: "flex", flexDirection: "column" as const, gap: 7 }}>
               {student.weekActivity.map((day) => (
-                <div
-                  key={day.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      color: "rgba(255,255,255,0.4)",
-                      minWidth: "28px",
-                    }}
-                  >
+                <div key={day.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, minWidth: 28 }}>
                     {day.label}
                   </span>
                   <div
                     style={{
                       flex: 1,
-                      height: "6px",
-                      background: "rgba(255,255,255,0.08)",
-                      borderRadius: "3px",
+                      height: 6,
+                      background: "rgba(255,255,255,0.07)",
+                      borderRadius: 3,
                       overflow: "hidden",
                     }}
                   >
-                    {day.count > 0 ? (
+                    {day.count > 0 && (
                       <div
                         style={{
-                          width: `${(day.count / maxWeekCount) * 100}%`,
+                          width: `${(day.count / maxWeek) * 100}%`,
                           height: "100%",
-                          background: VIOLET,
-                          borderRadius: "3px",
+                          background: C.blue,
+                          borderRadius: 3,
                         }}
                       />
-                    ) : null}
+                    )}
                   </div>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "rgba(255,255,255,0.4)",
-                      minWidth: "20px",
-                      textAlign: "right",
-                    }}
-                  >
+                  <span style={{ fontSize: 10, color: C.muted, minWidth: 20, textAlign: "right" as const }}>
                     {day.count}
                   </span>
                 </div>
               ))}
             </div>
-          </ShellCard>
+          </Card>
 
-          {/* Support notes */}
-          <ShellCard title="Teacher Note" eyebrow="Private — not visible to family">
+          {/* Teacher note */}
+          <Card
+            title="Teacher Note"
+            titleRight={
+              <button
+                onClick={() => setNoteExpanded(!noteExpanded)}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: C.blue,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+                type="button"
+              >
+                Edit
+              </button>
+            }
+          >
             <div
               style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "10px",
-                padding: "12px 14px",
-                fontSize: "13px",
-                color: "rgba(255,255,255,0.65)",
+                background: "rgba(56,189,248,0.06)",
+                border: "1px solid rgba(56,189,248,0.18)",
+                borderRadius: 8,
+                padding: "10px 12px",
+                fontSize: 12,
+                color: "rgba(240,246,255,0.75)",
                 lineHeight: 1.6,
-                marginBottom: "12px",
+                marginBottom: 12,
               }}
             >
               <div
                 style={{
-                  fontSize: "10px",
+                  fontSize: 10,
                   fontWeight: 800,
-                  textTransform: "uppercase",
+                  textTransform: "uppercase" as const,
                   letterSpacing: "0.08em",
-                  color: VIOLET,
-                  marginBottom: "6px",
+                  color: C.blue,
+                  marginBottom: 6,
                 }}
               >
-                Private note — visible to teacher only
+                Private note \u2014 visible to teacher only
               </div>
               {student.teacherNote}
             </div>
             <button
+              type="button"
               style={{
                 width: "100%",
-                padding: "10px",
+                padding: "9px",
                 background: "transparent",
-                border: `1.5px solid ${VIOLET}66`,
-                borderRadius: "10px",
-                fontSize: "12px",
+                border: `1.5px solid rgba(56,189,248,0.3)`,
+                borderRadius: 10,
+                fontSize: 12,
                 fontWeight: 700,
-                color: VIOLET,
+                color: C.blue,
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
-              type="button"
             >
               + Add / edit note
             </button>
-          </ShellCard>
-
-          {/* ── RIGHT COLUMN ────────────────────────────────────────── */}
-
-          {/* Band info card */}
-          <ShellCard title="Band Information" eyebrow="Curriculum band">
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                alignItems: "flex-start",
-                marginBottom: "12px",
-              }}
-            >
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
-                  background: `${student.bandColor}22`,
-                  border: `1.5px solid ${student.bandColor}55`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "18px",
-                  fontWeight: 900,
-                  color: student.bandColor,
-                  flexShrink: 0,
-                }}
-              >
-                {student.band.split(" ")[0]}
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: "15px",
-                    fontWeight: 800,
-                    color: "#fff",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {student.band}
-                </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "rgba(255,255,255,0.55)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {student.bandInfo}
-                </div>
-              </div>
-            </div>
-          </ShellCard>
-
-          {/* Intervention history */}
-          <ShellCard title="Intervention History" eyebrow="Support record">
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {student.interventionHistory.map((entry, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: CORAL,
-                      marginTop: "6px",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      color: "rgba(255,255,255,0.6)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {entry}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </ShellCard>
-
-          {/* Recommended actions */}
-          <ShellCard title="Recommended Actions" eyebrow="Next steps">
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {student.recommendedActions.map((action, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    alignItems: "flex-start",
-                    padding: "10px 12px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      color: MINT,
-                      flexShrink: 0,
-                      marginTop: "1px",
-                    }}
-                  >
-                    {i + 1}.
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      color: "rgba(255,255,255,0.7)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {action}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </ShellCard>
+          </Card>
         </div>
       </div>
     </AppFrame>
